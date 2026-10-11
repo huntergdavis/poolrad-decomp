@@ -560,4 +560,53 @@ typedef struct {
 pr_rec_ecl_handler_status pr_rec_ecl_op_load_files(pr_rec_ecl_loader_state *state,
                                                    const pr_rec_ecl_load_files_io *io);
 
+/* ---- Issue #102: COMPARE, its two flag helpers, and the IF family ----------
+ * Flags: the six bytes [0x6F78..0x6F7D] (state->cmp_flags[0..5]) in the order
+ * equal, not equal, below, above, below or equal, above or equal, each 0 or 1.
+ *
+ * Word compare: GAME.OVR 0x08DBE, unit 0x25 + 0x18EB (bytes +0x18EB..+0x1950),
+ * public entry 16 (run-time stub 0x2B:0x70), 102 bytes, 36 instructions,
+ * `retf 4`: two word arguments, a at [bp+8] (pushed first), b at [bp+6].
+ * Clears the six flags through 0xAF8:0x16A8 with (DS:0x6F78, 6, 0) (FillChar's
+ * argument shape), then six unsigned compares of a against b set the flags.
+ * Every instruction translated; the runtime call was decoded independently
+ * by the PM (loaded image 0x0C628: rep stosb, retf 8), i.e. FillChar.
+ *
+ * String compare: GAME.OVR 0x08CE8, unit 0x25 + 0x1815 (bytes +0x1815..+0x18EA),
+ * public entry 15 (run-time stub 0x2B:0x6B), 214 bytes, 86 instructions,
+ * `retf 8`: two far Pascal-string arguments, a at [bp+0xA] (pushed first) and
+ * b at [bp+6], each copied to a 255-byte local (0xAF8:0x0B25), the flags
+ * cleared as above, then six calls of the runtime string compare 0xAF8:0x0C10
+ * on (a, b) with the same six conditions. The copies happen before the
+ * clear, so an input aliasing the flag bytes is compared as on entry. The
+ * runtime routines were decoded independently by the PM (0x0BAA5: copy
+ * min(length, limit) bytes, retf 0xA; 0x0BB90: compare lengths, repe cmpsb
+ * unsigned, then length compare), which is the ordering implemented here.
+ *
+ * COMPARE (opcode 0x03): GAME.OVR 0x00E6C, unit 0x1c + 0x0126 (bytes +0x0126..
+ * +0x01A2), 125 bytes, 50 instructions, `retf`, dispatcher case +0x2F59.
+ * loader(2); if tag[1] >= 0x80 or tag[2] >= 0x80: string compare of string
+ * buffer 1 (DS:0x70C8) against buffer 2 (DS:0x71C8) as they stand after the
+ * load (a lone string operand fills buffer 1 whatever its position; buffer 2
+ * then holds what an earlier instruction left); else word compare of slot
+ * value 1 against slot value 2. Model (loader core and function 21). In the
+ * word path a slot value that is not OK (HOOK from a class-1 load hook,
+ * UNRESOLVED, BOUNDS) returns at once: slot 2 is not read after a slot-1
+ * stop and the six flags are left as they were.
+ *
+ * IF family (opcodes 0x16..0x1B): GAME.OVR 0x01898, unit 0x1c + 0x0B52 (bytes
+ * +0x0B52..+0x0BC7), 118 bytes, 41 instructions, `retf`, dispatcher ladder
+ * +0x3009..+0x3022. PC += 1; the opcode selects the flag byte (0x16 -> equal
+ * ... 0x1B -> above or equal); when that byte is 0 the next statement is
+ * skipped through unit 0x25 entry 22 (0x2B:0x8E): the opcode at the PC is
+ * fetched into the latch [0x6F7F], its prefetch count (function 2) drives
+ * one loader call, or the PC advances by one when the count is 0. Model
+ * (function 2 core and the loader core). */
+pr_rec_ecl_handler_status pr_rec_ecl_compare_words(pr_rec_ecl_loader_state *state, uint16_t a, uint16_t b);
+pr_rec_ecl_handler_status pr_rec_ecl_compare_strings(pr_rec_ecl_loader_state *state,
+                                                     const char *a, size_t a_len,
+                                                     const char *b, size_t b_len);
+pr_rec_ecl_handler_status pr_rec_ecl_op_compare(pr_rec_ecl_loader_state *state);
+pr_rec_ecl_handler_status pr_rec_ecl_op_if(pr_rec_ecl_loader_state *state);
+
 #endif

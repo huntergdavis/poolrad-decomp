@@ -99,6 +99,33 @@ the gameplay loop, that second call also runs the two resident routines `0xBA:0x
 `0xBA:0x0767` and clears `[0x4432]`. The next boundary is opcode `0x03` (`+0x0126`,
 COMPARE in the reference naming) at `0x9B18`, which also stops the pre-camp entry.
 
+## 3.4 After issue #102: COMPARE and the IF family on both routes
+
+With `pr_rec_ecl_op_compare` (opcode 0x03) and `pr_rec_ecl_op_if` (opcodes 0x16..0x1B)
+bound as well (FUNCTION_LEDGER.md section 1.19), one `pr_rec_ecl_run` call per entry gives:
+
+| mode | entry | address | steps | stop | run status | handler status | latch | handler | hooks mapped |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | ---: |
+| exact | 0 | `0x9914` | 1 | `0x991A` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 1 | `0x99EB` | 1 | `0x99EB` | UNMODELLED | OK | `0x12` | `+0x0A09` | 0 |
+| exact | 2 | `0x9A5E` | 6 | `0x9A7F` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 3 | `0x9A93` | 1 | `0x9A99` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 4 | `0x9AF2` | 7 | `0x9B1E` | HANDLER | HOOK | `0x03` | `+0x0126` | 0 |
+| continued (HOOK to OK) | 0 | `0x9914` | 10 | `0x9965` | UNMODELLED | OK | `0x2F` | `+0x0DEF` | 4 |
+| continued (HOOK to OK) | 1 | `0x99EB` | 1 | `0x99EB` | UNMODELLED | OK | `0x12` | `+0x0A09` | 0 |
+| continued (HOOK to OK) | 2 | `0x9A5E` | 8 | `0x9A85` | UNMODELLED | OK | `0x13` | `+0x0A9F` | 2 |
+| continued (HOOK to OK) | 3 | `0x9A93` | 4 | `0xAF49` | UNMODELLED | OK | `0x0C` | `+0x03B4` | 2 |
+| continued (HOOK to OK) | 4 | `0x9AF2` | 12 | `0x9A92` | UNMODELLED | OK | `0x13` | `+0x0A9F` | 3 |
+
+Rows marked "continued" come from the private tracer's adapter (HOOK mapped to OK, counted in the last column) and are conditional on the un-modelled hooks not changing later state; "exact" rows are single unmodified `pr_rec_ecl_run` calls.
+
+The pre-camp entry's COMPARE at `0x9A63` reads a window-0 variable (class 0) against a byte
+immediate, so its path is exact. The initial entry's COMPARE at `0x9B18` reads a `0x6B00`
+window variable (class 1): the load-word hook `+0x07BC` is not modelled, so the handler
+stops at that lookup with the six flags untouched and the real run ends there with
+`RUN_HANDLER`/HOOK, PC `0x9B1E`. The continuation rows (adapter mapping HOOK to OK) are conditional on the
+hook not overriding that word.
+
 ## 4. Unresolved boundaries
 
 The class-1 store hook (`+0x0A74` in unit 0x25, mirrors window words into the active

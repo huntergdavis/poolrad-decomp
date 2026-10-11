@@ -1044,3 +1044,133 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_load_files(pr_rec_ecl_loader_state *stat
     }
     return result;                                              /* +0x0DEB..+0x0DEE */
 }
+
+/* ---- Issue #102: compare helpers (unit 0x25 + 0x18EB, + 0x1815) ------------- */
+
+static void clear_cmp_flags(pr_rec_ecl_loader_state *state) {
+    unsigned k;
+    for (k = 0u; k < 6u; ++k) {                                 /* 0xAF8:0x16A8 with (DS:0x6F78, 6, 0) */
+        state->cmp_flags[k] = 0u;
+    }
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_compare_words(pr_rec_ecl_loader_state *state, uint16_t a, uint16_t b) {
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    clear_cmp_flags(state);                                     /* +0x18EE..+0x18FA */
+    if (a == b) { state->cmp_flags[0] = 1u; }                   /* +0x18FF..+0x1907: jne skips */
+    if (a != b) { state->cmp_flags[1] = 1u; }                   /* +0x190C..+0x1914: je skips */
+    if (a < b)  { state->cmp_flags[2] = 1u; }                   /* +0x1919..+0x1921: jae skips */
+    if (a > b)  { state->cmp_flags[3] = 1u; }                   /* +0x1926..+0x192E: jbe skips */
+    if (a <= b) { state->cmp_flags[4] = 1u; }                   /* +0x1933..+0x193B: ja skips */
+    if (a >= b) { state->cmp_flags[5] = 1u; }                   /* +0x1940..+0x1948: jb skips */
+    return PR_REC_ECL_HANDLER_OK;                               /* +0x194D: pop bp; retf 4 */
+}
+
+/* Turbo Pascal string ordering: unsigned bytes, first difference decides, a
+ * shorter string that is a prefix of the other is less. */
+static int pascal_str_cmp(const char *a, size_t a_len, const char *b, size_t b_len) {
+    size_t n = a_len < b_len ? a_len : b_len, i;
+    for (i = 0; i < n; ++i) {
+        unsigned char ca = (unsigned char)a[i], cb = (unsigned char)b[i];
+        if (ca != cb) {
+            return ca < cb ? -1 : 1;
+        }
+    }
+    if (a_len == b_len) {
+        return 0;
+    }
+    return a_len < b_len ? -1 : 1;
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_compare_strings(pr_rec_ecl_loader_state *state,
+                                                     const char *a, size_t a_len,
+                                                     const char *b, size_t b_len) {
+    char la[256], lb[256];                                      /* [bp-0x100], [bp-0x200] */
+    size_t i;
+    int r;
+    if (state == NULL || (a == NULL && a_len != 0u) || (b == NULL && b_len != 0u)) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    /* +0x181C..+0x183F: both inputs copied into the locals with limit 255
+     * (0xAF8:0x0B25) BEFORE the flags are cleared, so an input that aliases
+     * the flag bytes is compared as it was on entry. */
+    if (a_len > 255u) { a_len = 255u; }
+    if (b_len > 255u) { b_len = 255u; }
+    for (i = 0; i < a_len; ++i) { la[i] = a[i]; }
+    for (i = 0; i < b_len; ++i) { lb[i] = b[i]; }
+    clear_cmp_flags(state);                                     /* +0x1844..+0x1850 */
+    r = pascal_str_cmp(la, a_len, lb, b_len);                   /* 0xAF8:0x0C10 six times with (a, b) */
+    if (r == 0) { state->cmp_flags[0] = 1u; }                   /* +0x1866 jne */
+    if (r != 0) { state->cmp_flags[1] = 1u; }                   /* +0x187E je */
+    if (r < 0)  { state->cmp_flags[2] = 1u; }                   /* +0x1896 jae */
+    if (r > 0)  { state->cmp_flags[3] = 1u; }                   /* +0x18AE jbe */
+    if (r <= 0) { state->cmp_flags[4] = 1u; }                   /* +0x18C6 ja */
+    if (r >= 0) { state->cmp_flags[5] = 1u; }                   /* +0x18DE jb */
+    return PR_REC_ECL_HANDLER_OK;                               /* +0x18E5: retf 8 */
+}
+
+/* ---- Issue #102: COMPARE (unit 0x1c + 0x0126) and the IF family (+ 0x0B52) -- */
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_compare(pr_rec_ecl_loader_state *state) {
+    pr_rec_ecl_loader_status st;
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    st = pr_rec_ecl_load_operands(state, 2u);                   /* +0x012D..+0x0130: mov al,2; lcall 0x2B:0x2A */
+    if (st != PR_REC_ECL_LOADER_OK) {
+        return map_loader_status(st);
+    }
+    if (state->tag[1] >= 0x80u || state->tag[2] >= 0x80u) {     /* +0x0135..+0x0141 */
+        /* +0x0143..+0x0177: buffers DS:0x70C8 and DS:0x71C8 -> 0x2B:0x6B */
+        return pr_rec_ecl_compare_strings(state, state->string_text[1], state->string_len[1],
+                                          state->string_text[2], state->string_len[2]);
+    } else {
+        uint16_t a = 0u, b = 0u;
+        pr_rec_ecl_window_status wa, wb;
+        wa = pr_rec_ecl_slot_value(state, 1u, &a);              /* +0x017E..+0x0186: mov al,1; lcall 0x2B:0x25 */
+        if (wa != PR_REC_ECL_WINDOW_OK) {
+            return map_window_status(wa);                       /* reached-boundary rule: a class-1 load hook (HOOK),
+                                                                 * an unresolved or out-of-bounds source stops here;
+                                                                 * slot 2 is not read and the flags are untouched */
+        }
+        wb = pr_rec_ecl_slot_value(state, 2u, &b);              /* +0x0189..+0x0191 */
+        if (wb != PR_REC_ECL_WINDOW_OK) {
+            return map_window_status(wb);                       /* same rule before the compare */
+        }
+        return pr_rec_ecl_compare_words(state, a, b);           /* +0x0194..+0x019A: push a; push b; lcall 0x2B:0x70; +0x019F retf */
+    }
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_if(pr_rec_ecl_loader_state *state) {
+    uint8_t op;
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    state->pc++;                                                /* +0x0B55: inc word [0x49ED] */
+    op = state->latch;                                          /* +0x0B59: mov al,[0x6F7F] */
+    if (op < 0x16u || op > 0x1Bu) {
+        return PR_REC_ECL_HANDLER_OK;                           /* no case matches: +0x0BC6 */
+    }
+    if (state->cmp_flags[op - 0x16u] != 0u) {                   /* +0x0B60 .. +0x0BBA: cmp byte [0x6F78 + (op - 0x16)],0 */
+        return PR_REC_ECL_HANDLER_OK;
+    }
+    /* skip the next statement: unit 0x25 entry 22 (+0x1EA6): fetch the opcode
+     * at the PC into the latch, then the loader with its prefetch count, or
+     * PC += 1 when the count is 0 */
+    {
+        int b = loader_read(state, state->pc);                  /* +0x1EA9..+0x1EB2 */
+        unsigned n;
+        if (b < 0) {
+            return PR_REC_ECL_HANDLER_BOUNDS;
+        }
+        state->latch = (uint8_t)b;                              /* +0x1EB7: [0x6F7F] = al */
+        n = pr_rec_ecl_operand_count(state->latch);             /* the compare chain of function 2 */
+        if (n == 0u) {
+            state->pc++;                                        /* +0x1FAB: inc word [0x49ED] */
+            return PR_REC_ECL_HANDLER_OK;
+        }
+        return map_loader_status(pr_rec_ecl_load_operands(state, (uint8_t)n));
+    }
+}

@@ -193,6 +193,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
   fourth code of the final group only when the last byte completes a group (ledger 1.3).
   In the shipped scripts no zero code is followed by a non-zero code, so decoders that stop
   at the first zero produce identical text on this data.
+- **0x03 COMPARE:** loads two operands; with either tag at or above 0x80 it compares string
+  buffer 1 with buffer 2 (unit 0x25 entry 15), otherwise slot value 1 with slot value 2
+  (unit 0x25 entry 16). Both helpers clear the six flag bytes `[0x6F78..0x6F7D]` and set
+  them to 1 for equal, not equal, below, above, below or equal, above or equal (unsigned
+  words; Pascal string order for strings) (ledger 1.19).
 - **IF family 0x16–0x1B:** one handler tests one of the six compare-flag bytes and, if the
   test fails, skips the next instruction through unit `0x25` entry 22 (segment `0x2B`
   offset `0x8E`; six fixup-confirmed call sites, all in unit `0x1c`): that entry fetches the
