@@ -262,4 +262,16 @@ typedef enum {
 pr_rec_effect_status pr_rec_u38_entry8(pr_rec_modifier_state *mods,
                                        const uint8_t *record, unsigned *applied);
 
+/* GAME.OVR 0x0F007, unit 0x38 + 0x03AC, public entry 9 (run-time stub 0x41:0x4D).
+ * Full translation, independently re-decoded (issue #43): 53 bytes, 15
+ * instructions, no calls, `retf 0xA` (five discarded word arguments). It
+ * differs from entry 8 in exactly three immediate bytes: the record byte at
+ * offset 0xA0 is compared with 0, 3 and 6; on a match it adds 2 to [0x6816]
+ * and subtracts 2 from [0x6822] (byte arithmetic). Installed at items 9 and
+ * 46 of the far-pointer dispatch table at DS:0x6828 by unit 0x38 + 0x31A2.
+ * Provisional reading, not asserted: {0,3,6} is the good column of the nine
+ * AD&D alignments. Same contract as pr_rec_u38_entry8. */
+pr_rec_effect_status pr_rec_u38_entry9(pr_rec_modifier_state *mods,
+                                       const uint8_t *record, unsigned *applied);
+
 #endif

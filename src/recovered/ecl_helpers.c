@@ -527,3 +527,26 @@ pr_rec_effect_status pr_rec_u38_entry8(pr_rec_modifier_state *mods,
     }
     return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
 }
+
+/* ---- Character-effect dispatch entry 9 (issue #43) ------------------------ */
+
+pr_rec_effect_status pr_rec_u38_entry9(pr_rec_modifier_state *mods,
+                                       const uint8_t *record, unsigned *applied) {
+    uint8_t v;
+    if (applied != NULL) {
+        *applied = 0u;
+    }
+    if (mods == NULL || record == NULL) {
+        return PR_REC_EFFECT_ARGUMENT;
+    }
+    /* les di,[0x5D92] ; cmp byte es:[di+0xA0],0 ; je ; ... ,3 ; je ; ... ,6 ; jne skip */
+    v = record[PR_REC_CHAR_OFFSET_A0];
+    if (v == 0u || v == 3u || v == 6u) {
+        mods->b6816 = (uint8_t)(mods->b6816 + 2u);     /* add byte [0x6816],2 */
+        mods->b6822 = (uint8_t)(mods->b6822 - 2u);     /* sub byte [0x6822],2 */
+        if (applied != NULL) {
+            *applied = 1u;
+        }
+    }
+    return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
+}
