@@ -281,6 +281,47 @@ string to 0x982C and PRINTs 0x982C.
 Throughput: about 60 minutes for the four functions and the initializer (2,900 bytes of
 code read, two translations, two cores, 2 tests, 3 data checks).
 
+### 1.8 Short ECL handlers: GOTO, GOSUB, PRINT RETURN and the call-frame push (issue #34)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 7 | `pr_rec_ecl_push_call_frame` = GAME.OVR 0x08E24, unit 0x25 + 0x1951, public entry 17 (called as `0x2B:0x75`, 2 sites) | 138 bytes, 47 instructions | far Pascal: one word argument (slot index in its low byte), `retf 2` | **path-complete callee model with a stated heap limit** (the 6-byte heap node allocation through `0xAF8:0x023F` is replaced by a bounded 64-entry array with status `STACK_FULL`) | control flow and effects **verified**; not counted as a full translation |
+| 8 | `pr_rec_ecl_op_goto` = GAME.OVR 0x00E3A, unit 0x1c + 0x00F4, opcode 0x01 | 29 bytes, 13 instructions | far Pascal, no arguments, `retf` | **path-complete handler model with a stated dependency** (composes with the loader core, function 6) | handler body **verified** instruction for instruction; not counted as a full translation |
+| 9 | `pr_rec_ecl_op_gosub` = GAME.OVR 0x00E57, unit 0x1c + 0x0111, opcode 0x02 | 21 bytes, 10 instructions | far Pascal, no arguments, `retf` | **path-complete handler model with stated dependencies** (functions 6 and 7) | handler body **verified** instruction for instruction; not counted as a full translation |
+| 10 | `pr_rec_ecl_op_print_return` = GAME.OVR 0x03831, unit 0x1c + 0x2AEB, opcode 0x33 | 41 bytes, 13 instructions | far Pascal, no arguments, `retf`; no calls | **full translation** | **verified**, no dependencies |
+
+**Paths and side effects.**
+
+- Function 7: two branches, list empty or not; both allocate a 6-byte node, make it the head
+  `[0x6F70]`, link it to the previous head (null when empty) and store the current PC in word
+  0; then PC := word(slot low `[0x7085+slot]`, slot high `[0x7045+slot]`) through function 4.
+  Modelled: `call_stack[depth++] = pc; pc = word`. Written: `[0x6F70]` (head), the node,
+  `[0x49ED]`; temporaries `[0x6F74..0x6F77]` hold the previous head and are not modelled
+  separately.
+- Function 8: `loader(1)`, then PC := word(`[0x7086]`, `[0x7046]`), i.e. slot 1. One path.
+  Side effects are the loader's (slot 1, PC) and the final PC write.
+- Function 9: `loader(1)`, then function 7 with slot 1. One path.
+- Function 10: `PC += 1`; if `[0x84DF] != 0`: `[0x5E24] = 1`, `[0x5E25] += 1`, `[0x84DF] = 0`;
+  else `[0x5E24] = 1`, `[0x5E25] += 1`. Two paths, both represented; the three bytes are
+  modelled by address (`b84df`, `b5e24`, `b5e25`) because their meaning is not asserted.
+
+**Checks.** Tests transcribed independently from the handler bytes: GOTO sets the PC from a
+word operand and consumes exactly one operand; GOTO with a byte operand yields
+`word(low, 0)`; truncated operands propagate the loader's bounds status; GOSUB saves the PC
+that follows its operand (the loader's final increment) and jumps; nested GOSUB orders the
+saved PCs; the push alone uses the given slot and the current PC; argument and model-bound
+statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN on both
+flag values, byte wraparound of `[0x5E25]`, and no script access.
+
+**Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
+dependencies. Overlay-only strict full translations: 4 (functions 1, 4, 5 and 10). Project-wide
+reviewed strict count (the PM's record, which includes the merged resident lane): 4 before
+PR #36; 5 once PR #36 merges.
+Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
+and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
+unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
+node allocation with a bounded array. They are not counted as full translations.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -315,10 +356,12 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: 3 fully translated leaf functions (1, 4, 5); 2
-path-complete translations whose runtime string calls carry the provisional cap (string by
-address, store string); 5 cores (functions 2, 3, 6, load word, store word); total verified
-functions is not claimed beyond that.
+Measured count for the battle card: overlay-only strict full translations 4 (functions 1,
+4, 5 and 10); project-wide strict count 4 before PR #36 and 5 once PR #36 merges (PM's record,
+includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+9); path-complete translations whose runtime string calls carry the provisional cap 2
+(string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
+verified functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the

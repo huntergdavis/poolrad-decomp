@@ -171,6 +171,7 @@ void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state) {
     if (state == NULL) {
         return;
     }
+    state->call_depth = 0u;                   /* initializer: [0x6F70] starts null */
     for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) state->window0[i] = 0u;
     for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) state->window1[i] = 0u;
     for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) state->window2[i] = 0u;
@@ -432,4 +433,74 @@ pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state
     }
     state->pc++;                              /* inc word [0x49ED] */
     return PR_REC_ECL_LOADER_OK;
+}
+
+/* ---- Short ECL handlers (issue #34) --------------------------------------- */
+
+pr_rec_ecl_handler_status pr_rec_ecl_push_call_frame(pr_rec_ecl_loader_state *state,
+                                                     unsigned slot) {
+    if (state == NULL || slot == 0u || slot >= PR_REC_ECL_SLOT_COUNT) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    /* Both original branches allocate a 6-byte node, make it the list head,
+     * link it to the previous head (null when the list was empty), and store
+     * the current PC in its first word. The array models that list. */
+    if (state->call_depth >= PR_REC_ECL_CALL_STACK_MAX) {
+        return PR_REC_ECL_HANDLER_STACK_FULL;
+    }
+    state->call_stack[state->call_depth] = state->pc;   /* mov es:[di], [0x49ED] */
+    state->call_depth++;
+    /* push [0x7085+slot]; push [0x7045+slot]; call +0x06AF; mov [0x49ED], ax */
+    state->pc = pr_rec_ecl_operand_word(state->low[slot], state->high[slot]);
+    return PR_REC_ECL_HANDLER_OK;
+}
+
+static pr_rec_ecl_handler_status map_loader_status(pr_rec_ecl_loader_status st) {
+    switch (st) {
+    case PR_REC_ECL_LOADER_OK: return PR_REC_ECL_HANDLER_OK;
+    case PR_REC_ECL_LOADER_BOUNDS: return PR_REC_ECL_HANDLER_BOUNDS;
+    default: return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_goto(pr_rec_ecl_loader_state *state) {
+    pr_rec_ecl_loader_status st;
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    st = pr_rec_ecl_load_operands(state, 1u);             /* mov al,1; lcall 0x2B:0x2A */
+    if (st != PR_REC_ECL_LOADER_OK) {
+        return map_loader_status(st);
+    }
+    /* push [0x7086]; push [0x7046]; lcall 0x2B:0x4D; mov [0x49ED], ax */
+    state->pc = pr_rec_ecl_operand_word(state->low[1], state->high[1]);
+    return PR_REC_ECL_HANDLER_OK;
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_gosub(pr_rec_ecl_loader_state *state) {
+    pr_rec_ecl_loader_status st;
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    st = pr_rec_ecl_load_operands(state, 1u);             /* mov al,1; lcall 0x2B:0x2A */
+    if (st != PR_REC_ECL_LOADER_OK) {
+        return map_loader_status(st);
+    }
+    return pr_rec_ecl_push_call_frame(state, 1u);         /* mov al,1; lcall 0x2B:0x75 */
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_print_return(pr_rec_ecl_loader_state *state) {
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    state->pc++;                                          /* inc word [0x49ED] */
+    if (state->b84df != 0u) {                             /* cmp byte [0x84DF],0 ; je */
+        state->b5e24 = 1u;
+        state->b5e25++;
+        state->b84df = 0u;
+    } else {
+        state->b5e24 = 1u;
+        state->b5e25++;
+    }
+    return PR_REC_ECL_HANDLER_OK;
 }
