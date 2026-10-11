@@ -173,7 +173,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
 
 - **0x00 EXIT:** sets `[0x442E]` = 1, increments the PC, frees every 6-byte node of the call
   stack list, resets the active-window state bytes `[0x5E24]/[0x5E25]`.
-- **0x01 GOTO:** writes the resolved word operand to `[0x49ED]`.
+- **0x01 GOTO:** loads one operand and writes word(slot 1) to `[0x49ED]` (ledger 1.8).
+- **0x02 GOSUB:** loads one operand, pushes a 6-byte node {saved PC = the address after the
+  operand, link to the previous head} at `[0x6F70]`, then PC := word(slot 1) (ledger 1.8).
+- **0x33 PRINT RETURN:** `PC += 1`; `[0x5E24] = 1`; `[0x5E25] += 1`; clears `[0x84DF]` when it
+  was set (ledger 1.8).
 - **0x20 NEWECL:** builds the `ECL<n>.DAX` file name from its byte operand, far-calls unit
   `0x6f` entry 11 (run-time segment `0x7C` offset `0x57`; unit 0x6f is a resource-loading
   unit) and unit `0x25` entries 1 to 4 (operand helpers), then sets

@@ -85,6 +85,7 @@ uint8_t pr_rec_ecl_address_class(uint16_t address);
 #define PR_REC_ECL_WINDOW1_WORDS 1024u      /* GetMem(0x800) */
 #define PR_REC_ECL_WINDOW2_WORDS 512u       /* GetMem(0x400) */
 #define PR_REC_ECL_NAME_MAX 15u             /* string[15] assignment limit passed to the runtime store */
+#define PR_REC_ECL_CALL_STACK_MAX 64u       /* model bound; the engine's list is heap-bound */
 
 typedef enum {
     PR_REC_ECL_LOADER_OK = 0,
@@ -125,6 +126,19 @@ typedef struct {
     /* Optional writable script buffer for class-3 stores (the engine writes
      * into its script buffer); NULL leaves such stores unresolved. */
     uint8_t *script_rw;
+    /* ---- GOSUB call stack and PRINT RETURN state (issue #34) -------------
+     * The engine keeps a linked list of 6-byte heap nodes headed by the far
+     * pointer [0x6F70]: word 0 = saved PC, words 1-2 = far pointer to the
+     * previous node (null for the first). Nodes are pushed by unit 0x25 +0x1951
+     * and popped/freed by the RETURN and EXIT handlers. This model keeps the
+     * saved PCs in a bounded array; depth 0 = empty list. */
+    uint16_t call_stack[PR_REC_ECL_CALL_STACK_MAX];
+    unsigned call_depth;
+    /* Engine bytes written by PRINT RETURN, named by address because their
+     * meaning is not asserted here: [0x84DF] flag, [0x5E24], [0x5E25]. */
+    uint8_t b84df;
+    uint8_t b5e24;
+    uint8_t b5e25;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -166,6 +180,37 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value);
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
                                                uint16_t address, uint16_t value);
+
+/* ---- Short ECL handlers (issue #34) --------------------------------------- */
+
+typedef enum {
+    PR_REC_ECL_HANDLER_OK = 0,
+    PR_REC_ECL_HANDLER_ARGUMENT,
+    PR_REC_ECL_HANDLER_BOUNDS,          /* operand loader hit the script bounds */
+    PR_REC_ECL_HANDLER_STACK_FULL       /* model bound reached; the engine would allocate */
+} pr_rec_ecl_handler_status;
+
+/* Unit 0x25 + 0x1951 (GAME.OVR 0x08E24, public entry 17, called as 0x2B:0x75).
+ * Full translation. Pushes a new node holding the current PC onto the call
+ * list (first node has a null link; later nodes link to the previous head),
+ * then sets the PC to the word assembled from operand slot `slot`
+ * (first value byte [0x7085+slot], second [0x7045+slot]). */
+pr_rec_ecl_handler_status pr_rec_ecl_push_call_frame(pr_rec_ecl_loader_state *state,
+                                                     unsigned slot);
+
+/* Unit 0x1c + 0x00F4 (GAME.OVR 0x00E3A), opcode 0x01 GOTO. Full translation:
+ * loads one operand (0x2B:0x2A with count 1), then stores the word assembled
+ * from slot 1 ([0x7086], [0x7046]) into the PC. */
+pr_rec_ecl_handler_status pr_rec_ecl_op_goto(pr_rec_ecl_loader_state *state);
+
+/* Unit 0x1c + 0x0111 (GAME.OVR 0x00E57), opcode 0x02 GOSUB. Full translation:
+ * loads one operand, then calls pr_rec_ecl_push_call_frame with slot 1. */
+pr_rec_ecl_handler_status pr_rec_ecl_op_gosub(pr_rec_ecl_loader_state *state);
+
+/* Unit 0x1c + 0x2AEB (GAME.OVR 0x03831), opcode 0x33 PRINT RETURN. Full
+ * translation: PC += 1; then in both branches [0x5E24] = 1 and [0x5E25] += 1;
+ * when [0x84DF] was non-zero it is cleared. No calls. */
+pr_rec_ecl_handler_status pr_rec_ecl_op_print_return(pr_rec_ecl_loader_state *state);
 
 
 /* Resets slots, string buffers and flags; keeps script and pc. */

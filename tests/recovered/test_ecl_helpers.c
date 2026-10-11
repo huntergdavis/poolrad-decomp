@@ -364,6 +364,95 @@ static int test_windows_clear_drops_active_name(void) {
     return 0;
 }
 
+/* ---- short ECL handlers (issue #34) ---------------------------------------- */
+
+/* Transcribed from the handler bytes: GOTO = loader(1) then PC := word(slot 1);
+ * GOSUB = loader(1) then push PC and PC := word(slot 1); PRINT RETURN = PC += 1,
+ * [0x5E24] = 1, [0x5E25] += 1, and [0x84DF] cleared if it was set. */
+static int test_op_goto(void) {
+    /* 0x9900: 01 01 10 99  -> GOTO 0x9910 ; trailing bytes must not be consumed */
+    static const uint8_t s[] = {0x01, 0x01, 0x10, 0x99, 0x02, 0x01, 0x00, 0x99};
+    pr_rec_ecl_loader_state st;
+    loader_setup(&st, s, sizeof s, 0x9900);
+    pr_rec_ecl_windows_clear(&st);
+    CHECK(pr_rec_ecl_op_goto(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.pc == 0x9910);
+    CHECK(st.tag[1] == 0x01 && st.low[1] == 0x10 && st.high[1] == 0x99 && st.tag[2] == 0);
+    CHECK(st.call_depth == 0);
+    /* an immediate-byte operand (tag 00) still yields a PC: word(low, high=0) */
+    {
+        static const uint8_t s2[] = {0x01, 0x00, 0x7F};
+        loader_setup(&st, s2, sizeof s2, 0x9900);
+        pr_rec_ecl_windows_clear(&st);
+        CHECK(pr_rec_ecl_op_goto(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x007F);
+    }
+    /* truncated operand propagates the loader's bounds failure */
+    {
+        static const uint8_t s3[] = {0x01, 0x01, 0x10};
+        loader_setup(&st, s3, sizeof s3, 0x9900);
+        CHECK(pr_rec_ecl_op_goto(&st) == PR_REC_ECL_HANDLER_BOUNDS);
+    }
+    CHECK(pr_rec_ecl_op_goto(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static int test_op_gosub_and_push_frame(void) {
+    /* 0x9900: 02 01 20 99 (GOSUB 0x9920) ; at 0x9920: 02 01 08 99 (GOSUB 0x9908) */
+    uint8_t s[0x30];
+    pr_rec_ecl_loader_state st;
+    memset(s, 0x3D, sizeof s);
+    s[0] = 0x02; s[1] = 0x01; s[2] = 0x20; s[3] = 0x99;
+    s[0x20] = 0x02; s[0x21] = 0x01; s[0x22] = 0x08; s[0x23] = 0x99;
+    loader_setup(&st, s, sizeof s, 0x9900);
+    pr_rec_ecl_windows_clear(&st);
+    CHECK(pr_rec_ecl_op_gosub(&st) == PR_REC_ECL_HANDLER_OK);
+    /* the saved PC is the address after the operand (the loader's final increment) */
+    CHECK(st.call_depth == 1 && st.call_stack[0] == 0x9904 && st.pc == 0x9920);
+    CHECK(pr_rec_ecl_op_gosub(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.call_depth == 2 && st.call_stack[1] == 0x9924 && st.call_stack[0] == 0x9904 && st.pc == 0x9908);
+    /* push_call_frame alone: uses the given slot and the current PC */
+    st.pc = 0x9ABC; st.low[3] = 0x34; st.high[3] = 0x12;
+    CHECK(pr_rec_ecl_push_call_frame(&st, 3) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.call_depth == 3 && st.call_stack[2] == 0x9ABC && st.pc == 0x1234);
+    CHECK(pr_rec_ecl_push_call_frame(&st, 0) == PR_REC_ECL_HANDLER_ARGUMENT);
+    CHECK(pr_rec_ecl_push_call_frame(&st, PR_REC_ECL_SLOT_COUNT) == PR_REC_ECL_HANDLER_ARGUMENT);
+    /* model bound */
+    st.call_depth = PR_REC_ECL_CALL_STACK_MAX;
+    CHECK(pr_rec_ecl_push_call_frame(&st, 1) == PR_REC_ECL_HANDLER_STACK_FULL && st.pc == 0x1234);
+    /* truncated GOSUB operand: bounds, nothing pushed */
+    {
+        static const uint8_t s2[] = {0x02, 0x01};
+        loader_setup(&st, s2, sizeof s2, 0x9900);
+        pr_rec_ecl_windows_clear(&st);
+        CHECK(pr_rec_ecl_op_gosub(&st) == PR_REC_ECL_HANDLER_BOUNDS && st.call_depth == 0);
+    }
+    /* windows_clear empties the list as the initializer does */
+    st.call_depth = 5; pr_rec_ecl_windows_clear(&st); CHECK(st.call_depth == 0);
+    return 0;
+}
+
+static int test_op_print_return(void) {
+    static const uint8_t s[] = {0x33, 0x00};
+    pr_rec_ecl_loader_state st;
+    loader_setup(&st, s, sizeof s, 0x9900);
+    /* branch 1: flag clear -> PC+1, b5e24 = 1, b5e25 += 1, flag stays clear */
+    st.b84df = 0; st.b5e24 = 0; st.b5e25 = 7;
+    CHECK(pr_rec_ecl_op_print_return(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.pc == 0x9901 && st.b5e24 == 1 && st.b5e25 == 8 && st.b84df == 0);
+    /* branch 2: flag set -> same window effect and the flag is cleared */
+    st.b84df = 0x5A; st.b5e24 = 0;
+    CHECK(pr_rec_ecl_op_print_return(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.pc == 0x9902 && st.b5e24 == 1 && st.b5e25 == 9 && st.b84df == 0);
+    /* b5e25 is a byte: it wraps like the engine's inc byte */
+    st.b5e25 = 0xFF;
+    CHECK(pr_rec_ecl_op_print_return(&st) == PR_REC_ECL_HANDLER_OK && st.b5e25 == 0 && st.pc == 0x9903);
+    /* no script read happens: PC past the buffer is still fine */
+    st.pc = 0xFFFF;
+    CHECK(pr_rec_ecl_op_print_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x0000);
+    CHECK(pr_rec_ecl_op_print_return(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -381,6 +470,9 @@ int main(void) {
     rc |= test_windows_round_trip();
     rc |= test_windows_bounds_and_name();
     rc |= test_windows_clear_drops_active_name();
+    rc |= test_op_goto();
+    rc |= test_op_gosub_and_push_frame();
+    rc |= test_op_print_return();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
