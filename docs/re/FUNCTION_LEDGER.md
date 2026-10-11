@@ -253,7 +253,8 @@ read uses the low byte), terminated by a zero word. **Verified.**
 
 **State model additions.** `pr_rec_ecl_loader_state` now carries the three windows,
 the active name fields and an optional writable script pointer; `pr_rec_ecl_windows_clear`
-mirrors the initializer's zero fill. The loader's 0x81 path now reads through
+mirrors the initializer's zero fill and its nulling of `[0x5D92]` (the active name becomes
+invalid and empty). The loader's 0x81 path now reads through
 `pr_rec_ecl_string_by_address`, so an engine-window string resolves whenever the window
 holds it; only the active-name path can remain unresolved.
 
@@ -313,10 +314,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: 3 fully translated leaf functions (1, 4, 5) plus 2
+Measured count for the battle card: 3 fully translated leaf functions (1, 4, 5); 2
 path-complete translations whose runtime string calls carry the provisional cap (string by
-address, store string), and 4 cores (functions 2, 3, 6, plus load/store word); total
-verified functions is not claimed beyond that.
+address, store string); 5 cores (functions 2, 3, 6, load word, store word); total verified
+functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the

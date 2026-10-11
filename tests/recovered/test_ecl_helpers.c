@@ -346,6 +346,24 @@ static int test_windows_bounds_and_name(void) {
     return 0;
 }
 
+/* Regression (PR #25 review): clearing a reused state must also drop the
+ * active name, as the initializer nulls [0x5D92]. */
+static int test_windows_clear_drops_active_name(void) {
+    static const uint8_t script[] = {0x11};
+    pr_rec_ecl_loader_state st;
+    loader_setup(&st, script, sizeof script, 0x9900);
+    pr_rec_ecl_windows_clear(&st);
+    CHECK(pr_rec_ecl_store_string(&st, 0x6B00, "HERO", 4) == PR_REC_ECL_WINDOW_OK);
+    CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x6B00) == PR_REC_ECL_WINDOW_OK && st.string_len[1] == 4);
+    pr_rec_ecl_store_string(&st, 0x9700, "W", 1);
+    pr_rec_ecl_windows_clear(&st);
+    CHECK(st.active_name_valid == 0 && st.active_name_len == 0 && st.active_name[0] == 0);
+    CHECK(st.window2[0] == 0 && st.string_len[1] == 0);
+    CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x6B00) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    CHECK(st.string_unresolved[1] == 1 && st.string_len[1] == 0);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -362,6 +380,7 @@ int main(void) {
     rc |= test_loader_sequential_calls_reset_metadata();
     rc |= test_windows_round_trip();
     rc |= test_windows_bounds_and_name();
+    rc |= test_windows_clear_drops_active_name();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

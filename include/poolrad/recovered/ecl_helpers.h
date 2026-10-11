@@ -135,7 +135,8 @@ typedef enum {
     PR_REC_ECL_WINDOW_HOOK          /* class-1 word access done, but the engine also runs an un-modelled hook */
 } pr_rec_ecl_window_status;
 
-/* Zero-fills the three windows and the string slots as the initializer does. */
+/* Zero-fills the three windows and the string slots and invalidates the
+ * active name, as the initializer (which also nulls [0x5D92]) does. */
 void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state);
 
 /* Unit 0x25 + 0x12FB (GAME.OVR 0x087CE): copy the string at `address` into

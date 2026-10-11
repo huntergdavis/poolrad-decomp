@@ -174,6 +174,10 @@ void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state) {
     for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) state->window0[i] = 0u;
     for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) state->window1[i] = 0u;
     for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) state->window2[i] = 0u;
+    /* the initializer also stores a null far pointer to [0x5D92]: no active name */
+    for (i = 0; i < PR_REC_ECL_NAME_MAX; ++i) state->active_name[i] = 0;
+    state->active_name_len = 0u;
+    state->active_name_valid = 0u;
     pr_rec_ecl_loader_reset(state);
 }
 
