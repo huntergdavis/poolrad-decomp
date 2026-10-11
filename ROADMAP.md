@@ -12,15 +12,19 @@ contracts, recovered C helpers, and a resident called-target inventory are
 merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
-Three leaf functions are fully translated and behavior-checked. Two more have
-path-complete C translations with a provisional runtime-string cap; five have
+Five game routines are fully translated and behavior-checked across the overlay
+and resident lanes (PRs #36 and #37 added the latest two). Three handler/callee
+models have unresolved dependencies or heap semantics, two string routines have
+path-complete C translations with a provisional runtime-string cap, and five have
 extracted C cores with unresolved engine side effects. The DOS oracle reaches
 the main menu; input has not yet produced a verified gameplay transition. No
 native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
-through the [overlay audit](https://github.com/huntergdavis/poolrad-decomp/issues/26)
-and [resident loader map](https://github.com/huntergdavis/poolrad-decomp/issues/28),
-alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3).
+using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
+and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33),
+alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
+and the next [overlay](https://github.com/huntergdavis/poolrad-decomp/issues/39)
+and [resident](https://github.com/huntergdavis/poolrad-decomp/issues/38) translations.
 
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
