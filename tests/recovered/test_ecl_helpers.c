@@ -453,6 +453,40 @@ static int test_op_print_return(void) {
     return 0;
 }
 
+/* ---- character-effect dispatch entry 8 (issue #39) ------------------------ */
+
+/* Transcribed from the 15 instructions: three equality tests on record byte
+ * 0xA0 (2, 5, 8) lead to the modify block; any other value skips it. */
+static int test_u38_entry8(void) {
+    uint8_t rec[PR_REC_CHAR_RECORD_SIZE];
+    pr_rec_modifier_state m;
+    unsigned v, applied;
+    memset(rec, 0x11, sizeof rec);
+    for (v = 0; v < 256; ++v) {
+        unsigned expect = (v == 2 || v == 5 || v == 8) ? 1u : 0u;
+        rec[PR_REC_CHAR_OFFSET_A0] = (uint8_t)v;
+        m.b6816 = 10; m.b6822 = 10;
+        CHECK(pr_rec_u38_entry8(&m, rec, &applied) == PR_REC_EFFECT_OK);
+        CHECK(applied == expect);
+        CHECK(m.b6816 == (expect ? 12 : 10) && m.b6822 == (expect ? 8 : 10));
+    }
+    /* byte wraparound of add/sub byte */
+    rec[PR_REC_CHAR_OFFSET_A0] = 5; m.b6816 = 0xFF; m.b6822 = 0x01;
+    CHECK(pr_rec_u38_entry8(&m, rec, NULL) == PR_REC_EFFECT_OK && m.b6816 == 0x01 && m.b6822 == 0xFF);
+    /* repeated application accumulates; other record bytes are irrelevant */
+    rec[PR_REC_CHAR_OFFSET_A0] = 8; m.b6816 = 0; m.b6822 = 0;
+    memset(rec, 0x02, PR_REC_CHAR_OFFSET_A0);   /* bytes before 0xA0 set to a trigger value: must not matter */
+    CHECK(pr_rec_u38_entry8(&m, rec, &applied) == PR_REC_EFFECT_OK && applied == 1);
+    CHECK(pr_rec_u38_entry8(&m, rec, &applied) == PR_REC_EFFECT_OK && applied == 1);
+    CHECK(m.b6816 == 4 && m.b6822 == 0xFC);
+    /* null contracts: nothing changes, applied cleared */
+    applied = 7;
+    CHECK(pr_rec_u38_entry8(NULL, rec, &applied) == PR_REC_EFFECT_ARGUMENT && applied == 0);
+    CHECK(pr_rec_u38_entry8(&m, NULL, &applied) == PR_REC_EFFECT_ARGUMENT && applied == 0);
+    CHECK(m.b6816 == 4 && m.b6822 == 0xFC);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -473,6 +507,7 @@ int main(void) {
     rc |= test_op_goto();
     rc |= test_op_gosub_and_push_frame();
     rc |= test_op_print_return();
+    rc |= test_u38_entry8();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

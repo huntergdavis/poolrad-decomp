@@ -504,3 +504,26 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_print_return(pr_rec_ecl_loader_state *st
     }
     return PR_REC_ECL_HANDLER_OK;
 }
+
+/* ---- Character-effect dispatch entry 8 (issue #39) ------------------------ */
+
+pr_rec_effect_status pr_rec_u38_entry8(pr_rec_modifier_state *mods,
+                                       const uint8_t *record, unsigned *applied) {
+    uint8_t v;
+    if (applied != NULL) {
+        *applied = 0u;
+    }
+    if (mods == NULL || record == NULL) {
+        return PR_REC_EFFECT_ARGUMENT;
+    }
+    /* les di,[0x5D92] ; cmp byte es:[di+0xA0],2 ; je ; ... ,5 ; je ; ... ,8 ; jne skip */
+    v = record[PR_REC_CHAR_OFFSET_A0];
+    if (v == 2u || v == 5u || v == 8u) {
+        mods->b6816 = (uint8_t)(mods->b6816 + 2u);     /* add byte [0x6816],2 */
+        mods->b6822 = (uint8_t)(mods->b6822 - 2u);     /* sub byte [0x6822],2 */
+        if (applied != NULL) {
+            *applied = 1u;
+        }
+    }
+    return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
+}

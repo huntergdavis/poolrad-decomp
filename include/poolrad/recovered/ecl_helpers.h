@@ -228,4 +228,38 @@ void pr_rec_ecl_loader_reset(pr_rec_ecl_loader_state *state);
 pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state,
                                                   uint8_t count);
 
+/* ---- Character-effect dispatch entry 8 (issue #39) ------------------------
+ * GAME.OVR 0x0EFD2, unit 0x38 + 0x0377, public entry 8 (run-time stub
+ * 0x41:0x48). Full translation, no calls, 53 bytes, 15 instructions.
+ * Role evidence: unit 0x38 + 0x31A2 (entry 1) stores this entry's far pointer
+ * into slots 8 and 45 of the far-pointer table at DS:0x6828 that the engine
+ * invokes through `lcall [di + 0x6828]`; every table item is called with five
+ * word arguments, which this routine discards (`retf 0xA`).
+ * Behavior: reads the byte at offset 0xA0 of the active character record
+ * (far pointer [0x5D92]); when it is 2, 5 or 8 it adds 2 to the byte [0x6816]
+ * and subtracts 2 from the byte [0x6822]; otherwise nothing changes. Both
+ * bytes wrap modulo 256 as the original `add/sub byte` do.
+ * Provisional readings, not asserted by the code: the value sets {2,5,8} and
+ * {0,3,6} (the sibling entry 9 at +0x03AC) match the evil and good columns of
+ * the nine AD&D alignments, and the two bytes look like modifier accumulators
+ * (16 and 24 writers in unit 0x38). */
+
+#define PR_REC_CHAR_RECORD_SIZE 285u          /* verified record frame (docs/formats/DOS_CHARACTER.md) */
+#define PR_REC_CHAR_OFFSET_A0 0xA0u
+
+typedef struct {
+    uint8_t b6816;                        /* engine byte [0x6816] */
+    uint8_t b6822;                        /* engine byte [0x6822] */
+} pr_rec_modifier_state;
+
+typedef enum {
+    PR_REC_EFFECT_OK = 0,                 /* branch taken or not; see applied */
+    PR_REC_EFFECT_ARGUMENT                /* null state or null record: the engine would read through a null pointer */
+} pr_rec_effect_status;
+
+/* `record` must point at a full character record (PR_REC_CHAR_RECORD_SIZE
+ * bytes). `applied`, if given, receives 1 when the modifiers were changed. */
+pr_rec_effect_status pr_rec_u38_entry8(pr_rec_modifier_state *mods,
+                                       const uint8_t *record, unsigned *applied);
+
 #endif
