@@ -64,15 +64,16 @@ that 86 Pascal prologues exist.
 
 ## Game versus linked-library classification
 
-The ledger retains eight verified game-specific targets, `RES_00BA_1509`,
+The ledger retains nine verified game-specific targets, `RES_00BA_1509`,
 `RES_00BA_15F7`, `RES_00BA_2199`, `RES_00BA_23B7`, `RES_00BA_23DB`,
-`RES_00BA_2637`, `RES_00BA_2E03`, and `RES_00BA_2E46`, supported by the character trace and the reviewed
+`RES_00BA_2637`, `RES_00BA_2E03`, `RES_00BA_2E46`, and `RES_00BA_2E8B`, supported by the character trace and the reviewed
 [append](RESIDENT_SIDECAR_APPEND.md), [lookup](RESIDENT_SIDECAR_LOOKUP.md),
 [field predicate](RESIDENT_CHARACTER_FIELD_ZERO.md),
 [party counter](RESIDENT_PARTY_COUNT.md), and
 [link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) and
 [link flags predicate](RESIDENT_CHARACTER_LINK_FLAGS.md), and
-[target reset](RESIDENT_CHARACTER_TARGET_RESET.md) translations. It marks the two
+[target reset](RESIDENT_CHARACTER_TARGET_RESET.md) and
+[target selection](RESIDENT_CHARACTER_TARGET_SELECT.md) translations. It marks the two
 `0xA40` calls as
 `linked_crt_inferred` with high confidence, rather than as proven stock
 library object code. Instruction neighborhoods support the inference:
@@ -90,7 +91,7 @@ unit's Delay, Sound, NoSound, KeyPressed, and ReadKey family in the
 [Borland Turbo Pascal 7.0 Language Guide, table 13.4](https://turbopascal.nl/docs/Turbo_Pascal_Version_7.0_Language_Guide_1992.pdf).
 That later manual establishes the library API family, not an exact object
 match to this 1989 executable. Of the 86 overlay-called targets, the current
-split is **eight verified game-specific, two inferred linked CRT, and 76
+split is **nine verified game-specific, two inferred linked CRT, and 75
 unresolved**. The 48 separately identified `0xAF8` targets remain Turbo
 Pascal SYSTEM/runtime per the earlier instruction evidence.
 

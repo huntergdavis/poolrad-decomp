@@ -318,8 +318,8 @@ def audit(exe, ovr, near=False):
                              unmatched_with_relocated_far_call=18,
                              unmatched_without_relocated_far_call=30,
                              resident_relocation_backed_far_call_sites=547,
-                             game_verified=8, linked_crt_inferred=2,
-                             remaining_overlay_called_classification_unresolved=76,
+                             game_verified=9, linked_crt_inferred=2,
+                             remaining_overlay_called_classification_unresolved=75,
                              full_game_denominator="unresolved"),
                 near_audit=near_result,
                 resident_targets=targets, unmatched_prologues=unmatched)

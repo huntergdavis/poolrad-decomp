@@ -24,7 +24,7 @@ prologue, after a digest check of `GAME.OVR`:
 | string constants | `mov di,imm16; push cs; push di` where `imm16` addresses a length-prefixed, fully printable byte string inside the unit's own code segment (Turbo Pascal typed string constant) | 216 (664 references) |
 | documented engine globals | DS-relative operands equal to byte-verified engine state addresses from the ledgers and contracts (ECL PC, buffer, opcode latch, stop flags, call stack, compare flags, operand slots, the three windows, party and active-character pointers, window state, the procedure variable) | 248 |
 | calls into verified routines | direct near calls, or far calls through entry slots, to a byte-verified routine | 57 |
-| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the eleven unit 0x25 helpers, the window initializer, five unit 0x38 entries and the unit `0x3bd:0x0155` view setter in [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md), sixteen unit 0x38 entries in [OVERLAY_UNIT38_EFFECT_ENTRIES.md](OVERLAY_UNIT38_EFFECT_ENTRIES.md) (PR #63), and four more in [OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md](OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md) (PR #69) | 88 |
+| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the eleven unit 0x25 helpers, the window initializer, five unit 0x38 entries and the unit `0x3bd:0x0155` view setter in [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md), sixteen unit 0x38 entries in [OVERLAY_UNIT38_EFFECT_ENTRIES.md](OVERLAY_UNIT38_EFFECT_ENTRIES.md) (PR #63), four more in [OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md](OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md) (PR #69), and entries 81 and 110 in [OVERLAY_UNIT38_WALK_ENTRIES.md](OVERLAY_UNIT38_WALK_ENTRIES.md) (PR #85) | 90 |
 | leaf | no calls and no DS-relative globals | 70 |
 | runtime-only | every call goes to the SYSTEM segment 0xAF8, no DS-relative globals | 16 |
 
@@ -32,13 +32,13 @@ prologue, after a digest check of `GAME.OVR`:
 
 | class | rule (applied in this order) | confidence | count |
 | --- | --- | --- | ---: |
-| `game_verified` | verified routine | verified (identity and role; semantics verified for the translated subset in FUNCTION_LEDGER.md and both unit 0x38 effect-entry notes) | 88 |
+| `game_verified` | verified routine | verified (identity and role; semantics verified for the translated subset in FUNCTION_LEDGER.md and both unit 0x38 effect-entry notes) | 90 |
 | `game_evidenced` | string constant, documented engine global, or call into a verified routine | provisional: printable text and engine state are evidence of application code, not proof of game logic | 301 |
 | `helper_candidate` | leaf or runtime-only, no strings, no DS globals, not verified | provisional: small utilities; a leaf can still be game arithmetic | 80 |
-| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 204 |
+| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 202 |
 
-By evidence grade from the function ledger: `game_verified` 32 A, 55 B, 1 D; `game_evidenced`
-182 A, 118 B, 1 D; `helper_candidate` 58 A, 22 B; unresolved 130 A, 74 B.
+By evidence grade from the function ledger: `game_verified` 34 A, 55 B, 1 D; `game_evidenced`
+182 A, 118 B, 1 D; `helper_candidate` 58 A, 22 B; unresolved 128 A, 74 B.
 The sixteen PR #63 IDs are distinct from the prior verified set and promote
 fifteen unresolved rows and one helper candidate. The generated CSV records
 each exact ID, with no changes to measured call or byte-signal columns.
@@ -46,11 +46,11 @@ PR #65's view setter promotes one further unresolved row. Its far caller at
 `0x3b4:0x016d` gains one verified-call signal; the caller's class does not
 change. The adjacent unit `0x25:0x01b6` initializer remains a model.
 PR #69 promotes four more unit `0x38` entries: three unresolved rows and one
-helper candidate. The PR #72 ECL block loader remains a model and is excluded.
+helper candidate. PR #85 promotes two more unit `0x38` unresolved rows to verified. The PR #72 ECL block loader remains a model and is excluded.
 
 What the rules do not do: they do not identify third-party or standard library units. If a
 library unit is linked into the overlay, its routines fall into `helper_candidate` (if they
-are leaves or runtime-only) or into the unresolved class; the 204 unresolved routines are
+are leaves or runtime-only) or into the unresolved class; the 202 unresolved routines are
 exactly where such code would have to be, and their split is not determined by these bytes.
 No count here is a game-function denominator.
 
