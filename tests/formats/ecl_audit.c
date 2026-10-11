@@ -9,6 +9,7 @@ typedef struct {
     size_t records;
     size_t entry_targets;
     size_t unpacked_bytes;
+    size_t bounded_operand_candidates;
     size_t bounded_text_candidates;
 } totals;
 
@@ -55,14 +56,24 @@ static int audit_one(const char *path, totals *sum) {
                     pr_ecl_status_string(ecl_status));
             goto done;
         }
-        /* A raw 0x80 byte is only a candidate: this audit does not interpret
-         * opcodes or claim that every candidate is a real text operand. */
+        /* Raw tag bytes are only candidates: this audit does not interpret
+         * opcodes or claim that every candidate is a real operand. */
         for (at = PR_ECL_HEADER_SIZE; at < record.size; ++at) {
             pr_ecl_text frame;
+            pr_ecl_operand_span span;
             char scratch[341]; /* floor(255 * 8 / 6) chars plus NUL */
             size_t chars;
-            if (record.data[at] != 0x80 ||
-                pr_ecl_text_at(&record, at, &frame) != PR_ECL_OK) continue;
+            if (pr_ecl_operand_at(&record, at, &span) != PR_ECL_OK) continue;
+            ++sum->bounded_operand_candidates;
+            if (span.tag != 0x80) continue;
+            if (pr_ecl_text_at(&record, at, &frame) != PR_ECL_OK ||
+                frame.source_offset != span.source_offset ||
+                frame.payload_offset != span.payload_offset ||
+                frame.packed_size != span.payload_size ||
+                frame.end_offset != span.end_offset) {
+                fprintf(stderr, "%s: block %zu: operand/text span mismatch\n", path, i);
+                goto done;
+            }
             if (pr_ecl_text_decode(&record, &frame, scratch, sizeof scratch,
                                    &chars) != PR_ECL_OK) {
                 fprintf(stderr, "%s: block %zu: text candidate decode failed\n",
@@ -94,7 +105,8 @@ int main(int argc, char **argv) {
     for (i = 1; i < argc; ++i)
         if (audit_one(argv[i], &sum) != 0) return 1;
     printf("archives=%zu records=%zu entry_targets=%zu unpacked_bytes=%zu "
-           "bounded_text_candidates=%zu errors=0\n", sum.archives, sum.records,
-           sum.entry_targets, sum.unpacked_bytes, sum.bounded_text_candidates);
+           "bounded_operand_candidates=%zu bounded_text_candidates=%zu errors=0\n",
+           sum.archives, sum.records, sum.entry_targets, sum.unpacked_bytes,
+           sum.bounded_operand_candidates, sum.bounded_text_candidates);
     return 0;
 }
