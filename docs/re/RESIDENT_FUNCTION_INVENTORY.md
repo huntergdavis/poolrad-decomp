@@ -47,8 +47,8 @@ instruction evidence below.
 | Non-SYSTEM resident targets without a validated file position | 2 | `RES_0A40_029C`, `RES_0A40_02FD` |
 | Raw resident-image prologue hits | 132 | 48 are not among the 84 mapped called starts; their function status is open |
 
-The 86 called non-SYSTEM targets classify as five verified game-specific, zero
-verified other-library, and 81 unresolved game-or-library targets. The 48
+The 86 called non-SYSTEM targets classify as six verified game-specific, zero
+verified other-library, and 80 unresolved game-or-library targets. The 48
 remaining raw prologue hits have not been proved false or assigned to
 functions. No two of the 84 validated targets alias the same file offset;
 possible aliases or nonprologue starts among the unmapped targets remain open.
@@ -143,25 +143,28 @@ There are **84 distinct exact-prologue mappings under bounded empirical
 shifts**: each target has a fixup-confirmed incoming call and maps to a
 different resident file offset. The `0x899` and `0x8AE` shifts remain
 moderate-confidence inferences, so this is a supported called-start count,
-not a loader-verified exact denominator or a game-source count. The five
+not a loader-verified exact denominator or a game-source count. The six
 overlay-called resident targets promoted to *verified game-specific* are
 `RES_00BA_1509` at file `0x2185`, `RES_00BA_15F7` at file `0x2273`, and
 `RES_00BA_2199` at file `0x2E15`, `RES_00BA_23B7` at file `0x301B`, and
-`RES_00BA_23DB` at file `0x303F`: the first three remove, append, and search
-character sidecar lists; the last two test a character field and count records
+`RES_00BA_23DB` at file `0x303F`, and `RES_00BA_2E03` at file `0x3A59`:
+the first three remove, append, and search character sidecar lists; the next
+two test a character field and count records
 on the loader-backed party list, as established by the trace and reviewed
 [append](RESIDENT_SIDECAR_APPEND.md) and [lookup](RESIDENT_SIDECAR_LOOKUP.md)
 translations, [field predicate](RESIDENT_CHARACTER_FIELD_ZERO.md), and
-[party counter](RESIDENT_PARTY_COUNT.md) translation.
-One of its ten fixup-confirmed callers is GAME.OVR unit `0x25:+0x1e8c`
+[party counter](RESIDENT_PARTY_COUNT.md) translation. The sixth checks a
+character-linked table state; see the reviewed
+[link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) translation.
+One of `RES_00BA_23DB`'s ten fixup-confirmed callers is GAME.OVR unit `0x25:+0x1e8c`
 (file `0x935f`); the function ledger identifies that unit's entry 21 as
 walking the party records and calling this target.
 That gives a conservative **overlay-called resident game-function lower bound
-of 5**; the remaining 81 called non-SYSTEM targets have unresolved game versus linked
+of 6**; the remaining 80 called non-SYSTEM targets have unresolved game versus linked
 library provenance. The two `0xA40` targets are especially plausible
 low-level library calls, but their starts and ownership remain unverified.
 
-Among directly called non-SYSTEM targets, the possible game count is 5–86.
+Among directly called non-SYSTEM targets, the possible game count is 6–86.
 That is **not** an upper bound for the full game: indirect calls, uncalled
 routines, 48 unmatched raw prologue hits, nonprologue starts, and the still
 separate overlay candidates remain unaudited. The 404 overlay public entries
