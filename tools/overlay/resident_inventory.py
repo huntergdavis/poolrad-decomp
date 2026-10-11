@@ -37,7 +37,8 @@ MAPPED_RANGES = {
 # list, or character-linked game state; see the RESIDENT_* evidence notes.
 GAME_SPECIFIC_TARGETS = {(0x0BA, 0x1509), (0x0BA, 0x15F7), (0x0BA, 0x2199),
                          (0x0BA, 0x23B7), (0x0BA, 0x23DB), (0x0BA, 0x2E03),
-                         (0x0BA, 0x2E46), (0x0BA, 0x2637)}
+                         (0x0BA, 0x2E46), (0x0BA, 0x2637),
+                         (0x0BA, 0x2E8B)}
 
 
 def digest(data):
@@ -177,7 +178,7 @@ def collect(exe, ovr):
             "mapped target count changed")
     require(len(set(mapped_offsets)) == len(mapped_offsets),
             "mapped resident targets alias the same file offset")
-    require(sum(x["classification"] == "game_verified" for x in resident) == 8,
+    require(sum(x["classification"] == "game_verified" for x in resident) == 9,
             "verified game subset changed")
     raw_prologues = len(list(re.finditer(b"\x55\x89\xe5", image)))
     require(raw_prologues == 132, "resident raw prologue count changed")
@@ -196,11 +197,11 @@ def collect(exe, ovr):
                              mapped_exact_prologue_targets=84,
                              unmapped_called_targets=2,
                              resident_classifications=dict(
-                                 game_verified=8,
-                                 game_or_other_library_unresolved=78,
+                                 game_verified=9,
+                                 game_or_other_library_unresolved=77,
                                  other_library_verified=0),
-                             game_specific_verified_lower_bound=8,
-                             directly_called_game_candidate_range=[8, 86],
+                             game_specific_verified_lower_bound=9,
+                             directly_called_game_candidate_range=[9, 86],
                              full_game_denominator="unresolved"),
                 final_overlay_entries=dict(
                     (str(i), dict(target_unit_offset=last["entries"][i], call_sites=n))
