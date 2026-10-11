@@ -36,12 +36,14 @@ size.
   [isolated audit](docs/FABLE_AUDIT.md) records SHA-256 hashes and independently
   matches the public kit's structural fingerprints. The kit publishes no
   hashes, so its addresses remain hypotheses until checked against this build.
-- The audit finds **34 overlay units**, **404 exported entry points**, and
-  **675 Pascal-style function prologues** in `GAME.OVR`. These counts overlap;
-  they are not 1,079 separate functions. Unit payloads account for 205,893 of
+- The audit finds **34 overlay units**, **404 exported entry slots**, and
+  **673 Pascal-style prologue hits in unit code** (675 in the whole file).
+  These counts overlap and include unverified candidates; they cannot be
+  summed into a function total. Unit payloads account for 205,893 of
   206,105 overlay bytes, including 8,442 bytes of fixups. This gives us a
-  concrete, automatable inventory problem. It does not yet tell us how many
-  functions are original game logic rather than compiler/runtime code.
+  concrete, automatable inventory problem. The
+  [function-count evidence](docs/re/OVERLAY_FUNCTION_INVENTORY.md) identifies
+  what remains before we can use an exact game-function denominator.
 - The actual ECL dispatcher handles **61 opcodes**, while the public kit
   documents about 40 and misnames several. Its playable browser build does not
   execute ECL scripts. The audit also corrects its GEO event-plane, ECL header,

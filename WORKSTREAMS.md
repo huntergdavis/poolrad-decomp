@@ -9,8 +9,8 @@ pull requests; the primary session merges after review.
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
 | A: DOS code recovery | Claude | Three full ECL helper translations and three extracted behavior cores merged in PRs #11, #15, and #20. Current: resolve ECL tag 0x81 engine string windows, issue #22. | `tools/overlay/`, `docs/re/`, `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
-| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/operands/text, DOS EGA images, WALLDEF spans, and bounded DOS character record framing merged in PRs #4, #7, #10, #13, #17, and #19. Current: verify DOS character field semantics, issue #21. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
-| Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/` |
+| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/operands/text, DOS EGA images, WALLDEF spans, and DOS character record/name framing merged in PRs #4, #7, #10, #13, #17, #19, and #23. Current: map resident functions for the denominator, issue #24; owns only new resident-inventory files for this task. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; issue #24 exception for new `tools/overlay/resident_inventory.py` and `docs/re/RESIDENT_FUNCTION_INVENTORY.md` |
+| Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, validate overlay function candidates for issue #24, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
 
