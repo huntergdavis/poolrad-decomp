@@ -316,12 +316,12 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
 dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
 14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
-unit 0x38 entries of PRs #63, #69 and #70 (documented outside this numbering): 30 on main
-b250866 (PM's reviewed record); the issue #75 and #84 PRs add models and no full
-translation. Project-wide reviewed strict count (the PM's record, overlay 30 plus resident
-9): 39 on main b250866, unchanged by the issue #75 and #84 PRs.
-Functions 7, 8, 9, 17, 18, 19, 20, 21 and 22 are path-complete models: their own instruction
-paths are translated and verified, but 8, 9, 17, 21 and 22 compose with the operand loader core (function 6, whose tag-0x81
+unit 0x38 entries of PRs #63, #69 and #70 and later reviewed batches (documented outside
+this numbering): 32 on main d3cde1f (PM's reviewed record); the issue #92 PR adds a
+callback model and no full translation. Project-wide reviewed strict count (the PM's
+record, overlay 32 plus resident 9): 41 on main d3cde1f, unchanged by the issue #92 PR.
+Functions 7, 8, 9, 17, 18, 19, 20, 21, 22 and 23 are path-complete models: their own
+instruction paths are translated and verified, but 8, 9, 17, 21, 22 and 23 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
 
@@ -644,6 +644,53 @@ the window words checked.
 
 Throughput: 35 minutes including the route trace.
 
+### 1.18 LOAD FILES / LOAD PIECES handler on the initial-entry route (issue #92)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 23 | `pr_rec_ecl_op_load_files` = GAME.OVR 0x019BA, unit 0x1c + 0x0C74 (bytes +0x0C74..+0x0DEE), opcodes 0x21 and 0x37 (dispatcher cases +0x3054 and +0x3058), no near calls, 11 far-call sites | 379 bytes, 129 instructions | far Pascal, no arguments, `retf`; branches on the latch `[0x6F7F]` | **path-complete model with callback boundaries** (unit 0x3bd entries 6 and 7, unit 0x3ce entry 1, resident `0xBA:0x27D9` and `0xBA:0x0767`; loader core and function 21 as dependencies) | every branch **verified**; not counted as a full translation |
+
+**Paths** (offsets inside unit 0x1c). `+0x0C7A..+0x0C82`: loader with count 3; `[0x4431] = 1`.
+`+0x0C87..+0x0CA9`: loop i = 1..3, `[bp-4+i]` = low byte of function 21 (slot i). `+0x0CAB`:
+`cmp [0x6F7F], 0x21`. Opcode 0x21, `+0x0CB2..+0x0D1D`: `[0x4434] = 1`; if v1 is not 0xFF, not
+0x7F and window 0 word 0xE6 (`es:[di+0x1CC]`) is non-zero: window 0 word 0xC5
+(`es:[di+0x18A]`) = v1, `0x3D5:0x43` (unit 0x3bd entry 7) with v1, window 1 word 0x2C9
+(`es:[di+0x592]`) = 0; if v3 is not 0xFF and word 0xE6 is zero: the 6-character constant at
+`cs:0x0C6D` through `0xAF8:0x0B0B`, then `0x3E9:0x25` (unit 0x3ce entry 1) with (constant, 0,
+0x28). Opcode 0x37, `+0x0D20..+0x0DBD`: `[0x4433] = 1`; v1 == 0x7F: `0x3D5:0x3E` (unit 0x3bd
+entry 6) with (0, 1); else words 0xE7 and 0xE8 (`es:[di+0x1CE]`, `es:[di+0x1D0]`) both
+non-zero: entry 6 with (v1, 1) and (v3, 3); else loop i = 1..3: entry 6 with (vi, i) when vi
+is not 0xFF, otherwise the words `[0x6AAE + 4i]` and `[0x6AB0 + 4i]` = 0xFFFF. Tail
+`+0x0DBF..+0x0DE6`: when `[0x4432]`, `[0x4433]` and `[0x4434]` are all non-zero: `0xBA:0x27D9`,
+then `0xBA:0x0767` with `[0x5D92]`, then `[0x4432] = 0`. Epilogue `+0x0DEB`. Writers and
+readers of the four flags are all in unit 0x1c: the gameplay loop (`+0x32FE..+0x3312`)
+clears them and sets `[0x4432]`; `+0x0BD1` clears `[0x4431]`; `+0x2CCF` and `+0x31B4` test
+`[0x4431]`.
+
+**Model deviations.** An UNRESOLVED or BOUNDS slot value returns before the branch-specific
+effects (the operand load and `[0x4431] = 1` have already happened; the engine continues
+with an unmodelled byte); HOOK from a class-1 source is returned after the effects. Each
+callback is required at the point its site is reached: a missing one returns UNRESOLVED
+after the writes that precede the site and before the effects that follow it (for the gate,
+`[0x4432]` stays set), so a run cannot report a completed route with DOS work omitted; a
+branch that reaches no site needs none. The callbacks carry no text (the 6-character
+constant is passed by identity only).
+
+**Tests.** 0x21 wallset branch with the window words and flags checked and nothing else in
+window 0 touched; 0x21 with word 0xE6 zero (text only); v1 of 0xFF and 0x7F; v3 of 0xFF
+with word 0xE6 zero; 0x37 with v1 0x7F; 0x37 with words 0xE7/0xE8 set; the default loop
+with a 0xFF slot; the three-flag gate across a 0x21 then a 0x37 and its one-shot clearing;
+values through a window-0 variable and a class-1 source (HOOK); a class-4 source (no
+branch-specific effect); each reached boundary without its callback (wallset after the
+word 0xC5 write and before the word 0x2C9 clear, text, the three pieces paths with the
+earlier slot's 0xFFFF words kept, and both resident boundaries with `[0x4432]` kept); the
+branches that reach no boundary with every callback absent; truncated operands; null
+arguments. Composition in the
+initial-entry shape (four SAVEs, 0x21, 0x37, GOTO, PRINT RETURN, EXIT) through block load,
+initializer and run loop with `[0x4432]` set.
+
+Throughput: 40 minutes.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -680,11 +727,11 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 
 Measured count for the battle card: strict full translations in this ledger's numbering 10
 (functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
-main 30 on b250866 (10 from this ledger's numbering plus the unit 0x38 batches of PRs #63,
-#69 and #70, PM's reviewed record), unchanged by the issue #75 and #84 PRs; project-wide
-strict count 39 on b250866 (overlay 30 plus resident 9, PM's record); path-complete models
-with stated dependency, heap limits or external boundaries 9 (functions 7, 8, 9, 17, 18, 19,
-20, 21, 22); path-complete translations whose runtime string calls carry the provisional cap 2
+main 32 on d3cde1f (10 from this ledger's numbering plus the reviewed unit 0x38 batches,
+PM's record), unchanged by the issue #92 PR; project-wide strict count 41 on d3cde1f
+(overlay 32 plus resident 9, PM's record);
+path-complete models with stated dependency, heap limits or external boundaries 10
+(functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 

@@ -1201,6 +1201,162 @@ static int test_save_composition(void) {
     return 0;
 }
 
+/* ---- issue #92: LOAD FILES / LOAD PIECES ----------------------------------- */
+
+typedef struct { char log[128]; unsigned n; } lf_log_t;
+static void lf_put(lf_log_t *l, const char *s) { size_t k = strlen(l->log); if (k + strlen(s) < sizeof l->log) strcat(l->log, s); l->n++; }
+static void lf_wallset(void *c, uint8_t id) { char b[16]; snprintf(b, sizeof b, "W%u ", id); lf_put((lf_log_t *)c, b); }
+static void lf_pieces(void *c, uint8_t id, uint8_t slot) { char b[16]; snprintf(b, sizeof b, "P%u.%u ", id, slot); lf_put((lf_log_t *)c, b); }
+static void lf_text(void *c) { lf_put((lf_log_t *)c, "T "); }
+static void lf_27d9(void *c) { lf_put((lf_log_t *)c, "R1 "); }
+static void lf_0767(void *c) { lf_put((lf_log_t *)c, "R2 "); }
+static void lf_reset(lf_log_t *l, pr_rec_ecl_load_files_io *io) {
+    memset(l, 0, sizeof *l); memset(io, 0, sizeof *io); io->ctx = l;
+    io->load_wallset = lf_wallset; io->load_pieces = lf_pieces; io->show_text = lf_text; io->resident_27d9 = lf_27d9; io->resident_0767 = lf_0767;
+}
+static void lf_state(pr_rec_ecl_loader_state *st, const uint8_t *script, size_t size, uint8_t latch) {
+    save_state(st, script, size, NULL); st->latch = latch; st->window0[0xE6] = 1; st->window0[0xE7] = 0; st->window0[0xE8] = 0;
+}
+
+static int test_op_load_files(void) {
+    pr_rec_ecl_loader_state st; lf_log_t l; pr_rec_ecl_load_files_io io; unsigned i;
+    static const uint8_t s_ff[] = { 0x21, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03 };   /* v1 = 5, v2 = 0, v3 = 3 */
+    /* 0x21, wallset branch (the new-game shape): word 0xC5 set, wallset loaded, word 0x2C9 cleared, no text */
+    lf_state(&st, s_ff, sizeof s_ff, 0x21); lf_reset(&l, &io);
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK);
+    CHECK(strcmp(l.log, "W5 ") == 0 && st.window0[0xC5] == 5 && st.window1[0x2C9] == 0 && st.pc == 0x9907);
+    CHECK(st.b4431 == 1 && st.b4434 == 1 && st.b4433 == 0 && st.b4432 == 0);
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) if (i != 0xC5 && i != 0xE6 && i != 0xE7 && i != 0xE8) CHECK(st.window0[i] == 0xAAAA);
+    /* 0x21 with word 0xE6 == 0: no wallset, the text routine runs (v3 != 0xFF) */
+    lf_state(&st, s_ff, sizeof s_ff, 0x21); st.window0[0xE6] = 0; lf_reset(&l, &io);
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "T ") == 0 && st.window0[0xC5] == 0xAAAA);
+    /* 0x21 with v1 == 0xFF and with v1 == 0x7F: no wallset; v3 == 0xFF and word 0xE6 == 0: no text */
+    { static const uint8_t s1[] = { 0x21, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF };
+      lf_state(&st, s1, sizeof s1, 0x21); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && l.n == 0 && st.b4434 == 1);
+      lf_state(&st, s1, sizeof s1, 0x21); st.window0[0xE6] = 0; lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && l.n == 0); }
+    { static const uint8_t s2[] = { 0x21, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s2, sizeof s2, 0x21); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && l.n == 0); }
+    /* 0x37 with v1 == 0x7F: pieces (0, 1) only */
+    { static const uint8_t s3[] = { 0x37, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s3, sizeof s3, 0x37); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "P0.1 ") == 0);
+      CHECK(st.b4433 == 1 && st.b4434 == 0 && st.b4431 == 1); }
+    /* 0x37 with words 0xE7 and 0xE8 non-zero: pieces (v1, 1) and (v3, 3) */
+    lf_state(&st, s_ff, sizeof s_ff, 0x37); st.window0[0xE7] = 2; st.window0[0xE8] = 9; lf_reset(&l, &io);
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "P5.1 P3.3 ") == 0);
+    /* 0x37 default loop: slot 2 is 0xFF, its two words become 0xFFFF */
+    { static const uint8_t s4[] = { 0x37, 0x00, 0x05, 0x00, 0xFF, 0x00, 0x03 };
+      lf_state(&st, s4, sizeof s4, 0x37); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "P5.1 P3.3 ") == 0);
+      CHECK(st.piece_words[1][0] == 0xFFFF && st.piece_words[1][1] == 0xFFFF);
+      CHECK(st.piece_words[0][0] == 0 && st.piece_words[2][1] == 0); }
+    /* the gate: with [0x4432] set, 0x21 then 0x37 run the two resident routines once and clear [0x4432] */
+    { static const uint8_t s5[] = { 0x21, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x37, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s5, sizeof s5, 0x21); st.b4432 = 1; lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "W5 ") == 0 && st.b4432 == 1);
+      st.latch = 0x37;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "W5 P0.1 R1 R2 ") == 0 && st.b4432 == 0);
+      st.latch = 0x21; st.pc = 0x9900;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "W5 P0.1 R1 R2 W5 ") == 0); }
+    /* operand values through variables: tag 1 window-0 word, and a class-1 source reports HOOK after the effects */
+    { static const uint8_t s6[] = { 0x21, 0x01, 0x00, 0x49, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s6, sizeof s6, 0x21); st.window0[0] = 0x0107; lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "W7 ") == 0 && st.window0[0xC5] == 7); }
+    { static const uint8_t s7[] = { 0x21, 0x01, 0x40, 0x6B, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s7, sizeof s7, 0x21); st.window1[0x40] = 6; lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_HOOK && strcmp(l.log, "W6 ") == 0); }
+    /* an unresolved source (class 4) stops before any effect */
+    { static const uint8_t s8[] = { 0x21, 0x01, 0xB1, 0x00, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s8, sizeof s8, 0x21); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0 && st.b4434 == 0 && st.b4431 == 1); }
+    /* a reached boundary without its callback: UNRESOLVED after the earlier writes, before the later effects */
+    lf_state(&st, s_ff, sizeof s_ff, 0x21); lf_reset(&l, &io); io.load_wallset = NULL;
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED);
+    CHECK(st.window0[0xC5] == 5 && st.window1[0x2C9] == 0xAAAA && st.b4434 == 1 && l.n == 0);   /* word 0x2C9 not cleared */
+    lf_state(&st, s_ff, sizeof s_ff, 0x21); st.window0[0xE6] = 0; lf_reset(&l, &io); io.show_text = NULL;
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0 && st.b4434 == 1);
+    { static const uint8_t s3b[] = { 0x37, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s3b, sizeof s3b, 0x37); lf_reset(&l, &io); io.load_pieces = NULL;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0 && st.b4433 == 1); }
+    lf_state(&st, s_ff, sizeof s_ff, 0x37); st.window0[0xE7] = 2; st.window0[0xE8] = 9; lf_reset(&l, &io); io.load_pieces = NULL;
+    CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0);
+    { static const uint8_t s4b[] = { 0x37, 0x00, 0xFF, 0x00, 0x05, 0x00, 0x03 };   /* slot 1 is 0xFF: its words are set before slot 2 reaches the boundary */
+      lf_state(&st, s4b, sizeof s4b, 0x37); lf_reset(&l, &io); io.load_pieces = NULL;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0);
+      CHECK(st.piece_words[0][0] == 0xFFFF && st.piece_words[0][1] == 0xFFFF && st.piece_words[2][0] == 0); }
+    /* the gate's two resident boundaries: [0x4432] stays set when either is missing */
+    { static const uint8_t s5b[] = { 0x37, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s5b, sizeof s5b, 0x37); st.b4432 = 1; st.b4434 = 1; lf_reset(&l, &io); io.resident_27d9 = NULL;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && strcmp(l.log, "P0.1 ") == 0 && st.b4432 == 1);
+      lf_state(&st, s5b, sizeof s5b, 0x37); st.b4432 = 1; st.b4434 = 1; lf_reset(&l, &io); io.resident_0767 = NULL;
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && strcmp(l.log, "P0.1 R1 ") == 0 && st.b4432 == 1); }
+    /* branches that reach no boundary succeed with every callback absent */
+    { static const uint8_t s6b[] = { 0x21, 0x00, 0xFF, 0x00, 0x00, 0x00, 0xFF };
+      lf_state(&st, s6b, sizeof s6b, 0x21); memset(&io, 0, sizeof io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && st.b4434 == 1);
+      lf_state(&st, s6b, sizeof s6b, 0x21); st.window0[0xE6] = 0; memset(&io, 0, sizeof io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK); }
+    { static const uint8_t s7b[] = { 0x37, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF };
+      lf_state(&st, s7b, sizeof s7b, 0x37); memset(&io, 0, sizeof io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && st.piece_words[0][0] == 0xFFFF && st.piece_words[2][1] == 0xFFFF && st.b4433 == 1); }
+    /* truncated operands; arguments */
+    { static const uint8_t s9[] = { 0x21, 0x00, 0x05, 0x00 };
+      lf_state(&st, s9, sizeof s9, 0x21); lf_reset(&l, &io);
+      CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_BOUNDS && l.n == 0); }
+    CHECK(pr_rec_ecl_op_load_files(NULL, &io) == PR_REC_ECL_HANDLER_ARGUMENT);
+    CHECK(pr_rec_ecl_op_load_files(&st, NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static lf_log_t g_lf; static pr_rec_ecl_load_files_io g_lf_io;
+static pr_rec_ecl_handler_status load_files_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_load_files(st, &g_lf_io); }
+
+/* Composition smoke in the initial-entry shape: four SAVEs, 0x21, 0x37, then
+ * a GOTO to PRINT RETURN and an EXIT stub, through block load, initializer
+ * and run loop with the gameplay loop's [0x4432] = 1 in place. */
+static int test_load_files_composition(void) {
+    static uint8_t block[2 + 20 + 64];
+    static uint8_t buf[PR_REC_ECL_SCRIPT_BUFFER_SIZE];
+    static const uint8_t body[] = {
+        0x09, 0x00, 0x01, 0x01, 0x00, 0x4A,     /* 0x9914 */
+        0x09, 0x00, 0x02, 0x01, 0x02, 0x4A,     /* 0x991A */
+        0x09, 0x00, 0x03, 0x01, 0x04, 0x4A,     /* 0x9920 */
+        0x09, 0x00, 0x04, 0x01, 0x06, 0x4A,     /* 0x9926 */
+        0x21, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, /* 0x992C: 0x21 v1 = 5, v3 = 3 */
+        0x37, 0x00, 0x7F, 0x00, 0x00, 0x00, 0x03, /* 0x9933: 0x37 v1 = 0x7F */
+        0x01, 0x01, 0x40, 0x99,                 /* 0x993A: GOTO 0x9940 */
+        0x0D, 0x0D,                             /* filler */
+        0x33,                                   /* 0x9940: PRINT RETURN */
+        0x00                                    /* 0x9941: EXIT */
+    };
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps, i;
+    fake_io_t f; pr_rec_ecl_block_io io;
+    memset(block, 0, sizeof block);
+    for (i = 0; i < 5; ++i) { block[2 + 4 * i] = 0x01; block[3 + 4 * i] = 0x01; block[4 + 4 * i] = 0x14; block[5 + 4 * i] = 0x99; }
+    memcpy(block + 22, body, sizeof body);
+    memset(&st, 0, sizeof st); st.file_number = 3;
+    fio_reset(&f, &io); f.sizes[0] = (uint16_t)sizeof block; f.blocks[0] = block;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 0, &io, 2, NULL) == PR_REC_ECL_BLOCK_OK);
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.window0[0xE6] == 1);                               /* the initializer sets it: wallset branch */
+    st.b4432 = 1;                                               /* as the gameplay loop does at +0x3312 */
+    lf_reset(&g_lf, &g_lf_io);
+    memset(&r, 0, sizeof r); memset(&tb, 0, sizeof tb); tb.ctx = &r;
+    tb.handler[0x09] = save_adapter; tb.handler[0x21] = load_files_adapter; tb.handler[0x37] = load_files_adapter;
+    tb.handler[0x01] = goto_adapter; tb.handler[0x33] = print_return_adapter; tb.handler[0x00] = exit_adapter;
+    CHECK(pr_rec_ecl_run(&st, &tb, st.entry_addr[0], 100, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 9 && r.calls == 1 && r.last_pc == 0x9941);
+    CHECK(strcmp(g_lf.log, "W5 P0.1 R1 R2 ") == 0);
+    CHECK(st.window0[0x100] == 1 && st.window0[0x102] == 2 && st.window0[0x104] == 3 && st.window0[0x106] == 4);   /* addresses 0x4A00, 0x4A02, 0x4A04, 0x4A06 */
+    CHECK(st.window0[0xC5] == 5 && st.window1[0x2C9] == 0);
+    CHECK(st.b4431 == 1 && st.b4432 == 0 && st.b4433 == 1 && st.b4434 == 1);
+    CHECK(st.b5e24 == 1 && st.latch == 0x00 && st.prev_opcode == 0x33);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -1238,6 +1394,8 @@ int main(void) {
     rc |= test_op_save();
     rc |= test_save_composition();
     rc |= test_run_stops_on_hook();
+    rc |= test_op_load_files();
+    rc |= test_load_files_composition();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
