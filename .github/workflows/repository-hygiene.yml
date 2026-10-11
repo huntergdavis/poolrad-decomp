@@ -19,3 +19,5 @@ jobs:
           fi
       - name: Verify copied research snapshot
         run: cd docs/prior-research/macmaps && sha256sum -c SHA256SUMS
+      - name: Check oracle preparation script syntax
+        run: bash -n tools/oracle/prepare_run.sh

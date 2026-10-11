@@ -18,3 +18,7 @@ verified overlay inventory and corrections to published format claims.
 DOS gameplay comes first. Once it works, the roadmap calls for optional Amiga
 portraits and sprites, followed by C64 music and sound. A Nintendo DS port is
 a later project.
+
+The PM's [DOS oracle setup](docs/oracle/README.md) prepares isolated local
+runs for behavior comparisons. It keeps every original file and capture under
+ignored `resources/`.
