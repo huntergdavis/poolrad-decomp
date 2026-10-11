@@ -216,7 +216,7 @@ field and every other record byte is untouched.
 Measured: `cc -std=c11 -Wall -Wextra -Wpedantic -Werror` (gcc) builds the
 library and test with no diagnostics; the test prints `overlay unit 0x38
 effect-entry tests passed`. The CMake target `poolrad_overlay_unit38_effects_tests`
-passes under `ctest` together with the eleven existing targets (12/12).
+passes under `ctest` together with the existing targets (12/12 on the 3c4f015 base; 14/14 after rebasing on 5bc363d).
 
 ## Uncertainty, stated plainly
 
