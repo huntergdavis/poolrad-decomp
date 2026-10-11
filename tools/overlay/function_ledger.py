@@ -175,7 +175,7 @@ def main():
                              entry_slot=entry_of.get(key, ""), raw_alias_word=(f"{alias_of[key]['raw_word']:#x}" if key in alias_of else ""),
                              grade=grade, **ev, cls=cls, **ft))
     with open(a.csv, "w", newline="") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()), lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
 
