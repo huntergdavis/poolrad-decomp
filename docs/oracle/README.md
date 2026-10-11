@@ -52,6 +52,21 @@ the DOS save-load and movement path and supplies the first gameplay oracle
 fixture. Slot J is present in the chooser but its load result has not yet been
 verified. Screenshots, save bytes, and logs stay private under `resources/`.
 
+To replay the saved-party movement in one run and wait for both displayed
+positions, use a fresh copy:
+
+```sh
+run_dir=$(tools/oracle/prepare_run.sh slot-a-walk-001)
+xvfb-run -a tools/oracle/capture_save_walk.sh "$run_dir"
+```
+
+This script requires ImageMagick's `import` and Tesseract. It schedules the
+menu and movement keys within DOSBox-X, then polls screenshots for `15,4`
+followed by `14,4`. The log and before/after images stay in the ignored run
+directory. The screen wait and bounded retry follow the approach in the
+sibling `poolrad-macmaps/tools/play.py` harness; DOS input and save handling
+are local to this oracle.
+
 Keep local screenshots, emulator saves, traces, and changed game saves in
 `resources/`. For each replay, record the run name, executable hashes, emulator
 version/configuration, starting save hashes, exact input sequence, observed
