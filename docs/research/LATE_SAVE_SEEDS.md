@@ -29,7 +29,7 @@ screen and log are in ignored `resources/oracle-runs/late-save-research-slot-j-0
 | Lead | What is available | Why it cannot yet seed DOS parity |
 | --- | --- | --- |
 | [Author-posted C64 Kobold Caves save disk](https://www.reddit.com/r/c64/comments/e3sxk1/an_unusual_pool_of_radiance_save_disk/) | The author describes a `.D64` checkpoint before the main caves battle, after extensive campaign progress. | The linked `anwu.org` host did not resolve on 2026-10-11; no bytes or hash were obtained. It is C64, not DOS. [Wish](https://github.com/malcyon/wish) implements C64/DOS conversion and a [DOS load-and-walk validation script](https://github.com/malcyon/wish/blob/main/tools/convert/README.md), but this disk has not been converted or loaded. |
-| [User-uploaded DOS `SAVGAMA.DAT`](https://www.resetera.com/threads/pool-of-radiance-save-bugged-out-help.162989/) | A world-state file was linked by its owner. | The owner reports it fails to load after a teleport; the linked material does not include matching character, item, and spell files. Useful only for corruption research, not a playable fixture. |
+| [Reported DOS `SAVGAMA.DAT`](https://www.resetera.com/threads/pool-of-radiance-save-bugged-out-help.162989/) | A forum lead describes a corrupted world-state save. The page was unreadable from the PM review environment. | No complete, load-verified bundle or matching sidecars were independently established. Treat this only as an unverified corruption lead. |
 | [Original PC save directory](https://forums.goldbox.games/index.php?topic=2430.0) | A contributor supplied original Wizard Works default characters. | It is a starting party, not a later-area checkpoint. |
 
 No distinct late DOS save was found in the likely owner Steam, GOG, Downloads,
@@ -43,8 +43,8 @@ For slot `X` (A–J), retain `SAVGAMX.DAT` plus every matching
 the actual prefix is `CHRDATA`; slot J is `CHRDATJ`. Missing optional item or
 spell sidecars are normal. `POOL.CFG` must point the save path at the directory
 containing these files. The [DOS save-file description](https://www.easydamus.com/PoR.pdf)
-and [Steam depot manifest](https://steamdb.info/depot/1882370/manifests/)
-support this layout; the local v1.3 A/J bundles confirm it.
+specifies the save filename pattern and POOL.CFG save path; the local v1.3
+A/J bundles confirm it.
 
 1. Keep any acquired bundle in ignored `resources/`, record source URL, date,
    per-file SHA-256, and claimed game version. Never overwrite the source.
@@ -77,6 +77,7 @@ and [recovered area identities](../prior-research/macmaps/AREA_NAMES.md).
 Teleporting or byte-editing an early save can help investigate a handler, but
 it is a synthetic state and cannot establish a natural DOS campaign route.
 
-**PM decision:** assign one original-DOS play/capture lane to Sokal first,
-then wilderness. Revisit the C64 Kobold Caves lead only if the disk becomes
-available; Wish conversion then needs its own v1.3 load-and-walk check.
+**Proposed next step:** assign one original-DOS play/capture lane after
+staffing and capacity review, starting with Sokal and then wilderness.
+Revisit the C64 Kobold Caves lead only if the disk becomes available; Wish
+conversion then needs its own v1.3 load-and-walk check.
