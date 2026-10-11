@@ -314,10 +314,9 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies. Overlay-only strict full translations: 8 (functions 1, 4, 5, 10, 11, 12, 13 and 14).
+dependencies. Overlay-only strict full translations: 9 (functions 1, 4, 5, 10, 11, 12, 13, 14 and 15).
 Project-wide reviewed strict count (the PM's record, which includes the merged resident
-lane): 10 before the issue #49 PR; 11 once it merges, unless a resident translation merges
-first.
+lane): 12 before the issue #51 PR; 13 once it merges.
 Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
 and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
@@ -456,6 +455,39 @@ not established; completeness is unaffected.
 
 Throughput: 15 minutes including the candidate scan.
 
+### 1.13 Character-effect dispatch entry 30 (issue #51)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 15 | `pr_rec_u38_entry30` = GAME.OVR 0x0F861, unit 0x38 + 0x0C06 (bytes +0x0C06..+0x0C14), public entry 30, run-time stub `0x41:0xB6` | 15 bytes, 6 instructions | far Pascal: five word arguments discarded (`retf 0xA`); no result | **full translation** | **verified**: straight line, no branches, no calls, no record access |
+
+**Instructions** (hash-checked overlay, decoded from the entry offset): prologue; `inc byte
+[0x6816]`; `inc byte [0x6822]`; `pop bp; retf 0xA`. One path. Both increments wrap modulo
+256 (the flags they set are dead: nothing reads them before the return).
+
+**Caller and role evidence.** Unit 0x38 + 0x31A2 (the table installer) stores this entry's
+pointer at +0x335F..+0x336B: `mov ax, 0xB6; mov dx, 0x41` (segment word fixed up) into
+`0x68B4`/`0x68B6`, item 35 of the far-pointer dispatch table at `0x6828` (`lcall [di +
+0x6828]`), immediately before the store of entry 31 into item 36. The public
+classification row for this routine records zero fixup-confirmed far callers, so the
+table is the only identified entry route (that does not exclude an indirect caller not yet
+found). It updates the same two accumulator bytes as entries 8,
+9, 10 and 31 (here +1 each, the inverse direction of entry 31's −4), so it belongs to the
+same effect family. Selection: the remaining 15-to-17-byte straight-line entries from the
+issue #49 scan are 2 (+0x010D, adds 5 to `[0x6825]` and increments `[0x6822]`), 59
+(+0x171F, sets `[0x681E]` to 1 and subtracts 4 from `[0x6822]`) and 36 (+0x10C1, halves
+`[0x681A]`); 30 was taken first because it uses only the two already-modelled bytes.
+
+**Tests.** All 256 starting values of each byte with the other byte complementary (both
+increment, the two unrelated state bytes untouched); wraparound at 0xFF and accumulation;
+composition with entry 31 (+1 then −4 nets −3); null state rejected.
+
+**Uncertainty.** As before, the meanings of `[0x6816]`, `[0x6822]` and dispatch item 35 are
+not established; completeness is unaffected. `deja` recall for this entry returned no
+prior session.
+
+Throughput: 10 minutes.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -490,10 +522,9 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: overlay-only strict full translations 8 (functions 1,
-4, 5, 10, 11, 12, 13 and 14); project-wide strict count 10 before the issue #49 PR and 11
-once it merges unless a resident translation merges first (PM's record, includes the
-resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+Measured count for the battle card: overlay-only strict full translations 9 (functions 1,
+4, 5, 10, 11, 12, 13, 14 and 15); project-wide strict count 12 before the issue #51 PR and
+13 once it merges (PM's record, includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
 9); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.

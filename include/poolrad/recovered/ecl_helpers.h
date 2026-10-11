@@ -292,4 +292,11 @@ pr_rec_effect_status pr_rec_u38_entry10(pr_rec_modifier_state *mods, unsigned *a
  * modulo 256. Meanings of the two bytes are not asserted. */
 pr_rec_effect_status pr_rec_u38_entry31(pr_rec_modifier_state *mods);
 
+/* GAME.OVR 0x0F861, unit 0x38 + 0x0C06, public entry 30 (run-time stub 0x41:0xB6),
+ * dispatch item 35 of the table at DS:0x6828. Full translation: 15 bytes, 6
+ * instructions, straight line, no calls, `retf 0xA` (five discarded word
+ * arguments): `inc byte [0x6816]` then `inc byte [0x6822]`, both wrapping
+ * modulo 256. Meanings of the two bytes are not asserted. */
+pr_rec_effect_status pr_rec_u38_entry30(pr_rec_modifier_state *mods);
+
 #endif

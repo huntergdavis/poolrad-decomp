@@ -583,3 +583,14 @@ pr_rec_effect_status pr_rec_u38_entry31(pr_rec_modifier_state *mods) {
     mods->b6816 = (uint8_t)(mods->b6816 - 4u);         /* sub byte [0x6816],4 */
     return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
 }
+
+/* ---- Character-effect dispatch entry 30 (issue #51) ----------------------- */
+
+pr_rec_effect_status pr_rec_u38_entry30(pr_rec_modifier_state *mods) {
+    if (mods == NULL) {
+        return PR_REC_EFFECT_ARGUMENT;
+    }
+    mods->b6816 = (uint8_t)(mods->b6816 + 1u);         /* inc byte [0x6816] */
+    mods->b6822 = (uint8_t)(mods->b6822 + 1u);         /* inc byte [0x6822] */
+    return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
+}
