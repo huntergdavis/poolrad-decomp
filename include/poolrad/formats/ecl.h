@@ -17,7 +17,9 @@ typedef enum {
     PR_ECL_HEADER,
     PR_ECL_ADDRESS,
     PR_ECL_TEXT_FRAME,
-    PR_ECL_OUTPUT_SIZE
+    PR_ECL_OUTPUT_SIZE,
+    PR_ECL_OPERAND_TAG,
+    PR_ECL_OPERAND_FRAME
 } pr_ecl_status;
 
 /* Borrows one already unpacked DAX block. Keep data alive and unchanged. */
@@ -38,11 +40,26 @@ typedef struct {
     size_t end_offset;
 } pr_ecl_text;
 
+/* A tagged operand at a caller-selected offset. All offsets include the
+ * record prefix; end_offset is exclusive. The descriptor borrows no bytes.
+ * For 0x80, payload starts after the length byte and payload_size is that
+ * byte's value. For other tags, payload is the one- or two-byte value. */
+typedef struct {
+    uint8_t tag;
+    size_t source_offset;
+    size_t payload_offset;
+    size_t payload_size;
+    size_t end_offset;
+} pr_ecl_operand_span;
+
 pr_ecl_status pr_ecl_open(const uint8_t *data, size_t size, pr_ecl_record *out);
 pr_ecl_status pr_ecl_address_to_offset(const pr_ecl_record *record,
                                        uint16_t address, size_t *offset);
 pr_ecl_status pr_ecl_offset_to_address(const pr_ecl_record *record,
                                        size_t offset, uint16_t *address);
+/* Sizes only one operand. Does not infer opcode boundaries or resolve values. */
+pr_ecl_status pr_ecl_operand_at(const pr_ecl_record *record,
+                                size_t source_offset, pr_ecl_operand_span *out);
 /* Parse only at a caller-provided operand position. Does not scan opcodes. */
 pr_ecl_status pr_ecl_text_at(const pr_ecl_record *record, size_t source_offset,
                              pr_ecl_text *out);

@@ -54,24 +54,59 @@ pr_ecl_status pr_ecl_open(const uint8_t *data, size_t size, pr_ecl_record *out) 
     return PR_ECL_OK;
 }
 
+pr_ecl_status pr_ecl_operand_at(const pr_ecl_record *record,
+                                size_t source_offset, pr_ecl_operand_span *out) {
+    pr_ecl_operand_span result;
+    size_t remaining;
+    if (!valid_record(record) || !out) return PR_ECL_ARGUMENT;
+    if (source_offset >= record->size) return PR_ECL_OPERAND_FRAME;
+    remaining = record->size - source_offset;
+    result.tag = record->data[source_offset];
+    result.source_offset = source_offset;
+    result.payload_offset = source_offset + 1;
+    switch (result.tag) {
+    case 0x00:
+        result.payload_size = 1;
+        break;
+    case 0x01:
+    case 0x02:
+    case 0x03:
+    case 0x81:
+        result.payload_size = 2;
+        break;
+    case 0x80:
+        if (remaining < 2) return PR_ECL_OPERAND_FRAME;
+        result.payload_offset++;
+        result.payload_size = record->data[source_offset + 1];
+        if (result.payload_size > remaining - 2) return PR_ECL_OPERAND_FRAME;
+        break;
+    default:
+        return PR_ECL_OPERAND_TAG;
+    }
+    if (result.tag != 0x80 && result.payload_size > remaining - 1)
+        return PR_ECL_OPERAND_FRAME;
+    result.end_offset = result.payload_offset + result.payload_size;
+    *out = result;
+    return PR_ECL_OK;
+}
+
 pr_ecl_status pr_ecl_text_at(const pr_ecl_record *record, size_t source_offset,
                              pr_ecl_text *out) {
     pr_ecl_text result;
+    pr_ecl_operand_span span;
     if (!valid_record(record) || !out) return PR_ECL_ARGUMENT;
-    if (source_offset > record->size || record->size - source_offset < 2 ||
-        record->data[source_offset] != 0x80) return PR_ECL_TEXT_FRAME;
-    result.source_offset = source_offset;
-    result.payload_offset = source_offset + 2;
-    result.packed_size = record->data[source_offset + 1];
-    if (result.packed_size > record->size - result.payload_offset)
-        return PR_ECL_TEXT_FRAME;
-    result.end_offset = result.payload_offset + result.packed_size;
+    if (pr_ecl_operand_at(record, source_offset, &span) != PR_ECL_OK ||
+        span.tag != 0x80) return PR_ECL_TEXT_FRAME;
+    result.source_offset = span.source_offset;
+    result.payload_offset = span.payload_offset;
+    result.packed_size = span.payload_size;
+    result.end_offset = span.end_offset;
     *out = result;
     return PR_ECL_OK;
 }
 
 /* Decode complete six-bit codes; the declared byte length bounds all reads.
- * The first zero code terminates text, with any remaining codes ignored. */
+ * A zero code is skipped, while subsequent codes remain in the frame. */
 static size_t decode(const uint8_t *packed, size_t packed_size, char *out) {
     unsigned bits = 0, available = 0;
     size_t i, count = 0;
@@ -83,9 +118,10 @@ static size_t decode(const uint8_t *packed, size_t packed_size, char *out) {
             available -= 6;
             code = (bits >> available) & 63u;
             bits &= (1u << available) - 1u;
-            if (!code) return count;
-            if (out) out[count] = (char)(code <= 0x1f ? code + 0x40 : code);
-            ++count;
+            if (code) {
+                if (out) out[count] = (char)(code <= 0x1f ? code + 0x40 : code);
+                ++count;
+            }
         }
     }
     return count;
@@ -120,6 +156,8 @@ const char *pr_ecl_status_string(pr_ecl_status status) {
     case PR_ECL_ADDRESS: return "virtual address outside record";
     case PR_ECL_TEXT_FRAME: return "invalid text frame";
     case PR_ECL_OUTPUT_SIZE: return "output buffer too small";
+    case PR_ECL_OPERAND_TAG: return "unknown operand tag";
+    case PR_ECL_OPERAND_FRAME: return "truncated operand frame";
     default: return "unknown error";
     }
 }

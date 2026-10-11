@@ -25,11 +25,20 @@ static void sample(uint8_t data[64]) {
     data[32] = 0x04;
     data[33] = 0x28;
     data[34] = 0x00; /* six-bit codes 1, 2, 32, 0 -> "AB " */
+    data[35] = 0x80;
+    data[36] = 3;
+    data[37] = 0x04;
+    data[38] = 0x00;
+    data[39] = 0x03; /* six-bit codes 1, 0, 0, 3 -> "AC" */
     data[40] = 0x80;
     data[41] = 3;
     data[42] = 0x04;
     data[43] = 0x20;
     data[44] = 0xc4; /* six-bit codes 1, 2, 3, 4 -> "ABCD" */
+    data[45] = 0x80;
+    data[46] = 2;
+    data[47] = 0x04;
+    data[48] = 0x20; /* two complete codes 1, 2 -> "AB" */
     data[50] = 0x80;
     data[51] = 0;
     data[60] = 0x80;
@@ -82,6 +91,74 @@ static int test_header_and_addresses(void) {
     return 0;
 }
 
+static int test_operands(void) {
+    uint8_t data[64];
+    pr_ecl_record record;
+    pr_ecl_operand_span span, saved;
+    size_t i;
+    static const uint8_t word_tags[] = {0x01, 0x02, 0x03, 0x81};
+    sample(data);
+    CHECK(pr_ecl_open(data, sizeof data, &record) == PR_ECL_OK);
+
+    data[55] = 0x00;
+    data[56] = 0xa5;
+    CHECK(pr_ecl_operand_at(&record, 55, &span) == PR_ECL_OK);
+    CHECK(span.tag == 0 && span.source_offset == 55 &&
+          span.payload_offset == 56 && span.payload_size == 1 &&
+          span.end_offset == 57);
+    for (i = 0; i < sizeof word_tags; ++i) {
+        data[55] = word_tags[i];
+        data[56] = 0x34;
+        data[57] = 0x12;
+        CHECK(pr_ecl_operand_at(&record, 55, &span) == PR_ECL_OK);
+        CHECK(span.tag == word_tags[i] && span.source_offset == 55 &&
+              span.payload_offset == 56 && span.payload_size == 2 &&
+              span.end_offset == 58);
+    }
+    data[55] = 0x80;
+    data[56] = 2;
+    CHECK(pr_ecl_operand_at(&record, 55, &span) == PR_ECL_OK);
+    CHECK(span.tag == 0x80 && span.source_offset == 55 &&
+          span.payload_offset == 57 && span.payload_size == 2 &&
+          span.end_offset == 59);
+    data[56] = 0;
+    CHECK(pr_ecl_operand_at(&record, 55, &span) == PR_ECL_OK);
+    CHECK(span.payload_size == 0 && span.end_offset == 57);
+
+    saved = span;
+    data[56] = 255;
+    CHECK(pr_ecl_operand_at(&record, 55, &span) == PR_ECL_OPERAND_FRAME);
+    CHECK(span.tag == saved.tag && span.source_offset == saved.source_offset &&
+          span.payload_offset == saved.payload_offset &&
+          span.payload_size == saved.payload_size &&
+          span.end_offset == saved.end_offset);
+    data[63] = 0x80;
+    CHECK(pr_ecl_operand_at(&record, 63, &span) == PR_ECL_OPERAND_FRAME);
+    data[63] = 0x00;
+    CHECK(pr_ecl_operand_at(&record, 63, &span) == PR_ECL_OPERAND_FRAME);
+    data[62] = 0x00;
+    CHECK(pr_ecl_operand_at(&record, 62, &span) == PR_ECL_OK &&
+          span.end_offset == 64);
+    data[62] = 0x81;
+    CHECK(pr_ecl_operand_at(&record, 62, &span) == PR_ECL_OPERAND_FRAME);
+    data[61] = 0x81;
+    CHECK(pr_ecl_operand_at(&record, 61, &span) == PR_ECL_OK &&
+          span.end_offset == 64);
+    data[62] = 0x80;
+    data[63] = 0;
+    CHECK(pr_ecl_operand_at(&record, 62, &span) == PR_ECL_OK &&
+          span.payload_offset == 64 && span.end_offset == 64);
+    data[63] = 1;
+    CHECK(pr_ecl_operand_at(&record, 62, &span) == PR_ECL_OPERAND_FRAME);
+    data[63] = 0x7f;
+    CHECK(pr_ecl_operand_at(&record, 63, &span) == PR_ECL_OPERAND_TAG);
+    CHECK(pr_ecl_operand_at(&record, 64, &span) == PR_ECL_OPERAND_FRAME);
+    CHECK(pr_ecl_operand_at(&record, (size_t)-1, &span) == PR_ECL_OPERAND_FRAME);
+    CHECK(pr_ecl_operand_at(NULL, 55, &span) == PR_ECL_ARGUMENT);
+    CHECK(pr_ecl_operand_at(&record, 55, NULL) == PR_ECL_ARGUMENT);
+    return 0;
+}
+
 static int test_text(void) {
     uint8_t data[64];
     uint8_t large[300] = {0};
@@ -101,9 +178,18 @@ static int test_text(void) {
     CHECK(pr_ecl_text_decode(&record, &text, output, sizeof output, &written) == PR_ECL_OK);
     CHECK(written == 3 && strcmp(output, "AB ") == 0);
 
+    CHECK(pr_ecl_text_at(&record, 35, &text) == PR_ECL_OK);
+    CHECK(pr_ecl_text_decode(&record, &text, output, 2, &written) == PR_ECL_OUTPUT_SIZE);
+    CHECK(written == 2);
+    CHECK(pr_ecl_text_decode(&record, &text, output, 3, &written) == PR_ECL_OK);
+    CHECK(written == 2 && strcmp(output, "AC") == 0);
+
     CHECK(pr_ecl_text_at(&record, 40, &text) == PR_ECL_OK);
     CHECK(pr_ecl_text_decode(&record, &text, output, sizeof output, &written) == PR_ECL_OK);
     CHECK(written == 4 && strcmp(output, "ABCD") == 0);
+    CHECK(pr_ecl_text_at(&record, 45, &text) == PR_ECL_OK);
+    CHECK(pr_ecl_text_decode(&record, &text, output, sizeof output, &written) == PR_ECL_OK);
+    CHECK(written == 2 && strcmp(output, "AB") == 0);
     CHECK(pr_ecl_text_at(&record, 50, &text) == PR_ECL_OK);
     CHECK(pr_ecl_text_decode(&record, &text, output, sizeof output, &written) == PR_ECL_OK);
     CHECK(written == 0 && output[0] == '\0');
@@ -143,7 +229,7 @@ static int test_text(void) {
 }
 
 int main(void) {
-    if (test_header_and_addresses() || test_text()) return 1;
-    puts("synthetic ECL header/address/text tests passed");
+    if (test_header_and_addresses() || test_operands() || test_text()) return 1;
+    puts("synthetic ECL header/address/operand/text tests passed");
     return 0;
 }
