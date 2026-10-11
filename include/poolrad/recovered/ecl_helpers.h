@@ -618,7 +618,8 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_if(pr_rec_ecl_loader_state *state);
  * node), FreeMem(head, 6) through 0xAF8:0x0254, head = the link. Two paths.
  * Path-complete model over the bounded array that function 7 uses for the
  * list (depth 0 = nil head; the node release is implicit; the temporaries
- * are not modelled, as for function 7). */
+ * are not modelled, as for function 7). An invalid host depth above the
+ * array bound returns BOUNDS after the PC advance, before any array read. */
 pr_rec_ecl_handler_status pr_rec_ecl_op_return(pr_rec_ecl_loader_state *state);
 
 #endif

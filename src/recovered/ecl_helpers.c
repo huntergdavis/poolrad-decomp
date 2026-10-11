@@ -1182,6 +1182,11 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_return(pr_rec_ecl_loader_state *state) {
         return PR_REC_ECL_HANDLER_ARGUMENT;
     }
     state->pc++;                                                /* +0x0AA2: inc word [0x49ED] */
+    /* The host represents the DOS list in a fixed array. Reject an invalid
+     * externally supplied depth before indexing past that array. */
+    if (state->call_depth > PR_REC_ECL_CALL_STACK_MAX) {
+        return PR_REC_ECL_HANDLER_BOUNDS;
+    }
     if (state->call_depth == 0u) {                              /* +0x0AA6..+0x0AAD: head nil -> +0x0AEB */
         return PR_REC_ECL_HANDLER_OK;
     }

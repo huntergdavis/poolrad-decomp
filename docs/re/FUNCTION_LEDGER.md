@@ -768,10 +768,13 @@ word 0 of the head node (the PC that GOSUB saved: the byte after its operand, le
 `[0x6F74:0x6F76]`. The EXIT handler's loop at `+0x00A4..+0x00DF` frees the whole list with
 the same node layout, which corroborates the 6-byte node and the link at words 1-2.
 Nothing else is read or written.
+The portable array model rejects an invalid host depth above
+`PR_REC_ECL_CALL_STACK_MAX` with `BOUNDS` after the PC advance, before an
+out-of-range array read; valid DOS list paths are unaffected.
 
 **Tests.** Empty list (PC advance only); one frame; two frames last in, first out, then an
 empty-list RETURN; the real GOSUB push followed by RETURN landing on the byte after the
-GOSUB operand; no other state moves; null. Composition through the run loop: GOSUB into a
+GOSUB operand; invalid host depth; no other state moves; null. Composition through the run loop: GOSUB into a
 subroutine that SAVEs and RETURNs, a GOSUB nested two deep with two RETURNs, then a RETURN
 on the empty list falling through to EXIT (11 dispatches, both SAVEs landed, depth 0).
 

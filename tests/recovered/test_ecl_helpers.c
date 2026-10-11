@@ -1515,6 +1515,10 @@ static int test_op_return(void) {
     CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9B20 && st.call_depth == 1);
     CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A10 && st.call_depth == 0);
     CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A11 && st.call_depth == 0);
+    /* A corrupt host depth cannot index past the bounded list array. */
+    save_state(&st, script, sizeof script, NULL); st.call_depth = PR_REC_ECL_CALL_STACK_MAX + 1u;
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_BOUNDS && st.pc == 0x9901 &&
+          st.call_depth == PR_REC_ECL_CALL_STACK_MAX + 1u);
     /* after the real GOSUB push, RETURN lands on the byte after the GOSUB operand */
     { static const uint8_t s2[] = { 0x02, 0x01, 0x10, 0x9A, 0x0D };
       save_state(&st, s2, sizeof s2, NULL);
