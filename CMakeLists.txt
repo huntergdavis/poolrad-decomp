@@ -34,7 +34,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_dax_selector_02eb.c
                                     src/recovered/resident_dax_selector_push.c
                                     src/recovered/overlay_u3bd_pieces.c
-                                    src/recovered/resident_load_route_27d9.c)
+                                    src/recovered/resident_load_route_27d9.c
+                                    src/recovered/resident_load_pieces_0767.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -194,4 +195,10 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_load_route_27d9_tests
              COMMAND poolrad_resident_load_route_27d9_tests)
+    add_executable(poolrad_resident_load_pieces_0767_tests
+                   tests/recovered/test_resident_load_pieces_0767.c)
+    target_link_libraries(poolrad_resident_load_pieces_0767_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_load_pieces_0767_tests
+             COMMAND poolrad_resident_load_pieces_0767_tests)
 endif()
