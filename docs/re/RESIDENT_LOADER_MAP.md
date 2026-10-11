@@ -64,8 +64,9 @@ that 86 Pascal prologues exist.
 
 ## Game versus linked-library classification
 
-The ledger retains one verified game-specific target, `RES_00BA_1509`, from
-the character sidecar trace. It marks the two `0xA40` calls as
+The ledger retains two verified game-specific targets, `RES_00BA_1509` and
+`RES_00BA_15F7`, from the character sidecar trace and the reviewed
+[append translation](RESIDENT_SIDECAR_APPEND.md). It marks the two `0xA40` calls as
 `linked_crt_inferred` with high confidence, rather than as proven stock
 library object code. Instruction neighborhoods support the inference:
 
@@ -82,7 +83,7 @@ unit's Delay, Sound, NoSound, KeyPressed, and ReadKey family in the
 [Borland Turbo Pascal 7.0 Language Guide, table 13.4](https://turbopascal.nl/docs/Turbo_Pascal_Version_7.0_Language_Guide_1992.pdf).
 That later manual establishes the library API family, not an exact object
 match to this 1989 executable. Of the 86 overlay-called targets, the current
-split is **one verified game-specific, two inferred linked CRT, and 83
+split is **two verified game-specific, two inferred linked CRT, and 82
 unresolved**. The 48 separately identified `0xAF8` targets remain Turbo
 Pascal SYSTEM/runtime per the earlier instruction evidence.
 

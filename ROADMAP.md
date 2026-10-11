@@ -12,8 +12,8 @@ contracts, recovered C helpers, and a resident called-target inventory are
 merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
-Five game routines are fully translated and behavior-checked across the overlay
-and resident lanes (PRs #36 and #37 added the latest two). Three handler/callee
+Seven game routines are fully translated and behavior-checked across the overlay
+and resident lanes (PRs #36, #37, #40 and #41 added the latest four). Three handler/callee
 models have unresolved dependencies or heap semantics, two string routines have
 path-complete C translations with a provisional runtime-string cap, and five have
 extracted C cores with unresolved engine side effects. The DOS oracle reaches
@@ -21,10 +21,12 @@ the main menu; input has not yet produced a verified gameplay transition. No
 native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
-and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33),
+and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
+Current evidence verifies 62 overlay and three resident game-routine identities,
+so 65 is a lower bound, not the full denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
-and the next [overlay](https://github.com/huntergdavis/poolrad-decomp/issues/39)
-and [resident](https://github.com/huntergdavis/poolrad-decomp/issues/38) translations.
+and the next [overlay](https://github.com/huntergdavis/poolrad-decomp/issues/43)
+and [resident](https://github.com/huntergdavis/poolrad-decomp/issues/42) translations.
 
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from

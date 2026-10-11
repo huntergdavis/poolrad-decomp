@@ -53,9 +53,10 @@ SYSTEM termination call at `0x014C`; the reached SYSTEM path terminates via
 DOS at loaded image `0xB121`. The path walk stops there rather than decoding
 following stub/data bytes. This makes `RPRO_000F6` a **verified static game
 program entry**, correcting the merged report's tentative data/stub reading.
-`RES_00BA_1509` remains the other verified game routine, grounded in the
-[character sidecar trace](../formats/DOS_CHARACTER.md). The supported
-resident game-routine lower bound is therefore **two**.
+`RES_00BA_1509` and `RES_00BA_15F7` are the other verified game routines,
+grounded in the [character sidecar trace](../formats/DOS_CHARACTER.md) and
+the reviewed [append translation](RESIDENT_SIDECAR_APPEND.md). The supported
+resident game-routine lower bound is therefore **three**.
 
 The only other raw prologue without a listed direct caller is
 `RPRO_0AA20`. Its short body is coherent, but this audit found no
