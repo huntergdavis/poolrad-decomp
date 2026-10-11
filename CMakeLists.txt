@@ -24,7 +24,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_unit38_effects_next.c
                                     src/recovered/resident_character_target_select.c
                                     src/recovered/overlay_unit38_helper.c
-                                    src/recovered/resident_ecl_dax_block.c)
+                                    src/recovered/resident_ecl_dax_block.c
+                                    src/recovered/resident_dax_rle.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -44,6 +45,10 @@ target_link_libraries(poolrad_dos_character_audit PRIVATE poolrad_formats)
 add_executable(poolrad_resident_ecl_dax_block_audit
                tests/recovered/audit_resident_ecl_dax_block.c)
 target_link_libraries(poolrad_resident_ecl_dax_block_audit PRIVATE
+                      poolrad_recovered poolrad_formats)
+add_executable(poolrad_resident_dax_rle_audit
+               tests/recovered/audit_resident_dax_rle.c)
+target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
                       poolrad_recovered poolrad_formats)
 
 include(CTest)
@@ -128,4 +133,9 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_ecl_dax_block_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_ecl_dax_block_tests
              COMMAND poolrad_resident_ecl_dax_block_tests)
+    add_executable(poolrad_resident_dax_rle_tests
+                   tests/recovered/test_resident_dax_rle.c)
+    target_link_libraries(poolrad_resident_dax_rle_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_dax_rle_tests
+             COMMAND poolrad_resident_dax_rle_tests)
 endif()
