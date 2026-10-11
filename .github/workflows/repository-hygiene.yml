@@ -1,0 +1,21 @@
+name: Repository hygiene
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify-public-tree:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject tracked game media and resource files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git ls-files | grep -E '^resources/|(^|/)(\.DS_Store|\._)|\.(DAX|EXE|OVR|SAV|ITM|SPC|ZIP|ADF|D64|PRG|SID)$' -i; then
+            echo 'Original game media or resource files must stay outside Git.' >&2
+            exit 1
+          fi
+      - name: Verify copied research snapshot
+        run: cd docs/prior-research/macmaps && sha256sum -c SHA256SUMS
