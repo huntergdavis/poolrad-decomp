@@ -7,8 +7,9 @@
 `tests/recovered/test_ecl_helpers.c`. All five originals live in overlay unit `0x25`
 (file offset 29,907, 8,730 code bytes, 25 public entries, run-time stub segment `0x2B`).
 
-**Delivered so far:** three **full translations** of leaf functions (functions 1, 4, 5) and
-two **extracted behavior cores** (functions 2 and 3). A full translation reproduces every
+**Delivered so far:** three **full translations** of leaf functions (functions 1, 4, 5),
+two **extracted behavior cores** (functions 2 and 3), and one **recovered state-transition
+core** (function 6, the operand loader, issue #16). A full translation reproduces every
 instruction path of the original with the same inputs and outputs. An extracted core
 reproduces a verified decision table or decoding loop but replaces engine memory (script
 buffer, PC, Pascal string buffers, runtime calls) with explicit arguments and omits the
@@ -141,11 +142,85 @@ minutes plus 10 minutes for the data check. Both were found by a leaf scan over 
 prologue functions (no calls, bounded size, few globals), which listed 71 candidates, 4 of
 them in the ECL helper unit.
 
+### 1.6 Operand loader state transition (issue #16, branch `claude/ecl-loader`)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 6 | `pr_rec_ecl_load_operands` = GAME.OVR 0x074D3, unit 0x25 + 0x0000, public entry 2 (called as `0x2B:0x2A` from 42 fixup-confirmed handler sites in unit 0x1c, and near-called by the skip dispatcher, function 2) | 310 bytes, 119 instructions | far Pascal: one word argument at `[bp+6]`, the operand count in its low byte; `retf 2`; no result | **recovered core** with a caller-owned state object | all paths of the loader itself **verified**; the 0x81 string-by-address side effect is **unresolved** for engine-window addresses; the inline-string cap is **provisional** (section 1.4) |
+
+**Globals read and written (engine addresses, all modelled in `pr_rec_ecl_loader_state`):**
+`[0x49DE]` script buffer far pointer and `[0x49ED]` PC (read, PC written); tag array
+`[0x7005+i]`, first value byte `[0x7085+i]`, second value byte `[0x7045+i]` for i = 1..count
+(written); string buffers `0x6FC8 + 256*k` for the k-th string operand of this call
+(cleared and filled). The PC is a **virtual address**: every fetch is `es:[buffer + PC +
+0x6700]`, so virtual `0x9900` is buffer offset 0 and the buffer pointer addresses unpacked
+block offset 2. GOTO writes an operand word straight into the PC (contracts section 5).
+
+**Paths (all represented):**
+
+| path | engine effect | translation |
+| --- | --- | --- |
+| `count < 1` | skip the loop; `PC += 1` | same |
+| per operand, entry | `tag[i] = [PC+1]`, `low[i] = [PC+2]`, `PC += 2` | same, with a bounds check |
+| tag 1, 2 or 3 | `PC += 1`, `high[i] = [PC]` | same |
+| tag 0x80, length > 0 | `k = ++strings`; function 3 consumes `length` bytes (PC advances before each read), clearing then filling buffer k | same via `pr_rec_ecl_unpack_text`; `PC += length` |
+| tag 0x80, length 0 | `k = ++strings`; buffer k length byte = 0 | same |
+| tag 0x81 | `k = ++strings`; `PC += 1`; `high[i] = [PC]`; word = function 4(low, high); call unit 0x25 + 0x12FB (word, k) | word computed; the callee is translated for script-window addresses only (below) |
+| any other tag (including 0x00) | nothing further | same |
+| loop exit | when `i == count`; then `PC += 1` | same |
+
+**Callee unit 0x25 + 0x12FB (GAME.OVR 0x087CE, 594 bytes, 229 instructions), string by
+address.** Arguments: address word, string index. It clears buffer k, classifies the address
+with function 5, then by class copies characters until a zero element, appending each with
+the runtime concat/store sequence (maximum length 0xFF passed to the store): class 0 reads
+words from the structure at far pointer `[0x49D2]` (index `address - 0x4900`, low byte
+appended); class 1 with address exactly `0x6B00` assigns the string at far pointer
+`[0x5D92]`, otherwise reads words from `[0x49D6]` (index `address - 0x6B00`); class 2
+reads words from `[0x49DA]` (index `address - 0x9700`); class 3 reads **bytes** from the
+script buffer at `address - 0x9900` (a plain zero-terminated byte string inside the block,
+not six-bit text); class 4 leaves the buffer empty. Translated: classes 3 and 4. Recorded
+as unresolved with the address kept in `string_address[k]`: classes 0 to 2, because the
+three engine structures and the `[0x5D92]` string are not modelled.
+
+**State reuse:** a string slot's length, recorded address and unresolved flag are cleared
+whenever the slot is allocated by a call, so a state object reused across instructions never
+reports a previous instruction's string metadata (regression test added after PR #20
+review).
+
+**Additions over the engine:** bounds checks on every script read (`PR_REC_ECL_LOADER_BOUNDS`,
+state partially updated as the engine would have been), a slot limit of 15
+(`PR_REC_ECL_LOADER_COUNT`, state unchanged; the engine's arrays are 64 bytes apart and it
+is never called with more than 14), and the provisional 255-character cap of function 3.
+
+**Checks.** Synthetic tests: all tag paths with slot positions and PC after each operand;
+count 0; an unknown tag; empty inline string; string by address for classes 3, 2, 0 and 4;
+truncated word, truncated inline string, class-3 string without terminator, operand bytes
+below the base; count limit; and that per-operand advances agree with the operand span sizes
+documented for lane B's reader (2, 3, 3, 3, 3, 2 + LL), checked against a hard-coded
+expected total rather than by calling that API. Call-site evidence: the 42 handler sites push an immediate count at
+39 sites (`mov al, n; push ax`), and a run-time value at 3 (0x1D, 0x2B second call, 0x39).
+Data checks on the owner's scripts (counts only, limited to the instructions reached by the
+walker's linear decode, about 61% of script bytes): all 195 tag-0x81 operands reached
+address classes 1 (6) and 2 (189), none the script window, so the unresolved branch is the
+one every reached operand uses; among reached instructions no IF-family opcode is
+immediately followed by 0x0C, 0x34 or 0x36, the three opcodes where the skip dispatcher's
+prefetch count differs from what the handler itself loads (3, 1 and 2 at their loader call
+sites), so that disagreement is latent in the decoded portion. Neither statement is a
+corpus-wide proof.
+
+**Verdict:** recovered core, not a full translation. Remaining dependencies: the three
+engine structures behind the 0x81 windows and the `[0x5D92]` string; the runtime string
+routines at `0xAF8:0x0B0B`, `0x0B98`, `0x0B25`, `0x0C3B` (cap); and dynamic confirmation on
+the DOS oracle.
+
+Throughput: about 70 minutes for the loader and its callee (reading 904 bytes of code,
+translation, 5 tests, 2 data checks).
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
 | --- | --- | --- |
-| operand loader, unit 0x25 + 0x0000, entry 2 (called as `0x2B:0x2A`, 42 sites) | For operand i = 1..count: tag byte at PC+1 to `[0x7005+i]`, next byte to `[0x7085+i]`, PC += 2; tags 1, 2, 3: PC += 1 and the byte there to `[0x7045+i]`; tag `0x80`: string index += 1, length = the second byte, if non-zero call function 3 (index, length) else clear string `0x6FC8 + 256*index`; tag `0x81`: string index += 1, PC += 1, high byte to `[0x7045+i]`, then near-calls unit 0x25 + 0x06AF (entry 9) and unit 0x25 + 0x12FB to copy a string from script memory. Final PC += 1. | Depends on two further functions and on engine memory layout; slot layout recorded for the contracts doc. |
+| operand loader, unit 0x25 + 0x0000, entry 2 | now function 6 (section 1.6) | translated as a recovered core |
 | unit 0x25 entry 20 (+0x1CC3) and entry 21 (+0x1DF0) | Entry 20 is arithmetic over the runtime's software-float routines (`0xAF8:0x119A`, `0x1186`, `0x119E`); entry 21 walks a linked list of party records (head at struct +0xC8, link at +0x2A, field +0x37 compared with 0xFF and 0x18), rolls `0xB0:0x48` (1..100) against an adjusted chance and calls `0xBA:0x1509`. Neither is an operand helper. | Behavior depends on unidentified runtime and resident routines. |
 
 ## 3. Correction to merged documents
@@ -175,8 +250,8 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
 Measured count for the battle card: 3 fully translated functions with passing behavior
-checks (functions 1, 4, 5), 2 extracted cores (functions 2, 3); total verified functions is
-not claimed beyond that.
+checks (functions 1, 4, 5), 3 cores (functions 2, 3, 6); total verified functions is not
+claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the
