@@ -623,6 +623,107 @@ static int test_u38_entry30(void) {
     return 0;
 }
 
+/* ---- issue #56: view-parameter setter and script-state initializer --------- */
+
+static int test_u3bd_entry1(void) {
+    pr_rec_view_state v;
+    unsigned i;
+    memset(&v, 0xEE, sizeof v);
+    /* the program body's call (image 0x012C..0x0138): pushes 0x0B, 0, 7, 6 */
+    CHECK(pr_rec_u3bd_entry1(&v, 0x0B, 0, 7, 6) == PR_REC_EFFECT_OK);
+    CHECK(v.b6a60 == 0x0B && v.b6a61 == 0 && v.b6a62 == 7 && v.b6a63 == 6);
+    for (i = 0; i < 256; ++i) {
+        uint8_t a = (uint8_t)i, b = (uint8_t)(255 - i), c = (uint8_t)(i ^ 0x5A), d = (uint8_t)(i * 3);
+        CHECK(pr_rec_u3bd_entry1(&v, a, b, c, d) == PR_REC_EFFECT_OK);
+        CHECK(v.b6a60 == a && v.b6a61 == b && v.b6a62 == c && v.b6a63 == d);
+    }
+    /* the view refresh pushes the four bytes back in the same order: identity */
+    CHECK(pr_rec_u3bd_entry1(&v, v.b6a60, v.b6a61, v.b6a62, v.b6a63) == PR_REC_EFFECT_OK);
+    CHECK(v.b6a60 == 255 && v.b6a61 == 0 && v.b6a62 == (255 ^ 0x5A) && v.b6a63 == (uint8_t)(255 * 3));
+    CHECK(pr_rec_u3bd_entry1(NULL, 1, 2, 3, 4) == PR_REC_EFFECT_ARGUMENT);
+    return 0;
+}
+
+/* Five block-head entries as ECL_CONTRACTS.md section 1 describes them:
+ * opcode 0x01, tag 0x01, word, at unpacked offsets 2, 6, 10, 14, 18. */
+static const uint8_t k_block_head[] = {
+    0x01, 0x01, 0x34, 0x12,  0x01, 0x01, 0x78, 0x56,  0x01, 0x01, 0xBC, 0x9A,
+    0x01, 0x01, 0x00, 0x00,  0x01, 0x01, 0xFF, 0xFF,  0x00
+};
+
+static void init_fill_state(pr_rec_ecl_loader_state *st, const uint8_t *script, size_t size) {
+    unsigned i;
+    memset(st, 0, sizeof *st);
+    st->script = script; st->script_size = size; st->pc = 0x1234;
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) st->window0[i] = 0xAAAA;
+    for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) st->window1[i] = 0xAAAA;
+    for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) st->window2[i] = 0xAAAA;
+    for (i = 0; i < 5; ++i) st->entry_addr[i] = 0x5555;
+    memset(st->cmp_flags, 0xAA, sizeof st->cmp_flags);
+    st->call_depth = 3; st->w6f74 = 0xAAAA; st->w6f76 = 0xAAAA;
+    st->b84e0 = st->b84e2 = st->b84d2 = st->b84d3 = st->b84e5 = 0xAA;
+    st->b6f68 = st->b6f69 = st->b84c8 = st->b84c9 = st->b6f83 = st->b70c6 = 0xAA;
+    st->b84df = 0x11; st->b5e24 = 0x22; st->b5e25 = 0x33;
+}
+
+static int check_init_fixed_writes(const pr_rec_ecl_loader_state *st) {
+    unsigned i;
+    CHECK(st->entry_addr[0] == 0x1234 && st->entry_addr[1] == 0x5678 && st->entry_addr[2] == 0x9ABC);
+    CHECK(st->entry_addr[3] == 0x0000 && st->entry_addr[4] == 0xFFFF);
+    CHECK(st->pc == PR_REC_ECL_SCRIPT_BASE + 20u);      /* five 4-byte entries consumed */
+    CHECK(st->call_depth == 0 && st->w6f74 == 0 && st->w6f76 == 0);
+    for (i = 0; i < 6; ++i) CHECK(st->cmp_flags[i] == 0);
+    CHECK(st->b84e0 == 0 && st->b84e2 == 0 && st->b84d2 == 0 && st->b84d3 == 0);
+    CHECK(st->b6f68 == 0x41 && st->b6f69 == 9 && st->b84e5 == 1);
+    CHECK(st->b84c8 == 0 && st->b84c9 == 0 && st->b6f83 == 8 && st->b70c6 == 0);
+    CHECK(st->window1[0x2E1] == 0xFF && st->window1[0x2D2] == 0 && st->window1[0x2D3] == 0);
+    CHECK(st->window0[0xE5] == 0 && st->window0[0xE6] == 1);
+    CHECK(st->b84df == 0x11 && st->b5e24 == 0x22 && st->b5e25 == 0x33);   /* not touched */
+    for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) CHECK(st->window2[i] == 0xAAAA);
+    return 0;
+}
+
+static int test_script_init(void) {
+    pr_rec_ecl_loader_state st;
+    unsigned i;
+    /* new game: restored == 0, the two window ranges are cleared */
+    init_fill_state(&st, k_block_head, sizeof k_block_head);
+    st.restored = 0;
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(check_init_fixed_writes(&st) == 0);
+    CHECK(st.restored == 0);
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) {
+        uint16_t want = 0xAAAA;
+        if (i >= 0x100 && i < 0x120) want = 0;
+        if (i == 0xE5) want = 0;
+        if (i == 0xE6) want = 1;
+        CHECK(st.window0[i] == want);
+    }
+    for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) {
+        uint16_t want = 0xAAAA;
+        if (i >= 0x379 && i < 0x383) want = 0;
+        if (i == 0x2E1) want = 0xFF;
+        if (i == 0x2D2 || i == 0x2D3) want = 0;
+        CHECK(st.window1[i] == want);
+    }
+    /* restored game: the two ranges are kept and the flag is consumed */
+    init_fill_state(&st, k_block_head, sizeof k_block_head);
+    st.restored = 1;
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(check_init_fixed_writes(&st) == 0);
+    CHECK(st.restored == 0);
+    for (i = 0x100; i < 0x120; ++i) CHECK(st.window0[i] == 0xAAAA);
+    for (i = 0x379; i < 0x383; ++i) CHECK(st.window1[i] == 0xAAAA);
+    /* a truncated block head: the loader's bounds status propagates after three entries */
+    init_fill_state(&st, k_block_head, 14);
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_BOUNDS);
+    CHECK(st.entry_addr[0] == 0x1234 && st.entry_addr[1] == 0x5678 && st.entry_addr[2] == 0x9ABC);
+    CHECK(st.entry_addr[3] == 0x5555 && st.entry_addr[4] == 0x5555);
+    CHECK(st.window0[0xE6] == 0xAAAA);                    /* the write after the reads did not happen */
+    CHECK(pr_rec_ecl_script_init(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -648,6 +749,8 @@ int main(void) {
     rc |= test_u38_entry10();
     rc |= test_u38_entry31();
     rc |= test_u38_entry30();
+    rc |= test_u3bd_entry1();
+    rc |= test_script_init();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

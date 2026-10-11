@@ -139,6 +139,31 @@ typedef struct {
     uint8_t b84df;
     uint8_t b5e24;
     uint8_t b5e25;
+    /* ---- Script-state initializer (issue #56, unit 0x25 + 0x01B6) --------
+     * entry_addr[k] = engine word [0x49E3 + 2k]: the five entry addresses the
+     * initializer reads from the block head (run, search, pre-camp check,
+     * camp interrupted, initial entry; ECL_CONTRACTS.md section 1).
+     * restored = byte [0x49F8]: the party menu sets it after a saved game is
+     * loaded (unit 0x6c + 0x0412); the initializer then keeps the window
+     * words it would otherwise clear and resets the flag. The other fields
+     * are engine bytes and words the initializer writes, named by address
+     * because their meaning is not asserted. */
+    uint16_t entry_addr[5];
+    uint8_t restored;
+    uint8_t cmp_flags[6];                 /* [0x6F78..0x6F7D] */
+    uint16_t w6f74;
+    uint16_t w6f76;
+    uint8_t b84e0;
+    uint8_t b84e2;
+    uint8_t b84d2;
+    uint8_t b84d3;
+    uint8_t b84e5;
+    uint8_t b6f68;
+    uint8_t b6f69;
+    uint8_t b84c8;
+    uint8_t b84c9;
+    uint8_t b6f83;
+    uint8_t b70c6;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -298,5 +323,43 @@ pr_rec_effect_status pr_rec_u38_entry31(pr_rec_modifier_state *mods);
  * arguments): `inc byte [0x6816]` then `inc byte [0x6822]`, both wrapping
  * modulo 256. Meanings of the two bytes are not asserted. */
 pr_rec_effect_status pr_rec_u38_entry30(pr_rec_modifier_state *mods);
+
+/* ---- Issue #56: two routines on the first-gameplay path --------------------
+ * See docs/re/GAMEPLAY_PATH.md and FUNCTION_LEDGER.md section 1.14. */
+
+/* GAME.OVR 0x2EA4C, unit 0x3bd + 0x0155 (bytes +0x0155..+0x0173), public
+ * entry 1 (run-time stub 0x3D5:0x25). Full translation: 31 bytes, 12
+ * instructions, straight line, no calls, `retf 8`. Copies four byte
+ * arguments, first pushed ([bp+0xC]) to last pushed ([bp+6]), to the bytes
+ * [0x6A60], [0x6A61], [0x6A62], [0x6A63]. Callers: the program body (image
+ * 0x0138, constants 0x0B, 0, 7, 6) right before the gameplay loop, and the
+ * view refresh unit 0x3b4 + 0x016D (site +0x0207) with computed values. The
+ * meanings of the four bytes are not asserted. */
+typedef struct {
+    uint8_t b6a60;
+    uint8_t b6a61;
+    uint8_t b6a62;
+    uint8_t b6a63;
+} pr_rec_view_state;
+
+pr_rec_effect_status pr_rec_u3bd_entry1(pr_rec_view_state *view, uint8_t first,
+                                        uint8_t second, uint8_t third, uint8_t fourth);
+
+/* GAME.OVR 0x07689, unit 0x25 + 0x01B6 (bytes +0x01B6..+0x0321), public entry 3
+ * (run-time stub 0x2B:0x2F), 364 bytes, 135 instructions. Called by the
+ * gameplay loop (unit 0x1c + 0x335D) right after the ECL block load and before
+ * the first run of the initial entry. Path-complete model with stated
+ * dependencies: the two runtime calls at 0xAF8:0x16A8 (FillChar's argument
+ * shape: destination, count, value 0) become direct zeroing; the five
+ * operand reads go through the loader core (function 6) with count 1 and the
+ * operand word assembly (function 4), so the model shares the loader's
+ * limits. Window words are addressed as in the engine: window 0 index i is
+ * script address 0x4900 + i, window 1 index i is 0x6B00 + i. */
+#define PR_REC_ECL_INIT_CLEAR0_FIRST 0x100u   /* window 0: script addresses 0x4A00..0x4A1F */
+#define PR_REC_ECL_INIT_CLEAR0_COUNT 32u
+#define PR_REC_ECL_INIT_CLEAR1_FIRST 0x379u   /* window 1: script addresses 0x6E79..0x6E82 */
+#define PR_REC_ECL_INIT_CLEAR1_COUNT 10u
+
+pr_rec_ecl_handler_status pr_rec_ecl_script_init(pr_rec_ecl_loader_state *state);
 
 #endif
