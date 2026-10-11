@@ -16,6 +16,8 @@ ctest --test-dir /tmp/poolrad-formats-build --output-on-failure
 The [ECL reader and local audit](ECL.md) use the same CMake build.
 The [EGA image reader and art audit](EGA.md) use it too.
 The [WALLDEF span reader and local audit](WALLDEF.md) cover wallset structure.
+The [DOS character framing reader and sidecar audit](DOS_CHARACTER.md) keep
+unknown save fields raw.
 
 To audit the owner's ignored DOS v1.3 archives locally, without extracting or
 writing decoded blocks:
