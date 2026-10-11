@@ -47,8 +47,8 @@ instruction evidence below.
 | Non-SYSTEM resident targets without a validated file position | 2 | `RES_0A40_029C`, `RES_0A40_02FD` |
 | Raw resident-image prologue hits | 132 | 48 are not among the 84 mapped called starts; their function status is open |
 
-The 86 called non-SYSTEM targets classify as two verified game-specific, zero
-verified other-library, and 84 unresolved game-or-library targets. The 48
+The 86 called non-SYSTEM targets classify as three verified game-specific, zero
+verified other-library, and 83 unresolved game-or-library targets. The 48
 remaining raw prologue hits have not been proved false or assigned to
 functions. No two of the 84 validated targets alias the same file offset;
 possible aliases or nonprologue starts among the unmapped targets remain open.
@@ -95,7 +95,7 @@ exact `55 89 E5` instruction start as well as a relocated far-call target.
 
 | Segment | Called offset range | Shift | Mapped targets | Classification |
 | --- | --- | ---: | ---: | --- |
-| `0xBA` | `0x0442..0x2199` | -292 | 24 | game or linked library unresolved, except `0x1509` and `0x15F7` below |
+| `0xBA` | `0x0442..0x2199` | -292 | 24 | game or linked library unresolved, except `0x1509`, `0x15F7`, and `0x2199` below |
 | `0xBA` | `0x2228..0x2B88` | -316 | 13 | unresolved |
 | `0xBA` | `0x2C48..0x2F57` | -330 | 5 | unresolved |
 | `0x3F1` | `0x0000..0x02E8` | -446 | 3 | unresolved |
@@ -143,21 +143,23 @@ There are **84 distinct exact-prologue mappings under bounded empirical
 shifts**: each target has a fixup-confirmed incoming call and maps to a
 different resident file offset. The `0x899` and `0x8AE` shifts remain
 moderate-confidence inferences, so this is a supported called-start count,
-not a loader-verified exact denominator or a game-source count. The two
+not a loader-verified exact denominator or a game-source count. The three
 overlay-called resident targets promoted to *verified game-specific* are
-`RES_00BA_1509` at file `0x2185` and `RES_00BA_15F7` at file `0x2273`:
-they remove and append nodes on the DOS character object's sidecar list at
-`+0xC8`, as established by the character load trace and the reviewed
-[append translation](RESIDENT_SIDECAR_APPEND.md).
+`RES_00BA_1509` at file `0x2185`, `RES_00BA_15F7` at file `0x2273`, and
+`RES_00BA_2199` at file `0x2E15`: they remove and append nodes on the
+character's `+0xC8` sidecar list and search its `+0x7F` sidecar list, as
+established by the character load trace and the reviewed
+[append](RESIDENT_SIDECAR_APPEND.md) and [lookup](RESIDENT_SIDECAR_LOOKUP.md)
+translations.
 One of its ten fixup-confirmed callers is GAME.OVR unit `0x25:+0x1e8c`
 (file `0x935f`); the function ledger identifies that unit's entry 21 as
 walking the party records and calling this target.
 That gives a conservative **overlay-called resident game-function lower bound
-of 2**; the remaining 84 called non-SYSTEM targets have unresolved game versus linked
+of 3**; the remaining 83 called non-SYSTEM targets have unresolved game versus linked
 library provenance. The two `0xA40` targets are especially plausible
 low-level library calls, but their starts and ownership remain unverified.
 
-Among directly called non-SYSTEM targets, the possible game count is 2–86.
+Among directly called non-SYSTEM targets, the possible game count is 3–86.
 That is **not** an upper bound for the full game: indirect calls, uncalled
 routines, 48 unmatched raw prologue hits, nonprologue starts, and the still
 separate overlay candidates remain unaudited. The 404 overlay public entries

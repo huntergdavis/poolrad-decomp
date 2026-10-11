@@ -33,9 +33,9 @@ MAPPED_RANGES = {
     0x8AE: ((0x00DC, 0x01A5, -489),),
 }
 
-# These targets remove and append nodes on the character-record sidecar list
-# at +0xC8; see RESIDENT_SIDECAR_REMOVE.md and RESIDENT_SIDECAR_APPEND.md.
-GAME_SPECIFIC_TARGETS = {(0x0BA, 0x1509), (0x0BA, 0x15F7)}
+# These targets remove/append nodes on the character's +0xC8 sidecar list and
+# search its +0x7F sidecar list; see the RESIDENT_SIDECAR_* evidence notes.
+GAME_SPECIFIC_TARGETS = {(0x0BA, 0x1509), (0x0BA, 0x15F7), (0x0BA, 0x2199)}
 
 
 def digest(data):
@@ -175,7 +175,7 @@ def collect(exe, ovr):
             "mapped target count changed")
     require(len(set(mapped_offsets)) == len(mapped_offsets),
             "mapped resident targets alias the same file offset")
-    require(sum(x["classification"] == "game_verified" for x in resident) == 2,
+    require(sum(x["classification"] == "game_verified" for x in resident) == 3,
             "verified game subset changed")
     raw_prologues = len(list(re.finditer(b"\x55\x89\xe5", image)))
     require(raw_prologues == 132, "resident raw prologue count changed")
@@ -194,11 +194,11 @@ def collect(exe, ovr):
                              mapped_exact_prologue_targets=84,
                              unmapped_called_targets=2,
                              resident_classifications=dict(
-                                 game_verified=2,
-                                 game_or_other_library_unresolved=84,
+                                 game_verified=3,
+                                 game_or_other_library_unresolved=83,
                                  other_library_verified=0),
-                             game_specific_verified_lower_bound=2,
-                             directly_called_game_candidate_range=[2, 86],
+                             game_specific_verified_lower_bound=3,
+                             directly_called_game_candidate_range=[3, 86],
                              full_game_denominator="unresolved"),
                 final_overlay_entries=dict(
                     (str(i), dict(target_unit_offset=last["entries"][i], call_sites=n))
