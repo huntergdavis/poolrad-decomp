@@ -314,7 +314,9 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies and raises the strict count to 4 after merge (functions 1, 4, 5, 10).
+dependencies. The project's reviewed strict count is 4 before this PR (the PM's record,
+which includes the resident lane); PRINT RETURN raises it to 5 after reviewed merge. Lane A's
+own full translations are functions 1, 4, 5 and 10.
 Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
 and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
@@ -354,8 +356,9 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: strict full translations 4 after merge (functions 1,
-4, 5 and 10); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+Measured count for the battle card: lane A strict full translations 4 (functions 1, 4, 5
+and 10; the project-wide reviewed count is the PM's record, 4 before this PR and 5 after
+PRINT RETURN merges); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
 9); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
