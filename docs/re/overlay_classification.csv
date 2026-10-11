@@ -52,13 +52,13 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x1c:0x2b33,0x1c,0x2b33,14457,B,0,game_verified,verified,0,,1,0,4,1,1,2,0,0,1,75,75
 0x1c:0x2b7e,0x1c,0x2b7e,14532,B,0,game_verified,verified,0,active_char,1,2,6,0,4,2,0,0,1,133,133
 0x1c:0x2c03,0x1c,0x2c03,14665,B,0,game_verified,verified,0,party;slot_hi;slot_lo,5,6,6,0,6,0,0,0,1,204,204
-0x1c:0x2ccf,0x1c,0x2ccf,14869,B,0,game_verified,verified,0,ecl_flag;slot_hi;slot_lo,2,17,11,0,8,3,0,0,1,260,260
+0x1c:0x2ccf,0x1c,0x2ccf,14869,B,0,game_verified,verified,0,ecl_flag;slot_hi;slot_lo,3,17,11,0,8,3,0,0,1,260,260
 0x1c:0x2dd3,0x1c,0x2dd3,15129,B,0,game_evidenced,provisional,0,,2,3,5,0,2,1,2,0,0,61,61
 0x1c:0x2e10,0x1c,0x2e10,15190,B,0,game_verified,verified,0,active_char;ecl_pc,1,6,7,0,4,1,2,0,1,109,109
 0x1c:0x2e7d,0x1c,0x2e7d,15299,B,0,game_verified,verified,0,ecl_flag;slot_hi;slot_lo;window,3,8,5,1,3,1,0,0,1,176,176
 0x1c:0x2f2d,0x1c,0x2f2d,15475,B,0,game_verified,verified,0,ecl_op,48,1,49,0,0,0,49,0,1,580,580
 0x1c:0x3171,0x1c,0x3171,16055,B,0,game_verified,verified,0,ecl_buf;ecl_op;ecl_pc;ecl_stop,1,6,1,0,0,0,1,0,1,66,67
-0x1c:0x31b4,0x1c,0x31b4,16122,B,0,game_evidenced,provisional,0,active_char;win0;win1,3,16,9,1,3,2,3,0,0,324,324
+0x1c:0x31b4,0x1c,0x31b4,16122,B,0,game_evidenced,provisional,0,active_char;win0;win1,4,16,9,1,3,2,3,0,0,324,324
 0x1c:0x32f8,0x1c,0x32f8,16446,A,0,game_evidenced,provisional,0,active_char;ecl_flag;ecl_stop;win0;win1,4,25,20,2,8,2,8,0,0,528,528
 0x1c:0x3508,0x1c,0x3508,16974,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
 0x1e:0x0013,0x1e,0x0013,17802,B,0,game_evidenced,provisional,0,active_char,0,2,5,2,1,2,0,0,0,170,172
@@ -115,7 +115,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x25:0x1815,0x25,0x1815,36072,A,1,game_verified,verified,0,ecl_cmp,0,6,9,9,0,0,0,0,1,214,214
 0x25:0x18eb,0x25,0x18eb,36286,A,2,game_verified,verified,0,ecl_cmp,0,6,1,1,0,0,0,0,1,102,102
 0x25:0x1951,0x25,0x1951,36388,A,2,game_evidenced,provisional,0,ecl_pc;ecl_stack,1,5,3,2,0,0,1,0,0,138,138
-0x25:0x19db,0x25,0x19db,36526,A,1,game_or_other_library_unresolved,unresolved,0,,0,5,2,0,2,0,0,0,0,148,148
+0x25:0x19db,0x25,0x19db,36526,A,1,game_evidenced,provisional,0,,1,5,2,0,2,0,0,0,0,148,148
 0x25:0x1a6f,0x25,0x1a6f,36674,A,2,game_evidenced,provisional,2,active_char;party;win1,0,7,10,9,1,0,0,0,0,596,596
 0x25:0x1cc3,0x25,0x1cc3,37270,A,2,helper_candidate,provisional,0,,0,0,21,21,0,0,0,0,0,301,301
 0x25:0x1df0,0x25,0x1df0,37571,A,2,game_or_other_library_unresolved,unresolved,0,,0,0,2,0,1,1,0,0,0,182,182
@@ -352,7 +352,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x68:0x05ee,0x68,0x05ee,93369,B,0,game_evidenced,provisional,0,party,0,2,1,0,0,0,1,0,0,90,90
 0x68:0x0648,0x68,0x0648,93459,B,0,game_or_other_library_unresolved,unresolved,0,,0,0,2,0,0,0,2,0,0,69,69
 0x68:0x068d,0x68,0x068d,93528,B,0,game_evidenced,provisional,0,win1,0,4,1,0,1,0,0,0,0,174,174
-0x68:0x073b,0x68,0x073b,93702,B,0,game_evidenced,provisional,0,win1,0,7,6,1,4,1,0,0,0,219,221
+0x68:0x073b,0x68,0x073b,93702,B,0,game_evidenced,provisional,0,win1,1,7,6,1,4,1,0,0,0,219,221
 0x68:0x0818,0x68,0x0818,93923,B,0,game_evidenced,provisional,1,win0,0,3,4,1,2,1,0,0,0,369,369
 0x68:0x0989,0x68,0x0989,94292,A,2,game_evidenced,provisional,2,active_char;ecl_pc;win0;win1,0,15,36,6,20,9,1,0,0,993,996
 0x68:0x0d6d,0x68,0x0d6d,95288,A,1,game_evidenced,provisional,5,win1,0,11,46,24,4,5,13,0,0,826,826
@@ -602,7 +602,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x3b4:0x00c7,0x3b4,0x00c7,187470,B,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,52,52
 0x3b4:0x00fb,0x3b4,0x00fb,187522,B,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,52,52
 0x3b4:0x012f,0x3b4,0x012f,187574,B,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,62,62
-0x3b4:0x016d,0x3b4,0x016d,187636,A,10,game_evidenced,provisional,0,win0,1,14,8,0,4,0,4,0,0,307,307
+0x3b4:0x016d,0x3b4,0x016d,187636,A,10,game_evidenced,provisional,0,win0,2,14,8,0,4,0,4,0,0,307,307
 0x3b4:0x02a0,0x3b4,0x02a0,187943,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
 0x3b6:0x0000,0x3b6,0x0000,187960,A,4,game_evidenced,provisional,0,win0,0,1,1,0,1,0,0,0,0,518,519
 0x3b6:0x0207,0x3b6,0x0207,188479,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,6,3,0,3,0,0,0,124,124
@@ -624,7 +624,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x3bd:0x031f,0x3bd,0x031f,191510,B,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,49,49
 0x3bd:0x0350,0x3bd,0x0350,191559,A,4,game_or_other_library_unresolved,unresolved,0,,0,2,2,0,0,0,2,0,0,299,299
 0x3bd:0x047b,0x3bd,0x047b,191858,A,8,game_or_other_library_unresolved,unresolved,0,,0,2,1,0,0,0,1,0,0,255,255
-0x3bd:0x057a,0x3bd,0x057a,192113,A,5,game_or_other_library_unresolved,unresolved,0,,0,2,1,0,0,0,1,0,0,121,121
+0x3bd:0x057a,0x3bd,0x057a,192113,A,5,game_verified,verified,0,,0,2,1,0,0,0,1,0,1,121,121
 0x3bd:0x05f3,0x3bd,0x05f3,192234,B,0,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,0,1,0,0,0,10,10
 0x3bd:0x05fd,0x3bd,0x05fd,192244,A,5,game_or_other_library_unresolved,unresolved,0,,0,1,39,0,0,0,39,0,0,2058,2059
 0x3bd:0x0e08,0x3bd,0x0e08,194303,A,8,game_verified,verified,3,,0,4,16,9,2,5,0,0,1,703,703

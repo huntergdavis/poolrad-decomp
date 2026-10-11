@@ -8,10 +8,10 @@ pull requests; the primary session merges after review.
 
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
-| A: DOS code recovery | Claude | Thirty-four full overlay translations merged through PR #108; COMPARE, IF and RETURN are bounded models, the latter merged in PR #119. Awaiting the 11:40 PDT session reset before another assignment. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*` (no edits to Codex's resident files) |
-| B: portable data foundation and resident recovery | Codex worker | Format readers and resident inventory/loader/callable audits merged. Nine full resident translations merged through PR #79. PR #110 added the LOAD PIECES display/list model; PR #120 proposes its field-display callee and is under review. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
-| C: separate overlay recovery | Claude worker 2 | Unit `0x3BD` entries 6 and 7 models merged in PRs #106 and #114. Awaiting the 11:40 PDT session reset before another assignment. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
-| D: separate resident recovery | Codex worker 2 | Resident LOAD route dispatch and `RES_00BA:290B` models merged in PRs #109 and #118; next target pending PM assignment. | New uniquely named resident recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
+| A: DOS code recovery | Claude | Thirty-four full overlay translations merged through PR #108; COMPARE, IF and RETURN are bounded models, the latter merged in PR #119. Idle pending PM assignment. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*` (no edits to Codex's resident files) |
+| B: portable data foundation and resident recovery | Codex worker | Format readers and resident inventory/loader/callable audits merged. Nine full resident translations merged through PR #79. PRs #110/#120 added bounded LOAD PIECES display callees; issue #122 awaits public review. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
+| C: separate overlay recovery | Claude worker 2 | Unit `0x3BD` entries 6 and 7 models merged in PRs #106/#114; entry 4 received one full translation in PR #124. Next target pending PM selection. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
+| D: separate resident recovery | Codex worker 2 | Resident LOAD route dispatch and `RES_00BA:290B` models merged in PRs #109/#118; issue #123 awaits public review. | New uniquely named resident recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, track the game-function denominator in issue #24, and connect the lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
@@ -34,16 +34,16 @@ pull requests; the primary session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
-Forty-three verified game-specific routines are fully translated across the
-overlay and resident lanes: thirty-four overlay and nine resident. PR #64's
+Forty-four verified game-specific routines are fully translated across the
+overlay and resident lanes: thirty-five overlay and nine resident. PR #64's
 separate `0x464` helper has unresolved source ownership.
 Three handler/callee models have unresolved dependencies or heap semantics;
 PRs #65/#72 add separate path-complete script-state initializer and ECL block-loader models.
 Two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
-translated. The regenerated classifier records 95 verified overlay identities,
+translated. The regenerated classifier records 96 verified overlay identities,
 including PRs #63/#69's twenty unit `0x38` entries, PR #65's view setter,
-PRs #106/#114's unit `0x3BD` entries 6/7 and PR #108's two compare helpers,
+PRs #106/#114/#124's unit `0x3BD` entries 6/7/4 and PR #108's two compare helpers,
 and the callable ledger records ten resident identities. The combined
-evidence-backed floor is therefore 105 game routines. The full game-function
+evidence-backed floor is therefore 106 game routines. The full game-function
 denominator remains open; the DOS save-walk oracle reaches exploration.
