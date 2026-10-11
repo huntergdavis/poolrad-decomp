@@ -663,3 +663,89 @@ pr_rec_ecl_handler_status pr_rec_ecl_script_init(pr_rec_ecl_loader_state *state)
     }
     return PR_REC_ECL_HANDLER_OK;                        /* +0x031E: mov sp,bp; pop bp; retf */
 }
+
+/* ---- Issue #68: ECL block load, unit 0x25 + 0x0341 (model) ----------------- */
+
+void pr_rec_ecl_block_name(uint8_t file_number, char name[PR_REC_ECL_BLOCK_NAME_MAX]) {
+    char digits[4];
+    unsigned n = 0, v = file_number, i = 0;
+    if (name == NULL) {
+        return;
+    }
+    name[i++] = 'E'; name[i++] = 'C'; name[i++] = 'L';          /* the 3-character constant at +0x0338 */
+    do {                                                        /* Str(v : 0): no padding */
+        digits[n++] = (char)('0' + (v % 10u));
+        v /= 10u;
+    } while (v != 0u);
+    while (n > 0u) {
+        name[i++] = digits[--n];
+    }
+    name[i] = '\0';
+}
+
+pr_rec_ecl_block_status pr_rec_ecl_load_block(pr_rec_ecl_loader_state *state, uint8_t *buffer,
+                                              uint8_t block_id, const pr_rec_ecl_block_io *io,
+                                              unsigned max_attempts, unsigned *attempts) {
+    char name[PR_REC_ECL_BLOCK_NAME_MAX];
+    const uint8_t *block = NULL;
+    uint16_t size = 0;
+    unsigned made = 0u;                                         /* load_block calls so far (model bound) */
+    size_t k;
+    if (attempts != NULL) {
+        *attempts = 0u;
+    }
+    if (state == NULL || buffer == NULL || io == NULL || io->load_block == NULL || io->release == NULL) {
+        return PR_REC_ECL_BLOCK_ARGUMENT;
+    }
+    for (k = 0; k < PR_REC_ECL_SCRIPT_BUFFER_SIZE; ++k) {      /* +0x0348..+0x0355: fill [0x49DE]^, 0x1E00, 0 */
+        buffer[k] = 0u;
+    }
+    state->b557c = 0u;                                          /* +0x035A */
+    for (;;) {
+        if (io->clear_row != NULL) {                            /* +0x035F: unit 0x3b0 entry 3 */
+            io->clear_row(io->ctx);
+        }
+        if (io->show_wait != NULL) {                            /* +0x0364..+0x037C */
+            io->show_wait(io->ctx);
+        }
+        pr_rec_ecl_block_name(state->file_number, name);        /* +0x0381..+0x03B0: Str([0x5376]), "ECL" + digits */
+        ++made;
+        if (attempts != NULL) {
+            *attempts = made;
+        }
+        if (made > max_attempts) {
+            return PR_REC_ECL_BLOCK_RETRY_LIMIT;                /* model bound; the engine has none */
+        }
+        block = NULL;
+        size = 0u;
+        /* +0x03B5..+0x03D3: extension constant, block id, &size, &block -> 0x802:0x0716 */
+        if (io->load_block(io->ctx, name, PR_REC_ECL_BLOCK_EXT, block_id, &size, &block) != 0) {
+            size = 0u;
+            block = NULL;
+        }
+        if (size >= 2u) {                                       /* +0x03D8: cmp [bp-8],2 ; jb +0x035F */
+            break;
+        }
+        /* a short result loops without releasing anything, as the engine does */
+    }
+    if (block == NULL || (size_t)(size - 2u) > PR_REC_ECL_SCRIPT_BUFFER_SIZE) {
+        /* The engine would run Move with size - 2 past the buffer (or from a null
+         * pointer); the model refuses the copy but keeps the call sequence. */
+        io->release(io->ctx, block, size);                      /* +0x03F8..+0x0401 */
+        if (io->clear_row != NULL) {
+            io->clear_row(io->ctx);                             /* +0x0406 */
+        }
+        return PR_REC_ECL_BLOCK_OVERFLOW;
+    }
+    for (k = 0; k < (size_t)(size - 2u); ++k) {                 /* +0x03DE..+0x03F3: Move(block + 2, buffer, size - 2) */
+        buffer[k] = block[2u + k];
+    }
+    io->release(io->ctx, block, size);                          /* +0x03F8..+0x0401: FreeMem(block, size) */
+    if (io->clear_row != NULL) {                                /* +0x0406 */
+        io->clear_row(io->ctx);
+    }
+    state->script = buffer;                                     /* the engine's [0x49DE] already addresses it */
+    state->script_rw = buffer;
+    state->script_size = PR_REC_ECL_SCRIPT_BUFFER_SIZE;
+    return PR_REC_ECL_BLOCK_OK;                                 /* +0x040B..+0x040E: retf 2 */
+}

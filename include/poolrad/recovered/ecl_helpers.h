@@ -164,6 +164,13 @@ typedef struct {
     uint8_t b84c9;
     uint8_t b6f83;
     uint8_t b70c6;
+    /* ---- ECL block load (issue #68, unit 0x25 + 0x0341) ------------------
+     * file_number = byte [0x5376]: the digit of the ECL<n>.DAX name (1 from the
+     * allocator, 3 from the party menu, restored by the saved-game loader).
+     * b557c = byte [0x557C], cleared by the block load; its meaning is not
+     * asserted (the resident file-open helper reads it). */
+    uint8_t file_number;
+    uint8_t b557c;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -361,5 +368,54 @@ pr_rec_effect_status pr_rec_u3bd_entry1(pr_rec_view_state *view, uint8_t first,
 #define PR_REC_ECL_INIT_CLEAR1_COUNT 10u
 
 pr_rec_ecl_handler_status pr_rec_ecl_script_init(pr_rec_ecl_loader_state *state);
+
+/* ---- Issue #68: ECL block load, unit 0x25 + 0x0341 ------------------------
+ * GAME.OVR 0x07814, unit 0x25 + 0x0341 (bytes +0x0341..+0x0410), public entry 4
+ * (run-time stub 0x2B:0x34), 208 bytes, 89 instructions, one backward branch
+ * (+0x03DC `jb +0x035F`), 12 call sites, `retf 2` (one byte argument: the block
+ * id, which the gameplay loop passes as the map id). Path-complete model: the
+ * routine's own instructions are translated; every external call crosses one
+ * of the boundaries below. See docs/re/ECL_BLOCK_LOAD.md. */
+#define PR_REC_ECL_SCRIPT_BUFFER_SIZE 0x1E00u   /* fill length at +0x034E; the engine never checks it on copy */
+#define PR_REC_ECL_BLOCK_NAME_MAX 8u            /* "ECL" + up to three digits + NUL */
+#define PR_REC_ECL_BLOCK_EXT ".dax"             /* the 4-character constant at +0x033C */
+
+typedef struct {
+    void *ctx;
+    /* Resident 0x802:0x0716 (RES_0802_0716), called at +0x03D3 with (name base,
+     * extension, block id, out size, out block). The engine passes two Pascal
+     * strings; here NUL-terminated ASCII. On a missing file or id the resident
+     * routine returns size 0 and a null block; a non-zero return here is
+     * treated the same way. The block stays owned by the callee until
+     * release() is called with the same pointer and size. */
+    int (*load_block)(void *ctx, const char *name, const char *ext, uint8_t block_id,
+                      uint16_t *size, const uint8_t **block);
+    /* Runtime 0xAF8:0x0254 at +0x0401 with (block, size): FreeMem's argument shape. */
+    void (*release)(void *ctx, const uint8_t *block, uint16_t size);
+    /* Unit 0x3b0 entry 3 at +0x035F and +0x0406 (clears a text row through
+     * resident 0x709:0x05EB with 0, 0x18, 0, 0x28); optional. */
+    void (*clear_row)(void *ctx);
+    /* The wait message at +0x0364..+0x037C (a 21-character constant through
+     * resident 0x709:0x0626 at row 0x18, column 0x0F); optional, no text passed. */
+    void (*show_wait)(void *ctx);
+} pr_rec_ecl_block_io;
+
+typedef enum {
+    PR_REC_ECL_BLOCK_OK = 0,
+    PR_REC_ECL_BLOCK_ARGUMENT,
+    PR_REC_ECL_BLOCK_RETRY_LIMIT,   /* the engine loops at +0x035F while size < 2; the model bounds it */
+    PR_REC_ECL_BLOCK_OVERFLOW       /* size - 2 exceeds the buffer: the engine would copy past it;
+                                     * the model copies nothing, still releases and clears */
+} pr_rec_ecl_block_status;
+
+/* Writes "ECL" followed by the decimal of file_number (Str with width 0). */
+void pr_rec_ecl_block_name(uint8_t file_number, char name[PR_REC_ECL_BLOCK_NAME_MAX]);
+
+/* buffer must hold PR_REC_ECL_SCRIPT_BUFFER_SIZE bytes (the engine's [0x49DE]
+ * buffer). On OK the state's script pointers are bound to it. attempts counts
+ * load_block calls (optional). */
+pr_rec_ecl_block_status pr_rec_ecl_load_block(pr_rec_ecl_loader_state *state, uint8_t *buffer,
+                                              uint8_t block_id, const pr_rec_ecl_block_io *io,
+                                              unsigned max_attempts, unsigned *attempts);
 
 #endif
