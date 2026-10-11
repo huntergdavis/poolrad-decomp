@@ -724,6 +724,144 @@ static int test_script_init(void) {
     return 0;
 }
 
+/* ---- issue #68: ECL block load ------------------------------------------- */
+
+typedef struct {
+    char log[64];                 /* call sequence: C clear_row, W show_wait, L load, R release */
+    unsigned n;
+    char names[8][PR_REC_ECL_BLOCK_NAME_MAX];
+    char exts[8][8];
+    uint8_t ids[8];
+    unsigned loads;
+    /* scripted results per load call */
+    uint16_t sizes[8];
+    const uint8_t *blocks[8];
+    int rcs[8];
+    /* release record */
+    unsigned releases;
+    const uint8_t *released_block;
+    uint16_t released_size;
+} fake_io_t;
+
+static void fio_log(fake_io_t *f, char c) { if (f->n < sizeof f->log - 1) { f->log[f->n++] = c; f->log[f->n] = 0; } }
+static int fio_load(void *ctx, const char *name, const char *ext, uint8_t id, uint16_t *size, const uint8_t **block) {
+    fake_io_t *f = (fake_io_t *)ctx; unsigned i = f->loads < 8 ? f->loads : 7;
+    fio_log(f, 'L');
+    strncpy(f->names[i], name, PR_REC_ECL_BLOCK_NAME_MAX - 1); f->names[i][PR_REC_ECL_BLOCK_NAME_MAX - 1] = 0;
+    strncpy(f->exts[i], ext, 7); f->exts[i][7] = 0; f->ids[i] = id;
+    *size = f->sizes[i]; *block = f->blocks[i]; f->loads++;
+    return f->rcs[i];
+}
+static void fio_release(void *ctx, const uint8_t *block, uint16_t size) {
+    fake_io_t *f = (fake_io_t *)ctx; fio_log(f, 'R'); f->releases++; f->released_block = block; f->released_size = size;
+}
+static void fio_clear(void *ctx) { fio_log((fake_io_t *)ctx, 'C'); }
+static void fio_wait(void *ctx) { fio_log((fake_io_t *)ctx, 'W'); }
+
+static void fio_reset(fake_io_t *f, pr_rec_ecl_block_io *io) {
+    memset(f, 0, sizeof *f);
+    io->ctx = f; io->load_block = fio_load; io->release = fio_release; io->clear_row = fio_clear; io->show_wait = fio_wait;
+}
+
+static int test_block_name(void) {
+    char name[PR_REC_ECL_BLOCK_NAME_MAX];
+    pr_rec_ecl_block_name(3, name);   CHECK(strcmp(name, "ECL3") == 0);
+    pr_rec_ecl_block_name(0, name);   CHECK(strcmp(name, "ECL0") == 0);
+    pr_rec_ecl_block_name(10, name);  CHECK(strcmp(name, "ECL10") == 0);
+    pr_rec_ecl_block_name(255, name); CHECK(strcmp(name, "ECL255") == 0);
+    CHECK(strcmp(PR_REC_ECL_BLOCK_EXT, ".dax") == 0);
+    pr_rec_ecl_block_name(1, NULL);   /* tolerated */
+    return 0;
+}
+
+static int test_block_load(void) {
+    static uint8_t buf[PR_REC_ECL_SCRIPT_BUFFER_SIZE + 16];
+    static uint8_t blk[PR_REC_ECL_SCRIPT_BUFFER_SIZE + 2 + 8];
+    static uint8_t tiny[1];
+    pr_rec_ecl_loader_state st;
+    fake_io_t f; pr_rec_ecl_block_io io;
+    unsigned attempts, i;
+    for (i = 0; i < sizeof blk; ++i) blk[i] = (uint8_t)(0x11 + i * 7);
+    /* name selection, copy offset and length, release order, state binding */
+    memset(buf, 0xCC, sizeof buf);
+    memset(&st, 0, sizeof st); st.file_number = 3; st.b557c = 0xAA;
+    fio_reset(&f, &io); f.sizes[0] = 100; f.blocks[0] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 0x12, &io, 4, &attempts) == PR_REC_ECL_BLOCK_OK);
+    CHECK(attempts == 1 && f.loads == 1 && f.ids[0] == 0x12);
+    CHECK(strcmp(f.names[0], "ECL3") == 0 && strcmp(f.exts[0], ".dax") == 0);
+    CHECK(strcmp(f.log, "CWLRC") == 0);                       /* clear, wait, load, release, clear */
+    CHECK(f.releases == 1 && f.released_block == blk && f.released_size == 100);
+    for (i = 0; i < 98; ++i) CHECK(buf[i] == blk[2 + i]);      /* size - 2 bytes from offset 2 */
+    for (i = 98; i < PR_REC_ECL_SCRIPT_BUFFER_SIZE; ++i) CHECK(buf[i] == 0);   /* the fill */
+    for (i = PR_REC_ECL_SCRIPT_BUFFER_SIZE; i < sizeof buf; ++i) CHECK(buf[i] == 0xCC); /* nothing past 0x1E00 */
+    CHECK(st.script == buf && st.script_rw == buf && st.script_size == PR_REC_ECL_SCRIPT_BUFFER_SIZE);
+    CHECK(st.b557c == 0);
+    /* retry: size 0, then size 1 with a block (not released), then success */
+    memset(&st, 0, sizeof st); st.file_number = 7;
+    fio_reset(&f, &io);
+    f.sizes[0] = 0; f.blocks[0] = NULL; f.sizes[1] = 1; f.blocks[1] = tiny; f.sizes[2] = 2; f.blocks[2] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 5, &io, 8, &attempts) == PR_REC_ECL_BLOCK_OK);
+    CHECK(attempts == 3 && f.loads == 3);
+    CHECK(strcmp(f.log, "CWLCWLCWLRC") == 0);
+    CHECK(f.releases == 1 && f.released_block == blk && f.released_size == 2);
+    CHECK(strcmp(f.names[2], "ECL7") == 0 && f.ids[2] == 5);
+    for (i = 0; i < PR_REC_ECL_SCRIPT_BUFFER_SIZE; ++i) CHECK(buf[i] == 0);   /* size 2 copies nothing */
+    /* a failing callback counts as size 0 */
+    memset(&st, 0, sizeof st);
+    fio_reset(&f, &io); f.rcs[0] = -1; f.sizes[0] = 50; f.blocks[0] = blk; f.sizes[1] = 10; f.blocks[1] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 8, &attempts) == PR_REC_ECL_BLOCK_OK && attempts == 2);
+    CHECK(f.releases == 1 && f.released_size == 10);
+    /* retry limit: the engine would loop forever */
+    memset(&st, 0, sizeof st);
+    fio_reset(&f, &io);
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 3, &attempts) == PR_REC_ECL_BLOCK_RETRY_LIMIT);
+    CHECK(attempts == 4 && f.loads == 3 && f.releases == 0 && strcmp(f.log, "CWLCWLCWLCW") == 0);
+    CHECK(st.script == NULL);
+    /* retry limit with attempts == NULL: the bound must still hold (PR #72 review) */
+    memset(&st, 0, sizeof st);
+    fio_reset(&f, &io);
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 3, NULL) == PR_REC_ECL_BLOCK_RETRY_LIMIT);
+    CHECK(f.loads == 3 && f.releases == 0 && strcmp(f.log, "CWLCWLCWLCW") == 0);
+    fio_reset(&f, &io);
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 0, NULL) == PR_REC_ECL_BLOCK_RETRY_LIMIT && f.loads == 0);
+    /* bounds: exactly the buffer fits; one byte more does not */
+    memset(&st, 0, sizeof st); memset(buf, 0xCC, sizeof buf);
+    fio_reset(&f, &io); f.sizes[0] = PR_REC_ECL_SCRIPT_BUFFER_SIZE + 2; f.blocks[0] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 2, &attempts) == PR_REC_ECL_BLOCK_OK);
+    for (i = 0; i < PR_REC_ECL_SCRIPT_BUFFER_SIZE; ++i) CHECK(buf[i] == blk[2 + i]);
+    CHECK(buf[PR_REC_ECL_SCRIPT_BUFFER_SIZE] == 0xCC);
+    memset(&st, 0, sizeof st); memset(buf, 0xCC, sizeof buf);
+    fio_reset(&f, &io); f.sizes[0] = PR_REC_ECL_SCRIPT_BUFFER_SIZE + 3; f.blocks[0] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 2, &attempts) == PR_REC_ECL_BLOCK_OVERFLOW);
+    CHECK(strcmp(f.log, "CWLRC") == 0 && f.releases == 1 && f.released_size == PR_REC_ECL_SCRIPT_BUFFER_SIZE + 3);
+    for (i = 0; i < PR_REC_ECL_SCRIPT_BUFFER_SIZE; ++i) CHECK(buf[i] == 0);   /* filled, not copied */
+    CHECK(st.script == NULL);
+    /* optional display callbacks absent */
+    memset(&st, 0, sizeof st);
+    fio_reset(&f, &io); io.clear_row = NULL; io.show_wait = NULL; f.sizes[0] = 4; f.blocks[0] = blk;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 2, NULL) == PR_REC_ECL_BLOCK_OK && strcmp(f.log, "LR") == 0);
+    /* composition with the initializer: a block whose payload is the five-entry head */
+    {
+        static uint8_t head_block[2 + sizeof k_block_head];
+        memcpy(head_block + 2, k_block_head, sizeof k_block_head);
+        memset(&st, 0, sizeof st); st.file_number = 3;
+        fio_reset(&f, &io); f.sizes[0] = (uint16_t)sizeof head_block; f.blocks[0] = head_block;
+        CHECK(pr_rec_ecl_load_block(&st, buf, 0, &io, 2, NULL) == PR_REC_ECL_BLOCK_OK);
+        CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+        CHECK(st.entry_addr[0] == 0x1234 && st.entry_addr[4] == 0xFFFF && st.pc == PR_REC_ECL_SCRIPT_BASE + 20u);
+    }
+    /* arguments */
+    fio_reset(&f, &io);
+    CHECK(pr_rec_ecl_load_block(NULL, buf, 1, &io, 2, &attempts) == PR_REC_ECL_BLOCK_ARGUMENT && attempts == 0);
+    CHECK(pr_rec_ecl_load_block(&st, NULL, 1, &io, 2, NULL) == PR_REC_ECL_BLOCK_ARGUMENT);
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, NULL, 2, NULL) == PR_REC_ECL_BLOCK_ARGUMENT);
+    io.load_block = NULL;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 2, NULL) == PR_REC_ECL_BLOCK_ARGUMENT);
+    fio_reset(&f, &io); io.release = NULL;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 1, &io, 2, NULL) == PR_REC_ECL_BLOCK_ARGUMENT);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -751,6 +889,8 @@ int main(void) {
     rc |= test_u38_entry30();
     rc |= test_u3bd_entry1();
     rc |= test_script_init();
+    rc |= test_block_name();
+    rc |= test_block_load();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

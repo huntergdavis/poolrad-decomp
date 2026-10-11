@@ -316,10 +316,11 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
 dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
 14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
-unit 0x38 entries of PR #63 (documented outside this numbering): 25 before the issue #56 PR;
-26 once it merges. Project-wide reviewed strict count (the PM's record, which includes the
-merged resident lane): 32 before the issue #56 PR; 33 once it merges.
-Functions 7, 8, 9 and 17 are path-complete models: their own instruction paths are translated
+unit 0x38 entries of PR #63 (documented outside this numbering): 26 after PR #65; the issue
+#68 PR adds a model and no full translation. Project-wide reviewed strict count (the PM's
+record, which includes the merged resident lane): 33 after PR #65, unchanged by the issue
+#68 PR.
+Functions 7, 8, 9, 17 and 18 are path-complete models: their own instruction paths are translated
 and verified, but 8, 9 and 17 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
@@ -553,6 +554,20 @@ entries, the later write absent), null state.
 
 Throughput: 70 minutes for the trace, 25 for the two translations.
 
+### 1.15 ECL block load (issue #68)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 18 | `pr_rec_ecl_load_block` = GAME.OVR 0x07814, unit 0x25 + 0x0341 (bytes +0x0341..+0x0410), public entry 4, run-time stub `0x2B:0x34` | 208 bytes, 89 instructions | far Pascal: one byte argument (block id) at `[bp+6]`, `retf 2`; no result | **path-complete model with explicit boundaries** (resident DAX loader `0x802:0x0716`, FreeMem, row clear and wait message as callbacks; fill and Move inlined) | every instruction path **verified**; not counted as a full translation |
+
+Evidence, paths, the resident boundary and the measured limits are in
+[ECL_BLOCK_LOAD.md](ECL_BLOCK_LOAD.md). Side effects: the script buffer (fill, then
+`size - 2` bytes from block offset 2), `[0x557C] = 0`, the two display calls, the block
+release. Model-only statuses: `RETRY_LIMIT` (the engine loops without bound while
+`size < 2`) and `OVERFLOW` (the engine copies past the buffer without a check; all 29
+shipped blocks fit). Tests are listed in the note's section 6. Throughput: 45 minutes
+including the resident decode.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -589,10 +604,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 
 Measured count for the battle card: strict full translations in this ledger's numbering 10
 (functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
-main 25 before the issue #56 PR and 26 once it merges (9 prior from this ledger, 16 from PR
-#63, 1 view setter); project-wide strict count 32 before the issue #56 PR and 33 once it
-merges (PM's record, includes the resident lane); path-complete models with stated
-dependency or heap limits 4 (functions 7, 8, 9, 17); path-complete translations whose runtime string calls carry the provisional cap 2
+main 26 after PR #65 (9 prior from this ledger, 16 from PR #63, 1 view setter), unchanged
+by the issue #68 PR; project-wide strict count 33 after PR #65 (PM's record, includes the
+resident lane); path-complete models with stated dependency, heap limits or external
+boundaries 5 (functions 7, 8, 9, 17, 18); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 
