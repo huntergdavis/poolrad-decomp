@@ -1357,6 +1357,148 @@ static int test_load_files_composition(void) {
     return 0;
 }
 
+/* ---- issue #102: compare helpers, COMPARE and the IF family ---------------- */
+
+static int flags_are(const pr_rec_ecl_loader_state *st, int eq, int ne, int lt, int gt, int le, int ge) {
+    return st->cmp_flags[0] == eq && st->cmp_flags[1] == ne && st->cmp_flags[2] == lt && st->cmp_flags[3] == gt && st->cmp_flags[4] == le && st->cmp_flags[5] == ge;
+}
+
+static int test_compare_words(void) {
+    pr_rec_ecl_loader_state st; unsigned i;
+    memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
+    CHECK(pr_rec_ecl_compare_words(&st, 5, 5) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));
+    CHECK(pr_rec_ecl_compare_words(&st, 3, 9) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0));
+    CHECK(pr_rec_ecl_compare_words(&st, 9, 3) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1));
+    CHECK(pr_rec_ecl_compare_words(&st, 0x0000, 0xFFFF) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0));   /* unsigned */
+    CHECK(pr_rec_ecl_compare_words(&st, 0x8000, 0x7FFF) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1));
+    CHECK(pr_rec_ecl_compare_words(&st, 0, 0) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));
+    for (i = 0; i < 6; ++i) CHECK(st.cmp_flags[i] == 0 || st.cmp_flags[i] == 1);
+    CHECK(pr_rec_ecl_compare_words(NULL, 1, 2) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static int test_compare_strings(void) {
+    pr_rec_ecl_loader_state st;
+    static char big[300];
+    memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags); memset(big, 'A', sizeof big);
+    CHECK(pr_rec_ecl_compare_strings(&st, "ABC", 3, "ABC", 3) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));
+    CHECK(pr_rec_ecl_compare_strings(&st, "AB", 2, "ABC", 3) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0));   /* prefix is less */
+    CHECK(pr_rec_ecl_compare_strings(&st, "ABD", 3, "ABC", 3) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1));
+    CHECK(pr_rec_ecl_compare_strings(&st, "", 0, "A", 1) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0));
+    CHECK(pr_rec_ecl_compare_strings(&st, "", 0, "", 0) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));
+    CHECK(pr_rec_ecl_compare_strings(&st, "a", 1, "A", 1) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1));   /* case-sensitive, unsigned bytes */
+    CHECK(pr_rec_ecl_compare_strings(&st, "\xFF", 1, "\x01", 1) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1));
+    CHECK(pr_rec_ecl_compare_strings(&st, big, 300, big, 255) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));   /* both limited to 255 */
+    /* an input that aliases the flag bytes is compared as it was on entry (copy before clear) */
+    { static const char six[6] = { 1, 2, 3, 4, 5, 6 };
+      st.cmp_flags[0] = 1; st.cmp_flags[1] = 2; st.cmp_flags[2] = 3; st.cmp_flags[3] = 4; st.cmp_flags[4] = 5; st.cmp_flags[5] = 6;
+      CHECK(pr_rec_ecl_compare_strings(&st, (const char *)st.cmp_flags, 6, six, 6) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1));
+      st.cmp_flags[0] = 1; st.cmp_flags[1] = 2; st.cmp_flags[2] = 3; st.cmp_flags[3] = 4; st.cmp_flags[4] = 5; st.cmp_flags[5] = 6;
+      CHECK(pr_rec_ecl_compare_strings(&st, six, 6, (const char *)st.cmp_flags, 6) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1)); }
+    CHECK(pr_rec_ecl_compare_strings(&st, NULL, 0, "", 0) == PR_REC_ECL_HANDLER_OK);
+    CHECK(pr_rec_ecl_compare_strings(&st, NULL, 1, "", 0) == PR_REC_ECL_HANDLER_ARGUMENT);
+    CHECK(pr_rec_ecl_compare_strings(NULL, "", 0, "", 0) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static int test_op_compare(void) {
+    pr_rec_ecl_loader_state st;
+    /* word path: immediate byte against immediate byte */
+    { static const uint8_t s1[] = { 0x03, 0x00, 0x07, 0x00, 0x09 };
+      save_state(&st, s1, sizeof s1, NULL); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0) && st.pc == 0x9905); }
+    /* word path: a window-0 variable (tag 1) against an immediate word (tag 2) */
+    { static const uint8_t s2[] = { 0x03, 0x01, 0xC4, 0x4A, 0x02, 0x34, 0x12 };
+      save_state(&st, s2, sizeof s2, NULL); st.window0[0x1C4] = 0x1234;
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1) && st.pc == 0x9907); }
+    /* word path with a class-1 source in slot 1: HOOK at once, flags untouched, slot 2 never read
+     * (slot 2 names a class-4 address, which would turn the result into UNRESOLVED if it were looked up) */
+    { static const uint8_t s3[] = { 0x03, 0x01, 0x40, 0x6B, 0x01, 0xB1, 0x00 };
+      save_state(&st, s3, sizeof s3, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK);
+      CHECK(st.cmp_flags[0] == 0x55 && st.cmp_flags[1] == 0x55 && st.cmp_flags[2] == 0x55 && st.cmp_flags[3] == 0x55 && st.cmp_flags[4] == 0x55 && st.cmp_flags[5] == 0x55);
+      CHECK(st.pc == 0x9907); }                                 /* the loader's advance stands */
+    /* class-1 source in slot 2: HOOK before the compare, flags untouched */
+    { static const uint8_t s3b[] = { 0x03, 0x00, 0x02, 0x01, 0x40, 0x6B };
+      save_state(&st, s3b, sizeof s3b, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55); }
+    /* word path with a class-4 source: unresolved, flags untouched */
+    { static const uint8_t s4[] = { 0x03, 0x00, 0x02, 0x01, 0xB1, 0x00 };
+      save_state(&st, s4, sizeof s4, NULL); memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_UNRESOLVED && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55); }
+    /* string path: two inline strings; equal, then differing */
+    { static const uint8_t s5[] = { 0x03, 0x80, 0x03, 0x1A, 0x2B, 0x3C, 0x80, 0x03, 0x1A, 0x2B, 0x3C };
+      save_state(&st, s5, sizeof s5, NULL);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1) && st.pc == 0x990B); }
+    { static const uint8_t s6[] = { 0x03, 0x80, 0x03, 0x1A, 0x2B, 0x3C, 0x80, 0x00 };
+      save_state(&st, s6, sizeof s6, NULL);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 0, 1, 0, 1)); }   /* empty second string is less */
+    /* string path with one string operand in second position: it lands in buffer 1 and is compared with buffer 2 as left by an earlier load */
+    { static const uint8_t s7[] = { 0x03, 0x00, 0x05, 0x80, 0x00 };
+      save_state(&st, s7, sizeof s7, NULL); st.string_len[2] = 1; st.string_text[2][0] = 'Z';
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 0, 1, 1, 0, 1, 0)); }   /* "" against "Z" */
+    /* truncated operands; null */
+    { static const uint8_t s8[] = { 0x03, 0x00, 0x05, 0x01, 0x00 };
+      save_state(&st, s8, sizeof s8, NULL);
+      CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_BOUNDS); }
+    CHECK(pr_rec_ecl_op_compare(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static int test_op_if(void) {
+    pr_rec_ecl_loader_state st; unsigned op;
+    /* IF at 0x9900 followed by a SAVE (6 bytes) at 0x9901 and a zero-operand opcode at 0x9907 */
+    static const uint8_t script[] = { 0x16, 0x09, 0x00, 0x01, 0x01, 0x00, 0x49, 0x0D, 0x00 };
+    for (op = 0x16; op <= 0x1B; ++op) {
+        unsigned k = op - 0x16;
+        /* flag set: no skip, PC past the IF byte only, latch untouched */
+        save_state(&st, script, sizeof script, NULL); st.latch = (uint8_t)op; memset(st.cmp_flags, 0, 6); st.cmp_flags[k] = 1;
+        CHECK(pr_rec_ecl_op_if(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9901 && st.latch == op);
+        /* flag clear: the SAVE is skipped, the latch holds its opcode */
+        save_state(&st, script, sizeof script, NULL); st.latch = (uint8_t)op; memset(st.cmp_flags, 1, 6); st.cmp_flags[k] = 0;
+        CHECK(pr_rec_ecl_op_if(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9907 && st.latch == 0x09);
+    }
+    /* skipping a zero-operand statement advances by one */
+    save_state(&st, script, sizeof script, NULL); st.pc = 0x9906; st.latch = 0x16; memset(st.cmp_flags, 0, 6);
+    CHECK(pr_rec_ecl_op_if(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9908 && st.latch == 0x0D);
+    /* skipping past the end of the script */
+    save_state(&st, script, 2, NULL); st.latch = 0x17; memset(st.cmp_flags, 0, 6);
+    CHECK(pr_rec_ecl_op_if(&st) == PR_REC_ECL_HANDLER_BOUNDS);
+    /* a latch outside the family only advances */
+    save_state(&st, script, sizeof script, NULL); st.latch = 0x15; memset(st.cmp_flags, 0, 6);
+    CHECK(pr_rec_ecl_op_if(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9901);
+    CHECK(pr_rec_ecl_op_if(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static pr_rec_ecl_handler_status compare_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_compare(st); }
+static pr_rec_ecl_handler_status if_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_if(st); }
+
+/* Composition: COMPARE then IF-not-equal with a SAVE in its shadow, both ways,
+ * through the run loop with the real handlers. */
+static int test_compare_if_composition(void) {
+    static const uint8_t script[] = {
+        0x03, 0x01, 0x00, 0x49, 0x00, 0x07,         /* 0x9900: COMPARE window word 0x4900 with 7 */
+        0x17,                                       /* 0x9906: IF <> */
+        0x09, 0x00, 0x01, 0x01, 0x02, 0x49,         /* 0x9907: SAVE 1 -> 0x4902 (runs only when not equal) */
+        0x09, 0x00, 0x02, 0x01, 0x04, 0x49,         /* 0x990D: SAVE 2 -> 0x4904 */
+        0x00                                        /* 0x9913: EXIT */
+    };
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps;
+    memset(&r, 0, sizeof r); memset(&tb, 0, sizeof tb); tb.ctx = &r;
+    tb.handler[0x03] = compare_adapter; tb.handler[0x17] = if_adapter; tb.handler[0x09] = save_adapter; tb.handler[0x00] = exit_adapter;
+    /* not equal: the shadowed SAVE runs */
+    save_state(&st, script, sizeof script, NULL); st.window0[0] = 3;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 20, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 5 && st.window0[2] == 1 && st.window0[4] == 2 && flags_are(&st, 0, 1, 1, 0, 1, 0));
+    /* equal: the shadowed SAVE is skipped, the following one runs */
+    save_state(&st, script, sizeof script, NULL); st.window0[0] = 7;
+    memset(&r, 0, sizeof r);
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 20, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 4 && st.window0[2] == 0xAAAA && st.window0[4] == 2 && st.prev_opcode == 0x09 && r.last_pc == 0x9913);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -1396,6 +1538,11 @@ int main(void) {
     rc |= test_run_stops_on_hook();
     rc |= test_op_load_files();
     rc |= test_load_files_composition();
+    rc |= test_compare_words();
+    rc |= test_compare_strings();
+    rc |= test_op_compare();
+    rc |= test_op_if();
+    rc |= test_compare_if_composition();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

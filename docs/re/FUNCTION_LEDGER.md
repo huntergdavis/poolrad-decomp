@@ -317,11 +317,13 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
 14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
 unit 0x38 entries of PRs #63, #69 and #70 and later reviewed batches (documented outside
-this numbering): 32 on main d3cde1f (PM's reviewed record); the issue #92 PR adds a
-callback model and no full translation. Project-wide reviewed strict count (the PM's
-record, overlay 32 plus resident 9): 41 on main d3cde1f, unchanged by the issue #92 PR.
-Functions 7, 8, 9, 17, 18, 19, 20, 21, 22 and 23 are path-complete models: their own
-instruction paths are translated and verified, but 8, 9, 17, 21, 22 and 23 compose with the operand loader core (function 6, whose tag-0x81
+this numbering): 32 on main d3cde1f (PM's reviewed record); the issue #102 PR adds
+two models (functions 26 and 27) and two every-instruction translations of runtime-calling
+helpers (functions 24 and 25, credit pending the PM's final review) and claims no count
+change here. Project-wide reviewed strict count (the PM's record,
+overlay 32 plus resident 9): 41 on main d3cde1f, not changed by this ledger.
+Functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26 and 27 are path-complete models: their
+own instruction paths are translated and verified, but 8, 9, 17, 21, 22, 23, 26 and 27 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
 
@@ -691,6 +693,65 @@ initializer and run loop with `[0x4432]` set.
 
 Throughput: 40 minutes.
 
+### 1.19 COMPARE, its flag helpers and the IF family (issue #102)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 24 | `pr_rec_ecl_compare_words` = GAME.OVR 0x08DBE, unit 0x25 + 0x18EB (bytes +0x18EB..+0x1950), public entry 16, run-time stub `0x2B:0x70` | 102 bytes, 36 instructions | far Pascal: two word arguments, `a` at `[bp+8]` (pushed first), `b` at `[bp+6]`, `retf 4`; writes `[0x6F78..0x6F7D]` | **every instruction translated**; the one runtime call (`0xAF8:0x16A8` with `DS:0x6F78, 6, 0`) was decoded independently by the PM as FillChar (loaded image `0x0C628`: `rep stosb`, `retf 8`) | **verified**; strict-count credit is the PM's final review |
+| 25 | `pr_rec_ecl_compare_strings` = GAME.OVR 0x08CE8, unit 0x25 + 0x1815 (bytes +0x1815..+0x18EA), public entry 15, run-time stub `0x2B:0x6B` | 214 bytes, 86 instructions | far Pascal: two far string pointers, `a` at `[bp+0xA]` (pushed first), `b` at `[bp+6]`, `retf 8`; writes the six flags | **every instruction translated**; the runtime calls were decoded independently by the PM (`0xAF8:0x0B25` at loaded `0x0BAA5`: copy `min(length, limit)` bytes, `retf 0xA`; `0xAF8:0x0C10` at `0x0BB90`: compare lengths, `repe cmpsb` unsigned, then length compare; the fill as above) and the C follows that order | **verified**; strict-count credit is the PM's final review |
+| 26 | `pr_rec_ecl_op_compare` = GAME.OVR 0x00E6C, unit 0x1c + 0x0126 (bytes +0x0126..+0x01A2), opcode 0x03, dispatcher case +0x2F59 | 125 bytes, 50 instructions | far Pascal, no arguments, `retf`; `0x204` bytes of locals | **path-complete model** (loader core, function 21, functions 24 and 25) | both paths **verified**; not counted as full |
+| 27 | `pr_rec_ecl_op_if` = GAME.OVR 0x01898, unit 0x1c + 0x0B52 (bytes +0x0B52..+0x0BC7), opcodes 0x16..0x1B, dispatcher ladder +0x3009..+0x3022 | 118 bytes, 41 instructions | far Pascal, no arguments, `retf` | **path-complete model** (the skip through unit 0x25 entry 22 uses function 2's count table and the loader core) | all seven paths **verified**; not counted as full |
+
+**Function 24, paths.** `+0x18EE..+0x18FA`: fill `[0x6F78]`, 6, 0. Then six compares of `a`
+against `b`, each `mov ax,[bp+8]; cmp ax,[bp+6]; jcc skip; mov byte [flag],1`: `jne` for
+`[0x6F78]` (equal), `je` for `[0x6F79]` (not equal), `jae` for `[0x6F7A]` (below), `jbe` for
+`[0x6F7B]` (above), `ja` for `[0x6F7C]` (below or equal), `jb` for `[0x6F7D]` (above or
+equal). The conditions are unsigned. Epilogue `+0x194D`.
+
+**Function 25, paths.** `+0x181C..+0x183F`: the two strings copied into `[bp-0x100]` and
+`[bp-0x200]` with limit 255 **before** `+0x1844..+0x1850` clears the flags (so an input that
+aliases the flag bytes is compared as it was on entry; the C copies first too, with an
+alias test); `+0x1855..+0x18E0`: six calls of `0xAF8:0x0C10` with (`a`, `b`) followed by
+the same six conditional stores. The ordering is Turbo Pascal's (unsigned bytes, first
+difference decides, a shorter prefix is less), as the PM's independent decode of the
+runtime routine confirms.
+
+**Function 26, paths.** `+0x012D..+0x0130`: loader with count 2. `+0x0135..+0x0141`: if
+`[0x7006] >= 0x80` or `[0x7007] >= 0x80` (either tag a string): `+0x0143..+0x0177` copies
+string buffer 1 (`DS:0x70C8`) and buffer 2 (`DS:0x71C8`) into two 255-byte locals and calls
+function 25 with them in that order. Otherwise `+0x017E..+0x019A`: function 21 of slot 1
+into `[bp-2]`, of slot 2 into `[bp-4]`, then function 24 with (`[bp-2]`, `[bp-4]`). One
+reading worth stating: with a single string operand in the second position, the loader
+fills buffer 1 (the k-th string operand goes to buffer k), so the engine compares that
+string against whatever buffer 2 holds from an earlier instruction; the model keeps the
+same buffers. Reached-boundary rule (as in PR #97): in the word path a slot value that
+is not OK (HOOK from the class-1 load hook, UNRESOLVED, BOUNDS) returns at once; after a
+slot-1 stop slot 2 is not read, and in every such case the six flags are left as they
+were. The engine itself continues through the hook, so a run that stops there is
+reported as `RUN_HANDLER`/HOOK rather than completed.
+
+**Function 27, paths.** `+0x0B55`: `PC += 1`. `+0x0B59`: the latch selects the case: 0x16
+tests `[0x6F78]`, 0x17 `[0x6F79]`, 0x18 `[0x6F7A]`, 0x19 `[0x6F7B]`, 0x1A `[0x6F7C]`, 0x1B
+`[0x6F7D]`; a non-zero flag falls to the epilogue; a zero flag calls `0x2B:0x8E` (unit 0x25
+entry 22, `+0x1EA6`), which fetches the opcode at the PC into `[0x6F7F]`, then either calls
+the loader with that opcode's prefetch count (function 2's table) or increments the PC
+(`+0x1FAB`). A latch outside the family reaches the epilogue after the increment.
+
+**Tests.** Function 24: equal, below, above, the unsigned corner cases, flags always 0 or
+1, null. Function 25: equal, prefix, differing byte, empty against non-empty, both empty,
+case, high bytes, both inputs limited to 255, an input aliasing the flag bytes in either
+position, nulls. Function 26: immediates, a window-0
+variable against an immediate word, a class-1 source in slot 1 (HOOK at once, flags
+untouched, slot 2 provably not read) and in slot 2 (HOOK before the compare), a class-4
+source (flags untouched), two inline strings equal and differing, a lone string in second
+position against a stale buffer 2, truncated operands, null. Function 27: for each of the
+six opcodes, flag set (PC past the IF only, latch kept) and flag clear (a 6-byte SAVE
+skipped, latch holds its opcode); skipping a zero-operand statement; skipping past the
+script end; a latch outside the family; null. Composition: COMPARE then IF-not-equal with
+a SAVE in its shadow, through the run loop, both outcomes.
+
+Throughput: 45 minutes.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -728,10 +789,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 Measured count for the battle card: strict full translations in this ledger's numbering 10
 (functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
 main 32 on d3cde1f (10 from this ledger's numbering plus the reviewed unit 0x38 batches,
-PM's record), unchanged by the issue #92 PR; project-wide strict count 41 on d3cde1f
-(overlay 32 plus resident 9, PM's record);
-path-complete models with stated dependency, heap limits or external boundaries 10
-(functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23); path-complete translations whose runtime string calls carry the provisional cap 2
+PM's record), unchanged by the issue #102 PR pending the PM's
+ruling on functions 24 and 25; project-wide strict count 41 on d3cde1f (overlay 32 plus resident
+9, PM's record); path-complete models with stated dependency, heap limits or external
+boundaries 12 (functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26, 27); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 
