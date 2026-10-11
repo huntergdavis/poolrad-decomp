@@ -9,7 +9,9 @@ fi
 repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 run_dir=$(realpath -e -- "$1")
 shift
-if [[ $run_dir != "$repo_dir"/resources/oracle-runs/* || ! -f $run_dir/.oracle-input-sha256 ]]; then
+if [[ $run_dir != "$repo_dir"/resources/oracle-runs/* ||
+      ! -f $run_dir/.oracle-input-sha256 || ! -f $run_dir/POOLRAD/START.EXE ||
+      ! -f $run_dir/POOLRAD/POOL.CFG ]]; then
   echo "Expected a run prepared under this repository's resources/oracle-runs" >&2
   exit 1
 fi
@@ -26,4 +28,4 @@ exec bwrap --unshare-net --ro-bind / / --dev-bind /dev /dev \
   --bind "$run_dir" "$run_dir" --chdir "$run_dir" \
   dosbox-x -defaultconf -defaultmapper -nogui -fastlaunch \
   -savedir "$run_dir/.dosbox-saves" "$@" \
-  -c "mount c $run_dir" -c 'c:' -c 'START'
+  -c "mount c $run_dir" -c 'c:' -c 'cd \POOLRAD' -c 'START'

@@ -35,8 +35,9 @@ temporary_dir=$(mktemp -d "$run_root/.${1}.tmp.XXXXXX")
 trap 'rm -rf -- "$temporary_dir"' EXIT
 
 (cd "$source_dir" && find . -type f -print0 | sort -z | xargs -0 -r sha256sum) > "$temporary_dir/.oracle-input-sha256"
-cp -a -- "$source_dir/." "$temporary_dir/"
-(cd "$temporary_dir" && sha256sum --status -c .oracle-input-sha256)
+mkdir "$temporary_dir/POOLRAD"
+cp -a -- "$source_dir/." "$temporary_dir/POOLRAD/"
+(cd "$temporary_dir/POOLRAD" && sha256sum --status -c ../.oracle-input-sha256)
 chmod -R u+w "$temporary_dir"
 mkdir "$temporary_dir/.dosbox-saves"
 mv -- "$temporary_dir" "$run_dir"

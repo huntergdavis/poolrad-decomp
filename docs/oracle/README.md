@@ -11,7 +11,10 @@ run_dir=$(tools/oracle/prepare_run.sh menu-001)
 The script accepts the two executable hashes recorded in
 [the binary audit](../FABLE_AUDIT.md), writes a full input-hash manifest inside
 the ignored run directory, verifies the copy, and refuses to overwrite an
-existing run. It does not launch the game.
+existing run. It places the copied installation under `RUN_NAME/POOLRAD` so
+that `POOL.CFG`'s `C:\POOLRAD\` game and save paths resolve when DOSBox-X mounts
+`RUN_NAME` as drive C. It does not launch the game. Older flat private runs
+remain historical captures and must be prepared again for replay.
 
 On this Linux host, Ubuntu's DOSBox-X 2026.01.02 package is installed. Its
 [documented command-line options](https://dosbox-x.com/wiki/DOSBox%E2%80%90X%E2%80%99s-Command%E2%80%90Line-Options)
@@ -28,21 +31,26 @@ For a timed, headless smoke run, use `xvfb-run -a tools/oracle/launch.sh
 "$run_dir" -time-limit 40`. A local smoke on 2026-10-10 reached the game's
 loading screen after about seven seconds and credits after about 25 seconds.
 
-The next isolated run used `menu-001` and reached the main menu. Reproduce its
-input and private screenshot with:
+An isolated run reaches the main menu. Reproduce it in a fresh run with:
 
 ```sh
-run_dir=$(tools/oracle/prepare_run.sh menu-002)
+run_dir=$(tools/oracle/prepare_run.sh fresh-menu-001)
 xvfb-run -a tools/oracle/capture_menu.sh "$run_dir"
 ```
 
-The script waits 29 seconds after launch, sends one Return directly to the
-DOSBox-X window, waits nine more seconds, and captures the screen. It runs for
-45 seconds total and writes only to the ignored run directory. Direct window
-delivery is necessary under Xvfb because no window manager handles window
-activation. The observed screenshot shows the main menu and no error; gameplay
-replay remains to be checked. Screenshots and logs stay private under
-`resources/`.
+The script schedules Return after 28 seconds using DOSBox-X's
+[`AUTOTYPE` command](https://dosbox-x.com/wiki/DOSBox%E2%80%90X%E2%80%99s-Supported-Commands),
+captures the screen at 38 seconds, and stops at 45 seconds. It writes only to
+the ignored run directory. This internal key path works under Xvfb without
+window focus. After the corrected `C:\POOLRAD\` mount, a private run also
+reached the saved-game chooser and showed the two local slots A and J when
+`AUTOTYPE` sent the menu's highlighted `L` command. A further private run
+selected slot A and reached the six-person exploration screen at position
+`15,4 N`, game time `10:50`. In a separate run, `AUTOTYPE` sent `up` from that
+screen; the displayed position advanced to `14,4 N` at `10:51`. This verifies
+the DOS save-load and movement path and supplies the first gameplay oracle
+fixture. Slot J is present in the chooser but its load result has not yet been
+verified. Screenshots, save bytes, and logs stay private under `resources/`.
 
 Keep local screenshots, emulator saves, traces, and changed game saves in
 `resources/`. For each replay, record the run name, executable hashes, emulator
