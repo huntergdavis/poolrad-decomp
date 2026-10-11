@@ -12,6 +12,8 @@ compute the current Los Angeles time and put a literal first source line
 `# [YYYY-MM-DD HH:MM:SS TZ] COMMAND: description` in the shell command.
 
 Read [WORKSTREAMS.md](WORKSTREAMS.md) for branch ownership and PR gates.
+For CTO progress updates, use the measured ASCII format in
+[docs/BATTLE_CARD.md](docs/BATTLE_CARD.md).
 Keep original game media and any derived copyrighted content under ignored
 `resources/`. Do not put local network addresses, credentials, or private
 device details into this public repository.
