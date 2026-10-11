@@ -4,7 +4,7 @@
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` (206,105 bytes) with
 `START.EXE` sha256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 **Code:** `src/recovered/ecl_helpers.c`, `include/poolrad/recovered/ecl_helpers.h`,
-`tests/recovered/test_ecl_helpers.c`. All three originals live in overlay unit `0x25`
+`tests/recovered/test_ecl_helpers.c`. All five originals live in overlay unit `0x25`
 (file offset 29,907, 8,730 code bytes, 25 public entries, run-time stub segment `0x2B`).
 
 **Delivered so far:** three **full translations** of leaf functions (functions 1, 4, 5) and
@@ -19,7 +19,7 @@ independent check agrees with the part that is claimed; **provisional** = a stat
 rests on inference. Decompiler renderings were used as a reading aid only and are not
 committed.
 
-## 1. The three functions
+## 1. The five functions (1 to 3 from PR #11, 4 and 5 from PR #15)
 
 | # | identity | size | convention | kind | status |
 | --- | --- | ---: | --- | --- | --- |
