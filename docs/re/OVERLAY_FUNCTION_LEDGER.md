@@ -36,8 +36,11 @@ Facts from the bytes:
   end of their unit's code, so a displacement reading is inconsistent with execution.
   Three of the slots have fixup-confirmed callers, so they are used.
 
-Verdict: each slot is a **public entry alias** for the real procedure at `word - 0x800`
-(grade D in the ledger). Whether 0x800 is a flag consumed by the overlay manager or an
+Verdict: each slot is a **public entry alias** for the real procedure at `word - 0x800`.
+The ledger resolves alias slots to their prologue before counting incoming calls, so the
+three procedures whose alias slot has fixup-confirmed callers (0x2f:0x007A, 0x31:0x000F,
+0x3d2:0x0004; four call sites) are grade A, and the two without callers (0x19:0x00FD,
+0x36:0x002D) are grade D. Whether 0x800 is a flag consumed by the overlay manager or an
 artefact of how these five entries were linked is **unresolved**: the INT 3Fh handler
 (installed at offset 0x00D7 of its unit, through DOS function 25h) could not be placed in
 the file because the resident image's run-time layout differs from the file layout, and no
@@ -57,9 +60,9 @@ with runtime calls). All five are ordinary Pascal procedures.
 | measure | count | source |
 | --- | ---: | --- |
 | prologue candidates in unit code | 673 | inventory |
-| grade A: entry slot on the prologue or fixup-confirmed far call to it | 399 | callgraph after the segment-word fixup correction (far-called 189) |
-| grade B: decoded direct near-call target only | 269 | 966 call sites, 354 distinct targets (validate_near_calls.py; the raw scan matches it exactly) |
-| grade D: public entry alias only | 5 | section 1 |
+| grade A: entry slot on the prologue or fixup-confirmed far call to it (alias slots resolved first) | 402 | callgraph after the segment-word fixup correction (far-called 192, 4 of them through alias slots) |
+| grade B: direct near-call target only | 269 | 966 call sites, 354 distinct targets; the raw exact-prologue scan is promoted only because the validation summary proves it identical to the Capstone-decoded set (invariants checked by the generator) |
+| grade D: public entry alias only | 2 | section 1 |
 | grade U: no evidence | 0 | |
 | procedure-pointer constants (`mov dx,seg` fixups with a paired `mov ax,offset`) | 208 of 209 resolve to entry slots of 169 distinct prologues, all already grade A | this ledger |
 | the one unresolved far-pointer constant | unit 0x5e offset 0x0151: inside the function at 0x0123, not an instruction boundary, so a typed constant in the code segment, not code | this ledger |
@@ -77,10 +80,11 @@ affect the starts.
 
 ## 3. Classification: what the bytes support
 
-- **Runtime and library code is not in the overlay.** All 1,790 calls to the Turbo Pascal
-  SYSTEM segment (0xAF8) leave the overlay; the overlay's 34 units are the game's own
-  compiled units. So the overlay portion of the denominator contains no compiler runtime
-  routines to exclude.
+- **The Turbo Pascal SYSTEM runtime is resident, not overlaid:** all 1,790 calls to segment
+  0xAF8 leave the overlay. That excludes the SYSTEM unit from the overlay count. It does not
+  show whether other linked library units (third-party or standard units compiled with
+  overlays enabled) occupy some of the 34 overlay units; nothing in the bytes examined here
+  decides that.
 - **Measured behaviour classes** (from the bounded decode; not a semantic judgement):
 
 | class | definition | count |
@@ -91,18 +95,19 @@ affect the starts.
 | leaf | no calls, no DS globals, no ES operands | 51 |
 | leaf with ES operands | no calls, no DS globals, reads or writes through a far pointer | 19 |
 
-- **What is not decided:** which of the 673 are game logic and which are the game's own
-  small utilities. The only byte-level candidates for generic helpers are the 16 runtime-only
-  glue functions and the 51 pure leaves (67 in all); the other 606 touch game state or call
-  game code. A semantic game-versus-helper split for those 606 needs per-function review and
-  is **unresolved**; the denominator should carry the range 606 to 673 for "game routines in
-  the overlay" until that review exists.
+- **What is not decided:** the semantic split of the 673 into game logic, library code and
+  helper utilities is **unresolved**. The feature classes above are measurements of what
+  each routine touches and calls; touching a DS global does not make a routine game logic,
+  and being a leaf does not make it a library helper. No game-routine count or range is
+  derived from them.
 
 ## 4. Denominator statement for the overlay portion
 
-673 routine starts in `GAME.OVR`, every one with entry, call, or alias evidence (399 / 269 /
-5), none unsupported, none found outside the prologue set. This is the overlay side only;
-the resident side and the whole-executable coverage are tracked under issue #24.
+673 routine starts in `GAME.OVR`, every one with entry, call, or alias evidence (402 grade
+A, 269 grade B, 2 grade D), none unsupported, none found outside the prologue set. How many
+of them are game routines rather than library or helper code is not established. This is
+the overlay side only; the resident side and the whole-executable coverage are tracked under
+issue #24.
 
 ## 5. Reproduce
 
@@ -114,5 +119,9 @@ python3 tools/overlay/validate_near_calls.py --inventory $O/overlay_inventory.js
 python3 tools/overlay/function_ledger.py --inventory $O/overlay_inventory.json --callgraph $O/callgraph.json --near-calls $O/near_call_evidence.json --ovr $G/GAME.OVR --exe $G/START.EXE --csv docs/re/overlay_function_ledger.csv --md docs/re/overlay_function_ledger_summary.md
 ```
 
-The last two need Capstone 5. Without `--ovr`, the ledger still grades starts from the
-inventory and call graph but omits the feature columns and the procedure-pointer evidence.
+The last two need Capstone 5. The generator verifies the SHA-256 of every file it is given
+against the inventory and refuses to write output on a mismatch; with `--near-calls` it also
+requires the validation summary's invariants (no invalid or truncated paths, raw and decoded
+exact-prologue call sets identical) before labelling near-call evidence as decoded. Without
+`--ovr`, it omits the feature columns and the procedure-pointer evidence; without
+`--near-calls`, grade B is labelled as raw, unvalidated.

@@ -10,8 +10,11 @@ Evidence columns (1 = present):
   entry        a public entry slot points exactly at this prologue
   entry_alias  a public entry slot word equals this prologue offset + 0x800 (raw word kept)
   far_called   a fixup-confirmed far call targets the entry slot of this prologue
-  near_called  a Capstone-decoded direct near call targets this prologue (from
-               validate_near_calls.py when given; else the raw byte-scan candidates)
+  near_called  a direct near call targets this prologue; counted from the raw exact-prologue
+               scan, which is promoted to decoded evidence only when the validate_near_calls.py
+               summary (given with --near-calls) proves the raw and decoded sets identical
+  far_called / procptr target slots that are +0x800 aliases are resolved to the prologue first
+  All given input files must match the inventory's SHA-256 digests or no output is written.
   procptr      a `mov dx,seg / mov ax,offset` far-pointer constant names this prologue's
                entry slot (procedure variables and dispatch tables)
 Grade: A = entry or far_called; B = near_called only; C = procptr only; D = entry_alias
@@ -26,7 +29,7 @@ Measured behavior class (not a semantic judgement):
   glue     no DS global but makes calls (sub-class runtime-only when all calls go to 0xAF8)
   leaf     no calls, no DS globals, no ES operands
 """
-import argparse, collections, csv, json, re, struct
+import argparse, collections, csv, hashlib, json, re, struct
 
 try:
     from capstone import Cs, CS_ARCH_X86, CS_MODE_16
@@ -49,6 +52,24 @@ def main():
     a = ap.parse_args()
     inv = json.load(open(a.inventory))
     cg = json.load(open(a.callgraph))
+    expected = inv["inputs"]
+    ovr = open(a.ovr, "rb").read() if a.ovr else None
+    exe = open(a.exe, "rb").read() if a.exe else None
+    if ovr is not None and hashlib.sha256(ovr).hexdigest() != expected["game_ovr_sha256"]:
+        raise SystemExit("GAME.OVR digest differs from the inventory; refusing to emit a ledger")
+    if exe is not None and hashlib.sha256(exe).hexdigest() != expected["start_exe_sha256"]:
+        raise SystemExit("START.EXE digest differs from the inventory; refusing to emit a ledger")
+    nc = None
+    if a.near_calls:
+        nc = json.load(open(a.near_calls))
+        for key, value in nc.get("inputs", {}).items():
+            if key in expected and expected[key] != value:
+                raise SystemExit(f"near-call validation input {key} differs from the inventory")
+        invariants = (nc.get("invalid_seed_paths") == 0 and nc.get("truncated_seed_paths") == 0
+                      and nc.get("raw_exact_not_decoded") == 0 and nc.get("decoded_exact_not_raw") == 0
+                      and nc.get("decoded_near_calls_to_prologues") == nc.get("raw_near_call_candidates_to_prologues"))
+        if not invariants:
+            raise SystemExit("near-call validation invariants not met; raw exact-prologue edges cannot be promoted")
     units = inv["units"]
     by_para = {u["stub_para"]: u for u in units}
     by_seg = {u["memory_segment"]: u for u in units if u.get("memory_segment") is not None}
@@ -67,21 +88,26 @@ def main():
                                     normalized=word - ALIAS_DELTA, in_code=word < u["code_size"]))
     alias_of = {(x["unit"], x["normalized"]): x for x in aliases}
 
+    alias_raw = {(x["unit"], x["raw_word"]): x["normalized"] for x in aliases}
+
+    def normalize(unit, rel):
+        return (unit, alias_raw.get((unit, rel), rel))
+
     far_called = collections.Counter()
+    far_called_via_alias = 0
     for e in cg["edges"]:
         if e.get("resolution") == "overlay":
-            far_called[(e["target_unit"], e["target_rel"])] += 1
+            key = normalize(e["target_unit"], e["target_rel"])
+            far_called[key] += 1
+            far_called_via_alias += (key[1] != e["target_rel"])
+    # Raw exact-prologue near edges are promoted to validated evidence only when the
+    # validation summary proved them identical to the Capstone-decoded call set above.
     near_called = collections.Counter()
-    if a.near_calls:
-        nc = json.load(open(a.near_calls))
-        for t in nc.get("decoded_targets", []):
-            near_called[(t["unit"], t["offset"])] += t.get("sites", 1)
-    if not near_called:
-        for e in cg["edges"]:
-            if e["kind"] == "near_candidate" and e.get("exact_prologue"):
-                near_called[(e["unit"], e["target"])] += 1
+    for e in cg["edges"]:
+        if e["kind"] == "near_candidate" and e.get("exact_prologue"):
+            near_called[(e["unit"], e["target"])] += 1
+    near_source = "decoded (validate_near_calls.py invariants hold)" if nc else "raw byte scan, unvalidated"
 
-    ovr = open(a.ovr, "rb").read() if a.ovr else None
     md = Cs(CS_ARCH_X86, CS_MODE_16) if (ovr is not None and Cs is not None) else None
     procptr = collections.Counter()
     procptr_unresolved = []
@@ -123,7 +149,7 @@ def main():
                         tu = by_seg.get(seg)
                         if tu is not None and off is not None and off >= 0x20 and (off - 0x20) % 5 == 0 \
                                 and (off - 0x20) // 5 < tu["entry_count"]:
-                            procptr[(tu["stub_para"], tu["entries"][(off - 0x20) // 5])] += 1
+                            procptr[normalize(tu["stub_para"], tu["entries"][(off - 0x20) // 5])] += 1
                         else:
                             procptr_unresolved.append(dict(unit=u["stub_para"], site=x.address, seg=seg, off=off))
                 ops = " ".join(x.op_str for x in ins)
@@ -182,8 +208,7 @@ def main():
     # stub fifth-byte check (metadata only)
     fifth = collections.Counter()
     odd_stubs = []
-    if a.exe:
-        exe = open(a.exe, "rb").read()
+    if exe is not None:
         img = exe[inv["mz"]["header_bytes"]:]
         for u in units:
             for j in range(u["entry_count"]):
@@ -196,10 +221,10 @@ def main():
     lines = ["# Overlay routine ledger summary (generated)", "",
              f"Inputs: START.EXE `{inv['inputs']['start_exe_sha256']}`, GAME.OVR `{inv['inputs']['game_ovr_sha256']}`.",
              f"Rows: {len(rows)} prologue candidates in {len(units)} units; features via Capstone: {'yes' if features else 'no'};"
-             f" near-call evidence from {'validate_near_calls.py' if a.near_calls else 'raw byte scan'}.", "",
+             f" near-call evidence: {near_source}. Input digests verified against the inventory for every file given.", "",
              "| grade | meaning | count |", "| --- | --- | ---: |",
-             f"| A | public entry slot on the prologue, or fixup-confirmed far call to it | {grades['A']} |",
-             f"| B | decoded direct near-call target only | {grades['B']} |",
+             f"| A | public entry slot on the prologue, or fixup-confirmed far call to it (alias slots resolved to their prologue: {far_called_via_alias} such calls) | {grades['A']} |",
+             f"| B | direct near-call target only ({near_source}) | {grades['B']} |",
              f"| C | procedure-pointer constant target only | {grades['C']} |",
              f"| D | public entry alias (slot word = offset + 0x800) only | {grades['D']} |",
              f"| U | no listed evidence | {grades['U']} |", "",

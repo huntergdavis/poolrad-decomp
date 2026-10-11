@@ -1,17 +1,17 @@
 # Overlay routine ledger summary (generated)
 
 Inputs: START.EXE `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`, GAME.OVR `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`.
-Rows: 673 prologue candidates in 34 units; features via Capstone: yes; near-call evidence from validate_near_calls.py.
+Rows: 673 prologue candidates in 34 units; features via Capstone: yes; near-call evidence: decoded (validate_near_calls.py invariants hold). Input digests verified against the inventory for every file given.
 
 | grade | meaning | count |
 | --- | --- | ---: |
-| A | public entry slot on the prologue, or fixup-confirmed far call to it | 399 |
-| B | decoded direct near-call target only | 269 |
+| A | public entry slot on the prologue, or fixup-confirmed far call to it (alias slots resolved to their prologue: 4 such calls) | 402 |
+| B | direct near-call target only (decoded (validate_near_calls.py invariants hold)) | 269 |
 | C | procedure-pointer constant target only | 0 |
-| D | public entry alias (slot word = offset + 0x800) only | 5 |
+| D | public entry alias (slot word = offset + 0x800) only | 2 |
 | U | no listed evidence | 0 |
 
-Overlapping evidence: entries on prologues 399, far-called 189, near-called 354, procedure-pointer targets 169 (208 constant sites; 1 unresolved), aliases 5.
+Overlapping evidence: entries on prologues 399, far-called 192, near-called 354, procedure-pointer targets 169 (208 constant sites; 1 unresolved), aliases 5.
 
 | public entry aliases | unit | slot | raw word | normalized offset | raw word inside code? |
 | --- | --- | ---: | --- | --- | --- |
