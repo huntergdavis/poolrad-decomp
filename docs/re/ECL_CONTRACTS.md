@@ -27,7 +27,7 @@ DOS Decode Kit (commit `d9f7fb45`), whose claims were audited in [../FABLE_AUDIT
 | --- | --- |
 | overlay unit | stub paragraph `0x1c`, file offset 3398, 13,581 code bytes, 402 fixups, 2 public entries |
 | run function | 0x03EB7 (unit +0x3171): stores its parameter to the PC global, clears the stop byte, loops at 0x03EC5 |
-| fetch | PC `[0x49ED]`, buffer far pointer `[0x49DE]`, fetch bias 0x6700, opcode latch `[0x6F7F]`, previous opcode `[0x6F7E]` |
+| fetch | PC `[0x49ED]` holds a virtual address; buffer far pointer `[0x49DE]`; every fetch is `buffer + PC + 0x6700`, so virtual 0x9900 is buffer offset 0 (the buffer pointer addresses unpacked offset 2); opcode latch `[0x6F7F]`, previous opcode `[0x6F7E]` |
 | stop bytes | `[0x442E]`, `[0x49FF]` (loop exits when either is non-zero) |
 | dispatcher | 0x03C73 (unit +0x2F2D): compare chain on `[0x6F7F]` for 0x00 to 0x3D, 0x1F has no case; 61 opcodes, 49 distinct handlers |
 | call stack | linked list head `[0x6F70]` (far pointer), 6-byte nodes freed by the EXIT handler |
@@ -118,15 +118,24 @@ Note that 0x21 and 0x37 share one handler, as do 0x04 to 0x07, 0x11/0x12, 0x16 t
 
 ## 4. Operand grammar — verified on this build
 
-Engine-side mechanics (verified from the loader at unit 0x25 + 0x0000 and the dispatcher at
-+0x1EA6, ledger sections 1.2 and 2): before a handler runs, the engine prefetches a fixed
-number of operands per opcode into three byte arrays indexed 1..n, tag at `[0x7005+i]`,
-first value byte at `[0x7085+i]`, second value byte at `[0x7045+i]`; inline strings go to
-Pascal string buffers at `0x6FC8 + 256*k` for the k-th string operand. The prefetch counts
-are in `pr_rec_ecl_operand_count` (an extracted table, not a full translation of the
-dispatcher); three handlers (0x0C, 0x34, 0x36) then read one more
-operand themselves, so the wire-format counts below (reference table, confirmed by the
-sweep) exceed the prefetch counts for those opcodes.
+Engine-side mechanics (verified from the loader at unit 0x25 + 0x0000, ledger 1.6, and the
+skip dispatcher at +0x1EA6, ledger 1.2): each handler calls the loader itself with its
+operand count (42 call sites; immediate counts at 39 of them), which reads the operands into
+three byte arrays indexed 1..n, tag at `[0x7005+i]`, first value byte at `[0x7085+i]`,
+second value byte at `[0x7045+i]`, fills Pascal string buffers `0x6FC8 + 256*k` for the k-th
+string operand, and leaves the PC on the next opcode. Handler-loaded counts: 1 for 0x01,
+0x02, 0x0A, 0x0E, 0x11, 0x12, 0x20, 0x2D, 0x32, 0x34, 0x38, 0x3C; 2 for 0x03, 0x08, 0x09,
+0x0F, 0x10, 0x22, 0x25, 0x26, 0x2B, 0x36; 3 for 0x04 to 0x07, 0x0B, 0x0C, 0x15, 0x21, 0x28,
+0x2A, 0x2F, 0x30, 0x35, 0x37, 0x3B; 4 for 0x14, 0x23; 5 for 0x2E; 6 for 0x1E, 0x2C; 8 for
+0x27; 14 for 0x29; run-time values at 0x1D, 0x39 and a second call in 0x2B (the menu list);
+no loader call in 0x00, 0x0D, 0x13, 0x16 to 0x1B, 0x1C, 0x24, 0x31, 0x33, 0x3A, 0x3D. The skip
+dispatcher's prefetch table (`pr_rec_ecl_operand_count`) agrees with these except 0x0C (2
+vs 3) and 0x36 (1 vs 2); 0x34 loads 1 at its loader call but the wire format carries 2, so
+its second operand is read elsewhere. No IF-family instruction is followed by 0x0C, 0x34 or
+0x36 in the shipped scripts, so the skip-table difference is latent. Tag 0x81 operands name
+a string by address: the engine copies a zero-terminated sequence from one of the four
+address windows (ledger 1.6); in the shipped scripts all 195 such operands point into the
+0x9700 or 0x6B00 windows, never into the script block.
 
 Each operand is a tag byte followed by a value:
 

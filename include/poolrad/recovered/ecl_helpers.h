@@ -66,4 +66,49 @@ uint16_t pr_rec_ecl_operand_word(uint8_t low, uint8_t high);
  * is not asserted here; see docs/re/FUNCTION_LEDGER.md. */
 uint8_t pr_rec_ecl_address_class(uint16_t address);
 
+/* ---- Operand loader state transition (issue #16) --------------------------
+ * Recovered core of GAME.OVR 0x074D3 (unit 0x25 + 0x0000, public entry 2,
+ * called as 0x2B:0x2A from 42 handler sites and near-called by the skip
+ * dispatcher). The original loads `count` tagged operands from the script at
+ * the engine PC into three byte arrays indexed 1..count (tag at 0x7005+i,
+ * first value byte at 0x7085+i, second value byte at 0x7045+i), advances the
+ * PC, and for string operands fills Pascal string buffers 0x6FC8 + 256*k.
+ * This translation keeps all of that in a caller-owned state object with
+ * explicit bounds checks that the engine does not have. The 0x81 path
+ * (string by address) is translated only for addresses inside the script
+ * window; addresses in the engine data windows are recorded and flagged
+ * unresolved. See docs/re/FUNCTION_LEDGER.md section 1.6. */
+
+#define PR_REC_ECL_SCRIPT_BASE 0x9900u      /* virtual address of script byte 0 */
+#define PR_REC_ECL_SLOT_COUNT 16u           /* slots 1..15 modelled (engine prefetches at most 14) */
+
+typedef enum {
+    PR_REC_ECL_LOADER_OK = 0,
+    PR_REC_ECL_LOADER_ARGUMENT,   /* null state or script with non-zero size */
+    PR_REC_ECL_LOADER_COUNT,      /* count exceeds the modelled slots; state unchanged */
+    PR_REC_ECL_LOADER_BOUNDS      /* a script read would leave the buffer; state partially updated */
+} pr_rec_ecl_loader_status;
+
+typedef struct {
+    const uint8_t *script;        /* bytes addressed from PR_REC_ECL_SCRIPT_BASE (unpacked block + 2) */
+    size_t script_size;
+    uint16_t pc;                  /* engine [0x49ED]: virtual address of the current opcode */
+    uint8_t tag[PR_REC_ECL_SLOT_COUNT];    /* engine [0x7005+i] */
+    uint8_t low[PR_REC_ECL_SLOT_COUNT];    /* engine [0x7085+i] */
+    uint8_t high[PR_REC_ECL_SLOT_COUNT];   /* engine [0x7045+i] */
+    uint8_t string_count;         /* engine local: string operands seen in this call, k = 1.. */
+    uint8_t string_len[PR_REC_ECL_SLOT_COUNT];        /* length byte of buffer 0x6FC8 + 256*k */
+    char string_text[PR_REC_ECL_SLOT_COUNT][PR_REC_ECL_TEXT_MAX];
+    uint16_t string_address[PR_REC_ECL_SLOT_COUNT];   /* 0x81 operands: the address passed on */
+    uint8_t string_unresolved[PR_REC_ECL_SLOT_COUNT]; /* 1 = 0x81 target in an engine data window, not modelled */
+} pr_rec_ecl_loader_state;
+
+/* Resets slots, string buffers and flags; keeps script and pc. */
+void pr_rec_ecl_loader_reset(pr_rec_ecl_loader_state *state);
+
+/* The state transition. On OK, pc points at the byte after the last operand
+ * (the next opcode) exactly as the engine leaves [0x49ED]. */
+pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state,
+                                                  uint8_t count);
+
 #endif
