@@ -285,4 +285,11 @@ pr_rec_effect_status pr_rec_u38_entry9(pr_rec_modifier_state *mods,
  * Meanings of the three bytes are not asserted. */
 pr_rec_effect_status pr_rec_u38_entry10(pr_rec_modifier_state *mods, unsigned *applied);
 
+/* GAME.OVR 0x0F870, unit 0x38 + 0x0C15, public entry 31 (run-time stub 0x41:0xBB),
+ * dispatch item 36 of the table at DS:0x6828. Full translation: 17 bytes, 6
+ * instructions, straight line, no calls, `retf 0xA` (five discarded word
+ * arguments): `sub byte [0x6822],4` then `sub byte [0x6816],4`, both wrapping
+ * modulo 256. Meanings of the two bytes are not asserted. */
+pr_rec_effect_status pr_rec_u38_entry31(pr_rec_modifier_state *mods);
+
 #endif
