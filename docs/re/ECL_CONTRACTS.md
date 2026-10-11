@@ -177,6 +177,9 @@ Evidence (`tools/overlay/ecl_walk.py`):
 - **0x01 GOTO:** loads one operand and writes word(slot 1) to `[0x49ED]` (ledger 1.8).
 - **0x02 GOSUB:** loads one operand, pushes a 6-byte node {saved PC = the address after the
   operand, link to the previous head} at `[0x6F70]`, then PC := word(slot 1) (ledger 1.8).
+- **0x13 RETURN:** `PC += 1`; with a nil call-list head nothing else; otherwise PC := the
+  head node's word 0 (the address GOSUB saved), the head is unlinked through
+  `[0x6F74:0x6F76]` and its 6-byte node released (ledger 1.20).
 - **0x33 PRINT RETURN:** `PC += 1`; `[0x5E24] = 1`; `[0x5E25] += 1`; clears `[0x84DF]` when it
   was set (ledger 1.8).
 - **0x20 NEWECL:** builds the `ECL<n>.DAX` file name from its byte operand, far-calls unit

@@ -609,4 +609,17 @@ pr_rec_ecl_handler_status pr_rec_ecl_compare_strings(pr_rec_ecl_loader_state *st
 pr_rec_ecl_handler_status pr_rec_ecl_op_compare(pr_rec_ecl_loader_state *state);
 pr_rec_ecl_handler_status pr_rec_ecl_op_if(pr_rec_ecl_loader_state *state);
 
+/* ---- Issue #113: RETURN (opcode 0x13) ---------------------------------------
+ * GAME.OVR 0x017E5, unit 0x1c + 0x0A9F (bytes +0x0A9F..+0x0AEC), 78 bytes, 25
+ * instructions, `retf`, dispatcher case +0x2FED, no near calls, one far call.
+ * PC += 1; if the call-list head [0x6F70:0x6F72] is nil: return; else PC =
+ * head word 0 (the PC the GOSUB saved: the address after its operand), the
+ * temporaries [0x6F74:0x6F76] = head words 1-2 (the link to the previous
+ * node), FreeMem(head, 6) through 0xAF8:0x0254, head = the link. Two paths.
+ * Path-complete model over the bounded array that function 7 uses for the
+ * list (depth 0 = nil head; the node release is implicit; the temporaries
+ * are not modelled, as for function 7). An invalid host depth above the
+ * array bound returns BOUNDS after the PC advance, before any array read. */
+pr_rec_ecl_handler_status pr_rec_ecl_op_return(pr_rec_ecl_loader_state *state);
+
 #endif

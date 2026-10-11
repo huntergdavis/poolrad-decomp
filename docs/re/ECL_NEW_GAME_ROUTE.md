@@ -126,6 +126,28 @@ stops at that lookup with the six flags untouched and the real run ends there wi
 `RUN_HANDLER`/HOOK, PC `0x9B1E`. The continuation rows (adapter mapping HOOK to OK) are conditional on the
 hook not overriding that word.
 
+## 3.5 After issue #113: RETURN bound
+
+With `pr_rec_ecl_op_return` (opcode 0x13; FUNCTION_LEDGER.md section 1.20) bound as well,
+the exact rows are unchanged (the run, camp-interrupted and pre-camp entries still stop at
+a class-1 SAVE hook and the initial entry at its class-1 COMPARE source); the continued
+rows (adapter mapping HOOK to OK, conditional) now read:
+
+| mode | entry | address | steps | stop | run status | handler status | latch | handler | hooks mapped |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | ---: |
+| exact | 0 | `0x9914` | 1 | `0x991A` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 1 | `0x99EB` | 1 | `0x99EB` | UNMODELLED | OK | `0x12` | `+0x0A09` | 0 |
+| exact | 2 | `0x9A5E` | 6 | `0x9A7F` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 3 | `0x9A93` | 1 | `0x9A99` | HANDLER | HOOK | `0x09` | `+0x0292` | 0 |
+| exact | 4 | `0x9AF2` | 7 | `0x9B1E` | HANDLER | HOOK | `0x03` | `+0x0126` | 0 |
+| continued (HOOK to OK) | 0 | `0x9914` | 10 | `0x994B` | UNMODELLED | OK | `0x2D` | `+0x2CCF` | 4 |
+| continued (HOOK to OK) | 1 | `0x99EB` | 1 | `0x99EB` | UNMODELLED | OK | `0x12` | `+0x0A09` | 0 |
+| continued (HOOK to OK) | 2 | `0x9A5E` | 9 | `0x9A62` | UNMODELLED | OK | `0x00` | `+0x0001` | 2 |
+| continued (HOOK to OK) | 3 | `0x9A93` | 4 | `0xAF49` | UNMODELLED | OK | `0x0C` | `+0x03B4` | 2 |
+| continued (HOOK to OK) | 4 | `0x9AF2` | 16 | `0x9B3A` | HANDLER | other | `0x09` | `+0x0292` | 3 |
+
+The continued rows are conditional on the un-modelled hooks not changing later state.
+
 ## 4. Unresolved boundaries
 
 The class-1 store hook (`+0x0A74` in unit 0x25, mirrors window words into the active
