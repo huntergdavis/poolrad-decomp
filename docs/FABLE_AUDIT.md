@@ -105,11 +105,15 @@ Each item was re-derived from the supplied files with independent code, not by t
   off"). Spot checks: segment 0x2B offsets 0x25 and 0x2A resolve to entry stubs 20 and 21 of
   overlay unit 0x25, whose entry offsets land on `55 89 E5` prologues in `GAME.OVR` at 0x9196 and
   0x92C3. Segment 0x7C offset 0x57 resolves to a stub of unit 0x7F and a prologue at 0x24CDD.
-  But over all 2,254 far-call sites, 261 land inside a stub range yet off a stub boundary (most
-  from segments 0x3C5 and 0x85), which the model cannot explain, and the kit's cited runtime
-  targets 0xAF8:0xB25 and 0xAF8:0xDC0 land 2 and 4 bytes before recognisable routine starts. The
-  kit's segment 0xAF8 count is 1,792; this audit counts 1,732 in the overlay. Treat the model as
-  a working hypothesis to be replaced by proper application of the per-unit fixup tables.
+  The initial byte scan reported 2,254 far-call patterns, 261 stub-range misalignments and
+  1,732 sites in segment 0xAF8. **Correction (2026-10-10):** that scan used a regex whose `.`
+  skipped operands containing byte 0x0A. The later
+  [fixup-aware call graph](re/callgraph_summary.md) reproduces 4,009 fixup-confirmed far-call
+  byte sites, including 170 stub-range misalignments and 1,787 sites in segment 0xAF8;
+  28 additional 0x9A byte patterns lack a relocation and remain candidates. The kit's 1,792
+  runtime-segment figure is close to the corrected count. Instruction-boundary validation
+  and the remaining misalignments are still open. The kit's cited runtime targets
+  0xAF8:0xB25 and 0xAF8:0xDC0 land 2 and 4 bytes before recognisable routine starts.
 - **GEO plane 3 (bytes 770 to 1025).** Bits 0, 2, 4, and 6 are set in 768, 716, 777, and 715
   cells; bits 1, 3, 5, and 7 in only 45, 32, 34, and 33. Gold Box Explorer's `GeoWallRecord.cs`
   reads this plane as four 2-bit door fields (1 door, 2 locked, 3 wizard-locked) for N/E/S/W, and

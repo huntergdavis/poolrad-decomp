@@ -133,11 +133,12 @@ Evidence (`tools/overlay/ecl_walk.py`):
 - A control-flow walk from the five entries over all 29 blocks decodes 3,726 instructions
   (53 distinct opcodes) with zero instruction-boundary overlaps.
 - A linear sweep (`ecl_walk.py --sweep`) from offset 22 decodes 107,060 of 175,627 body
-  bytes (61.0%) before the first error; in 26 of 29 blocks the first error directly follows an
-  unconditional transfer (EXIT, GOTO, RETURN, GOSUB, NEWECL), which is where inline data begins.
-  Five blocks decode essentially to their end (ECL1#18, ECL2#20, ECL4#2, ECL6#1, ECL6#19 at 99
-  to 100%). The per-block table is the tool's output.
-- The three remaining breaks follow opcodes 0x03, 0x04, and 0x34; their operand counts are
+  bytes (61.0%). In 26 of 29 blocks the last decoded opcode is an unconditional transfer
+  (EXIT, GOTO, RETURN, GOSUB, NEWECL); one of those blocks reaches its end without an error.
+  Inline data after transfers explains many stops. Examples that decode 99 to 100% of their
+  body include ECL1#18, ECL2#20, ECL4#2, ECL6#1, and ECL6#19. The per-block table is the
+  tool's output.
+- The other three stops follow opcodes 0x03, 0x04, and 0x34; their operand counts are
   **open**.
 - 47 jump targets fall outside their block (virtual addresses below 0x9900 or beyond the
   block): **open**, probably references into engine-resident script memory.
