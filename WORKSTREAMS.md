@@ -8,8 +8,8 @@ pull requests; the primary session merges after review.
 
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
-| A: DOS code recovery | Claude | Corrected run-time overlay map and one full ECL remap translation plus two extracted behavior cores merged in PR #11. Current: finish full ECL function translations, issue #8. | `tools/overlay/`, `docs/re/`; for #8 also `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
-| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/text, and DOS EGA image readers merged in PRs #4, #7, and #10. Current: bounded ECL operand spans and zero-code parity, issue #12. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
+| A: DOS code recovery | Claude | Three full ECL helper translations and two extracted behavior cores merged in PRs #11 and #15. Current: recover the operand loader state transition, issue #16. | `tools/overlay/`, `docs/re/`, `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
+| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/operands/text, and DOS EGA image readers merged in PRs #4, #7, #10, and #13. Current: bounded WALLDEF reader, issue #14. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/` |
 
 ## Shared rules
@@ -32,7 +32,7 @@ pull requests; the primary session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL and EGA format readers are merged.
-One leaf function is fully translated. Two more ECL behavior cores are in C;
+Three leaf functions are fully translated. Two more ECL behavior cores are in C;
 their engine state changes remain to be translated. The next checkpoint
-expands full function coverage and establishes a reproducible DOS gameplay
+recovers the operand loader and establishes a reproducible DOS gameplay
 oracle trace.

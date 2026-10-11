@@ -1,6 +1,6 @@
 # Function ledger: recovered DOS v1.3 functions
 
-**Issue:** #8 (lane A), continued on branch `claude/full-leaves` with section 1.5. **Target:** `GAME.OVR` sha256
+**Issue:** #8 (lane A), completed by PRs #11 and #15; loader follow-up #16. **Target:** `GAME.OVR` sha256
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` (206,105 bytes) with
 `START.EXE` sha256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 **Code:** `src/recovered/ecl_helpers.c`, `include/poolrad/recovered/ecl_helpers.h`,
@@ -88,9 +88,8 @@ Checks:
   same bit layout;
 - a data check on the owner's scripts: of 1,582 inline text frames reached by the linear
   decode, 359 contain a zero code and **none** has a non-zero code after a zero, so the
-  difference between "skip" (engine) and "stop at first zero" (lane B's current decoder)
-  is not observable in the shipped data. Lane B may keep its contract or adopt the engine
-  rule; this ledger records the engine rule.
+  difference between "skip" and "stop at first zero" is not observable in the
+  reached shipped frames. Lane B adopted the engine's skip rule in PR #13.
 
 ### 1.4 Evidence on the unpacker's 255-character cap (provisional)
 
@@ -107,7 +106,7 @@ a frame can hold up to 340 codes; the shipped scripts' longest frame is 154 pack
 provisional until the runtime routine is identified or a synthetic script is run on the
 DOS oracle.
 
-### 1.5 Two further full leaf translations (branch `claude/full-leaves`)
+### 1.5 Two further full leaf translations (merged PR #15)
 
 | # | identity | size | convention | kind | status |
 | --- | --- | ---: | --- | --- | --- |
