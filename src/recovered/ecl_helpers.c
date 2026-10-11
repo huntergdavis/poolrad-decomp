@@ -1,8 +1,9 @@
-/* Translations of three ECL helper functions from GAME.OVR overlay unit 0x25
- * (DOS v1.3, sha256 872964a3...928614). Each function mirrors the control flow
- * of the disassembled original; engine memory (script buffer, PC, Pascal
- * string buffers) is replaced by explicit arguments. See
- * docs/re/FUNCTION_LEDGER.md for the byte-level evidence and the checks. */
+/* One full translation and two extracted behavior cores from GAME.OVR overlay unit 0x25
+ * (DOS v1.3, sha256 872964a3...928614). The remap mirrors its original
+ * instruction for instruction; the other two reproduce only the verified
+ * decision table or decoding loop, with engine memory (script buffer, PC,
+ * Pascal string buffers, runtime calls) replaced by explicit arguments and
+ * their side effects omitted. See docs/re/FUNCTION_LEDGER.md. */
 
 #include "poolrad/recovered/ecl_helpers.h"
 

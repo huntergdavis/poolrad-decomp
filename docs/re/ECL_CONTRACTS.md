@@ -123,7 +123,8 @@ Engine-side mechanics (verified from the loader at unit 0x25 + 0x0000 and the di
 number of operands per opcode into three byte arrays indexed 1..n, tag at `[0x7005+i]`,
 first value byte at `[0x7085+i]`, second value byte at `[0x7045+i]`; inline strings go to
 Pascal string buffers at `0x6FC8 + 256*k` for the k-th string operand. The prefetch counts
-are in `pr_rec_ecl_operand_count`; three handlers (0x0C, 0x34, 0x36) then read one more
+are in `pr_rec_ecl_operand_count` (an extracted table, not a full translation of the
+dispatcher); three handlers (0x0C, 0x34, 0x36) then read one more
 operand themselves, so the wire-format counts below (reference table, confirmed by the
 sweep) exceed the prefetch counts for those opcodes.
 

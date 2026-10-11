@@ -4,21 +4,28 @@
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` (206,105 bytes) with
 `START.EXE` sha256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 **Code:** `src/recovered/ecl_helpers.c`, `include/poolrad/recovered/ecl_helpers.h`,
-`tests/recovered/test_ecl_helpers.c`. All three functions live in overlay unit `0x25`
+`tests/recovered/test_ecl_helpers.c`. All three originals live in overlay unit `0x25`
 (file offset 29,907, 8,730 code bytes, 25 public entries, run-time stub segment `0x2B`).
 
-Status vocabulary: **verified** = disassembly read instruction by instruction, translation
-covers every path, and an independent check agrees; **provisional** = translated from the
-disassembly but a stated aspect rests on inference. Decompiler renderings were used as a
-reading aid only and are not committed.
+**What this PR delivers:** one **full translation** of a leaf function (function 1) and
+two **extracted behavior cores** (functions 2 and 3). A full translation reproduces every
+instruction path of the original with the same inputs and outputs. An extracted core
+reproduces a verified decision table or decoding loop but replaces engine memory (script
+buffer, PC, Pascal string buffers, runtime calls) with explicit arguments and omits the
+side effects; it is evidence toward a later full translation, not one itself.
+
+Status vocabulary: **verified** = disassembly read instruction by instruction and an
+independent check agrees with the part that is claimed; **provisional** = a stated aspect
+rests on inference. Decompiler renderings were used as a reading aid only and are not
+committed.
 
 ## 1. The three functions
 
-| # | identity | size | convention | status |
-| --- | --- | ---: | --- | --- |
-| 1 | `pr_rec_ecl_char_remap` = GAME.OVR 0x07BA6, unit 0x25 + 0x06D3 (internal, not a public entry) | 40 bytes, 16 instructions | far Pascal: one word argument at `[bp+6]`, result in `AL`, `retf 2`; no globals, no calls | **verified** |
-| 2 | `pr_rec_ecl_operand_count` = GAME.OVR 0x09379, unit 0x25 + 0x1EA6, public entry 22 (called as `0x2B:0x8E`, 6 sites, all in the IF-family handler of unit 0x1c) | 267 bytes, 133 instructions | far Pascal, no arguments, `retf`; reads `[0x49DE]` (script buffer far pointer) and `[0x49ED]` (PC), writes `[0x6F7F]` (opcode latch); near-calls the operand loader (unit 0x25 + 0x0000) with a count in `AL` | table **verified**; role as "skip next statement" **verified** by its call sites; the prefetch-versus-wire distinction below is a measured finding |
-| 3 | `pr_rec_ecl_unpack_text` = GAME.OVR 0x08626, unit 0x25 + 0x1153 (internal; near-called by the loader for tag `0x80` operands) | 424 bytes, 166 instructions | far Pascal: `[bp+6]` string-buffer index (byte), `[bp+8]` packed length (byte), `retf 4`; reads bytes through `[0x49DE]`/`[0x49ED]` and advances the PC once per byte; clears and appends to the Pascal string at `0x6FC8 + 256 * index`; near-calls function 1; far-calls four runtime routines at `0xAF8:0x0B0B`, `0xAF8:0x0B98`, `0xAF8:0x0B25`, `0xAF8:0x0C3B` (string copy/concat/store, unidentified) | decoding core **verified**; the 255-character cap is **provisional** (inferred from Turbo Pascal `string[255]` semantics of the unidentified runtime calls) |
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 1 | `pr_rec_ecl_char_remap` = GAME.OVR 0x07BA6, unit 0x25 + 0x06D3 (internal, not a public entry) | 40 bytes, 16 instructions | far Pascal: one word argument at `[bp+6]`, result in `AL`, `retf 2`; no globals, no calls | **full translation** | **verified** |
+| 2 | `pr_rec_ecl_operand_count` = GAME.OVR 0x09379, unit 0x25 + 0x1EA6, public entry 22 (called as `0x2B:0x8E`, 6 sites, all in the IF-family handler of unit 0x1c) | 267 bytes, 133 instructions | far Pascal, no arguments, `retf`; reads `[0x49DE]` (script buffer far pointer) and `[0x49ED]` (PC), writes `[0x6F7F]` (opcode latch); near-calls the operand loader (unit 0x25 + 0x0000) with a count in `AL`, else `PC += 1` | **extracted core**: the opcode-to-count table only; the fetch, latch, loader call and PC advance are documented, not translated | table **verified**; role as "skip next statement" **verified** by its call sites; the prefetch-versus-wire distinction below is a measured finding |
+| 3 | `pr_rec_ecl_unpack_text` = GAME.OVR 0x08626, unit 0x25 + 0x1153 (internal; near-called by the loader for tag `0x80` operands) | 424 bytes, 166 instructions | far Pascal: `[bp+6]` string-buffer index (byte), `[bp+8]` packed length (byte), `retf 4`; reads bytes through `[0x49DE]`/`[0x49ED]` and advances the PC once per byte; clears and appends to the Pascal string at `0x6FC8 + 256 * index` through four runtime calls at `0xAF8:0x0B0B`, `0xAF8:0x0C3B`, `0xAF8:0x0B98`, `0xAF8:0x0B25` (string load, char-to-string, concat, store, unidentified); near-calls function 1 | **extracted core**: decodes from a caller buffer; PC advance and string-runtime side effects omitted | decoding **verified**; the 255-character cap is **provisional** (section 1.4) |
 
 ### 1.1 Character remap (function 1)
 
@@ -85,6 +92,21 @@ Checks:
   is not observable in the shipped data. Lane B may keep its contract or adopt the engine
   rule; this ledger records the engine rule.
 
+### 1.4 Evidence on the unpacker's 255-character cap (provisional)
+
+What the bytes show: for every emitted character the original performs the Turbo Pascal
+`s := s + chr(c)` sequence, and the final store call is preceded by `mov ax, 0xFF; push ax;
+lcall 0xAF8:0x0B25`, i.e. the engine passes 255 as the destination's maximum length. The
+loader clears the string buffers with a 256-byte stride (`shl di, 8` then a zero length
+byte at `0x6FC8 + 256*k`), consistent with `string[255]` slots. What is not proven: the
+routine at `0xAF8:0x0B25` has not been read, so "characters beyond 255 are dropped" rests
+on the documented behavior of the Turbo Pascal string-store routine rather than on this
+build's bytes. Input bounds cannot settle it either way: the packed length is one byte, so
+a frame can hold up to 340 codes; the shipped scripts' longest frame is 154 packed bytes
+(at most 205 characters), so the cap is never reached in the owner's data. The cap stays
+provisional until the runtime routine is identified or a synthetic script is run on the
+DOS oracle.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -114,9 +136,12 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 
 | function | reading and translation | checks | notes |
 | --- | ---: | ---: | --- |
-| 1 | 10 min | 5 min | trivial leaf |
-| 2 | 35 min | 25 min | table transcription plus the data check that exposed prefetch versus wire counts |
-| 3 | 40 min | 20 min | runtime string calls abstracted; cap provisional |
+| 1 | 10 min | 5 min | trivial leaf, full translation |
+| 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
+| 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
+
+Measured count for the battle card: 1 fully translated function with a passing behavior
+check, 2 extracted cores; total verified functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the

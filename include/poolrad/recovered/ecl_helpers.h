@@ -1,10 +1,13 @@
 #ifndef POOLRAD_RECOVERED_ECL_HELPERS_H
 #define POOLRAD_RECOVERED_ECL_HELPERS_H
 
-/* Portable C translations of three small ECL helper functions recovered from
- * the DOS v1.3 GAME.OVR overlay unit 0x25. Provenance, verification status,
- * and the engine-side details that were deliberately not translated are in
- * docs/re/FUNCTION_LEDGER.md. No game data is embedded here. */
+/* Portable C recovered from the DOS v1.3 GAME.OVR overlay unit 0x25: one
+ * fully translated leaf function (pr_rec_ecl_char_remap) and two extracted
+ * behavior cores (pr_rec_ecl_operand_count, pr_rec_ecl_unpack_text) that
+ * reproduce the verified decision table or decoding logic of their original
+ * but deliberately omit the engine-memory side effects (script buffer, PC,
+ * string runtime). Provenance, status, and checks: docs/re/FUNCTION_LEDGER.md.
+ * No game data is embedded here. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -18,22 +21,30 @@
  * The engine computes the sum in a 16-bit register and returns the low byte. */
 uint8_t pr_rec_ecl_char_remap(uint8_t code);
 
-/* GAME.OVR 0x09379 (unit 0x25 + 0x1EA6), the operand-count dispatcher.
- * Returns the number of tagged operands the engine prefetches for an opcode
- * before dispatching its handler: 1, 2, 3, 4, 5, 6, 8 or 14. Returns 0 for
- * every other opcode value, where the engine only advances the PC by one.
- * Menus and ON GOTO/GOSUB (0x15, 0x25, 0x26, 0x2B) return 0 here because
- * their handlers read their own operand lists. */
+/* Extracted behavior core of GAME.OVR 0x09379 (unit 0x25 + 0x1EA6), the
+ * operand-count dispatcher. The original fetches the opcode byte at
+ * buffer + PC, latches it, and either calls the operand loader with a count
+ * or advances the PC by one; this function reproduces only the verified
+ * opcode-to-count decision. It returns the number of tagged operands the
+ * engine prefetches for an opcode: 1, 2, 3, 4, 5, 6, 8 or 14, and 0 for every
+ * other opcode value (the PC-advance case). Menus and ON GOTO/GOSUB (0x15,
+ * 0x25, 0x26, 0x2B) return 0 because their handlers read their own lists.
+ * This is the prefetch count, not the wire-format operand count. */
 unsigned pr_rec_ecl_operand_count(uint8_t opcode);
 
-/* GAME.OVR 0x08626 (unit 0x25 + 0x1153), the six-bit text unpacker.
- * Consumes exactly packed_len script bytes and emits one character per
- * non-zero six-bit code (four codes per three bytes, MSB first, each code
- * remapped with pr_rec_ecl_char_remap). Zero codes are skipped, not treated
- * as terminators. The fourth code of a group is emitted only when the final
- * byte completes a three-byte group. At most PR_REC_ECL_TEXT_MAX characters
- * are produced; later characters are dropped as the engine's string[255]
- * would drop them. Writes up to capacity characters into out (no NUL) and
+/* Extracted behavior core of GAME.OVR 0x08626 (unit 0x25 + 0x1153), the
+ * six-bit text unpacker. The original reads its bytes through the script
+ * buffer pointer while advancing the engine PC and appends characters to a
+ * Pascal string buffer through four runtime calls; this function decodes
+ * from a caller-supplied byte array instead and omits those side effects.
+ * Verified decoding: consumes exactly packed_len bytes, emits one character
+ * per non-zero six-bit code (four codes per three bytes, MSB first, each
+ * remapped with pr_rec_ecl_char_remap); zero codes are skipped, not treated
+ * as terminators; the fourth code of a group is emitted only when the final
+ * byte completes a three-byte group. PROVISIONAL: at most PR_REC_ECL_TEXT_MAX
+ * characters are produced, modelling the 0xFF maximum length the original
+ * passes to the runtime string store; the store routine itself is not yet
+ * identified. Writes up to capacity characters into out (no NUL) and
  * returns the number of characters the engine would have produced. */
 size_t pr_rec_ecl_unpack_text(const uint8_t *packed, size_t packed_len,
                               char *out, size_t capacity);
