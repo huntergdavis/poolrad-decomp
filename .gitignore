@@ -1,0 +1,6 @@
+# Supplied game media, executables, saves, and extracted copyrighted data.
+/resources/
+
+# Finder metadata from the supplied archives.
+.DS_Store
+._*
