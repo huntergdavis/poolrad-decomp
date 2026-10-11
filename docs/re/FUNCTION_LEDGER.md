@@ -315,8 +315,8 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
 dependencies. Overlay-only strict full translations: 5 (functions 1, 4, 5, 10 and 11). Project-wide
-reviewed strict count (the PM's record, which includes the merged resident lane): 6 after
-PR #40; 7 once PR #41 (issue #39) merges.
+reviewed strict count (the PM's record, which includes the merged resident lane): 6 before
+PR #41; 7 once PR #41 merges.
 Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
 and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
@@ -404,8 +404,8 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
 Measured count for the battle card: overlay-only strict full translations 5 (functions 1,
-4, 5, 10 and 11); project-wide strict count 6 after PR #40 and 7 once PR #41 (issue #39)
-merges (PM's record, includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+4, 5, 10 and 11); project-wide strict count 6 before PR #41 and 7 once PR #41 merges (PM's record,
+includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
 9); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
