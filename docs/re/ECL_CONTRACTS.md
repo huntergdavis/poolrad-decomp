@@ -30,6 +30,7 @@ DOS Decode Kit (commit `d9f7fb45`), whose claims were audited in [../FABLE_AUDIT
 | fetch | PC `[0x49ED]` holds a virtual address; buffer far pointer `[0x49DE]`; every fetch is `buffer + PC + 0x6700`, so virtual 0x9900 is buffer offset 0 (the buffer pointer addresses unpacked offset 2); opcode latch `[0x6F7F]`, previous opcode `[0x6F7E]` |
 | stop bytes | `[0x442E]`, `[0x49FF]` (loop exits when either is non-zero) |
 | dispatcher | 0x03C73 (unit +0x2F2D): compare chain on `[0x6F7F]` for 0x00 to 0x3D, 0x1F has no case; 61 opcodes, 49 distinct handlers |
+| no-case opcodes | 0x1F and every value above 0x3D fall through the chain to the epilogue without a call or a PC change, so the run loop re-fetches the same byte until a stop byte is set elsewhere (issue #75; modelled as `NO_CASE` in `pr_rec_ecl_run`) |
 | call stack | linked list head `[0x6F70]` (far pointer), 6-byte nodes freed by the EXIT handler |
 | compare flags | `[0x6F78]` … `[0x6F7D]` (set by COMPARE / COMPARE AND, tested by the IF family) |
 
