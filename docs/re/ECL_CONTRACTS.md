@@ -131,11 +131,13 @@ string operand, and leaves the PC on the next opcode. Handler-loaded counts: 1 f
 no loader call in 0x00, 0x0D, 0x13, 0x16 to 0x1B, 0x1C, 0x24, 0x31, 0x33, 0x3A, 0x3D. The skip
 dispatcher's prefetch table (`pr_rec_ecl_operand_count`) agrees with these except 0x0C (2
 vs 3) and 0x36 (1 vs 2); 0x34 loads 1 at its loader call but the wire format carries 2, so
-its second operand is read elsewhere. No IF-family instruction is followed by 0x0C, 0x34 or
-0x36 in the shipped scripts, so the skip-table difference is latent. Tag 0x81 operands name
-a string by address: the engine copies a zero-terminated sequence from one of the four
-address windows (ledger 1.6); in the shipped scripts all 195 such operands point into the
-0x9700 or 0x6B00 windows, never into the script block.
+its second operand is read elsewhere. Among the instructions reached by the walker's linear
+decode (`ecl_walk.py --sweep`, about 61% of script bytes; the rest is undecoded), no IF-family
+instruction is immediately followed by 0x0C, 0x34 or 0x36, so the skip-table difference is
+latent in the decoded portion; the undecoded portion is unknown. Tag 0x81 operands name a
+string by address: the engine copies a zero-terminated sequence from one of the four
+address windows (ledger 1.6); of the 195 tag-0x81 operands reached by that decode, all point
+into the 0x9700 or 0x6B00 windows and none into the script block.
 
 Each operand is a tag byte followed by a value:
 
