@@ -1,13 +1,13 @@
 # Function ledger: recovered DOS v1.3 functions
 
-**Issue:** #8 (lane A). **Target:** `GAME.OVR` sha256
+**Issue:** #8 (lane A), continued on branch `claude/full-leaves` with section 1.5. **Target:** `GAME.OVR` sha256
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` (206,105 bytes) with
 `START.EXE` sha256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 **Code:** `src/recovered/ecl_helpers.c`, `include/poolrad/recovered/ecl_helpers.h`,
-`tests/recovered/test_ecl_helpers.c`. All three originals live in overlay unit `0x25`
+`tests/recovered/test_ecl_helpers.c`. All five originals live in overlay unit `0x25`
 (file offset 29,907, 8,730 code bytes, 25 public entries, run-time stub segment `0x2B`).
 
-**What this PR delivers:** one **full translation** of a leaf function (function 1) and
+**Delivered so far:** three **full translations** of leaf functions (functions 1, 4, 5) and
 two **extracted behavior cores** (functions 2 and 3). A full translation reproduces every
 instruction path of the original with the same inputs and outputs. An extracted core
 reproduces a verified decision table or decoding loop but replaces engine memory (script
@@ -19,7 +19,7 @@ independent check agrees with the part that is claimed; **provisional** = a stat
 rests on inference. Decompiler renderings were used as a reading aid only and are not
 committed.
 
-## 1. The three functions
+## 1. The five functions (1 to 3 from PR #11, 4 and 5 from PR #15)
 
 | # | identity | size | convention | kind | status |
 | --- | --- | ---: | --- | --- | --- |
@@ -107,6 +107,41 @@ a frame can hold up to 340 codes; the shipped scripts' longest frame is 154 pack
 provisional until the runtime routine is identified or a synthetic script is run on the
 DOS oracle.
 
+### 1.5 Two further full leaf translations (branch `claude/full-leaves`)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 4 | `pr_rec_ecl_operand_word` = GAME.OVR 0x07B82, unit 0x25 + 0x06AF, public entry 9 (called as `0x2B:0x4D`, 27 fixup-confirmed sites in unit 0x1c, plus a near call from the operand loader) | 36 bytes, 16 instructions | far Pascal: two byte arguments, first at `[bp+8]`, second at `[bp+6]`, result in `AX`, `retf 4`; no globals, no calls | **full translation** | **verified** |
+| 5 | `pr_rec_ecl_address_class` = GAME.OVR 0x07BCE, unit 0x25 + 0x06FB (internal, 4 near callers in unit 0x25) | 91 bytes, 28 instructions | far Pascal: one word argument at `[bp+6]`, result in `AL`, `retf 2`; no globals, no calls | **full translation** | **verified**; the *meaning* of ranges 0 to 2 is **provisional** (not asserted by the code) |
+
+**Function 4.** Paths: exactly one (straight-line, 16 instructions, no branches). Side
+effects: none; it writes only its own stack frame and returns in `AX`. Zero-extends the
+second argument, shifts it left by 8, and adds the zero-extended first argument. The loader calls it with the two value bytes of an operand
+slot (`[0x7085+i]` first, `[0x7045+i]` second), so the result is the little-endian operand
+word. Every path is covered; the test checks all 65,536 input pairs and the little-endian
+property.
+
+**Function 5.** Paths: four independent two-compare tests (eight conditional branches)
+plus the default; every one is represented by the four `if` statements and the initial
+value. Side effects: none; it writes only its own stack frame and returns in `AL`. Starts a
+local result at 4, then tests the argument against four inclusive ranges in order, each
+rewriting the result when it matches: `0x4900..0x4CFF` to 0,
+`0x6B00..0x6EFF` to 1, `0x9700..0x98FF` to 2, `0x9900..0xB6FF` to 3. The ranges do not
+overlap, so order does not matter. The test checks every boundary and all 65,536 inputs
+against an independent range table. Data evidence on the owner's scripts: range 3 is
+exactly 7,680 bytes and the largest shipped block unpacks to 7,679 bytes; of 2,900 in-block
+jump and call targets reached by the walk, all are in range 3; of 8,638 tag-01 word
+operands, 1,882 lie in range 0, 2,551 in range 1, 510 in range 2, 3,078 in range 3 and 617
+in none. What this shows: the engine treats `0x9900..0xB6FF` as the script window (which
+fixes the maximum script block at 7,680 bytes, a tighter bound than the 65,535 the lane B
+reader allows) and three further windows as addressable engine data; which engine
+structures the first three windows denote is not established here.
+
+Throughput: function 4 took 10 minutes to read, translate and test; function 5 took 20
+minutes plus 10 minutes for the data check. Both were found by a leaf scan over all 673
+prologue functions (no calls, bounded size, few globals), which listed 71 candidates, 4 of
+them in the ECL helper unit.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -140,8 +175,9 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: 1 fully translated function with a passing behavior
-check, 2 extracted cores; total verified functions is not claimed beyond that.
+Measured count for the battle card: 3 fully translated functions with passing behavior
+checks (functions 1, 4, 5), 2 extracted cores (functions 2, 3); total verified functions is
+not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the
@@ -150,11 +186,11 @@ and the absence of DOS oracle traces (issue #3) for dynamic confirmation. The NE
 handler's loader call (`0x7C:0x57`) resolves to unit 0x6f entry 11 under the run-time model;
 PR #6 named it unit 0x7f entry 1.
 
-## 5. Build and proposed CMake targets
+## 5. Build and CMake targets (applied on main in 6d3b7da)
 
 Without CMake: `tests/recovered/build_and_test.sh` compiles the library and the test with
-`-std=c11 -Wall -Wextra -Wpedantic -Werror` and runs it. Proposed addition to the lane B
-owned `CMakeLists.txt`, to be applied by the PM:
+`-std=c11 -Wall -Wextra -Wpedantic -Werror` and runs it. With CMake the target
+`poolrad_recovered_tests` runs under `ctest`. The targets in `CMakeLists.txt` are:
 
 ```cmake
 add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c)
