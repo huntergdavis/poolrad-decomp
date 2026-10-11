@@ -594,3 +594,72 @@ pr_rec_effect_status pr_rec_u38_entry30(pr_rec_modifier_state *mods) {
     mods->b6822 = (uint8_t)(mods->b6822 + 1u);         /* inc byte [0x6822] */
     return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
 }
+
+/* ---- Issue #56: view-parameter setter, unit 0x3bd + 0x0155 ---------------- */
+
+pr_rec_effect_status pr_rec_u3bd_entry1(pr_rec_view_state *view, uint8_t first,
+                                        uint8_t second, uint8_t third, uint8_t fourth) {
+    if (view == NULL) {
+        return PR_REC_EFFECT_ARGUMENT;
+    }
+    view->b6a60 = first;        /* mov al,[bp+0xC]; mov [0x6A60],al */
+    view->b6a61 = second;       /* mov al,[bp+0xA]; mov [0x6A61],al */
+    view->b6a62 = third;        /* mov al,[bp+8];   mov [0x6A62],al */
+    view->b6a63 = fourth;       /* mov al,[bp+6];   mov [0x6A63],al */
+    return PR_REC_EFFECT_OK;    /* pop bp; retf 8 */
+}
+
+/* ---- Issue #56: script-state initializer, unit 0x25 + 0x01B6 (model) ------ */
+
+pr_rec_ecl_handler_status pr_rec_ecl_script_init(pr_rec_ecl_loader_state *state) {
+    unsigned k;
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    state->b84e0 = 0u;                                   /* +0x01BC */
+    state->b84e2 = 0u;                                   /* +0x01C1 */
+    state->b84d2 = 0u;                                   /* +0x01C6 */
+    state->b84d3 = 0u;                                   /* +0x01CB */
+    state->b6f68 = 0x41u;                                /* +0x01D0 */
+    state->b6f69 = 9u;                                   /* +0x01D5 */
+    state->b84e5 = 1u;                                   /* +0x01DA */
+    state->b84c8 = 0u;                                   /* +0x01DF..+0x01EB: fill [0x84C8], 2, 0 */
+    state->b84c9 = 0u;
+    state->b6f83 = 8u;                                   /* +0x01F0 */
+    state->pc = PR_REC_ECL_SCRIPT_BASE;                  /* +0x01F5: [0x49ED] = 0x9900 */
+    state->b70c6 = 0u;                                   /* +0x01FB */
+    state->call_depth = 0u;                              /* +0x0200..+0x0205: list head [0x6F70] = nil */
+    state->w6f74 = 0u;                                   /* +0x0208..+0x020D */
+    state->w6f76 = 0u;
+    for (k = 0u; k < 6u; ++k) {                          /* +0x0210..+0x021C: fill [0x6F78], 6, 0 */
+        state->cmp_flags[k] = 0u;
+    }
+    state->window1[0x2E1] = 0xFFu;                       /* +0x0221: script address 0x6DE1 */
+    state->window1[0x2D2] = 0u;                          /* +0x022C: 0x6DD2 */
+    state->window1[0x2D3] = 0u;                          /* +0x0237: 0x6DD3 */
+    state->window0[0xE5] = 0u;                           /* +0x0242: 0x49E5 */
+    for (k = 0u; k < 5u; ++k) {                          /* +0x024D..+0x02B8, unrolled five times */
+        pr_rec_ecl_loader_status st = pr_rec_ecl_load_operands(state, 1u);   /* mov al,1; call +0x0000 */
+        if (st != PR_REC_ECL_LOADER_OK) {
+            return map_loader_status(st);
+        }
+        /* push [0x7086]; push [0x7046]; call +0x06AF; mov [0x49E3 + 2k], ax */
+        state->entry_addr[k] = pr_rec_ecl_operand_word(state->low[1], state->high[1]);
+    }
+    state->window0[0xE6] = 1u;                           /* +0x02BB: 0x49E6 */
+    if (state->restored == 0u) {                         /* +0x02C6 */
+        /* +0x02CD..+0x02F0: for a = 0x4A00 to 0x4A1F do window0[a] = 0
+         * (emitted as (i + 0x49FF) * 2 + 0x6E00 with 16-bit wrap, i = 1..32) */
+        for (k = 0u; k < PR_REC_ECL_INIT_CLEAR0_COUNT; ++k) {
+            state->window0[PR_REC_ECL_INIT_CLEAR0_FIRST + k] = 0u;
+        }
+        /* +0x02F2..+0x0315: for a = 0x6E79 to 0x6E82 do window1[a] = 0
+         * (emitted as (i + 0x6E79) * 2 + 0x2A00 with 16-bit wrap, i = 0..9) */
+        for (k = 0u; k < PR_REC_ECL_INIT_CLEAR1_COUNT; ++k) {
+            state->window1[PR_REC_ECL_INIT_CLEAR1_FIRST + k] = 0u;
+        }
+    } else {
+        state->restored = 0u;                            /* +0x0319 */
+    }
+    return PR_REC_ECL_HANDLER_OK;                        /* +0x031E: mov sp,bp; pop bp; retf */
+}

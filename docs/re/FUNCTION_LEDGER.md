@@ -314,11 +314,13 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies. Overlay-only strict full translations: 9 (functions 1, 4, 5, 10, 11, 12, 13, 14 and 15).
-Project-wide reviewed strict count (the PM's record, which includes the merged resident
-lane): 12 before the issue #51 PR; 13 once it merges.
-Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
-and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
+dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
+14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
+unit 0x38 entries of PR #63 (documented outside this numbering): 25 before the issue #56 PR;
+26 once it merges. Project-wide reviewed strict count (the PM's record, which includes the
+merged resident lane): 32 before the issue #56 PR; 33 once it merges.
+Functions 7, 8, 9 and 17 are path-complete models: their own instruction paths are translated
+and verified, but 8, 9 and 17 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
 
@@ -488,6 +490,69 @@ prior session.
 
 Throughput: 10 minutes.
 
+### 1.14 Two routines on the first-gameplay path (issue #56)
+
+Context: [GAMEPLAY_PATH.md](GAMEPLAY_PATH.md) traces the program body through the party
+menu (unit 0x6c + 0x0161) to the gameplay loop (unit 0x1c + 0x32F8) and the first run of
+the initial-entry script. `deja` recall for this path returned no prior session.
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 16 | `pr_rec_u3bd_entry1` = GAME.OVR 0x2EA4C, unit 0x3bd + 0x0155 (bytes +0x0155..+0x0173), public entry 1, run-time stub `0x3D5:0x25` | 31 bytes, 12 instructions | far Pascal: four byte arguments at `[bp+0xC]`, `[bp+0xA]`, `[bp+8]`, `[bp+6]` (first pushed to last), `retf 8`; no result | **full translation** | **verified**: straight line, no branches, no calls, no reads of globals |
+| 17 | `pr_rec_ecl_script_init` = GAME.OVR 0x07689, unit 0x25 + 0x01B6 (bytes +0x01B6..+0x0321), public entry 3, run-time stub `0x2B:0x2F` | 364 bytes, 135 instructions | far Pascal, no arguments, `retf` | **path-complete model with stated dependencies** (functions 6 and 4; two runtime fills replaced by direct zeroing) | every instruction path **verified**; not counted as a full translation |
+
+**Function 16.** Instructions (hash-checked overlay, decoded from the entry offset):
+prologue; `mov al,[bp+0xC]; mov [0x6A60],al`; `mov al,[bp+0xA]; mov [0x6A61],al`; `mov
+al,[bp+8]; mov [0x6A62],al`; `mov al,[bp+6]; mov [0x6A63],al`; `pop bp; retf 8`. One path.
+Callers: the program body at loaded image 0x012C..0x0138 (`mov al,imm; push ax` four times
+with 0x0B, 0, 7, 6, then the far call through stub `0x3D5:0x25`) right before the gameplay
+loop, and the fixup-confirmed site at unit 0x3b4 + 0x0207 inside the view refresh
+(`+0x016D`), which pushes the four bytes back after recomputing them. The classification
+row for `0x3bd:0x0155` records one fixup-confirmed far caller (that site); the resident
+caller is outside the overlay call graph. Since the callee reads only the low byte of each
+pushed word, the C function takes four `uint8_t`. Uncertainty: the meanings of the four
+bytes (the view refresh derives the first from a window-0-indexed table at `[di + 0xC26]`
+and the others from three near helpers) are not asserted; completeness is unaffected.
+
+**Function 17, paths and side effects** (offsets inside unit 0x25):
+
+- `+0x01BC..+0x01DA`: `[0x84E0] = 0`, `[0x84E2] = 0`, `[0x84D2] = 0`, `[0x84D3] = 0`,
+  `[0x6F68] = 0x41`, `[0x6F69] = 9`, `[0x84E5] = 1`.
+- `+0x01DF..+0x01EB`: runtime `0xAF8:0x16A8` with (`DS:0x84C8`, 2, 0); `+0x01F0..+0x01FB`:
+  `[0x6F83] = 8`, `[0x49ED] = 0x9900`, `[0x70C6] = 0`; `+0x0200..+0x020D`: the four words
+  `[0x6F70..0x6F76]` zeroed (call-stack head nil and the two temporaries of function 7);
+  `+0x0210..+0x021C`: runtime `0xAF8:0x16A8` with (`DS:0x6F78`, 6, 0), the compare flags.
+- `+0x0221..+0x0248`: window 1 words `0x2E1 = 0xFF`, `0x2D2 = 0`, `0x2D3 = 0`; window 0 word
+  `0xE5 = 0` (script addresses 0x6DE1, 0x6DD2, 0x6DD3, 0x49E5).
+- `+0x024D..+0x02B8`, five times: `mov al,1; push ax; call +0x0000` (the operand loader,
+  function 6, count 1), then `push [0x7086]; push [0x7046]; call +0x06AF` (function 4, slot
+  1) and the word stored to `[0x49E3]`, `[0x49E5]`, `[0x49E7]`, `[0x49E9]`, `[0x49EB]` in
+  that order. With the PC at 0x9900 this consumes the five 4-byte block-head entries
+  (opcode, tag 0x01, word), leaving the PC at 0x9914.
+- `+0x02BB`: window 0 word `0xE6 = 1` (address 0x49E6).
+- `+0x02C6`: if `[0x49F8] == 0`: `+0x02CD..+0x02F0` zero window 0 words 0x100..0x11F (the
+  compiler emits `(i + 0x49FF) * 2 + 0x6E00` with 16-bit wrap for i = 1..32: script
+  addresses 0x4A00..0x4A1F) and `+0x02F2..+0x0315` zero window 1 words 0x379..0x382
+  (`(i + 0x6E79) * 2 + 0x2A00`, i = 0..9: addresses 0x6E79..0x6E82); else `+0x0319`:
+  `[0x49F8] = 0`. Both paths reach the epilogue at `+0x031E`.
+- The bytes at `+0x0322..+0x0340` after the `retf` are the string constants of entry 4
+  (section 4 of GAMEPLAY_PATH.md), not code.
+
+Modelled: the runtime fills as direct zeroing (FillChar's argument shape, inferred); the
+loader and word assembly through the existing C functions, so bounds statuses propagate
+and the loader's stated limits apply; the heap list head as `call_depth = 0`. Written
+engine state is held by address in the loader state (`entry_addr[5]`, `restored`,
+`cmp_flags[6]`, `w6f74`, `w6f76` and eleven bytes). Nothing is read except the script.
+
+**Tests.** Function 16: the program body's constant call, all 256 values through each
+argument with distinct patterns, the identity round trip the view refresh performs, null
+state. Function 17: a synthetic five-entry block head (new game: the five words, the PC at
+0x9914, every fixed write, the two cleared ranges and nothing else in the three windows;
+restored game: ranges kept, flag consumed), a truncated head (bounds status after three
+entries, the later write absent), null state.
+
+Throughput: 70 minutes for the trace, 25 for the two translations.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -522,10 +587,12 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: overlay-only strict full translations 9 (functions 1,
-4, 5, 10, 11, 12, 13, 14 and 15); project-wide strict count 12 before the issue #51 PR and
-13 once it merges (PM's record, includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
-9); path-complete translations whose runtime string calls carry the provisional cap 2
+Measured count for the battle card: strict full translations in this ledger's numbering 10
+(functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
+main 25 before the issue #56 PR and 26 once it merges (9 prior from this ledger, 16 from PR
+#63, 1 view setter); project-wide strict count 32 before the issue #56 PR and 33 once it
+merges (PM's record, includes the resident lane); path-complete models with stated
+dependency or heap limits 4 (functions 7, 8, 9, 17); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 
