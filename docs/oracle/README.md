@@ -13,17 +13,22 @@ The script accepts the two executable hashes recorded in
 the ignored run directory, verifies the copy, and refuses to overwrite an
 existing run. It does not launch the game.
 
-On this host, Ubuntu's DOSBox-X 2026.01.02 package is installed. Its
+On this Linux host, Ubuntu's DOSBox-X 2026.01.02 package is installed. Its
 [documented command-line options](https://dosbox-x.com/wiki/DOSBox%E2%80%90X%E2%80%99s-Command%E2%80%90Line-Options)
 support a clean default configuration, explicit DOS commands, a save-state
-directory, debugger entry, and file-I/O logging. A first manual launch from a
-prepared run can use:
+directory, debugger entry, and file-I/O logging. Launch a prepared run with
+Bubblewrap: it disables the network, presents host files read-only, and makes
+only that run directory writable.
 
 ```sh
-dosbox-x -defaultconf -defaultmapper -nogui \
-  -savedir "$run_dir/.dosbox-saves" \
-  -c "mount c $run_dir" -c 'c:' -c 'START'
+tools/oracle/launch.sh "$run_dir"
 ```
+
+For a timed, headless smoke run, use `xvfb-run -a tools/oracle/launch.sh
+"$run_dir" -time-limit 40`. A local smoke on 2026-10-10 reached the game's
+loading screen after about seven seconds and credits after about 25 seconds.
+The menu and gameplay replay remain to be checked. Screenshots and logs from
+that smoke are kept only in the ignored run directory.
 
 Keep local screenshots, emulator saves, traces, and changed game saves in
 `resources/`. For each replay, record the run name, executable hashes, emulator
