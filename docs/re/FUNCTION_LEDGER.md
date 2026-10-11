@@ -314,9 +314,9 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies. Overlay-only strict full translations: 6 (functions 1, 4, 5, 10, 11 and 12). Project-wide
-reviewed strict count (the PM's record, which includes the merged resident lane): 7 before
-the issue #43 PR; 8 once it merges.
+dependencies. Overlay-only strict full translations: 7 (functions 1, 4, 5, 10, 11, 12 and 13).
+Project-wide reviewed strict count (the PM's record, which includes the merged resident
+lane): 9 before PR #47; 10 once PR #47 merges.
 Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
 and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
@@ -397,6 +397,36 @@ established meaning. None of this affects completeness.
 
 Throughput: 10 minutes to re-verify, 10 to translate and test, 10 to document.
 
+### 1.11 Character-effect dispatch entry 10 (issue #46)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 13 | `pr_rec_u38_entry10` = GAME.OVR 0x0F03C, unit 0x38 + 0x03E1 (bytes +0x03E1..+0x03FD), public entry 10, run-time stub `0x41:0x52` | 31 bytes, 13 instructions | far Pascal: five word arguments discarded (`retf 0xA`); no result | **full translation** | **verified**: both paths and all three byte effects; no calls, no record access, no dependencies |
+
+**Instructions and branches** (hash-checked overlay, decoded from the entry offset):
+prologue; `mov al,[0x6819]; and al,2; or al,al; je skip`; effect block `mov al,[0x6818]; xor
+ah,ah; shr ax,1; mov [0x6818],al` then `add byte [0x6816],3`; `skip: pop bp; retf 0xA`. Two
+paths. The shift acts on the zero-extended byte, so the stored byte is the old value divided
+by two with no carry-in; the add wraps modulo 256.
+
+**Caller and role evidence.** Unit 0x38 + 0x31A2 stores this entry's pointer (`0x41:0x52`)
+at `0x6850`, item 10 of the far-pointer dispatch table based at `0x6828` (`lcall [di +
+0x6828]`); unlike entries 8 and 9 it appears in the table once. No direct far callers.
+`[0x6818]` is also halved by unit 0x38 + 0x2AE6 and cleared by + 0x264B under
+character-record conditions (section 2 candidates), and `[0x6816]` is the accumulator the
+sibling entries add to.
+
+**Contract and tests.** The two new bytes `b6818` and `b6819` join `pr_rec_modifier_state`;
+entries 8 and 9 do not touch them (tested). Tests: all 256 values of `[0x6819]` (only bit 1
+selects the effect; other bytes untouched); all 256 values of `[0x6818]` halve correctly;
+wraparound of the +3; repeated halving to zero; null state rejected.
+
+**Uncertainty.** The meanings of `[0x6819]` bit 1, `[0x6818]` and `[0x6816]` are not
+established (by use pattern, a flag byte, a quantity that effects halve, and an
+accumulator). Dispatch item 10's role is not named. Completeness is unaffected.
+
+Throughput: 10 minutes to decode and confirm the role, 15 to translate, test and document.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -431,9 +461,9 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: overlay-only strict full translations 6 (functions 1,
-4, 5, 10, 11 and 12); project-wide strict count 7 before the issue #43 PR and 8 once it
-merges (PM's record, includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+Measured count for the battle card: overlay-only strict full translations 7 (functions 1,
+4, 5, 10, 11, 12 and 13); project-wide strict count 9 before PR #47 and 10 once PR #47 merges (PM's record,
+includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
 9); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.

@@ -527,6 +527,47 @@ static int test_u38_entry9(void) {
     return 0;
 }
 
+/* ---- character-effect dispatch entry 10 (issue #46) ----------------------- */
+
+/* Transcribed from the 13 instructions at +0x03E1: only bit 1 of [0x6819]
+ * selects the effect; [0x6818] is halved as a byte and [0x6816] gains 3. */
+static int test_u38_entry10(void) {
+    pr_rec_modifier_state m;
+    unsigned v, w, applied;
+    for (v = 0; v < 256; ++v) {
+        unsigned expect = (v & 2u) ? 1u : 0u;
+        memset(&m, 0, sizeof m);
+        m.b6819 = (uint8_t)v; m.b6818 = 0x81; m.b6816 = 0x10; m.b6822 = 0x55;
+        CHECK(pr_rec_u38_entry10(&m, &applied) == PR_REC_EFFECT_OK);
+        CHECK(applied == expect);
+        CHECK(m.b6818 == (expect ? 0x40 : 0x81) && m.b6816 == (expect ? 0x13 : 0x10));
+        CHECK(m.b6822 == 0x55 && m.b6819 == (uint8_t)v);   /* untouched */
+    }
+    /* the shift is on the zero-extended byte: every value halves without a carry-in */
+    for (w = 0; w < 256; ++w) {
+        memset(&m, 0, sizeof m); m.b6819 = 2; m.b6818 = (uint8_t)w;
+        CHECK(pr_rec_u38_entry10(&m, NULL) == PR_REC_EFFECT_OK && m.b6818 == (uint8_t)(w >> 1));
+    }
+    /* byte wraparound of the +3 and repeated halving to zero */
+    memset(&m, 0, sizeof m); m.b6819 = 0xFF; m.b6816 = 0xFE; m.b6818 = 0x05;
+    CHECK(pr_rec_u38_entry10(&m, &applied) == PR_REC_EFFECT_OK && applied == 1 && m.b6816 == 0x01 && m.b6818 == 0x02);
+    CHECK(pr_rec_u38_entry10(&m, &applied) == PR_REC_EFFECT_OK && m.b6816 == 0x04 && m.b6818 == 0x01);
+    CHECK(pr_rec_u38_entry10(&m, &applied) == PR_REC_EFFECT_OK && m.b6816 == 0x07 && m.b6818 == 0x00);
+    CHECK(pr_rec_u38_entry10(&m, &applied) == PR_REC_EFFECT_OK && m.b6816 == 0x0A && m.b6818 == 0x00);
+    /* host invalid input */
+    applied = 3;
+    CHECK(pr_rec_u38_entry10(NULL, &applied) == PR_REC_EFFECT_ARGUMENT && applied == 0);
+    /* entries 8 and 9 leave the new bytes alone */
+    {
+        uint8_t rec[PR_REC_CHAR_RECORD_SIZE]; memset(rec, 0, sizeof rec); rec[PR_REC_CHAR_OFFSET_A0] = 2;
+        memset(&m, 0, sizeof m); m.b6818 = 0x33; m.b6819 = 0x44;
+        CHECK(pr_rec_u38_entry8(&m, rec, NULL) == PR_REC_EFFECT_OK && m.b6818 == 0x33 && m.b6819 == 0x44);
+        rec[PR_REC_CHAR_OFFSET_A0] = 3;
+        CHECK(pr_rec_u38_entry9(&m, rec, NULL) == PR_REC_EFFECT_OK && m.b6818 == 0x33 && m.b6819 == 0x44);
+    }
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -549,6 +590,7 @@ int main(void) {
     rc |= test_op_print_return();
     rc |= test_u38_entry8();
     rc |= test_u38_entry9();
+    rc |= test_u38_entry10();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
