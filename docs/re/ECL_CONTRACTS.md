@@ -224,11 +224,16 @@ in the DAX directory is the GEO map id the script serves.
 Zero codes inside a text frame: the engine skips them (ledger 1.3); none precede text in
 the shipped data, so either rule decodes the shipped scripts identically.
 
-Script address window: the engine's address classifier (unit 0x25 + 0x06FB, ledger 1.5)
-treats `0x9900..0xB6FF` as the loaded script block, so a block is at most 7,680 unpacked
-bytes (the largest shipped block is 7,679). Three other windows, `0x4900..0x4CFF`,
-`0x6B00..0x6EFF` and `0x9700..0x98FF`, are addressable engine data; a reader may reject
-targets outside all four.
+Script address windows (ledger 1.5 and 1.7): the engine's address classifier (unit 0x25 +
+0x06FB) treats `0x9900..0xB6FF` as the loaded script block, so a block is at most 7,680
+unpacked bytes (the largest shipped block is 7,679; the engine allocates exactly 0x1E00 for
+it). The other three windows are zero-initialised heap arrays of 16-bit words:
+`0x4900..0x4CFF` (1,024 words), `0x6B00..0x6EFF` (1,024 words) and `0x9700..0x98FF` (512
+words), element = address minus the window base. Word variables (tag 01 addresses) live in
+them; strings live in them one character per word with a zero-word terminator, which is what
+tag 0x81 names. Address 0x6B00 is special: it names the active character's name string.
+Addresses outside all four windows are engine pseudo-variables handled by case tables in the
+load and store helpers, not memory. A reader may reject targets outside all four windows.
 
 Address rule: a word target `t` denotes unpacked offset `t - 0x9900 + 2`; equivalently, the
 byte at unpacked offset 2 has virtual address 0x9900. A reader that strips the prefix word can

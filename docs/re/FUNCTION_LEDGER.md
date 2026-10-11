@@ -8,8 +8,9 @@
 (file offset 29,907, 8,730 code bytes, 25 public entries, run-time stub segment `0x2B`).
 
 **Delivered so far:** three **full translations** of leaf functions (functions 1, 4, 5),
-two **extracted behavior cores** (functions 2 and 3), and one **recovered state-transition
-core** (function 6, the operand loader, issue #16). A full translation reproduces every
+two **extracted behavior cores** (functions 2 and 3), one **recovered state-transition
+core** (function 6, the operand loader, issue #16), and the engine string windows with two
+further path-complete translations and two cores (section 1.7, issue #22). A full translation reproduces every
 instruction path of the original with the same inputs and outputs. An extracted core
 reproduces a verified decision table or decoding loop but replaces engine memory (script
 buffer, PC, Pascal string buffers, runtime calls) with explicit arguments and omits the
@@ -216,6 +217,69 @@ the DOS oracle.
 Throughput: about 70 minutes for the loader and its callee (reading 904 bytes of code,
 translation, 5 tests, 2 data checks).
 
+### 1.7 Engine string windows behind tag 0x81 (issue #22, branch `claude/ecl-string-windows`)
+
+**Fields.** The three windows are heap arrays of 16-bit words, each reached through a far
+pointer global; all three are allocated, zero-filled and never re-pointed by one function.
+
+| window | script addresses | far pointer global | allocation | words | readers (`les` sites / functions) | writers of the pointer |
+| --- | --- | --- | --- | ---: | --- | --- |
+| 0 | 0x4900..0x4CFF | `[0x49D2]` (segment `[0x49D4]`) | `GetMem(0x800)` | 1024 | 86 / 32 | unit 0x36 + 0x002D only |
+| 1 | 0x6B00..0x6EFF | `[0x49D6]` (`[0x49D8]`) | `GetMem(0x800)` | 1024 | 143 / 47 | same |
+| 2 | 0x9700..0x98FF | `[0x49DA]` (`[0x49DC]`) | `GetMem(0x400)` | 512 | 9 / 7 | same |
+| 3 (script) | 0x9900..0xB6FF | `[0x49DE]` (`[0x49E0]`) | `GetMem(0x1E00)` | 7,680 bytes | — | same |
+
+Initializer: unit 0x36 + 0x002D (GAME.OVR 0x0E600; first 1,079 bytes read). It calls the
+runtime allocator `0xAF8:0x023F` (size pushed, far pointer returned in DX:AX) for the four
+buffers above and three others, then the runtime fill `0xAF8:0x16A8` (pointer, count, value)
+with value 0 over all four, sets the PC `[0x49ED]` to 0x9900, and clears `[0x5D92]`. **Verified**
+from the bytes; the allocator and fill identities rest on their argument shapes and effects
+(provisional naming of runtime routines, as before).
+
+Element arithmetic, identical in all four accessors below: `shl ax,1; les di,[base]; add
+di,ax` and an addressing bias of `+0x6E00`, `+0x2A00`, `-0x2E00` for windows 0, 1, 2, which is
+`-2 * window_base` modulo 65,536, so the element is `window[address - base]`. **Verified.**
+String format in a window: one character per word (the store zero-extends the byte, the
+read uses the low byte), terminated by a zero word. **Verified.**
+
+**Calls.** All in unit 0x25; far Pascal convention; arguments listed first-pushed first.
+
+| function | identity | size | arguments / result | translated as | status |
+| --- | --- | ---: | --- | --- | --- |
+| string by address | +0x12FB, GAME.OVR 0x087CE | 594 bytes, 229 insns | (address word, string index byte), `retf 4` | `pr_rec_ecl_string_by_address` | **all paths translated**: classes 0-2 read words to a zero word; class 3 reads script bytes to a zero byte; class 4 leaves the slot empty; address 0x6B00 copies the active character's name (a `string[15]` at `[0x5D92]`, modelled as a state field; unresolved only when that field is not valid). Runtime concat modelled with the provisional 255 cap. |
+| store string | +0x0F53, GAME.OVR 0x08426, entry 12 (`0x2B:0x5C`; used by the INPUT STRING handler) | 512 bytes, 181 insns | (far pointer to a Pascal string, address word), `retf 6` | `pr_rec_ecl_store_string` | **all paths translated**: copies into a local `string[255]`; classes 0-2 write one word per character then a zero word; class 3 writes bytes then a zero byte (needs `script_rw`, else reported unresolved); 0x6B00 assigns the active name with maximum 15; class 4 stores nothing. |
+| load word | +0x0E0C, GAME.OVR 0x082DF | 327 bytes, 125 insns | (address word), result AX, `retf 2` | `pr_rec_ecl_load_word` | **core**: classes 0-3 translated (class 3 returns the zero-extended byte); class 1 first calls +0x07BC (not read) which may override the window value, reported as HOOK; class 4 pseudo-addresses (0xB1, 0xFB, 0xFC, 0x33D, 0x35F and 0xC04B+0..4, 0xE, mapping to `[0x6F6E]`, `[0x6F6A]`, `[0x6F6C]`, `[0x6AAF]`, `[0x6AAD]`, `[0x6AAE]`, `[0x6AB0]`, `[0x6AB1]`) not modelled, reported unresolved. |
+| store word | +0x0C77, GAME.OVR 0x0814A, entry 10 (`0x2B:0x52`, 35 sites) | 405 bytes, 141 insns | (address word, value word), `retf 4` | `pr_rec_ecl_store_word` | **core**: classes 0-3 translated (class 3 stores the low byte into the script); class 0 addresses 0x49FD/0x49FE also set `[0x84E8]` (not modelled); class 1 then runs the hook +0x0A74 (read: mirrors 0x6B20..0x6B70 into character-record bytes at `[0x5D92]+0x18..`, 0x6BB8 and 0x6BBB..0x6BC3, 0x6BF7, 0x6BF9, 0x6C00, 0x6C0C into further record fields and flags, 0x6E12 to `0x802:0x094A`, 0x6E22/24/26 to `0x3D5:0x003E`), reported HOOK after the store; class 4 pseudo-addresses (0x3DE, 0xB8, 0xB9, 0xBF68+0xE3/E4/E5/F1/F7 into `[0x84CC]`, `[0x84CE]`, `[0x84D0]`, `[0x6AAD]`, `[0x6AAE]`, `[0x6AAF]`, `[0x6F68]`, `[0x6F69]` with flags) not modelled, reported unresolved. |
+
+**State model additions.** `pr_rec_ecl_loader_state` now carries the three windows,
+the active name fields and an optional writable script pointer; `pr_rec_ecl_windows_clear`
+mirrors the initializer's zero fill. The loader's 0x81 path now reads through
+`pr_rec_ecl_string_by_address`, so an engine-window string resolves whenever the window
+holds it; only the active-name path can remain unresolved.
+
+**Checks.** Tests: zero fill; store then read round trips in windows 0, 1 (last three words)
+and 2; low-byte-only character extraction; class 3 read and write through `script_rw`; class
+4; word load and store with the HOOK and UNRESOLVED statuses; a string running off the end
+of window 2 (bounds, where the engine would overrun its heap block); unterminated window
+and script strings; the 0x6B00 name path before and after a name is set, including the
+15-character limit; argument checks. Data audit on the owner's scripts (instructions reached
+by the walker's linear decode only, counts only): tag-0x81 operands occur in SAVE (113),
+PRINT (47), COMPARE (14), ENCOUNTER MENU (9), INPUT STRING (6) and PRINTCLEAR (6); they name
+17 distinct addresses, led by 0x982C (108), 0x9890 (44), 0x985E (11), 0x9800 (7) and 0x6B00
+(6); no overlay unit and no resident code references 0x982C, 0x9890, 0x985E or 0x9800 as an
+immediate, so the scripts themselves populate window 2 strings through SAVE and INPUT STRING.
+
+**Unresolved semantics, stated plainly:** the class-1 load hook +0x07BC was not read; the
+class-4 pseudo-address tables of load and store are listed but not modelled; the SAVE handler
+(0x09) was not read, so the exact path by which a 0x80 or 0x81 source reaches `+0x0F53` is
+inferred from the operand usage, not traced; the runtime routines remain identified by
+argument shape only (allocator, fill, string load/concat/store). A targeted DOS experiment
+that would settle the cap and the SAVE path: run a script that SAVEs a 200-character inline
+string to 0x982C and PRINTs 0x982C.
+
+Throughput: about 60 minutes for the four functions and the initializer (2,900 bytes of
+code read, two translations, two cores, 2 tests, 3 data checks).
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -249,9 +313,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: 3 fully translated functions with passing behavior
-checks (functions 1, 4, 5), 3 cores (functions 2, 3, 6); total verified functions is not
-claimed beyond that.
+Measured count for the battle card: 3 fully translated leaf functions (1, 4, 5) plus 2
+path-complete translations whose runtime string calls carry the provisional cap (string by
+address, store string), and 4 cores (functions 2, 3, 6, plus load/store word); total
+verified functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the

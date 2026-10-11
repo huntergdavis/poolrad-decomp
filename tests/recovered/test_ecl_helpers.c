@@ -206,8 +206,9 @@ static int test_loader_empty_string_and_strings_by_address(void) {
     CHECK(st.tag[1] == 0x81 && pr_rec_ecl_operand_word(st.low[1], st.high[1]) == 0x9903);
     CHECK(st.string_count == 4);
     CHECK(st.string_len[1] == 2 && memcmp(st.string_text[1], "HI", 2) == 0 && st.string_unresolved[1] == 0);
-    CHECK(st.string_address[2] == 0x9700 && st.string_unresolved[2] == 1 && st.string_len[2] == 0);
-    CHECK(st.string_address[3] == 0x4A00 && st.string_unresolved[3] == 1);
+    /* windows are zero-filled, so engine-window strings read as empty and resolved */
+    CHECK(st.string_address[2] == 0x9700 && st.string_unresolved[2] == 0 && st.string_len[2] == 0);
+    CHECK(st.string_address[3] == 0x4A00 && st.string_unresolved[3] == 0 && st.string_len[3] == 0);
     CHECK(st.string_address[4] == 0x1000 && st.string_unresolved[4] == 0 && st.string_len[4] == 0);
     CHECK(st.pc == 0x9905 + 12 + 1);
     return 0;
@@ -249,26 +250,99 @@ static int test_loader_matches_span_sizes(void) {
 /* Regression (PR #20 review): string metadata must not leak between
  * sequential calls that reuse the same state and the same slot k. */
 static int test_loader_sequential_calls_reset_metadata(void) {
-    /* instruction A at 0x9900: 81 00 97 (class 2 -> unresolved, address 0x9700)
+    /* instruction A at 0x9900: 81 00 97 (class 2 window string at 0x9700)
      * instruction B at 0x9904: 80 02 04 20 (inline "AB")
      * instruction C at 0x9909: 81 0D 99 (class 3 -> raw "Z" NUL at 0x990D) */
     static const uint8_t s[] = {0x11, 0x81,0x00,0x97, 0x11, 0x80,0x02,0x04,0x20, 0x11, 0x81,0x0D,0x99, 'Z',0x00};
     pr_rec_ecl_loader_state st;
     loader_setup(&st, s, sizeof s, 0x9900);
+    pr_rec_ecl_store_string(&st, 0x9700, "QQ", 2);      /* make the class-2 target non-empty */
     CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
-    CHECK(st.string_count == 1 && st.string_unresolved[1] == 1 && st.string_address[1] == 0x9700 && st.pc == 0x9904);
+    CHECK(st.string_count == 1 && st.string_unresolved[1] == 0 && st.string_address[1] == 0x9700 && st.pc == 0x9904);
+    CHECK(st.string_len[1] == 2 && memcmp(st.string_text[1], "QQ", 2) == 0);
     CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
     CHECK(st.string_count == 1 && st.string_unresolved[1] == 0 && st.string_address[1] == 0);
     CHECK(st.string_len[1] == 2 && memcmp(st.string_text[1], "AB", 2) == 0 && st.pc == 0x9909);
     CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
     CHECK(st.string_count == 1 && st.string_unresolved[1] == 0 && st.string_address[1] == 0x990D);
     CHECK(st.string_len[1] == 1 && st.string_text[1][0] == 'Z' && st.pc == 0x990D);
-    /* and back to an unresolved one: the raw-string length must be cleared */
+    /* and back to an empty window string: the raw-string length must be cleared */
     loader_setup(&st, s, sizeof s, 0x9909);
     CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK && st.string_len[1] == 1);
     st.pc = 0x9900;
+    pr_rec_ecl_store_string(&st, 0x9700, "", 0);        /* empty again: terminator only */
     CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
-    CHECK(st.string_unresolved[1] == 1 && st.string_len[1] == 0 && st.string_address[1] == 0x9700);
+    CHECK(st.string_unresolved[1] == 0 && st.string_len[1] == 0 && st.string_address[1] == 0x9700);
+    return 0;
+}
+
+/* ---- engine string windows (issue #22) ---------------------------------- */
+
+static int test_windows_round_trip(void) {
+    static const uint8_t script[] = {0x11, 'R','A','W',0x00, 0x11};
+    uint8_t rw[sizeof script];
+    pr_rec_ecl_loader_state st;
+    uint16_t v = 0xFFFF;
+    loader_setup(&st, script, sizeof script, 0x9900);
+    pr_rec_ecl_windows_clear(&st);
+    CHECK(st.window0[0] == 0 && st.window1[1023] == 0 && st.window2[511] == 0);
+    /* class 0, 1 and 2: one character per word, zero word terminator */
+    CHECK(pr_rec_ecl_store_string(&st, 0x4900, "AB", 2) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.window0[0] == 'A' && st.window0[1] == 'B' && st.window0[2] == 0);
+    CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x4900) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.string_len[1] == 2 && memcmp(st.string_text[1], "AB", 2) == 0 && st.string_unresolved[1] == 0);
+    CHECK(pr_rec_ecl_store_string(&st, 0x6EFD, "XY", 2) == PR_REC_ECL_WINDOW_OK);   /* last three words of window 1 */
+    CHECK(st.window1[1021] == 'X' && st.window1[1022] == 'Y' && st.window1[1023] == 0);
+    CHECK(pr_rec_ecl_string_by_address(&st, 2, 0x6EFD) == PR_REC_ECL_WINDOW_OK && st.string_len[2] == 2);
+    CHECK(pr_rec_ecl_store_string(&st, 0x982C, "NAME", 4) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.window2[0x12C] == 'N' && st.window2[0x130] == 0);
+    CHECK(pr_rec_ecl_string_by_address(&st, 3, 0x982C) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.string_len[3] == 4 && memcmp(st.string_text[3], "NAME", 4) == 0);
+    /* only the low byte of a word is a character */
+    st.window2[0x12C] = 0x0141;
+    CHECK(pr_rec_ecl_string_by_address(&st, 3, 0x982C) == PR_REC_ECL_WINDOW_OK && st.string_text[3][0] == 'A');
+    /* class 3: raw bytes in the script; stores need script_rw */
+    CHECK(pr_rec_ecl_string_by_address(&st, 4, 0x9901) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.string_len[4] == 3 && memcmp(st.string_text[4], "RAW", 3) == 0);
+    CHECK(pr_rec_ecl_store_string(&st, 0x9901, "Z", 1) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    memcpy(rw, script, sizeof script); st.script = rw; st.script_rw = rw;
+    CHECK(pr_rec_ecl_store_string(&st, 0x9901, "Z", 1) == PR_REC_ECL_WINDOW_OK && rw[1] == 'Z' && rw[2] == 0);
+    /* class 4: nothing stored, empty string read */
+    CHECK(pr_rec_ecl_store_string(&st, 0x1000, "Q", 1) == PR_REC_ECL_WINDOW_OK);
+    CHECK(pr_rec_ecl_string_by_address(&st, 5, 0x1000) == PR_REC_ECL_WINDOW_OK && st.string_len[5] == 0);
+    /* word load/store cores */
+    CHECK(pr_rec_ecl_store_word(&st, 0x9710, 0xBEEF) == PR_REC_ECL_WINDOW_OK);
+    CHECK(pr_rec_ecl_load_word(&st, 0x9710, &v) == PR_REC_ECL_WINDOW_OK && v == 0xBEEF);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6B40, 7) == PR_REC_ECL_WINDOW_HOOK && st.window1[0x40] == 7);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_HOOK && v == 7);
+    CHECK(pr_rec_ecl_load_word(&st, 0x9901, &v) == PR_REC_ECL_WINDOW_OK && v == 'Z');
+    CHECK(pr_rec_ecl_load_word(&st, 0x9902, &v) == PR_REC_ECL_WINDOW_OK && v == 0);
+    CHECK(pr_rec_ecl_load_word(&st, 0x00B1, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    CHECK(pr_rec_ecl_store_word(&st, 0xC04B, 1) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    return 0;
+}
+
+static int test_windows_bounds_and_name(void) {
+    static const uint8_t script[] = {0x11, 'A', 'B'};   /* no terminator in the block */
+    pr_rec_ecl_loader_state st;
+    unsigned i;
+    loader_setup(&st, script, sizeof script, 0x9900);
+    pr_rec_ecl_windows_clear(&st);
+    /* a string running off the end of window 2 is a bounds error, not a heap overrun */
+    CHECK(pr_rec_ecl_store_string(&st, 0x98FE, "AB", 2) == PR_REC_ECL_WINDOW_BOUNDS);
+    for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) st.window2[i] = 'x';        /* no terminator */
+    CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x9700) == PR_REC_ECL_WINDOW_BOUNDS);
+    CHECK(pr_rec_ecl_string_by_address(&st, 2, 0x9901) == PR_REC_ECL_WINDOW_BOUNDS);
+    CHECK(pr_rec_ecl_load_word(&st, 0x4D00, &st.window0[0]) == PR_REC_ECL_WINDOW_UNRESOLVED); /* class 4 */
+    /* 0x6B00: active character name, string[15] */
+    CHECK(pr_rec_ecl_string_by_address(&st, 3, 0x6B00) == PR_REC_ECL_WINDOW_UNRESOLVED && st.string_unresolved[3] == 1);
+    CHECK(pr_rec_ecl_store_string(&st, 0x6B00, "ABCDEFGHIJKLMNOPQRS", 19) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.active_name_valid == 1 && st.active_name_len == 15);
+    CHECK(pr_rec_ecl_string_by_address(&st, 3, 0x6B00) == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.string_len[3] == 15 && memcmp(st.string_text[3], "ABCDEFGHIJKLMNO", 15) == 0 && st.string_unresolved[3] == 0);
+    CHECK(st.window1[0] == 0);                         /* the name is not a window word */
+    CHECK(pr_rec_ecl_string_by_address(&st, 0, 0x9700) == PR_REC_ECL_WINDOW_ARGUMENT);
+    CHECK(pr_rec_ecl_store_string(NULL, 0x9700, "a", 1) == PR_REC_ECL_WINDOW_ARGUMENT);
     return 0;
 }
 
@@ -286,6 +360,8 @@ int main(void) {
     rc |= test_loader_bounds_and_count();
     rc |= test_loader_matches_span_sizes();
     rc |= test_loader_sequential_calls_reset_metadata();
+    rc |= test_windows_round_trip();
+    rc |= test_windows_bounds_and_name();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
