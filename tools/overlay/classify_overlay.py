@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Bounded, address-only classification of the 673 overlay routine candidates (issue #26).
 
-Reads the private JSON of overlay_inventory.py and callgraph.py, the public function ledger
-CSV for evidence grades, and GAME.OVR (digest-checked) for a bounded linear decode of every
-prologue candidate. It never claims a game-function denominator; it records measured byte
+Reads the private JSON of overlay_inventory.py and callgraph.py (the latter supplies the
+per-candidate fixup-confirmed far-call fan-in and is validated against the candidate set),
+the public function ledger CSV for evidence grades, and GAME.OVR for a bounded linear decode
+of every prologue candidate. It never claims a game-function denominator; it records measured byte
 signals and assigns a class with a confidence from fixed rules:
 
   game_verified      the routine's behavior is byte-verified in docs/re (translated
@@ -16,9 +17,12 @@ signals and assigns a class with a confidence from fixed rules:
                      (provisional: small utilities; could still be game arithmetic)
   game_or_other_library_unresolved  everything else
 
-Coverage audit: bytes of each unit reached by the bounded decode, uncovered ranges, whether
-any uncovered range decodes as a self-contained return-terminated routine (a callable
-non-prologue start), and jump-table dispatch sites. Outputs contain offsets and counts only.
+Decode audit: bytes of each unit linearly decoded between prologue candidates (this is not
+reachable-code coverage), undecoded ranges, a heuristic flag for undecoded ranges that
+decode as a self-contained return-terminated routine, and `jmp cs:[table]` dispatch sites.
+The tool refuses to run unless the GAME.OVR file, the inventory and call graph JSON all
+carry the audited v1.3 digests and the function ledger IDs equal the candidate set.
+Outputs contain offsets and counts only.
 """
 import argparse, collections, csv, hashlib, json, re
 
@@ -28,6 +32,9 @@ except ImportError:
     Cs = None
 
 RUNTIME_SEG = 0xAF8
+# The audited DOS v1.3 build. The tool refuses any other file, inventory or call graph.
+KNOWN_GAME_OVR_SHA256 = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
+KNOWN_START_EXE_SHA256 = "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
 DOC_GLOBALS = {0x49ED: "ecl_pc", 0x49DE: "ecl_buf", 0x49E0: "ecl_buf", 0x6F7F: "ecl_op", 0x6F7E: "ecl_op",
                0x442E: "ecl_stop", 0x49FF: "ecl_stop", 0x6F70: "ecl_stack", 0x49D2: "win0", 0x49D4: "win0",
                0x49D6: "win1", 0x49D8: "win1", 0x49DA: "win2", 0x49DC: "win2", 0x5D92: "active_char",
@@ -157,10 +164,38 @@ def main():
     inv = json.load(open(a.inventory))
     cg = json.load(open(a.callgraph))
     ovr = open(a.ovr, "rb").read()
-    if hashlib.sha256(ovr).hexdigest() != inv["inputs"]["game_ovr_sha256"]:
-        raise SystemExit("GAME.OVR digest differs from the inventory; refusing to classify")
-    grades = {r["id"]: r["grade"] for r in csv.DictReader(open(a.ledger_csv))}
+    if hashlib.sha256(ovr).hexdigest() != KNOWN_GAME_OVR_SHA256:
+        raise SystemExit("GAME.OVR is not the audited v1.3 build; refusing to classify")
+    for name, doc in (("inventory", inv), ("callgraph", cg)):
+        ins = doc.get("inputs", {})
+        if ins.get("game_ovr_sha256") != KNOWN_GAME_OVR_SHA256 or ins.get("start_exe_sha256") != KNOWN_START_EXE_SHA256:
+            raise SystemExit(f"{name} JSON was not produced from the audited v1.3 build; refusing to classify")
     units = inv["units"]
+    candidate_ids = {f"{u['stub_para']:#x}:{f['rel']:#06x}" for u in units for f in u["functions"]}
+    ledger_rows = list(csv.DictReader(open(a.ledger_csv)))
+    ledger_ids = {r["id"] for r in ledger_rows}
+    if ledger_ids != candidate_ids:
+        missing = sorted(candidate_ids - ledger_ids)[:5]
+        extra = sorted(ledger_ids - candidate_ids)[:5]
+        raise SystemExit(f"function ledger IDs do not match the inventory candidates (missing {len(candidate_ids - ledger_ids)} e.g. {missing}; extra {len(ledger_ids - candidate_ids)} e.g. {extra})")
+    grades = {r["id"]: r["grade"] for r in ledger_rows}
+    # Concrete use of the call graph: fixup-confirmed far calls into overlay entries give a
+    # per-candidate fan-in; every such target must be a candidate (after +0x800 alias
+    # normalization) or the inputs disagree.
+    alias_raw = {}
+    for u in units:
+        starts = {f["rel"] for f in u["functions"]}
+        for word in u["entries"]:
+            if word not in starts and (word - 0x800) in starts:
+                alias_raw[(u["stub_para"], word)] = word - 0x800
+    far_in = collections.Counter()
+    for e in cg["edges"]:
+        if e.get("resolution") == "overlay":
+            rel = alias_raw.get((e["target_unit"], e["target_rel"]), e["target_rel"])
+            rid = f"{e['target_unit']:#x}:{rel:#06x}"
+            if rid not in candidate_ids:
+                raise SystemExit(f"call graph overlay target {rid} is not an inventory candidate")
+            far_in[rid] += 1
     overlay_segs = {u["memory_segment"] for u in units if u.get("memory_segment") is not None}
     slot_to_rel = {}
     for u in units:
@@ -188,8 +223,8 @@ def main():
             classes[cls] += 1
             per_class_grade[(cls, grades.get(rid, "?"))] += 1
             out_rows.append(dict(id=rid, unit=f"{u['stub_para']:#x}", offset=f"{rel:#06x}",
-                                 ovr_offset=u["ovr_offset"] + rel, grade=grades.get(rid, "?"),
-                                 classification=cls, confidence=conf, **sig))
+                                 ovr_offset=u["ovr_offset"] + rel, grade=grades[rid],
+                                 far_in=far_in.get(rid, 0), classification=cls, confidence=conf, **sig))
     with open(a.csv, "w", newline="") as fh:
         w = csv.DictWriter(fh, fieldnames=list(out_rows[0].keys()), lineterminator="\n")
         w.writeheader()
@@ -212,10 +247,11 @@ def main():
              "| class | grade A | grade B | grade D |", "| --- | ---: | ---: | ---: |"]
     for cls in ("game_verified", "game_evidenced", "helper_candidate", "game_or_other_library_unresolved"):
         lines.append(f"| {cls} | {per_class_grade[(cls, 'A')]} | {per_class_grade[(cls, 'B')]} | {per_class_grade[(cls, 'D')]} |")
-    lines += ["", f"Coverage: {cov_total} of {code_total} unit code bytes ({100 * cov_total / code_total:.1f}%) reached by the bounded decode; "
-              f"{len(gaps)} uncovered ranges ({small} of 8 bytes or less; {pre} bytes precede a unit's first prologue); "
-              f"{code_like} uncovered ranges decode as a self-contained return-terminated routine; {jump_tables} jump-table dispatch sites.",
-              "", "Largest uncovered ranges (unit, offset, size): " + ", ".join(
+    lines += ["", f"Linear decode: {cov_total} of {code_total} unit code bytes ({100 * cov_total / code_total:.1f}%) linearly decoded between prologue candidates "
+              f"(not reachable-code coverage); {len(gaps)} undecoded ranges ({small} of 8 bytes or less; {pre} bytes precede a unit's first prologue); "
+              f"the gap heuristic (a range that decodes completely, starts with a plausible opcode and contains a return) flagged {code_like} ranges; "
+              f"{jump_tables} `jmp cs:[table]` dispatch sites found by that one pattern; incoming fixup-confirmed far calls recorded per row as far_in ({sum(far_in.values())} total).",
+              "", "Largest undecoded ranges (unit, offset, size): " + ", ".join(
                   f"{g['unit']:#x}:{g['offset']:#06x} {g['size']}" for g in sorted(gaps, key=lambda g: -g["size"])[:8]) + "."]
     open(a.md, "w").write("\n".join(lines) + "\n")
     print("\n".join(lines[4:10]))

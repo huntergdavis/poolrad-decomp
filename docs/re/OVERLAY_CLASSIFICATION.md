@@ -5,7 +5,9 @@ candidates from [OVERLAY_FUNCTION_LEDGER.md](OVERLAY_FUNCTION_LEDGER.md), for th
 files identified in [overlay_inventory.md](overlay_inventory.md) (`GAME.OVR` sha256
 `872964a3…928614`, `START.EXE` sha256 `d825df2b…6a07bd`). It measures byte-level signals per
 routine and applies fixed rules; it does not turn prologue hits into a game-function
-denominator. Per-address rows: [overlay_classification.csv](overlay_classification.csv);
+denominator. The tool runs only on the audited v1.3 digests (checked against the overlay
+file, the inventory and the call graph) and only when the function ledger's IDs equal the
+inventory's candidate set. Per-address rows: [overlay_classification.csv](overlay_classification.csv);
 generated counts: [overlay_classification_summary.md](overlay_classification_summary.md);
 tool: `tools/overlay/classify_overlay.py` with synthetic tests in
 `tools/overlay/test_classify_overlay.py`. The resident side uses the same class vocabulary in
@@ -44,18 +46,26 @@ are leaves or runtime-only) or into the unresolved class; the 227 unresolved rou
 exactly where such code would have to be, and their split is not determined by these bytes.
 No count here is a game-function denominator.
 
-## 3. Coverage, non-prologue starts and indirect flow
+## 3. Linear decode, non-prologue starts and indirect flow
 
-- The bounded decode reaches 196,236 of 197,451 unit code bytes (99.4%). The 1,215
-  uncovered bytes fall in 184 ranges: 166 are 8 bytes or less (alignment and inline
-  constants after returns); 712 bytes precede a unit's first prologue (typed constants that
-  Turbo Pascal places at the start of a unit's code segment; the largest such ranges are
-  unit 0x19 at offset 0 with 253 bytes and unit 0x86 with 138).
-- No uncovered range decodes as a self-contained, return-terminated routine, so no callable
-  start without a prologue exists in the uncovered bytes.
-- No `jmp cs:[table]` dispatch site exists in the overlay; the only indirect transfers are
-  the three far calls through procedure variables documented in the function ledger, whose
-  208 pointer constants all name entry slots of prologue routines.
+- The bounded linear decode between prologue candidates covers 196,236 of 197,451 unit code
+  bytes (99.4%). This is linear disassembly, not reachable-code coverage: it says which
+  bytes decode as instructions when read from each prologue, not which code the game
+  executes. The 1,215 undecoded bytes fall in 184 ranges: 166 are 8 bytes or less
+  (alignment and inline constants after returns); 712 bytes precede a unit's first prologue
+  (typed constants that Turbo Pascal places at the start of a unit's code segment; the
+  largest such ranges are unit 0x19 at offset 0 with 253 bytes and unit 0x86 with 138).
+- A heuristic flags an undecoded range as a possible routine when it decodes completely,
+  starts with a plausible opcode and contains a return. It flagged none of the 184 ranges.
+  That is the extent of the claim: the tested heuristic found no callable start without a
+  prologue; it does not prove none exists.
+- One pattern, `jmp cs:[table]`, was searched for jump-table dispatch and found no sites.
+  Together with the procedure-pointer evidence in the function ledger (three far calls
+  through procedure variables, 208 pointer constants naming entry slots of prologue
+  routines) this covers the indirect transfers that were tested, not all possible ones.
+- The call graph contributes a per-row `far_in` count of fixup-confirmed far calls into each
+  candidate; every such target resolves to a candidate after alias normalization, or the
+  tool refuses to run.
 
 ## 4. Limits
 
@@ -67,7 +77,8 @@ No count here is a game-function denominator.
   data after an early return is measured only up to that data. This affects signal counts,
   not the start set.
 - Dynamic confirmation (which routines run on which game paths) is not available until the
-  DOS oracle (issue #3) delivers traces.
+  DOS oracle (issue #3) delivers traces; reachable-code coverage needs those traces or a
+  full control-flow walk, neither of which this tool performs.
 
 ## 5. Reproduce
 
