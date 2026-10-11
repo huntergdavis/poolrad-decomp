@@ -186,9 +186,9 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x017f,0x38,0x017f,60890,A,0,game_evidenced,provisional,1,,0,0,3,1,1,1,0,0,0,68,68
 0x38:0x01c3,0x38,0x01c3,60958,A,0,game_or_other_library_unresolved,unresolved,0,,0,5,0,0,0,0,0,0,0,109,112
 0x38:0x0233,0x38,0x0233,61070,A,0,game_evidenced,provisional,1,,0,0,3,1,1,1,0,0,0,324,324
-0x38:0x0377,0x38,0x0377,61394,A,0,game_evidenced,provisional,0,active_char,0,3,0,0,0,0,0,0,0,53,53
-0x38:0x03ac,0x38,0x03ac,61447,A,0,game_evidenced,provisional,0,active_char,0,3,0,0,0,0,0,0,0,53,53
-0x38:0x03e1,0x38,0x03e1,61500,A,0,game_or_other_library_unresolved,unresolved,0,,0,3,0,0,0,0,0,0,0,31,31
+0x38:0x0377,0x38,0x0377,61394,A,0,game_verified,verified,0,active_char,0,3,0,0,0,0,0,0,1,53,53
+0x38:0x03ac,0x38,0x03ac,61447,A,0,game_verified,verified,0,active_char,0,3,0,0,0,0,0,0,1,53,53
+0x38:0x03e1,0x38,0x03e1,61500,A,0,game_verified,verified,0,,0,3,0,0,0,0,0,0,1,31,31
 0x38:0x0400,0x38,0x0400,61531,A,0,game_or_other_library_unresolved,unresolved,0,,0,1,1,0,0,1,0,0,0,186,186
 0x38:0x04ba,0x38,0x04ba,61717,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,3,0,3,0,0,0,0,284,284
 0x38:0x05d6,0x38,0x05d6,62001,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,21,21

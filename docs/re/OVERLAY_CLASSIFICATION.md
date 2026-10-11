@@ -24,7 +24,7 @@ prologue, after a digest check of `GAME.OVR`:
 | string constants | `mov di,imm16; push cs; push di` where `imm16` addresses a length-prefixed, fully printable byte string inside the unit's own code segment (Turbo Pascal typed string constant) | 216 (664 references) |
 | documented engine globals | DS-relative operands equal to byte-verified engine state addresses from the ledgers and contracts (ECL PC, buffer, opcode latch, stop flags, call stack, compare flags, operand slots, the three windows, party and active-character pointers, window state, the procedure variable) | 248 |
 | calls into verified routines | direct near calls, or far calls through entry slots, to a byte-verified routine | 55 |
-| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the eleven unit 0x25 helpers and the window initializer | 62 |
+| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the eleven unit 0x25 helpers, the window initializer, and three reviewed unit 0x38 dispatch entries (PRs #41, #44, #47) | 65 |
 | leaf | no calls and no DS-relative globals | 70 |
 | runtime-only | every call goes to the SYSTEM segment 0xAF8, no DS-relative globals | 16 |
 
@@ -32,17 +32,17 @@ prologue, after a digest check of `GAME.OVR`:
 
 | class | rule (applied in this order) | confidence | count |
 | --- | --- | --- | ---: |
-| `game_verified` | verified routine | verified (identity and role; semantics verified only for the translated subset in FUNCTION_LEDGER.md) | 62 |
-| `game_evidenced` | string constant, documented engine global, or call into a verified routine | provisional: printable text and engine state are evidence of application code, not proof of game logic | 302 |
+| `game_verified` | verified routine | verified (identity and role; semantics verified only for the translated subset in FUNCTION_LEDGER.md) | 65 |
+| `game_evidenced` | string constant, documented engine global, or call into a verified routine | provisional: printable text and engine state are evidence of application code, not proof of game logic | 300 |
 | `helper_candidate` | leaf or runtime-only, no strings, no DS globals, not verified | provisional: small utilities; a leaf can still be game arithmetic | 82 |
-| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 227 |
+| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 226 |
 
-By evidence grade from the function ledger: `game_verified` 6 A, 55 B, 1 D; `game_evidenced`
-183 A, 118 B, 1 D; `helper_candidate` 60 A, 22 B; unresolved 153 A, 74 B.
+By evidence grade from the function ledger: `game_verified` 9 A, 55 B, 1 D; `game_evidenced`
+181 A, 118 B, 1 D; `helper_candidate` 60 A, 22 B; unresolved 152 A, 74 B.
 
 What the rules do not do: they do not identify third-party or standard library units. If a
 library unit is linked into the overlay, its routines fall into `helper_candidate` (if they
-are leaves or runtime-only) or into the unresolved class; the 227 unresolved routines are
+are leaves or runtime-only) or into the unresolved class; the 226 unresolved routines are
 exactly where such code would have to be, and their split is not determined by these bytes.
 No count here is a game-function denominator.
 

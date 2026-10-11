@@ -32,10 +32,10 @@ pull requests; the primary session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
-Nine game routines are fully translated across the overlay and resident lanes.
+Ten game routines are fully translated across the overlay and resident lanes.
 Three handler/callee models have unresolved dependencies or heap semantics;
 two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
 translated. The current evidence
-verifies the identity and game role of 62 overlay and four resident routines;
+verifies the identity and game role of 65 overlay and four resident routines;
 the full game-function denominator and a DOS gameplay oracle trace remain open.
