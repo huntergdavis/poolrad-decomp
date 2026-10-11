@@ -14,10 +14,10 @@ python3 tools/overlay/ecl_walk.py --dir $G --sweep --json $O/ecl_sweep.json
 
 | tool | purpose |
 | --- | --- |
-| `overlay_inventory.py` | Parse the MZ header, the FBOV header, every overlay unit descriptor in the resident image (file offset, code size, fixup size, entry stubs), decode each unit's fixup table, and list prologue functions per unit. |
-| `callgraph.py` | Scan code bytes for candidate E8/9A call sites (no instruction-boundary validation), resolve near candidates to functions and fixup-confirmed far sites through the fixup table and the entry-stub map; classify the rest (runtime, resident, misaligned, unrelocated candidate). |
-| `ecl_walk.py` | Static control-flow walk (default) or linear sweep (`--sweep`) of the 29 ECL script blocks with the verified operand grammar; reports coverage, stop reasons, and errors per block. |
-| `ghidra/` | Headless Ghidra spike: `spike_inputs.py` prepares the resident image, one unit, fixups and stub map; `Spike.java` builds the program and decompiles four functions; `run_spike.sh` ties them together (`GHIDRA_HOME`, `JAVA_HOME` required). Decompiler output goes to the scratch directory only. |
+| `overlay_inventory.py` | Parse the MZ header, the FBOV header, every overlay unit descriptor in the resident image (file offset, code size, fixup size, entry stubs, run-time stub segment from the next unit's header), decode each unit's fixup table, and list prologue functions per unit. |
+| `callgraph.py` | Scan code bytes for candidate E8/9A call sites (no instruction-boundary validation), resolve near candidates to functions and fixup-confirmed far sites through the fixup table and the run-time stub addressing `segment:(0x20+5*j)`; classify the rest (runtime, resident, unrelocated candidate). |
+| `ecl_walk.py` | Static control-flow walk (default) or linear sweep (`--sweep`) of the 29 ECL script blocks with the wire-format operand table; `--engine-prefetch-counts` switches to the engine's prefetch table for comparison; reports coverage, stop reasons, and errors per block. |
+| `ghidra/` | Headless Ghidra spike: `spike_inputs.py` prepares the resident image, one unit (`SPIKE_UNIT_OVR`), fixups and the run-time stub map; `Spike.java` builds the program, patches non-call fixups, and decompiles the `SPIKE_TARGETS` functions; `run_spike.sh` ties them together (`GHIDRA_HOME`, `JAVA_HOME` required). Decompiler output goes to the scratch directory only. |
 
 Format facts the tools rely on are documented in `docs/re/`. The ECL operand table follows
 Gold Box Explorer (bsimser, MIT, rev `eac30aba`), checked against this build.
