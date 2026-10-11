@@ -250,6 +250,8 @@ pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state
 typedef struct {
     uint8_t b6816;                        /* engine byte [0x6816] */
     uint8_t b6822;                        /* engine byte [0x6822] */
+    uint8_t b6818;                        /* engine byte [0x6818] (issue #46) */
+    uint8_t b6819;                        /* engine byte [0x6819] (issue #46) */
 } pr_rec_modifier_state;
 
 typedef enum {
@@ -273,5 +275,14 @@ pr_rec_effect_status pr_rec_u38_entry8(pr_rec_modifier_state *mods,
  * AD&D alignments. Same contract as pr_rec_u38_entry8. */
 pr_rec_effect_status pr_rec_u38_entry9(pr_rec_modifier_state *mods,
                                        const uint8_t *record, unsigned *applied);
+
+/* GAME.OVR 0x0F03C, unit 0x38 + 0x03E1, public entry 10 (run-time stub 0x41:0x52),
+ * dispatch item 10 of the table at DS:0x6828. Full translation: 31 bytes, 13
+ * instructions, no calls, `retf 0xA` (five discarded word arguments). It reads
+ * no character record. If bit 1 of [0x6819] is set: [0x6818] is replaced by
+ * its value shifted right by one (zero-extended `shr ax,1`, low byte stored)
+ * and 3 is added to [0x6816] (byte arithmetic); otherwise nothing changes.
+ * Meanings of the three bytes are not asserted. */
+pr_rec_effect_status pr_rec_u38_entry10(pr_rec_modifier_state *mods, unsigned *applied);
 
 #endif

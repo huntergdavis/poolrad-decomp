@@ -550,3 +550,25 @@ pr_rec_effect_status pr_rec_u38_entry9(pr_rec_modifier_state *mods,
     }
     return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
 }
+
+/* ---- Character-effect dispatch entry 10 (issue #46) ----------------------- */
+
+pr_rec_effect_status pr_rec_u38_entry10(pr_rec_modifier_state *mods, unsigned *applied) {
+    if (applied != NULL) {
+        *applied = 0u;
+    }
+    if (mods == NULL) {
+        return PR_REC_EFFECT_ARGUMENT;
+    }
+    /* mov al,[0x6819] ; and al,2 ; or al,al ; je skip */
+    if ((mods->b6819 & 0x02u) != 0u) {
+        /* mov al,[0x6818] ; xor ah,ah ; shr ax,1 ; mov [0x6818],al */
+        mods->b6818 = (uint8_t)(mods->b6818 >> 1);
+        /* add byte [0x6816],3 */
+        mods->b6816 = (uint8_t)(mods->b6816 + 3u);
+        if (applied != NULL) {
+            *applied = 1u;
+        }
+    }
+    return PR_REC_EFFECT_OK;                           /* pop bp ; retf 0xA */
+}
