@@ -33,7 +33,7 @@ DOS Decode Kit (commit `d9f7fb45`), whose claims were audited in [../FABLE_AUDIT
 | call stack | linked list head `[0x6F70]` (far pointer), 6-byte nodes freed by the EXIT handler |
 | compare flags | `[0x6F78]` … `[0x6F7D]` (set by COMPARE / COMPARE AND, tested by the IF family) |
 
-Call-graph facts (from `callgraph.py`): unit `0x1c` makes 99 far calls into unit `0x25`,
+Call-graph facts (from `callgraph.py`, fixup-confirmed far-call sites, i.e. sites whose segment word carries a linker relocation): unit `0x1c` has 99 such sites targeting unit `0x25`,
 whose entries 20 to 23 are the operand-fetch helpers (the kit's "resident 0x2B helpers");
 the 0x20 handler calls unit `0x7f` entry 1, the overlay/script loader.
 
@@ -132,10 +132,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
 
 - A control-flow walk from the five entries over all 29 blocks decodes 3,726 instructions
   (53 distinct opcodes) with zero instruction-boundary overlaps.
-- A linear sweep from offset 22 decodes 61% of all script bytes before the first error; in 26
-  of 29 blocks the first error directly follows an unconditional transfer (EXIT, GOTO, RETURN,
-  GOSUB, NEWECL), which is where inline data begins. Four blocks decode essentially to their
-  end (ECL1#18, ECL2#20, ECL4#2, ECL6#1 and ECL6#19 at 99 to 100%).
+- A linear sweep (`ecl_walk.py --sweep`) from offset 22 decodes 107,060 of 175,627 body
+  bytes (61.0%) before the first error; in 26 of 29 blocks the first error directly follows an
+  unconditional transfer (EXIT, GOTO, RETURN, GOSUB, NEWECL), which is where inline data begins.
+  Five blocks decode essentially to their end (ECL1#18, ECL2#20, ECL4#2, ECL6#1, ECL6#19 at 99
+  to 100%). The per-block table is the tool's output.
 - The three remaining breaks follow opcodes 0x03, 0x04, and 0x34; their operand counts are
   **open**.
 - 47 jump targets fall outside their block (virtual addresses below 0x9900 or beyond the
@@ -155,7 +156,8 @@ Evidence (`tools/overlay/ecl_walk.py`):
 - **0x37 LOAD PIECES:** three byte operands = wallset ids; verified against the WALLDEF block
   ids of map 18.
 - **IF family 0x16–0x1B:** one handler tests one of the six compare-flag bytes and, if the
-  test fails, skips the next instruction through unit `0x25` entry 24 (six call sites).
+  test fails, skips the next instruction through unit `0x25` entry 41 (segment `0x2B`
+  offset `0x8E`; six fixup-confirmed call sites, all in unit `0x1c`).
 
 ## 6. Open items for the next step
 
@@ -164,8 +166,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
 2. Operand counts for 0x03, 0x04, 0x34; the menu list termination; the out-of-block targets.
 3. The exact loader (unit `0x7f` entry 1) contract: file name, block selection by map id,
    where the block is placed relative to the 0x6700 fetch bias and the 0x9900 address base.
-4. 170 far-call sites (7.5%) whose relocated `seg:off` lands inside a stub range but not on a
-   stub, and 28 unrelocated far calls: the linear resolution model does not cover them.
+4. 170 fixup-confirmed far-call sites (4.2% of 4,009) whose relocated `seg:off` lands inside a stub
+   range but not on a stub, and 28 candidate 9A sites without a relocation (probably not
+   calls): the linear resolution model does not cover them. All call-site counts in this
+   document come from byte scans for E8/9A without instruction-boundary validation; only
+   fixup-confirmed far sites are proven operands.
 
 ## 7. Byte layout of one ECL record (contract for the lane B container reader)
 

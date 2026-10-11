@@ -16,7 +16,13 @@ The walk is conservative: it stops a path at any opcode or tag it cannot size an
 covered and how many errors (unknown tag, jump outside the block, jump into the middle of
 a decoded instruction) it hit. Counts and offsets only; no block content is printed.
 
-Usage: ecl_walk.py --dir resources/DOS/POOLRAD [--json out.json]
+A second mode, --sweep, decodes each block linearly from offset 22 (after the five entry jumps)
+with the same grammar until the first undecodable byte, and reports how many bytes decoded,
+the stop reason, and the opcode decoded just before the stop. Breaks that follow an
+unconditional transfer (EXIT, GOTO, GOSUB, RETURN, NEWECL, PRINT RETURN) mark inline data;
+breaks after other opcodes point at operand counts that need checking.
+
+Usage: ecl_walk.py --dir resources/DOS/POOLRAD [--json out.json] [--sweep]
 """
 import argparse, collections, json, os, struct
 
@@ -158,12 +164,71 @@ def walk(d):
                 opcode_histogram={f"0x{k:02x}": v for k, v in collections.Counter(op for op, _ in seen.values()).items()})
 
 
+def decode_one(d, p):
+    """Decode the instruction at p. Return (end, vals, items) or (None, reason, None)."""
+    op = d[p]
+    n = GBE_OPERANDS.get(op)
+    if n is None:
+        return None, f"op_{op:02x}", None
+    q = p + 1
+    vals = []
+    for _ in range(n):
+        L, kind, val = operand_len(d, q)
+        if L is None:
+            return None, kind, None
+        vals.append((kind, val))
+        q += L
+    items = []
+    if op in COUNTED:
+        cnt = vals[COUNTED[op]][1] or 0
+        for _ in range(cnt):
+            L, kind, val = operand_len(d, q)
+            if L is None:
+                return None, kind, None
+            items.append((kind, val))
+            q += L
+    return q, vals, items
+
+
+def sweep(d, start=22):
+    """Linear decode from start until the first error."""
+    p = start
+    last = None
+    reason = "end_of_block"
+    while p < len(d):
+        end, info, _ = decode_one(d, p)
+        if end is None:
+            reason = info
+            break
+        last = d[p]
+        p = end
+    return dict(start=start, decoded_bytes=p - start, body_bytes=len(d) - start, stop_offset=p,
+                stop_reason=reason, last_opcode=(f"0x{last:02x}" if last is not None else None),
+                after_transfer=(last in TERMINATORS or last in (0x01, 0x02)) if last is not None else None)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dir", required=True)
     ap.add_argument("--json")
+    ap.add_argument("--sweep", action="store_true", help="linear sweep report instead of the control-flow walk")
     a = ap.parse_args()
     res = {}
+    if a.sweep:
+        tot_dec = tot_body = 0
+        after = 0
+        for n in range(1, 9):
+            for bid, d in read_dax(os.path.join(a.dir, f"ECL{n}.DAX")):
+                r = sweep(d)
+                res[f"ECL{n}#{bid}"] = r
+                tot_dec += r["decoded_bytes"]; tot_body += r["body_bytes"]; after += bool(r["after_transfer"])
+                print(f"ECL{n}#{bid:<3d} decoded={r['decoded_bytes']:5d}/{r['body_bytes']:5d} ({r['decoded_bytes']/r['body_bytes']:4.0%}) "
+                      f"stop={r['stop_reason']:<12s} at {r['stop_offset']:#06x} after_opcode={r['last_opcode']} transfer={r['after_transfer']}")
+        print(f"TOTAL linear-decodable before first error: {tot_dec}/{tot_body} ({tot_dec/tot_body:.1%}); "
+              f"blocks whose first break follows an unconditional transfer: {after}/{len(res)}")
+        if a.json:
+            json.dump(res, open(a.json, "w"), indent=1)
+        return
     tot_ins = tot_cov = tot_size = tot_err = 0
     for n in range(1, 9):
         for bid, d in read_dax(os.path.join(a.dir, f"ECL{n}.DAX")):

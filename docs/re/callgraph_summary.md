@@ -1,19 +1,23 @@
-# Fixup-aware call graph summary
+# Fixup-aware call graph summary (candidate call sites)
+
+Sites come from byte scans for E8/9A without instruction-boundary validation. `far_fixup_confirmed` sites carry a linker relocation on their segment word and are real far-call or far-pointer operands; `near_candidate` counts are upper bounds.
 
 | measure | count |
 | --- | ---: |
+| far_fixup_confirmed | 4009 |
 | far_overlay | 202 |
 | far_overlay_exact_prologue | 200 |
-| far_resident | 1836 |
+| far_resident | 1850 |
+| far_runtime | 1787 |
 | far_stub_misaligned | 170 |
-| far_unrelocated | 28 |
-| near | 1038 |
-| near_exact_prologue | 960 |
-| near_out_of_unit | 259 |
+| far_unrelocated_candidate | 28 |
+| near_candidate | 1045 |
+| near_candidate_exact_prologue | 966 |
+| near_candidate_out_of_unit | 259 |
 
-Top far-call segments (relocated sites only): 0xba: 515, 0xb0: 311, 0x709: 262, 0x2b: 208, 0x3e0: 171, 0x3c5: 119, 0x464: 110, 0x85: 53, 0x3f1: 50, 0x899: 41
+Top far-call segments (fixup-confirmed sites only): 0xaf8: 1787, 0xba: 515, 0xb0: 311, 0x709: 262, 0x2b: 208, 0x3e0: 171, 0x3c5: 119, 0x464: 110, 0x85: 53, 0x3f1: 50
 
-| fan-in rank | unit | function rel | callers |
+| fan-in rank | unit | function rel | candidate callers |
 | ---: | --- | --- | ---: |
 | 1 | 0x9e | 0x160 | 140 |
 | 2 | 0x25 | 0x1cc3 | 52 |
@@ -28,7 +32,7 @@ Top far-call segments (relocated sites only): 0xba: 515, 0xb0: 311, 0x709: 262, 
 | 11 | 0x3c6 | 0x12fb | 19 |
 | 12 | 0x3bd | 0x211 | 18 |
 
-| src unit | dst unit | far edges |
+| src unit | dst unit | fixup-confirmed far edges |
 | --- | --- | ---: |
 | 0x1c | 0x25 | 99 |
 | 0x6c | 0x3c6 | 24 |
