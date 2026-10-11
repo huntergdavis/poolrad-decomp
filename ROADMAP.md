@@ -5,15 +5,16 @@ installation. **End state:** maintainable modern C source that runs the complete
 DOS game from owner-supplied data on supported host backends. A future Nintendo
 DS port is an architectural constraint, not work scheduled in this repository.
 
-**Checkpoint:** bounded DAX/RLE, GEO, ECL operand/text, DOS EGA, and WALLDEF
-readers are merged (PRs #4, #7, #10, #13, #17). The corrected overlay map,
-candidate call graph, Ghidra pilot, ECL contracts, and recovered C helpers are
-merged (PRs #6, #11, #15). Three leaf functions are fully translated and
-behavior-checked; two more
-have verified C cores but still need their engine state changes. The DOS oracle
-reaches the main menu. No native playable route exists. The active next steps
-are [ECL operand loader recovery](https://github.com/huntergdavis/poolrad-decomp/issues/16),
-[DOS character-record recovery](https://github.com/huntergdavis/poolrad-decomp/issues/18),
+**Checkpoint:** bounded DAX/RLE, GEO, ECL operand/text, DOS EGA, WALLDEF,
+and DOS character record readers are merged (PRs #4, #7, #10, #13, #17, #19).
+The corrected overlay map, candidate call graph, Ghidra pilot, ECL contracts,
+and recovered C helpers are merged (PRs #6, #11, #15, #20). Three leaf
+functions are fully translated and behavior-checked; three more have verified
+C cores but still need their engine state changes. The DOS oracle reaches the
+main menu; input has not yet produced a verified gameplay transition. No native
+playable route exists. The active next steps are
+[ECL engine string windows](https://github.com/huntergdavis/poolrad-decomp/issues/22),
+[DOS character field semantics](https://github.com/huntergdavis/poolrad-decomp/issues/21),
 and [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3).
 
 The target is a faithful, source-level reconstruction of observable game
