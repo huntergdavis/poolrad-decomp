@@ -62,8 +62,11 @@ pr_u3bd_nibble_status pr_u3bd_entry2(const pr_u3bd_nibble_state *state, uint8_t 
     case 4:  base = PR_U3BD_NIBBLE_QUARTER; r->high_nibble = 1; break;   /* +0x0524..+0x054B: es:[di+0x100], and 0xF0, shr 4 */
     case 6:  base = PR_U3BD_NIBBLE_QUARTER; r->high_nibble = 0; break;   /* +0x0551..+0x056E: es:[di+0x100], and 0x0F */
     default:
-        /* +0x054F jne +0x0571: no case matched; [bp-1] was never written (frame set up by
-         * `sub sp,2` only), so AL is whatever byte that stack slot held. */
+        /* +0x054F jne +0x0571: no case matched; [bp-1] was never written on this path (the
+         * frame is `sub sp,2` only), so +0x0571 loads AL with the byte already in that stack
+         * slot. The host supplies that byte; the status marks where it came from. */
+        *result = state->frame_residue;
+        r->residue_returned = 1;
         return PR_U3BD_NIBBLE_UNSPECIFIED;
     }
     r->offset = base + PR_U3BD_NIBBLE_GRID * (unsigned)sy + (unsigned)sx;   /* 0x000..0x1FF */

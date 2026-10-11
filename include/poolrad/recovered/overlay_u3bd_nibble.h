@@ -17,13 +17,17 @@
  *   selector 2: low  nibble of buffer[16*y + x]
  *   selector 4: high nibble of buffer[0x100 + 16*y + x]
  *   selector 6: low  nibble of buffer[0x100 + 16*y + x]
- *   any other selector: the result byte [bp-1] is never written, so the
- *   original returns a stale frame byte. Reported as UNSPECIFIED with
- *   *result untouched; every writer of [0x6AAF] in GAME.OVR keeps it in
- *   {0, 2, 4, 6}, see docs/re/U3BD_NIBBLE_ENTRY2.md.
- * Classification: full translation of every path; the stale-byte path's
- * value is not reproducible and is flagged. No far calls; the two
- * data-segment reads are explicit state. No game data is embedded. */
+ *   any other selector: +0x054F jumps to +0x0571, which loads AL from
+ *   [bp-1], a byte no instruction of this path has written. The original
+ *   therefore returns the byte already in that stack slot after
+ *   `sub sp,2`. That byte is an explicit input here (`frame_residue`),
+ *   returned in *result with status UNSPECIFIED to mark its provenance.
+ *   Every writer of [0x6AAF] in GAME.OVR keeps it in {0, 2, 4, 6}, see
+ *   docs/re/U3BD_NIBBLE_ENTRY2.md.
+ * Classification: full translation of every path, with the stack-slot
+ * byte of the unmatched-selector path supplied by the host. No far calls;
+ * the two data-segment reads are explicit state. No game data is
+ * embedded. */
 
 #include <stdint.h>
 
@@ -36,14 +40,19 @@
 typedef struct {
     uint8_t map_id;              /* byte [0x84DC] */
     const uint8_t *buffer;       /* host memory for far [0x6A5C]; only bytes 0x000..0x1FF are read */
+    uint8_t frame_residue;       /* the byte at [bp-1] immediately after `sub sp,2` at +0x047E:
+                                    stack residue left by earlier calls, not a function of the
+                                    arguments or globals. Returned when no selector arm matches. */
 } pr_u3bd_nibble_state;
 
 typedef enum {
     PR_U3BD_NIBBLE_OK = 0,
     PR_U3BD_NIBBLE_ARGUMENT,     /* null state or result (checked on entry), or a null buffer
                                     when one of the four reads is reached */
-    PR_U3BD_NIBBLE_UNSPECIFIED   /* selector not 0, 2, 4 or 6 after the gates: the original
-                                    returns an unwritten frame byte; *result is left untouched */
+    PR_U3BD_NIBBLE_UNSPECIFIED   /* selector not 0, 2, 4 or 6 after the gates: *result =
+                                    state->frame_residue, the unwritten frame byte the original
+                                    returns; the status marks that provenance. Never depends on
+                                    the caller's initial *result. */
 } pr_u3bd_nibble_status;
 
 typedef struct {
@@ -55,11 +64,13 @@ typedef struct {
     unsigned read;               /* 1 when one of the four reads happened */
     unsigned offset;             /* buffer offset read: quarter*0x100 + 16 * y_used + x_used */
     unsigned high_nibble;        /* 1 for selectors 0 and 4 (and 0xF0, shr 4), 0 for 2 and 6 (and 0x0F) */
+    unsigned residue_returned;   /* 1 when *result came from frame_residue (unmatched selector) */
 } pr_u3bd_nibble_report;
 
 /* The entry. `x` = [bp+0xA], `y` = [bp+8], `selector` = [bp+6], raw bytes
  * (x and y interpreted as signed, as the original compares and cbw do).
- * On PR_U3BD_NIBBLE_OK, *result is AL (0..15). */
+ * On PR_U3BD_NIBBLE_OK, *result is AL (0..15); on PR_U3BD_NIBBLE_UNSPECIFIED,
+ * *result is AL = state->frame_residue. */
 pr_u3bd_nibble_status pr_u3bd_entry2(const pr_u3bd_nibble_state *state, uint8_t x, uint8_t y,
                                      uint8_t selector, uint8_t *result,
                                      pr_u3bd_nibble_report *report);

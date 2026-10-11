@@ -7,9 +7,10 @@ with the party x/y bytes `[0x6AAD]`/`[0x6AAE]` and the facing byte
 1,024-byte buffer at far `[0x6A5C]` that entry 7 fills
 ([U3BD_WALLSET_ENTRY7.md](U3BD_WALLSET_ENTRY7.md)). Classification:
 **full translation** (FUNCTION_LEDGER.md §1 vocabulary): every instruction
-path is reproduced with the same inputs and outputs, with one path whose
-original output is an unwritten frame byte and is therefore flagged
-rather than reproduced (below). The routine makes no far calls; its one
+path is reproduced with the same inputs and outputs. One path returns a
+byte no instruction of the routine wrote (the stack slot `[bp-1]` as it
+stood after `sub sp,2`); that byte is an explicit input of the model and
+is returned exactly (below). The routine makes no far calls; its one
 near call reaches the local leaf `+0x031F`, accounted for exactly and not
 counted. `ecl_helpers.c/h`, the COMPARE files and the resident files are
 untouched.
@@ -40,7 +41,7 @@ Capstone 5.0.7 independently; both agree.
 | --- | --- |
 | extent | `+0x047B..+0x0579`, **255 bytes, 103 instructions**, one `retf 6`; the ledger bound of 255 is exact, no trailing data (entry 4 begins at `+0x057A`) |
 | span SHA-256 | `92d75878d963a7f5766b1ea49e2f6c1fb51287775d06a5b6ca485fee8bc43658` |
-| frame | `sub sp, 2`; `[bp+0xA]` = x (pushed first), `[bp+8]` = y, `[bp+6]` = selector; all read as bytes; x and y compared signed and extended with `cbw`; `[bp-1]` holds the result byte and is written only on five of the six exits |
+| frame | `sub sp, 2`; `[bp+0xA]` = x (pushed first), `[bp+8]` = y, `[bp+6]` = selector; all read as bytes; x and y compared signed and extended with `cbw`; `[bp-1]` holds the result byte, written by the zero gate and the four selector arms only, and read at `+0x0571` on every exit |
 | branches | 15, all forward (`+0x048F`, `+0x0496`, `+0x049D`, `+0x04A3`, `+0x04AA`, `+0x04B4`, `+0x04BE`, `+0x04C8`, `+0x04D3`, `+0x04FA`, `+0x04FE`, `+0x051E`, `+0x0522`, `+0x054B`, `+0x054F`), no loops, no indirect branches |
 | call sites | 1: `+0x0489` `push cs; call +0x031F` (the local leaf, `retf 4`); no far calls |
 | data-segment reads | byte `[0x84DC]` (map id) twice; far pointer `[0x6A5C]` at four sites (one per selector case); four ES reads (`es:[di]` twice, `es:[di+0x100]` twice) |
@@ -66,7 +67,7 @@ this file so that no merged file changes, and no count is claimed for it.
 | `+0x04FC..+0x051E` | s = 2: same address; `and al,0x0F` | `buffer[16·y + x] & 0x0F` |
 | `+0x0520..+0x054B` | s = 4: `al = es:[di+0x100]; and 0xF0; shr 4` | `buffer[0x100 + 16·y + x] >> 4` |
 | `+0x054D..+0x056E` | s = 6: `al = es:[di+0x100]; and 0x0F` | `buffer[0x100 + 16·y + x] & 0x0F` |
-| `+0x054F` | s ∉ {0, 2, 4, 6}: `jne +0x0571` with `[bp-1]` never written | `UNSPECIFIED`, `*result` untouched |
+| `+0x054F` | s ∉ {0, 2, 4, 6}: `jne +0x0571` with `[bp-1]` never written on this path | `*result = frame_residue` (the byte in the slot after `sub sp,2`), status `UNSPECIFIED` |
 | `+0x0571..+0x0577` | `al = [bp-1]`; epilogue; `retf 6` | `OK` |
 
 Both coordinates are 0..15 at every read, so the offsets are
@@ -79,11 +80,16 @@ path and the unspecified path never touch it (the parity rule of entries
 
 **The unwritten-result path.** The frame is `sub sp,2` with no store into
 `[bp-1]` before the chain, so when no selector case matches, `+0x0571`
-loads whatever byte that stack slot held before the call. The value is
-not a function of the arguments or the globals and is not reproduced; the
-model returns `PR_U3BD_NIBBLE_UNSPECIFIED` and leaves `*result` alone.
-Whether this path is ever taken depends on the selector the callers pass,
-which is bounded next.
+loads AL with the byte that stack slot already held immediately after
+`sub sp,2`: residue of earlier calls through the same stack region, not a
+function of the arguments or the globals. The model makes that byte an
+explicit input, `state->frame_residue`, and returns it in `*result`
+exactly as the original returns it in AL, with status
+`PR_U3BD_NIBBLE_UNSPECIFIED` marking the provenance. The returned value
+never depends on the caller's initial `*result`. The zero gate (map 0 or
+10, out of range) and the four recognised selector arms write `[bp-1]`
+before `+0x0571` and so override the residue. Whether this path is ever
+taken depends on the selector the callers pass, which is bounded next.
 
 ## Callers (eight fixup-confirmed far calls; stub `0x3D5:0x2A`)
 
@@ -120,22 +126,30 @@ this scan and is the only way found for an odd value to arrive.
 ## C contract and tests
 
 `pr_u3bd_entry2(state, x, y, selector, &result, report)`; `state` holds
-the map id byte and the 1,024-byte host buffer for `[0x6A5C]`; the three
-arguments are the raw pushed bytes; `result` receives AL on `OK`.
-Statuses: `OK`, `ARGUMENT` (null state or result; null buffer at a read),
-`UNSPECIFIED` (the unwritten-result path).
+the map id byte, the 1,024-byte host buffer for `[0x6A5C]` and
+`frame_residue`, the byte in `[bp-1]` after `sub sp,2`; the three
+arguments are the raw pushed bytes; `result` receives AL on `OK` and on
+`UNSPECIFIED` (where AL is `frame_residue`). Statuses: `OK`, `ARGUMENT`
+(null state or result; null buffer at a read), `UNSPECIFIED` (the
+unwritten-result path, result = residue).
 
 `tests/recovered/test_overlay_u3bd_nibble.c`: all 65,536 (x, y) byte
 pairs for ten selectors (0, 2, 4, 6, 1, 3, 5, 7, 8, 0xFF) on four map ids
 (0, 10, 1, 0x80) against an independent raw-byte restatement (0x00..0x0F
 in range, 0x10..0x7F wrap to 0, 0x80..0xFF wrap to 15; out of range on
 map 0 or 10 returns 0 before the selector is read; selector bit 2 picks
-the quarter, bit 1 the low nibble), with the reported offset always below
-0x200, the quarter and nibble matching the selector bits, and the wrap
-applied before the unspecified exit; every selector 0..255 at one cell
-with distinct nibbles pinned (0xA, 0x7, 0x3, 0xC; all others
-`UNSPECIFIED` with the result untouched); every map id 0..255 at (16, 0)
-(only 0 and 10 return 0, and they do so even with an odd selector); pinned
+the quarter, bit 1 the low nibble; any other selector returns the
+residue), with the reported offset always below 0x200, the quarter and
+nibble matching the selector bits, and the wrap applied before the
+residue exit; every selector 0..255 at one cell with distinct nibbles
+pinned (0xA, 0x7, 0x3, 0xC; all others `UNSPECIFIED` returning the
+residue); residues 0x00, 0xA5, 0xFF, 0x10 and 0x7E against initial
+`*result` values 0x00, 0xA5, 0xFF and 0x3C for ten unmatched selectors:
+returned on every map in range and after a wrap, independent of the
+initial `*result` and of a null buffer, overridden by the zero gate on
+maps 0 and 10 out of range and by each recognised selector on every map
+id; every map id 0..255 at (16, 0) (only 0 and 10 return 0, and they do
+so even with an odd selector); pinned
 cells including (15, 15) → 0xFF / 0x1FF, (3, 2) → 0x23, (16, 3) → 0x130,
 (0xFF, 3) → 0x3F, (0x80, 0x80) → 0x1FF, (0x7F, 0x10) → 0; the upper two
 quarters inverted with no result changing; null state and result; a null
@@ -151,10 +165,11 @@ main 2efba50 (the existing targets plus
 
 ## Limitations, stated plainly
 
-- The unwritten-result path is flagged, not reproduced; its value in the
-  original is stack residue. The selector bound above rests on a byte-
-  pattern scan of direct writers and the decoded call chains, not on a
-  proof over bulk copies.
+- The unwritten-result path returns the host-supplied `frame_residue`;
+  what byte the real stack slot holds at a given call is a property of
+  the caller's recent stack use, which this note does not derive. The
+  selector bound above rests on a byte-pattern scan of direct writers and
+  the decoded call chains, not on a proof over bulk copies.
 - The leaf `+0x031F` is duplicated as a static helper rather than shared
   with entry 4's file, to keep this change to new files.
 - What the two nibbles per cell encode (quarter 0 and quarter 1 of the
@@ -162,5 +177,4 @@ main 2efba50 (the existing targets plus
   is a positional name only. The callers are described as decoded, not
   modelled.
 - The accounting documents are the integration lane's; this note claims
-  one full translation for the PM to record, subject to the PM's view of
-  the flagged path.
+  one full translation for the PM to record.
