@@ -28,12 +28,25 @@ pr_dos_character_status pr_dos_character_raw_span(
     return PR_DOS_CHARACTER_OK;
 }
 
+pr_dos_character_status pr_dos_character_name_span(
+    const pr_dos_character_record *record, pr_dos_character_span *out) {
+    pr_dos_character_span result;
+    if (!valid_record(record) || !out) return PR_DOS_CHARACTER_ARGUMENT;
+    if (record->data[0] > PR_DOS_CHARACTER_NAME_CAPACITY)
+        return PR_DOS_CHARACTER_BAD_NAME_LENGTH;
+    result.source_offset = 1;
+    result.end_offset = 1u + record->data[0];
+    *out = result;
+    return PR_DOS_CHARACTER_OK;
+}
+
 const char *pr_dos_character_status_string(pr_dos_character_status status) {
     switch (status) {
     case PR_DOS_CHARACTER_OK: return "ok";
     case PR_DOS_CHARACTER_ARGUMENT: return "invalid argument or record";
     case PR_DOS_CHARACTER_BAD_SIZE: return "character record must be 285 bytes";
     case PR_DOS_CHARACTER_RANGE: return "raw span outside character record";
+    case PR_DOS_CHARACTER_BAD_NAME_LENGTH: return "character name length exceeds 15 bytes";
     default: return "unknown error";
     }
 }

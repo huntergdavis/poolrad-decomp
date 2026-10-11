@@ -5,16 +5,17 @@
 #include <stdint.h>
 
 #define PR_DOS_CHARACTER_SIZE 285u
+#define PR_DOS_CHARACTER_NAME_CAPACITY 15u
 
 typedef enum {
     PR_DOS_CHARACTER_OK = 0,
     PR_DOS_CHARACTER_ARGUMENT,
     PR_DOS_CHARACTER_BAD_SIZE,
-    PR_DOS_CHARACTER_RANGE
+    PR_DOS_CHARACTER_RANGE,
+    PR_DOS_CHARACTER_BAD_NAME_LENGTH
 } pr_dos_character_status;
 
-/* Borrows one CHRDAT*.SAV record. Keep data alive and unchanged. Byte meanings
- * are deliberately unspecified until verified from DOS evidence. */
+/* Borrows one CHRDAT*.SAV record. Keep data alive and unchanged. */
 typedef struct {
     const uint8_t *data;
     size_t size;
@@ -31,6 +32,10 @@ pr_dos_character_status pr_dos_character_open(const uint8_t *data, size_t size,
 pr_dos_character_status pr_dos_character_raw_span(
     const pr_dos_character_record *record, size_t source_offset,
     size_t length, pr_dos_character_span *out);
+/* Byte 0 is the Pascal name length. Returns only name bytes, without decoding
+ * their DOS character encoding or requiring a trailing NUL. */
+pr_dos_character_status pr_dos_character_name_span(
+    const pr_dos_character_record *record, pr_dos_character_span *out);
 const char *pr_dos_character_status_string(pr_dos_character_status status);
 
 #endif
