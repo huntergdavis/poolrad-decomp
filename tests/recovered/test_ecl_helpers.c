@@ -568,6 +568,35 @@ static int test_u38_entry10(void) {
     return 0;
 }
 
+/* ---- character-effect dispatch entry 31 (issue #49) ----------------------- */
+
+/* Transcribed from the 6 instructions at +0x0C15: unconditional byte
+ * subtractions of 4 from [0x6822] and [0x6816]; nothing else changes. */
+static int test_u38_entry31(void) {
+    pr_rec_modifier_state m;
+    unsigned v;
+    for (v = 0; v < 256; ++v) {
+        memset(&m, 0, sizeof m);
+        m.b6816 = (uint8_t)v; m.b6822 = (uint8_t)(255 - v); m.b6818 = 0x77; m.b6819 = 0x88;
+        CHECK(pr_rec_u38_entry31(&m) == PR_REC_EFFECT_OK);
+        CHECK(m.b6816 == (uint8_t)(v - 4) && m.b6822 == (uint8_t)(255 - v - 4));
+        CHECK(m.b6818 == 0x77 && m.b6819 == 0x88);
+    }
+    /* wraparound through zero and accumulation */
+    memset(&m, 0, sizeof m); m.b6816 = 3; m.b6822 = 0;
+    CHECK(pr_rec_u38_entry31(&m) == PR_REC_EFFECT_OK && m.b6816 == 0xFF && m.b6822 == 0xFC);
+    CHECK(pr_rec_u38_entry31(&m) == PR_REC_EFFECT_OK && m.b6816 == 0xFB && m.b6822 == 0xF8);
+    /* interaction with entry 8: +2 then -4 nets -2 */
+    {
+        uint8_t rec[PR_REC_CHAR_RECORD_SIZE]; memset(rec, 0, sizeof rec); rec[PR_REC_CHAR_OFFSET_A0] = 5;
+        memset(&m, 0, sizeof m); m.b6816 = 10; m.b6822 = 10;
+        CHECK(pr_rec_u38_entry8(&m, rec, NULL) == PR_REC_EFFECT_OK);
+        CHECK(pr_rec_u38_entry31(&m) == PR_REC_EFFECT_OK && m.b6816 == 8 && m.b6822 == 4);
+    }
+    CHECK(pr_rec_u38_entry31(NULL) == PR_REC_EFFECT_ARGUMENT);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -591,6 +620,7 @@ int main(void) {
     rc |= test_u38_entry8();
     rc |= test_u38_entry9();
     rc |= test_u38_entry10();
+    rc |= test_u38_entry31();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
