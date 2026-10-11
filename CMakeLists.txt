@@ -10,7 +10,8 @@ add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
                                    src/formats/walldef.c
                                    src/formats/dos_character.c)
 target_include_directories(poolrad_formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c)
+add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
+                                    src/recovered/resident_sidecar_remove.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -48,4 +49,7 @@ if(BUILD_TESTING)
     add_executable(poolrad_recovered_tests tests/recovered/test_ecl_helpers.c)
     target_link_libraries(poolrad_recovered_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_recovered_tests COMMAND poolrad_recovered_tests)
+    add_executable(poolrad_resident_remove_tests tests/recovered/test_resident_sidecar_remove.c)
+    target_link_libraries(poolrad_resident_remove_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_remove_tests COMMAND poolrad_resident_remove_tests)
 endif()
