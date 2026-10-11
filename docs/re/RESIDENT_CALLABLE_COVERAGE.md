@@ -24,10 +24,10 @@ not evidence of data.
 
 | Candidate set | Game verified | Linked CRT inferred | SYSTEM/runtime | Proven data/false hit | Unresolved | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 86 overlay-called `RES_` | 7 | 2 | 0 | 0 | 77 | 86 |
+| 86 overlay-called `RES_` | 8 | 2 | 0 | 0 | 76 | 86 |
 | 48 other `RPRO_` | 1 | 1 | 0 | 0 | 46 | 48 |
 | 11 direct-near `RNEAR_` | 0 | 6 | 0 | 0 | 5 | 11 |
-| **Audited candidates** | **8** | **9** | **0** | **0** | **128** | **145** |
+| **Audited candidates** | **9** | **9** | **0** | **0** | **127** | **145** |
 
 The separately known **48 `0xAF8` SYSTEM targets** remain outside this
 non-SYSTEM candidate set. No raw prologue has been proved to be data or a

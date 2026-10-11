@@ -12,23 +12,24 @@ contracts, recovered C helpers, and a resident called-target inventory are
 merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
-Thirty-three game-specific routines are fully translated and behavior-checked
-across the overlay and resident lanes (PR #62 added one resident routine;
-PR #63 added sixteen overlay routines; PR #65 added one view setter). The
-PR #65 script-state initializer remains a path-complete model. The separately translated `0x464`
+Thirty-eight game-specific routines are fully translated and behavior-checked
+across the overlay and resident lanes (PRs #63/#69 added twenty bounded unit
+`0x38` routines, PR #65 a view setter, and PR #70 a resident target reset).
+The PR #65 script-state initializer and PR #72 block loader remain
+path-complete models. The separately translated `0x464`
 bitmap release helper in PR #64 has unresolved game/library ownership and is
-outside that count. Three handler/callee models have unresolved dependencies
+outside that count. Three earlier handler/callee models have unresolved dependencies
 or heap semantics, two string routines have
 path-complete C translations with a provisional runtime-string cap, and five have
 extracted C cores with unresolved engine side effects. The DOS oracle reaches
-the main menu; input has not yet produced a verified gameplay transition. No
+six-person exploration from a local save; a state-gated one-step move passes. No
 native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 84 verified identities, including
-PR #63's sixteen reviewed unit `0x38` entries and PR #65's view setter. With
-eight verified resident identities, **92** is the current evidence-backed lower bound, not the full
+The regenerated overlay classifier records 88 verified identities, including
+the twenty reviewed unit `0x38` entries and PR #65's view setter. With
+nine verified resident identities, **97** is the current evidence-backed lower bound, not the full
 denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.
