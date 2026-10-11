@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.16)
+project(poolrad_formats C)
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+
+add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c)
+target_include_directories(poolrad_formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+
+add_executable(poolrad_format_audit tests/formats/audit.c)
+target_link_libraries(poolrad_format_audit PRIVATE poolrad_formats)
+
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(poolrad_format_tests tests/formats/test_formats.c)
+    target_link_libraries(poolrad_format_tests PRIVATE poolrad_formats)
+    add_test(NAME poolrad_format_tests COMMAND poolrad_format_tests)
+endif()
