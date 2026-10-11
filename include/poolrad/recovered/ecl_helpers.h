@@ -171,6 +171,15 @@ typedef struct {
      * asserted (the resident file-open helper reads it). */
     uint8_t file_number;
     uint8_t b557c;
+    /* ---- Run loop and dispatcher (issue #75, unit 0x1c + 0x3171 / + 0x2F2D) --
+     * latch = byte [0x6F7F] (the opcode the dispatcher reads), prev_opcode =
+     * byte [0x6F7E] (the previous latch, copied before each fetch), b442e =
+     * byte [0x442E] (stop byte the run loop clears on entry and exit), b49ff =
+     * byte [0x49FF] (the second stop byte, also tested by the gameplay loop). */
+    uint8_t latch;
+    uint8_t prev_opcode;
+    uint8_t b442e;
+    uint8_t b49ff;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -417,5 +426,56 @@ void pr_rec_ecl_block_name(uint8_t file_number, char name[PR_REC_ECL_BLOCK_NAME_
 pr_rec_ecl_block_status pr_rec_ecl_load_block(pr_rec_ecl_loader_state *state, uint8_t *buffer,
                                               uint8_t block_id, const pr_rec_ecl_block_io *io,
                                               unsigned max_attempts, unsigned *attempts);
+
+/* ---- Issue #75: ECL run loop and opcode dispatcher (model) ------------------
+ * Run function: GAME.OVR 0x03EB7, unit 0x1c + 0x3171 (bytes +0x3171..+0x31B2),
+ * 66 bytes, 22 instructions, one near call (+0x2F2D), `retf 2` at +0x31B0 (one word
+ * argument: the entry address). Dispatcher: GAME.OVR 0x03C73, unit 0x1c +
+ * 0x2F2D (bytes +0x2F2D..+0x3170), 580 bytes, 273 instructions, a compare
+ * chain on the latch [0x6F7F] for 0x00..0x3D (0x1F has no case) calling 49
+ * distinct near handlers, `retf`. Both are translated instruction for
+ * instruction; the handler bodies are callbacks, so this is a model. */
+#define PR_REC_ECL_OPCODE_COUNT 0x3Eu          /* compare chain covers 0x00..0x3D */
+#define PR_REC_ECL_FETCH_BIAS 0x6700u          /* es:[di + 0x6700] with di = buffer offset + PC */
+
+/* Handler offset inside unit 0x1c for each opcode as the compare chain calls
+ * it; 0 marks the opcode without a case (0x1F). Transcribed from +0x2F2D. */
+extern const uint16_t pr_rec_ecl_handler_offset[PR_REC_ECL_OPCODE_COUNT];
+
+typedef pr_rec_ecl_handler_status (*pr_rec_ecl_handler_fn)(pr_rec_ecl_loader_state *state, void *ctx);
+
+typedef struct {
+    void *ctx;
+    pr_rec_ecl_handler_fn handler[PR_REC_ECL_OPCODE_COUNT];   /* NULL = body not modelled */
+} pr_rec_ecl_dispatch_table;
+
+typedef enum {
+    PR_REC_ECL_RUN_OK = 0,          /* stopped by [0x442E] or [0x49FF]; dispatcher: a case ran */
+    PR_REC_ECL_RUN_ARGUMENT,
+    PR_REC_ECL_RUN_NO_CASE,         /* opcode 0x1F or above 0x3D: the chain falls through to the
+                                     * epilogue with nothing done; the engine's loop would then
+                                     * re-fetch the same byte forever */
+    PR_REC_ECL_RUN_UNMODELLED,      /* the opcode has a case but its handler slot is NULL */
+    PR_REC_ECL_RUN_HANDLER,         /* a handler returned a non-OK status (see last_handler_status) */
+    PR_REC_ECL_RUN_FETCH_BOUNDS,    /* the PC addresses a byte outside the script */
+    PR_REC_ECL_RUN_STEP_LIMIT       /* model bound; the engine has none */
+} pr_rec_ecl_run_status;
+
+/* The dispatcher body (+0x2F2D): reads state->latch and calls the matching
+ * handler slot. shared handlers (0x04..0x07, 0x11/0x12, 0x16..0x1B, 0x21/0x37,
+ * 0x25/0x26, 0x2F/0x30) are the caller's business, as in the engine, where the
+ * handler branches on the latch. */
+pr_rec_ecl_run_status pr_rec_ecl_dispatch(pr_rec_ecl_loader_state *state,
+                                          const pr_rec_ecl_dispatch_table *table,
+                                          pr_rec_ecl_handler_status *handler_status);
+
+/* The run function (+0x3171): pc = entry; [0x442E] = 0; while both stop bytes
+ * are 0: prev_opcode = latch; latch = script byte at pc; dispatch. On exit
+ * [0x442E] = 0. steps counts dispatches (optional). Any non-OK dispatch result
+ * ends the model where the engine would continue or spin. */
+pr_rec_ecl_run_status pr_rec_ecl_run(pr_rec_ecl_loader_state *state,
+                                     const pr_rec_ecl_dispatch_table *table, uint16_t entry,
+                                     unsigned max_steps, unsigned *steps,
+                                     pr_rec_ecl_handler_status *handler_status);
 
 #endif

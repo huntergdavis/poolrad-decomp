@@ -862,6 +862,178 @@ static int test_block_load(void) {
     return 0;
 }
 
+/* ---- issue #75: run loop and dispatcher -------------------------------------- */
+
+typedef struct {
+    unsigned calls;
+    uint8_t last_opcode;          /* latch seen by the handler */
+    uint8_t last_prev;
+    uint16_t last_pc;
+    unsigned slot_hits[PR_REC_ECL_OPCODE_COUNT];
+    uint8_t stop_after;           /* when calls reaches this, set [0x442E] */
+    uint8_t stop_with_49ff;
+    pr_rec_ecl_handler_status rc;
+} rec_ctx_t;
+
+static pr_rec_ecl_handler_status rec_handler(pr_rec_ecl_loader_state *st, void *ctx) {
+    rec_ctx_t *r = (rec_ctx_t *)ctx;
+    r->calls++; r->last_opcode = st->latch; r->last_prev = st->prev_opcode; r->last_pc = st->pc;
+    if (st->latch < PR_REC_ECL_OPCODE_COUNT) r->slot_hits[st->latch]++;
+    st->pc++;                                                   /* a zero-operand handler advances past its opcode */
+    if (r->stop_after != 0 && r->calls >= r->stop_after) { if (r->stop_with_49ff) st->b49ff = 1; else st->b442e = 1; }
+    return r->rc;
+}
+static pr_rec_ecl_handler_status goto_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_goto(st); }
+static pr_rec_ecl_handler_status exit_adapter(pr_rec_ecl_loader_state *st, void *ctx) {
+    rec_ctx_t *r = (rec_ctx_t *)ctx; r->calls++; r->last_pc = st->pc; st->b442e = 1; return PR_REC_ECL_HANDLER_OK; }
+
+static void fill_table(pr_rec_ecl_dispatch_table *tb, rec_ctx_t *r) {
+    unsigned i; memset(tb, 0, sizeof *tb); tb->ctx = r;
+    for (i = 0; i < PR_REC_ECL_OPCODE_COUNT; ++i) tb->handler[i] = rec_handler;
+}
+
+static int test_handler_offsets(void) {
+    unsigned i, distinct = 0; uint16_t seen[PR_REC_ECL_OPCODE_COUNT]; unsigned n = 0;
+    static const struct { uint8_t op; uint16_t off; } spot[] = {
+        {0x00, 0x0001}, {0x01, 0x00F4}, {0x02, 0x0111}, {0x03, 0x0126}, {0x08, 0x0234}, {0x13, 0x0A9F},
+        {0x20, 0x0BD1}, {0x24, 0x179B}, {0x2D, 0x2CCF}, {0x33, 0x2AEB}, {0x38, 0x2E10}, {0x3D, 0x2B14} };
+    CHECK(pr_rec_ecl_handler_offset[0x1F] == 0);
+    for (i = 0; i < PR_REC_ECL_OPCODE_COUNT; ++i) {
+        if (i != 0x1F) CHECK(pr_rec_ecl_handler_offset[i] != 0);
+    }
+    for (i = 0; i < sizeof spot / sizeof spot[0]; ++i) CHECK(pr_rec_ecl_handler_offset[spot[i].op] == spot[i].off);
+    /* shared handlers, as the chain's je ladders show */
+    CHECK(pr_rec_ecl_handler_offset[0x04] == pr_rec_ecl_handler_offset[0x05] && pr_rec_ecl_handler_offset[0x05] == pr_rec_ecl_handler_offset[0x06] && pr_rec_ecl_handler_offset[0x06] == pr_rec_ecl_handler_offset[0x07]);
+    CHECK(pr_rec_ecl_handler_offset[0x11] == pr_rec_ecl_handler_offset[0x12]);
+    for (i = 0x16; i <= 0x1B; ++i) CHECK(pr_rec_ecl_handler_offset[i] == pr_rec_ecl_handler_offset[0x16]);
+    CHECK(pr_rec_ecl_handler_offset[0x21] == pr_rec_ecl_handler_offset[0x37]);
+    CHECK(pr_rec_ecl_handler_offset[0x25] == pr_rec_ecl_handler_offset[0x26]);
+    CHECK(pr_rec_ecl_handler_offset[0x2F] == pr_rec_ecl_handler_offset[0x30]);
+    for (i = 0; i < PR_REC_ECL_OPCODE_COUNT; ++i) {
+        unsigned j, dup = 0; uint16_t v = pr_rec_ecl_handler_offset[i];
+        if (v == 0) continue;
+        for (j = 0; j < n; ++j) if (seen[j] == v) dup = 1;
+        if (!dup) seen[n++] = v;
+    }
+    distinct = n;
+    CHECK(distinct == 49);
+    return 0;
+}
+
+static int test_dispatch_all_opcodes(void) {
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned v;
+    pr_rec_ecl_handler_status hs;
+    memset(&st, 0, sizeof st); memset(&r, 0, sizeof r); fill_table(&tb, &r);
+    for (v = 0; v < 256; ++v) {
+        unsigned before = r.calls;
+        st.latch = (uint8_t)v; st.pc = 0x9900;
+        if (v == 0x1F || v > 0x3D) {
+            CHECK(pr_rec_ecl_dispatch(&st, &tb, &hs) == PR_REC_ECL_RUN_NO_CASE);
+            CHECK(r.calls == before && st.pc == 0x9900 && hs == PR_REC_ECL_HANDLER_OK);
+        } else {
+            CHECK(pr_rec_ecl_dispatch(&st, &tb, &hs) == PR_REC_ECL_RUN_OK);
+            CHECK(r.calls == before + 1 && r.last_opcode == v && r.slot_hits[v] == 1);
+        }
+    }
+    /* an unmodelled slot and a failing handler */
+    tb.handler[0x24] = NULL; st.latch = 0x24;
+    CHECK(pr_rec_ecl_dispatch(&st, &tb, NULL) == PR_REC_ECL_RUN_UNMODELLED);
+    r.rc = PR_REC_ECL_HANDLER_BOUNDS; st.latch = 0x03;
+    CHECK(pr_rec_ecl_dispatch(&st, &tb, &hs) == PR_REC_ECL_RUN_HANDLER && hs == PR_REC_ECL_HANDLER_BOUNDS);
+    CHECK(pr_rec_ecl_dispatch(NULL, &tb, &hs) == PR_REC_ECL_RUN_ARGUMENT);
+    CHECK(pr_rec_ecl_dispatch(&st, NULL, NULL) == PR_REC_ECL_RUN_ARGUMENT);
+    return 0;
+}
+
+static int test_run_loop(void) {
+    /* zero-operand opcodes in a row: 0x0D, 0x13, 0x31, 0x3D, then 0x00 */
+    static const uint8_t script[] = { 0x0D, 0x13, 0x31, 0x3D, 0x00, 0x0D, 0x0D, 0x0D };
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps;
+    pr_rec_ecl_handler_status hs;
+    /* PC set, stop byte cleared on entry, fetch bias, latch and previous opcode, stop by [0x442E] */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    st.latch = 0x77; st.b442e = 1;                              /* a stale stop byte is cleared first */
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); r.stop_after = 4;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 100, &steps, &hs) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 4 && r.calls == 4);
+    CHECK(r.slot_hits[0x0D] == 1 && r.slot_hits[0x13] == 1 && r.slot_hits[0x31] == 1 && r.slot_hits[0x3D] == 1);
+    CHECK(r.last_opcode == 0x3D && r.last_prev == 0x31 && r.last_pc == 0x9903);
+    CHECK(st.latch == 0x3D && st.prev_opcode == 0x31 && st.pc == 0x9904);
+    CHECK(st.b442e == 0);                                       /* cleared again on exit */
+    /* the first dispatch sees the stale latch as previous opcode */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script; st.latch = 0x77;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); r.stop_after = 1;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9901, 100, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 1 && r.last_opcode == 0x13 && r.last_prev == 0x77 && r.last_pc == 0x9901);
+    /* stop by [0x49FF]: the loop ends and [0x442E] stays 0; [0x49FF] is left set */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); r.stop_after = 2; r.stop_with_49ff = 1;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 100, &steps, NULL) == PR_REC_ECL_RUN_OK && steps == 2);
+    CHECK(st.b49ff == 1 && st.b442e == 0);
+    /* a stop byte already set by the gameplay loop: no dispatch at all */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script; st.b49ff = 1;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r);
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 100, &steps, NULL) == PR_REC_ECL_RUN_OK && steps == 0 && r.calls == 0);
+    CHECK(st.pc == 0x9900);
+    /* step limit */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r);
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 3, &steps, NULL) == PR_REC_ECL_RUN_STEP_LIMIT && steps == 3 && r.calls == 3);
+    /* fetch bounds: entry past the script */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r);
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900 + sizeof script, 10, &steps, NULL) == PR_REC_ECL_RUN_FETCH_BOUNDS && r.calls == 0);
+    /* no case: opcode 0x1F in the stream stops the model where the engine would spin */
+    {
+        static const uint8_t gap[] = { 0x0D, 0x1F, 0x0D };
+        memset(&st, 0, sizeof st); st.script = gap; st.script_size = sizeof gap;
+        memset(&r, 0, sizeof r); fill_table(&tb, &r);
+        CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 10, &steps, NULL) == PR_REC_ECL_RUN_NO_CASE);
+        CHECK(steps == 2 && r.calls == 1 && st.pc == 0x9901 && st.latch == 0x1F && st.prev_opcode == 0x0D);
+    }
+    /* unmodelled slot and handler failure surface with their statuses */
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); tb.handler[0x13] = NULL;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 10, &steps, NULL) == PR_REC_ECL_RUN_UNMODELLED && steps == 2);
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); r.rc = PR_REC_ECL_HANDLER_STACK_FULL;
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 10, &steps, &hs) == PR_REC_ECL_RUN_HANDLER && hs == PR_REC_ECL_HANDLER_STACK_FULL && steps == 1);
+    CHECK(pr_rec_ecl_run(NULL, &tb, 0x9900, 10, &steps, NULL) == PR_REC_ECL_RUN_ARGUMENT && steps == 0);
+    CHECK(pr_rec_ecl_run(&st, NULL, 0x9900, 10, NULL, NULL) == PR_REC_ECL_RUN_ARGUMENT);
+    return 0;
+}
+
+/* Composition: block load -> initializer -> run of the initial entry with the
+ * real GOTO handler bound and an EXIT stub at the target. */
+static int test_run_composition(void) {
+    static uint8_t block[2 + 20 + 8];
+    static uint8_t buf[PR_REC_ECL_SCRIPT_BUFFER_SIZE];
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps;
+    fake_io_t f; pr_rec_ecl_block_io io;
+    unsigned i;
+    /* five entries; the fifth (initial entry) points at 0x9914, the byte after the head */
+    memset(block, 0, sizeof block);
+    for (i = 0; i < 5; ++i) { block[2 + 4 * i] = 0x01; block[3 + 4 * i] = 0x01; block[4 + 4 * i] = 0x14; block[5 + 4 * i] = 0x99; }
+    block[2 + 20] = 0x0D;                                       /* at 0x9914: a zero-operand opcode */
+    block[2 + 21] = 0x00;                                       /* at 0x9915: EXIT */
+    memset(&st, 0, sizeof st); st.file_number = 3;
+    fio_reset(&f, &io); f.sizes[0] = (uint16_t)sizeof block; f.blocks[0] = block;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 0, &io, 2, NULL) == PR_REC_ECL_BLOCK_OK);
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+    CHECK(st.entry_addr[4] == 0x9914 && st.pc == 0x9914);
+    memset(&r, 0, sizeof r); fill_table(&tb, &r);
+    tb.handler[0x01] = goto_adapter; tb.handler[0x00] = exit_adapter;
+    /* run the initial entry as the gameplay loop does (+0x3362: push [0x49EB]) */
+    CHECK(pr_rec_ecl_run(&st, &tb, st.entry_addr[4], 100, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 2 && r.calls == 2 && r.slot_hits[0x0D] == 1 && r.last_pc == 0x9915);
+    CHECK(st.latch == 0x00 && st.prev_opcode == 0x0D && st.pc == 0x9915 && st.b442e == 0);
+    /* run the first head entry: GOTO 0x9914, then the same two opcodes */
+    memset(&r, 0, sizeof r); fill_table(&tb, &r); tb.handler[0x01] = goto_adapter; tb.handler[0x00] = exit_adapter;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 100, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 3 && r.calls == 2 && st.prev_opcode == 0x0D && st.latch == 0x00);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -891,6 +1063,10 @@ int main(void) {
     rc |= test_script_init();
     rc |= test_block_name();
     rc |= test_block_load();
+    rc |= test_handler_offsets();
+    rc |= test_dispatch_all_opcodes();
+    rc |= test_run_loop();
+    rc |= test_run_composition();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

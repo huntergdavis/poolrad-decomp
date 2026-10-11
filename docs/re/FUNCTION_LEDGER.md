@@ -316,12 +316,12 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
 dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
 14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
-unit 0x38 entries of PR #63 (documented outside this numbering): 26 after PR #65; the issue
-#68 PR adds a model and no full translation. Project-wide reviewed strict count (the PM's
-record, which includes the merged resident lane): 33 after PR #65, unchanged by the issue
-#68 PR.
-Functions 7, 8, 9, 17 and 18 are path-complete models: their own instruction paths are translated
-and verified, but 8, 9 and 17 compose with the operand loader core (function 6, whose tag-0x81
+unit 0x38 entries of PRs #63, #69 and #70 (documented outside this numbering): 30 on main
+b250866 (PM's reviewed record); the issue #75 PR adds models and no full translation.
+Project-wide reviewed strict count (the PM's record, overlay 30 plus resident 9): 39 on main
+b250866, unchanged by the issue #75 PR.
+Functions 7, 8, 9, 17, 18, 19 and 20 are path-complete models: their own instruction paths are
+translated and verified, but 8, 9 and 17 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
 
@@ -568,6 +568,44 @@ release. Model-only statuses: `RETRY_LIMIT` (the engine loops without bound whil
 shipped blocks fit). Tests are listed in the note's section 6. Throughput: 45 minutes
 including the resident decode.
 
+### 1.16 ECL run loop and opcode dispatcher (issue #75)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 19 | `pr_rec_ecl_run` = GAME.OVR 0x03EB7, unit 0x1c + 0x3171 (bytes +0x3171..+0x31B2; the byte 0x00 at +0x31B3 before the next prologue at +0x31B4 is inter-function padding, not body), internal (near-called from +0x32F8 at +0x3367, +0x3410, +0x3458, +0x34E7, from +0x2DD3 twice and from +0x31B4 three times) | 66 bytes, 22 instructions | far Pascal: one word argument (entry address) at `[bp+6]`, `retf 2` | **path-complete model with a callback boundary** (the dispatcher's handler bodies) and a step bound | every instruction **verified**; not counted as a full translation |
+| 20 | `pr_rec_ecl_dispatch` = GAME.OVR 0x03C73, unit 0x1c + 0x2F2D (bytes +0x2F2D..+0x3170), internal (near-called from +0x3171 only) | 580 bytes, 273 instructions | far Pascal, no arguments, `retf`; reads `[0x6F7F]` | **path-complete model**: the 61-case compare chain as a 62-slot table (`pr_rec_ecl_handler_offset`) with handler callbacks | every case **verified** against the bytes and against ECL_CONTRACTS.md section 3; not counted as a full translation |
+
+**Run function, paths.** `+0x3174..+0x317A`: `[0x49ED] = [bp+6]`, `[0x442E] = 0`. Loop head
+`+0x317F`: exit when `[0x442E] != 0` or `[0x49FF] != 0`. Body `+0x318D..+0x31A5`: `[0x6F7E] =
+[0x6F7F]`; `al = es:[di + 0x6700]` with `es:di = [0x49DE] + [0x49ED]` (so virtual address
+`0x9900` is buffer offset 0, as ECL_CONTRACTS.md section 2 states); `[0x6F7F] = al`; near
+call `+0x2F2D`; `jmp +0x317F`. Exit `+0x31AA`: `[0x442E] = 0`; `retf 2` at `+0x31B0..+0x31B2`, the last body bytes. Two paths out
+(either stop byte); the model adds `FETCH_BOUNDS` (PC outside the buffer, where the engine
+reads whatever follows) and `STEP_LIMIT`, and ends on any non-OK dispatcher result.
+
+**Dispatcher, paths.** `+0x2F30`: `al = [0x6F7F]`; then 61 `cmp al, imm` cases in ascending
+order with `je` ladders for the shared handlers; every match is `push cs; call handler; jmp
++0x316F`; the epilogue at `+0x316F` is `pop bp; retf`. The 49 distinct handler offsets are
+exactly those of ECL_CONTRACTS.md section 3 (checked value by value from the bytes).
+**Opcode 0x1F and every value above 0x3D take no case**: the chain falls through to the
+epilogue having done nothing, the PC is not advanced, and the run loop would fetch the same
+byte again, so the engine spins on an unknown opcode until a stop byte is set elsewhere.
+The model reports `NO_CASE` at that point. Handler slots that are NULL report
+`UNMODELLED`; the three handlers already in C (GOTO, GOSUB, PRINT RETURN) bind through
+adapters.
+
+**Tests.** Offset map: the gap, every other slot non-zero, twelve spot values, the six
+shared groups, 49 distinct offsets. Dispatcher: all 256 latch values (62 slots hit once
+each, `NO_CASE` for 0x1F and 0x3E..0xFF with no handler call and no PC change), unmodelled
+slot, failing handler, arguments. Run loop: PC set and stale stop byte cleared on entry,
+fetch bias, latch and previous-opcode bookkeeping across four opcodes, the stale latch as
+first previous opcode, stop by either byte with `[0x442E]` cleared on exit and `[0x49FF]`
+left set, a pre-set stop byte (no dispatch), step bound, fetch bounds, 0x1F in the stream,
+unmodelled and failing handlers, arguments. Composition: block load, initializer, then the
+initial entry and the first head entry through the real GOTO handler and an EXIT stub.
+
+Throughput: 40 minutes.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -604,10 +642,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 
 Measured count for the battle card: strict full translations in this ledger's numbering 10
 (functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
-main 26 after PR #65 (9 prior from this ledger, 16 from PR #63, 1 view setter), unchanged
-by the issue #68 PR; project-wide strict count 33 after PR #65 (PM's record, includes the
-resident lane); path-complete models with stated dependency, heap limits or external
-boundaries 5 (functions 7, 8, 9, 17, 18); path-complete translations whose runtime string calls carry the provisional cap 2
+main 30 on b250866 (10 from this ledger's numbering plus the unit 0x38 batches of PRs #63,
+#69 and #70, PM's reviewed record), unchanged by the issue #75 PR; project-wide strict count
+39 on b250866 (overlay 30 plus resident 9, PM's record); path-complete models with stated dependency, heap limits or external
+boundaries 7 (functions 7, 8, 9, 17, 18, 19, 20); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 

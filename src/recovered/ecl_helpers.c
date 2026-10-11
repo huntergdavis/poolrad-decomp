@@ -749,3 +749,141 @@ pr_rec_ecl_block_status pr_rec_ecl_load_block(pr_rec_ecl_loader_state *state, ui
     state->script_size = PR_REC_ECL_SCRIPT_BUFFER_SIZE;
     return PR_REC_ECL_BLOCK_OK;                                 /* +0x040B..+0x040E: retf 2 */
 }
+
+/* ---- Issue #75: ECL run loop and opcode dispatcher (model) ------------------ */
+
+const uint16_t pr_rec_ecl_handler_offset[PR_REC_ECL_OPCODE_COUNT] = {
+    0x0001u, /* 0x00 */
+    0x00F4u, /* 0x01 */
+    0x0111u, /* 0x02 */
+    0x0126u, /* 0x03 */
+    0x01A3u, /* 0x04 */
+    0x01A3u, /* 0x05 */
+    0x01A3u, /* 0x06 */
+    0x01A3u, /* 0x07 */
+    0x0234u, /* 0x08 */
+    0x0292u, /* 0x09 */
+    0x02E0u, /* 0x0A */
+    0x0450u, /* 0x0B */
+    0x03B4u, /* 0x0C */
+    0x0817u, /* 0x0D */
+    0x0856u, /* 0x0E */
+    0x0951u, /* 0x0F */
+    0x0994u, /* 0x10 */
+    0x0A09u, /* 0x11 */
+    0x0A09u, /* 0x12 */
+    0x0A9Fu, /* 0x13 */
+    0x0AEDu, /* 0x14 */
+    0x0F08u, /* 0x15 */
+    0x0B52u, /* 0x16 */
+    0x0B52u, /* 0x17 */
+    0x0B52u, /* 0x18 */
+    0x0B52u, /* 0x19 */
+    0x0B52u, /* 0x1A */
+    0x0B52u, /* 0x1B */
+    0x125Du, /* 0x1C */
+    0x12C6u, /* 0x1D */
+    0x1435u, /* 0x1E */
+    0x0000u, /* 0x1F: no case */
+    0x0BD1u, /* 0x20 */
+    0x0C74u, /* 0x21 */
+    0x1629u, /* 0x22 */
+    0x16C9u, /* 0x23 */
+    0x179Bu, /* 0x24 */
+    0x18F8u, /* 0x25 */
+    0x18F8u, /* 0x26 */
+    0x19B0u, /* 0x27 */
+    0x1DB1u, /* 0x28 */
+    0x1EF8u, /* 0x29 */
+    0x0E5Eu, /* 0x2A */
+    0x10D1u, /* 0x2B */
+    0x25CBu, /* 0x2C */
+    0x2CCFu, /* 0x2D */
+    0x2775u, /* 0x2E */
+    0x0DEFu, /* 0x2F */
+    0x0DEFu, /* 0x30 */
+    0x2AA2u, /* 0x31 */
+    0x266Au, /* 0x32 */
+    0x2AEBu, /* 0x33 */
+    0x2AC1u, /* 0x34 */
+    0x0EBCu, /* 0x35 */
+    0x2B7Eu, /* 0x36 */
+    0x0C74u, /* 0x37 */
+    0x2E10u, /* 0x38 */
+    0x2B33u, /* 0x39 */
+    0x271Fu, /* 0x3A */
+    0x2C03u, /* 0x3B */
+    0x2E7Du, /* 0x3C */
+    0x2B14u, /* 0x3D */
+};
+
+pr_rec_ecl_run_status pr_rec_ecl_dispatch(pr_rec_ecl_loader_state *state,
+                                          const pr_rec_ecl_dispatch_table *table,
+                                          pr_rec_ecl_handler_status *handler_status) {
+    uint8_t op;
+    pr_rec_ecl_handler_status hs;
+    if (handler_status != NULL) {
+        *handler_status = PR_REC_ECL_HANDLER_OK;
+    }
+    if (state == NULL || table == NULL) {
+        return PR_REC_ECL_RUN_ARGUMENT;
+    }
+    op = state->latch;                                          /* +0x2F30: mov al,[0x6F7F] */
+    /* +0x2F33..+0x3169: cmp al,imm / jne chain; each matching case is `push cs;
+     * call handler; jmp +0x316F`. Opcodes with no case reach +0x316F directly. */
+    if (op >= PR_REC_ECL_OPCODE_COUNT || pr_rec_ecl_handler_offset[op] == 0u) {
+        return PR_REC_ECL_RUN_NO_CASE;                          /* +0x316F: pop bp; retf */
+    }
+    if (table->handler[op] == NULL) {
+        return PR_REC_ECL_RUN_UNMODELLED;
+    }
+    hs = table->handler[op](state, table->ctx);
+    if (handler_status != NULL) {
+        *handler_status = hs;
+    }
+    return hs == PR_REC_ECL_HANDLER_OK ? PR_REC_ECL_RUN_OK : PR_REC_ECL_RUN_HANDLER;
+}
+
+pr_rec_ecl_run_status pr_rec_ecl_run(pr_rec_ecl_loader_state *state,
+                                     const pr_rec_ecl_dispatch_table *table, uint16_t entry,
+                                     unsigned max_steps, unsigned *steps,
+                                     pr_rec_ecl_handler_status *handler_status) {
+    unsigned made = 0u;
+    if (steps != NULL) {
+        *steps = 0u;
+    }
+    if (handler_status != NULL) {
+        *handler_status = PR_REC_ECL_HANDLER_OK;
+    }
+    if (state == NULL || table == NULL) {
+        return PR_REC_ECL_RUN_ARGUMENT;
+    }
+    state->pc = entry;                                          /* +0x3174..+0x3177: [0x49ED] = [bp+6] */
+    state->b442e = 0u;                                          /* +0x317A */
+    for (;;) {
+        int b;
+        pr_rec_ecl_run_status rs;
+        if (state->b442e != 0u || state->b49ff != 0u) {         /* +0x317F..+0x318B */
+            break;
+        }
+        state->prev_opcode = state->latch;                      /* +0x318D..+0x3190: [0x6F7E] = [0x6F7F] */
+        b = loader_read(state, state->pc);                      /* +0x3193..+0x319C: es:[buffer + PC + 0x6700] */
+        if (b < 0) {
+            return PR_REC_ECL_RUN_FETCH_BOUNDS;
+        }
+        state->latch = (uint8_t)b;                              /* +0x31A1: [0x6F7F] = al */
+        if (made >= max_steps) {
+            return PR_REC_ECL_RUN_STEP_LIMIT;                   /* model bound */
+        }
+        ++made;
+        if (steps != NULL) {
+            *steps = made;
+        }
+        rs = pr_rec_ecl_dispatch(state, table, handler_status); /* +0x31A4..+0x31A5: call +0x2F2D */
+        if (rs != PR_REC_ECL_RUN_OK) {
+            return rs;
+        }
+    }                                                           /* +0x31A8: jmp +0x317F */
+    state->b442e = 0u;                                          /* +0x31AA */
+    return PR_REC_ECL_RUN_OK;                                   /* +0x31AF..+0x31B0: pop bp; retf 2 */
+}
