@@ -1034,6 +1034,173 @@ static int test_run_composition(void) {
     return 0;
 }
 
+/* ---- issue #84: slot value and SAVE --------------------------------------- */
+
+static int test_slot_value(void) {
+    pr_rec_ecl_loader_state st; uint16_t v = 0x5555;
+    static const uint8_t script[] = { 0x7B, 0x00 };
+    memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
+    st.window0[0x1C4] = 0xBEEF; st.window1[0x020] = 0x1234; st.window2[0x010] = 0x4321;
+    /* tag 0: the low byte, high ignored */
+    st.tag[1] = 0x00; st.low[1] = 0x7E; st.high[1] = 0xFF;
+    CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_OK && v == 0x7E);
+    /* tag 1: a window-0 address is read through the load-word core */
+    st.tag[2] = 0x01; st.low[2] = 0xC4; st.high[2] = 0x4A;
+    CHECK(pr_rec_ecl_slot_value(&st, 2, &v) == PR_REC_ECL_WINDOW_OK && v == 0xBEEF);
+    /* tag 3: same path; a script address yields the zero-extended byte */
+    st.tag[3] = 0x03; st.low[3] = 0x00; st.high[3] = 0x99;
+    CHECK(pr_rec_ecl_slot_value(&st, 3, &v) == PR_REC_ECL_WINDOW_OK && v == 0x7B);
+    /* tag 0x80: the engine reads a word at (high << 8) + low with the length byte as low */
+    st.tag[4] = 0x80; st.low[4] = 0x10; st.high[4] = 0x97;
+    CHECK(pr_rec_ecl_slot_value(&st, 4, &v) == PR_REC_ECL_WINDOW_OK && v == 0x4321);
+    /* tag 1 into the 0x6B00 window: the read happens but the hook is reported */
+    st.tag[5] = 0x01; st.low[5] = 0x20; st.high[5] = 0x6B;
+    CHECK(pr_rec_ecl_slot_value(&st, 5, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234);
+    /* tag 2 and 0x81: the assembled word itself */
+    st.tag[6] = 0x02; st.low[6] = 0x34; st.high[6] = 0x12;
+    CHECK(pr_rec_ecl_slot_value(&st, 6, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1234);
+    st.tag[7] = 0x81; st.low[7] = 0x00; st.high[7] = 0x6B;
+    CHECK(pr_rec_ecl_slot_value(&st, 7, &v) == PR_REC_ECL_WINDOW_OK && v == 0x6B00);
+    /* tag 1 at a class-4 pseudo-address: unresolved from the core */
+    st.tag[8] = 0x01; st.low[8] = 0xB1; st.high[8] = 0x00;
+    CHECK(pr_rec_ecl_slot_value(&st, 8, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    /* any other tag: the engine returns an uninitialized local */
+    st.tag[9] = 0x05; st.low[9] = 0x11; st.high[9] = 0x22;
+    CHECK(pr_rec_ecl_slot_value(&st, 9, &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0);
+    /* arguments */
+    CHECK(pr_rec_ecl_slot_value(&st, 0, &v) == PR_REC_ECL_WINDOW_ARGUMENT);
+    CHECK(pr_rec_ecl_slot_value(&st, (uint8_t)PR_REC_ECL_SLOT_COUNT, &v) == PR_REC_ECL_WINDOW_ARGUMENT);
+    CHECK(pr_rec_ecl_slot_value(&st, 1, NULL) == PR_REC_ECL_WINDOW_ARGUMENT);
+    CHECK(pr_rec_ecl_slot_value(NULL, 1, &v) == PR_REC_ECL_WINDOW_ARGUMENT);
+    return 0;
+}
+
+static void save_state(pr_rec_ecl_loader_state *st, const uint8_t *script, size_t size, uint8_t *rw) {
+    unsigned i;
+    memset(st, 0, sizeof *st); st->script = script; st->script_size = size; st->script_rw = rw; st->pc = 0x9900;
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) st->window0[i] = 0xAAAA;
+    for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) st->window1[i] = 0xAAAA;
+    for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) st->window2[i] = 0xAAAA;
+}
+
+static int test_op_save(void) {
+    pr_rec_ecl_loader_state st; pr_rec_ecl_window_status ws; unsigned i;
+    /* SAVE immediate byte 5 to window-0 address 0x4AC4 (the new-game block's first instruction shape) */
+    static const uint8_t s1[] = { 0x09, 0x00, 0x05, 0x01, 0xC4, 0x4A, 0x00 };
+    save_state(&st, s1, sizeof s1, NULL);
+    CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK);
+    CHECK(st.window0[0x1C4] == 5 && st.pc == 0x9906);
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) if (i != 0x1C4) CHECK(st.window0[i] == 0xAAAA);
+    /* SAVE immediate word (tag 2) */
+    { static const uint8_t s2[] = { 0x09, 0x02, 0x34, 0x12, 0x01, 0x00, 0x49 };
+      save_state(&st, s2, sizeof s2, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK && st.window0[0] == 0x1234 && st.pc == 0x9907); }
+    /* SAVE variable to variable (tag 1 value): window 0 word copied into window 2 */
+    { static const uint8_t s3[] = { 0x09, 0x01, 0xC4, 0x4A, 0x01, 0x02, 0x97 };
+      save_state(&st, s3, sizeof s3, NULL); st.window0[0x1C4] = 0x0BAD;
+      CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK && st.window2[2] == 0x0BAD); }
+    /* value read from the 0x6B00 window: stored, hook reported */
+    { static const uint8_t s4[] = { 0x09, 0x01, 0x40, 0x6B, 0x01, 0x00, 0x49 };
+      save_state(&st, s4, sizeof s4, NULL); st.window1[0x40] = 0x0C0D;
+      CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0] == 0x0C0D); }
+    /* destination in the 0x6B00 window: stored, the store hook reported */
+    { static const uint8_t s5[] = { 0x09, 0x00, 0x09, 0x01, 0x10, 0x6B };
+      save_state(&st, s5, sizeof s5, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_HOOK && st.window1[0x10] == 9); }
+    /* destination class 3 (script byte) with a writable script: low byte stored */
+    { static const uint8_t s6[] = { 0x09, 0x02, 0x78, 0x56, 0x01, 0x06, 0x99 }; static uint8_t rw[7];
+      memcpy(rw, s6, sizeof s6); save_state(&st, rw, sizeof rw, rw);
+      CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK && rw[6] == 0x78); }
+    /* destination class 4: nothing stored, unresolved */
+    { static const uint8_t s7[] = { 0x09, 0x00, 0x01, 0x01, 0xB1, 0x00 };
+      save_state(&st, s7, sizeof s7, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_UNRESOLVED && ws == PR_REC_ECL_WINDOW_UNRESOLVED);
+      for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) CHECK(st.window0[i] == 0xAAAA); }
+    /* unresolved value (class-4 source): the store is not made */
+    { static const uint8_t s8[] = { 0x09, 0x01, 0xB1, 0x00, 0x01, 0x00, 0x49 };
+      save_state(&st, s8, sizeof s8, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_UNRESOLVED && ws == PR_REC_ECL_WINDOW_OK && st.window0[0] == 0xAAAA); }
+    /* string path: an empty inline string writes one zero word at the destination */
+    { static const uint8_t s9[] = { 0x09, 0x80, 0x00, 0x01, 0x02, 0x49 };
+      save_state(&st, s9, sizeof s9, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK);
+      CHECK(st.window0[2] == 0 && st.window0[1] == 0xAAAA && st.window0[3] == 0xAAAA && st.pc == 0x9906); }
+    /* string path: a three-byte packed string is stored one word per decoded character, then a zero word */
+    { static const uint8_t s10[] = { 0x09, 0x80, 0x03, 0x1A, 0x2B, 0x3C, 0x01, 0x10, 0x49 };
+      char want[PR_REC_ECL_TEXT_MAX]; size_t n;
+      n = pr_rec_ecl_unpack_text(s10 + 3, 3, want, sizeof want);
+      CHECK(n >= 1 && n <= 4);
+      save_state(&st, s10, sizeof s10, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK);
+      for (i = 0; i < n; ++i) CHECK(st.window0[0x10 + i] == (uint16_t)(uint8_t)want[i]);
+      CHECK(st.window0[0x10 + n] == 0 && st.window0[0x10 + n + 1] == 0xAAAA && st.pc == 0x9909); }
+    /* truncated operands */
+    { static const uint8_t s11[] = { 0x09, 0x00, 0x05, 0x01, 0xC4 };
+      save_state(&st, s11, sizeof s11, NULL);
+      CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_BOUNDS); }
+    CHECK(pr_rec_ecl_op_save(NULL, &ws) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static pr_rec_ecl_handler_status save_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_save(st, NULL); }
+
+/* A class-1 SAVE inside the run loop: the store is made, the handler reports
+ * HOOK, the dispatcher maps it to RUN_HANDLER and the run loop returns at
+ * once with the PC already past the instruction (PR #88 review). Continuing
+ * from that PC is the caller's decision, as the private route tracer does. */
+static int test_run_stops_on_hook(void) {
+    static const uint8_t script[] = { 0x09, 0x00, 0x09, 0x01, 0x10, 0x6B,   /* 0x9900: SAVE 9 -> 0x6B10 (class 1) */
+                                      0x09, 0x00, 0x03, 0x01, 0x00, 0x49,   /* 0x9906: SAVE 3 -> 0x4900 (class 0) */
+                                      0x00 };                               /* 0x990C: EXIT */
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps; pr_rec_ecl_handler_status hs;
+    save_state(&st, script, sizeof script, NULL);
+    memset(&r, 0, sizeof r); memset(&tb, 0, sizeof tb); tb.ctx = &r;
+    tb.handler[0x09] = save_adapter; tb.handler[0x00] = exit_adapter;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 10, &steps, &hs) == PR_REC_ECL_RUN_HANDLER);
+    CHECK(hs == PR_REC_ECL_HANDLER_HOOK && steps == 1 && st.pc == 0x9906 && st.latch == 0x09);
+    CHECK(st.window1[0x10] == 9 && st.window0[0] == 0xAAAA);   /* stored; the second SAVE did not run */
+    CHECK(st.b442e == 0);                                       /* the stop byte was never set */
+    /* explicit continuation from the returned PC */
+    CHECK(pr_rec_ecl_run(&st, &tb, st.pc, 10, &steps, &hs) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 2 && hs == PR_REC_ECL_HANDLER_OK && st.window0[0] == 3 && r.calls == 1 && st.pc == 0x990C);
+    return 0;
+}
+static pr_rec_ecl_handler_status print_return_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_print_return(st); }
+
+/* Composition smoke: block load, initializer, then a run from the first head
+ * entry through two SAVEs, a GOTO, and the next handled opcode (PRINT
+ * RETURN) to an EXIT stub, as the new-game block's shape suggests. */
+static int test_save_composition(void) {
+    static uint8_t block[2 + 20 + 32];
+    static uint8_t buf[PR_REC_ECL_SCRIPT_BUFFER_SIZE];
+    static const uint8_t body[] = {
+        0x09, 0x00, 0x07, 0x01, 0xC4, 0x4A,     /* 0x9914: SAVE 7 -> 0x4AC4 */
+        0x09, 0x00, 0x00, 0x01, 0xEB, 0x49,     /* 0x991A: SAVE 0 -> 0x49EB */
+        0x01, 0x01, 0x30, 0x99,                 /* 0x9920: GOTO 0x9930 */
+        0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, 0x0D, /* filler */
+        0x33,                                   /* 0x9930: PRINT RETURN */
+        0x00                                    /* 0x9931: EXIT */
+    };
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps, i;
+    fake_io_t f; pr_rec_ecl_block_io io;
+    memset(block, 0, sizeof block);
+    for (i = 0; i < 5; ++i) { block[2 + 4 * i] = 0x01; block[3 + 4 * i] = 0x01; block[4 + 4 * i] = 0x14; block[5 + 4 * i] = 0x99; }
+    memcpy(block + 22, body, sizeof body);
+    memset(&st, 0, sizeof st); st.file_number = 3;
+    fio_reset(&f, &io); f.sizes[0] = (uint16_t)sizeof block; f.blocks[0] = block;
+    CHECK(pr_rec_ecl_load_block(&st, buf, 0, &io, 2, NULL) == PR_REC_ECL_BLOCK_OK);
+    CHECK(pr_rec_ecl_script_init(&st) == PR_REC_ECL_HANDLER_OK);
+    st.window0[0x1C4] = 0xAAAA; st.window0[0xEB] = 0xAAAA;
+    memset(&r, 0, sizeof r); memset(&tb, 0, sizeof tb); tb.ctx = &r;
+    tb.handler[0x09] = save_adapter; tb.handler[0x01] = goto_adapter; tb.handler[0x33] = print_return_adapter; tb.handler[0x00] = exit_adapter;
+    CHECK(pr_rec_ecl_run(&st, &tb, st.entry_addr[0], 100, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    CHECK(steps == 5 && r.calls == 1 && r.last_pc == 0x9931);
+    CHECK(st.window0[0x1C4] == 7 && st.window0[0xEB] == 0);
+    CHECK(st.b5e24 == 1 && st.b5e25 == 1);                      /* PRINT RETURN ran once */
+    CHECK(st.latch == 0x00 && st.prev_opcode == 0x33 && st.pc == 0x9931);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -1067,6 +1234,10 @@ int main(void) {
     rc |= test_dispatch_all_opcodes();
     rc |= test_run_loop();
     rc |= test_run_composition();
+    rc |= test_slot_value();
+    rc |= test_op_save();
+    rc |= test_save_composition();
+    rc |= test_run_stops_on_hook();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

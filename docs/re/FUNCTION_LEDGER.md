@@ -317,11 +317,11 @@ flag values, byte wraparound of `[0x5E25]`, and no script access.
 dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
 14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
 unit 0x38 entries of PRs #63, #69 and #70 (documented outside this numbering): 30 on main
-b250866 (PM's reviewed record); the issue #75 PR adds models and no full translation.
-Project-wide reviewed strict count (the PM's record, overlay 30 plus resident 9): 39 on main
-b250866, unchanged by the issue #75 PR.
-Functions 7, 8, 9, 17, 18, 19 and 20 are path-complete models: their own instruction paths are
-translated and verified, but 8, 9 and 17 compose with the operand loader core (function 6, whose tag-0x81
+b250866 (PM's reviewed record); the issue #75 and #84 PRs add models and no full
+translation. Project-wide reviewed strict count (the PM's record, overlay 30 plus resident
+9): 39 on main b250866, unchanged by the issue #75 and #84 PRs.
+Functions 7, 8, 9, 17, 18, 19, 20, 21 and 22 are path-complete models: their own instruction
+paths are translated and verified, but 8, 9, 17, 21 and 22 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
 
@@ -606,6 +606,44 @@ initial entry and the first head entry through the real GOTO handler and an EXIT
 
 Throughput: 40 minutes.
 
+### 1.17 Slot value and the SAVE handler on the new-game route (issue #84)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 21 | `pr_rec_ecl_slot_value` = GAME.OVR 0x07609, unit 0x25 + 0x0136 (bytes +0x0136..+0x01B5), public entry 1, run-time stub `0x2B:0x25` (52 fixup-confirmed sites in unit 0x1c) | 128 bytes, 57 instructions | far Pascal: one word argument (slot index, low byte) at `[bp+6]`, result in `AX`, `retf 2` | **path-complete model** (composes with the load-word core, function "load word", and function 4) | all four paths **verified**; not counted as a full translation |
+| 22 | `pr_rec_ecl_op_save` = GAME.OVR 0x00FD8, unit 0x1c + 0x0292 (bytes +0x0292..+0x02DF), opcode 0x09, called only from the dispatcher case at +0x2F86 | 78 bytes, 30 instructions | far Pascal, no arguments, `retf` | **path-complete model** (loader core, function 21, store-word core, store-string translation) | both paths **verified**; not counted as a full translation |
+
+**Function 21, paths** (offsets inside unit 0x25): `+0x013C..+0x015C` read `[0x7085+slot]`,
+`[0x7045+slot]`, `[0x7005+slot]`; `+0x0160..+0x016C` tag 0: result = low byte; `+0x016E..
++0x0194` tags 1, 3, 0x80: result = near `+0x0E0C` (load word) at `(high << 8) + low`
+(assembled inline, the same arithmetic as function 4); `+0x0196..+0x01AA` tags 2, 0x81:
+result = function 4 (`+0x06AF`); any other tag reaches `+0x01AD` and returns the local
+`[bp-2]`, which no path wrote (modelled as UNRESOLVED, value 0). No globals written.
+
+**Function 22, paths** (offsets inside unit 0x1c): `+0x0298..+0x029B` loader with count 2;
+`+0x02A0..+0x02AD` dest = function 4 of slot 2 (`[0x7087]`, `[0x7047]`); `+0x02B0` branch on
+`[0x7006] >= 0x80`; word path `+0x02B7..+0x02CD`: value = function 21 of slot 1, then store
+word (`0x2B:0x52`) with (dest, value); string path `+0x02CF..+0x02D7`: store string
+(`0x2B:0x5C`) with (string buffer 1 at `DS:0x70C8`, dest); epilogue `+0x02DC`. Side effects
+are the loader's (slots 1 and 2, PC, string buffer 1) and the store's. Model deviations:
+an UNRESOLVED value (class-4 source) skips the store the engine would make with an
+unmodelled value; the HOOK statuses of the cores are passed through (store done, hook not
+run).
+
+**Tests.** Slot value: tag 0 ignores the high byte; tag 1 reads a window-0 word; tag 3 reads
+a script byte; tag 0x80 reads at the length-byte address; a 0x6B00 read reports HOOK with
+the value; tags 2 and 0x81 return the word; a class-4 source is unresolved; an unknown tag
+is unresolved with value 0; slot 0, slot 16 and nulls. SAVE: the new-game shape (byte to a
+window-0 word, PC advanced by 6, no other word touched), immediate word, variable to
+variable across windows, hook on a 0x6B00 source and on a 0x6B00 destination, class-3
+destination into a writable script, class-4 destination and class-4 source (nothing
+stored), an empty inline string (one zero word), a three-byte packed string (four words of
+0x40 then zero), truncated operands, null. Composition: block load, initializer, then a run
+from the first head entry through two SAVEs, a GOTO and PRINT RETURN to an EXIT stub, with
+the window words checked.
+
+Throughput: 35 minutes including the route trace.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -643,9 +681,10 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 Measured count for the battle card: strict full translations in this ledger's numbering 10
 (functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
 main 30 on b250866 (10 from this ledger's numbering plus the unit 0x38 batches of PRs #63,
-#69 and #70, PM's reviewed record), unchanged by the issue #75 PR; project-wide strict count
-39 on b250866 (overlay 30 plus resident 9, PM's record); path-complete models with stated dependency, heap limits or external
-boundaries 7 (functions 7, 8, 9, 17, 18, 19, 20); path-complete translations whose runtime string calls carry the provisional cap 2
+#69 and #70, PM's reviewed record), unchanged by the issue #75 and #84 PRs; project-wide
+strict count 39 on b250866 (overlay 30 plus resident 9, PM's record); path-complete models
+with stated dependency, heap limits or external boundaries 9 (functions 7, 8, 9, 17, 18, 19,
+20, 21, 22); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 

@@ -887,3 +887,77 @@ pr_rec_ecl_run_status pr_rec_ecl_run(pr_rec_ecl_loader_state *state,
     state->b442e = 0u;                                          /* +0x31AA */
     return PR_REC_ECL_RUN_OK;                                   /* +0x31AF..+0x31B0: pop bp; retf 2 */
 }
+
+/* ---- Issue #84: slot value (unit 0x25 + 0x0136) and SAVE (unit 0x1c + 0x0292) */
+
+pr_rec_ecl_window_status pr_rec_ecl_slot_value(pr_rec_ecl_loader_state *state, uint8_t slot,
+                                               uint16_t *value) {
+    uint8_t tag, low, high;
+    if (value != NULL) {
+        *value = 0u;
+    }
+    if (state == NULL || value == NULL || slot == 0u || slot >= PR_REC_ECL_SLOT_COUNT) {
+        return PR_REC_ECL_WINDOW_ARGUMENT;
+    }
+    low = state->low[slot];                                     /* +0x013C..+0x0146: [0x7085+slot] */
+    high = state->high[slot];                                   /* +0x0149..+0x0153: [0x7045+slot] */
+    tag = state->tag[slot];                                     /* +0x0156..+0x015C: [0x7005+slot] */
+    if (tag == 0x00u) {                                         /* +0x0160..+0x016C */
+        *value = low;
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    if (tag == 0x01u || tag == 0x03u || tag == 0x80u) {         /* +0x016E..+0x0194 */
+        return pr_rec_ecl_load_word(state, (uint16_t)(((unsigned)high << 8) + low), value);
+    }
+    if (tag == 0x02u || tag == 0x81u) {                         /* +0x0196..+0x01AA */
+        *value = pr_rec_ecl_operand_word(low, high);
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    return PR_REC_ECL_WINDOW_UNRESOLVED;                        /* +0x01AD: [bp-2] never written */
+}
+
+static pr_rec_ecl_handler_status map_window_status(pr_rec_ecl_window_status ws) {
+    switch (ws) {
+    case PR_REC_ECL_WINDOW_OK: return PR_REC_ECL_HANDLER_OK;
+    case PR_REC_ECL_WINDOW_HOOK: return PR_REC_ECL_HANDLER_HOOK;
+    case PR_REC_ECL_WINDOW_BOUNDS: return PR_REC_ECL_HANDLER_BOUNDS;
+    case PR_REC_ECL_WINDOW_UNRESOLVED: return PR_REC_ECL_HANDLER_UNRESOLVED;
+    default: return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+}
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_save(pr_rec_ecl_loader_state *state,
+                                             pr_rec_ecl_window_status *store_status) {
+    pr_rec_ecl_loader_status st;
+    pr_rec_ecl_window_status ws, vs = PR_REC_ECL_WINDOW_OK;
+    uint16_t dest, value = 0u;
+    if (store_status != NULL) {
+        *store_status = PR_REC_ECL_WINDOW_OK;
+    }
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    st = pr_rec_ecl_load_operands(state, 2u);                   /* +0x0298..+0x029B: mov al,2; lcall 0x2B:0x2A */
+    if (st != PR_REC_ECL_LOADER_OK) {
+        return map_loader_status(st);
+    }
+    dest = pr_rec_ecl_operand_word(state->low[2], state->high[2]); /* +0x02A0..+0x02AD: [0x7087], [0x7047] -> 0x2B:0x4D */
+    if (state->tag[1] < 0x80u) {                                /* +0x02B0: cmp [0x7006],0x80 ; jae */
+        vs = pr_rec_ecl_slot_value(state, 1u, &value);          /* +0x02B7..+0x02BF: mov al,1; lcall 0x2B:0x25 */
+        if (vs == PR_REC_ECL_WINDOW_BOUNDS || vs == PR_REC_ECL_WINDOW_UNRESOLVED ||
+            vs == PR_REC_ECL_WINDOW_ARGUMENT) {
+            return map_window_status(vs);                       /* model: the store is not made */
+        }
+        ws = pr_rec_ecl_store_word(state, dest, value);         /* +0x02C2..+0x02C8: lcall 0x2B:0x52 */
+    } else {
+        /* +0x02CF..+0x02D7: push dest; push DS:0x70C8 (string buffer 1); lcall 0x2B:0x5C */
+        ws = pr_rec_ecl_store_string(state, dest, state->string_text[1], state->string_len[1]);
+    }
+    if (store_status != NULL) {
+        *store_status = ws;
+    }
+    if (ws == PR_REC_ECL_WINDOW_OK && vs == PR_REC_ECL_WINDOW_HOOK) {
+        return PR_REC_ECL_HANDLER_HOOK;                         /* the value read ran the load hook */
+    }
+    return map_window_status(ws);                               /* +0x02DC..+0x02DF: retf */
+}
