@@ -1499,6 +1499,67 @@ static int test_compare_if_composition(void) {
     return 0;
 }
 
+/* ---- issue #113: RETURN -------------------------------------------------- */
+
+static int test_op_return(void) {
+    pr_rec_ecl_loader_state st;
+    static const uint8_t script[] = { 0x13, 0x0D, 0x00 };
+    /* empty list: only the PC advance */
+    save_state(&st, script, sizeof script, NULL);
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9901 && st.call_depth == 0);
+    /* one frame: the saved PC comes back, the frame is gone */
+    save_state(&st, script, sizeof script, NULL); st.call_stack[0] = 0x9A10; st.call_depth = 1;
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A10 && st.call_depth == 0);
+    /* nested frames come back last in, first out */
+    save_state(&st, script, sizeof script, NULL); st.call_stack[0] = 0x9A10; st.call_stack[1] = 0x9B20; st.call_depth = 2;
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9B20 && st.call_depth == 1);
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A10 && st.call_depth == 0);
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A11 && st.call_depth == 0);
+    /* after the real GOSUB push, RETURN lands on the byte after the GOSUB operand */
+    { static const uint8_t s2[] = { 0x02, 0x01, 0x10, 0x9A, 0x0D };
+      save_state(&st, s2, sizeof s2, NULL);
+      CHECK(pr_rec_ecl_op_gosub(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9A10 && st.call_depth == 1 && st.call_stack[0] == 0x9904);
+      CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9904 && st.call_depth == 0); }
+    /* nothing else in the state moves */
+    save_state(&st, script, sizeof script, NULL); st.call_stack[0] = 0x9A10; st.call_depth = 1; st.latch = 0x13; st.b442e = 0; st.b49ff = 0;
+    memset(st.cmp_flags, 0x55, 6);
+    CHECK(pr_rec_ecl_op_return(&st) == PR_REC_ECL_HANDLER_OK && st.latch == 0x13 && st.b442e == 0 && st.cmp_flags[0] == 0x55 && st.window0[0] == 0xAAAA);
+    CHECK(pr_rec_ecl_op_return(NULL) == PR_REC_ECL_HANDLER_ARGUMENT);
+    return 0;
+}
+
+static pr_rec_ecl_handler_status gosub_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_gosub(st); }
+static pr_rec_ecl_handler_status return_adapter(pr_rec_ecl_loader_state *st, void *ctx) { (void)ctx; return pr_rec_ecl_op_return(st); }
+
+/* Composition through the run loop: GOSUB to a subroutine that RETURNs into
+ * the caller, a nested GOSUB two deep, and a RETURN on an empty list that
+ * falls through to EXIT. Addresses are laid out explicitly. */
+static int test_gosub_return_composition(void) {
+    static uint8_t script[0x40];
+    pr_rec_ecl_loader_state st; pr_rec_ecl_dispatch_table tb; rec_ctx_t r; unsigned steps;
+    memset(script, 0x0D, sizeof script);
+    /* 0x9900 GOSUB 0x9920; 0x9904 SAVE 1->0x4900; 0x990A GOSUB 0x9930; 0x990E RETURN (empty); 0x990F EXIT */
+    script[0x00] = 0x02; script[0x01] = 0x01; script[0x02] = 0x20; script[0x03] = 0x99;
+    script[0x04] = 0x09; script[0x05] = 0x00; script[0x06] = 0x01; script[0x07] = 0x01; script[0x08] = 0x00; script[0x09] = 0x49;
+    script[0x0A] = 0x02; script[0x0B] = 0x01; script[0x0C] = 0x30; script[0x0D] = 0x99;
+    script[0x0E] = 0x13; script[0x0F] = 0x00;
+    /* 0x9920 SAVE 2->0x4902; 0x9926 RETURN */
+    script[0x20] = 0x09; script[0x21] = 0x00; script[0x22] = 0x02; script[0x23] = 0x01; script[0x24] = 0x02; script[0x25] = 0x49; script[0x26] = 0x13;
+    /* 0x9930 GOSUB 0x9938; 0x9934 SAVE 3->0x4904 (6 bytes, ends 0x993A) -> put SAVE at 0x993A instead */
+    script[0x30] = 0x02; script[0x31] = 0x01; script[0x32] = 0x3A; script[0x33] = 0x99;   /* GOSUB 0x993A */
+    script[0x34] = 0x13;                                                                  /* 0x9934 RETURN -> 0x990E */
+    script[0x3A] = 0x0D; script[0x3B] = 0x13;                                             /* 0x993A filler, 0x993B RETURN -> 0x9934 */
+    save_state(&st, script, sizeof script, NULL);
+    memset(&r, 0, sizeof r); memset(&tb, 0, sizeof tb); tb.ctx = &r;
+    tb.handler[0x02] = gosub_adapter; tb.handler[0x13] = return_adapter; tb.handler[0x09] = save_adapter;
+    tb.handler[0x0D] = rec_handler; tb.handler[0x00] = exit_adapter;
+    CHECK(pr_rec_ecl_run(&st, &tb, 0x9900, 50, &steps, NULL) == PR_REC_ECL_RUN_OK);
+    /* GOSUB, SAVE2, RETURN, SAVE1, GOSUB, GOSUB, filler, RETURN, RETURN, RETURN(empty), EXIT = 11 dispatches */
+    CHECK(steps == 11 && r.last_pc == 0x990F);
+    CHECK(st.window0[0] == 1 && st.window0[2] == 2 && st.call_depth == 0 && st.pc == 0x990F);   /* addresses 0x4900 and 0x4902 */
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -1543,6 +1604,8 @@ int main(void) {
     rc |= test_op_compare();
     rc |= test_op_if();
     rc |= test_compare_if_composition();
+    rc |= test_op_return();
+    rc |= test_gosub_return_composition();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }

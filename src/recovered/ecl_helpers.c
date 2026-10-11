@@ -1174,3 +1174,22 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_if(pr_rec_ecl_loader_state *state) {
         return map_loader_status(pr_rec_ecl_load_operands(state, (uint8_t)n));
     }
 }
+
+/* ---- Issue #113: RETURN, unit 0x1c + 0x0A9F (model over the list array) ---- */
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_return(pr_rec_ecl_loader_state *state) {
+    if (state == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    state->pc++;                                                /* +0x0AA2: inc word [0x49ED] */
+    if (state->call_depth == 0u) {                              /* +0x0AA6..+0x0AAD: head nil -> +0x0AEB */
+        return PR_REC_ECL_HANDLER_OK;
+    }
+    /* +0x0AAF..+0x0AB6: [0x49ED] = head word 0
+     * +0x0AB9..+0x0AC8: [0x6F74:0x6F76] = head words 1-2
+     * +0x0ACC..+0x0AD8: FreeMem(head, 6)
+     * +0x0ADD..+0x0AE7: head = [0x6F74:0x6F76] */
+    state->call_depth--;
+    state->pc = state->call_stack[state->call_depth];
+    return PR_REC_ECL_HANDLER_OK;                               /* +0x0AEB: pop bp; retf */
+}

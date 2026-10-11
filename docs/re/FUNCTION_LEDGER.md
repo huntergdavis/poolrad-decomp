@@ -321,8 +321,9 @@ this numbering): 34 on main after reviewed PR #108. The issue #102 PR adds
 two models (functions 26 and 27) and two strict full translations of
 runtime-calling helpers (functions 24 and 25); the PM independently decoded
 their runtime calls and credited them in the PR #108 review. Project-wide
-reviewed strict count (overlay 34 plus resident 9): 43 after PR #108.
-Functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26 and 27 are path-complete models: their
+reviewed strict count (overlay 34 plus resident 9): 43 after PR #108. The issue #113
+PR adds a model (function 28) and no full translation.
+Functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26, 27 and 28 are path-complete models: their
 own instruction paths are translated and verified, but 8, 9, 17, 21, 22, 23, 26 and 27 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
@@ -752,6 +753,30 @@ a SAVE in its shadow, through the run loop, both outcomes.
 
 Throughput: 45 minutes.
 
+### 1.20 RETURN (issue #113)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 28 | `pr_rec_ecl_op_return` = GAME.OVR 0x017E5, unit 0x1c + 0x0A9F (bytes +0x0A9F..+0x0AEC; the next prologue is at +0x0AED with no padding), opcode 0x13, dispatcher case +0x2FED, no near calls, one far call | 78 bytes, 25 instructions | far Pascal, no arguments, `retf` | **path-complete model over the list array of function 7** (the 6-byte heap node and its release through `0xAF8:0x0254` are implicit in the array; the temporaries `[0x6F74..0x6F77]` are not modelled) | both paths **verified**; not counted as a full translation |
+
+**Paths.** `+0x0AA2`: `PC += 1`. `+0x0AA6..+0x0AAD`: `or` of the head's offset and segment
+words `[0x6F70]`, `[0x6F72]`; zero (nil list) jumps to the epilogue `+0x0AEB`, so a RETURN
+with no frame only advances past its own byte. Otherwise `+0x0AAF..+0x0AB6`: `[0x49ED]` =
+word 0 of the head node (the PC that GOSUB saved: the byte after its operand, ledger 1.8);
+`+0x0AB9..+0x0AC8`: `[0x6F74:0x6F76]` = words 1-2 of the head (the link); `+0x0ACC..+0x0AD8`:
+`0xAF8:0x0254` with (head segment, head offset, 6), the release; `+0x0ADD..+0x0AE7`: head =
+`[0x6F74:0x6F76]`. The EXIT handler's loop at `+0x00A4..+0x00DF` frees the whole list with
+the same node layout, which corroborates the 6-byte node and the link at words 1-2.
+Nothing else is read or written.
+
+**Tests.** Empty list (PC advance only); one frame; two frames last in, first out, then an
+empty-list RETURN; the real GOSUB push followed by RETURN landing on the byte after the
+GOSUB operand; no other state moves; null. Composition through the run loop: GOSUB into a
+subroutine that SAVEs and RETURNs, a GOSUB nested two deep with two RETURNs, then a RETURN
+on the empty list falling through to EXIT (11 dispatches, both SAVEs landed, depth 0).
+
+Throughput: 20 minutes.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -791,7 +816,7 @@ Measured count for the battle card: strict full translations in this ledger's nu
 main 34 after PR #108 (12 from this ledger's numbering plus the reviewed unit 0x38 batches,
 PM's record); project-wide strict count 43 (overlay 34 plus resident 9);
 path-complete models with stated dependency, heap limits or external
-boundaries 12 (functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26, 27); path-complete translations whose runtime string calls carry the provisional cap 2
+boundaries 13 (functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26, 27, 28); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
 
