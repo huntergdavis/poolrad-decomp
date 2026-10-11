@@ -27,10 +27,10 @@ native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 94 verified identities, including
+The regenerated overlay classifier records 95 verified identities, including
 the twenty-two reviewed unit `0x38` entries, PR #65's view setter, PR #106's
-unit `0x3BD` entry 6, and PR #108's two compare helpers. With
-ten verified resident identities, **104** is the current evidence-backed lower bound, not the full
+unit `0x3BD` entries 6 and 7, and PR #108's two compare helpers. With
+ten verified resident identities, **105** is the current evidence-backed lower bound, not the full
 denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.

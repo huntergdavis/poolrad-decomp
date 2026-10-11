@@ -73,6 +73,9 @@ ECL_STORE_HOOK = (0x25, 0x0A74)
 # PR #106 reviewed every local path of unit 0x3BD entry 6, including its
 # terminal DOS-exit branch. External calls keep it a bounded model.
 U3BD_PIECES_ENTRY6 = (0x3BD, 0x0E08)
+# PR #114 reviewed every local path of entry 7 on the wallset/load route.
+# Runtime and resident callouts keep it a bounded model, not full-C credit.
+U3BD_WALLSET_ENTRY7 = (0x3BD, 0x10C7)
 # PR #108 reviewed both ECL comparison helpers and decoded their Pascal
 # runtime calls; these two have strict full-C translations.
 ECL_COMPARE_HELPERS = {(0x25, 0x1815), (0x25, 0x18EB)}
@@ -89,7 +92,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x25, 0x0F53), (0x25, 0x1153), (0x25, 0x12FB), (0x25, 0x1EA6), (0x36, 0x002D),
     (0x38, 0x0377), (0x38, 0x03AC), (0x38, 0x03E1),
     (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK,
-    U3BD_PIECES_ENTRY6} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):
