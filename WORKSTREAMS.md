@@ -8,8 +8,8 @@ pull requests; the primary session merges after review.
 
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
-| A: DOS code recovery | Claude | Six full overlay translations, three path-complete handler/callee models, two path-complete string translations with a provisional cap, and five extracted cores merged through PR #44. Overlay evidence and classification merged in PRs #29 and #32. Current: another overlay leaf in issue #46. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*`; issue #46 also permits new overlay-specific files in these recovered source, header, and test directories (no edits to Codex's resident files) |
-| B: portable data foundation and resident recovery | Codex worker | Format readers merged in PRs #4, #7, #10, #13, #17, #19, and #23; resident inventory, loader map, and callable coverage merged in PRs #27, #30, and #33. Three full resident translations merged in PRs #37, #40 and #45. Current: another resident game routine in issue #48. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; issue #48 exception for new resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
+| A: DOS code recovery | Claude | Eight full overlay translations, three path-complete handler/callee models, two path-complete string translations with a provisional cap, and five extracted cores merged through PR #50. Current: another overlay dispatch leaf in issue #51. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*`; issue #51 also permits new overlay-specific files in these recovered source, header, and test directories (no edits to Codex's resident files) |
+| B: portable data foundation and resident recovery | Codex worker | Format readers merged in PRs #4, #7, #10, #13, #17, #19, and #23; resident inventory, loader map, and callable coverage merged in PRs #27, #30, and #33. Four full resident translations merged through PR #52. Current: another resident game routine in issue #53. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; issue #53 exception for new resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, track the game-function denominator in issue #24, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
@@ -32,10 +32,10 @@ pull requests; the primary session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
-Ten game routines are fully translated across the overlay and resident lanes.
+Twelve game routines are fully translated across the overlay and resident lanes.
 Three handler/callee models have unresolved dependencies or heap semantics;
 two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
 translated. The current evidence
-verifies the identity and game role of 65 overlay and four resident routines;
+verifies the identity and game role of 66 overlay and five resident routines;
 the full game-function denominator and a DOS gameplay oracle trace remain open.

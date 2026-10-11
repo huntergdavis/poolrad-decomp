@@ -26,7 +26,7 @@ RES_00BA_2199,overlay_called,0x00BA,0x2199,0x02D39,0x02E15,-292,exact_pascal_pro
 RES_00BA_2228,overlay_called,0x00BA,0x2228,0x02DC8,0x02E8C,-316,exact_pascal_prologue,3,0,,game_or_other_library_unresolved,unresolved
 RES_00BA_234A,overlay_called,0x00BA,0x234A,0x02EEA,0x02FAE,-316,exact_pascal_prologue,3,0,,game_or_other_library_unresolved,unresolved
 RES_00BA_23B7,overlay_called,0x00BA,0x23B7,0x02F57,0x0301B,-316,exact_pascal_prologue,10,0,,game_or_other_library_unresolved,unresolved
-RES_00BA_23DB,overlay_called,0x00BA,0x23DB,0x02F7B,0x0303F,-316,exact_pascal_prologue,7,0,,game_or_other_library_unresolved,unresolved
+RES_00BA_23DB,overlay_called,0x00BA,0x23DB,0x02F7B,0x0303F,-316,exact_pascal_prologue,7,0,,game_verified,verified
 RES_00BA_2433,overlay_called,0x00BA,0x2433,0x02FD3,0x03097,-316,exact_pascal_prologue,14,0,,game_or_other_library_unresolved,unresolved
 RES_00BA_255B,overlay_called,0x00BA,0x255B,0x030FB,0x031BF,-316,exact_pascal_prologue,8,0,,game_or_other_library_unresolved,unresolved
 RES_00BA_2637,overlay_called,0x00BA,0x2637,0x031D7,0x0329B,-316,exact_pascal_prologue,33,0,,game_or_other_library_unresolved,unresolved
