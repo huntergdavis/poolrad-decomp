@@ -7,6 +7,8 @@
 
 typedef struct {
     size_t sav_files, sav_bytes;
+    size_t name_min_length, name_max_length;
+    size_t name_printable_frames, name_zero_padded_frames;
     size_t itm_files, itm_bytes, itm_size_units;
     size_t spc_files, spc_bytes, spc_size_units;
     size_t item_pairs, spell_pairs;
@@ -50,16 +52,29 @@ static int audit_one(const char *path, int ordinal, totals *sum) {
     if (strcmp(kind, ".SAV") == 0) {
         uint8_t bytes[PR_DOS_CHARACTER_SIZE];
         pr_dos_character_record record;
-        pr_dos_character_span whole;
+        pr_dos_character_span whole, name;
+        size_t k, name_length;
+        int printable = 1, zero_padded = 1;
         if (length != PR_DOS_CHARACTER_SIZE ||
             fread(bytes, 1, sizeof bytes, file) != sizeof bytes ||
             pr_dos_character_open(bytes, sizeof bytes, &record) != PR_DOS_CHARACTER_OK ||
             pr_dos_character_raw_span(&record, 0, sizeof bytes, &whole) !=
-                PR_DOS_CHARACTER_OK || whole.end_offset != sizeof bytes) {
+                PR_DOS_CHARACTER_OK || whole.end_offset != sizeof bytes ||
+            pr_dos_character_name_span(&record, &name) != PR_DOS_CHARACTER_OK) {
             fprintf(stderr, "input %d: invalid character framing\n", ordinal);
             fclose(file);
             return -1;
         }
+        name_length = name.end_offset - name.source_offset;
+        if (sum->sav_files == 0 || name_length < sum->name_min_length)
+            sum->name_min_length = name_length;
+        if (name_length > sum->name_max_length) sum->name_max_length = name_length;
+        for (k = name.source_offset; k < name.end_offset; ++k)
+            if (bytes[k] < 32 || bytes[k] > 126) printable = 0;
+        for (k = name.end_offset; k <= PR_DOS_CHARACTER_NAME_CAPACITY; ++k)
+            if (bytes[k] != 0) zero_padded = 0;
+        sum->name_printable_frames += (size_t)printable;
+        sum->name_zero_padded_frames += (size_t)zero_padded;
         ++sum->sav_files;
         sum->sav_bytes += (size_t)length;
     } else if (strcmp(kind, ".ITM") == 0) {
@@ -108,10 +123,14 @@ int main(int argc, char **argv) {
         if (strcmp(kind, ".ITM") == 0) ++sum.item_pairs;
         else ++sum.spell_pairs;
     }
-    printf("sav_files=%zu sav_bytes=%zu itm_files=%zu itm_bytes=%zu "
+    printf("sav_files=%zu sav_bytes=%zu name_min_length=%zu name_max_length=%zu "
+           "name_printable_frames=%zu name_zero_padded_frames=%zu "
+           "itm_files=%zu itm_bytes=%zu "
            "itm_size_units=%zu spc_files=%zu spc_bytes=%zu spc_size_units=%zu "
            "item_pairs=%zu spell_pairs=%zu failures=0\n",
-           sum.sav_files, sum.sav_bytes, sum.itm_files, sum.itm_bytes,
+           sum.sav_files, sum.sav_bytes, sum.name_min_length,
+           sum.name_max_length, sum.name_printable_frames,
+           sum.name_zero_padded_frames, sum.itm_files, sum.itm_bytes,
            sum.itm_size_units, sum.spc_files, sum.spc_bytes, sum.spc_size_units,
            sum.item_pairs, sum.spell_pairs);
     return 0;

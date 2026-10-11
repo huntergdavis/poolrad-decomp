@@ -65,8 +65,39 @@ static int test_raw_spans(void) {
     return 0;
 }
 
+static int test_pascal_name_span(void) {
+    uint8_t bytes[PR_DOS_CHARACTER_SIZE] = {0};
+    pr_dos_character_record record, altered;
+    pr_dos_character_span span, saved;
+    CHECK(pr_dos_character_open(bytes, sizeof bytes, &record) ==
+          PR_DOS_CHARACTER_OK);
+    CHECK(pr_dos_character_name_span(&record, &span) == PR_DOS_CHARACTER_OK);
+    CHECK(span.source_offset == 1 && span.end_offset == 1);
+    bytes[0] = PR_DOS_CHARACTER_NAME_CAPACITY;
+    CHECK(pr_dos_character_name_span(&record, &span) == PR_DOS_CHARACTER_OK);
+    CHECK(span.source_offset == 1 && span.end_offset == 16);
+    saved = span;
+    bytes[0] = PR_DOS_CHARACTER_NAME_CAPACITY + 1;
+    CHECK(pr_dos_character_name_span(&record, &span) ==
+          PR_DOS_CHARACTER_BAD_NAME_LENGTH);
+    CHECK(span.source_offset == saved.source_offset &&
+          span.end_offset == saved.end_offset);
+    bytes[0] = 255;
+    CHECK(pr_dos_character_name_span(&record, &span) ==
+          PR_DOS_CHARACTER_BAD_NAME_LENGTH);
+    CHECK(pr_dos_character_name_span(NULL, &span) == PR_DOS_CHARACTER_ARGUMENT);
+    CHECK(pr_dos_character_name_span(&record, NULL) == PR_DOS_CHARACTER_ARGUMENT);
+    altered = record;
+    altered.size = PR_DOS_CHARACTER_SIZE - 1;
+    CHECK(pr_dos_character_name_span(&altered, &span) ==
+          PR_DOS_CHARACTER_ARGUMENT);
+    CHECK(span.source_offset == saved.source_offset &&
+          span.end_offset == saved.end_offset);
+    return 0;
+}
+
 int main(void) {
-    if (test_framing() || test_raw_spans()) return 1;
-    puts("synthetic DOS character framing/span tests passed");
+    if (test_framing() || test_raw_spans() || test_pascal_name_span()) return 1;
+    puts("synthetic DOS character framing/span/name tests passed");
     return 0;
 }
