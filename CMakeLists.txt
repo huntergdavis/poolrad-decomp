@@ -20,7 +20,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_character_link_flags.c
                                     src/recovered/resident_464_bitmap_release.c
                                     src/recovered/overlay_unit38_effects.c
-                                    src/recovered/resident_character_target_reset.c)
+                                    src/recovered/resident_character_target_reset.c
+                                    src/recovered/overlay_unit38_effects_next.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -100,4 +101,9 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_character_target_reset_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_character_target_reset_tests
              COMMAND poolrad_resident_character_target_reset_tests)
+    add_executable(poolrad_overlay_unit38_effects_next_tests
+                   tests/recovered/test_overlay_unit38_effects_next.c)
+    target_link_libraries(poolrad_overlay_unit38_effects_next_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_unit38_effects_next_tests
+             COMMAND poolrad_overlay_unit38_effects_next_tests)
 endif()
