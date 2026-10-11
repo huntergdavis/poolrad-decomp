@@ -15,14 +15,14 @@ verified function inventory. For ECL, distinguish opcode mapping from handler
 implementation. Do not combine asset coverage and engine work into a single
 overall completion percentage without a measured weighting.
 
-Merged accounting checkpoint after PR #108: **43 verified game-specific full C
+Merged accounting checkpoint through PRs #108 and #114: **43 verified game-specific full C
 translations** (34 overlay, including PR #108's two ECL comparison helpers,
 and nine resident, including PR #79's `RES_00BA_2E8B`). PRs #65/#72's script initializer and block loader are
 models. The independently translated `0x464` helper from PR #64 has unresolved
 game/library ownership and is outside that count. The regenerated overlay
-classifier has 94 verified identities. With ten verified resident identities
-from the callable ledger, the evidence-backed game-identity floor is **104**.
-PRs #96 and #106 establish the class-1 hook and unit `0x3BD` entry 6 identities,
+classifier has 95 verified identities. With ten verified resident identities
+from the callable ledger, the evidence-backed game-identity floor is **105**.
+PRs #96, #106 and #114 establish the class-1 hook and unit `0x3BD` entries 6 and 7 identities,
 respectively, without strict full-C credit because their callees remain unresolved.
 Refresh all of these counts before issuing a live card.
 
