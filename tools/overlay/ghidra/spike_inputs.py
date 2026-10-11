@@ -15,11 +15,15 @@ units = oi.find_units(img, ovr)
 u = [x for x in units if x["ovr_offset"] == a.unit_ovr_offset][0]
 os.makedirs(a.out, exist_ok=True)
 open(os.path.join(a.out, "resident.bin"), "wb").write(img)
-open(os.path.join(a.out, "unit1c_code.bin"), "wb").write(ovr[u["ovr_offset"]:u["ovr_offset"] + u["code_size"]])
+open(os.path.join(a.out, "unit_code.bin"), "wb").write(ovr[u["ovr_offset"]:u["ovr_offset"] + u["code_size"]])
 with open(os.path.join(a.out, "fixups.txt"), "w") as f:
     f.writelines(f"{x}\n" for x in u["fixups"])
 with open(os.path.join(a.out, "stubs.txt"), "w") as f:
+    # run-time stub addresses (memory_segment:0x20+5j); the resident block holds the packed
+    # file layout, so these are labels for call resolution, not places to disassemble
     for x in units:
+        if x.get("memory_segment") is None:
+            continue
         for i, e in enumerate(x["entries"]):
-            f.write(f"{hex(x['stub_base'] + 5 * i)} {hex(x['stub_para'])} {i} {x['ovr_offset'] + e}\n")
+            f.write(f"{hex(x['memory_segment'] * 16 + 0x20 + 5 * i)} {hex(x['stub_para'])} {i} {x['ovr_offset'] + e}\n")
 print("spike inputs written:", a.out, "unit stub para", hex(u["stub_para"]), "code", u["code_size"], "fixups", len(u["fixups"]))

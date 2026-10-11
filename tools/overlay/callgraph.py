@@ -11,11 +11,12 @@ be data or immediates that happen to contain E8. Treat near counts as upper boun
 Consumes the JSON written by overlay_inventory.py plus the two executables and resolves:
   * candidate near calls (E8 rel16) inside a unit to the prologue function containing the target,
   * fixup-confirmed far calls (9A off16 seg16) whose segment word is listed in the fixup table.
-    The stored segment is a paragraph relative to the resident program image, so the
-    linear target is seg*16+off inside START.EXE's load image. If that linear address is
-    the start of an entry stub of some unit, the edge is resolved to that unit's entry
-    (and to its function in GAME.OVR). Otherwise the target is resident code; segment
-    0xAF8 (the highest segment, the Turbo Pascal SYSTEM unit) is tagged "runtime".
+    The stored segment is the run-time paragraph of a code segment. For overlaid units the
+    inventory supplies each unit's run-time stub segment (memory_segment); entry j of that
+    unit is addressed as memory_segment:(0x20 + 5*j). Sites that match resolve to the unit
+    entry and its function in GAME.OVR. Other segments are resident code in START.EXE
+    (file layout differs from run-time layout, so no file offset is claimed); segment 0xAF8
+    (the highest, the Turbo Pascal SYSTEM unit) is tagged "runtime".
   * candidate far sites whose segment word is NOT in the fixup table are reported as
     "far_unrelocated_candidate" (probably not calls at all).
 
@@ -49,15 +50,9 @@ def main():
     ap.add_argument("--md")
     a = ap.parse_args()
     inv = json.load(open(a.inventory))
-    exe = open(a.exe, "rb").read()
     ovr = open(a.ovr, "rb").read()
-    img = exe[inv["mz"]["header_bytes"]:]
     units = inv["units"]
-    by_para = {u["stub_para"]: u for u in units}
-    stubs = {}
-    for u in units:
-        for i, e in enumerate(u["entries"]):
-            stubs[u["stub_base"] + 5 * i] = (u["stub_para"], i, e)
+    by_memseg = {u["memory_segment"]: u for u in units if u.get("memory_segment") is not None}
     edges = []
     summ = collections.Counter()
     fanin = collections.Counter()
@@ -91,33 +86,27 @@ def main():
             else:
                 e["kind"] = "far_fixup_confirmed"
                 summ["far_fixup_confirmed"] += 1
-                lin = seg * 16 + off
                 seg_hist[seg] += 1
-                if lin in stubs:
-                    tp, idx, eoff = stubs[lin]
-                    tu = by_para[tp]
+                tu = by_memseg.get(seg)
+                if tu is not None and off >= 0x20 and (off - 0x20) % 5 == 0 and (off - 0x20) // 5 < tu["entry_count"]:
+                    idx = (off - 0x20) // 5
+                    eoff = tu["entries"][idx]
                     f, exact = func_for(tu, eoff)
-                    e.update(resolution="overlay", target_unit=tp, target_entry=idx,
+                    e.update(resolution="overlay", target_unit=tu["stub_para"], target_entry=idx,
                              target_rel=eoff, target_ovr=tu["ovr_offset"] + eoff, target_func=f,
                              exact_prologue=exact)
                     summ["far_overlay"] += 1
                     summ["far_overlay_exact_prologue"] += exact
-                    fanin[(tp, f)] += 1
+                    fanin[(tu["stub_para"], f)] += 1
+                elif tu is not None:
+                    e["resolution"] = "overlay_segment_bad_offset"
+                    summ["far_overlay_segment_bad_offset"] += 1
+                elif seg == RUNTIME_SEG:
+                    e["resolution"] = "runtime"
+                    summ["far_runtime"] += 1
                 else:
-                    inside = any(s <= lin < s + 5 for s in stubs)
-                    if inside:
-                        e["resolution"] = "stub_misaligned"
-                        summ["far_stub_misaligned"] += 1
-                    elif seg == RUNTIME_SEG:
-                        e["resolution"] = "runtime"
-                        summ["far_runtime"] += 1
-                    elif lin < len(img):
-                        e["resolution"] = "resident"
-                        summ["far_resident"] += 1
-                    else:
-                        e["resolution"] = "out_of_image"
-                        summ["far_out_of_image"] += 1
-                    e["linear"] = lin
+                    e["resolution"] = "resident"
+                    summ["far_resident"] += 1
             edges.append(e)
     top = fanin.most_common(12)
     xunit = collections.Counter((e["unit"], e["target_unit"]) for e in edges if e.get("resolution") == "overlay")

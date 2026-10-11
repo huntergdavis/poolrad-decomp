@@ -63,8 +63,9 @@ Observations, per function:
   nodes) is not something the decompiler provides. The `push cs` idiom leaves `unaff_CS`
   artifacts and far pointers appear as two 16-bit halves.
 - **Opcode 0x20 handler.** With the stub labels, five of its ten far calls read as calls into
-  unit `0x25` entries 20 to 23 (the operand helpers) and unit `0x7f` entry 1 (the overlay
-  loader). The other five are runtime string routines. Segment immediates such as `0xAF8` and
+  unit `0x25` entries 1 to 4 (operand helpers) and unit `0x6f` entry 11 (a resource-loading
+  unit). (Entry numbers corrected under the run-time stub model of issue #8; the spike
+  originally labeled them with the linear file model.) The other five are runtime string routines. Segment immediates such as `0xAF8` and
   `0x2B` show up as integer arguments because Turbo Pascal pushes far pointers to constants;
   patching the 94 non-call fixups to the unit's assigned segment would turn those into real
   pointers to the unit's constant strings.
@@ -87,7 +88,7 @@ Behavioral understanding is still almost entirely external:
 - Pascal strings, far pointers, and `push cs` constant references need the fixup table applied
   as relocations rather than as labels.
 - The decompiler cannot tell which helper reads operands or how. Those helpers are in unit
-  `0x25` (99 fixup-confirmed far-call sites from unit `0x1c` resolve to its entry stubs, and
+  `0x25` (205 fixup-confirmed far-call sites from unit `0x1c` resolve to its entry stubs, and
   the entries land on Pascal prologues), so they can be decompiled the same way; the kit's claim
   that they are resident and need an emulator is wrong.
 
@@ -101,12 +102,24 @@ decompiled function as a hypothesis for the address ledger, and confirm behavior
 DOS oracle. Do not expect switch recovery or Pascal-order parameters. Keep all decompiler
 output under ignored paths.
 
+## 5a. Update from issue #8
+
+Overlay entry stubs are addressed at run time as `segment:(0x20 + 5*j)` with the segment
+recorded in the next unit's descriptor, not at their packed file positions. The inventory
+now records each unit's run-time segment, the call graph resolves 1,154 far calls into
+overlay entries (1,150 on exact prologues) instead of 202, and the Ghidra script labels the
+run-time stub addresses (labels only, since the resident block holds the packed file
+image). `Spike.java` now takes `SPIKE_UNIT_OVR` and `SPIKE_TARGETS`, and patches non-call
+fixups to the unit's assigned segment.
+
 ## 6. Reproduce
 
 ```
 export GHIDRA_HOME=/path/to/ghidra_12.1.4_PUBLIC JAVA_HOME=/path/to/jdk-21
 tools/overlay/ghidra/run_spike.sh resources/DOS/POOLRAD/START.EXE resources/DOS/POOLRAD/GAME.OVR /scratch/spike
 tools/overlay/ghidra/run_spike.sh ... /scratch/spike bare
+# another unit and target set, e.g. the issue #8 helpers in unit 0x25:
+SPIKE_UNIT_OVR=29907 SPIKE_TARGETS="0000:loader,06d3:chmap,1ea6:op_count,1153:unpack" tools/overlay/ghidra/run_spike.sh ... /scratch/spike25
 ```
 
 The runner prints one metrics line per function and writes the C into the scratch directory.

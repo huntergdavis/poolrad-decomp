@@ -33,9 +33,14 @@ DOS Decode Kit (commit `d9f7fb45`), whose claims were audited in [../FABLE_AUDIT
 | call stack | linked list head `[0x6F70]` (far pointer), 6-byte nodes freed by the EXIT handler |
 | compare flags | `[0x6F78]` … `[0x6F7D]` (set by COMPARE / COMPARE AND, tested by the IF family) |
 
-Call-graph facts (from `callgraph.py`, fixup-confirmed far-call sites, i.e. sites whose segment word carries a linker relocation): unit `0x1c` has 99 such sites targeting unit `0x25`,
-whose entries 20 to 23 are the operand-fetch helpers (the kit's "resident 0x2B helpers");
-the 0x20 handler calls unit `0x7f` entry 1, the overlay/script loader.
+Call-graph facts (from `callgraph.py`, fixup-confirmed far-call sites resolved with the
+run-time stub addressing `segment:(0x20 + 5*j)`, see [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md)
+section 3): unit `0x1c` has 205 such sites targeting unit `0x25` (run-time segment `0x2B`).
+The helpers it uses, by offset: `0x25` entry 1 (52 sites, unit +0x0136), `0x2A` entry 2
+(42 sites, +0x0000, the operand loader), `0x2F` entry 3 (2), `0x34` entry 4 (2), `0x4D`
+entry 9 (27, +0x06AF), `0x52` entry 10 (35, +0x0C77), `0x8E` entry 22 (6, +0x1EA6, the
+operand-count dispatcher used to skip a statement). The kit's "resident 0x2B helpers"
+are these overlay entries.
 
 ## 3. Opcode table — handler addresses verified, names from the reference
 
@@ -113,6 +118,16 @@ Note that 0x21 and 0x37 share one handler, as do 0x04 to 0x07, 0x11/0x12, 0x16 t
 
 ## 4. Operand grammar — verified on this build
 
+Engine-side mechanics (verified from the loader at unit 0x25 + 0x0000 and the dispatcher at
++0x1EA6, ledger sections 1.2 and 2): before a handler runs, the engine prefetches a fixed
+number of operands per opcode into three byte arrays indexed 1..n, tag at `[0x7005+i]`,
+first value byte at `[0x7085+i]`, second value byte at `[0x7045+i]`; inline strings go to
+Pascal string buffers at `0x6FC8 + 256*k` for the k-th string operand. The prefetch counts
+are in `pr_rec_ecl_operand_count` (an extracted table, not a full translation of the
+dispatcher); three handlers (0x0C, 0x34, 0x36) then read one more
+operand themselves, so the wire-format counts below (reference table, confirmed by the
+sweep) exceed the prefetch counts for those opcodes.
+
 Each operand is a tag byte followed by a value:
 
 | tag | length | meaning (reference interpreter) |
@@ -149,29 +164,36 @@ Evidence (`tools/overlay/ecl_walk.py`):
   stack list, resets the active-window state bytes `[0x5E24]/[0x5E25]`.
 - **0x01 GOTO:** writes the resolved word operand to `[0x49ED]`.
 - **0x20 NEWECL:** builds the `ECL<n>.DAX` file name from its byte operand, far-calls unit
-  `0x7f` entry 1 (the loader) and unit `0x25` entries 20 to 23 (operand helpers), then sets
+  `0x6f` entry 11 (run-time segment `0x7C` offset `0x57`; unit 0x6f is a resource-loading
+  unit) and unit `0x25` entries 1 to 4 (operand helpers), then sets
   `[0x442E]` = 1 and `[0x442F]` = 1 and clears `[0x4431]`.
 - **0x21 LOAD FILES:** the fifth entry of map 18 jumps directly to a `0x21` whose first byte
   operand is 18, the map's own id; the next instruction is `0x37` with the three wallset ids.
   The kit's reading of 0x21 as "set area encounter" is contradicted.
 - **0x37 LOAD PIECES:** three byte operands = wallset ids; verified against the WALLDEF block
   ids of map 18.
+- **Text unpacking (inline `0x80` operands):** the engine consumes exactly the declared
+  number of packed bytes, skips zero codes instead of stopping at them, and emits the
+  fourth code of the final group only when the last byte completes a group (ledger 1.3).
+  In the shipped scripts no zero code is followed by a non-zero code, so decoders that stop
+  at the first zero produce identical text on this data.
 - **IF family 0x16–0x1B:** one handler tests one of the six compare-flag bytes and, if the
-  test fails, skips the next instruction through unit `0x25` entry 41 (segment `0x2B`
-  offset `0x8E`; six fixup-confirmed call sites, all in unit `0x1c`).
+  test fails, skips the next instruction through unit `0x25` entry 22 (segment `0x2B`
+  offset `0x8E`; six fixup-confirmed call sites, all in unit `0x1c`): that entry fetches the
+  next opcode and prefetches its operands, which advances the PC past the statement.
 
 ## 6. Open items for the next step
 
 1. Names for 0x0A to 0x0E, 0x0F to 0x12, 0x22 to 0x24, 0x27: the kit and the reference
    disagree; resolve by reading each handler (all addresses above) and by oracle traces.
 2. Operand counts for 0x03, 0x04, 0x34; the menu list termination; the out-of-block targets.
-3. The exact loader (unit `0x7f` entry 1) contract: file name, block selection by map id,
+3. The exact loader (unit `0x6f` entry 11, called as `0x7C:0x57`) contract: file name, block selection by map id,
    where the block is placed relative to the 0x6700 fetch bias and the 0x9900 address base.
-4. 170 fixup-confirmed far-call sites (4.2% of 4,009) whose relocated `seg:off` lands inside a stub
-   range but not on a stub, and 28 candidate 9A sites without a relocation (probably not
-   calls): the linear resolution model does not cover them. All call-site counts in this
-   document come from byte scans for E8/9A without instruction-boundary validation; only
-   fixup-confirmed far sites are proven operands.
+4. 1,068 fixup-confirmed far-call sites into resident (non-overlay) code have no file
+   offset yet (the resident image's run-time layout differs from the file), and 28
+   candidate 9A sites without a relocation are probably not calls. All call-site counts in
+   this document come from byte scans for E8/9A without instruction-boundary validation;
+   only fixup-confirmed far sites are proven operands.
 
 ## 7. Byte layout of one ECL record (contract for the lane B container reader)
 
@@ -187,6 +209,9 @@ in the DAX directory is the GEO map id the script serves.
 | 14 | 4 | entry 3 "camp interrupted" | same shape |
 | 18 | 4 | entry 4 "initial entry" | same shape |
 | 22 | to end | instruction stream with inline data | 61% decodes linearly before the first inline-data region |
+
+Zero codes inside a text frame: the engine skips them (ledger 1.3); none precede text in
+the shipped data, so either rule decodes the shipped scripts identically.
 
 Address rule: a word target `t` denotes unpacked offset `t - 0x9900 + 2`; equivalently, the
 byte at unpacked offset 2 has virtual address 0x9900. A reader that strips the prefix word can

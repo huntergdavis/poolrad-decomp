@@ -26,7 +26,28 @@ Usage: ecl_walk.py --dir resources/DOS/POOLRAD [--json out.json] [--sweep]
 """
 import argparse, collections, json, os, struct
 
-# opcode -> fixed operand count (Gold Box Explorer table). None = variable / unknown layout.
+# Engine PREFETCH counts: transcribed from the operand-count dispatcher at GAME.OVR 0x9379
+# (overlay unit 0x25 entry 22), see docs/re/FUNCTION_LEDGER.md. This is how many operands the
+# engine loads before dispatching a handler; some handlers then read further operands
+# themselves (0x0C, 0x34, 0x36 read one more), so this table is NOT the wire format and
+# the linear sweep with it breaks early. Kept for comparison (--engine-prefetch-counts).
+ENGINE_OPERANDS = {}
+for _n, _ops in ((1, (0x01, 0x02, 0x0A, 0x0E, 0x11, 0x12, 0x1D, 0x20, 0x2D, 0x32, 0x34, 0x36, 0x38, 0x39, 0x3C)),
+                 (2, (0x03, 0x08, 0x09, 0x0C, 0x0F, 0x10, 0x1F, 0x22)),
+                 (3, (0x04, 0x05, 0x06, 0x07, 0x0B, 0x21, 0x28, 0x2A, 0x2F, 0x30, 0x35, 0x37, 0x3B)),
+                 (4, (0x14, 0x23)), (5, (0x2E,)), (6, (0x1E, 0x2C)), (8, (0x27,)), (14, (0x29,))):
+    for _o in _ops:
+        ENGINE_OPERANDS[_o] = _n
+for _o in range(0x3E):
+    ENGINE_OPERANDS.setdefault(_o, 0)
+# menus / jump tables: the handler reads a list after the fixed operands (reference reading)
+ENGINE_OPERANDS[0x15] = 3
+ENGINE_OPERANDS[0x25] = 2
+ENGINE_OPERANDS[0x26] = 2
+ENGINE_OPERANDS[0x2B] = 2
+
+# Wire-format operand counts (Gold Box Explorer table; default). Verified on this build by the
+# linear sweep: 61% of script bytes decode before the first inline-data region.
 GBE_OPERANDS = {
     0x00: 0, 0x01: 1, 0x02: 1, 0x03: 2, 0x04: 3, 0x05: 3, 0x06: 3, 0x07: 3, 0x08: 2, 0x09: 2,
     0x0A: 1, 0x0B: 3, 0x0C: 3, 0x0D: 0, 0x0E: 1, 0x0F: 2, 0x10: 2, 0x11: 1, 0x12: 1, 0x13: 0,
@@ -61,6 +82,9 @@ def read_dax(path):
             raise SystemExit(f"{path} block {bid}: RLE length mismatch")
         out.append((bid, bytes(o)))
     return out
+
+
+OPERANDS = GBE_OPERANDS
 
 
 def operand_len(d, p):
@@ -99,7 +123,7 @@ def walk(d):
                 errors["jump_outside_block"] += 1
                 break
             op = d[p]
-            n = GBE_OPERANDS.get(op)
+            n = OPERANDS.get(op)
             if n is None:
                 unknown_ops[op] += 1
                 seen[p] = (op, 1)
@@ -167,7 +191,7 @@ def walk(d):
 def decode_one(d, p):
     """Decode the instruction at p. Return (end, vals, items) or (None, reason, None)."""
     op = d[p]
-    n = GBE_OPERANDS.get(op)
+    n = OPERANDS.get(op)
     if n is None:
         return None, f"op_{op:02x}", None
     q = p + 1
@@ -212,7 +236,10 @@ def main():
     ap.add_argument("--dir", required=True)
     ap.add_argument("--json")
     ap.add_argument("--sweep", action="store_true", help="linear sweep report instead of the control-flow walk")
+    ap.add_argument("--engine-prefetch-counts", action="store_true", help="use the engine's prefetch table (unit 0x25 entry 22) instead of the wire-format table")
     a = ap.parse_args()
+    global OPERANDS
+    OPERANDS = ENGINE_OPERANDS if a.engine_prefetch_counts else GBE_OPERANDS
     res = {}
     if a.sweep:
         tot_dec = tot_body = 0

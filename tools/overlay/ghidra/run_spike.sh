@@ -4,11 +4,12 @@
 # START.EXE / GAME.OVR. All outputs stay in SPIKE_DIR (keep it outside the repository: the
 # decompiled C is derived from the game's code and must not be committed).
 #   usage: run_spike.sh <START.EXE> <GAME.OVR> <SPIKE_DIR> [bare]
+#   env:   SPIKE_UNIT_OVR (unit file offset, default 3398 = unit 0x1c), SPIKE_TARGETS="rel:name,..."
 set -euo pipefail
 EXE=$1; OVR=$2; export SPIKE_DIR=$3; MODE=${4:-}
 mkdir -p "$SPIKE_DIR/proj"
 HERE=$(cd "$(dirname "$0")" && pwd)
-python3 "$HERE/spike_inputs.py" --exe "$EXE" --ovr "$OVR" --unit-ovr-offset 3398 --out "$SPIKE_DIR"
+python3 "$HERE/spike_inputs.py" --exe "$EXE" --ovr "$OVR" --unit-ovr-offset "${SPIKE_UNIT_OVR:-3398}" --out "$SPIKE_DIR"
 "$GHIDRA_HOME/support/analyzeHeadless" "$SPIKE_DIR/proj" spike_$RANDOM \
   -import "$SPIKE_DIR/resident.bin" -loader BinaryLoader -loader-baseAddr 0000:0000 \
   -processor "x86:LE:16:Real Mode" -noanalysis -scriptPath "$HERE" -postScript Spike.java $MODE -deleteProject \

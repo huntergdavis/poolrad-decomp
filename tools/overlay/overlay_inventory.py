@@ -91,6 +91,28 @@ def find_units(img, ovr):
             ovr_offset=off, code_size=code, fixup_size=fix, entry_count=ent,
             entries=entries, fixups=fixups, fixup_kinds=kinds,
             functions=funcs, code_sha256=sha256(codeb)))
+    units.sort(key=lambda u: u["descriptor_offset"])
+    # Run-time layout of the stub segments differs from the packed file layout: each unit's
+    # stub segment is paragraph aligned with a 32-byte header, and entry j is addressed as
+    # memory_segment:(0x20 + 5*j). The run-time segment of unit i is stored in the header of
+    # unit i+1 at descriptor offset +14 (a full word in 23-byte headers; only the low byte is
+    # reliable in 22-byte headers, whose segments are all below 0x100 on this build). The
+    # last unit's segment is not recorded anywhere and stays None. A sequential formula
+    # (previous segment + ceil((32 + 5*entries)/16)) is kept as a cross-check; it holds within
+    # each contiguous run of units and is reported per unit.
+    for i, u in enumerate(units):
+        if i + 1 < len(units):
+            nxt = units[i + 1]
+            word = struct.unpack_from("<H", img, nxt["descriptor_offset"] + 14)[0]
+            u["memory_segment"] = word if nxt["stub_header_len"] == 23 else (word & 0xFF)
+        else:
+            u["memory_segment"] = None
+    for i, u in enumerate(units):
+        if i == 0 or units[i - 1]["memory_segment"] is None or u["memory_segment"] is None:
+            u["memory_segment_sequential_ok"] = None
+        else:
+            prev = units[i - 1]
+            u["memory_segment_sequential_ok"] = (prev["memory_segment"] + (32 + 5 * prev["entry_count"] + 15) // 16 == u["memory_segment"])
     units.sort(key=lambda u: u["ovr_offset"])
     return units
 
@@ -144,11 +166,17 @@ def main():
              f"(prologues anywhere in file: {out['total_prologues_in_ovr']}). "
              f"Units tile the file from {cov['first_unit_offset']} to {cov['last_unit_end']} of "
              f"{len(ovr)}; gaps: {len(cov['gaps'])}.", "",
-             "| stub para | ovr offset | code | fixups | entries | functions | fixup kinds (lcall/mov ax/other) |",
-             "| --- | ---: | ---: | ---: | ---: | ---: | --- |"]
+             "Memory seg = the paragraph each unit's stub segment occupies at run time, read from the "
+             "next unit's header; entry j is called as memory seg:(0x20 + 5*j). The sequential "
+             f"32-byte-header formula reproduces it for {sum(1 for u in units if u.get('memory_segment_sequential_ok'))} "
+             f"of {sum(1 for u in units if u.get('memory_segment_sequential_ok') is not None)} checkable units "
+             "(it fails only across the file gap before the last nine units).", "",
+             "| stub para (file) | memory seg | ovr offset | code | fixups | entries | functions | fixup kinds (lcall/mov ax/other) |",
+             "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |"]
     for u in sorted(units, key=lambda u: -u["code_size"]):
         k = u["fixup_kinds"]
-        lines.append(f"| 0x{u['stub_para']:x} | {u['ovr_offset']} | {u['code_size']} | {len(u['fixups'])} | "
+        ms = u['memory_segment']
+        lines.append(f"| 0x{u['stub_para']:x} | {('0x%x' % ms) if ms is not None else '?'} | {u['ovr_offset']} | {u['code_size']} | {len(u['fixups'])} | "
                      f"{u['entry_count']} | {len(u['functions'])} | {k['lcall_segment']}/{k['mov_ax_imm16']}/{k['other']} |")
     md = "\n".join(lines) + "\n"
     if a.md:

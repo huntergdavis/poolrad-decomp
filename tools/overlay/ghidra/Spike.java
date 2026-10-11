@@ -24,8 +24,8 @@ public class Spike extends GhidraScript {
         println("MODE: " + (bare ? "bare (no DS context, no stub labels)" : "metadata applied"));
         Memory mem = currentProgram.getMemory();
         // 1) unit 0x1c code block at 2000:0000, data block at 9000:0000 (uninitialized globals)
-        byte[] code = Files.readAllBytes(Paths.get(dir, "unit1c_code.bin"));
-        MemoryBlock ub = mem.createInitializedBlock("unit1c", seg(UNIT_SEG,0), new ByteArrayInputStream(code), code.length, monitor, false);
+        byte[] code = Files.readAllBytes(Paths.get(dir, "unit_code.bin"));
+        MemoryBlock ub = mem.createInitializedBlock("unit", seg(UNIT_SEG,0), new ByteArrayInputStream(code), code.length, monitor, false);
         ub.setExecute(true); ub.setRead(true);
         MemoryBlock db = mem.createUninitializedBlock("ovl_data", seg(DATA_SEG,0), 0x10000, false);
         db.setRead(true); db.setWrite(true);
@@ -39,14 +39,27 @@ public class Spike extends GhidraScript {
             long lin = Long.decode(p[0]);
             Address a = currentProgram.getAddressFactory().getDefaultAddressSpace().getAddress(lin);
             String name = "ovl_u" + p[1].substring(2) + "_e" + p[2] + "__ovr_" + Integer.toHexString(Integer.parseInt(p[3]));
-            createLabel(a, name, true);
-            if (getFunctionAt(a) == null) { createFunction(a, name); }
+            createLabel(a, name, true);   // label only: the resident block is the packed file image
             nstub++;
         }
         println("stub labels: " + nstub);
         // 4) targets (unit-relative offsets)
-        int[] rel = {0x3171, 0x2f2d, 0x0001, 0x0bd1};
-        String[] nm = {"ecl_run", "ecl_dispatch", "ecl_op00_stop", "ecl_op20_newecl"};
+        // targets: SPIKE_TARGETS="rel:name,rel:name" (unit-relative hex offsets); default = ECL interpreter quartet in unit 0x1c
+        String tspec = System.getenv("SPIKE_TARGETS");
+        if (tspec == null || tspec.isEmpty()) tspec = "3171:ecl_run,2f2d:ecl_dispatch,0001:ecl_op00_stop,0bd1:ecl_op20_newecl";
+        String[] parts = tspec.split(",");
+        int[] rel = new int[parts.length]; String[] nm = new String[parts.length];
+        for (int i = 0; i < parts.length; i++) { String[] kv = parts[i].split(":"); rel[i] = Integer.parseInt(kv[0], 16); nm[i] = kv[1]; }
+        // fixups that are not far-call segment words are far-pointer segments to this unit's own
+        // constants: patch them to the unit's assigned segment so the decompiler sees real pointers
+        if (!bare) { int patched = 0;
+            for (String line : Files.readAllLines(Paths.get(dir, "fixups.txt"))) {
+                int fx = Integer.parseInt(line.trim());
+                if (fx >= 3 && (code[fx - 3] & 0xff) == 0x9A) continue;
+                Address w = seg(UNIT_SEG, fx);
+                mem.setShort(w, (short) UNIT_SEG); patched++;
+            }
+            println("non-call fixups patched to unit segment: " + patched); }
         for (int i=0;i<rel.length;i++) {
             Address a = seg(UNIT_SEG, rel[i]);
             disassemble(a);
