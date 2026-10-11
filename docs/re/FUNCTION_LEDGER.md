@@ -195,15 +195,18 @@ is never called with more than 14), and the provisional 255-character cap of fun
 **Checks.** Synthetic tests: all tag paths with slot positions and PC after each operand;
 count 0; an unknown tag; empty inline string; string by address for classes 3, 2, 0 and 4;
 truncated word, truncated inline string, class-3 string without terminator, operand bytes
-below the base; count limit; and that per-operand advances equal the lane B span sizes
-(2, 3, 3, 3, 3, 2 + LL). Call-site evidence: the 42 handler sites push an immediate count at
+below the base; count limit; and that per-operand advances agree with the operand span sizes
+documented for lane B's reader (2, 3, 3, 3, 3, 2 + LL), checked against a hard-coded
+expected total rather than by calling that API. Call-site evidence: the 42 handler sites push an immediate count at
 39 sites (`mov al, n; push ax`), and a run-time value at 3 (0x1D, 0x2B second call, 0x39).
-Data checks on the owner's scripts (counts only): all 195 tag-0x81 operands reached by the
-walk address classes 1 (6) and 2 (189), none the script window, so the unresolved branch
-is the one the shipped game uses; no IF-family instruction is immediately followed by
-0x0C, 0x34 or 0x36, the three opcodes where the skip dispatcher's prefetch count differs
-from what the handler itself loads (3, 1 and 2 at their loader call sites), so that
-disagreement is latent in this build.
+Data checks on the owner's scripts (counts only, limited to the instructions reached by the
+walker's linear decode, about 61% of script bytes): all 195 tag-0x81 operands reached
+address classes 1 (6) and 2 (189), none the script window, so the unresolved branch is the
+one every reached operand uses; among reached instructions no IF-family opcode is
+immediately followed by 0x0C, 0x34 or 0x36, the three opcodes where the skip dispatcher's
+prefetch count differs from what the handler itself loads (3, 1 and 2 at their loader call
+sites), so that disagreement is latent in the decoded portion. Neither statement is a
+corpus-wide proof.
 
 **Verdict:** recovered core, not a full translation. Remaining dependencies: the three
 engine structures behind the 0x81 windows and the `[0x5D92]` string; the runtime string
