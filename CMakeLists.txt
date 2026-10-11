@@ -30,7 +30,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_dax_file_open.c
                                     src/recovered/resident_dax_nested_open.c
                                     src/recovered/overlay_ecl_store_hook.c
-                                    src/recovered/resident_dax_retry_display.c)
+                                    src/recovered/resident_dax_retry_display.c
+                                    src/recovered/resident_dax_selector_02eb.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -168,4 +169,10 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_dax_retry_display_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_dax_retry_display_tests
              COMMAND poolrad_resident_dax_retry_display_tests)
+    add_executable(poolrad_resident_dax_selector_02eb_tests
+                   tests/recovered/test_resident_dax_selector_02eb.c)
+    target_link_libraries(poolrad_resident_dax_selector_02eb_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_dax_selector_02eb_tests
+             COMMAND poolrad_resident_dax_selector_02eb_tests)
 endif()
