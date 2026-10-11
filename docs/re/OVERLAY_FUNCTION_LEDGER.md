@@ -31,22 +31,31 @@ Facts from the bytes:
 - The five stubs look like every other stub: `INT 3Fh`, the word, a zero fifth byte.
 - The resident image contains no instruction that masks, tests, adds or compares bit 11 of a
   word (`and/test/cmp/add/sub` with 0x0800, 0xF7FF or 0x07FF, or `test ah,8`): zero sites.
-- Turbo Pascal's overlay manager rewrites a loaded unit's stubs into 5-byte far jumps to
-  `code segment:word`. Read as a displacement, three of the five words would jump past the
-  end of their unit's code, so a displacement reading is inconsistent with execution.
-  Three of the slots have fixup-confirmed callers, so they are used.
+- Read as a displacement, three of the five raw words would point past the end of their
+  unit's code; three of the slots have fixup-confirmed callers, so they are used. The
+  run-time stub words (below) show the executed targets are the normalized offsets.
 
 Verdict: each slot is a **public entry alias** for the real procedure at `word - 0x800`.
 The ledger resolves alias slots to their prologue before counting incoming calls, so the
 three procedures whose alias slot has fixup-confirmed callers (0x2f:0x007A, 0x31:0x000F,
 0x3d2:0x0004; four call sites) are grade A, and the two without callers (0x19:0x00FD,
-0x36:0x002D) are grade D. Whether 0x800 is a flag consumed by the overlay manager or an
-artefact of how these five entries were linked is **unresolved**: the INT 3Fh handler
-(installed at offset 0x00D7 of its unit, through DOS function 25h) could not be placed in
-the file because the resident image's run-time layout differs from the file layout, and no
-bit-11 operation exists anywhere in the image. A DOS trace of one call to slot 0x2f:1,
-0x31:1 or 0x3d2:1 would settle the mechanism. The ledger keeps the raw words and shows the
-normalized offsets beside them.
+0x36:0x002D) are grade D. The ledger keeps the raw descriptor words beside the normalized
+offsets.
+
+**Run-time mechanism, settled by the expanded resident image** (Codex's issue #28 loader
+expansion, posted on issue #26 and cross-checked here with the same module against the
+inventory JSON): the packed descriptor table in the `START.EXE` file and the run-time stub
+table that the loader expands into memory are two different tables. Across all 404 public
+entries the expanded stub at `memory_segment:0x20 + 5*slot` carries `INT 3Fh` (404 of 404),
+and the word after it equals the raw descriptor word for 399 entries and the raw word
+minus 0x800 for exactly the five above (expanded image offsets 0x1E5, 0x375, 0x3A5, 0x405,
+0x3F05). The `INT 3Fh` handler installed through DOS function 25h at `0xAA2:0x02E6`
+(expanded image 0xAD06) pushes the word that follows the stub's `INT 3Fh` and dispatches
+on it, so the executed target of these five slots is the prologue, with no subtraction in
+the handler. What remains **unresolved** is only the meaning of the +0x800 in the packed
+descriptor words (linker flag, alias encoding or build artefact); other normal entries also
+exceed 0x800, so bit 11 is not a general mask. My earlier note that the handler could not
+be placed applied to the packed file layout only and is withdrawn.
 
 The five procedures themselves, from private disassembly (identities only): 0x19:0x00FD
 (604-byte bound, loops over a runtime random call and resident far calls), 0x2f:0x007A

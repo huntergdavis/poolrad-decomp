@@ -62,9 +62,15 @@ def main():
     nc = None
     if a.near_calls:
         nc = json.load(open(a.near_calls))
-        for key, value in nc.get("inputs", {}).items():
-            if key in expected and expected[key] != value:
+        nc_inputs = nc.get("inputs", {})
+        for key in ("start_exe_sha256", "game_ovr_sha256"):
+            if key not in nc_inputs:
+                raise SystemExit(f"near-call validation JSON lacks input digest {key}")
+            if nc_inputs[key] != expected[key]:
                 raise SystemExit(f"near-call validation input {key} differs from the inventory")
+        raw_exact_sites = sum(1 for e in cg["edges"] if e["kind"] == "near_candidate" and e.get("exact_prologue"))
+        if nc.get("raw_near_call_candidates_to_prologues") != raw_exact_sites:
+            raise SystemExit("near-call validation raw exact-prologue site total differs from this call graph")
         invariants = (nc.get("invalid_seed_paths") == 0 and nc.get("truncated_seed_paths") == 0
                       and nc.get("raw_exact_not_decoded") == 0 and nc.get("decoded_exact_not_raw") == 0
                       and nc.get("decoded_near_calls_to_prologues") == nc.get("raw_near_call_candidates_to_prologues"))
