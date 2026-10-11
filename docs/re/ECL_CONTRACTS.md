@@ -200,11 +200,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
 2. Operand counts for 0x03, 0x04, 0x34; the menu list termination; the out-of-block targets.
 3. The exact loader (unit `0x6f` entry 11, called as `0x7C:0x57`) contract: file name, block selection by map id,
    where the block is placed relative to the 0x6700 fetch bias and the 0x9900 address base.
-4. 1,068 fixup-confirmed far-call sites into resident (non-overlay) code have no file
+4. 1,061 fixup-confirmed far-call sites into resident (non-overlay, non-runtime) code have no file
    offset yet (the resident image's run-time layout differs from the file), and 28
    candidate 9A sites without a relocation are probably not calls. All call-site counts in
-   this document come from byte scans for E8/9A without instruction-boundary validation;
-   only fixup-confirmed far sites are proven operands.
+   this document use segment-word fixups for confirmed far sites and byte scans
+   for near and unrelocated candidates.
 
 ## 7. Byte layout of one ECL record (contract for the lane B container reader)
 

@@ -322,7 +322,7 @@ functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the
-unnamed Turbo Pascal runtime (1,787 call sites), the resident game units' file mapping,
+unnamed Turbo Pascal runtime (1,790 call sites), the resident game units' file mapping,
 and the absence of DOS oracle traces (issue #3) for dynamic confirmation. The NEWECL
 handler's loader call (`0x7C:0x57`) resolves to unit 0x6f entry 11 under the run-time model;
 PR #6 named it unit 0x7f entry 1.

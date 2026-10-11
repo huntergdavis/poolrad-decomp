@@ -106,12 +106,12 @@ Each item was re-derived from the supplied files with independent code, not by t
   the packed `START.EXE` image. That model misnumbered overlay entries: `0x2B:0x25` and
   `0x2B:0x2A` are entries 1 and 2 of unit `0x25`, and `0x7C:0x57` is unit `0x6F`
   entry 11. The corrected run-time stub model in the
-  [fixup-aware call graph](re/callgraph_summary.md) classifies 4,009 fixup-confirmed
-  far-call byte sites: 1,154 overlay entries (1,150 on exact Pascal prologues),
-  1,787 Turbo Pascal runtime sites in segment `0xAF8`, and 1,068 other resident
+  [fixup-aware call graph](re/callgraph_summary.md) classifies 4,012 fixup-confirmed
+  far-call sites: 1,161 overlay entries (1,157 on exact Pascal prologues),
+  1,790 Turbo Pascal runtime sites in segment `0xAF8`, and 1,061 other resident
   sites. Another 28 `0x9A` byte patterns lack relocation and remain candidates.
-  The earlier 170 apparent stub misalignments disappear. These counts are byte-scan
-  candidates without instruction-boundary validation; the resident segments'
+  The earlier 170 apparent stub misalignments disappear. Confirmed sites come
+  from segment-word fixups; the resident segments'
   file positions remain unresolved.
 - **GEO plane 3 (bytes 770 to 1025).** Bits 0, 2, 4, and 6 are set in 768, 716, 777, and 715
   cells; bits 1, 3, 5, and 7 in only 45, 32, 34, and 33. Gold Box Explorer's `GeoWallRecord.cs`

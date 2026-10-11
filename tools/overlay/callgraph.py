@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """Fixup-aware 16-bit call graph for the GAME.OVR overlay units (candidate call sites).
 
-IMPORTANT: call sites are found by scanning raw code bytes for the E8 (near call) and 9A
-(far call) opcodes without instruction-boundary validation, so every site is a CANDIDATE.
-Far sites whose segment word offset appears in the unit's fixup table are additionally
-"fixup-confirmed": the linker emitted a relocation for exactly that word, which only happens
-for a real far-call (or far-pointer) operand. Near sites have no such confirmation; some will
-be data or immediates that happen to contain E8. Treat near counts as upper bounds.
+IMPORTANT: near calls are found by scanning raw code bytes for E8 without
+instruction-boundary validation, so every near site is a CANDIDATE. Confirmed
+far calls are found by walking segment-word fixups and checking for a 9A three
+bytes before each fixup. The relocation supports a real far-call operand;
+near sites have no such confirmation and their counts are upper bounds.
 
 Consumes the JSON written by overlay_inventory.py plus the two executables and resolves:
   * candidate near calls (E8 rel16) inside a unit to the prologue function containing the target,
@@ -75,40 +74,47 @@ def main():
             else:
                 edges.append(dict(kind="near_candidate_out_of_unit", unit=u["stub_para"], site=m.start(), target=tgt))
                 summ["near_candidate_out_of_unit"] += 1
-        for m in re.finditer(rb"\x9a(..)(..)", code, re.DOTALL):
-            off = int.from_bytes(m.group(1), "little")
-            seg = int.from_bytes(m.group(2), "little")
-            site = m.start()
+        for segment_word in sorted(fixset):
+            site = segment_word - 3
+            if site < 0 or site + 5 > len(code) or code[site] != 0x9a:
+                continue
+            off = int.from_bytes(code[site + 1:site + 3], "little")
+            seg = int.from_bytes(code[site + 3:site + 5], "little")
             src_f, _ = func_for(u, site)
-            e = dict(kind="far_candidate", unit=u["stub_para"], site=site, src_func=src_f, seg=seg, off=off)
-            if (site + 3) not in fixset:
-                e["resolution"] = "unrelocated_candidate"
-                summ["far_unrelocated_candidate"] += 1
+            e = dict(kind="far_fixup_confirmed", unit=u["stub_para"], site=site, src_func=src_f, seg=seg, off=off)
+            summ["far_fixup_confirmed"] += 1
+            seg_hist[seg] += 1
+            tu = by_memseg.get(seg)
+            if tu is not None and off >= 0x20 and (off - 0x20) % 5 == 0 and (off - 0x20) // 5 < tu["entry_count"]:
+                idx = (off - 0x20) // 5
+                eoff = tu["entries"][idx]
+                f, exact = func_for(tu, eoff)
+                e.update(resolution="overlay", target_unit=tu["stub_para"], target_entry=idx,
+                         target_rel=eoff, target_ovr=tu["ovr_offset"] + eoff, target_func=f,
+                         exact_prologue=exact)
+                summ["far_overlay"] += 1
+                summ["far_overlay_exact_prologue"] += exact
+                fanin[(tu["stub_para"], f)] += 1
+            elif tu is not None:
+                e["resolution"] = "overlay_segment_bad_offset"
+                summ["far_overlay_segment_bad_offset"] += 1
+            elif seg == RUNTIME_SEG:
+                e["resolution"] = "runtime"
+                summ["far_runtime"] += 1
             else:
-                e["kind"] = "far_fixup_confirmed"
-                summ["far_fixup_confirmed"] += 1
-                seg_hist[seg] += 1
-                tu = by_memseg.get(seg)
-                if tu is not None and off >= 0x20 and (off - 0x20) % 5 == 0 and (off - 0x20) // 5 < tu["entry_count"]:
-                    idx = (off - 0x20) // 5
-                    eoff = tu["entries"][idx]
-                    f, exact = func_for(tu, eoff)
-                    e.update(resolution="overlay", target_unit=tu["stub_para"], target_entry=idx,
-                             target_rel=eoff, target_ovr=tu["ovr_offset"] + eoff, target_func=f,
-                             exact_prologue=exact)
-                    summ["far_overlay"] += 1
-                    summ["far_overlay_exact_prologue"] += exact
-                    fanin[(tu["stub_para"], f)] += 1
-                elif tu is not None:
-                    e["resolution"] = "overlay_segment_bad_offset"
-                    summ["far_overlay_segment_bad_offset"] += 1
-                elif seg == RUNTIME_SEG:
-                    e["resolution"] = "runtime"
-                    summ["far_runtime"] += 1
-                else:
-                    e["resolution"] = "resident"
-                    summ["far_resident"] += 1
+                e["resolution"] = "resident"
+                summ["far_resident"] += 1
             edges.append(e)
+        for m in re.finditer(rb"\x9a(..)(..)", code, re.DOTALL):
+            site = m.start()
+            if site + 3 in fixset:
+                continue
+            src_f, _ = func_for(u, site)
+            edges.append(dict(kind="far_candidate", unit=u["stub_para"], site=site,
+                              src_func=src_f, seg=int.from_bytes(m.group(2), "little"),
+                              off=int.from_bytes(m.group(1), "little"),
+                              resolution="unrelocated_candidate"))
+            summ["far_unrelocated_candidate"] += 1
     top = fanin.most_common(12)
     xunit = collections.Counter((e["unit"], e["target_unit"]) for e in edges if e.get("resolution") == "overlay")
     out = dict(summary=dict(summ), far_segment_histogram={hex(k): v for k, v in seg_hist.most_common()},
@@ -118,9 +124,9 @@ def main():
     if a.json:
         json.dump(out, open(a.json, "w"), indent=1)
     lines = ["# Fixup-aware call graph summary (candidate call sites)", "",
-             "Sites come from byte scans for E8/9A without instruction-boundary validation. "
-             "`far_fixup_confirmed` sites carry a linker relocation on their segment word and are "
-             "real far-call or far-pointer operands; `near_candidate` counts are upper bounds.", "",
+             "Confirmed far-call sites come from segment-word fixups with a 9A three bytes earlier. "
+             "Unrelocated 9A and near E8 sites come from byte scans without instruction-boundary "
+             "validation; their counts are candidates only.", "",
              "| measure | count |", "| --- | ---: |"]
     for k, v in sorted(summ.items()):
         lines.append(f"| {k} | {v} |")

@@ -81,8 +81,8 @@ Behavioral understanding is still almost entirely external:
 
 - The names that make the C readable (PC, stop flags, call-stack head, opcode latch) came from
   prior static analysis, not from the tool.
-- Runtime calls are anonymous: 3,637 fixup-confirmed far-call sites across the overlay go
-  into resident code, 1,787 of them into segment `0xAF8` (the Turbo Pascal runtime).
+- Runtime calls are anonymous: 2,851 fixup-confirmed far-call sites across the overlay go
+  into resident code, 1,790 of them into segment `0xAF8` (the Turbo Pascal runtime).
   Naming them needs a Turbo Pascal 5.x system-unit signature set or hand labeling of the
   resident image; neither exists yet in this repository.
 - Pascal strings, far pointers, and `push cs` constant references need the fixup table applied
