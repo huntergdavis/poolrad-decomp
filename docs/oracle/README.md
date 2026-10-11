@@ -27,8 +27,22 @@ tools/oracle/launch.sh "$run_dir"
 For a timed, headless smoke run, use `xvfb-run -a tools/oracle/launch.sh
 "$run_dir" -time-limit 40`. A local smoke on 2026-10-10 reached the game's
 loading screen after about seven seconds and credits after about 25 seconds.
-The menu and gameplay replay remain to be checked. Screenshots and logs from
-that smoke are kept only in the ignored run directory.
+
+The next isolated run used `menu-001` and reached the main menu. Reproduce its
+input and private screenshot with:
+
+```sh
+run_dir=$(tools/oracle/prepare_run.sh menu-002)
+xvfb-run -a tools/oracle/capture_menu.sh "$run_dir"
+```
+
+The script waits 29 seconds after launch, sends one Return directly to the
+DOSBox-X window, waits nine more seconds, and captures the screen. It runs for
+45 seconds total and writes only to the ignored run directory. Direct window
+delivery is necessary under Xvfb because no window manager handles window
+activation. The observed screenshot shows the main menu and no error; gameplay
+replay remains to be checked. Screenshots and logs stay private under
+`resources/`.
 
 Keep local screenshots, emulator saves, traces, and changed game saves in
 `resources/`. For each replay, record the run name, executable hashes, emulator
