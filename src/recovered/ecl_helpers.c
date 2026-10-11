@@ -164,21 +164,82 @@ static void loader_append(pr_rec_ecl_loader_state *state, unsigned k, char ch) {
     }
 }
 
-/* Unit 0x25 + 0x12FB, string by address, class 3 branch only: raw bytes from
- * the script window up to a zero byte. Other classes are recorded as
- * unresolved (engine word arrays at [0x49D2], [0x49D6], [0x49DA] and the
- * [0x5D92] string are not modelled). */
-static pr_rec_ecl_loader_status loader_string_by_address(pr_rec_ecl_loader_state *state,
-                                                         unsigned k, uint16_t address) {
-    uint8_t cls = pr_rec_ecl_address_class(address);
-    state->string_len[k] = 0u;
+/* ---- engine windows (issue #22) ------------------------------------------ */
+
+void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state) {
+    unsigned i;
+    if (state == NULL) {
+        return;
+    }
+    for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) state->window0[i] = 0u;
+    for (i = 0; i < PR_REC_ECL_WINDOW1_WORDS; ++i) state->window1[i] = 0u;
+    for (i = 0; i < PR_REC_ECL_WINDOW2_WORDS; ++i) state->window2[i] = 0u;
+    /* the initializer also stores a null far pointer to [0x5D92]: no active name */
+    for (i = 0; i < PR_REC_ECL_NAME_MAX; ++i) state->active_name[i] = 0;
+    state->active_name_len = 0u;
+    state->active_name_valid = 0u;
+    pr_rec_ecl_loader_reset(state);
+}
+
+/* Window word for an address of class 0, 1 or 2, or NULL when the address
+ * would index past the array the engine allocated. The engine computes
+ * base + 2*address + bias with 16-bit wraparound, which is exactly
+ * element (address - window_base). */
+static uint16_t *window_word(pr_rec_ecl_loader_state *state, uint8_t cls, uint16_t address) {
+    switch (cls) {
+    case 0u:
+        return address >= 0x4900u && address - 0x4900u < PR_REC_ECL_WINDOW0_WORDS ? &state->window0[address - 0x4900u] : NULL;
+    case 1u:
+        return address >= 0x6B00u && address - 0x6B00u < PR_REC_ECL_WINDOW1_WORDS ? &state->window1[address - 0x6B00u] : NULL;
+    case 2u:
+        return address >= 0x9700u && address - 0x9700u < PR_REC_ECL_WINDOW2_WORDS ? &state->window2[address - 0x9700u] : NULL;
+    default:
+        return NULL;
+    }
+}
+
+pr_rec_ecl_window_status pr_rec_ecl_string_by_address(pr_rec_ecl_loader_state *state,
+                                                      unsigned k, uint16_t address) {
+    uint8_t cls;
+    if (state == NULL || k == 0u || k >= PR_REC_ECL_SLOT_COUNT) {
+        return PR_REC_ECL_WINDOW_ARGUMENT;
+    }
+    cls = pr_rec_ecl_address_class(address);
+    state->string_len[k] = 0u;                /* mov byte [0x6FC8 + 256k],0 */
     state->string_address[k] = address;
+    state->string_unresolved[k] = 0u;
+    if (cls == 1u && address == 0x6B00u) {
+        unsigned i;
+        if (!state->active_name_valid) {
+            state->string_unresolved[k] = 1u;
+            return PR_REC_ECL_WINDOW_UNRESOLVED;
+        }
+        for (i = 0; i < state->active_name_len && i < PR_REC_ECL_NAME_MAX; ++i) {
+            loader_append(state, k, state->active_name[i]);
+        }
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    if (cls <= 2u) {
+        uint16_t a = address;
+        for (;;) {
+            const uint16_t *w = window_word(state, cls, a);
+            if (w == NULL) {
+                return PR_REC_ECL_WINDOW_BOUNDS;
+            }
+            if (*w == 0u) {
+                break;
+            }
+            loader_append(state, k, (char)(*w & 0xFFu));   /* low byte of the word */
+            a++;
+        }
+        return PR_REC_ECL_WINDOW_OK;
+    }
     if (cls == 3u) {
         uint16_t a = address;
         for (;;) {
             int b = loader_read(state, a);
             if (b < 0) {
-                return PR_REC_ECL_LOADER_BOUNDS;
+                return PR_REC_ECL_WINDOW_BOUNDS;
             }
             if (b == 0) {
                 break;
@@ -186,10 +247,111 @@ static pr_rec_ecl_loader_status loader_string_by_address(pr_rec_ecl_loader_state
             loader_append(state, k, (char)b);
             a++;
         }
-    } else if (cls != 4u) {
-        state->string_unresolved[k] = 1u;
+        return PR_REC_ECL_WINDOW_OK;
     }
-    return PR_REC_ECL_LOADER_OK;
+    return PR_REC_ECL_WINDOW_OK;              /* class 4: slot stays empty */
+}
+
+pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
+                                                 uint16_t address, const char *text, size_t len) {
+    uint8_t cls;
+    size_t i;
+    if (state == NULL || (text == NULL && len != 0u)) {
+        return PR_REC_ECL_WINDOW_ARGUMENT;
+    }
+    if (len > PR_REC_ECL_TEXT_MAX) {
+        len = PR_REC_ECL_TEXT_MAX;            /* copied into a local string[255] first */
+    }
+    cls = pr_rec_ecl_address_class(address);
+    if (cls == 1u && address == 0x6B00u) {
+        if (len > PR_REC_ECL_NAME_MAX) {
+            len = PR_REC_ECL_NAME_MAX;        /* store with maximum length 0x0F */
+        }
+        for (i = 0; i < len; ++i) {
+            state->active_name[i] = text[i];
+        }
+        state->active_name_len = (uint8_t)len;
+        state->active_name_valid = 1u;
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    if (cls <= 2u) {
+        for (i = 0; i <= len; ++i) {          /* characters, then the zero word */
+            uint16_t *w = window_word(state, cls, (uint16_t)(address + i));
+            if (w == NULL) {
+                return PR_REC_ECL_WINDOW_BOUNDS;
+            }
+            *w = i < len ? (uint16_t)(unsigned char)text[i] : 0u;
+        }
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    if (cls == 3u) {
+        if (state->script_rw == NULL) {
+            return PR_REC_ECL_WINDOW_UNRESOLVED;
+        }
+        for (i = 0; i <= len; ++i) {
+            uint16_t a = (uint16_t)(address + i);
+            if (a < PR_REC_ECL_SCRIPT_BASE || (size_t)(a - PR_REC_ECL_SCRIPT_BASE) >= state->script_size) {
+                return PR_REC_ECL_WINDOW_BOUNDS;
+            }
+            state->script_rw[a - PR_REC_ECL_SCRIPT_BASE] = i < len ? (uint8_t)text[i] : 0u;
+        }
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    return PR_REC_ECL_WINDOW_OK;              /* class 4: nothing stored */
+}
+
+pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
+                                              uint16_t address, uint16_t *value) {
+    uint8_t cls;
+    if (state == NULL || value == NULL) {
+        return PR_REC_ECL_WINDOW_ARGUMENT;
+    }
+    cls = pr_rec_ecl_address_class(address);
+    if (cls <= 2u) {
+        const uint16_t *w = window_word(state, cls, address);
+        if (w == NULL) {
+            return PR_REC_ECL_WINDOW_BOUNDS;
+        }
+        *value = *w;
+        return cls == 1u ? PR_REC_ECL_WINDOW_HOOK : PR_REC_ECL_WINDOW_OK;
+    }
+    if (cls == 3u) {
+        int b = loader_read(state, address);
+        if (b < 0) {
+            return PR_REC_ECL_WINDOW_BOUNDS;
+        }
+        *value = (uint16_t)b;                 /* zero-extended script byte */
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    return PR_REC_ECL_WINDOW_UNRESOLVED;      /* class 4 pseudo-addresses */
+}
+
+pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
+                                               uint16_t address, uint16_t value) {
+    uint8_t cls;
+    if (state == NULL) {
+        return PR_REC_ECL_WINDOW_ARGUMENT;
+    }
+    cls = pr_rec_ecl_address_class(address);
+    if (cls <= 2u) {
+        uint16_t *w = window_word(state, cls, address);
+        if (w == NULL) {
+            return PR_REC_ECL_WINDOW_BOUNDS;
+        }
+        *w = value;
+        return cls == 1u ? PR_REC_ECL_WINDOW_HOOK : PR_REC_ECL_WINDOW_OK;
+    }
+    if (cls == 3u) {
+        if (state->script_rw == NULL) {
+            return PR_REC_ECL_WINDOW_UNRESOLVED;
+        }
+        if (address < PR_REC_ECL_SCRIPT_BASE || (size_t)(address - PR_REC_ECL_SCRIPT_BASE) >= state->script_size) {
+            return PR_REC_ECL_WINDOW_BOUNDS;
+        }
+        state->script_rw[address - PR_REC_ECL_SCRIPT_BASE] = (uint8_t)value;   /* low byte only */
+        return PR_REC_ECL_WINDOW_OK;
+    }
+    return PR_REC_ECL_WINDOW_UNRESOLVED;
 }
 
 /* Allocates the next string slot of this call (engine: string index += 1) and
@@ -251,17 +413,19 @@ pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state
         } else if (t == 0x81) {
             unsigned k = loader_alloc_string(state);
             int hb;
-            pr_rec_ecl_loader_status st;
             state->pc++;
             hb = loader_read(state, state->pc);
             if (hb < 0) {
                 return PR_REC_ECL_LOADER_BOUNDS;
             }
             state->high[i] = (uint8_t)hb;
-            st = loader_string_by_address(state, k,
-                                          pr_rec_ecl_operand_word(state->low[i], state->high[i]));
-            if (st != PR_REC_ECL_LOADER_OK) {
-                return st;
+            {
+                pr_rec_ecl_window_status ws = pr_rec_ecl_string_by_address(
+                    state, k, pr_rec_ecl_operand_word(state->low[i], state->high[i]));
+                if (ws == PR_REC_ECL_WINDOW_BOUNDS) {
+                    return PR_REC_ECL_LOADER_BOUNDS;
+                }
+                /* UNRESOLVED (active name unknown) is recorded in string_unresolved[k] */
             }
         }
         /* any other tag (including 0x00): nothing more */

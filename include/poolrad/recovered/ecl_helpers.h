@@ -81,6 +81,10 @@ uint8_t pr_rec_ecl_address_class(uint16_t address);
 
 #define PR_REC_ECL_SCRIPT_BASE 0x9900u      /* virtual address of script byte 0 */
 #define PR_REC_ECL_SLOT_COUNT 16u           /* slots 1..15 modelled (engine prefetches at most 14) */
+#define PR_REC_ECL_WINDOW0_WORDS 1024u      /* GetMem(0x800) in unit 0x36 + 0x002D */
+#define PR_REC_ECL_WINDOW1_WORDS 1024u      /* GetMem(0x800) */
+#define PR_REC_ECL_WINDOW2_WORDS 512u       /* GetMem(0x400) */
+#define PR_REC_ECL_NAME_MAX 15u             /* string[15] assignment limit passed to the runtime store */
 
 typedef enum {
     PR_REC_ECL_LOADER_OK = 0,
@@ -100,8 +104,69 @@ typedef struct {
     uint8_t string_len[PR_REC_ECL_SLOT_COUNT];        /* length byte of buffer 0x6FC8 + 256*k */
     char string_text[PR_REC_ECL_SLOT_COUNT][PR_REC_ECL_TEXT_MAX];
     uint16_t string_address[PR_REC_ECL_SLOT_COUNT];   /* 0x81 operands: the address passed on */
-    uint8_t string_unresolved[PR_REC_ECL_SLOT_COUNT]; /* 1 = 0x81 target in an engine data window, not modelled */
+    uint8_t string_unresolved[PR_REC_ECL_SLOT_COUNT]; /* 1 = 0x81 target needs state this model lacks (see below) */
+    /* ---- engine string/variable windows (issue #22) ----------------------
+     * Allocated and zero-filled once by unit 0x36 + 0x002D: three heap arrays of
+     * 16-bit words addressed by script addresses minus the window base:
+     *   window 0: addresses 0x4900..0x4CFF, 1024 words, far pointer [0x49D2]
+     *   window 1: addresses 0x6B00..0x6EFF, 1024 words, far pointer [0x49D6]
+     *   window 2: addresses 0x9700..0x98FF,  512 words, far pointer [0x49DA]
+     * Strings live in them one character per word, zero word terminated. */
+    uint16_t window0[PR_REC_ECL_WINDOW0_WORDS];
+    uint16_t window1[PR_REC_ECL_WINDOW1_WORDS];
+    uint16_t window2[PR_REC_ECL_WINDOW2_WORDS];
+    /* Address 0x6B00 is not a window word: it names the active character's
+     * name string (a string[15] at far pointer [0x5D92]). Supply it here;
+     * with active_name_valid == 0 the engine would read through a null or
+     * stale pointer, so the model reports that path as unresolved. */
+    char active_name[PR_REC_ECL_NAME_MAX];
+    uint8_t active_name_len;
+    uint8_t active_name_valid;
+    /* Optional writable script buffer for class-3 stores (the engine writes
+     * into its script buffer); NULL leaves such stores unresolved. */
+    uint8_t *script_rw;
 } pr_rec_ecl_loader_state;
+
+typedef enum {
+    PR_REC_ECL_WINDOW_OK = 0,
+    PR_REC_ECL_WINDOW_ARGUMENT,
+    PR_REC_ECL_WINDOW_BOUNDS,       /* string would run past a window or the script buffer */
+    PR_REC_ECL_WINDOW_UNRESOLVED,   /* path needs engine state this model lacks (unset active
+                                     * name, class-4 pseudo-variables, class-3 store without
+                                     * script_rw); no window or script byte is written, but a
+                                     * string read still records the slot's address, empty
+                                     * length and unresolved flag */
+    PR_REC_ECL_WINDOW_HOOK          /* class-1 word access done, but the engine also runs an un-modelled hook */
+} pr_rec_ecl_window_status;
+
+/* Zero-fills the three windows and the string slots and invalidates the
+ * active name, as the initializer (which also nulls [0x5D92]) does. */
+void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state);
+
+/* Unit 0x25 + 0x12FB (GAME.OVR 0x087CE): copy the string at `address` into
+ * string slot k. Classes 0-2 read words until a zero word; class 3 reads
+ * script bytes until a zero byte; class 4 leaves the slot empty; address
+ * 0x6B00 copies the active character's name (unresolved when not valid). */
+pr_rec_ecl_window_status pr_rec_ecl_string_by_address(pr_rec_ecl_loader_state *state,
+                                                      unsigned k, uint16_t address);
+
+/* Unit 0x25 + 0x0F53 (GAME.OVR 0x08426): store a string at `address`: one
+ * character per word plus a zero word (classes 0-2), bytes plus a zero byte
+ * (class 3, needs script_rw), the active name for 0x6B00 (max 15), nothing
+ * for class 4. len is capped at 255 as the engine's local string[255]. */
+pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
+                                                 uint16_t address, const char *text, size_t len);
+
+/* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store
+ * word) for classes 0-3. Class 4 pseudo-addresses and the class-1 hooks
+ * (+0x07BC on load, +0x0A74 on store, which mirror character-record fields)
+ * are not modelled: load returns UNRESOLVED for class 4 and HOOK for class 1
+ * (value read from the window); store returns HOOK after storing for class 1. */
+pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
+                                              uint16_t address, uint16_t *value);
+pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
+                                               uint16_t address, uint16_t value);
+
 
 /* Resets slots, string buffers and flags; keeps script and pc. */
 void pr_rec_ecl_loader_reset(pr_rec_ecl_loader_state *state);
