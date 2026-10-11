@@ -80,6 +80,25 @@ unsupported handlers are `+0x0126` (opcode `0x03`, COMPARE), `+0x0A09` (opcodes 
 PRINT/PRINTCLEAR), `+0x03B4` (opcode `0x0C`) and `+0x0C74` (opcodes `0x21`/`0x37`); the
 initial-entry route reaches `+0x0C74` after four SAVEs.
 
+## 3.3 After issue #92: the initial entry past opcodes 0x21 and 0x37
+
+With `pr_rec_ecl_op_load_files` bound for opcodes 0x21 and 0x37 (both dispatch to unit 0x1c
+`+0x0C74`; FUNCTION_LEDGER.md section 1.18), one `pr_rec_ecl_run` call on the initial entry
+`0x9AF2` is exact (no hook on this route):
+
+| entry | address | steps | real stop | run status | handler status | latch | handler | callback counts and flags [0x4431..0x4434] |
+| --- | --- | ---: | --- | --- | --- | --- | --- | --- |
+| 4 | `0x9AF2` | 7 | `0x9B18` | UNMODELLED | OK | `0x03` | `+0x0126` | wallset 1, pieces 1, text 0, resident 1 1, resident 2 1; flags 1 0 1 1 |
+
+The 0x21 instruction at `0x9B0A` carries three tag-`0x00` operands; its first value is
+neither `0xFF` nor `0x7F` and window 0 word `0xE6` is 1 after the initializer, so the
+wallset branch runs (window 0 word `0xC5` set, unit 0x3bd entry 7 called, window 1 word
+`0x2C9` cleared) and the text branch does not. The following 0x37 at `0x9B11` has a first
+value of `0x7F`, so unit 0x3bd entry 6 is called once with (0, 1). With `[0x4432]` set by
+the gameplay loop, that second call also runs the two resident routines `0xBA:0x27D9` and
+`0xBA:0x0767` and clears `[0x4432]`. The next boundary is opcode `0x03` (`+0x0126`,
+COMPARE in the reference naming) at `0x9B18`, which also stops the pre-camp entry.
+
 ## 4. Unresolved boundaries
 
 The class-1 store hook (`+0x0A74` in unit 0x25, mirrors window words into the active
@@ -87,7 +106,10 @@ character record) runs on the run entry's two SAVEs and on the camp-interrupted 
 SAVEs and is reported as HOOK, not executed, which stops a plain `pr_rec_ecl_run` there
 (section 3.1); the continuation in 3.2 is extrapolated;
 the load-word class-1 hook likewise; class-4 pseudo-addresses stay unresolved. The
-reference names of the opcodes are not asserted by this build.
+reference names of the opcodes are not asserted by this build. For opcodes 0x21/0x37 the
+wallset and piece loaders (unit 0x3bd entries 7 and 6: file-name construction, the resident
+DAX loader `0x802:0x0716`, resident `0x464:0x00FF`), the text routine (unit 0x3ce entry 1)
+and the resident routines `RES_00BA_27D9` and `RES_00BA_0767` are callbacks, not translated.
 
 ## 5. Reproduce (private)
 

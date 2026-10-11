@@ -180,6 +180,19 @@ typedef struct {
     uint8_t prev_opcode;
     uint8_t b442e;
     uint8_t b49ff;
+    /* ---- LOAD FILES / LOAD PIECES handler (issue #92, unit 0x1c + 0x0C74) --
+     * Four flag bytes the gameplay loop clears on entry ([0x4432] is set to 1
+     * there) and the handler sets: [0x4431] on every call, [0x4434] on the
+     * 0x21 branch, [0x4433] on the 0x37 branch; when all of [0x4432],
+     * [0x4433], [0x4434] are set the handler runs two resident routines and
+     * clears [0x4432]. piece_words[i-1] = the words [0x6AAE + 4i] and
+     * [0x6AB0 + 4i], i = 1..3, which the default 0x37 path sets to 0xFFFF for
+     * an operand of 0xFF. Meanings are not asserted. */
+    uint8_t b4431;
+    uint8_t b4432;
+    uint8_t b4433;
+    uint8_t b4434;
+    uint16_t piece_words[3][2];
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -509,5 +522,42 @@ pr_rec_ecl_window_status pr_rec_ecl_slot_value(pr_rec_ecl_loader_state *state, u
  * (optional). */
 pr_rec_ecl_handler_status pr_rec_ecl_op_save(pr_rec_ecl_loader_state *state,
                                              pr_rec_ecl_window_status *store_status);
+
+/* ---- Issue #92: LOAD FILES / LOAD PIECES handler (model) --------------------
+ * GAME.OVR 0x019BA, unit 0x1c + 0x0C74 (bytes +0x0C74..+0x0DEE), opcodes 0x21
+ * and 0x37 (dispatcher cases at +0x3054 and +0x3058 share it), 379 bytes, 129
+ * instructions, `retf`, no near calls, 11 far-call sites. Paths: loader with
+ * count 3; [0x4431] = 1; the three slot values (function 21) truncated to
+ * bytes v1..v3; branch on the latch == 0x21:
+ *   0x21: [0x4434] = 1; if v1 not 0xFF, not 0x7F and window 0 word 0xE6 != 0:
+ *         window 0 word 0xC5 = v1, unit 0x3bd entry 7 (v1), window 1 word
+ *         0x2C9 = 0; if v3 != 0xFF and window 0 word 0xE6 == 0: unit 0x3ce
+ *         entry 1 with the 6-character constant at cs:0x0C6D, 0, 0x28.
+ *   else: [0x4433] = 1; if v1 == 0x7F: unit 0x3bd entry 6 (0, 1); else if
+ *         window 0 words 0xE7 and 0xE8 are both non-zero: entry 6 (v1, 1) and
+ *         entry 6 (v3, 3); else for i = 1..3: entry 6 (vi, i) when vi != 0xFF,
+ *         otherwise the two piece words of slot i are set to 0xFFFF.
+ *   then: if [0x4432], [0x4433] and [0x4434] are all set: resident 0xBA:0x27D9,
+ *         resident 0xBA:0x0767 with the active-character pointer, [0x4432] = 0.
+ * Path-complete model: the loaders, the text routine and the two resident
+ * routines are callbacks. Each is required at the point its site is reached:
+ * a NULL callback there returns HANDLER_UNRESOLVED after the writes that
+ * precede the site and before the effects that follow it, so a run cannot
+ * report a completed route with DOS work omitted. A branch that reaches no
+ * site needs no callback. The loader core and function 21 are dependencies.
+ * An UNRESOLVED or BOUNDS slot value returns before the branch-specific
+ * effects (the operand load and [0x4431] have already happened; the engine
+ * would continue with an unmodelled byte). */
+typedef struct {
+    void *ctx;
+    void (*load_wallset)(void *ctx, uint8_t id);               /* unit 0x3bd entry 7 (+0x10C7), `retf 2`; required when reached */
+    void (*load_pieces)(void *ctx, uint8_t id, uint8_t slot);  /* unit 0x3bd entry 6 (+0x0E08), `retf 4`, (id, slot) as pushed */
+    void (*show_text)(void *ctx);                              /* unit 0x3ce entry 1 (+0x0022) with the constant, 0, 0x28 */
+    void (*resident_27d9)(void *ctx);                          /* 0xBA:0x27D9 (RES_00BA_27D9), no arguments */
+    void (*resident_0767)(void *ctx);                          /* 0xBA:0x0767 (RES_00BA_0767) with [0x5D92] */
+} pr_rec_ecl_load_files_io;
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_load_files(pr_rec_ecl_loader_state *state,
+                                                   const pr_rec_ecl_load_files_io *io);
 
 #endif

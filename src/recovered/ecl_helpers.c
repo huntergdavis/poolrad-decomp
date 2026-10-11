@@ -961,3 +961,86 @@ pr_rec_ecl_handler_status pr_rec_ecl_op_save(pr_rec_ecl_loader_state *state,
     }
     return map_window_status(ws);                               /* +0x02DC..+0x02DF: retf */
 }
+
+/* ---- Issue #92: LOAD FILES / LOAD PIECES, unit 0x1c + 0x0C74 (model) ------- */
+
+pr_rec_ecl_handler_status pr_rec_ecl_op_load_files(pr_rec_ecl_loader_state *state,
+                                                   const pr_rec_ecl_load_files_io *io) {
+    pr_rec_ecl_loader_status st;
+    pr_rec_ecl_handler_status result = PR_REC_ECL_HANDLER_OK;
+    uint8_t v[4];
+    unsigned i;
+    if (state == NULL || io == NULL) {
+        return PR_REC_ECL_HANDLER_ARGUMENT;
+    }
+    st = pr_rec_ecl_load_operands(state, 3u);                   /* +0x0C7A..+0x0C7D: mov al,3; lcall 0x2B:0x2A */
+    if (st != PR_REC_ECL_LOADER_OK) {
+        return map_loader_status(st);
+    }
+    state->b4431 = 1u;                                          /* +0x0C82 */
+    for (i = 1u; i <= 3u; ++i) {                                /* +0x0C87..+0x0CA9: [bp-4+i] = low byte of slot value i */
+        uint16_t w = 0u;
+        pr_rec_ecl_window_status ws = pr_rec_ecl_slot_value(state, (uint8_t)i, &w);
+        if (ws == PR_REC_ECL_WINDOW_HOOK) {
+            result = PR_REC_ECL_HANDLER_HOOK;
+        } else if (ws != PR_REC_ECL_WINDOW_OK) {
+            return map_window_status(ws);                       /* model: before the branch-specific effects */
+        }
+        v[i] = (uint8_t)w;
+    }
+    if (state->latch == 0x21u) {                                /* +0x0CAB: cmp [0x6F7F],0x21 */
+        state->b4434 = 1u;                                      /* +0x0CB2 */
+        if (v[1] != 0xFFu && v[1] != 0x7Fu && state->window0[0xE6] != 0u) {   /* +0x0CB7..+0x0CCD */
+            state->window0[0xC5] = v[1];                        /* +0x0CCF..+0x0CD8: word 0x18A/2 */
+            if (io->load_wallset == NULL) {
+                return PR_REC_ECL_HANDLER_UNRESOLVED;           /* boundary reached without a callback */
+            }
+            io->load_wallset(io->ctx, v[1]);                    /* +0x0CDD..+0x0CE1: lcall 0x3D5:0x43 */
+            state->window1[0x2C9] = 0u;                         /* +0x0CE6..+0x0CEC: word 0x592/2 */
+        }
+        if (v[3] != 0xFFu && state->window0[0xE6] == 0u) {      /* +0x0CF1..+0x0D01 */
+            if (io->show_text == NULL) {
+                return PR_REC_ECL_HANDLER_UNRESOLVED;
+            }
+            io->show_text(io->ctx);                             /* +0x0D03..+0x0D18: constant cs:0x0C6D, 0, 0x28 -> 0x3E9:0x25 */
+        }
+    } else {                                                    /* +0x0D20 (opcode 0x37) */
+        state->b4433 = 1u;
+        if (v[1] == 0x7Fu) {                                    /* +0x0D25 */
+            if (io->load_pieces == NULL) {
+                return PR_REC_ECL_HANDLER_UNRESOLVED;
+            }
+            io->load_pieces(io->ctx, 0u, 1u);                   /* +0x0D2B..+0x0D31 */
+        } else if (state->window0[0xE7] != 0u && state->window0[0xE8] != 0u) {   /* +0x0D39..+0x0D4F */
+            if (io->load_pieces == NULL) {
+                return PR_REC_ECL_HANDLER_UNRESOLVED;
+            }
+            io->load_pieces(io->ctx, v[1], 1u);                 /* +0x0D51..+0x0D58 */
+            io->load_pieces(io->ctx, v[3], 3u);                 /* +0x0D5D..+0x0D64 */
+        } else {
+            for (i = 1u; i <= 3u; ++i) {                        /* +0x0D6B..+0x0DBD */
+                if (v[i] != 0xFFu) {
+                    if (io->load_pieces == NULL) {
+                        return PR_REC_ECL_HANDLER_UNRESOLVED;   /* earlier slots' effects stand */
+                    }
+                    io->load_pieces(io->ctx, v[i], (uint8_t)i); /* +0x0D81..+0x0D90 */
+                } else {
+                    state->piece_words[i - 1u][0] = 0xFFFFu;    /* +0x0D97..+0x0DA2: [0x6AAE + 4i] */
+                    state->piece_words[i - 1u][1] = 0xFFFFu;    /* +0x0DA8..+0x0DB3: [0x6AB0 + 4i] */
+                }
+            }
+        }
+    }
+    if (state->b4432 != 0u && state->b4433 != 0u && state->b4434 != 0u) {   /* +0x0DBF..+0x0DD2 */
+        if (io->resident_27d9 == NULL) {
+            return PR_REC_ECL_HANDLER_UNRESOLVED;               /* [0x4432] stays set */
+        }
+        io->resident_27d9(io->ctx);                             /* +0x0DD4 */
+        if (io->resident_0767 == NULL) {
+            return PR_REC_ECL_HANDLER_UNRESOLVED;
+        }
+        io->resident_0767(io->ctx);                             /* +0x0DD9..+0x0DE1 with [0x5D92] */
+        state->b4432 = 0u;                                      /* +0x0DE6 */
+    }
+    return result;                                              /* +0x0DEB..+0x0DEE */
+}
