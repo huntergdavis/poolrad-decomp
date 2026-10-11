@@ -131,7 +131,11 @@ typedef enum {
     PR_REC_ECL_WINDOW_OK = 0,
     PR_REC_ECL_WINDOW_ARGUMENT,
     PR_REC_ECL_WINDOW_BOUNDS,       /* string would run past a window or the script buffer */
-    PR_REC_ECL_WINDOW_UNRESOLVED,   /* path needs engine state this model lacks; nothing changed */
+    PR_REC_ECL_WINDOW_UNRESOLVED,   /* path needs engine state this model lacks (unset active
+                                     * name, class-4 pseudo-variables, class-3 store without
+                                     * script_rw); no window or script byte is written, but a
+                                     * string read still records the slot's address, empty
+                                     * length and unresolved flag */
     PR_REC_ECL_WINDOW_HOOK          /* class-1 word access done, but the engine also runs an un-modelled hook */
 } pr_rec_ecl_window_status;
 
