@@ -41,8 +41,8 @@ Three handler/callee models have unresolved dependencies or heap semantics;
 PRs #65/#72 add separate path-complete script-state initializer and ECL block-loader models.
 Two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
-translated. The regenerated classifier records 90 verified overlay identities,
+translated. The regenerated classifier records 91 verified overlay identities,
 including PRs #63/#69's twenty unit `0x38` entries and PR #65's view setter,
 and the callable ledger records ten resident identities. The combined
-evidence-backed floor is therefore 100 game routines. The full game-function
+evidence-backed floor is therefore 101 game routines. The full game-function
 denominator remains open; the DOS save-walk oracle reaches exploration.
