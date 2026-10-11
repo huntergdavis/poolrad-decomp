@@ -49,4 +49,21 @@ unsigned pr_rec_ecl_operand_count(uint8_t opcode);
 size_t pr_rec_ecl_unpack_text(const uint8_t *packed, size_t packed_len,
                               char *out, size_t capacity);
 
+/* GAME.OVR 0x07B82 (unit 0x25 + 0x06AF, public entry 9, called as 0x2B:0x4D).
+ * Full translation. Assembles a 16-bit operand value from the two value
+ * bytes of a prefetched operand slot: the first Pascal argument is the byte
+ * stored at [0x7085+i] (low), the second the byte at [0x7045+i] (high);
+ * the engine computes (second << 8) + first in AX. */
+uint16_t pr_rec_ecl_operand_word(uint8_t low, uint8_t high);
+
+/* GAME.OVR 0x07BCE (unit 0x25 + 0x06FB, internal). Full translation.
+ * Classifies a 16-bit script-space address by inclusive range, in the order
+ * the engine tests them (the ranges do not overlap):
+ *   0: 0x4900..0x4CFF   1: 0x6B00..0x6EFF   2: 0x9700..0x98FF
+ *   3: 0x9900..0xB6FF (the loaded script block; 0x9900 is unpacked offset 2)
+ *   4: any other value.
+ * The meaning of ranges 0 to 2 (engine data windows the scripts may address)
+ * is not asserted here; see docs/re/FUNCTION_LEDGER.md. */
+uint8_t pr_rec_ecl_address_class(uint16_t address);
+
 #endif

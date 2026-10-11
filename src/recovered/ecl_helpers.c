@@ -98,3 +98,27 @@ size_t pr_rec_ecl_unpack_text(const uint8_t *packed, size_t packed_len,
     }
     return produced;
 }
+
+uint16_t pr_rec_ecl_operand_word(uint8_t low, uint8_t high) {
+    /* mov al,[bp+8]; xor ah,ah; mov dx,ax ; mov al,[bp+6]; xor ah,ah ;
+     * shl ax,8 ; add ax,dx ; return ax                                 */
+    return (uint16_t)(((unsigned)high << 8) + (unsigned)low);
+}
+
+uint8_t pr_rec_ecl_address_class(uint16_t address) {
+    /* Local starts at 4; each range test rewrites it when it matches. */
+    uint8_t result = 4u;
+    if (address >= 0x4900u && address <= 0x4CFFu) {
+        result = 0u;
+    }
+    if (address >= 0x6B00u && address <= 0x6EFFu) {
+        result = 1u;
+    }
+    if (address >= 0x9700u && address <= 0x98FFu) {
+        result = 2u;
+    }
+    if (address >= 0x9900u && address <= 0xB6FFu) {
+        result = 3u;
+    }
+    return result;
+}

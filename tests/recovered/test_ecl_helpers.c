@@ -108,12 +108,56 @@ static int test_unpack_limit(void) {
     return 0;
 }
 
+static int test_operand_word(void) {
+    unsigned lo, hi;
+    uint8_t le[2];
+    for (hi = 0; hi < 256; ++hi) {
+        for (lo = 0; lo < 256; ++lo) {
+            CHECK(pr_rec_ecl_operand_word((uint8_t)lo, (uint8_t)hi) == (uint16_t)((hi << 8) | lo));
+        }
+    }
+    /* A tag-01 operand "01 LO HI" stores LO then HI; the loader passes
+     * (LO, HI) and must obtain the little-endian word. */
+    le[0] = 0x34; le[1] = 0x12;
+    CHECK(pr_rec_ecl_operand_word(le[0], le[1]) == 0x1234);
+    CHECK(pr_rec_ecl_operand_word(0xFF, 0xFF) == 0xFFFF);
+    CHECK(pr_rec_ecl_operand_word(0x00, 0x00) == 0x0000);
+    return 0;
+}
+
+static int test_address_class(void) {
+    static const struct { uint16_t lo, hi; uint8_t cls; } ranges[4] = {
+        {0x4900, 0x4CFF, 0}, {0x6B00, 0x6EFF, 1}, {0x9700, 0x98FF, 2}, {0x9900, 0xB6FF, 3}
+    };
+    unsigned i;
+    unsigned long a;
+    for (i = 0; i < 4; ++i) {
+        CHECK(pr_rec_ecl_address_class(ranges[i].lo) == ranges[i].cls);
+        CHECK(pr_rec_ecl_address_class(ranges[i].hi) == ranges[i].cls);
+        CHECK(pr_rec_ecl_address_class((uint16_t)(ranges[i].lo - 1)) != ranges[i].cls);
+        CHECK(pr_rec_ecl_address_class((uint16_t)(ranges[i].hi + 1)) != ranges[i].cls);
+    }
+    /* Exhaustive: every address maps to exactly the range that contains it. */
+    for (a = 0; a < 0x10000ul; ++a) {
+        uint8_t expect = 4;
+        for (i = 0; i < 4; ++i) {
+            if (a >= ranges[i].lo && a <= ranges[i].hi) expect = ranges[i].cls;
+        }
+        CHECK(pr_rec_ecl_address_class((uint16_t)a) == expect);
+    }
+    CHECK(pr_rec_ecl_address_class(0x98FF) == 2 && pr_rec_ecl_address_class(0x9900) == 3);
+    CHECK(pr_rec_ecl_address_class(0x0000) == 4 && pr_rec_ecl_address_class(0xFFFF) == 4);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
     rc |= test_operand_count();
     rc |= test_unpack_text();
     rc |= test_unpack_limit();
+    rc |= test_operand_word();
+    rc |= test_address_class();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
