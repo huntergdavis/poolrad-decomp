@@ -18,6 +18,6 @@ Signals (not mutually exclusive): string constants 216 routines (664 references)
 | helper_candidate | 60 | 22 | 0 |
 | game_or_other_library_unresolved | 153 | 74 | 0 |
 
-Coverage: 196236 of 197451 unit code bytes (99.4%) reached by the bounded decode; 184 uncovered ranges (166 of 8 bytes or less; 712 bytes precede a unit's first prologue); 0 uncovered ranges decode as a self-contained return-terminated routine; 0 jump-table dispatch sites.
+Linear decode: 196236 of 197451 unit code bytes (99.4%) linearly decoded between prologue candidates (not reachable-code coverage); 184 undecoded ranges (166 of 8 bytes or less; 712 bytes precede a unit's first prologue); the gap heuristic (a range that decodes completely, starts with a plausible opcode and contains a return) flagged 0 ranges; 0 `jmp cs:[table]` dispatch sites found by that one pattern; incoming fixup-confirmed far calls recorded per row as far_in (1161 total).
 
-Largest uncovered ranges (unit, offset, size): 0x19:0x0000 253, 0x86:0x0000 138, 0x77:0x0000 74, 0x40c:0x0000 59, 0x3b0:0x0385 56, 0x23:0x0000 48, 0x36:0x0000 45, 0x9e:0x0abb 44.
+Largest undecoded ranges (unit, offset, size): 0x19:0x0000 253, 0x86:0x0000 138, 0x77:0x0000 74, 0x40c:0x0000 59, 0x3b0:0x0385 56, 0x23:0x0000 48, 0x36:0x0000 45, 0x9e:0x0abb 44.

@@ -25,7 +25,7 @@ Output: JSON with edges and a summary; optional Markdown summary. Addresses and 
 Usage:
   callgraph.py --inventory inv.json --exe START.EXE --ovr GAME.OVR --json cg.json --md cg.md
 """
-import argparse, collections, json, re, struct
+import argparse, collections, hashlib, json, re, struct
 
 RUNTIME_SEG = 0xAF8
 
@@ -51,6 +51,11 @@ def main():
     a = ap.parse_args()
     inv = json.load(open(a.inventory))
     ovr = open(a.ovr, "rb").read()
+    exe = open(a.exe, "rb").read()
+    inputs = dict(start_exe_sha256=hashlib.sha256(exe).hexdigest(), start_exe_size=len(exe),
+                  game_ovr_sha256=hashlib.sha256(ovr).hexdigest(), game_ovr_size=len(ovr))
+    if inputs["start_exe_sha256"] != inv["inputs"]["start_exe_sha256"] or inputs["game_ovr_sha256"] != inv["inputs"]["game_ovr_sha256"]:
+        raise SystemExit("START.EXE/GAME.OVR digests differ from the inventory; refusing to build a call graph")
     units = inv["units"]
     by_memseg = {u["memory_segment"]: u for u in units if u.get("memory_segment") is not None}
     edges = []
@@ -117,7 +122,7 @@ def main():
             summ["far_unrelocated_candidate"] += 1
     top = fanin.most_common(12)
     xunit = collections.Counter((e["unit"], e["target_unit"]) for e in edges if e.get("resolution") == "overlay")
-    out = dict(summary=dict(summ), far_segment_histogram={hex(k): v for k, v in seg_hist.most_common()},
+    out = dict(inputs=inputs, summary=dict(summ), far_segment_histogram={hex(k): v for k, v in seg_hist.most_common()},
                top_fan_in=[dict(unit=k[0], func_rel=k[1], callers=v) for k, v in top],
                cross_unit_edges=[dict(src=k[0], dst=k[1], n=v) for k, v in xunit.most_common()],
                edges=edges)
