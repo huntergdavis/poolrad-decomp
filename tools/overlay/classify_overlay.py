@@ -82,6 +82,9 @@ U3BD_CELL_ENTRY4 = (0x3BD, 0x057A)
 # PR #126 matched entry 2, including its unwritten-result path by taking
 # the pre-existing [BP-1] frame byte as an explicit input.
 U3BD_NIBBLE_ENTRY2 = (0x3BD, 0x047B)
+# PR #128 independently matched entry 3's range gate, nested entry-2 nibble
+# gate, quarter-3 field reads, and all exits to the DOS bytes.
+U3BD_FIELD_ENTRY3 = (0x3BD, 0x0350)
 # PR #108 reviewed both ECL comparison helpers and decoded their Pascal
 # runtime calls; these two have strict full-C translations.
 ECL_COMPARE_HELPERS = {(0x25, 0x1815), (0x25, 0x18EB)}
@@ -98,7 +101,8 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x25, 0x0F53), (0x25, 0x1153), (0x25, 0x12FB), (0x25, 0x1EA6), (0x36, 0x002D),
     (0x38, 0x0377), (0x38, 0x03AC), (0x38, 0x03E1),
     (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK,
-    U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2,
+    U3BD_FIELD_ENTRY3} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):
