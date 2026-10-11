@@ -35,7 +35,7 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 96)
+        self.assertEqual(len(co.VERIFIED), 97)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
@@ -55,6 +55,8 @@ class ClassifyTest(unittest.TestCase):
         self.assertIn(co.U3BD_WALLSET_ENTRY7, co.VERIFIED)
         self.assertEqual(co.U3BD_CELL_ENTRY4, (0x3BD, 0x057A))
         self.assertIn(co.U3BD_CELL_ENTRY4, co.VERIFIED)
+        self.assertEqual(co.U3BD_NIBBLE_ENTRY2, (0x3BD, 0x047B))
+        self.assertIn(co.U3BD_NIBBLE_ENTRY2, co.VERIFIED)
         self.assertEqual(co.ECL_COMPARE_HELPERS, {(0x25, 0x1815), (0x25, 0x18EB)})
         self.assertTrue(co.ECL_COMPARE_HELPERS <= co.VERIFIED)
 
