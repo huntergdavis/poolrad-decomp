@@ -285,9 +285,9 @@ code read, two translations, two cores, 2 tests, 3 data checks).
 
 | # | identity | size | convention | kind | status |
 | --- | --- | ---: | --- | --- | --- |
-| 7 | `pr_rec_ecl_push_call_frame` = GAME.OVR 0x08E24, unit 0x25 + 0x1951, public entry 17 (called as `0x2B:0x75`, 2 sites) | 138 bytes, 47 instructions | far Pascal: one word argument (slot index in its low byte), `retf 2` | **full translation** | **verified**; the runtime allocator `0xAF8:0x023F` is modelled as a bounded array push (model bound 64, status `STACK_FULL`; the engine's list is heap-bound) |
-| 8 | `pr_rec_ecl_op_goto` = GAME.OVR 0x00E3A, unit 0x1c + 0x00F4, opcode 0x01 | 29 bytes, 13 instructions | far Pascal, no arguments, `retf` | **full translation** of the handler body | **verified**; composed with function 6 (loader core) |
-| 9 | `pr_rec_ecl_op_gosub` = GAME.OVR 0x00E57, unit 0x1c + 0x0111, opcode 0x02 | 21 bytes, 10 instructions | far Pascal, no arguments, `retf` | **full translation** of the handler body | **verified**; composed with functions 6 and 7 |
+| 7 | `pr_rec_ecl_push_call_frame` = GAME.OVR 0x08E24, unit 0x25 + 0x1951, public entry 17 (called as `0x2B:0x75`, 2 sites) | 138 bytes, 47 instructions | far Pascal: one word argument (slot index in its low byte), `retf 2` | **path-complete callee model with a stated heap limit** (the 6-byte heap node allocation through `0xAF8:0x023F` is replaced by a bounded 64-entry array with status `STACK_FULL`) | control flow and effects **verified**; not counted as a full translation |
+| 8 | `pr_rec_ecl_op_goto` = GAME.OVR 0x00E3A, unit 0x1c + 0x00F4, opcode 0x01 | 29 bytes, 13 instructions | far Pascal, no arguments, `retf` | **path-complete handler model with a stated dependency** (composes with the loader core, function 6) | handler body **verified** instruction for instruction; not counted as a full translation |
+| 9 | `pr_rec_ecl_op_gosub` = GAME.OVR 0x00E57, unit 0x1c + 0x0111, opcode 0x02 | 21 bytes, 10 instructions | far Pascal, no arguments, `retf` | **path-complete handler model with stated dependencies** (functions 6 and 7) | handler body **verified** instruction for instruction; not counted as a full translation |
 | 10 | `pr_rec_ecl_op_print_return` = GAME.OVR 0x03831, unit 0x1c + 0x2AEB, opcode 0x33 | 41 bytes, 13 instructions | far Pascal, no arguments, `retf`; no calls | **full translation** | **verified**, no dependencies |
 
 **Paths and side effects.**
@@ -313,13 +313,12 @@ saved PCs; the push alone uses the given slot and the current PC; argument and m
 statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN on both
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
-**Count, stated strictly.** Function 10 is a full translation with no dependencies.
-Functions 7, 8 and 9 are full translations of their own instruction paths; 8 and 9 compose
-with the operand loader (function 6), which remains a core because the tag-0x81 path with an
-unset active name and the runtime string cap are unresolved. Whether 7, 8 and 9 count toward
-the strict total is the reviewer's call; this ledger reports 1 unconditional and 3
-conditional on accepting composition with the loader core. The reviewed strict count stays
-as the PM records it until merge.
+**Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
+dependencies and raises the strict count to 4 after merge (functions 1, 4, 5, 10).
+Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
+and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
+unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
+node allocation with a bounded array. They are not counted as full translations.
 
 ## 2. Examined, not translated
 
@@ -355,12 +354,11 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: 3 fully translated leaf functions (1, 4, 5) plus 1
-dependency-free handler (10, PRINT RETURN) = 4 unconditional; 3 further full handler/callee
-translations (7, 8, 9) conditional on accepting composition with the loader core; 2
-path-complete translations whose runtime string calls carry the provisional cap (string by
-address, store string); 5 cores (functions 2, 3, 6, load word, store word); total verified
-functions is not claimed beyond that.
+Measured count for the battle card: strict full translations 4 after merge (functions 1,
+4, 5 and 10); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+9); path-complete translations whose runtime string calls carry the provisional cap 2
+(string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
+verified functions is not claimed beyond that.
 
 Time spent on the addressing model that these functions depend on: about one hour, which
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the

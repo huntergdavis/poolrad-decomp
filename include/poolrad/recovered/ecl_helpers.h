@@ -191,20 +191,27 @@ typedef enum {
 } pr_rec_ecl_handler_status;
 
 /* Unit 0x25 + 0x1951 (GAME.OVR 0x08E24, public entry 17, called as 0x2B:0x75).
- * Full translation. Pushes a new node holding the current PC onto the call
- * list (first node has a null link; later nodes link to the previous head),
- * then sets the PC to the word assembled from operand slot `slot`
- * (first value byte [0x7085+slot], second [0x7045+slot]). */
+ * Path-complete callee model with a stated heap limit: the original allocates
+ * a 6-byte heap node through the runtime, makes it the head of the call list
+ * (first node has a null link; later nodes link to the previous head) and
+ * stores the current PC in it; this model keeps the saved PCs in a bounded
+ * array instead (PR_REC_ECL_CALL_STACK_MAX, status STACK_FULL). Then the PC
+ * becomes the word assembled from operand slot `slot` (first value byte
+ * [0x7085+slot], second [0x7045+slot]). */
 pr_rec_ecl_handler_status pr_rec_ecl_push_call_frame(pr_rec_ecl_loader_state *state,
                                                      unsigned slot);
 
-/* Unit 0x1c + 0x00F4 (GAME.OVR 0x00E3A), opcode 0x01 GOTO. Full translation:
- * loads one operand (0x2B:0x2A with count 1), then stores the word assembled
- * from slot 1 ([0x7086], [0x7046]) into the PC. */
+/* Unit 0x1c + 0x00F4 (GAME.OVR 0x00E3A), opcode 0x01 GOTO. Path-complete
+ * handler model: its own 13 instructions are translated, but it composes with
+ * the operand loader core (stated dependency). Loads one operand (0x2B:0x2A
+ * with count 1), then stores the word assembled from slot 1 ([0x7086],
+ * [0x7046]) into the PC. */
 pr_rec_ecl_handler_status pr_rec_ecl_op_goto(pr_rec_ecl_loader_state *state);
 
-/* Unit 0x1c + 0x0111 (GAME.OVR 0x00E57), opcode 0x02 GOSUB. Full translation:
- * loads one operand, then calls pr_rec_ecl_push_call_frame with slot 1. */
+/* Unit 0x1c + 0x0111 (GAME.OVR 0x00E57), opcode 0x02 GOSUB. Path-complete
+ * handler model: its own 10 instructions are translated, composed with the
+ * operand loader core and the bounded call-frame model (stated dependencies).
+ * Loads one operand, then calls pr_rec_ecl_push_call_frame with slot 1. */
 pr_rec_ecl_handler_status pr_rec_ecl_op_gosub(pr_rec_ecl_loader_state *state);
 
 /* Unit 0x1c + 0x2AEB (GAME.OVR 0x03831), opcode 0x33 PRINT RETURN. Full
