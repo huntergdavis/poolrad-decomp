@@ -14,7 +14,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_sidecar_remove.c
                                     src/recovered/resident_sidecar_append.c
                                     src/recovered/resident_sidecar_lookup.c
-                                    src/recovered/resident_party_count.c)
+                                    src/recovered/resident_party_count.c
+                                    src/recovered/resident_character_field_zero.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -64,4 +65,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_resident_party_count_tests tests/recovered/test_resident_party_count.c)
     target_link_libraries(poolrad_resident_party_count_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_party_count_tests COMMAND poolrad_resident_party_count_tests)
+    add_executable(poolrad_resident_character_field_zero_tests
+                   tests/recovered/test_resident_character_field_zero.c)
+    target_link_libraries(poolrad_resident_character_field_zero_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_character_field_zero_tests
+             COMMAND poolrad_resident_character_field_zero_tests)
 endif()
