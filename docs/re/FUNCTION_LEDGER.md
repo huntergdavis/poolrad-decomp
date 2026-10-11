@@ -314,14 +314,14 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies. Strict full translations in this ledger's numbering: 10 (functions 1, 4, 5, 10, 11, 12, 13,
-14, 15 and 16). Overlay-only reviewed full C count on main, which also includes the sixteen
+dependencies. Strict full translations in this ledger's numbering: 12 (functions 1, 4, 5, 10, 11, 12, 13,
+14, 15, 16, 24 and 25). Overlay-only reviewed full C count on main, which also includes the sixteen
 unit 0x38 entries of PRs #63, #69 and #70 and later reviewed batches (documented outside
-this numbering): 32 on main d3cde1f (PM's reviewed record); the issue #102 PR adds
-two models (functions 26 and 27) and two every-instruction translations of runtime-calling
-helpers (functions 24 and 25, credit pending the PM's final review) and claims no count
-change here. Project-wide reviewed strict count (the PM's record,
-overlay 32 plus resident 9): 41 on main d3cde1f, not changed by this ledger.
+this numbering): 34 on main after reviewed PR #108. The issue #102 PR adds
+two models (functions 26 and 27) and two strict full translations of
+runtime-calling helpers (functions 24 and 25); the PM independently decoded
+their runtime calls and credited them in the PR #108 review. Project-wide
+reviewed strict count (overlay 34 plus resident 9): 43 after PR #108.
 Functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26 and 27 are path-complete models: their
 own instruction paths are translated and verified, but 8, 9, 17, 21, 22, 23, 26 and 27 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
@@ -697,8 +697,8 @@ Throughput: 40 minutes.
 
 | # | identity | size | convention | kind | status |
 | --- | --- | ---: | --- | --- | --- |
-| 24 | `pr_rec_ecl_compare_words` = GAME.OVR 0x08DBE, unit 0x25 + 0x18EB (bytes +0x18EB..+0x1950), public entry 16, run-time stub `0x2B:0x70` | 102 bytes, 36 instructions | far Pascal: two word arguments, `a` at `[bp+8]` (pushed first), `b` at `[bp+6]`, `retf 4`; writes `[0x6F78..0x6F7D]` | **every instruction translated**; the one runtime call (`0xAF8:0x16A8` with `DS:0x6F78, 6, 0`) was decoded independently by the PM as FillChar (loaded image `0x0C628`: `rep stosb`, `retf 8`) | **verified**; strict-count credit is the PM's final review |
-| 25 | `pr_rec_ecl_compare_strings` = GAME.OVR 0x08CE8, unit 0x25 + 0x1815 (bytes +0x1815..+0x18EA), public entry 15, run-time stub `0x2B:0x6B` | 214 bytes, 86 instructions | far Pascal: two far string pointers, `a` at `[bp+0xA]` (pushed first), `b` at `[bp+6]`, `retf 8`; writes the six flags | **every instruction translated**; the runtime calls were decoded independently by the PM (`0xAF8:0x0B25` at loaded `0x0BAA5`: copy `min(length, limit)` bytes, `retf 0xA`; `0xAF8:0x0C10` at `0x0BB90`: compare lengths, `repe cmpsb` unsigned, then length compare; the fill as above) and the C follows that order | **verified**; strict-count credit is the PM's final review |
+| 24 | `pr_rec_ecl_compare_words` = GAME.OVR 0x08DBE, unit 0x25 + 0x18EB (bytes +0x18EB..+0x1950), public entry 16, run-time stub `0x2B:0x70` | 102 bytes, 36 instructions | far Pascal: two word arguments, `a` at `[bp+8]` (pushed first), `b` at `[bp+6]`, `retf 4`; writes `[0x6F78..0x6F7D]` | **full translation**; the one runtime call (`0xAF8:0x16A8` with `DS:0x6F78, 6, 0`) was decoded independently by the PM as FillChar (loaded image `0x0C628`: `rep stosb`, `retf 8`) | **verified**; strict-count credit in PM's PR #108 review |
+| 25 | `pr_rec_ecl_compare_strings` = GAME.OVR 0x08CE8, unit 0x25 + 0x1815 (bytes +0x1815..+0x18EA), public entry 15, run-time stub `0x2B:0x6B` | 214 bytes, 86 instructions | far Pascal: two far string pointers, `a` at `[bp+0xA]` (pushed first), `b` at `[bp+6]`, `retf 8`; writes the six flags | **full translation**; the runtime calls were decoded independently by the PM (`0xAF8:0x0B25` at loaded `0x0BAA5`: copy `min(length, limit)` bytes, `retf 0xA`; `0xAF8:0x0C10` at `0x0BB90`: compare lengths, `repe cmpsb` unsigned, then length compare; the fill as above) and the C follows that order | **verified**; strict-count credit in PM's PR #108 review |
 | 26 | `pr_rec_ecl_op_compare` = GAME.OVR 0x00E6C, unit 0x1c + 0x0126 (bytes +0x0126..+0x01A2), opcode 0x03, dispatcher case +0x2F59 | 125 bytes, 50 instructions | far Pascal, no arguments, `retf`; `0x204` bytes of locals | **path-complete model** (loader core, function 21, functions 24 and 25) | both paths **verified**; not counted as full |
 | 27 | `pr_rec_ecl_op_if` = GAME.OVR 0x01898, unit 0x1c + 0x0B52 (bytes +0x0B52..+0x0BC7), opcodes 0x16..0x1B, dispatcher ladder +0x3009..+0x3022 | 118 bytes, 41 instructions | far Pascal, no arguments, `retf` | **path-complete model** (the skip through unit 0x25 entry 22 uses function 2's count table and the loader core) | all seven paths **verified**; not counted as full |
 
@@ -786,12 +786,11 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: strict full translations in this ledger's numbering 10
-(functions 1, 4, 5, 10, 11, 12, 13, 14, 15 and 16); overlay-only reviewed full C count on
-main 32 on d3cde1f (10 from this ledger's numbering plus the reviewed unit 0x38 batches,
-PM's record), unchanged by the issue #102 PR pending the PM's
-ruling on functions 24 and 25; project-wide strict count 41 on d3cde1f (overlay 32 plus resident
-9, PM's record); path-complete models with stated dependency, heap limits or external
+Measured count for the battle card: strict full translations in this ledger's numbering 12
+(functions 1, 4, 5, 10, 11, 12, 13, 14, 15, 16, 24 and 25); overlay-only reviewed full C count on
+main 34 after PR #108 (12 from this ledger's numbering plus the reviewed unit 0x38 batches,
+PM's record); project-wide strict count 43 (overlay 34 plus resident 9);
+path-complete models with stated dependency, heap limits or external
 boundaries 12 (functions 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 26, 27); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.

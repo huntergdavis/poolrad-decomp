@@ -12,9 +12,9 @@ contracts, recovered C helpers, and a resident called-target inventory are
 merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
-Forty-one game-specific routines are fully translated and behavior-checked
+Forty-three game-specific routines are fully translated and behavior-checked
 across the overlay and resident lanes (PRs #63/#69 added twenty bounded unit
-`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, and PRs #70/#79 resident target reset/selection).
+`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, and PRs #70/#79 resident target reset/selection).
 The PR #65 script-state initializer and PR #72 block loader remain
 path-complete models. The separately translated `0x464`
 bitmap release helper in PR #64 has unresolved game/library ownership and is
@@ -27,9 +27,10 @@ native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 91 verified identities, including
-the twenty-two reviewed unit `0x38` entries and PR #65's view setter. With
-ten verified resident identities, **101** is the current evidence-backed lower bound, not the full
+The regenerated overlay classifier records 94 verified identities, including
+the twenty-two reviewed unit `0x38` entries, PR #65's view setter, PR #106's
+unit `0x3BD` entry 6, and PR #108's two compare helpers. With
+ten verified resident identities, **104** is the current evidence-backed lower bound, not the full
 denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.
