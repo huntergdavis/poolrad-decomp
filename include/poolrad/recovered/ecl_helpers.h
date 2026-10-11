@@ -228,7 +228,11 @@ typedef enum {
     PR_REC_ECL_HANDLER_OK = 0,
     PR_REC_ECL_HANDLER_ARGUMENT,
     PR_REC_ECL_HANDLER_BOUNDS,          /* operand loader hit the script bounds */
-    PR_REC_ECL_HANDLER_STACK_FULL       /* model bound reached; the engine would allocate */
+    PR_REC_ECL_HANDLER_STACK_FULL,      /* model bound reached; the engine would allocate */
+    PR_REC_ECL_HANDLER_HOOK,            /* a class-1 window access was done but the engine also runs
+                                         * an un-modelled hook (issue #84) */
+    PR_REC_ECL_HANDLER_UNRESOLVED       /* a path needs engine state the model lacks; the write that
+                                         * depends on it was not made (issue #84) */
 } pr_rec_ecl_handler_status;
 
 /* Unit 0x25 + 0x1951 (GAME.OVR 0x08E24, public entry 17, called as 0x2B:0x75).
@@ -477,5 +481,33 @@ pr_rec_ecl_run_status pr_rec_ecl_run(pr_rec_ecl_loader_state *state,
                                      const pr_rec_ecl_dispatch_table *table, uint16_t entry,
                                      unsigned max_steps, unsigned *steps,
                                      pr_rec_ecl_handler_status *handler_status);
+
+/* ---- Issue #84: slot value and the SAVE handler (models) -------------------
+ * Slot value: GAME.OVR 0x07609, unit 0x25 + 0x0136 (bytes +0x0136..+0x01B5),
+ * public entry 1 (run-time stub 0x2B:0x25, 52 fixup-confirmed sites in unit
+ * 0x1c), 128 bytes, 57 instructions, `retf 2` (one word argument, the slot
+ * index in its low byte), result in AX. Reads tag [0x7005+slot], low
+ * [0x7085+slot], high [0x7045+slot]:
+ *   tag 0x00            -> the low byte, zero-extended;
+ *   tags 0x01,0x03,0x80 -> load word (+0x0E0C) at (high << 8) + low;
+ *   tags 0x02,0x81      -> (high << 8) + low through +0x06AF;
+ *   any other tag       -> the local [bp-2] is returned uninitialized.
+ * Path-complete model: the load-word core carries its own HOOK/UNRESOLVED
+ * statuses; the uninitialized case reports UNRESOLVED with value 0. */
+pr_rec_ecl_window_status pr_rec_ecl_slot_value(pr_rec_ecl_loader_state *state, uint8_t slot,
+                                               uint16_t *value);
+
+/* SAVE (opcode 0x09): GAME.OVR 0x00FD8, unit 0x1c + 0x0292 (bytes +0x0292..
+ * +0x02DF), 78 bytes, 30 instructions, called only from the dispatcher case
+ * at +0x2F86, `retf`. loader(2); dest = word(slot 2) through +0x06AF; if
+ * tag[1] < 0x80: value = slot value(1), store word (+0x0C77) (dest, value);
+ * else: store string (+0x0F53) of the first string buffer (DS:0x70C8) at
+ * dest. Two paths. Path-complete model composed of the loader core, the slot
+ * value model, the store-word core and the store-string translation; when the
+ * value is UNRESOLVED the store is not made (the engine would store an
+ * unmodelled value). store_status receives the window status of the store
+ * (optional). */
+pr_rec_ecl_handler_status pr_rec_ecl_op_save(pr_rec_ecl_loader_state *state,
+                                             pr_rec_ecl_window_status *store_status);
 
 #endif
