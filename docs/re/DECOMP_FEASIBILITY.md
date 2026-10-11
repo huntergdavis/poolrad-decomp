@@ -106,8 +106,10 @@ output under ignored paths.
 
 Overlay entry stubs are addressed at run time as `segment:(0x20 + 5*j)` with the segment
 recorded in the next unit's descriptor, not at their packed file positions. The inventory
-now records each unit's run-time segment, the call graph resolves 1,154 far calls into
-overlay entries (1,150 on exact prologues) instead of 202, and the Ghidra script labels the
+now records each unit's run-time segment (the final unit's 0x428 segment is inferred from
+descriptor spacing and corroborated by seven relocated calls), the call graph resolves
+1,161 far calls into overlay entries (1,157 on exact prologues) instead of 202, and the
+Ghidra script labels the
 run-time stub addresses (labels only, since the resident block holds the packed file
 image). `Spike.java` now takes `SPIKE_UNIT_OVR` and `SPIKE_TARGETS`, and patches non-call
 fixups to the unit's assigned segment.

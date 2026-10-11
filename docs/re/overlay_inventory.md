@@ -6,7 +6,7 @@ GAME.OVR sha256 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee792861
 
 Units 34, entry points 404, code 197451 bytes, fixup tables 8442 bytes, prologue functions 673 (prologues anywhere in file: 675). Units tile the file from 212 to 206105 of 206105; gaps: 0.
 
-Memory seg = the paragraph each unit's stub segment occupies at run time, read from the next unit's header; entry j is called as memory seg:(0x20 + 5*j). The sequential 32-byte-header formula reproduces it for 29 of 32 checkable units (it fails only across the file gap before the last nine units).
+Memory seg = the paragraph each unit's stub segment occupies at run time, normally read from the next unit's header; the final unit 0x40c is inferred as 0x428 from late descriptor spacing and seven fixup-confirmed calls to its stubs. Entry j is called as memory seg:(0x20 + 5*j). The sequential 32-byte-header formula reproduces it for 29 of 33 checkable units (failures mark resident descriptor gaps).
 
 | stub para (file) | memory seg | ovr offset | code | fixups | entries | functions | fixup kinds (lcall/mov ax/other) |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
@@ -40,7 +40,7 @@ Memory seg = the paragraph each unit's stub segment occupies at run time, read f
 | 0x36 | 0x3e | 58835 | 1562 | 55 | 2 | 2 | 55/0/0 |
 | 0x9b | 0xac | 174727 | 1123 | 0 | 5 | 5 | 0/0/0 |
 | 0x19 | 0x1c | 2476 | 862 | 30 | 2 | 2 | 30/0/0 |
-| 0x40c | ? | 205365 | 690 | 25 | 3 | 3 | 25/0/0 |
+| 0x40c | 0x428 | 205365 | 690 | 25 | 3 | 3 | 25/0/0 |
 | 0x3b4 | 0x3ca | 187271 | 677 | 6 | 3 | 6 | 6/0/0 |
 | 0x3b6 | 0x3cd | 187960 | 648 | 7 | 3 | 3 | 7/0/0 |
 | 0x3d2 | 0x3ee | 205087 | 252 | 13 | 2 | 2 | 13/0/0 |

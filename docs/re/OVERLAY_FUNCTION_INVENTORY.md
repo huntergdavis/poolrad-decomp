@@ -16,16 +16,30 @@ Radiance function-inventory work returned no matching session.
 | Prologue hits in the entire overlay file | 675 | Includes two hits outside unit code |
 | Public entries exactly on a prologue hit | 399 | A stronger candidate start; overlaps the 673 |
 | Prologues targeted by a fixup-confirmed overlay far call | 187 | All are among the 399 public-entry matches |
-| Prologues targeted by a raw near-call candidate | 354 | Instruction boundaries are not yet checked |
-| Prologues with entry, far-call, or raw near-call evidence | 668 | Union of the sets above, not their sum |
+| Prologues targeted by a decoded direct near call | 354 | 966 call instructions reached by the boundary-aware walk |
+| Prologues with entry, far-call, or decoded near-call evidence | 668 | Union of the sets above, not their sum |
 | Prologues without any listed entry/call evidence | 5 | May be dead, indirectly called, or false matches |
 
 Five public entry offsets do not coincide with a unit-code prologue. Three
 (`0x19` entry 1, `0x36` entry 1, `0x3d2` entry 1) exceed their unit's code size;
 the latter has one fixup-confirmed far-call candidate. The two in-bounds cases
 (`0x2f` entry 1 and `0x31` entry 1) need instruction-boundary review. They are
-**not** added as five functions. Similarly, the 269 prologue starts supported
-only by a byte-scan near-call candidate need decoding before promotion.
+**not** added as five functions. A Capstone 5 path walk from each candidate
+prologue decoded 71,693 instruction positions, including all 966 direct near
+calls that the earlier byte scan associated with exact prologues. Those calls
+target 354 distinct starts; 269 of them lack a public entry. No path failed to
+decode or hit the per-seed step limit. This validates call instruction boundaries
+*under the assumption that each prologue seed is a function start*. It does not
+settle indirect calls, code before the first prologue, inline data, or whether
+every seed is a real game routine. The raw scan's other 79 near-call candidates
+are not promoted by this audit.
+
+The final overlay unit (`0x40c`) has no successor descriptor to record its
+run-time stub segment. Late descriptor spacing predicts segment `0x428`, and
+seven fixup-confirmed calls to two of its entry slots corroborate the mapping.
+The corrected call graph classifies 1,161 far-call sites as overlay and 1,061
+as non-runtime resident. The resident target classification remains tracked in
+issue #24.
 
 Run the count from owner-supplied, ignored DOS files:
 
@@ -40,6 +54,11 @@ python3 tools/overlay/callgraph.py \
 python3 tools/overlay/function_evidence.py \
   --inventory /tmp/poolrad-functions-inventory.json \
   --callgraph /tmp/poolrad-functions-callgraph.json
+# Requires Capstone 5 with 16-bit x86 support:
+python3 tools/overlay/validate_near_calls.py \
+  --inventory /tmp/poolrad-functions-inventory.json \
+  --callgraph /tmp/poolrad-functions-callgraph.json \
+  --ovr "$G/GAME.OVR"
 ```
 
 To establish a denominator, [issue #24](https://github.com/huntergdavis/poolrad-decomp/issues/24)

@@ -105,8 +105,22 @@ def find_units(img, ovr):
             nxt = units[i + 1]
             word = struct.unpack_from("<H", img, nxt["descriptor_offset"] + 14)[0]
             u["memory_segment"] = word if nxt["stub_header_len"] == 23 else (word & 0xFF)
+            u["memory_segment_source"] = "next_descriptor"
         else:
             u["memory_segment"] = None
+            u["memory_segment_source"] = "unknown"
+    # This exact DOS build's last descriptor has no successor to store its
+    # run-time stub segment. In the late descriptor run, segment paragraphs
+    # advance by ceil(descriptor-byte-gap / 16). The final gap predicts 0x428;
+    # seven fixup-confirmed calls to 0x428:0x25/0x2A corroborate entries 1/2.
+    # Keep provenance explicit because this is an inference, not a header field.
+    if len(units) == 34 and units[-2]["stub_para"] == 0x3D2 and units[-1]["stub_para"] == 0x40C:
+        prev, last = units[-2], units[-1]
+        gap = last["descriptor_offset"] - prev["descriptor_offset"]
+        inferred = prev["memory_segment"] + (gap + 15) // 16
+        if inferred == 0x428:
+            last["memory_segment"] = inferred
+            last["memory_segment_source"] = "inferred_descriptor_spacing"
     for i, u in enumerate(units):
         if i == 0 or units[i - 1]["memory_segment"] is None or u["memory_segment"] is None:
             u["memory_segment_sequential_ok"] = None
@@ -166,11 +180,13 @@ def main():
              f"(prologues anywhere in file: {out['total_prologues_in_ovr']}). "
              f"Units tile the file from {cov['first_unit_offset']} to {cov['last_unit_end']} of "
              f"{len(ovr)}; gaps: {len(cov['gaps'])}.", "",
-             "Memory seg = the paragraph each unit's stub segment occupies at run time, read from the "
-             "next unit's header; entry j is called as memory seg:(0x20 + 5*j). The sequential "
+             "Memory seg = the paragraph each unit's stub segment occupies at run time, normally read "
+             "from the next unit's header; the final unit 0x40c is inferred as 0x428 from late "
+             "descriptor spacing and seven fixup-confirmed calls to its stubs. Entry j is called "
+             "as memory seg:(0x20 + 5*j). The sequential "
              f"32-byte-header formula reproduces it for {sum(1 for u in units if u.get('memory_segment_sequential_ok'))} "
              f"of {sum(1 for u in units if u.get('memory_segment_sequential_ok') is not None)} checkable units "
-             "(it fails only across the file gap before the last nine units).", "",
+             "(failures mark resident descriptor gaps).", "",
              "| stub para (file) | memory seg | ovr offset | code | fixups | entries | functions | fixup kinds (lcall/mov ax/other) |",
              "| --- | --- | ---: | ---: | ---: | ---: | ---: | --- |"]
     for u in sorted(units, key=lambda u: -u["code_size"]):

@@ -5,9 +5,9 @@ Sites come from byte scans for E8/9A without instruction-boundary validation. `f
 | measure | count |
 | --- | ---: |
 | far_fixup_confirmed | 4009 |
-| far_overlay | 1154 |
-| far_overlay_exact_prologue | 1150 |
-| far_resident | 1068 |
+| far_overlay | 1161 |
+| far_overlay_exact_prologue | 1157 |
+| far_resident | 1061 |
 | far_runtime | 1787 |
 | far_unrelocated_candidate | 28 |
 | near_candidate | 1045 |

@@ -12,7 +12,8 @@ Consumes the JSON written by overlay_inventory.py plus the two executables and r
   * candidate near calls (E8 rel16) inside a unit to the prologue function containing the target,
   * fixup-confirmed far calls (9A off16 seg16) whose segment word is listed in the fixup table.
     The stored segment is the run-time paragraph of a code segment. For overlaid units the
-    inventory supplies each unit's run-time stub segment (memory_segment); entry j of that
+    inventory supplies each unit's run-time stub segment (memory_segment, with the last unit
+    explicitly marked as an inferred segment); entry j of that
     unit is addressed as memory_segment:(0x20 + 5*j). Sites that match resolve to the unit
     entry and its function in GAME.OVR. Other segments are resident code in START.EXE
     (file layout differs from run-time layout, so no file offset is claimed); segment 0xAF8

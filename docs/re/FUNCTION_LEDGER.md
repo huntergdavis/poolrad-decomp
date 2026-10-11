@@ -293,8 +293,9 @@ code read, two translations, two cores, 2 tests, 3 data checks).
 PR #6 resolved far calls with a linear file model (`seg*16+off` in the packed START.EXE
 image). This pilot showed that overlay entry stubs are addressed at run time as
 `segment:(0x20 + 5*j)` in a paragraph-aligned 32-byte-header layout whose segment is
-recorded in the next unit's descriptor (offset +14). Under that model 1,154 fixup-confirmed
-far calls resolve to overlay entries (1,150 on exact prologues) against 202 before, and
+recorded in the next unit's descriptor (offset +14); the final unit's 0x428 segment is
+inferred from descriptor spacing and corroborated by seven relocated calls. Under that model
+1,161 fixup-confirmed far calls resolve to overlay entries (1,157 on exact prologues) against 202 before, and
 the previously "misaligned" sites disappear. Consequences for earlier statements:
 
 - `0x2B:0x25`, `0x2A`, `0x2F`, `0x34`, `0x8E` are unit 0x25 entries 1, 2, 3, 4 and 22, not
