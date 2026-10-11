@@ -15,6 +15,16 @@ verified function inventory. For ECL, distinguish opcode mapping from handler
 implementation. Do not combine asset coverage and engine work into a single
 overall completion percentage without a measured weighting.
 
+Merged checkpoint at `004e97b`: **38 verified game-specific full C
+translations** (30 overlay, including PRs #63/#69's twenty unit `0x38`
+entries and PR #65's view setter, and eight resident, including PR #70's
+`RES_00BA_2637`). PRs #65/#72's script initializer and block loader are
+models. The independently translated `0x464` helper from PR #64 has unresolved
+game/library ownership and is outside that count. The regenerated overlay
+classifier has 88 verified identities. With nine verified resident identities
+from the callable ledger, the evidence-backed game-identity floor is **97**.
+Refresh all of these counts before issuing a live card.
+
 Keep the visible card in an ASCII code block with a conspicuous `*` border and
 short lines. Adapt the rows to the current evidence:
 
@@ -24,6 +34,7 @@ short lines. Adapt the rows to the current evidence:
 * AS OF: YYYY-MM-DD HH:MM TZ                              *
 ************************************************************
 * GAME FUNCTIONS:    <verified> / <verified total|unknown> *
+* FULL C ROUTINES:   <game-specific count> / unknown         *
 * ECL OPCODES MAPPED: <n> / <total> = <percent|unknown>    *
 * ECL HANDLERS IN C: <n> / <total> = <percent|unknown>     *
 * DAX ARCHIVES READ: <n> / <supplied> = <percent>          *

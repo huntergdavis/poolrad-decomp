@@ -24,10 +24,10 @@ not evidence of data.
 
 | Candidate set | Game verified | Linked CRT inferred | SYSTEM/runtime | Proven data/false hit | Unresolved | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| 86 overlay-called `RES_` | 6 | 2 | 0 | 0 | 78 | 86 |
+| 86 overlay-called `RES_` | 8 | 2 | 0 | 0 | 76 | 86 |
 | 48 other `RPRO_` | 1 | 1 | 0 | 0 | 46 | 48 |
 | 11 direct-near `RNEAR_` | 0 | 6 | 0 | 0 | 5 | 11 |
-| **Audited candidates** | **7** | **9** | **0** | **0** | **129** | **145** |
+| **Audited candidates** | **9** | **9** | **0** | **0** | **127** | **145** |
 
 The separately known **48 `0xAF8` SYSTEM targets** remain outside this
 non-SYSTEM candidate set. No raw prologue has been proved to be data or a
@@ -54,14 +54,15 @@ DOS at loaded image `0xB121`. The path walk stops there rather than decoding
 following stub/data bytes. This makes `RPRO_000F6` a **verified static game
 program entry**, correcting the merged report's tentative data/stub reading.
 `RES_00BA_1509`, `RES_00BA_15F7`, `RES_00BA_2199`, `RES_00BA_23B7`,
-`RES_00BA_23DB`, and `RES_00BA_2E03` are the other
+`RES_00BA_23DB`, `RES_00BA_2E03`, and `RES_00BA_2E46` are the other
 verified game routines, grounded in the
 [character sidecar trace](../formats/DOS_CHARACTER.md) and the reviewed
 [append](RESIDENT_SIDECAR_APPEND.md), [lookup](RESIDENT_SIDECAR_LOOKUP.md),
 [field predicate](RESIDENT_CHARACTER_FIELD_ZERO.md), and
 [party counter](RESIDENT_PARTY_COUNT.md), and
-[link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) translations. The supported
-resident game-routine lower bound is therefore **seven**.
+[link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) and
+[link flags predicate](RESIDENT_CHARACTER_LINK_FLAGS.md) translations. The supported
+resident game-routine lower bound is therefore **eight**.
 
 The only other raw prologue without a listed direct caller is
 `RPRO_0AA20`. Its short body is coherent, but this audit found no
@@ -133,6 +134,6 @@ candidate-seeded method and overlay descriptor/fixup parser are reused;
 Claude's overlay files are not edited.
 
 There is **no defensible upper bound** for all resident game routines yet:
-134 candidates remain unclassified, raw-prologue scans miss other encodings,
+128 candidates remain unclassified, raw-prologue scans miss other encodings,
 and indirect or unseeded code may add starts. This report makes no
 whole-game percentage or exact denominator claim.

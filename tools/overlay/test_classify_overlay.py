@@ -29,6 +29,23 @@ class PascalStringTest(unittest.TestCase):
 
 
 class ClassifyTest(unittest.TestCase):
+    def test_reviewed_unit38_effect_entry_set(self):
+        expected = {0x010D, 0x011D, 0x013B, 0x05D6, 0x064E, 0x06E4,
+                    0x0A3D, 0x0BAC, 0x0C26, 0x10C1, 0x1452, 0x171F,
+                    0x2490, 0x25A2, 0x2A6D, 0x2B63}
+        self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
+                         {(0x38, rel) for rel in expected})
+        self.assertEqual(len(co.VERIFIED), 88)
+        self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
+        self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
+                         {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
+        self.assertTrue(co.UNIT38_EFFECT_ENTRIES_NEXT <= co.VERIFIED)
+
+    def test_reviewed_view_setter_only(self):
+        self.assertEqual(co.VIEW_SETTER, (0x3BD, 0x0155))
+        self.assertIn(co.VIEW_SETTER, co.VERIFIED)
+        self.assertNotIn((0x25, 0x01B6), co.VERIFIED)
+
     def test_verified_wins(self):
         self.assertEqual(co.classify(sig(is_verified=1, strings=0, calls=0)), ("game_verified", "verified"))
 
