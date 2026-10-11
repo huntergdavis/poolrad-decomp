@@ -314,13 +314,60 @@ statuses; `windows_clear` empties the list as the initializer does; PRINT RETURN
 flag values, byte wraparound of `[0x5E25]`, and no script access.
 
 **Count, stated strictly.** Function 10 (PRINT RETURN) is a full translation with no
-dependencies. Overlay-only strict full translations: 4 (functions 1, 4, 5 and 10). Project-wide
-reviewed strict count (the PM's record, which includes the merged resident lane): 4 before
-PR #36; 5 once PR #36 merges.
+dependencies. Overlay-only strict full translations: 5 (functions 1, 4, 5, 10 and 11). Project-wide
+reviewed strict count (the PM's record, which includes the merged resident lane): 5 after
+PR #36; 6 once the issue #39 PR merges.
 Functions 7, 8 and 9 are path-complete models: their own instruction paths are translated
 and verified, but 8 and 9 compose with the operand loader core (function 6, whose tag-0x81
 unset-active-name path and runtime string cap remain unresolved) and 7 replaces the heap
 node allocation with a bounded array. They are not counted as full translations.
+
+### 1.9 Character-effect dispatch entry 8 (issue #39)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 11 | `pr_rec_u38_entry8` = GAME.OVR 0x0EFD2, unit 0x38 + 0x0377 (bytes +0x0377..+0x03AB), public entry 8, run-time stub `0x41:0x48` | 53 bytes, 15 instructions | far Pascal: five word arguments pushed by the dispatcher and discarded (`retf 0xA`); no result | **full translation** | **verified**: all three branches and both side effects; no calls, no dependencies |
+
+**Provenance.** `GAME.OVR` sha256 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`;
+unit 0x38 at file offset 60,507; routine at unit offset 0x0377, followed by the sibling at
+0x03AC. Classification row: grade A (public entry), class `game_evidenced` before this
+translation.
+
+**Instructions and branches.** Prologue; load the active-character far pointer `[0x5D92]`
+three times and compare the byte at record offset 0xA0 with 2, 5 and 8 in turn (`je` to the
+modify block on equality, `jne` past it after the third compare); modify block: `add byte
+[0x6816], 2` then `sub byte [0x6822], 2`; epilogue `pop bp; retf 0xA`. Paths: three ways into
+the modify block, one way past it; all represented by the C condition and the two byte
+updates (wrapping modulo 256 as the originals do).
+
+**Caller and role evidence.** Unit 0x38 + 0x31A2 (public entry 1, 1,799 bytes) fills a table
+of far pointers at `DS:0x682C` onward with unit 0x38 entries in slot order and stores this
+entry's pointer (`0x41:0x48`) at `0x6848` and again at `0x68DC`, i.e. items 8 and 45 of the
+table whose base `0x6828` the engine dereferences in its `lcall [di + 0x6828]` dispatch; the
+sibling entry 9 (`0x41:0x4D`) sits at items 9 and 46. Every item is called with the same five
+word arguments. `[0x6816]` has 16 writers and `[0x6822]` 24 writers, all but one in unit
+0x38. No direct far call targets entry 8 (far_in 0): it is reached through the table.
+
+**Contract in C.** `pr_rec_modifier_state` holds the two engine bytes; `record` points at a
+full 285-byte character record (the verified frame in `docs/formats/DOS_CHARACTER.md`);
+`applied` reports whether the modify block ran. A null record or state returns
+`PR_REC_EFFECT_ARGUMENT` with no change, where the engine would read through a null far
+pointer.
+
+**Tests.** All 256 values of record byte 0xA0 (exactly 2, 5, 8 modify, with +2 and −2
+observed); byte wraparound (0xFF + 2, 0x01 − 2); accumulation over repeated calls;
+insensitivity to other record bytes; null contracts.
+
+**Uncertainty, stated plainly.** The meaning of record byte 0xA0 is not documented in the
+character-record format doc; the value sets {2,5,8} here and {0,3,6} in the sibling match
+the evil and good columns of the nine AD&D alignments in standard order, which is a reading,
+not a verified field. The meanings of `[0x6816]` and `[0x6822]` (modifier accumulators by
+their use pattern) and of dispatch items 8 and 45 are not established. None of this affects
+the translation's completeness: the routine's behavior depends only on the byte compared and
+the two bytes updated.
+
+Throughput: 20 minutes to select (candidate scan over the classification CSV), 10 to read,
+15 to translate and test, 15 to gather caller evidence.
 
 ## 2. Examined, not translated
 
@@ -356,9 +403,9 @@ the previously "misaligned" sites disappear. Consequences for earlier statements
 | 2 | 35 min | 25 min | extracted core; table transcription plus the data check that exposed prefetch versus wire counts |
 | 3 | 40 min | 20 min | extracted core; runtime string calls abstracted; cap provisional |
 
-Measured count for the battle card: overlay-only strict full translations 4 (functions 1,
-4, 5 and 10); project-wide strict count 4 before PR #36 and 5 once PR #36 merges (PM's record,
-includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
+Measured count for the battle card: overlay-only strict full translations 5 (functions 1,
+4, 5, 10 and 11); project-wide strict count 5 after PR #36 and 6 once the issue #39 PR
+merges (PM's record, includes the resident lane); path-complete models with stated dependency or heap limits 3 (functions 7, 8,
 9); path-complete translations whose runtime string calls carry the provisional cap 2
 (string by address, store string); cores 5 (functions 2, 3, 6, load word, store word); total
 verified functions is not claimed beyond that.
