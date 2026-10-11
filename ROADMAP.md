@@ -1,9 +1,16 @@
 # Pool of Radiance DOS source reconstruction: roadmap for review
 
-**Status:** proposal, 2026-10-10. **Primary target:** the supplied DOS v1.3
+**Status:** in progress, 2026-10-10. **Primary target:** the supplied DOS v1.3
 installation. **End state:** maintainable modern C source that runs the complete
 DOS game from owner-supplied data on supported host backends. A future Nintendo
 DS port is an architectural constraint, not work scheduled in this repository.
+
+**Checkpoint:** the bounded DAX/RLE, GEO, and ECL readers are merged (PRs #4
+and #7), as are the overlay inventory, candidate call graph, Ghidra feasibility
+pilot, and ECL byte contracts (PR #6). The DOS oracle boots through loading and
+credits. No game function has yet been verified as translated into C, and no
+native playable route exists. The active next steps are [function recovery](https://github.com/huntergdavis/poolrad-decomp/issues/8)
+and [EGA image decoding](https://github.com/huntergdavis/poolrad-decomp/issues/9).
 
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from

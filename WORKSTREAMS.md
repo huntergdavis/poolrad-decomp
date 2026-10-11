@@ -6,10 +6,10 @@ Codex worker use isolated deep copies of this repository and exchange changes
 through the public GitHub repository. Workers use their own branches and open
 pull requests; the primary session merges after review.
 
-| Lane | Owner | First deliverable | Owned paths |
+| Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
-| A: DOS code recovery | Claude | Reproducible `START.EXE`/`GAME.OVR` overlay inventory, 16-bit fixup-aware call graph, and a three-function decompiler feasibility report. Then verified ECL interpreter/handler contracts. | `tools/overlay/`, `docs/re/` |
-| B: portable data foundation | Codex worker | Bounded C DAX/RLE reader and GEO parser, build instructions, synthetic tests, and a read-only audit of the 113 owner-supplied DOS archives. Then ECL container/text decoding after agreeing on the record contract with lane A. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
+| A: DOS code recovery | Claude | Overlay inventory, fixup-aware candidate call graph, Ghidra pilot, and ECL contracts merged in PR #6. Current: three behavior-checked C function translations, issue #8. | `tools/overlay/`, `docs/re/`; for #8 also `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
+| B: portable data foundation | Codex worker | DAX/RLE/GEO reader merged in PR #4; ECL container/text reader merged in PR #7. Current: bounded DOS EGA image reader, issue #9. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/` |
 
 ## Shared rules
@@ -30,7 +30,8 @@ pull requests; the primary session merges after review.
    order. A completed PR updates the roadmap or an issue with what is now
    known and what remains uncertain.
 
-The first joint checkpoint is a parser that audits all local DOS archives plus
-a fixup-aware overlay map and three inspected decompiler outputs. These are
-independent and can proceed at the same time. The next checkpoint joins the
-ECL container reader to the recovered VM contracts.
+The first joint checkpoint is complete: the C parser audits all local DOS DAX
+archives, and the overlay map and Ghidra feasibility pilot are published. The
+ECL container reader and recovered byte contract are also merged. The next
+checkpoint establishes the first behavior-checked C function translations
+while widening the portable asset layer to DOS EGA images.
