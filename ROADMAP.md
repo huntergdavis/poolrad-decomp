@@ -5,12 +5,15 @@ installation. **End state:** maintainable modern C source that runs the complete
 DOS game from owner-supplied data on supported host backends. A future Nintendo
 DS port is an architectural constraint, not work scheduled in this repository.
 
-**Checkpoint:** the bounded DAX/RLE, GEO, and ECL readers are merged (PRs #4
-and #7), as are the overlay inventory, candidate call graph, Ghidra feasibility
-pilot, and ECL byte contracts (PR #6). The DOS oracle boots through loading and
-credits. No game function has yet been verified as translated into C, and no
-native playable route exists. The active next steps are [function recovery](https://github.com/huntergdavis/poolrad-decomp/issues/8)
-and [EGA image decoding](https://github.com/huntergdavis/poolrad-decomp/issues/9).
+**Checkpoint:** bounded DAX/RLE, GEO, ECL, and DOS EGA readers are merged
+(PRs #4, #7, #10). The corrected overlay map, candidate call graph, Ghidra
+pilot, ECL contracts, and first recovered C helpers are merged (PRs #6, #11).
+One leaf function is fully translated and behavior-checked; two more have
+verified C cores but still need their engine state changes. The DOS oracle
+reaches the main menu. No native playable route exists. The active next steps
+are [full function recovery](https://github.com/huntergdavis/poolrad-decomp/issues/8),
+[bounded ECL operand spans](https://github.com/huntergdavis/poolrad-decomp/issues/12),
+and [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3).
 
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from

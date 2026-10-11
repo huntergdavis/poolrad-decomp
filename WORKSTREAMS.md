@@ -8,8 +8,8 @@ pull requests; the primary session merges after review.
 
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
-| A: DOS code recovery | Claude | Overlay inventory, fixup-aware candidate call graph, Ghidra pilot, and ECL contracts merged in PR #6. Current: three behavior-checked C function translations, issue #8. | `tools/overlay/`, `docs/re/`; for #8 also `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
-| B: portable data foundation | Codex worker | DAX/RLE/GEO reader merged in PR #4; ECL container/text reader merged in PR #7. Current: bounded DOS EGA image reader, issue #9. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
+| A: DOS code recovery | Claude | Corrected run-time overlay map and one full ECL remap translation plus two extracted behavior cores merged in PR #11. Current: finish full ECL function translations, issue #8. | `tools/overlay/`, `docs/re/`; for #8 also `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
+| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/text, and DOS EGA image readers merged in PRs #4, #7, and #10. Current: bounded ECL operand spans and zero-code parity, issue #12. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/` |
 
 ## Shared rules
@@ -30,8 +30,9 @@ pull requests; the primary session merges after review.
    order. A completed PR updates the roadmap or an issue with what is now
    known and what remains uncertain.
 
-The first joint checkpoint is complete: the C parser audits all local DOS DAX
-archives, and the overlay map and Ghidra feasibility pilot are published. The
-ECL container reader and recovered byte contract are also merged. The next
-checkpoint establishes the first behavior-checked C function translations
-while widening the portable asset layer to DOS EGA images.
+The C parser audits all local DOS DAX archives, the overlay map and Ghidra
+feasibility pilot are published, and the ECL and EGA format readers are merged.
+One leaf function is fully translated. Two more ECL behavior cores are in C;
+their engine state changes remain to be translated. The next checkpoint
+expands full function coverage and establishes a reproducible DOS gameplay
+oracle trace.

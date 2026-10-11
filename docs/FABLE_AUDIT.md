@@ -62,8 +62,9 @@ Each item was re-derived from the supplied files with independent code, not by t
    offset) pairs in the kit's unit table match. Units tile `GAME.OVR` contiguously from offset 212
    to the end with no gaps: code 197,451 bytes plus fixup tables 8,442 bytes = 205,893 bytes
    (99.9%). The kit's "96%" figure omits the fixup tables; the layout claim itself is right.
-   Descriptors are not paragraph aligned, and entry stubs are 5 bytes each starting 22 bytes after
-   the descriptor.
+   Descriptors are not paragraph aligned, and packed-file entry stubs are 5 bytes each starting
+   22 bytes after the descriptor. At run time, entry `j` is addressed as the unit's assigned
+   segment:`(0x20 + 5*j)`; the next unit's descriptor records that segment.
 4. **ECL interpreter loop and dispatch** (kit `ECL_VM_DECODED.md` sections 1.2 and 1.3).
    Disassembled with capstone (16-bit): the function at overlay offset 0x3EB7 stores its parameter
    to the PC global at 0x49ED, clears the stop byte at 0x442E, and loops at 0x3EC5: it tests the two
@@ -101,19 +102,17 @@ Each item was re-derived from the supplied files with independent code, not by t
 
 - **Opcode semantics at confidence 0.50 to 0.70** in the kit's table remain inferences. Handler
   addresses are right; names are not all right (see section 4, item 3).
-- **Far-call resolution model** ("resident seg:off maps to START.EXE file 0x200 + seg*16 +
-  off"). Spot checks: segment 0x2B offsets 0x25 and 0x2A resolve to entry stubs 20 and 21 of
-  overlay unit 0x25, whose entry offsets land on `55 89 E5` prologues in `GAME.OVR` at 0x9196 and
-  0x92C3. Segment 0x7C offset 0x57 resolves to a stub of unit 0x7F and a prologue at 0x24CDD.
-  The initial byte scan reported 2,254 far-call patterns, 261 stub-range misalignments and
-  1,732 sites in segment 0xAF8. **Correction (2026-10-10):** that scan used a regex whose `.`
-  skipped operands containing byte 0x0A. The later
-  [fixup-aware call graph](re/callgraph_summary.md) reproduces 4,009 fixup-confirmed far-call
-  byte sites, including 170 stub-range misalignments and 1,787 sites in segment 0xAF8;
-  28 additional 0x9A byte patterns lack a relocation and remain candidates. The kit's 1,792
-  runtime-segment figure is close to the corrected count. Instruction-boundary validation
-  and the remaining misalignments are still open. The kit's cited runtime targets
-  0xAF8:0xB25 and 0xAF8:0xDC0 land 2 and 4 bytes before recognisable routine starts.
+- **Far-call resolution model.** The first audit treated `seg*16+off` as a position in
+  the packed `START.EXE` image. That model misnumbered overlay entries: `0x2B:0x25` and
+  `0x2B:0x2A` are entries 1 and 2 of unit `0x25`, and `0x7C:0x57` is unit `0x6F`
+  entry 11. The corrected run-time stub model in the
+  [fixup-aware call graph](re/callgraph_summary.md) classifies 4,009 fixup-confirmed
+  far-call byte sites: 1,154 overlay entries (1,150 on exact Pascal prologues),
+  1,787 Turbo Pascal runtime sites in segment `0xAF8`, and 1,068 other resident
+  sites. Another 28 `0x9A` byte patterns lack relocation and remain candidates.
+  The earlier 170 apparent stub misalignments disappear. These counts are byte-scan
+  candidates without instruction-boundary validation; the resident segments'
+  file positions remain unresolved.
 - **GEO plane 3 (bytes 770 to 1025).** Bits 0, 2, 4, and 6 are set in 768, 716, 777, and 715
   cells; bits 1, 3, 5, and 7 in only 45, 32, 34, and 33. Gold Box Explorer's `GeoWallRecord.cs`
   reads this plane as four 2-bit door fields (1 door, 2 locked, 3 wizard-locked) for N/E/S/W, and
@@ -199,7 +198,7 @@ Each item was re-derived from the supplied files with independent code, not by t
 11. **Segment 0x2B is not resident.** The kit's narrative that the operand helpers live in a
     "resident 0x2B helper segment" that "self-relocates" and therefore "needs a 16-bit emulator"
     is wrong: those calls resolve to the entry stubs of overlay unit 0x25 and to ordinary Pascal
-    functions inside `GAME.OVR` (0x9196 and 0x92C3 among them). They can be disassembled
+    functions inside `GAME.OVR` (including the unit's operand loader). They can be disassembled
     statically like everything else.
 12. **Internal inconsistencies.** The findings file says GEO is "NOT YET CONFIRMED" in section 4
     and "fully decoded" at the end; it gives 728 strings in one place and 858 in another; the
