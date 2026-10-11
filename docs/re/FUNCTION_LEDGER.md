@@ -182,6 +182,11 @@ not six-bit text); class 4 leaves the buffer empty. Translated: classes 3 and 4.
 as unresolved with the address kept in `string_address[k]`: classes 0 to 2, because the
 three engine structures and the `[0x5D92]` string are not modelled.
 
+**State reuse:** a string slot's length, recorded address and unresolved flag are cleared
+whenever the slot is allocated by a call, so a state object reused across instructions never
+reports a previous instruction's string metadata (regression test added after PR #20
+review).
+
 **Additions over the engine:** bounds checks on every script read (`PR_REC_ECL_LOADER_BOUNDS`,
 state partially updated as the engine would have been), a slot limit of 15
 (`PR_REC_ECL_LOADER_COUNT`, state unchanged; the engine's arrays are 64 bytes apart and it

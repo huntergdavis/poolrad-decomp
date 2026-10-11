@@ -192,6 +192,17 @@ static pr_rec_ecl_loader_status loader_string_by_address(pr_rec_ecl_loader_state
     return PR_REC_ECL_LOADER_OK;
 }
 
+/* Allocates the next string slot of this call (engine: string index += 1) and
+ * clears everything recorded about it, so state reused across instructions
+ * never carries a previous call's address or unresolved flag. */
+static unsigned loader_alloc_string(pr_rec_ecl_loader_state *state) {
+    unsigned k = ++state->string_count;
+    state->string_len[k] = 0u;
+    state->string_address[k] = 0u;
+    state->string_unresolved[k] = 0u;
+    return k;
+}
+
 pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state,
                                                   uint8_t count) {
     unsigned i;
@@ -221,7 +232,7 @@ pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state
             }
             state->high[i] = (uint8_t)hb;     /* [0x7045+i] */
         } else if (t == 0x80) {
-            unsigned k = ++state->string_count;
+            unsigned k = loader_alloc_string(state);
             unsigned len = state->low[i];
             if (len > 0u) {
                 /* the unpacker consumes len bytes, advancing the PC before each read */
@@ -238,7 +249,7 @@ pr_rec_ecl_loader_status pr_rec_ecl_load_operands(pr_rec_ecl_loader_state *state
                 state->string_len[k] = 0u;    /* mov byte [0x6FC8 + 256k],0 */
             }
         } else if (t == 0x81) {
-            unsigned k = ++state->string_count;
+            unsigned k = loader_alloc_string(state);
             int hb;
             pr_rec_ecl_loader_status st;
             state->pc++;

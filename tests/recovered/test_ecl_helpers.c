@@ -246,6 +246,32 @@ static int test_loader_matches_span_sizes(void) {
     return 0;
 }
 
+/* Regression (PR #20 review): string metadata must not leak between
+ * sequential calls that reuse the same state and the same slot k. */
+static int test_loader_sequential_calls_reset_metadata(void) {
+    /* instruction A at 0x9900: 81 00 97 (class 2 -> unresolved, address 0x9700)
+     * instruction B at 0x9904: 80 02 04 20 (inline "AB")
+     * instruction C at 0x9909: 81 0D 99 (class 3 -> raw "Z" NUL at 0x990D) */
+    static const uint8_t s[] = {0x11, 0x81,0x00,0x97, 0x11, 0x80,0x02,0x04,0x20, 0x11, 0x81,0x0D,0x99, 'Z',0x00};
+    pr_rec_ecl_loader_state st;
+    loader_setup(&st, s, sizeof s, 0x9900);
+    CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
+    CHECK(st.string_count == 1 && st.string_unresolved[1] == 1 && st.string_address[1] == 0x9700 && st.pc == 0x9904);
+    CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
+    CHECK(st.string_count == 1 && st.string_unresolved[1] == 0 && st.string_address[1] == 0);
+    CHECK(st.string_len[1] == 2 && memcmp(st.string_text[1], "AB", 2) == 0 && st.pc == 0x9909);
+    CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
+    CHECK(st.string_count == 1 && st.string_unresolved[1] == 0 && st.string_address[1] == 0x990D);
+    CHECK(st.string_len[1] == 1 && st.string_text[1][0] == 'Z' && st.pc == 0x990D);
+    /* and back to an unresolved one: the raw-string length must be cleared */
+    loader_setup(&st, s, sizeof s, 0x9909);
+    CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK && st.string_len[1] == 1);
+    st.pc = 0x9900;
+    CHECK(pr_rec_ecl_load_operands(&st, 1) == PR_REC_ECL_LOADER_OK);
+    CHECK(st.string_unresolved[1] == 1 && st.string_len[1] == 0 && st.string_address[1] == 0x9700);
+    return 0;
+}
+
 int main(void) {
     int rc = 0;
     rc |= test_char_remap();
@@ -259,6 +285,7 @@ int main(void) {
     rc |= test_loader_empty_string_and_strings_by_address();
     rc |= test_loader_bounds_and_count();
     rc |= test_loader_matches_span_sizes();
+    rc |= test_loader_sequential_calls_reset_metadata();
     if (rc == 0) {
         puts("recovered ECL helper tests passed");
     }
