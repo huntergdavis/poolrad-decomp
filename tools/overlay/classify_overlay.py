@@ -67,6 +67,9 @@ UNIT38_EFFECT_ENTRIES_NEXT = {
 # Two further reviewed full dispatch-entry translations in
 # OVERLAY_UNIT38_WALK_ENTRIES.md (PR #85).
 UNIT38_WALK_ENTRIES = {(0x38, 0x268A), (0x38, 0x2E37)}
+# Reviewed class-1 ECL store-hook local body and game-specific character-record
+# role in ECL_STORE_HOOK_0A74.md (PR #96); unresolved callees prevent full-C credit.
+ECL_STORE_HOOK = (0x25, 0x0A74)
 # Reviewed full view-parameter setter translation in FUNCTION_LEDGER.md,
 # section 1.14 (PR #65); the neighboring script initializer is a model.
 VIEW_SETTER = (0x3BD, 0x0155)
@@ -79,7 +82,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x25, 0x0000), (0x25, 0x06AF), (0x25, 0x06D3), (0x25, 0x06FB), (0x25, 0x0E0C), (0x25, 0x0C77),
     (0x25, 0x0F53), (0x25, 0x1153), (0x25, 0x12FB), (0x25, 0x1EA6), (0x36, 0x002D),
     (0x38, 0x0377), (0x38, 0x03AC), (0x38, 0x03E1),
-    (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER} | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK} | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):

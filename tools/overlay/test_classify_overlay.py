@@ -35,7 +35,7 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 90)
+        self.assertEqual(len(co.VERIFIED), 91)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
@@ -43,6 +43,10 @@ class ClassifyTest(unittest.TestCase):
         self.assertEqual(co.UNIT38_WALK_ENTRIES,
                          {(0x38, 0x268A), (0x38, 0x2E37)})
         self.assertTrue(co.UNIT38_WALK_ENTRIES <= co.VERIFIED)
+
+    def test_reviewed_store_hook_identity(self):
+        self.assertEqual(co.ECL_STORE_HOOK, (0x25, 0x0A74))
+        self.assertIn(co.ECL_STORE_HOOK, co.VERIFIED)
 
     def test_reviewed_view_setter_only(self):
         self.assertEqual(co.VIEW_SETTER, (0x3BD, 0x0155))
