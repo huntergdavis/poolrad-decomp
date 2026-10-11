@@ -47,8 +47,8 @@ instruction evidence below.
 | Non-SYSTEM resident targets without a validated file position | 2 | `RES_0A40_029C`, `RES_0A40_02FD` |
 | Raw resident-image prologue hits | 132 | 48 are not among the 84 mapped called starts; their function status is open |
 
-The 86 called non-SYSTEM targets classify as six verified game-specific, zero
-verified other-library, and 80 unresolved game-or-library targets. The 48
+The 86 called non-SYSTEM targets classify as seven verified game-specific, zero
+verified other-library, and 79 unresolved game-or-library targets. The 48
 remaining raw prologue hits have not been proved false or assigned to
 functions. No two of the 84 validated targets alias the same file offset;
 possible aliases or nonprologue starts among the unmapped targets remain open.
@@ -97,7 +97,7 @@ exact `55 89 E5` instruction start as well as a relocated far-call target.
 | --- | --- | ---: | ---: | --- |
 | `0xBA` | `0x0442..0x2199` | -292 | 24 | game or linked library unresolved, except `0x1509`, `0x15F7`, and `0x2199` below |
 | `0xBA` | `0x2228..0x2B88` | -316 | 13 | unresolved except verified `0x23B7` and `0x23DB` |
-| `0xBA` | `0x2C48..0x2F57` | -330 | 5 | unresolved |
+| `0xBA` | `0x2C48..0x2F57` | -330 | 5 | unresolved except verified `0x2E03` and `0x2E46` |
 | `0x3F1` | `0x0000..0x02E8` | -446 | 3 | unresolved |
 | `0x464` | `0x00FF..0x2A0D` | -455 | 13 | unresolved |
 | `0x709` | `0x017C..0x0DD3` | -455 | 13 | unresolved |
@@ -143,28 +143,30 @@ There are **84 distinct exact-prologue mappings under bounded empirical
 shifts**: each target has a fixup-confirmed incoming call and maps to a
 different resident file offset. The `0x899` and `0x8AE` shifts remain
 moderate-confidence inferences, so this is a supported called-start count,
-not a loader-verified exact denominator or a game-source count. The six
+not a loader-verified exact denominator or a game-source count. The seven
 overlay-called resident targets promoted to *verified game-specific* are
-`RES_00BA_1509` at file `0x2185`, `RES_00BA_15F7` at file `0x2273`, and
-`RES_00BA_2199` at file `0x2E15`, `RES_00BA_23B7` at file `0x301B`, and
-`RES_00BA_23DB` at file `0x303F`, and `RES_00BA_2E03` at file `0x3A59`:
+`RES_00BA_1509` at file `0x2185`, `RES_00BA_15F7` at file `0x2273`,
+`RES_00BA_2199` at file `0x2E15`, `RES_00BA_23B7` at file `0x301B`,
+`RES_00BA_23DB` at file `0x303F`, `RES_00BA_2E03` at file `0x3A59`, and
+`RES_00BA_2E46` at file `0x3A9C`:
 the first three remove, append, and search character sidecar lists; the next
 two test a character field and count records
 on the loader-backed party list, as established by the trace and reviewed
 [append](RESIDENT_SIDECAR_APPEND.md) and [lookup](RESIDENT_SIDECAR_LOOKUP.md)
 translations, [field predicate](RESIDENT_CHARACTER_FIELD_ZERO.md), and
-[party counter](RESIDENT_PARTY_COUNT.md) translation. The sixth checks a
-character-linked table state; see the reviewed
-[link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) translation.
+[party counter](RESIDENT_PARTY_COUNT.md) translation. The sixth and seventh
+check character-linked table state; see the reviewed
+[link predicate](RESIDENT_CHARACTER_LINK_CHECK.md) and
+[link flags predicate](RESIDENT_CHARACTER_LINK_FLAGS.md) translations.
 One of `RES_00BA_23DB`'s ten fixup-confirmed callers is GAME.OVR unit `0x25:+0x1e8c`
 (file `0x935f`); the function ledger identifies that unit's entry 21 as
 walking the party records and calling this target.
 That gives a conservative **overlay-called resident game-function lower bound
-of 6**; the remaining 80 called non-SYSTEM targets have unresolved game versus linked
-library provenance. The two `0xA40` targets are especially plausible
+of 7**; the remaining 79 called non-SYSTEM targets have unresolved game
+versus linked library provenance. The two `0xA40` targets are especially plausible
 low-level library calls, but their starts and ownership remain unverified.
 
-Among directly called non-SYSTEM targets, the possible game count is 6–86.
+Among directly called non-SYSTEM targets, the possible game count is 7–86.
 That is **not** an upper bound for the full game: indirect calls, uncalled
 routines, 48 unmatched raw prologue hits, nonprologue starts, and the still
 separate overlay candidates remain unaudited. The 404 overlay public entries
