@@ -9,7 +9,7 @@ pull requests; the primary session merges after review.
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
 | A: DOS code recovery | Claude | Three full ECL helper translations and two extracted behavior cores merged in PRs #11 and #15. Current: recover the operand loader state transition, issue #16. | `tools/overlay/`, `docs/re/`, `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/` |
-| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/operands/text, and DOS EGA image readers merged in PRs #4, #7, #10, and #13. Current: bounded WALLDEF reader, issue #14. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
+| B: portable data foundation | Codex worker | DAX/RLE/GEO, ECL container/operands/text, DOS EGA images, and bounded WALLDEF spans merged in PRs #4, #7, #10, #13, and #17. Current: DOS character records and sidecar audit, issue #18. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/` |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, and connect both lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/` |
 
 ## Shared rules
@@ -31,7 +31,7 @@ pull requests; the primary session merges after review.
    known and what remains uncertain.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
-feasibility pilot are published, and the ECL and EGA format readers are merged.
+feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
 Three leaf functions are fully translated. Two more ECL behavior cores are in C;
 their engine state changes remain to be translated. The next checkpoint
 recovers the operand loader and establishes a reproducible DOS gameplay
