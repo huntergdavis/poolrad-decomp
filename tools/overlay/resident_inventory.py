@@ -169,8 +169,12 @@ def collect(exe, ovr):
 
     require(len(runtime) == 48 and len(resident) == 86,
             "distinct resident target count changed")
-    require(sum(x["file_offset"] is not None for x in resident) == 84,
+    mapped_offsets = [x["file_offset"] for x in resident
+                      if x["file_offset"] is not None]
+    require(len(mapped_offsets) == 84,
             "mapped target count changed")
+    require(len(set(mapped_offsets)) == len(mapped_offsets),
+            "mapped resident targets alias the same file offset")
     require(sum(x["classification"] == "game_verified" for x in resident) == 1,
             "verified game subset changed")
     raw_prologues = len(list(re.finditer(b"\x55\x89\xe5", image)))

@@ -43,7 +43,7 @@ instruction evidence below.
 | Final-unit overlay calls | 7 | Inferred segment `0x428`; see below |
 | Non-SYSTEM resident calls | 1,061 | 86 distinct segment:offset targets |
 | `0xAF8` SYSTEM/runtime calls | 1,790 | 48 distinct targets; excluded from the game count |
-| Non-SYSTEM resident targets on exact `55 89 E5` prologues | 84 | Distinct file positions, each backed by a fixup-confirmed call |
+| Non-SYSTEM resident targets mapped to exact `55 89 E5` prologues | 84 | Distinct file positions under bounded empirical shifts, each backed by a fixup-confirmed call |
 | Non-SYSTEM resident targets without a validated file position | 2 | `RES_0A40_029C`, `RES_0A40_02FD` |
 | Raw resident-image prologue hits | 132 | 48 are not among the 84 mapped called starts; their function status is open |
 
@@ -56,7 +56,7 @@ Separately, the [overlay candidate audit](OVERLAY_FUNCTION_INVENTORY.md)
 reports 668 of 673 overlay prologue candidates with entry or decoded call
 evidence, including 354 distinct near-call targets from 966 decoded sites;
 five candidates lack listed callers. Those overlay candidates are not added
-to this resident callable-start bound.
+to this resident mapped-start count.
 
 The pre-correction [`callgraph.py`](../../tools/overlay/callgraph.py) reported
 4,009 sites because its non-overlapping `0x9A` regex consumed a false
@@ -119,7 +119,10 @@ as distinct routines. These choices are checked only for the listed targets.
 The `0x899` mapping has **moderate confidence**: all four called targets have
 exact prologues, and the `0x899:0` instruction boundary rules out the shift
 used by its other three targets. No loader relocation record directly proves
-either shift across the segment. The two `0xA40` calls have **low mapping
+either shift across the segment. The `0x8AE` mapping also has **moderate
+confidence**: ordered non-overlapping code favors `-489`, but a second shift
+also happens to hit prologue bytes and no direct loader relocation record
+settles the choice. The two `0xA40` calls have **low mapping
 confidence**: their segment words are fixup-confirmed, but no unique resident
 file start or game/library origin has been established; they contribute no
 mapped-start count.
@@ -136,10 +139,12 @@ starts are not claimed.
 
 ## Denominator status
 
-The verified **non-SYSTEM callable-start lower bound is 84**: each has a
-fixup-confirmed incoming call and an exact Pascal prologue at a distinct
-resident file offset. This is a code-boundary measure, not a game-source
-count. The only resident target presently promoted to *verified game-specific*
+There are **84 distinct exact-prologue mappings under bounded empirical
+shifts**: each target has a fixup-confirmed incoming call and maps to a
+different resident file offset. The `0x899` and `0x8AE` shifts remain
+moderate-confidence inferences, so this is a supported called-start count,
+not a loader-verified exact denominator or a game-source count. The only
+resident target presently promoted to *verified game-specific*
 is `RES_00BA_1509` at file `0x2185`: it traverses the DOS character object's
 sidecar pointer at `+0xC8`, as established by the character load trace.
 One of its ten fixup-confirmed callers is GAME.OVR unit `0x25:+0x1e8c`
