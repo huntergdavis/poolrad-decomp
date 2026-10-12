@@ -254,7 +254,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x1cad,0x38,0x1cad,67848,A,0,game_evidenced,provisional,3,,8,2,19,3,9,6,1,0,0,456,458
 0x38:0x1e77,0x38,0x1e77,68306,A,0,game_evidenced,provisional,2,,8,5,19,2,13,4,0,0,0,395,395
 0x38:0x2002,0x38,0x2002,68701,B,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,286,288
-0x38:0x2122,0x38,0x2122,68989,B,0,game_evidenced,provisional,6,,0,0,21,9,2,3,7,0,0,642,642
+0x38:0x2122,0x38,0x2122,68989,B,0,game_evidenced,provisional,6,,1,0,21,9,2,3,7,0,0,642,642
 0x38:0x23a4,0x38,0x23a4,69631,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,0,0,1,0,0,30,30
 0x38:0x23c2,0x38,0x23c2,69661,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,0,0,1,0,0,41,42
 0x38:0x23ec,0x38,0x23ec,69703,A,0,game_evidenced,provisional,1,,1,2,6,1,3,2,0,0,0,164,164
@@ -386,7 +386,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x6c:0x1f37,0x6c,0x1f37,112822,B,0,game_evidenced,provisional,7,active_char,0,2,17,11,2,3,1,0,0,252,252
 0x6c:0x2033,0x6c,0x2033,113074,B,0,game_evidenced,provisional,0,active_char,0,2,2,0,1,1,0,0,0,107,108
 0x6c:0x209f,0x6c,0x209f,113182,B,0,game_evidenced,provisional,3,active_char,2,3,27,5,5,3,14,0,0,2317,2319
-0x6c:0x29ae,0x6c,0x29ae,115501,B,0,game_evidenced,provisional,10,active_char;win1,0,4,34,15,4,12,3,0,0,1727,1727
+0x6c:0x29ae,0x6c,0x29ae,115501,B,0,game_evidenced,provisional,10,active_char;win1,1,4,34,15,4,12,3,0,0,1727,1727
 0x6c:0x306d,0x6c,0x306d,117228,B,0,game_evidenced,provisional,3,party;win1,0,3,18,8,9,1,0,0,0,548,548
 0x6c:0x3291,0x6c,0x3291,117776,A,7,game_evidenced,provisional,0,active_char;party;win1,0,6,4,0,2,0,2,0,0,339,342
 0x6c:0x33e7,0x6c,0x33e7,118118,B,0,game_evidenced,provisional,1,active_char,0,1,5,2,3,0,0,0,0,248,248
@@ -408,7 +408,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x6f:0x0aec,0x6f,0x0aec,125650,A,1,game_evidenced,provisional,6,,0,3,47,40,0,7,0,0,0,984,984
 0x6f:0x0ec4,0x6f,0x0ec4,126634,A,1,game_evidenced,provisional,6,,2,2,32,24,2,6,0,0,0,926,926
 0x6f:0x1262,0x6f,0x1262,127560,A,1,game_evidenced,provisional,0,win1,6,1,11,2,6,0,3,0,0,484,484
-0x6f:0x1446,0x6f,0x1446,128044,A,2,game_evidenced,provisional,0,active_char;party;win1,0,5,3,2,1,0,0,0,0,444,444
+0x6f:0x1446,0x6f,0x1446,128044,A,2,game_evidenced,provisional,0,active_char;party;win1,1,5,3,2,1,0,0,0,0,444,444
 0x6f:0x1602,0x6f,0x1602,128488,A,1,game_evidenced,provisional,12,active_char;ecl_buf;party;win0;win1;win2,2,13,90,65,7,13,5,0,0,1877,1878
 0x6f:0x1d58,0x6f,0x1d58,130366,A,3,game_evidenced,provisional,12,ecl_buf;party;win0;win1;win2,0,13,72,60,3,7,2,0,0,1404,1405
 0x6f:0x22d5,0x6f,0x22d5,131771,A,1,game_evidenced,provisional,1,,0,4,11,6,1,3,1,0,0,267,267
@@ -532,7 +532,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x86:0x295b,0x86,0x295b,170355,B,0,game_evidenced,provisional,0,active_char,2,5,13,2,8,2,1,0,0,604,604
 0x86:0x2bb7,0x86,0x2bb7,170959,A,0,game_evidenced,provisional,0,,1,3,4,0,1,1,2,0,0,81,82
 0x86:0x2c09,0x86,0x2c09,171041,A,0,game_evidenced,provisional,1,active_char,0,2,3,1,0,1,1,0,0,57,58
-0x86:0x2c43,0x86,0x2c43,171099,A,0,game_evidenced,provisional,1,,0,2,4,1,1,2,0,0,0,443,447
+0x86:0x2c43,0x86,0x2c43,171099,A,0,game_evidenced,provisional,1,,1,2,4,1,1,2,0,0,0,443,447
 0x86:0x2e02,0x86,0x2e02,171546,A,0,game_evidenced,provisional,1,,0,3,3,1,1,0,1,0,0,73,75
 0x86:0x2e4d,0x86,0x2e4d,171621,A,0,game_evidenced,provisional,1,,1,3,7,1,4,1,1,0,0,149,152
 0x86:0x2ee5,0x86,0x2ee5,171773,A,0,game_evidenced,provisional,1,,0,3,5,1,2,1,1,0,0,104,104
@@ -549,7 +549,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x86:0x331a,0x86,0x331a,172850,A,2,game_evidenced,provisional,2,,0,1,13,4,0,9,0,0,0,249,249
 0x86:0x3413,0x86,0x3413,173099,A,1,game_evidenced,provisional,0,procvar,0,143,0,0,0,0,0,0,0,925,925
 0x86:0x37b0,0x86,0x37b0,174024,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
-0x9b:0x0000,0x9b,0x0000,174727,A,4,game_evidenced,provisional,0,,3,0,3,0,0,0,3,0,0,431,431
+0x9b:0x0000,0x9b,0x0000,174727,A,4,game_verified,verified,0,,3,0,3,0,0,0,3,0,1,431,431
 0x9b:0x01af,0x9b,0x01af,175158,A,3,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,166,166
 0x9b:0x0255,0x9b,0x0255,175324,A,1,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,212,212
 0x9b:0x0329,0x9b,0x0329,175536,A,1,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,309,309
