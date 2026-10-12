@@ -1,5 +1,9 @@
 # Class-1 load-hook value at 0x6B9B
 
+> **Update:** the next [`0x6BA0` branch](ECL_LOAD_HOOK_6BA0_SIGNED.md) is also
+> composed. References below to 27 remaining effect addresses describe the
+> model when this note was written; 26 remain now.
+
 The ECL load-word helper now resolves one additional class-1 hook address:
 `0x6B9B` returns the zero-extended byte at offset `+0x6E` of the active
 character record. This is a static original-byte result, with synthetic C

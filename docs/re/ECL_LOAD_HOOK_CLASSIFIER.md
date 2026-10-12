@@ -6,6 +6,10 @@
 > still describes which addresses can have a hook effect; with no supplied
 > record, these two retain the bounded `HOOK`/window behavior described below.
 
+> **Further update:** a supplied record also resolves the
+> [`0x6BA0` signed-byte branch](ECL_LOAD_HOOK_6BA0_SIGNED.md); 26 potential-effect
+> addresses remain bounded.
+
 `pr_rec_ecl_load_word` used to report HOOK after every class-1 (window 1) load except a growing list of single addresses,
 each proven by [its own note](ECL_LOAD_HOOK_6DD5.md) (6DD5, 6E7D, 6E82, 6DCA, 6E7F). This change replaces that list with a
 classifier, `pr_rec_ecl_load_hook_may_effect(address)`, so the decision is made for all 1,024 class-1 addresses at once:

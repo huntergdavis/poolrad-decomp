@@ -128,8 +128,9 @@ typedef struct {
     uint8_t active_name_valid;
     /* Optional active character record at DS:[0x5D92]. The caller owns this
      * buffer for the duration of a load. At 0x6B18 the class-1 load hook
-     * reads byte +0x14; at 0x6B9B it reads byte +0x6E. A non-NULL buffer
-     * shorter than the reached byte is BOUNDS. */
+     * reads byte +0x14; at 0x6B9B it reads byte +0x6E; at 0x6BA0 it reads
+     * byte +0x73 and sign-extends it. A non-NULL buffer shorter than the
+     * reached byte is BOUNDS. */
     const uint8_t *active_record;
     size_t active_record_size;
     /* Optional writable script buffer for class-3 stores (the engine writes
@@ -276,10 +277,11 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     0x10C, 0x10D, 0x11B, 0x2B1, 0x2B4, 0x2CF, 0x312, 0x33E); for every other rel all compares
  *     fall through, the hook sets its flag to 1 at +0x07C5 and clears it to 0 at +0x0A67 and
  *     reads and writes nothing else, so the caller (+0x0E41..+0x0E69) reads the window word and the
- *     load word returns OK. At 0x6B18 and 0x6B9B, a sufficiently long supplied active record
- *     supplies byte +0x14 or +0x6E respectively and returns OK; a supplied shorter record returns
- *     BOUNDS. Without a record, both addresses and the other 27 potential-effect addresses report
- *     HOOK with the bounded window value;
+ *     load word returns OK. At 0x6B18, 0x6B9B and 0x6BA0, a sufficiently long supplied active
+ *     record supplies byte +0x14 (zero-extended), +0x6E (zero-extended) or +0x73 (sign-extended)
+ *     respectively and returns OK; a supplied shorter record returns BOUNDS. Without a record,
+ *     these three and the other 26 potential-effect addresses report HOOK with the bounded
+ *     window value;
  *   store word: the hook's decision is classified for EVERY class-1 address by
  *     pr_rec_ecl_store_hook_may_effect (docs/re/ECL_STORE_HOOK_CLASSIFIER.md): the hook can write
  *     or call only for rel = 0x000, 0x020..0x070 and the 14 exact values 0xB8, 0xBB, 0xBD, 0xBF,

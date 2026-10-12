@@ -28,7 +28,7 @@
  * with 4..7.
  *
  * Classification: bounded model composed of the lane-A loader, slot value, operand word and store word.
- * The load-word helper resolves the 0x6B18 and 0x6B9B active-record branches when supplied;
+ * The load-word helper resolves the 0x6B18, 0x6B9B and 0x6BA0 active-record branches when supplied;
  * other hook and runtime paths remain bounded. Not a strict translation. No game-function credit is claimed. */
 
 #include <stdint.h>
