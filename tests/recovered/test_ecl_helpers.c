@@ -351,14 +351,17 @@ static int test_windows_bounds_and_name(void) {
  * active name, as the initializer nulls [0x5D92]. */
 static int test_windows_clear_drops_active_name(void) {
     static const uint8_t script[] = {0x11};
+    static const uint8_t record[0x15] = { 0 };
     pr_rec_ecl_loader_state st;
     loader_setup(&st, script, sizeof script, 0x9900);
     pr_rec_ecl_windows_clear(&st);
     CHECK(pr_rec_ecl_store_string(&st, 0x6B00, "HERO", 4) == PR_REC_ECL_WINDOW_OK);
     CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x6B00) == PR_REC_ECL_WINDOW_OK && st.string_len[1] == 4);
     pr_rec_ecl_store_string(&st, 0x9700, "W", 1);
+    st.active_record = record; st.active_record_size = sizeof record;
     pr_rec_ecl_windows_clear(&st);
     CHECK(st.active_name_valid == 0 && st.active_name_len == 0 && st.active_name[0] == 0);
+    CHECK(st.active_record == NULL && st.active_record_size == 0);
     CHECK(st.window2[0] == 0 && st.string_len[1] == 0);
     CHECK(pr_rec_ecl_string_by_address(&st, 1, 0x6B00) == PR_REC_ECL_WINDOW_UNRESOLVED);
     CHECK(st.string_unresolved[1] == 1 && st.string_len[1] == 0);
@@ -1504,8 +1507,8 @@ static int test_store_word_classifier(void) {
 /* Load word class 1 (+0x0E41..+0x0E69): the hook +0x07BC runs first; a nonzero by-reference flag means its own value is used,
  * flag 0 means the window word is read. The HOOK decision is the classifier pr_rec_ecl_load_hook_may_effect: HOOK for the 29
  * potential-effect addresses (the hook can read the record or DS, call, or leave the flag at 1), OK for every other class-1
- * address (flag 1 then 0 and nothing else, so the caller reads the window word). The value read is the host's window word in
- * both cases: nothing is seeded. The STORE hook is classified separately by pr_rec_ecl_store_hook_may_effect. */
+ * address (flag 1 then 0 and nothing else, so the caller reads the window word). With no active record supplied, the value
+ * read is the host's window word in both cases. The STORE hook is classified separately by pr_rec_ecl_store_hook_may_effect. */
 static int test_load_word_classifier(void) {
     static pr_rec_ecl_loader_state st;
     uint16_t v;
@@ -1588,6 +1591,31 @@ static int test_load_word_classifier(void) {
             CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_HOOK && sv == 0x0043);
         }
     }
+    return 0;
+}
+
+/* +0x07D5..+0x07E7: the 0x6B18 load hook returns active record byte +0x14
+ * before load word can read its window. No other effect address is resolved. */
+static int test_load_word_6b18_active_record(void) {
+    static pr_rec_ecl_loader_state st;
+    uint8_t record[0x15] = { 0 };
+    uint16_t v = 0xBEEFu;
+    memset(&st, 0, sizeof st);
+    st.window1[0x18] = 10;
+    st.window1[0x9B] = 0x1234;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_HOOK && v == 10);
+    st.active_record = record; st.active_record_size = sizeof record;
+    record[0x14] = 7;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_OK && v == 7);
+    record[0x14] = 0xFF;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_OK && v == 0x00FFu);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B9Bu, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234u);
+    st.tag[1] = 1; st.low[1] = 0x18; st.high[1] = 0x6B;
+    record[0x14] = 7;
+    CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_OK && v == 7);
+    st.active_record_size = 0x14u; v = 0xBEEFu;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0xBEEFu);
+    CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0);
     return 0;
 }
 
@@ -1904,6 +1932,7 @@ int main(void) {
     rc |= test_load_word_class4();
     rc |= test_store_word_classifier();
     rc |= test_load_word_classifier();
+    rc |= test_load_word_6b18_active_record();
     rc |= test_store_word_84e8();
     rc |= test_save_6e7d();
     rc |= test_compare_words();

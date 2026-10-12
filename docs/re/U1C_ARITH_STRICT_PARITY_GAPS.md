@@ -1,5 +1,9 @@
 # Unit 0x1C arithmetic: strict C parity dependencies
 
+> **Update:** the `0x6B18` mismatch below describes the model before the
+> [active-record composition](U1C_ARITH_CLASS1_RECORD_6B18.md). A supplied
+> record now resolves this one branch; the other dependencies below remain.
+
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
 for its four dispatched opcodes. It cannot yet receive strict full-C credit for the whole
 handler. The limiting paths are in the called operand and store helpers, and in the DOS

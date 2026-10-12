@@ -126,6 +126,11 @@ typedef struct {
     char active_name[PR_REC_ECL_NAME_MAX];
     uint8_t active_name_len;
     uint8_t active_name_valid;
+    /* Optional active character record at DS:[0x5D92]. The caller owns this
+     * buffer for the duration of a load. At 0x6B18 the class-1 load hook
+     * reads byte +0x14; a non-NULL buffer shorter than 0x15 is BOUNDS. */
+    const uint8_t *active_record;
+    size_t active_record_size;
     /* Optional writable script buffer for class-3 stores (the engine writes
      * into its script buffer); NULL leaves such stores unresolved. */
     uint8_t *script_rw;
@@ -221,7 +226,7 @@ typedef struct {
 typedef enum {
     PR_REC_ECL_WINDOW_OK = 0,
     PR_REC_ECL_WINDOW_ARGUMENT,
-    PR_REC_ECL_WINDOW_BOUNDS,       /* string would run past a window or the script buffer */
+    PR_REC_ECL_WINDOW_BOUNDS,       /* read would run past a window, script buffer, or supplied active record */
     PR_REC_ECL_WINDOW_UNRESOLVED,   /* path needs engine state this model lacks (unset active
                                      * name, class-4 pseudo-variables, class-3 store without
                                      * script_rw); no window or script byte is written, but a
@@ -270,7 +275,9 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     0x10C, 0x10D, 0x11B, 0x2B1, 0x2B4, 0x2CF, 0x312, 0x33E); for every other rel all compares
  *     fall through, the hook sets its flag to 1 at +0x07C5 and clears it to 0 at +0x0A67 and
  *     reads and writes nothing else, so the caller (+0x0E41..+0x0E69) reads the window word and the
- *     load word returns OK. The 29 potential-effect addresses report HOOK (the value is still read);
+ *     load word returns OK. At 0x6B18, a supplied active record of at least 0x15 bytes supplies
+ *     byte +0x14 and returns OK; a supplied shorter record returns BOUNDS. Without a record, that
+ *     address and the other 28 potential-effect addresses report HOOK with the bounded window value;
  *   store word: the hook's decision is classified for EVERY class-1 address by
  *     pr_rec_ecl_store_hook_may_effect (docs/re/ECL_STORE_HOOK_CLASSIFIER.md): the hook can write
  *     or call only for rel = 0x000, 0x020..0x070 and the 14 exact values 0xB8, 0xBB, 0xBD, 0xBF,
