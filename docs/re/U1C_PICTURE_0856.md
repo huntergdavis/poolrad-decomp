@@ -71,7 +71,7 @@ never runs.
 ## Status contract
 
 * Loader failure or a slot value that is BOUNDS, UNRESOLVED or ARGUMENT returns
-  `PR_U1C_PICTURE_CORE` before any effect (the report carries the core status).
+  `PR_U1C_PICTURE_CORE` before any PICTURE-specific DS or window writes or host hooks; the merged loader's own state changes (the PC advance, the slot tags and values it had already written) are retained, since the loader may advance them before reporting BOUNDS (the report carries the core status).
   A class-1 slot read (HOOK) lets the handler run to completion and then
   reports `PR_U1C_PICTURE_CORE` with core status HOOK, as lane A's SAVE does.
 * Every hook is fallible: nonzero stops with `PR_U1C_PICTURE_CALLBACK`, keeping

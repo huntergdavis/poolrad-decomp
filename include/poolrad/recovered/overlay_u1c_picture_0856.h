@@ -32,7 +32,8 @@
  * keeping the effects done so far. A NULL reached hook returns
  * PR_U1C_PICTURE_HOOK before the callee's slot in the order (earlier effects
  * retained). Core failures (loader or slot value BOUNDS/UNRESOLVED/ARGUMENT)
- * stop before any effect; a class-1 slot read lets the handler finish and then
+ * stop before any PICTURE-specific DS/window write or host hook (the loader's own
+ * state changes are retained); a class-1 slot read lets the handler finish and then
  * reports core_status HOOK, as lane A's SAVE model does.
  *
  * Argument widths: the original pushes most of these as `mov al, imm/[mem]; push ax`, so the
@@ -92,8 +93,9 @@ struct pr_u1c_picture_env {
 typedef enum {
     PR_U1C_PICTURE_OK = 0,
     PR_U1C_PICTURE_ARGUMENT,   /* null state or env */
-    PR_U1C_PICTURE_CORE,       /* a lane-A core status stops the handler (report->core_status); on HOOK the handler
-                                  has completed and the value read ran the engine's load hook */
+    PR_U1C_PICTURE_CORE,       /* a lane-A core status stops the handler (report->core_status) before any PICTURE-specific
+                                  write or hook, loader state retained; on HOOK the handler has completed and the value
+                                  read ran the engine's load hook */
     PR_U1C_PICTURE_STRING,     /* a reached string constant is NULL or longer than its local slot allows */
     PR_U1C_PICTURE_HOOK,       /* a reached hook is NULL */
     PR_U1C_PICTURE_CALLBACK    /* a reached hook returned nonzero (report->callback_status) */
