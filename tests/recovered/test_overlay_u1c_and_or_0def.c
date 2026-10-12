@@ -116,14 +116,14 @@ int main(void)
       CHECK(st.cmp_flags[0] == 0x55 && st.window0[0x1C4] == 0xAAAA); }
 
     /* the saved-run shape: 0x7F AND the class-4 source 0xC04F (byte [0x6AB1]) stored to 0x6E82 (window 1, class 1).
-       The source value is whatever the host holds in b6ab1 (synthetic here); the store core reports HOOK after storing,
-       the flags are those of comparing 0 with the result */
+       The source value is whatever the host holds in b6ab1 (synthetic here); the store core now reports OK for 0x6E82 (the
+       class-1 hook proven to do nothing there), the flags are those of comparing 0 with the result */
     { static const uint8_t s[] = { 0x2F, 0x00, 0x7F, 0x01, 0x4F, 0xC0, 0x01, 0x82, 0x6E };
       unsigned v;
       for (v = 0; v < 256; v++) {
           uint8_t expect = (uint8_t)(0x7Fu & v);
           setup(s, sizeof s, 0x2F); st.b6ab1 = (uint8_t)v;
-          CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_HOOK);
+          CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK);
           CHECK(rep.v1 == 0x7F && rep.v2 == v && rep.result == expect && st.window1[0x382] == expect && rep.compared && rep.stored);
           CHECK(flags_are(expect == 0, expect != 0, expect != 0, 0, 1, expect == 0) && st.pc == 0x9909u);
       }
