@@ -22,11 +22,10 @@ Two prologue byte patterns in the overlay file header are data, outside the
 distinct in the current ledger; the 48 SYSTEM targets are separate. These
 partitions must not be added again to the counts above.
 
-The locally reviewed game-identity floor is **124**: 114 overlay identities
+The reviewed game-identity floor is **124**: 114 overlay identities
 and ten resident identities. Of these, **62** game-specific routines have
-strict, reviewed full-C translations. The last public merged baseline was
-123 identities and 61 full-C routines; the additional unit `0x9E` entry-8
-dice helper is integrated locally pending publication. Bounded C slices and models, including the
+strict, reviewed full-C translations, including unit `0x9E` entry 8.
+Bounded C slices and models, including the
 `RES_0464:02A5` route slices, add no identity or full-C credit merely by
 compiling; the game/library ownership of `0x464` support code remains open.
 
