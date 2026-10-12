@@ -1,7 +1,7 @@
 #ifndef POOLRAD_RECOVERED_OVERLAY_U1C_GETTABLE_0E5E_H
 #define POOLRAD_RECOVERED_OVERLAY_U1C_GETTABLE_0E5E_H
 
-/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0E5E..+0x0EBB (file 0x13A4..0x1401, exactly 94
+/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0E5E..+0x0EBB (file 0x1BA4..0x1C01, exactly 94
  * bytes, `retf` last byte, ten bytes of locals, no arguments, no result): the handler of ECL opcode
  * 0x2A (GETTABLE, reference name). The next routine (+0x0EBC) is separate. Evidence:
  * docs/re/U1C_GETTABLE_0E5E.md.

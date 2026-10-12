@@ -1,7 +1,7 @@
 # Unit 0x1c +0x0E5E: ECL GETTABLE (0x2A), bounded model
 
 Opcode `0x2A` (GETTABLE, reference name; [ECL_CONTRACTS.md](ECL_CONTRACTS.md), 3 operands)
-dispatches to unit `0x1c` `+0x0E5E..+0x0EBB`, file `0x13A4..0x1401`, 94 bytes (the `retf` at
+dispatches to unit `0x1c` `+0x0E5E..+0x0EBB`, file `0x1BA4..0x1C01`, 94 bytes (the `retf` at
 `+0x0EBB`), ten bytes of locals. The next routine (`+0x0EBC`, a loader(3) routine) is separate, as is
 `+0x10D1` (HORIZONTAL MENU) further on. SHA-256 of the span
 `30aabe87e9b1c4ac74b51cc202f2657be9ca70e40df0f76d55b2f0010c554db1` (GAME.OVR, 206,105 bytes,
