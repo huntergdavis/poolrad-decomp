@@ -22,7 +22,9 @@ the exact 129-byte prologue-to-return span below.
 `GAME.OVR` is 206,105 bytes, SHA-256
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`.
 The unit `0x6F` file base is `0x1DFE6`. Capstone 5 x86-16 decoding covers
-every byte of these spans. Endpoints are inclusive.
+every byte of the code spans. Endpoints are inclusive; the insertion
+routine's following inline data is hashed separately and is not counted
+as instructions.
 
 | Span | GAME file span | Bytes / instructions | SHA-256 |
 | --- | --- | ---: | --- |
@@ -31,7 +33,19 @@ every byte of these spans. Endpoints are inclusive.
 | post-loop pointer gate `+0x19F7..+0x1A12` | `0x1F9DD..0x1F9F8` | 28 / 8 | `bfac9c4b98fb5b3f87a5c17a87f7f14be9895def4a1333f1ced5a24d3234ae40` |
 | post-insertion `+0x02AE..+0x032E` | `0x1E294..0x1E314` | 129 / 51 | `ef005d8298feecebd4c1a466d86c8006533fc43073c47b0f33ef263ffd9c6539` |
 | record loader `+0x0AEC..+0x0EC3` | `0x1EAD2..0x1EEA9` | 984 / 370 | `715424407210de3824c3a0218cc29033f04bb357ec718aa24a7995d9452d1e36` |
-| party insertion `+0x1446..+0x1601` | `0x1F42C..0x1F5E7` | 444 / 161 | `375ed94f3c4e011a80bdfa7a761b7708f1c08a85de7cc683849de2a0e687fc03` |
+| party insertion code `+0x1446..+0x157E` | `0x1F42C..0x1F564` | 313 / 99 | `370b29767e075c947ae418f44cb57f92e50127c1d519ba029cd7eacb882aa245` |
+| following inline data `+0x157F..+0x1601` | `0x1F565..0x1F5E7` | 131 / not code | `1dfa5f64639ccd4fec61babcf5419475c3c8317f0d3ba3b69f5ab0731dd192ee` |
+
+The insertion code ends with `RETF 4` at `+0x157C`; all ten direct
+branches in its 313-byte prefix stay inside that prefix. The combined
+444-byte prologue-to-next-entry file interval has SHA-256
+`375ed94f3c4e011a80bdfa7a761b7708f1c08a85de7cc683849de2a0e687fc03`.
+Capstone 5.0.7's linear decode of that combined interval reports 161
+starts because it interprets the inline data as instructions. GNU objdump
+2.46 displays 147 starts by default because it suppresses zero runs in
+the data; `--disassemble-zeroes` displays 161 starts at exactly the same
+addresses as Capstone. Neither whole-interval count is the routine's
+instruction count: its executable prefix has 99.
 
 ## Immediate caller flow
 
