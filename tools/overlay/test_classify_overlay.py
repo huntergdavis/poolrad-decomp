@@ -35,7 +35,7 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 111)
+        self.assertEqual(len(co.VERIFIED), 112)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
@@ -80,6 +80,8 @@ class ClassifyTest(unittest.TestCase):
         self.assertIn(co.U68_MAP_UPDATE, co.VERIFIED)
         self.assertEqual(co.U68_PARTY_BYTE, (0x68, 0x0236))
         self.assertIn(co.U68_PARTY_BYTE, co.VERIFIED)
+        self.assertEqual(co.U68_FIELD_CLEAR, (0x68, 0x0000))
+        self.assertIn(co.U68_FIELD_CLEAR, co.VERIFIED)
         self.assertEqual(co.U3C6_SLOT_ENTRIES,
                          {(0x3C6, off) for off in (0x0BE7, 0x0C0F, 0x0C37, 0x0C5F)})
         self.assertTrue(co.U3C6_SLOT_ENTRIES <= co.VERIFIED)

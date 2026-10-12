@@ -8,8 +8,9 @@ the 1,024-byte buffer whose bit pairs unit `0x3bd` entry 3 reads
 ([U3BD_FIELD_ENTRY3.md](U3BD_FIELD_ENTRY3.md); buffer layout from
 [U3BD_WALLSET_ENTRY7.md](U3BD_WALLSET_ENTRY7.md)). Classification: **full
 translation of all 112 instructions**: no calls, and the only memory touched is
-that one byte; the far pointer is explicit host state. Candidate for the strict
-category only after PM parity review: **no count or credit is claimed**.
+that one byte; the far pointer is explicit host state. The PM independently
+matched the private DOS span and every branch after PR #162 merged; this earns
+one strict full-C game-routine credit in the reviewed accounting update.
 
 `deja "Poolrad unit 0x68 +0x0000 near callee entry-1 message equal"` found no
 earlier trace. Reused and re-checked: U68_ENTRY1.md (the two call sites and the

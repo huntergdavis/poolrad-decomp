@@ -343,7 +343,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x5e:0x3a86,0x5e,0x3a86,90753,A,0,game_or_other_library_unresolved,unresolved,0,,0,2,5,0,3,1,1,0,0,267,269
 0x5e:0x3b93,0x5e,0x3b93,91022,A,2,game_evidenced,provisional,2,party,1,3,7,3,2,2,0,0,0,218,218
 0x5e:0x3c6d,0x5e,0x3c6d,91240,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
-0x68:0x0000,0x68,0x0000,91851,B,0,game_or_other_library_unresolved,unresolved,0,,0,1,0,0,0,0,0,0,0,265,265
+0x68:0x0000,0x68,0x0000,91851,B,0,game_verified,verified,0,,0,1,0,0,0,0,0,0,1,265,265
 0x68:0x0109,0x68,0x0109,92116,B,0,game_verified,verified,0,,0,1,0,0,0,0,0,0,1,301,301
 0x68:0x0236,0x68,0x0236,92417,B,0,game_verified,verified,0,party,0,2,0,0,0,0,0,0,1,94,94
 0x68:0x0294,0x68,0x0294,92511,B,0,game_evidenced,provisional,0,party,3,6,15,0,13,0,2,0,0,587,587
