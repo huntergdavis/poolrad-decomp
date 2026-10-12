@@ -5,8 +5,9 @@ unit `0x68:+0x05AB..+0x05ED`. It searches a far record for the first
 matching byte in 21 positions and returns its index, or `0x00FF` when
 none match. The body has no calls or external writes. This is a
 **complete routine translation for a valid DOS segment view**, with
-host-only argument guards; PM parity review determines any strict or
-game-identity credit. This PR claims neither count.
+host-only argument guards. PM byte-parity review of PR #145 found a complete
+match for valid inputs. The postmerge caller audit below establishes its
+game-state ownership, so it earns one strict full-C game-function credit.
 
 Before implementation, `deja "Poolrad unit 0x68 +0x05AB record scan +0x0614 +0x066D"`
 and the shorter `deja "Poolrad u68 record scan"` found no prior exact
@@ -69,6 +70,20 @@ static caller connections, not a guest trace of the saved Up key.
 Neither the branch result nor the live role of the byte-list operation
 is asserted from the slot-A screenshot. The scan's 67-byte behavior is
 independent of those caller questions.
+
+**Postmerge ownership gate.** The PM independently decoded the two
+prologue-bounded callers above against the pinned `GAME.OVR` bytes. The first
+reads the documented party-list far pointer `[0x5D96]`, advances members by
+`+0x104`, and uses the scan result to select a member. The second calls that
+list search for `0x1F`, scans the returned member again, and clears the
+selected record byte at `+0x17+index`. Unit `0x68` entry 1 calls these
+helpers on decoded game-state branches. This is a game-specific use of the
+record layout, not merely a generic search leaf; the only two near calls
+resolve to that chain. The 67-byte scan is a complete call-free translation,
+with its host guards outside the valid DOS input domain. Promote only
+`0x68:+0x05AB` from provisional helper to verified identity and award one
+strict full-C credit. Neither caller is translated by this accounting step,
+and no live saved one-Up execution is claimed.
 
 ## Synthetic verification
 
