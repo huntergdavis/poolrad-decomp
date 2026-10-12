@@ -41,7 +41,9 @@ The regenerated overlay classifier records 113 verified identities, including
 the twenty-two reviewed unit `0x38` entries, PR #65's view setter, unit
 `0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's unit `0x3C6` entries 12–15, PRs #158/#159's unit `0x68:+0x0236` party test and `+0x0109` map updater, PR #162's `+0x0000` field clear, and PR #194's unit `0x9B:+0x01AF` record update. With
 ten verified resident identities, **123** is the current evidence-backed lower bound, not the full
-denominator. Work continues
+denominator. The [audited candidate-set range](docs/re/FUNCTION_DENOMINATOR_RANGE.md)
+is 123–818, or 123–809 if nine likely linked CRT routines are excluded;
+neither ceiling is a whole-game upper bound or a completion denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.
 
