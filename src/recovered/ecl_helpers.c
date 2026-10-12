@@ -179,6 +179,8 @@ void pr_rec_ecl_windows_clear(pr_rec_ecl_loader_state *state) {
     for (i = 0; i < PR_REC_ECL_NAME_MAX; ++i) state->active_name[i] = 0;
     state->active_name_len = 0u;
     state->active_name_valid = 0u;
+    state->active_record = NULL;
+    state->active_record_size = 0u;
     pr_rec_ecl_loader_reset(state);
 }
 
@@ -327,6 +329,14 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
     }
     cls = pr_rec_ecl_address_class(address);
     if (cls <= 2u) {
+        if (cls == 1u && address == 0x6B18u && state->active_record != NULL) {
+            /* +0x07D5..+0x07E7: hook returns zero-extended record[0x14]
+             * with its by-reference flag still 1, before the window read. */
+            if (state->active_record_size < 0x15u)
+                return PR_REC_ECL_WINDOW_BOUNDS;
+            *value = state->active_record[0x14u];
+            return PR_REC_ECL_WINDOW_OK;
+        }
         const uint16_t *w = window_word(state, cls, address);
         if (w == NULL) {
             return PR_REC_ECL_WINDOW_BOUNDS;
