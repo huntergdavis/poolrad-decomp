@@ -112,6 +112,8 @@ belong to the other lane.
 
 ## Minute bytes (VP's question): not found in this span
 
+**Update after the unit 0x7d note:** the span itself still writes no window-0 byte, but its last far call (`0x8C:0x25`, unit 0x7d entry 1) rewrites window 0 words `+0x018C..+0x0199`; with `idx` 1 or 2 that is `+0x018E` or `+0x0190`. See [U7D_ENTRY1.md](U7D_ENTRY1.md).
+
 This span writes no window-0 byte and never loads `[0x49D2]`; it has no
 `+0x18E`/`+0x190` write. Its only ES access is the read of window-1 word
 `0x594` (script word `0x6DCA`, the word the preflight note lists next to
