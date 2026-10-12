@@ -34,9 +34,13 @@ Running the same private supplied-state route as the prefix note (explicit host 
 reach LOAD MONSTER, with the saved slot-A script and windows: slot value(2) (window-2 0x9808) = 6 (equals the saved party count of six),
 slot value(3) (class-1 0x6E80) = 0. No HOOK at either slot; the 0x3E9:0x34 hook is reached with p3 = 0 and a 4-byte string.
 
-## Next unresolved dependency
+## Current dependency boundary
 
-0x3E9:0x34 (unit 0x3ce entry 4, +0x01C8) is the next unresolved callee; after it, the party-list tail walk at +0x0537.
+The `0x3E9:0x34` callee (unit `0x3ce` entry 4, `+0x01C8`) is now
+[mapped and represented by a bounded C model](U3CE_ENTRY4_01C8.md). Its
+resident load, palette, and key-flush effects remain explicit hooks, so this
+slice still stops at the callee hook's return. The party-list tail walk begins
+at `+0x0537`.
 
 ## Claims
 

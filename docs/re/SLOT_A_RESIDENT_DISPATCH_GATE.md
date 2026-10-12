@@ -1,7 +1,12 @@
-# Saved slot-A resident dispatch: reached call, unsampled branch
+# Saved slot-A resident dispatch: static gate audit
 
-The saved DOS v1.3 one-Up coordinate watch proves that the call from unit
-`0x68:+0742` to `RES_08AE:00DC` returned. It does **not** measure the
+**Later native measurement:** the saved one-Up branch is now recorded in
+[the resident-dispatch replay](SLOT_A_ONE_UP_NATIVE_RESIDENT_DISPATCH.md):
+mode 1, active word 100, argument 10, with the selected calls and return.
+The analysis below is the earlier static gate audit.
+
+The earlier saved DOS v1.3 one-Up coordinate watch proved that the call from unit
+`0x68:+0742` to `RES_08AE:00DC` returned. By itself, it did **not** measure the
 dispatch's input state or select one of its local callees. This note audits
 the immediate gate and its direct resident state writers so a native replay
 can sample the smallest remaining boundary. No C translation or function

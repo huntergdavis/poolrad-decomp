@@ -25,6 +25,14 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_bitmask.c
                                     src/recovered/resident_464_nibble_007b.c
                                     src/recovered/resident_464_mode2.c
+                                    src/recovered/resident_464_mode1.c
+                                    src/recovered/resident_464_mode0_prefix.c
+                                    src/recovered/resident_464_mode0_primary.c
+                                    src/recovered/resident_464_mode0_second.c
+                                    src/recovered/resident_464_mode0_loops.c
+                                    src/recovered/resident_464_mode0_single.c
+                                    src/recovered/resident_464_mode0_two_y.c
+                                    src/recovered/resident_464_mode0_iterator.c
                                     src/recovered/overlay_unit38_effects.c
                                     src/recovered/resident_character_target_reset.c
                                     src/recovered/overlay_unit38_effects_next.c
@@ -80,6 +88,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3ce_entry4_01c8.c
                                     src/recovered/overlay_u1c_load_monster_tail_0537.c
                                     src/recovered/overlay_u6f_entry6_0ec4.c
+                                    src/recovered/overlay_u6f_reader_adapter.c
                                     src/recovered/overlay_u1c_exit_0001.c
                                     src/recovered/overlay_u68_record_scan.c
                                     src/recovered/overlay_u68_list_search.c
@@ -92,6 +101,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u9e_entry2.c
                                     src/recovered/overlay_u3c6_slot.c
                                     src/recovered/overlay_u9e_0160.c
+                                    src/recovered/overlay_u9e_entry8_roll.c
                                     src/recovered/resident_route_290b.c
                                     src/recovered/resident_field_08ef.c
                                     src/recovered/resident_8ae_dispatch.c
@@ -467,6 +477,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u6f_entry6_0ec4_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6f_entry6_0ec4_tests
              COMMAND poolrad_overlay_u6f_entry6_0ec4_tests)
+    add_executable(poolrad_overlay_u6f_reader_adapter_tests
+                   tests/recovered/test_overlay_u6f_reader_adapter.c)
+    target_link_libraries(poolrad_overlay_u6f_reader_adapter_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6f_reader_adapter_tests
+             COMMAND poolrad_overlay_u6f_reader_adapter_tests)
     add_executable(poolrad_overlay_u1c_exit_0001_tests
                    tests/recovered/test_overlay_u1c_exit_0001.c)
     target_link_libraries(poolrad_overlay_u1c_exit_0001_tests PRIVATE poolrad_recovered)
@@ -522,6 +537,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u9e_0160_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u9e_0160_tests
              COMMAND poolrad_overlay_u9e_0160_tests)
+    add_executable(poolrad_overlay_u9e_entry8_roll_tests
+                   tests/recovered/test_overlay_u9e_entry8_roll.c)
+    target_link_libraries(poolrad_overlay_u9e_entry8_roll_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u9e_entry8_roll_tests
+             COMMAND poolrad_overlay_u9e_entry8_roll_tests)
     add_executable(poolrad_resident_route_290b_tests
                    tests/recovered/test_resident_route_290b.c)
     target_link_libraries(poolrad_resident_route_290b_tests PRIVATE
@@ -570,4 +590,52 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_mode2_tests
              COMMAND poolrad_resident_464_mode2_tests)
+    add_executable(poolrad_resident_464_mode1_tests
+                   tests/recovered/test_resident_464_mode1.c)
+    target_link_libraries(poolrad_resident_464_mode1_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode1_tests
+             COMMAND poolrad_resident_464_mode1_tests)
+    add_executable(poolrad_resident_464_mode0_prefix_tests
+                   tests/recovered/test_resident_464_mode0_prefix.c)
+    target_link_libraries(poolrad_resident_464_mode0_prefix_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_prefix_tests
+             COMMAND poolrad_resident_464_mode0_prefix_tests)
+    add_executable(poolrad_resident_464_mode0_primary_tests
+                   tests/recovered/test_resident_464_mode0_primary.c)
+    target_link_libraries(poolrad_resident_464_mode0_primary_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_primary_tests
+             COMMAND poolrad_resident_464_mode0_primary_tests)
+    add_executable(poolrad_resident_464_mode0_second_tests
+                   tests/recovered/test_resident_464_mode0_second.c)
+    target_link_libraries(poolrad_resident_464_mode0_second_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_second_tests
+             COMMAND poolrad_resident_464_mode0_second_tests)
+    add_executable(poolrad_resident_464_mode0_loops_tests
+                   tests/recovered/test_resident_464_mode0_loops.c)
+    target_link_libraries(poolrad_resident_464_mode0_loops_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_loops_tests
+             COMMAND poolrad_resident_464_mode0_loops_tests)
+    add_executable(poolrad_resident_464_mode0_single_tests
+                   tests/recovered/test_resident_464_mode0_single.c)
+    target_link_libraries(poolrad_resident_464_mode0_single_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_single_tests
+             COMMAND poolrad_resident_464_mode0_single_tests)
+    add_executable(poolrad_resident_464_mode0_two_y_tests
+                   tests/recovered/test_resident_464_mode0_two_y.c)
+    target_link_libraries(poolrad_resident_464_mode0_two_y_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_two_y_tests
+             COMMAND poolrad_resident_464_mode0_two_y_tests)
+    add_executable(poolrad_resident_464_mode0_iterator_tests
+                   tests/recovered/test_resident_464_mode0_iterator.c)
+    target_link_libraries(poolrad_resident_464_mode0_iterator_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_iterator_tests
+             COMMAND poolrad_resident_464_mode0_iterator_tests)
 endif()

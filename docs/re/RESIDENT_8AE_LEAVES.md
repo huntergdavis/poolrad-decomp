@@ -1,8 +1,14 @@
 # Resident 0x8AE +1742 and +17AE local writers
 
-This note records exact local procedure boundaries and memory effects. Their
-use on the saved slot-A one-Up route is conditional on unsampled resident
-state; no game-specific identity or C translation count follows from it.
+**Later native measurement:** the saved one-Up replay reaches `+1742(9)`,
+then the active tail reaches `+17AE(0)` and `+1742(0)`; see
+[the resident-dispatch replay](SLOT_A_ONE_UP_NATIVE_RESIDENT_DISPATCH.md).
+The conditional analysis below predates that measurement.
+
+This note records exact local procedure boundaries and memory effects. At the
+time of this static audit, their use on the saved slot-A one-Up route was
+conditional on unsampled resident state. No game-specific identity or C
+translation count follows from this note or the later native observation.
 
 ## Prior work and input
 

@@ -36,7 +36,7 @@ Whether the real wrapper's B/C chains are non-nil (they decide the sidecar GetMe
 
 ## Remaining unresolved dependencies
 
-`0x7C:0x3E` (unit 0x6f entry 6) record content and B/C chains, `0x464:0x0111`/`0x802:0x0716` (reached through `0x3E9:0x34`), and the heap allocator `0xAF8:0x0308` behind GetMem.
+`0x7C:0x3E` (unit 0x6f entry 6) record content and B/C chains; integration of the existing bounded `0x3E9:0x34`, `0x464:0x0111`, and `0x802:0x0716` models with their remaining host effects; and the heap allocator `0xAF8:0x0308` behind GetMem.
 
 ## Claims
 

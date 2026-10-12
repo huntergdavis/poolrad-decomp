@@ -35,9 +35,11 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 113)
+        self.assertEqual(len(co.VERIFIED), 114)
         self.assertEqual(co.U9B_RECORD_INCR, (0x9B, 0x01AF))
         self.assertIn(co.U9B_RECORD_INCR, co.VERIFIED)
+        self.assertEqual(co.U9E_ENTRY8_ROLL, (0x9E, 0x0DE3))
+        self.assertIn(co.U9E_ENTRY8_ROLL, co.VERIFIED)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})

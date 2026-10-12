@@ -48,7 +48,7 @@ In the private supplied-state route (not DOS evidence) the run reaches PC `0xB1B
 | `+0x04BE`, `+0x05FB`, `+0x0684`, `+0x06DC`, `+0x0763`, `+0x07B7` | `0xAF8:0x0A3F` | Pascal `Move` (image `0xB9BF`, `les di`/`lds si`/`rep movsb`, `retf 0xA`) | decoded |
 | `+0x05BB`, `+0x065E`, `+0x06B6`, `+0x073F`, `+0x0793` | `0xAF8:0x023F` | Pascal `GetMem(size)` (image `0xB1BF`, 21 bytes; near call to the heap allocator `0xAF8:0x0308`, carry = runtime error 203 `0xCB`) | wrapper decoded; allocator not |
 | `+0x051F` | `0xAF8:0x0B25` | Pascal `StrStore` (translated in the HORIZONTAL MENU model) | known |
-| `+0x0532` | `0x3E9:0x34` | unit `0x3ce` entry 4 `+0x01C8` (file `0x31C34`), 3 arguments (string, byte, byte) | **not decoded** (the string constant at `cs:0x044B` names something; content kept out of the repository) |
+| `+0x0532` | `0x3E9:0x34` | unit `0x3ce` entry 4 `+0x01C8` (file `0x31C34`), 3 arguments (string, byte, byte) | [Mapped with a bounded C model](U3CE_ENTRY4_01C8.md); its downstream effects remain explicit hooks. The string constant's content stays out of the repository. |
 
 ## DS and heap writes
 
@@ -64,7 +64,7 @@ Heap objects: the `0x2B:0x39` object (linked into the party list), per-copy `0x1
    route continues to the next item.
 1. **After the slot values are supplied, `0x2B:0x39` -> `0x7C:0x3E` (unit `0x6f` `+0x0EC4`) is the earliest unresolved native monster-record dependency.** It is the first call after the slot reads and decides what record (monster id -> 285-byte object, its `+0xC8` and `+0x7F` sub-lists) is loaded; it is
    not decoded, so the content and any file I/O are unknown. Everything after depends on it (the list heads that gate `+0x063E` and `+0x0710`).
-2. `0x3E9:0x34` (unit `0x3ce` `+0x01C8`) and the Pascal heap allocator (`0xAF8:0x0308` behind `GetMem`/`FreeMem`) are untranslated boundaries.
+2. `0x3E9:0x34` (unit `0x3ce` `+0x01C8`) now has a bounded model with resident load, palette, and key-flush hooks; the Pascal heap allocator (`0xAF8:0x0308` behind `GetMem`/`FreeMem`) remains an untranslated boundary.
 3. Whether the new records belong on the party list in the live game's sense (they are linked through `+0x104/+0x106` at the party list's tail, so later party walks such as PARTYSTRENGTH and
    PARTY SURPRISE would see them) is the static reading of `+0x055B..+0x059B`; no DOS observation is claimed.
 4. The slot byte `[0x6F83]` is shared with the saved party's slot allocation (8 here), and the `[0x4435]` cap of 63 bounds the count of loaded records.

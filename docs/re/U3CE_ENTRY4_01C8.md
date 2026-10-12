@@ -30,8 +30,8 @@ Unit constants (Pascal strings; text kept out of the repository; hash prefixes):
 ## First unresolved side effect
 
 `0x464:0x0111` (resident image `0x4751`): StrStore of the name (max 255), releases the previous destination object via `0x464:0x2595` when its far
-pointer is non-nil, StrLoad of a unit string `cs:0x010C`, then the file/block loader `0x802:0x0716` (the same first unresolved boundary as the unit 0x6F entry 6
-note) and `0xAF8:0x1685`. Until that loader is decoded, the model keeps `0x464:0x0111`, `0x464:0x1E5C`, `0xAF8:0x1366` and `0x899:0x0104` as explicit hooks.
+pointer is non-nil, StrLoad of a unit string `cs:0x010C`, then the file/block loader `0x802:0x0716` (also reached by unit 0x6F entry 6)
+and `0xAF8:0x1685`. The wrapper and block reader now have bounded C models, but their host file and heap effects and composition with this callee remain open. This unit model keeps `0x464:0x0111`, `0x464:0x1E5C`, `0xAF8:0x1366` and `0x899:0x0104` as explicit hooks.
 
 ## Real saved inputs (private probe, fabricated hooks)
 
