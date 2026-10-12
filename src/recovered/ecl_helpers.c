@@ -329,12 +329,14 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
     }
     cls = pr_rec_ecl_address_class(address);
     if (cls <= 2u) {
-        if (cls == 1u && address == 0x6B18u && state->active_record != NULL) {
-            /* +0x07D5..+0x07E7: hook returns zero-extended record[0x14]
-             * with its by-reference flag still 1, before the window read. */
-            if (state->active_record_size < 0x15u)
+        if (cls == 1u && state->active_record != NULL &&
+            (address == 0x6B18u || address == 0x6B9Bu)) {
+            /* +0x07D5..+0x07FC: these branches return zero-extended
+             * record[0x14] or record[0x6E] with the flag still 1. */
+            size_t offset = address == 0x6B18u ? 0x14u : 0x6Eu;
+            if (state->active_record_size <= offset)
                 return PR_REC_ECL_WINDOW_BOUNDS;
-            *value = state->active_record[0x14u];
+            *value = state->active_record[offset];
             return PR_REC_ECL_WINDOW_OK;
         }
         const uint16_t *w = window_word(state, cls, address);

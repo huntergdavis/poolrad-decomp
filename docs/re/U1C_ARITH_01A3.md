@@ -33,7 +33,9 @@ runtime error 200). The model reports DIVIDE_ERROR (runtime error 200) with no s
 `pr_u1c_op_arith(state, stack_residue, report)` (`overlay_u1c_arith_01a3.{h,c}`): the opcode is the
 latch. A loader failure stops first; a slot-value BOUNDS/UNRESOLVED stops after the slot loop before the
 operand word and store; an unresolved class-1 slot read runs to completion and then reports HOOK (PICTURE pattern),
-while a supplied active record resolves the `0x6B18` load ([evidence](U1C_ARITH_CLASS1_RECORD_6B18.md));
+while a supplied active record resolves the `0x6B18` and `0x6B9B` loads
+([evidence for 0x6B18](U1C_ARITH_CLASS1_RECORD_6B18.md),
+[evidence for 0x6B9B](ECL_LOAD_HOOK_6B9B_RECORD.md));
 the store word's status is reported after the attempt (HOOK = word written). A latch outside 4..7 stores
 the host-supplied `stack_residue` (status RESIDUE); the dispatcher reaches the handler only with 4..7.
 
