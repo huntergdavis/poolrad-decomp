@@ -13,7 +13,7 @@ In the private supplied-state route (not DOS evidence) the run reaches PC `0xB1B
 `DS:0x67F4..0x680F`. The saved operands are `01 80 6E | 01 08 98 | 01 80 6E`: slot 1 = class-1 word `0x6E80`, slot 2 = window-2 word `0x9808`, slot 3 = class-1 word `0x6E80`
 (plain load-hook addresses, see [ECL_LOAD_HOOK_CLASSIFIER.md](ECL_LOAD_HOOK_CLASSIFIER.md)).
 
-## Control flow (all branch predicates, from the bytes)
+## Main control flow (from the bytes; the inner copy loops are summarized, not enumerated predicate by predicate)
 
 | Range | Behavior |
 | --- | --- |
@@ -56,9 +56,13 @@ DS: `[0x4435]` (`inc`), `[0x6F83]` (`inc`), `[0x84E7] := 1`, `far [0x5D92]:[0x5D
 Heap objects: the `0x2B:0x39` object (linked into the party list), per-copy `0x11D`-byte records, `0x3F`-byte and 9-byte sidecar chains. `[0x6F83]` is also the party slot byte
 (`+0xBF`) given to each new record, as in the party insertion of unit `0x6f` (`+0x1446`, [SLOT_A_PARTY_INPUT.md](SLOT_A_PARTY_INPUT.md)) which assigns slots `0..7` for the saved party; here CLEARMONSTERS set `[0x6F83] = 8`.
 
-## Earliest unresolved host/native boundary and unknowns
+## Slot-value boundary, earliest unresolved native dependency, and unknowns
 
-1. **`0x2B:0x39` -> `0x7C:0x3E` (unit `0x6f` `+0x0EC4`)** is the first call after the slot reads and decides what record (monster id -> 285-byte object, its `+0xC8` and `+0x7F` sub-lists) is loaded; it is
+0. **Host slot-value boundary (separate from the native dependency below).** The three slot values are read at `+0x048D` (id), `+0x04E6` (count) and `+0x04FB` (byte parameter) through the
+   lane-A slot-value model, so the first stop of a route can already be a class-1 load-hook `HOOK` there, **before `0x2B:0x39` is reached**, if an operand names a load-hook-effect address (a
+   stop that the merged handlers report as CORE/HOOK at the read). In the supplied-state route the class-1 operands are the plain address `0x6E80` (no hook effect), so the reads pass and the
+   route continues to the next item.
+1. **After the slot values are supplied, `0x2B:0x39` -> `0x7C:0x3E` (unit `0x6f` `+0x0EC4`) is the earliest unresolved native monster-record dependency.** It is the first call after the slot reads and decides what record (monster id -> 285-byte object, its `+0xC8` and `+0x7F` sub-lists) is loaded; it is
    not decoded, so the content and any file I/O are unknown. Everything after depends on it (the list heads that gate `+0x063E` and `+0x0710`).
 2. `0x3E9:0x34` (unit `0x3ce` `+0x01C8`) and the Pascal heap allocator (`0xAF8:0x0308` behind `GetMem`/`FreeMem`) are untranslated boundaries.
 3. Whether the new records belong on the party list in the live game's sense (they are linked through `+0x104/+0x106` at the party list's tail, so later party walks such as PARTYSTRENGTH and
