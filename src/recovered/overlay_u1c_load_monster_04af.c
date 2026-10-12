@@ -32,6 +32,7 @@ pr_u1c_lm04af_status pr_u1c_load_monster_04af(pr_rec_ecl_loader_state *st, const
     pr_rec_ecl_window_status ws;
     uint16_t v = 0u;
     size_t k;
+    int cb;
     memset(r, 0, sizeof *r);
     r->core_status = PR_REC_ECL_HANDLER_OK;
     r->slot_status[0] = r->slot_status[1] = PR_REC_ECL_WINDOW_OK;
@@ -82,9 +83,9 @@ pr_u1c_lm04af_status pr_u1c_load_monster_04af(pr_rec_ecl_loader_state *st, const
     if (!env->hooks.unit3ce_01c8)
         return PR_U1C_LM04AF_HOOK;
     r->hook_called = 1;
-    k = (size_t)env->hooks.unit3ce_01c8(env->ctx, env, r->local_string, r->p3, env->b6f83);   /* +0x0524..+0x0532: 0x3E9:0x34 */
-    if (k != 0) {
-        r->callback_status = (int)k;
+    cb = env->hooks.unit3ce_01c8(env->ctx, env, r->local_string, r->p3, env->b6f83);   /* +0x0524..+0x0532: 0x3E9:0x34 */
+    if (cb != 0) {
+        r->callback_status = cb;
         return PR_U1C_LM04AF_CALLBACK;
     }
     return PR_U1C_LM04AF_OK;                                           /* +0x0537: the model stops here */

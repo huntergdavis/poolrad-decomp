@@ -56,7 +56,7 @@ typedef enum {
     PR_U1C_LM04AF_UNMAPPED,      /* the object pointer in A is not in the table */
     PR_U1C_LM04AF_VIEW,          /* the object's view has fewer than 0x11D bytes from its offset */
     PR_U1C_LM04AF_CORE,          /* slot value(2)/(3) failed or reported a class-1 HOOK (report->core_status) */
-    PR_U1C_LM04AF_STRING,        /* the code constant is NULL or longer than 255 bytes */
+    PR_U1C_LM04AF_STRING,        /* the code constant pointer is NULL */
     PR_U1C_LM04AF_HOOK,          /* the 0x3E9:0x34 hook is NULL */
     PR_U1C_LM04AF_CALLBACK       /* the hook returned nonzero (report->callback_status) */
 } pr_u1c_lm04af_status;

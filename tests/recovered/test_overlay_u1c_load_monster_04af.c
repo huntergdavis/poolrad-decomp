@@ -105,6 +105,8 @@ int main(void)
     CHECK(pr_u1c_load_monster_04af(&st, &env, a, b, c, &rep) == PR_U1C_LM04AF_HOOK && !rep.hook_called);
     setup(l5, sizeof l5, l9, sizeof l9); rec.fail = 7;
     CHECK(pr_u1c_load_monster_04af(&st, &env, a, b, c, &rep) == PR_U1C_LM04AF_CALLBACK && rep.callback_status == 7 && rep.hook_called);
+    setup(l5, sizeof l5, l9, sizeof l9); rec.fail = -3;                                     /* negative status is preserved */
+    CHECK(pr_u1c_load_monster_04af(&st, &env, a, b, c, &rep) == PR_U1C_LM04AF_CALLBACK && rep.callback_status == -3 && rep.hook_called);
 
     /* argument guards; NULL report is accepted */
     setup(l5, sizeof l5, l9, sizeof l9);
