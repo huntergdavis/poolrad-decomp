@@ -22,6 +22,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_bitmap_release.c
                                     src/recovered/resident_464_block_wrapper.c
                                     src/recovered/resident_464_bitmap_constructor.c
+                                    src/recovered/resident_464_bitmask.c
                                     src/recovered/overlay_unit38_effects.c
                                     src/recovered/resident_character_target_reset.c
                                     src/recovered/overlay_unit38_effects_next.c
@@ -549,4 +550,10 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_8ae_table_1742_tests
              COMMAND poolrad_resident_8ae_table_1742_tests)
+    add_executable(poolrad_resident_464_bitmask_tests
+                   tests/recovered/test_resident_464_bitmask.c)
+    target_link_libraries(poolrad_resident_464_bitmask_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_bitmask_tests
+             COMMAND poolrad_resident_464_bitmask_tests)
 endif()
