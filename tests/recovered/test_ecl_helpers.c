@@ -1494,6 +1494,68 @@ static int test_store_word_6e82(void) {
     return 0;
 }
 
+/* Load word class 1 (+0x0E41..+0x0E69): the hook +0x07BC runs first; a nonzero by-reference flag means its own value is used,
+ * flag 0 means the window word is read. Only 0x6DD5 is proven to leave the flag 0 with nothing else done, so only it returns
+ * OK; every other class-1 address keeps HOOK. The window value is whatever the host holds: nothing is seeded. */
+static int test_load_word_6dd5(void) {
+    static pr_rec_ecl_loader_state st;
+    uint16_t v;
+    unsigned a, i;
+    static const uint16_t vals[] = { 0x0000, 0x0001, 0x00FF, 0x0100, 0x7FFF, 0x8000, 0xFFFF, 0x1234 };
+    memset(&st, 0, sizeof st);
+    for (i = 0; i < sizeof vals / sizeof vals[0]; ++i) {
+        st.window1[0x2D5] = vals[i];
+        v = 0x7777;
+        CHECK(pr_rec_ecl_load_word(&st, 0x6DD5, &v) == PR_REC_ECL_WINDOW_OK && v == vals[i]);            /* the window word as held */
+    }
+    /* the neighbours and every other class-1 address keep HOOK (value still read) */
+    st.window1[0x2D4] = 0x0A0A; st.window1[0x2D6] = 0x0B0B;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6DD4, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0A0A);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6DD6, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0B0B);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_HOOK);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18, &v) == PR_REC_ECL_WINDOW_HOOK);          /* a case that reads the character record */
+    CHECK(pr_rec_ecl_load_word(&st, 0x6C0C, &v) == PR_REC_ECL_WINDOW_HOOK);          /* a case that keeps the flag at 1 */
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E3E, &v) == PR_REC_ECL_WINDOW_HOOK);
+    for (a = 0x6B00; a <= 0x6EFF; ++a) {
+        pr_rec_ecl_window_status w = pr_rec_ecl_load_word(&st, (uint16_t)a, &v);
+        CHECK(a == 0x6DD5 ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+    }
+    /* the load stays read-only on the window; classes 0 and 2 are unchanged */
+    st.window0[0x10] = 0x0102; st.window2[0x10] = 0x0304;
+    CHECK(pr_rec_ecl_load_word(&st, 0x4910, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0102);
+    CHECK(pr_rec_ecl_load_word(&st, 0x9710, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0304);
+    /* the saved-gate shape: COMPARE word 0x6DD5 with an immediate zero (script PC 0x9934: 03 01 D5 6D 00 00) */
+    {
+        static const uint8_t s[] = { 0x03, 0x01, 0xD5, 0x6D, 0x00, 0x00 };
+        unsigned k;
+        for (k = 0; k < sizeof vals / sizeof vals[0]; ++k) {
+            memset(&st, 0, sizeof st); st.script = s; st.script_size = sizeof s; st.pc = 0x9900u;
+            st.window1[0x2D5] = vals[k];
+            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9906u);
+            /* the six flags are those of comparing the word with 0 (equal, not-equal, less, greater, <=, >=) */
+            CHECK(st.cmp_flags[0] == (vals[k] == 0) && st.cmp_flags[1] == (vals[k] != 0) && st.cmp_flags[2] == 0 &&
+                  st.cmp_flags[3] == (vals[k] > 0) && st.cmp_flags[4] == (vals[k] == 0) && st.cmp_flags[5] == 1);
+        }
+        /* the same compare against a different class-1 address still reports HOOK and leaves the flags untouched */
+        {
+            static const uint8_t h[] = { 0x03, 0x01, 0xD6, 0x6D, 0x00, 0x00 };
+            memset(&st, 0, sizeof st); st.script = h; st.script_size = sizeof h; st.pc = 0x9900u;
+            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55);
+        }
+        /* slot value through the load core */
+        {
+            uint16_t sv = 0;
+            memset(&st, 0, sizeof st); st.tag[1] = 0x01; st.low[1] = 0xD5; st.high[1] = 0x6D; st.window1[0x2D5] = 0x0042;
+            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_OK && sv == 0x0042);
+            st.low[1] = 0xD6; st.window1[0x2D6] = 0x0043;
+            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_HOOK && sv == 0x0043);
+        }
+    }
+    return 0;
+}
+
 static int test_compare_words(void) {
     pr_rec_ecl_loader_state st; unsigned i;
     memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
@@ -1736,6 +1798,7 @@ int main(void) {
     rc |= test_load_files_composition();
     rc |= test_load_word_class4();
     rc |= test_store_word_6e82();
+    rc |= test_load_word_6dd5();
     rc |= test_compare_words();
     rc |= test_compare_strings();
     rc |= test_op_compare();
