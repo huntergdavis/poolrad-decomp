@@ -38,7 +38,8 @@ pr_r464_mode0_status pr_r464_mode0_first_pixel_prefix(
     /* +0x02D3..+0x02E4: zero count takes the common return. With a
      * nonzero count, x=y=0 is always reached, even when a WORD dimension
      * is zero and its decrement underflows to 0xFFFF. */
-    if (object->bytes[8] == 0) {
+    report->count = object->bytes[8];
+    if (report->count == 0) {
         report->next_offset = 0x08CEu;
         return stop(report, PR_R464_MODE0_STOP_RETURN,
                     PR_R464_MODE0_NO_WORK);

@@ -36,6 +36,7 @@ typedef struct {
     uint16_t width_end, height_end; /* DOS decremented WORD loop bounds. */
     uint16_t x, y;         /* Both zero at the first-pixel boundary. */
     uint8_t layer;
+    uint8_t count;         /* Entry copy of object +8, DOS [BP-0x29]. */
     uint8_t copied[4];     /* DOS local [BP-0x15..-0x12]. */
     uint8_t bitmask;
     unsigned move_calls, bitmask_calls, table_reads, aux_or_writes;

@@ -25,7 +25,7 @@ static int test_no_work_and_no_aux(void) {
           PR_R464_MODE0_NO_WORK);
     CHECK(r.stopped_at == PR_R464_MODE0_STOP_RETURN &&
           r.next_offset == 0x08CE && r.move_calls == 0 &&
-          r.source_offset == 0x11);
+          r.source_offset == 0x11 && r.count == 0);
 
     object.capacity = sizeof object_bytes;
     setup(object_bytes, sizeof object_bytes, 1, 0);
@@ -37,6 +37,7 @@ static int test_no_work_and_no_aux(void) {
               NULL, 0, &r) == PR_R464_MODE0_READY_PRIMARY);
     CHECK(r.stopped_at == PR_R464_MODE0_STOP_PRIMARY_HELPERS &&
           r.next_offset == 0x03D1 && r.layer == 1 &&
+          r.count == 1 &&
           r.width_end == 0xFFFF && r.height_end == 0xFFFF &&
           r.x == 0 && r.y == 0 &&
           r.move_calls == 1 && r.bitmask_calls == 0 &&
