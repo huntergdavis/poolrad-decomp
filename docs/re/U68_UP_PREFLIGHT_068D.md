@@ -142,6 +142,17 @@ or in the scripts themselves writes it between the key and the compare;
 that tracing (ECL `0x996B`, the actual x/y and minute writers) is p5's
 and is not claimed here.
 
+**Minute bytes (VP question, address-only): not found.** The span's only
+memory writes are DS bytes `[0x6AAD]`/`[0x6AAE]` (`+0x06E5`, `+0x06FB`,
+`+0x0711`, `+0x0727`) and window-1 word `es:[di+0x5AA]` (the five sites
+above); it never loads `[0x49D2]` (window 0) and touches no window-0 byte,
+so `+0x18E`/`+0x190` are not written here. Its only call is `+0x06C0` to
+unit 0x3bd entry 3, whose merged translation (U3BD_FIELD_ENTRY3.md) writes
+nothing outside its frame, makes no far calls, and only reads `[0x84DC]`
+and the `[0x6A5C]` buffer through its internal leaf and entry 2. No path
+of this routine writes the minute bytes or invokes a likely minute writer.
+The x/y writer at `+0x073B` is outside this span and not covered.
+
 ## C contract and tests
 
 `pr_u68_up_preflight(state, report)` runs in place on `state` (position
