@@ -80,7 +80,10 @@ uint8_t pr_rec_ecl_address_class(uint16_t address);
  * unresolved. See docs/re/FUNCTION_LEDGER.md section 1.6. */
 
 #define PR_REC_ECL_SCRIPT_BASE 0x9900u      /* virtual address of script byte 0 */
-#define PR_REC_ECL_SLOT_COUNT 16u           /* slots 1..15 modelled (engine prefetches at most 14) */
+#define PR_REC_ECL_SLOT_COUNT 64u           /* slots 1..63 modelled: the engine's tag/high/low arrays [0x7005+i], [0x7045+i],
+                                               [0x7085+i] are 0x40 apart, so indices below 0x40 do not overlap. Fixed-count opcodes
+                                               prefetch at most 14; ON GOTO/GOSUB (U1C +0x18F8) load a script-given count. A count
+                                               of 64 or more is a model bound (LOADER_COUNT). */
 #define PR_REC_ECL_WINDOW0_WORDS 1024u      /* GetMem(0x800) in unit 0x36 + 0x002D */
 #define PR_REC_ECL_WINDOW1_WORDS 1024u      /* GetMem(0x800) */
 #define PR_REC_ECL_WINDOW2_WORDS 512u       /* GetMem(0x400) */
