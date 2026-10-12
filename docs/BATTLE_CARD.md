@@ -33,7 +33,9 @@ unit `0x9E` entry-8 dice helper. Local totals are **124 verified game
 identities** and **62 strict full-C routines** (53 overlay, nine resident),
 subject to publication after the owner's no-external hold. The native one-Up
 resident-dispatch replay now measures mode 1, active word 100, argument 10,
-and its selected local calls; C-native one-Up parity remains open.
+and its selected local calls. The first live script RNG call advances seed
+`3140872353 → 3238563622` and stores result 10; C-native one-Up parity remains
+open.
 
 Keep the visible card in an ASCII code block with a conspicuous `*` border and
 short lines. Adapt the rows to the current evidence:

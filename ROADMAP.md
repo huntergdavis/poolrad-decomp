@@ -31,8 +31,10 @@ extracted C cores with unresolved engine side effects. The DOS oracle reaches
 six-person exploration from a local save; a state-gated one-step move passes.
 The PM's locally reviewed, unpublished unit `0x9E` entry-8 dice helper raises
 the local checkpoint to **62 full-C game routines** (53 overlay, nine resident).
-It uses the byte-verified SYSTEM seed recurrence with caller-supplied state;
-the authentic saved-run seed has not been measured.
+It uses the byte-verified SYSTEM seed recurrence with caller-supplied state.
+The [native saved one-Up RANDOM watch](docs/re/SLOT_A_ONE_UP_NATIVE_RANDOM_SEED.md)
+now measures the authentic first script RNG seed `3140872353 → 3238563622`,
+range 14, result 10, and window-2 destination word `16 → 10`.
 The merged [native exactly-one-Up write watch](docs/re/SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md) measured window-0 `+0x018E: 0→1`
 and `+0x0190: 5→5`, with numeric screen state `15,4 N 10:50 → 14,4 N 10:51`.
 The first observed value change was unit `0x7D` entry 1 `+0x045D`, reached

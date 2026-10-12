@@ -14,7 +14,7 @@ session merges after review.
 | A: DOS code recovery | Claude | Thirty-four full overlay translations merged through PR #108; COMPARE, IF and RETURN are bounded models, the latter merged in PR #119. Idle pending PM assignment. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*` (no edits to Codex's resident files) |
 | B: portable data foundation and resident recovery | Codex worker (p5) | Nine full resident translations merged through PR #79. The entry-2 Up slice and coordinate-writer hook correction merged in PRs #163/#167; the bounded resident `0x8AE:0x00DC` dispatch and `+0x181A` leaf merged in PR #171. The bounded `+0x17AE` table writer merged in PR #176; whether the saved one-Up dispatch calls it remains unproved. Awaiting lane-D live branch evidence. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
 | C: separate overlay recovery | Claude worker 2 (p6) | Unit `0x68` entry 1 bounded model merged in PR #156, full party-byte and field-clear helpers in PRs #158/#162, bounded roll-gate and tile-step models in PRs #165/#166, and saved-state gameplay loop `0x1C:+0x3387..+0x3507` in PR #169. The reached `+0x3171` script runner already has the lane-A callback model. The AND/OR handler `0x1C:+0x0DEF` and its `0xC04F` load-word source merged in PRs #175/#177. Saved search handlers and the class-1 load hook are merged through PR #192. The slot-A party model and RNG audit merged in PR #193; the complete unit `0x9B:+0x01AF` record updater merged in PR #194. Idle pending the next bounded target. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
-| D: native replay evidence | Codex worker 2 (p9) | Native exactly-one-Up minute and coordinate watches merged in PRs #153/#157; saved-game C restore adapter merged in PR #160 with explicit key-dispatch blocker. The native prompt key/extended-flag ABI merged in PR #170. Current target is the first reached script-runner call and its live state before/after exactly one Up; the latest watch did not reach saved gameplay, so its retry is pending. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence or synthetic replay code. |
+| D: native replay evidence | Codex worker 2 (p9) | Native exactly-one-Up minute and coordinate watches merged in PRs #153/#157; saved-game C restore adapter merged in PR #160 with explicit key-dispatch blocker. The native prompt key/extended-flag ABI merged in PR #170. Local unpublished watches now reach saved gameplay, the resident dispatch branch, and the first ECL RANDOM seed/result/store. Current target is the actual post-RANDOM script branch. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence or synthetic replay code. |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, track the game-function denominator in issue #24, and connect the lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
@@ -54,8 +54,9 @@ value-changing writer and the prompt return ABI; the bounded gameplay-loop,
 AND/OR, and resident-dispatch C models still have unresolved hooks. The saved
 AND/OR source `0xC04F` now resolves to host-supplied DS byte `[0x6AB1]`, whose
 live value on that route remains unmeasured. C-native one-Up parity remains open at the key-dispatch, actual search
-reachability, live RNG seed/AL, AL=13 DIVIDE, and remaining runtime-state
-integration gates. The `+0x3171` script runner is already a
+reachability, conditional AL=13 DIVIDE, and remaining runtime-state
+integration gates. The locally measured first native RANDOM result is AL=10;
+the `+0x3171` script runner is already a
 merged callback model.
 
 Local unpublished PM main adds one independently reviewed full-C game dice
@@ -63,5 +64,7 @@ helper, unit `0x9E` entry 8: **62 full-C routines** and **124 verified game
 identities** locally. A native replay now measures the saved one-Up
 `RES_08AE:00DC` branch (mode 1, active word 100, argument 10 and its selected
 calls), while the callees' complete effects and C-native parity stay open.
+The local native ECL RANDOM watch now measures the first saved script RNG seed
+`3140872353 → 3238563622`, result 10, and window-2 word `16 → 10`.
 The public merged checkpoint above remains 61/123 during the owner's
 no-external hold.
