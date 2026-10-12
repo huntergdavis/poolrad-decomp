@@ -12,9 +12,9 @@ session merges after review.
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
 | A: DOS code recovery | Claude | Thirty-four full overlay translations merged through PR #108; COMPARE, IF and RETURN are bounded models, the latter merged in PR #119. Idle pending PM assignment. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*` (no edits to Codex's resident files) |
-| B: portable data foundation and resident recovery | Codex worker (p5) | Nine full resident translations merged through PR #79. Unit `0x68:+0x05EE` list search merged in PR #149; record-clear helper `+0x0648` merged in PR #152; current isolated target is entry-1 helper `+0x04DF`. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
-| C: separate overlay recovery | Claude worker 2 (p6) | Unit `0x7D:+0x0000` and unit `0x9E` entry 2 bounded models merged in PRs #144/#147; unit `0x9E:+0x0160` bounded model and four complete `0x3C6` slot helpers merged in PR #150; current target is unit `0x68` entry 1. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
-| D: native replay evidence | Codex worker 2 (p9) | Isolated exactly-one-Up native write watch measured window-0 `+0x018E: 0→1`, `+0x0190: 5→5`, and the unit `0x7D:+0x045D` value-changing writer via unit `0x68:+0x07ED`; address-only watch merged in PR #153; current target is live direction-table and coordinate-branch evidence for C-native replay. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence. |
+| B: portable data foundation and resident recovery | Codex worker (p5) | Nine full resident translations merged through PR #79. Unit `0x68:+0x0109` map updater merged in PR #159; current isolated target is entry 2's key-dispatch route. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
+| C: separate overlay recovery | Claude worker 2 (p6) | Unit `0x68` entry 1 bounded model merged in PR #156 and the complete party-byte helper `+0x0236` merged in PR #158; current target is the entry-1 helper `+0x0000`. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
+| D: native replay evidence | Codex worker 2 (p9) | Native exactly-one-Up minute and coordinate watches merged in PRs #153/#157; current target is an isolated saved-game C restore adapter that stops explicitly at the untranslated key-dispatch route. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence or synthetic replay code. |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, track the game-function denominator in issue #24, and connect the lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
@@ -37,16 +37,16 @@ session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
-Fifty-seven verified game-specific routines are fully translated across the
-overlay and resident lanes: forty-eight overlay and nine resident. PR #64's
+Fifty-nine verified game-specific routines are fully translated across the
+overlay and resident lanes: fifty overlay and nine resident. PR #64's
 separate `0x464` helper has unresolved source ownership.
 Three handler/callee models have unresolved dependencies or heap semantics;
 PRs #65/#72 add separate path-complete script-state initializer and ECL block-loader models.
 Two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
-translated. The regenerated classifier records 109 verified overlay identities,
+translated. The regenerated classifier records 111 verified overlay identities,
 including PRs #63/#69's twenty unit `0x38` entries, PR #65's view setter,
-PRs #106/#114/#124/#126/#128's unit `0x3BD` entries 6/7/4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's `0x68:+0x05AB` scan, and PR #149's `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, and PR #150's four unit `0x3C6` slot helpers,
+PRs #106/#114/#124/#126/#128's unit `0x3BD` entries 6/7/4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's `0x68:+0x05AB` scan, PR #149's `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, and PRs #158/#159's `0x68:+0x0236` party test and `+0x0109` map updater,
 and the callable ledger records ten resident identities. The combined
-evidence-backed floor is therefore 119 game routines. The full game-function
+evidence-backed floor is therefore 121 game routines. The full game-function
 denominator remains open; the merged DOS one-Up watch reaches the first value-changing writer; C-native one-Up parity remains open.

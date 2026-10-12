@@ -6,8 +6,8 @@ blocks call three times ([U68_ENTRY1.md](U68_ENTRY1.md)). It walks the party
 list and reports whether any node's signed byte at `+0x96 + k` is positive.
 Classification: **full translation of all 32 instructions** (no calls; the only
 writes are its own locals); the party list and node records are explicit host
-state. This is a candidate for the strict category only after PM parity
-review: **no count or credit is claimed**.
+state. PM postmerge parity review accepted strict full-C and verified
+game-identity credit. Saved one-Up reachability remains unproved.
 
 `deja "Poolrad unit 0x68 +0x0236 near callee"` found no earlier trace. Reused
 and re-checked: U68_ENTRY1.md (the three call sites and the argument values),
