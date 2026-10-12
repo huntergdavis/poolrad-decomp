@@ -15,11 +15,17 @@ the independently checked `+1821`, `+1823`, `+1826`, `+1829`, `+02D5`,
 the complete CPU tuple at each one, including the previously untranscribed
 `+1829` state.
 
+PM's review of the initial PR head identified two boundaries corrected here:
+8086 word access wraps its second byte from offset `FFFF` to `0000`, as
+already established by merged PR #290, and CPU parity needs separately
+pinned EV observations rather than expectations embedded in the verifier.
+
 ## Pinned inputs and code
 
 Fresh ignored run `resources/oracle-runs/slot-a-native-directory-fullstate-044`
 was prepared with `tools/oracle/prepare_run.sh`. All files under that run,
-including save, debugger stream, screenshots, and RAM images, remain ignored.
+including save, normalized EV transcript, screenshots, and RAM images,
+remain ignored.
 
 | Input | Bytes | SHA-256 |
 | --- | ---: | --- |
@@ -47,6 +53,12 @@ BX=`35A0`, CX=`0000`, DX=`3526`, SI=`36BB`, DI=`3531`,
 ES=`1D16`, FS=`0000`, GS=`0000`, SS=`1D16`.
 The table plus these fields is the complete 16-field C CPU state at each
 direct debugger stop. RAM hashes cover linear `0x00000..0x9FFFF`.
+The private normalized EV transcript is retained at ignored
+`resources/oracle-runs/slot-a-native-directory-fullstate-044/ev-transcript.txt`
+with SHA-256 `fe6fea3e59e0b3018350f84506104d60345eb1834b63c391b6202567b186c957`.
+It records the eight direct EV outputs in command column order. The optional
+verifier parses this file for the initial CPU, service result, and every
+expected CPU state.
 
 | Stop | CS:IP | DS | SP | BP | AX | FLAGS | 640 KiB RAM SHA-256 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -78,11 +90,16 @@ for repeated addresses, before applying any write. It requires the reached
 post-INT `131C:1823` PC. The callback owns service AX, carry, other CPU
 effects, and RAM effects. The C stepper then executes the reached POP DS,
 conditional error-word store, return-frame unwind, far call, XOR/XCHG, and
-far return. Only the saved loaded segments and return targets are accepted.
+far return. Word access computes each byte using its own wrapped 16-bit
+segment offset, and the far call preflights both pushed words before
+writing either. Synthetic tests exercise POP DS at `SS:FFFF`, a far-call
+return frame spanning `FFFF→0000`, and an invalid second push that preserves
+the first word and CPU. Only the saved loaded segments and return targets
+are accepted.
 
 The source-only optional verifier
 `tests/recovered/check_slot_a_directory_fullstate_native.c` reads the
-ignored RAM captures. It uses the sorted **net** pre/post-INT byte delta as
+ignored RAM captures and pinned EV transcript. It uses the sorted **net** pre/post-INT byte delta as
 one valid callback journal, then compares all 16 modeled CPU fields and all
 655,360 captured RAM bytes after each C step. That order is a projection
 from snapshots, not an observation of DOS's internal write order. On run
@@ -99,10 +116,15 @@ Alt+Pause, set `BP 2A8E:02D0`, `RUN`, then select `a`. At `+02D0`, arm
 `BP 2A8E:02DA`. At each stop use
 `EV CS IP DS ES FS GS SS SP BP AX BX CX DX SI DI FLAGS` and
 `MEMDUMPBIN 0000 0000 A0000`; move `MEMDUMP.BIN` to the matching ignored
-`ram-<stop>.bin` before continuing. Then run:
+`ram-<stop>.bin` before continuing. Retain the eight labeled EV rows in
+ignored `ev-transcript.txt`, in the stated command column order. For run
+044, verify its transcript hash, then run:
 
 ```sh
 run=resources/oracle-runs/slot-a-native-directory-fullstate-044
+printf '%s  %s\n' \
+  fe6fea3e59e0b3018350f84506104d60345eb1834b63c391b6202567b186c957 \
+  "$run/ev-transcript.txt" | sha256sum -c -
 cc -std=c11 -Wall -Wextra -Wpedantic -Werror -Iinclude \
   src/recovered/slot_a_directory_fullstate.c \
   tests/recovered/check_slot_a_directory_fullstate_native.c \
@@ -113,3 +135,4 @@ cc -std=c11 -Wall -Wextra -Wpedantic -Werror -Iinclude \
 The required public synthetic test covers successful service completion,
 error 5, a different error, missing service, repeated writes, invalid
 journal values, and the wrapper/IOResult stack and flag transitions.
+It also checks the word-offset wrap and far-call preflight boundaries above.

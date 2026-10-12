@@ -5,32 +5,38 @@
 #define CF 0x0001u
 
 static int address(const pr_slot_a_directory_state *s, uint16_t seg,
-                   uint16_t off, size_t bytes, size_t *linear)
+                   uint16_t off, size_t *linear)
 {
-    size_t p = ((size_t)seg << 4) + off;
-    if (p > 0xfffffu || p > s->ram_size || bytes > s->ram_size - p ||
-        bytes > 0x100000u - p)
-        return 0;
+    /* 8086 segment offsets and the 20-bit physical bus wrap separately. */
+    size_t p = (((size_t)seg << 4) + off) & 0xfffffu;
+    if (p >= s->ram_size) return 0;
     *linear = p;
     return 1;
+}
+
+static int word_address(const pr_slot_a_directory_state *s, uint16_t seg,
+                        uint16_t off, size_t *low, size_t *high)
+{
+    return address(s, seg, off, low) &&
+           address(s, seg, (uint16_t)(off + 1u), high);
 }
 
 static int read_word(const pr_slot_a_directory_state *s, uint16_t seg,
                      uint16_t off, uint16_t *value)
 {
-    size_t p;
-    if (!address(s, seg, off, 2u, &p)) return 0;
-    *value = (uint16_t)(s->ram[p] | ((uint16_t)s->ram[p + 1u] << 8));
+    size_t low, high;
+    if (!word_address(s, seg, off, &low, &high)) return 0;
+    *value = (uint16_t)(s->ram[low] | ((uint16_t)s->ram[high] << 8));
     return 1;
 }
 
 static int write_word(pr_slot_a_directory_state *s, uint16_t seg,
                       uint16_t off, uint16_t value)
 {
-    size_t p;
-    if (!address(s, seg, off, 2u, &p)) return 0;
-    s->ram[p] = (uint8_t)value;
-    s->ram[p + 1u] = (uint8_t)(value >> 8);
+    size_t low, high;
+    if (!word_address(s, seg, off, &low, &high)) return 0;
+    s->ram[low] = (uint8_t)value;
+    s->ram[high] = (uint8_t)(value >> 8);
     return 1;
 }
 
@@ -65,14 +71,14 @@ pr_slot_a_directory_status pr_slot_a_directory_step(
     pr_slot_a_directory_cpu *c, after;
     pr_slot_a_directory_status result;
     uint16_t value, ip, cs, frame;
-    size_t count, i, linear;
+    size_t count, i, linear, high;
 
     if (!s || !s->ram || s->ram_size > 0x100000u ||
         (capacity != 0u && !journal)) return PR_SLOT_A_DIRECTORY_BOUNDARY;
     c = &s->cpu;
     if (c->cs == SYSTEM_SEG && c->ip == 0x1821u) {
         if ((c->ax >> 8) != 0x39u || c->ds != c->ss ||
-            !address(s, c->ds, c->dx, 1u, &linear))
+            !address(s, c->ds, c->dx, &linear))
             return PR_SLOT_A_DIRECTORY_BOUNDARY;
         if (!service) return PR_SLOT_A_DIRECTORY_BLOCKED_DOS_SERVICE;
         after = *c;
@@ -120,7 +126,10 @@ pr_slot_a_directory_status pr_slot_a_directory_step(
     }
     if (c->cs == CALLER_SEG && c->ip == 0x02d5u) {
         /* Caller CALL FAR to the reached IOResult entry. */
-        if (!address(s, c->ss, (uint16_t)(c->sp - 4u), 4u, &linear))
+        if (!word_address(s, c->ss, (uint16_t)(c->sp - 2u),
+                          &linear, &high) ||
+            !word_address(s, c->ss, (uint16_t)(c->sp - 4u),
+                          &linear, &high))
             return PR_SLOT_A_DIRECTORY_BOUNDARY;
         if (!push_word(s, c->cs) || !push_word(s, 0x02dau))
             return PR_SLOT_A_DIRECTORY_BOUNDARY;

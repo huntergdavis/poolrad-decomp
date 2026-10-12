@@ -149,7 +149,7 @@ static void test_blocked_and_invalid(void)
            PR_SLOT_A_DIRECTORY_BAD_EVENT);
     assert(memcmp(&s.cpu, &before, sizeof before) == 0);
     assert(ram[0x0816eu] == 0x8eu && ram[0x2066bu] == 0x33u);
-    f.bad_old = 1;
+    f.duplicate = 0; f.bad_duplicate = 0; f.bad_old = 1;
     assert(pr_slot_a_directory_step(&s, service, &f, journal, 3u) ==
            PR_SLOT_A_DIRECTORY_BAD_EVENT);
     assert(memcmp(&s.cpu, &before, sizeof before) == 0);
@@ -164,11 +164,57 @@ static void test_blocked_and_invalid(void)
            PR_SLOT_A_DIRECTORY_BOUNDARY);
 }
 
+static void test_stack_offset_wrap(void)
+{
+    pr_slot_a_directory_state s = initial();
+    pr_slot_a_directory_cpu before;
+    size_t base = ADDR(0x1000u, 0u);
+
+    /* POP DS reads its high byte at SS:0000 after SS:FFFF. */
+    s.cpu.cs = 0x131cu; s.cpu.ip = 0x1823u;
+    s.cpu.ss = 0x1000u; s.cpu.sp = 0xffffu;
+    s.cpu.flags &= (uint16_t)~1u;
+    ram[base + 0xffffu] = 0xa0u;
+    ram[base] = 0x14u;
+    ram[base + 0x10000u] = 0x77u;
+    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) ==
+           PR_SLOT_A_DIRECTORY_OK);
+    assert(s.cpu.ds == 0x14a0u && s.cpu.sp == 1u && s.cpu.ip == 0x1829u);
+
+    /* CALL FAR pushes CS at offset FFFF, with its high byte at 0000.
+     * RETF reads the same wrapped return frame. */
+    s = initial(); s.cpu.cs = 0x2a8eu; s.cpu.ip = 0x02d5u;
+    s.cpu.ss = 0x1000u; s.cpu.sp = 1u;
+    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) ==
+           PR_SLOT_A_DIRECTORY_OK);
+    assert(s.cpu.cs == 0x131cu && s.cpu.ip == 0x04a2u &&
+           s.cpu.sp == 0xfffdu);
+    assert(ram[base + 0xfffdu] == 0xdau &&
+           ram[base + 0xfffeu] == 0x02u &&
+           ram[base + 0xffffu] == 0x8eu && ram[base] == 0x2au);
+    s.cpu.ip = 0x04a8u;
+    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) ==
+           PR_SLOT_A_DIRECTORY_OK);
+    assert(s.cpu.cs == 0x2a8eu && s.cpu.ip == 0x02dau && s.cpu.sp == 1u);
+
+    /* The first pushed word is addressable, but the second is outside
+     * this RAM view. Preflight must reject before touching either word. */
+    s = initial(); s.cpu.cs = 0x2a8eu; s.cpu.ip = 0x02d5u;
+    s.cpu.ss = 0x1000u; s.cpu.sp = 2u; s.ram_size = 0x18000u;
+    ram[base] = 0x77u; ram[base + 1u] = 0x88u;
+    before = s.cpu;
+    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) ==
+           PR_SLOT_A_DIRECTORY_BOUNDARY);
+    assert(memcmp(&s.cpu, &before, sizeof before) == 0);
+    assert(ram[base] == 0x77u && ram[base + 1u] == 0x88u);
+}
+
 int main(void)
 {
     test_path(0u, 0);
     test_path(5u, 1);
     test_path(7u, 1);
     test_blocked_and_invalid();
+    test_stack_offset_wrap();
     return 0;
 }

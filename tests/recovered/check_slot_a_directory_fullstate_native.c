@@ -9,6 +9,46 @@
 static const char *root;
 static uint8_t expected_ram[N];
 static uint8_t service_ram[N];
+static const char *labels[] = {
+    "pre-int", "post-int", "pre-store", "post-store",
+    "02d5", "io-entry", "io-after-xchg", "02da"
+};
+static pr_slot_a_directory_cpu native_cpu[8];
+
+static void read_ev_transcript(void)
+{
+    char path[1024], line[512];
+    FILE *f;
+    size_t i, j;
+    assert(snprintf(path, sizeof path, "%s/ev-transcript.txt", root) > 0);
+    f = fopen(path, "r"); assert(f);
+    assert(fgets(line, sizeof line, f) && line[0] == '#');
+    for (i = 0; i < 8u; ++i) {
+        unsigned long v[16];
+        char *token, *end;
+        pr_slot_a_directory_cpu *c = &native_cpu[i];
+        assert(fgets(line, sizeof line, f));
+        token = strtok(line, " \t\r\n");
+        assert(token && strcmp(token, labels[i]) == 0);
+        for (j = 0; j < 16u; ++j) {
+            token = strtok(NULL, " \t\r\n");
+            assert(token);
+            v[j] = strtoul(token, &end, 16);
+            assert(*end == '\0' && v[j] <= 0xffffu);
+        }
+        assert(strtok(NULL, " \t\r\n") == NULL);
+        c->cs = (uint16_t)v[0]; c->ip = (uint16_t)v[1];
+        c->ds = (uint16_t)v[2]; c->es = (uint16_t)v[3];
+        c->fs = (uint16_t)v[4]; c->gs = (uint16_t)v[5];
+        c->ss = (uint16_t)v[6]; c->sp = (uint16_t)v[7];
+        c->bp = (uint16_t)v[8]; c->ax = (uint16_t)v[9];
+        c->bx = (uint16_t)v[10]; c->cx = (uint16_t)v[11];
+        c->dx = (uint16_t)v[12]; c->si = (uint16_t)v[13];
+        c->di = (uint16_t)v[14]; c->flags = (uint16_t)v[15];
+    }
+    assert(fgetc(f) == EOF);
+    fclose(f);
+}
 
 static void read_ram(const char *name, uint8_t *out)
 {
@@ -29,8 +69,8 @@ static pr_slot_a_directory_status captured_service(
     size_t i, n = 0;
     (void)unused;
     assert(size == N);
-    *after = *before;
-    after->ax = 5u; after->flags = 0x7247u; after->ip = 0x1823u;
+    assert(memcmp(before, &native_cpu[0], sizeof *before) == 0);
+    *after = native_cpu[1];
     for (i = 0; i < N; ++i) {
         if (ram[i] == service_ram[i]) continue;
         assert(n < capacity);
@@ -43,10 +83,6 @@ static pr_slot_a_directory_status captured_service(
     *count = n;
     return PR_SLOT_A_DIRECTORY_OK;
 }
-
-#define CPU(cseg, coff, dseg, spv, bpv, axv, flv) \
-    {axv, 0x35a0u, 0u, 0x3526u, 0x36bbu, 0x3531u, bpv, spv, \
-     cseg, dseg, 0x1d16u, 0x1d16u, 0u, 0u, coff, flv}
 
 static void compare(const char *label, const pr_slot_a_directory_state *s,
                     pr_slot_a_directory_cpu expected)
@@ -71,26 +107,21 @@ int main(int argc, char **argv)
 {
     pr_slot_a_directory_state s;
     pr_slot_a_directory_write journal[32];
+    size_t i;
     assert(argc == 2); root = argv[1];
+    read_ev_transcript();
     s.ram = malloc(N); assert(s.ram); s.ram_size = N;
     read_ram("pre-int", s.ram);
     read_ram("post-int", service_ram);
-    s.cpu = (pr_slot_a_directory_cpu)CPU(0x131cu,0x1821u,0x1d16u,0x3522u,0x35a6u,0x3900u,0x7246u);
-    compare("pre-int", &s, s.cpu);
-    assert(pr_slot_a_directory_step(&s, captured_service, NULL, journal, 32u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("post-int", &s, (pr_slot_a_directory_cpu)CPU(0x131cu,0x1823u,0x1d16u,0x3522u,0x35a6u,5u,0x7247u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("pre-store", &s, (pr_slot_a_directory_cpu)CPU(0x131cu,0x1826u,0x14a0u,0x3524u,0x35a6u,5u,0x7247u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("post-store", &s, (pr_slot_a_directory_cpu)CPU(0x131cu,0x1829u,0x14a0u,0x3524u,0x35a6u,5u,0x7247u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("02d5", &s, (pr_slot_a_directory_cpu)CPU(0x2a8eu,0x02d5u,0x14a0u,0x35b0u,0x37b2u,5u,0x7247u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("io-entry", &s, (pr_slot_a_directory_cpu)CPU(0x131cu,0x04a2u,0x14a0u,0x35acu,0x37b2u,5u,0x7247u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("io-after-xchg", &s, (pr_slot_a_directory_cpu)CPU(0x131cu,0x04a8u,0x14a0u,0x35acu,0x37b2u,5u,0x7246u));
-    assert(pr_slot_a_directory_step(&s, NULL, NULL, NULL, 0u) == PR_SLOT_A_DIRECTORY_OK);
-    compare("02da", &s, (pr_slot_a_directory_cpu)CPU(0x2a8eu,0x02dau,0x14a0u,0x35b0u,0x37b2u,5u,0x7246u));
+    s.cpu = native_cpu[0];
+    compare(labels[0], &s, native_cpu[0]);
+    for (i = 1; i < 8u; ++i) {
+        assert(pr_slot_a_directory_step(&s,
+            i == 1u ? captured_service : NULL, NULL,
+            i == 1u ? journal : NULL, i == 1u ? 32u : 0u) ==
+            PR_SLOT_A_DIRECTORY_OK);
+        compare(labels[i], &s, native_cpu[i]);
+    }
     free(s.ram);
     return 0;
 }
