@@ -65,9 +65,9 @@ pr_u68_move_status pr_u68_movement_flag(pr_u68_move_state *state,
         if (!state->hooks.roll_9e_entry8)
             return PR_U68_MOVE_HOOK;
 
-        /* +0x050D..+0x051F: push 1, push 0x64, far call 0xB0:0x48;
-         * unsigned AL <= node byte +0x78. The callee's internal RNG
-         * and its state effects remain behind the hook. */
+        /* +0x050D..+0x051F: set AL=1, push AX; set AL=0x64, push AX;
+         * far call 0xB0:0x48. AH is not fixed here, but the callee reads
+         * only the low bytes. Its RNG effects remain behind the hook. */
         roll = state->hooks.roll_9e_entry8(state->hooks.ctx, 0x64u, 1u);
         if (roll <= view->bytes[(uint16_t)(current.offset + 0x78u)] &&
             view->bytes[(uint16_t)(current.offset + 0x10Cu)] == 0)

@@ -15,7 +15,7 @@ static uint8_t second_segment[PR_U68_RECORD_SEGMENT_SIZE];
 typedef struct {
     uint8_t rolls[4];
     unsigned roll_count;
-    uint16_t last_range, last_count;
+    uint8_t last_range, last_count;
     uint8_t marks[2][3];
     uint8_t flag_at_mark[2];
     unsigned mark_count;
@@ -23,7 +23,7 @@ typedef struct {
     int mutate_on_first_mark;
 } trace;
 
-static uint8_t roll_hook(void *ctx, uint16_t range, uint16_t count)
+static uint8_t roll_hook(void *ctx, uint8_t range, uint8_t count)
 {
     trace *t = ctx;
     unsigned i = t->roll_count++;

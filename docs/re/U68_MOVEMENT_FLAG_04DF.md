@@ -35,7 +35,7 @@ links, not a guest-PC trace of the saved one-Up case.
 | Span | Decoded path or effect |
 | --- | --- |
 | `+0x04E5..+0x0504` | Set local found=0, copy DS:[0x5D96/0x5D98] as far current node; exit the loop when both pointer words are zero or found is nonzero. |
-| `+0x050D..+0x051F` | Push words `1`, then `0x64`, and far-call `0xB0:0x0048`. Compare returned AL **unsigned** with ES:[node+0x78]; `JA` skips the candidate. |
+| `+0x050D..+0x051F` | Set AL to `1` and push AX; set AL to `0x64` and push AX; far-call `0xB0:0x0048`. AH can retain bits from the prior pointer-word OR and is not established by those instructions. Compare returned AL **unsigned** with ES:[node+0x78]; `JA` skips the candidate. |
 | `+0x0521..+0x052C` | When AL is at most the threshold, byte ES:[node+0x10C] must be zero; then found=1. |
 | `+0x0530..+0x0543` | Read the next far pointer from node `+0x104/+0x106` and loop. This read occurs **even after a hit**; the next loop test exits on found. |
 | `+0x0545..+0x054E` | Store zero at DS:[0x6DDF] for empty, exhausted, and found paths. Only found enters the two map calls. |
@@ -44,12 +44,14 @@ links, not a guest-PC trace of the saved one-Up case.
 | `+0x059E..+0x05AA` | Return AL=found: zero for no candidate, one for a candidate. |
 
 The `0xB0:0x0048` stub maps to unit `0x9E` entry 8 at `+0x0DE3`.
-Its 75-byte body loops over count word `[bp+8]`, calls runtime
-`0xAF8:0x11C0` with range word `[bp+6]`, increments each AX, accumulates
-low bytes, and returns AL. Here the pushed arguments mean count=1 and
-range=100. The runtime random-state semantics remain unresolved, so
-the model accepts that call's AL through `roll_9e_entry8` and does not
-assert a distribution. Local `+0x0109` is a 301-byte map-field updater:
+Its 75-byte body reads only count **byte** `[bp+8]` and range **byte**
+`[bp+6]`, calls runtime `0xAF8:0x11C0` with the zero-extended range
+byte, increments each AX, accumulates low bytes, and returns AL. The
+effective bytes here are count=1 and range=100; the full pushed AX
+words have unproved high bytes. The runtime random-state semantics
+remain unresolved, so the model accepts that call's AL through
+`roll_9e_entry8` and does not assert a distribution. Local `+0x0109`
+is a 301-byte map-field updater:
 it range-checks the x/y argument bytes, uses the selector byte to
 choose a two-bit mask, and accesses a far map pointer at DS:[0x6A5C].
 Its map buffer and side effects stay behind `mark_0109`; the callback

@@ -11,8 +11,10 @@
 
 #include "poolrad/recovered/overlay_u68_list_search.h"
 
-typedef uint8_t (*pr_u68_move_roll_hook)(void *ctx, uint16_t range_word,
-                                          uint16_t count_word);
+/* Effective low bytes read by unit 0x9E entry 8 at [bp+6]/[bp+8].
+ * The caller pushes AX after setting only AL, so pushed AH is unproved. */
+typedef uint8_t (*pr_u68_move_roll_hook)(void *ctx, uint8_t range_byte,
+                                          uint8_t count_byte);
 typedef void (*pr_u68_move_mark_hook)(void *ctx, uint8_t x, uint8_t y,
                                       uint8_t selector);
 
