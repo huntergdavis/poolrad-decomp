@@ -4,7 +4,7 @@
 class-1 (window 1) access except the addresses proven to leave the engine's hook
 quiet: `0x6E82` (store, [ECL_STORE_HOOK_6E82.md](ECL_STORE_HOOK_6E82.md)) and
 `0x6DD5` (load, [ECL_LOAD_HOOK_6DD5.md](ECL_LOAD_HOOK_6DD5.md)). This note adds
-**`0x6E7D`** (window-1 word index `0x37D`, byte offset `0x6FA`) to **both**
+**`0x6E7D`** (window-1 word index `0x37D`, byte offset `0x6FA`; `rel` = `0x37D` in both hooks, against `0x2D5` for `0x6DD5` and `0x382` for `0x6E82`) to **both**
 lists, using the same method. `0x6E7D` is the destination of the saved run
 entry's first SAVE (PC `0x9914`) and the source of its SAVE at PC `0x9927`. Lane-A
 files were edited with the PM's approval; neighbouring addresses still report

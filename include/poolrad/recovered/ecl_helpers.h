@@ -245,26 +245,33 @@ pr_rec_ecl_window_status pr_rec_ecl_string_by_address(pr_rec_ecl_loader_state *s
 pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
                                                  uint16_t address, const char *text, size_t len);
 
-/* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store
- * word; a store to window-0 address 0x49FD or 0x49FE also sets b84e8 := 1 after the
- * window write, +0x0CA1..+0x0CAF, docs/re/ECL_STORE_WORD_84E8.md). Load word resolves nine class-4 pseudo-addresses from the state's
- * w6f6e/w6f6a/w6f6c/b6aad/b6aae/b6aaf/b6ab0/b6ab1 fields (0x00B1, 0x00FB, 0x00FC,
- * 0x033D, 0xC04B+0..4; see docs/re/ECL_LOAD_WORD_CLASS4.md); every other class-4
- * address (0x035F, 0xC04B+0xE and the rest) is UNRESOLVED, because the engine
- * returns an uninitialized local there. The class-1 hooks (+0x07BC on load,
- * +0x0A74 on store, which mirror character-record fields) are not modelled:
- * load returns HOOK for class 1 (value read from the window) **except at addresses
- * 0x6DD5 and 0x6E7D, where it returns OK**: the load hook (unit 0x25 + 0x07BC) subtracts 0x6B00
- * (rel 0x2D5), misses every case, clears its by-reference flag to 0 and reads and
- * writes nothing else; the caller (+0x0E41..+0x0E69) then reads the window word
- * (docs/re/ECL_LOAD_HOOK_6DD5.md, docs/re/ECL_HOOKS_6E7D.md). Every other class-1 address still reports HOOK.
- * Store returns
- * HOOK after storing for class 1 **except at addresses 0x6E82 and 0x6E7D, where it returns OK**:
- * the hook (unit 0x25 + 0x0A74) subtracts 0x6B00 (rel 0x382), which misses every
- * one of its exact and range cases and returns with no DS/ES game-state write and no call
- * (it only adjusts its own stack argument)
- * (docs/re/ECL_STORE_HOOK_6E82.md, docs/re/ECL_HOOKS_6E7D.md). Every other class-1 address, including its
- * no-op neighbours, still reports HOOK. Store word's class-4 table is not modelled. */
+/* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store word).
+ *
+ * Store word: a store to window-0 address 0x49FD or 0x49FE also sets b84e8 := 1 after the
+ * window write (+0x0CA1..+0x0CAF, docs/re/ECL_STORE_WORD_84E8.md).
+ *
+ * Load word: resolves nine class-4 pseudo-addresses from the state's
+ * w6f6e/w6f6a/w6f6c/b6aad/b6aae/b6aaf/b6ab0/b6ab1 fields (0x00B1, 0x00FB, 0x00FC, 0x033D,
+ * 0xC04B+0..4; docs/re/ECL_LOAD_WORD_CLASS4.md); every other class-4 address (0x035F,
+ * 0xC04B+0xE and the rest) is UNRESOLVED, because the engine returns an uninitialized local
+ * there. Store word's class-4 table is not modelled.
+ *
+ * Class-1 hooks (+0x07BC on load, +0x0A74 on store; they mirror character-record fields)
+ * are not modelled in general: both cores report HOOK for class 1 after the window access,
+ * except at the addresses below, each proven separately from the original bytes (the hook
+ * subtracts 0x6B00 and compares that offset `rel` against its cases):
+ *   load word returns OK at
+ *     0x6DD5 (rel 0x2D5; docs/re/ECL_LOAD_HOOK_6DD5.md) and
+ *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md):
+ *     for each, every case compare in +0x07BC falls through, the hook clears its
+ *     by-reference flag to 0 (+0x0A67) and reads and writes nothing else, and the caller
+ *     (+0x0E41..+0x0E69) then reads the window word;
+ *   store word returns OK at
+ *     0x6E82 (rel 0x382; docs/re/ECL_STORE_HOOK_6E82.md) and
+ *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md):
+ *     for each, every exact and range case in +0x0A74 is missed and it returns with no
+ *     DS/ES game-state write and no call (it only adjusts its own stack argument).
+ * Every other class-1 address, including the quiet neighbours, still reports HOOK. */
 #define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS 0x6E82u
 #define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_B 0x6E7Du    /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS 0x6DD5u
