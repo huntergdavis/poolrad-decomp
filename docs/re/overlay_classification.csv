@@ -382,7 +382,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x6a:0x1fd9,0x6a,0x1fd9,104458,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
 0x6c:0x0000,0x6c,0x0000,104831,B,0,helper_candidate,provisional,0,,0,0,4,4,0,0,0,0,0,351,353
 0x6c:0x0161,0x6c,0x0161,105184,A,1,game_evidenced,provisional,4,active_char;party;win1,0,10,34,11,10,7,6,0,0,1035,1035
-0x6c:0x056c,0x6c,0x056c,106219,B,0,game_evidenced,provisional,7,active_char,4,3,84,37,42,1,4,0,0,6599,6603
+0x6c:0x056c,0x6c,0x056c,106219,B,0,game_evidenced,provisional,7,active_char,5,3,84,37,42,1,4,0,0,6599,6603
 0x6c:0x1f37,0x6c,0x1f37,112822,B,0,game_evidenced,provisional,7,active_char,0,2,17,11,2,3,1,0,0,252,252
 0x6c:0x2033,0x6c,0x2033,113074,B,0,game_evidenced,provisional,0,active_char,0,2,2,0,1,1,0,0,0,107,108
 0x6c:0x209f,0x6c,0x209f,113182,B,0,game_evidenced,provisional,3,active_char,2,3,27,5,5,3,14,0,0,2317,2319
@@ -549,9 +549,9 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x86:0x331a,0x86,0x331a,172850,A,2,game_evidenced,provisional,2,,0,1,13,4,0,9,0,0,0,249,249
 0x86:0x3413,0x86,0x3413,173099,A,1,game_evidenced,provisional,0,procvar,0,143,0,0,0,0,0,0,0,925,925
 0x86:0x37b0,0x86,0x37b0,174024,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
-0x9b:0x0000,0x9b,0x0000,174727,A,4,game_evidenced,provisional,0,,1,0,3,0,0,0,3,0,0,431,431
+0x9b:0x0000,0x9b,0x0000,174727,A,4,game_evidenced,provisional,0,,2,0,3,0,0,0,3,0,0,431,431
 0x9b:0x01af,0x9b,0x01af,175158,A,3,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,166,166
-0x9b:0x0255,0x9b,0x0255,175324,A,1,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,212,212
+0x9b:0x0255,0x9b,0x0255,175324,A,1,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,212,212
 0x9b:0x0329,0x9b,0x0329,175536,A,1,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,309,309
 0x9b:0x045e,0x9b,0x045e,175845,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
 0x9e:0x0000,0x9e,0x0000,175850,A,11,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,0,0,0,1,0,38,38
