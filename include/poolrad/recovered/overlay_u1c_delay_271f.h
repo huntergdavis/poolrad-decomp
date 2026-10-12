@@ -13,8 +13,10 @@
  *       lcall 0xA40:0x029C with the word arg (retf 2)
  *   return
  * 0xA40:0x029C (resident, image 0xA69C) is a calibrated busy-wait of `arg` units (Turbo Pascal Delay): for arg = 0
- * it returns at once; otherwise it repeats arg times a loop of at most DS:[0x84FC] iterations that
- * ends early when the BIOS data byte 0x40:0x0000 changes. It reads memory and changes no game
+ * it returns at once; otherwise it repeats arg times a spin loop that loads CX := DS:[0x84FC], calls the
+ * spin routine at image 0xA6BD and ends with `loope 0xA6BD`: the loop runs while the BIOS data byte 0x40:0x0000 is unchanged
+ * and CX <> 0 after its decrement. CX is a 16-bit counter, so an initial CX of 0 wraps to 0xFFFF and may run 65,536
+ * iterations; no iteration bound is asserted here. It reads memory and changes no game
  * state; its only observable effect is elapsed time, which depends on the calibration word and on that BIOS byte.
  * The model therefore passes the exact word to an explicit host timing hook and asserts nothing about the
  * duration. [0x49E2] is loaded from window-0 byte 0x1F8 by the world-save loader (unit 0x6f +0x190B).
