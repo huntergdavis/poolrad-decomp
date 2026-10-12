@@ -17,7 +17,7 @@ parity claim.
 | `+0x16FF..+0x170F` | `a := byte (s4 + 2 - s1)` (16-bit register arithmetic, `AL` kept) |
 | `+0x1712..+0x1722` | `b := byte (s2 + 2 - s3)` |
 | `+0x1725..+0x173E` | two calls `0xB0:0x48` pushed `(1, 6)` (unit `0x9E` entry 8, count then range): `x := AL`, `y := AL` |
-| `+0x1741..+0x1763` | `cwde` of `a` (sign extension); if **not** `x > a` (`jg`, signed 16-bit, `x` zero-extended): `r := 1` if `y > b` (`b` sign-extended) else `r := 3` |
+| `+0x1741..+0x1763` | `cbw` of `a` (opcode 0x98, byte-to-word sign extension); if **not** `x > a` (`jg`, signed 16-bit, `x` zero-extended): `r := 1` if `y > b` (`b` sign-extended) else `r := 3` |
 | `+0x1769..+0x1778` | if **not** `y > b`: `r := 2` |
 | `+0x177C..+0x1786` | `0x2B:0x52 (0x6DCB, r)`; return |
 

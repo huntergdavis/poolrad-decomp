@@ -14,7 +14,7 @@ static pr_rec_ecl_handler_status window_to_handler(pr_rec_ecl_window_status ws)
     }
 }
 
-static int sext(uint8_t v) { return v < 0x80u ? (int)v : (int)v - 256; }       /* cwde on AL */
+static int sext(uint8_t v) { return v < 0x80u ? (int)v : (int)v - 256; }       /* cbw on AL */
 
 pr_u1c_surprise_status pr_u1c_op_surprise(pr_rec_ecl_loader_state *st, pr_u1c_surprise_env *env,
                                           pr_u1c_surprise_report *report)
