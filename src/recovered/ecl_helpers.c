@@ -315,9 +315,10 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
         }
         *value = *w;
         if (cls == 1u && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B &&
-            address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D)
+            address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D &&
+            address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_E)
             return PR_REC_ECL_WINDOW_HOOK;     /* +0x0E4A: call +0x07BC, which may override the value for this address */
-        return PR_REC_ECL_WINDOW_OK;           /* class 0/2; class 1 at 0x6DD5, 0x6E7D, 0x6E82 and 0x6DCA: the hook flag is 0 and the window word is read */
+        return PR_REC_ECL_WINDOW_OK;           /* class 0/2; class 1 at 0x6DD5, 0x6E7D, 0x6E82, 0x6DCA and 0x6E7F: the hook flag is 0 and the window word is read */
     }
     if (cls == 3u) {
         int b = loader_read(state, address);
