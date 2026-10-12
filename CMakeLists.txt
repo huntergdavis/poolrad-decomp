@@ -74,6 +74,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u6f_party_load.c
                                     src/recovered/overlay_u9b_record_incr_01af.c
                                     src/recovered/overlay_u9b_record_table_0255.c
+                                    src/recovered/overlay_u9b_record_fields_0329.c
                                     src/recovered/overlay_u1c_arith_01a3.c
                                     src/recovered/overlay_u1c_gettable_0e5e.c
                                     src/recovered/overlay_u1c_party_surprise_1629.c
@@ -418,6 +419,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u9b_record_table_0255_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u9b_record_table_0255_tests
              COMMAND poolrad_overlay_u9b_record_table_0255_tests)
+    add_executable(poolrad_overlay_u9b_record_fields_0329_tests
+                   tests/recovered/test_overlay_u9b_record_fields_0329.c)
+    target_link_libraries(poolrad_overlay_u9b_record_fields_0329_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u9b_record_fields_0329_tests
+             COMMAND poolrad_overlay_u9b_record_fields_0329_tests)
     add_executable(poolrad_overlay_u1c_arith_01a3_tests
                    tests/recovered/test_overlay_u1c_arith_01a3.c)
     target_link_libraries(poolrad_overlay_u1c_arith_01a3_tests PRIVATE poolrad_recovered)
