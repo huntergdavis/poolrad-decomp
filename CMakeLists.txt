@@ -21,6 +21,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_character_link_flags.c
                                     src/recovered/resident_464_bitmap_release.c
                                     src/recovered/resident_464_block_wrapper.c
+                                    src/recovered/resident_464_bitmap_constructor.c
                                     src/recovered/overlay_unit38_effects.c
                                     src/recovered/resident_character_target_reset.c
                                     src/recovered/overlay_unit38_effects_next.c
@@ -179,6 +180,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_block_wrapper_tests
              COMMAND poolrad_resident_464_block_wrapper_tests)
+    add_executable(poolrad_resident_464_bitmap_constructor_tests
+                   tests/recovered/test_resident_464_bitmap_constructor.c)
+    target_link_libraries(poolrad_resident_464_bitmap_constructor_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_464_bitmap_constructor_tests
+             COMMAND poolrad_resident_464_bitmap_constructor_tests)
     add_executable(poolrad_overlay_unit38_effects_tests
                    tests/recovered/test_overlay_unit38_effects.c)
     target_link_libraries(poolrad_overlay_unit38_effects_tests PRIVATE poolrad_recovered)
