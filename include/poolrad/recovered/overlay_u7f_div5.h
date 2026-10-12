@@ -6,7 +6,9 @@
  * ten bytes of the record behind the active-character far pointer [0x5D92].
  * One pushed word, [bp+6]; no result (every caller jumps away without
  * reading AX); `retf 2`. 85 bytes, 31 instructions; three fixup-confirmed
- * far callers; no outgoing calls.
+ * far callers; no outgoing calls. The far pointer [0x5D92] is read by
+ * `les di` at three sites (+0x0145, +0x0162, +0x0176) executed seven times
+ * in all: five loop passes, then once before each of the two later stores.
  *
  * Paths, in the original's order:
  *   [bp-1] = 0; for i = 0..4 (`cmp [bp-1],4; jne`, do-while form):

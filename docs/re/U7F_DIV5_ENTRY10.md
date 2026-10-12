@@ -44,7 +44,7 @@ PM's read-only scan.
 | frame | `sub sp, 2`; `[bp+6]` = the one pushed word (`retf 2`); `[bp-1]` = loop counter byte (0..4); `[bp-2]` is never touched |
 | branches | 2: `jmp +0x013F` (forward, skips the first `inc`) and `jne +0x013C` (backward, the loop); no indirect branches |
 | call sites | none (near or far) |
-| data-segment reads | the far pointer `[0x5D92]` (`les di`) at `+0x0145` (once per loop pass), `+0x0162` and `+0x0176`; nothing else |
+| data-segment reads | the far pointer `[0x5D92]` (`les di`) at three sites, `+0x0145` (inside the loop), `+0x0162` and `+0x0176`, executed seven times in all (five loop passes plus the two later stores); nothing else |
 | ES accesses | three `mov word ptr es:[di + k], ax` sites: `+0x014D` (`k = 0x88`, di pre-advanced by `2*i`, five passes), `+0x0166` (`k = 0x90`), `+0x017A` (`k = 0x8E`); no ES reads |
 | registers at return | AX = remainder, DX = quotient (after `xchg`), CX = 5, DI = pointer offset; no caller reads any of them (each jumps away immediately) |
 
@@ -77,7 +77,8 @@ The same five word slots are written (from window addresses
 slots; `docs/formats/DOS_CHARACTER.md` names nothing at those offsets and
 this routine does not establish what they hold.
 
-**Null pointer.** The routine loads `[0x5D92]` three times and writes
+**Null pointer.** The routine reads `[0x5D92]` at three `les di` sites
+(seven executions: five in the loop, two for the later stores) and writes
 through it with no nil check; a nil pointer would store to segment 0 at
 offsets `0x88..0x91`. The translation returns `ARGUMENT` on entry, before
 any write, for a null host record or a host buffer shorter than 0x92

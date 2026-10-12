@@ -1,7 +1,9 @@
 /* Portable C translation of GAME.OVR unit 0x7f entry 10 (+0x0130); see
  * docs/re/U7F_DIV5_ENTRY10.md. Every instruction path is reproduced in the
  * original's order. The routine is a leaf: no calls, no reads from the
- * record, one data-segment far pointer ([0x5D92], loaded three times). */
+ * record, one data-segment far pointer ([0x5D92]) read at three `les di`
+ * sites, executed seven times: five in the loop, then one before each of
+ * the two later stores. */
 #include "poolrad/recovered/overlay_u7f_div5.h"
 
 #include <string.h>
