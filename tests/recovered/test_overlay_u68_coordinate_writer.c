@@ -2,8 +2,8 @@
  * The [0x6A5C] buffer, map id, window 1, DS direction tables and hook
  * recorders are fabricated. An independent restatement on raw bytes is
  * compared with the model over every (x, y) byte pair, several facings and
- * both values of the window bit; hook order, arguments and the no-effect
- * ARGUMENT path are checked separately. */
+ * both values of the window bit; hook order, arguments and reached-operation
+ * failures with preserved earlier effects are checked separately. */
 #include "poolrad/recovered/overlay_u68_coordinate_writer.h"
 
 #include <stdio.h>
@@ -25,15 +25,50 @@ typedef struct {
     int order[8];          /* 1 = resident, 2 = u7d */
     uint16_t resident_arg;
     uint16_t u7d_a, u7d_b;
+    int fail_resident, fail_u7d;
+    pr_u68_step_state *state;
+    int mutate_x;
+    uint8_t replacement_x;
 } rec;
 
-static void on_resident(void *ctx, uint16_t w) { rec *r = ctx; r->order[r->n++] = 1; r->resident_arg = w; }
-static void on_u7d(void *ctx, uint16_t a, uint16_t b) { rec *r = ctx; r->order[r->n++] = 2; r->u7d_a = a; r->u7d_b = b; }
+static int on_resident(void *ctx, uint16_t w)
+{
+    rec *r = ctx;
+    r->order[r->n++] = 1;
+    r->resident_arg = w;
+    if (r->mutate_x)
+        r->state->party_x = r->replacement_x;
+    return r->fail_resident;
+}
+static int on_u7d(void *ctx, uint16_t a, uint16_t b) { rec *r = ctx; r->order[r->n++] = 2; r->u7d_a = a; r->u7d_b = b; return r->fail_u7d; }
 
 static void fill_buffer(uint8_t *buf)
 {
     unsigned i;
     for (i = 0; i < BUF_SIZE; ++i) buf[i] = (uint8_t)(i * 29u + 7u);
+}
+
+static void setup_staged(pr_u68_step_state *st, pr_u68_step_hooks *hk,
+                         rec *rc, uint8_t *win, uint8_t *tab,
+                         const uint8_t *buf)
+{
+    memset(st, 0, sizeof *st);
+    memset(rc, 0, sizeof *rc);
+    rc->state = st;
+    memset(win, 0, WIN1_SIZE);
+    memset(tab, 0, TABLE_SIZE);
+    tab[6] = 0xFF; /* synthetic facing-6 step (-1, 0) */
+    hk->resident_8ae_00dc = on_resident;
+    hk->u7d_entry1 = on_u7d;
+    hk->ctx = rc;
+    st->party_x = 15; st->party_y = 4; st->facing = 6;
+    st->lookup_b0 = 0xEE; st->lookup_b1 = 0xEE;
+    st->ds_6dde[0] = st->ds_6dde[1] = st->ds_6dde[2] = 0x77;
+    st->word_2628 = 0xBEEF;
+    st->window1 = win; st->window1_size = WIN1_SIZE;
+    st->direction_table = tab; st->direction_table_size = TABLE_SIZE;
+    st->map_id = 1; st->buffer = buf; st->entry2_frame_residue = 0x5A;
+    st->hooks = hk;
 }
 
 /* The routine restated on raw bytes (wrap, then entry 2 / entry 4 reads at the wrapped cell). */
@@ -90,6 +125,7 @@ static int run_case(const uint8_t *buf, const uint8_t *tab, uint8_t map, uint8_t
     CHECK(rep.call_count == 5 && rep.calls[0] == PR_U68_STEP_CALL_RESIDENT &&
           rep.calls[1] == PR_U68_STEP_CALL_ENTRY2 && rep.calls[2] == PR_U68_STEP_CALL_FILL &&
           rep.calls[3] == PR_U68_STEP_CALL_ENTRY4 && rep.calls[4] == PR_U68_STEP_CALL_U7D_ENTRY1);
+    CHECK(rep.stop_offset == 0x07F4u);
     CHECK(rep.dx == sb(tab[f]) && rep.dy == sb(tab[f + 9u]));
     /* window 1 untouched */
     {
@@ -129,18 +165,22 @@ int main(void)
         uint8_t win[WIN1_SIZE] = {0};
         pr_u68_step_state st;
         pr_u68_step_report rep;
+        pr_u68_step_hooks hk;
+        rec rc;
         uint8_t t[TABLE_SIZE];
+        memset(&rc, 0, sizeof rc);
+        hk.resident_8ae_00dc = on_resident; hk.u7d_entry1 = on_u7d; hk.ctx = &rc;
         memset(t, 0, sizeof t);
         t[2] = 1; t[2 + 9] = 0xFF;                 /* facing 2: x+1, y-1 */
         memset(&st, 0, sizeof st);
         st.party_x = 15; st.party_y = 0; st.facing = 2;
         st.window1 = win; st.window1_size = sizeof win;
         st.direction_table = t; st.direction_table_size = sizeof t;
-        st.buffer = buf;
+        st.buffer = buf; st.hooks = &hk;
         CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_OK);
         CHECK(st.party_x == 0 && st.party_y == 15);
         CHECK(rep.wrapped_x_high == 1 && rep.wrapped_x_low == 0 && rep.wrapped_y_low == 1 && rep.wrapped_y_high == 0);
-        CHECK(rep.u7d_second == 1);                /* window bit clear, no hooks installed: still modelled */
+        CHECK(rep.u7d_second == 1);                /* window bit clear */
         st.party_x = 127; st.party_y = 14; st.facing = 2;
         CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_OK);
         CHECK(rep.x_sum == 0x80 && st.party_x == 15 && rep.wrapped_x_low == 1 && rep.wrapped_x_high == 0);
@@ -150,28 +190,89 @@ int main(void)
         CHECK(rep.x_sum == 0x11 && st.party_x == 0);
     }
 
-    /* ARGUMENT: nothing written, no hook runs */
+    /* Every missing/failing host boundary stops when first reached. */
     {
         uint8_t win[WIN1_SIZE] = {0};
+        uint8_t t[TABLE_SIZE];
         pr_u68_step_state st;
         pr_u68_step_hooks hk;
+        pr_u68_step_report rep;
         rec rc;
-        memset(&rc, 0, sizeof rc);
-        hk.resident_8ae_00dc = on_resident; hk.u7d_entry1 = on_u7d; hk.ctx = &rc;
-        memset(&st, 0, sizeof st);
-        st.party_x = 3; st.party_y = 4; st.facing = 255;
-        st.window1 = win; st.window1_size = sizeof win;
-        st.direction_table = tab; st.direction_table_size = TABLE_SIZE - 1;   /* facing 255 + 9 needs 265 */
-        st.buffer = buf; st.hooks = &hk; st.lookup_b0 = 0x99;
-        CHECK(pr_u68_step_coordinate_writer(&st, NULL) == PR_U68_STEP_ARGUMENT);
-        CHECK(st.party_x == 3 && st.party_y == 4 && st.lookup_b0 == 0x99 && st.ds_6dde[0] == 0 && rc.n == 0);
-        st.direction_table_size = TABLE_SIZE; st.window1_size = 0x595;
-        CHECK(pr_u68_step_coordinate_writer(&st, NULL) == PR_U68_STEP_ARGUMENT && rc.n == 0);
-        st.window1_size = sizeof win; st.buffer = NULL;
-        CHECK(pr_u68_step_coordinate_writer(&st, NULL) == PR_U68_STEP_ARGUMENT && rc.n == 0);
-        st.buffer = buf; st.window1 = NULL;
-        CHECK(pr_u68_step_coordinate_writer(&st, NULL) == PR_U68_STEP_ARGUMENT);
-        CHECK(pr_u68_step_coordinate_writer(NULL, NULL) == PR_U68_STEP_ARGUMENT);
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.hooks = NULL;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_HOOK);
+        CHECK(rep.stop_offset == 0x0742u && rep.call_count == 1 && rc.n == 0);
+        CHECK(st.party_x == 15 && st.party_y == 4 && st.ds_6dde[0] == 0x77);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        rc.fail_resident = 1;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_HOOK);
+        CHECK(rep.stop_offset == 0x0742u && rc.n == 1 && rc.order[0] == 1);
+        CHECK(st.party_x == 15 && st.party_y == 4 && st.lookup_b0 == 0xEE);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        rc.mutate_x = 1; rc.replacement_x = 10;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_OK);
+        CHECK(rep.x_in == 10 && st.party_x == 9 && st.party_y == 4);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        rc.mutate_x = 1; rc.replacement_x = 10; rc.fail_resident = 1;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_HOOK);
+        CHECK(rep.stop_offset == 0x0742u && st.party_x == 10 && st.party_y == 4);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.direction_table = NULL;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(rep.stop_offset == 0x074Eu && rc.n == 1 && st.party_x == 15);
+        CHECK(st.party_y == 4 && st.lookup_b0 == 0xEE);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.direction_table_size = 7; /* x index 6 exists; y index 15 does not */
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(rep.stop_offset == 0x075Du && rc.n == 1 && st.party_x == 14);
+        CHECK(st.party_y == 4 && st.lookup_b0 == 0xEE && st.ds_6dde[0] == 0x77);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.buffer = NULL; /* recognised selector: entry 2 fails at its read */
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_LOOKUP);
+        CHECK(rep.stop_offset == 0x07A1u && rep.call_count == 2 && rc.n == 1);
+        CHECK(st.party_x == 14 && st.party_y == 4 && st.lookup_b0 == 0xEE);
+        CHECK(st.ds_6dde[0] == 0x77);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.facing = 1; st.buffer = NULL; /* entry 2 returns explicit residue; entry 4 needs buffer */
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_LOOKUP);
+        CHECK(rep.stop_offset == 0x07C2u && rep.call_count == 4 && rc.n == 1);
+        CHECK(st.lookup_b0 == 0x5A && st.lookup_b1 == 0xEE);
+        CHECK(st.ds_6dde[0] == 1 && st.ds_6dde[1] == 1 && st.ds_6dde[2] == 1);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.window1 = NULL;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(rep.stop_offset == 0x07CEu && rep.call_count == 4 && rc.n == 1);
+        CHECK(st.party_x == 14 && st.party_y == 4);
+        CHECK(st.lookup_b0 != 0xEE && st.lookup_b1 != 0xEE && st.ds_6dde[0] == 1);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        st.window1_size = 0x595;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(rep.stop_offset == 0x07CEu && rc.n == 1 && st.party_x == 14);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        hk.u7d_entry1 = NULL;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_HOOK);
+        CHECK(rep.stop_offset == 0x07EDu && rep.call_count == 5 && rc.n == 1);
+        CHECK(st.party_x == 14 && st.party_y == 4 && st.ds_6dde[0] == 1);
+
+        setup_staged(&st, &hk, &rc, win, t, buf);
+        win[0x594] = 1;
+        rc.fail_u7d = 1;
+        CHECK(pr_u68_step_coordinate_writer(&st, &rep) == PR_U68_STEP_HOOK);
+        CHECK(rep.stop_offset == 0x07E0u && rc.n == 2 && rc.order[1] == 2);
+        CHECK(rc.u7d_a == 1 && rc.u7d_b == 2 && st.party_x == 14);
+
+        CHECK(pr_u68_step_coordinate_writer(NULL, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(rep.stop_offset == 0x073Bu && rep.call_count == 0);
     }
     puts("overlay_u68_coordinate_writer: ok");
     return 0;

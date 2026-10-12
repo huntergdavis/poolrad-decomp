@@ -27,12 +27,12 @@
  * The direction tables are host state: the live DS bytes are not
  * established (see the evidence note). The writers of [0x6AAF] keep it in
  * {0, 2, 4, 6}; other facings are modelled, not assumed unreachable.
- * Two far callees stay behind host hooks because they are not translated
- * here: resident 0x8AE:0x00DC (unresolved) and unit 0x7d entry 1 (stub
- * 0x8C:0x25). Entries 2 and 4 are the merged translations. The runtime fill
- * is modelled as writing three 1 bytes (inferred from argument shape).
- * Classification: path-complete model of the 185 code bytes with the two
- * unmerged far calls as explicit hooks. No game-function credit is claimed. */
+ * Two far callees stay behind required, fallible host hooks: resident
+ * 0x8AE:0x00DC (unresolved) and unit 0x7d entry 1 (stub 0x8C:0x25).
+ * Entries 2 and 4 are the merged translations. The runtime fill is
+ * modelled as writing three 1 bytes (inferred from argument shape).
+ * Classification: path-complete model of the 185 code bytes with two
+ * external-effect calls as explicit hooks. No game-function credit is claimed. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -50,12 +50,13 @@
 #define PR_U68_STEP_FILL_COUNT 3u
 #define PR_U68_STEP_FILL_VALUE 1u
 
-typedef void (*pr_u68_step_resident_hook)(void *ctx, uint16_t word_2628);
-typedef void (*pr_u68_step_u7d_hook)(void *ctx, uint16_t first, uint16_t second);
+/* Return zero when the reached external call completed, nonzero on failure. */
+typedef int (*pr_u68_step_resident_hook)(void *ctx, uint16_t word_2628);
+typedef int (*pr_u68_step_u7d_hook)(void *ctx, uint16_t first, uint16_t second);
 
 typedef struct {
-    pr_u68_step_resident_hook resident_8ae_00dc;   /* lcall 0x8AE:0x00DC, one word argument; may be NULL */
-    pr_u68_step_u7d_hook u7d_entry1;               /* lcall 0x8C:0x25 = unit 0x7d entry 1, two words; may be NULL */
+    pr_u68_step_resident_hook resident_8ae_00dc;   /* lcall 0x8AE:0x00DC, one word argument; required when reached */
+    pr_u68_step_u7d_hook u7d_entry1;               /* lcall 0x8C:0x25 = unit 0x7d entry 1, two words; required when reached */
     void *ctx;
 } pr_u68_step_hooks;
 
@@ -74,14 +75,14 @@ typedef struct {
     uint8_t map_id;                  /* byte [0x84DC] used by entries 2 and 4 */
     const uint8_t *buffer;           /* host memory for far [0x6A5C], 1,024 bytes */
     uint8_t entry2_frame_residue;    /* entry 2's unwritten [bp-1] (returned for a selector other than 0/2/4/6) */
-    const pr_u68_step_hooks *hooks;  /* may be NULL */
+    const pr_u68_step_hooks *hooks;  /* each external call requires its reached hook */
 } pr_u68_step_state;
 
 typedef enum {
     PR_U68_STEP_OK = 0,
-    PR_U68_STEP_ARGUMENT   /* null state; window1 shorter than 0x596; null buffer; or direction_table
-                              shorter than facing + 10. All checked before any effect: on ARGUMENT
-                              nothing is written and no hook runs. */
+    PR_U68_STEP_ARGUMENT,  /* null state or host memory missing/short when first read */
+    PR_U68_STEP_HOOK,      /* required reached external call is absent or returned nonzero */
+    PR_U68_STEP_LOOKUP     /* merged unit 0x3bd lookup returned ARGUMENT */
 } pr_u68_step_status;
 
 typedef enum {
@@ -103,11 +104,14 @@ typedef struct {
     uint16_t u7d_first, u7d_second;  /* the two pushed words (1, then 2 or 1) */
     unsigned call_count;
     pr_u68_step_call calls[5];       /* far calls in the order the routine makes them */
+    uint16_t stop_offset;           /* first failed read/call, or +0x07F4 after RETF */
     pr_u3bd_nibble_report entry2;
     pr_u3bd_cell_report entry4;
 } pr_u68_step_report;
 
-/* Runs the routine on `state` in place. `report` may be NULL. */
+/* Runs the routine on `state` in place. `report` may be NULL. Checks are
+ * staged at the first reached read or call; earlier state and hook effects
+ * remain on a non-OK return. */
 pr_u68_step_status pr_u68_step_coordinate_writer(pr_u68_step_state *state, pr_u68_step_report *report);
 
 #endif
