@@ -12,7 +12,7 @@ for one saved iteration. [Merged native caller evidence](https://github.com/hunt
 at `+0x19E3`, and the later `+0x02AE` call remain unmeasured on that run.
 This is a bounded, path-complete model for supplied mapped state, with
 no strict full-C count. The host `max_nodes` guard can stop a finite DOS
-list early, and head/tail/window globals are split from the segment
+list early, and head/active-character/window globals are split from the segment
 views. Native saved-route insertion remains unobserved.
 
 Before decoding, `deja "Poolrad unit 0x6F 0x1446 party insertion Move
@@ -68,12 +68,18 @@ merged unit `0x9B:+0x01AF` record updater. No other calls occur in the
 | Code offset | Source effect | C representation |
 | --- | --- | --- |
 | `+0x144F` | Set incoming record byte `+0xBF` to `0xFF` **before** inspecting the head. | First reached write in the supplied segment view. |
-| `+0x1455..+0x1478` | If both head words at DS:`0x5D96/0x5D98` are zero, set head and tail DS:`0x5D92/0x5D94` to incoming. | Ordered `head` then `tail` far words. |
+| `+0x1455..+0x1478` | If both head words at DS:`0x5D96/0x5D98` are zero, set head and active character DS:`0x5D92/0x5D94` to incoming. | Ordered `head` then `active_character` far words. |
 | `+0x147A..+0x14B9` | Otherwise follow each record's `+0x104/+0x106` next pointer until both words are zero, then write incoming offset followed by segment to that last link. | Mutable segment views; host traversal cap stops at the next loop head, retaining earlier writes. |
 | `+0x14BE..+0x151C` | Clear eight stack bytes; walk from head, marking `used[record[+0xBF]]` only for indices in the 0..7 set. | Local eight-byte occupancy array. |
-| `+0x151E..+0x1563` | Set tail to incoming, reset its `+0xBF` to zero, and increment until the first unused index or eight. | Writes the actual byte on each increment; all eight occupied yields index 8. |
+| `+0x151E..+0x1563` | Set active character to incoming, reset its `+0xBF` to zero, and increment until the first unused index or eight. | Writes the actual byte on each increment; all eight occupied yields index 8. |
 | `+0x1565..+0x1569` | Increment the word at far `[DS:0x49D6]+0x67C` modulo 65536. | Reached mapped window-1 word write; a missing view stops here with list/index effects intact. |
 | `+0x156E..+0x157C` | Call unit `0x9B:+0x01AF` with incoming, then return. | Invoke merged `pr_u9b_record_incr`; retain its partial byte increments if a reached view ends. |
+
+DS:`0x5D92/0x5D94` is the active-character pointer, as also mapped by
+the merged [monster-load pointer audit](U1C_LOAD_MONSTER_0450_MAP.md)
+and [gameplay path](GAMEPLAY_PATH.md). The last list node is found by
+following links from DS:`0x5D96/0x5D98`; the code does not read the
+active-character pointer to locate it.
 
 The far-pointer and word accesses use 16-bit wrapped offsets. Segment
 views supply mutable host memory; the model performs no file I/O or

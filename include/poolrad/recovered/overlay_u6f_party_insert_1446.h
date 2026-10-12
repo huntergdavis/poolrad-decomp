@@ -21,7 +21,7 @@ typedef struct {
 
 typedef struct {
     pr_u6f_insert_far head;       /* DS:0x5D96/0x5D98 */
-    pr_u6f_insert_far tail;       /* DS:0x5D92/0x5D94 */
+    pr_u6f_insert_far active_character; /* DS:0x5D92/0x5D94 */
     pr_u6f_insert_far window1;    /* DS:0x49D6/0x49D8 */
     const pr_u6f_insert_segment *segments;
     size_t segment_count;

@@ -86,11 +86,11 @@ pr_u6f_insert_status pr_u6f_party_insert_1446(
     *slot = 0xffu;
 
     if (is_null(state->head)) {
-        /* +0x1455..+0x1478: empty list writes head, then tail. */
+        /* +0x1455..+0x1478: empty list writes head, then active character. */
         state->head.offset = incoming.offset;
         state->head.segment = incoming.segment;
-        state->tail.offset = incoming.offset;
-        state->tail.segment = incoming.segment;
+        state->active_character.offset = incoming.offset;
+        state->active_character.segment = incoming.segment;
     } else {
         /* +0x147A..+0x14B9: follow +0x104/+0x106 until a null link,
          * then store incoming's offset word followed by its segment word. */
@@ -160,10 +160,10 @@ pr_u6f_insert_status pr_u6f_party_insert_1446(
         cursor = next;
     }
 
-    /* +0x151E..+0x1563: tail update, reset the incoming index, and
+    /* +0x151E..+0x1563: active-character update, reset the incoming index, and
      * increment it once per occupied slot until a free index or eight. */
-    state->tail.offset = incoming.offset;
-    state->tail.segment = incoming.segment;
+    state->active_character.offset = incoming.offset;
+    state->active_character.segment = incoming.segment;
     result.next_offset = 0x1538u;
     slot = at(state, incoming, 0xbfu);
     if (!slot) {

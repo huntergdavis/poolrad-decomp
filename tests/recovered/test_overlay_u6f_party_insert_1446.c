@@ -79,8 +79,8 @@ static void test_empty_and_final_callee(void)
            PR_U6F_INSERT_OK);
     assert(state.head.offset == incoming.offset &&
            state.head.segment == incoming.segment);
-    assert(state.tail.offset == incoming.offset &&
-           state.tail.segment == incoming.segment);
+    assert(state.active_character.offset == incoming.offset &&
+           state.active_character.segment == incoming.segment);
     assert(records[eff(incoming.offset, 0xbfu)] == 0u);
     assert(out.selected_slot == 0u && out.has_selected_slot);
     assert(out.append_nodes == 0u && out.mark_nodes == 1u);
@@ -101,10 +101,10 @@ static void test_append_and_gap(void)
     reset_memory();
     state = state_with(views);
     state.head = far_at(0x100u, RECORD_SEG);
-    state.tail = far_at(0x300u, RECORD_SEG);
+    state.active_character = far_at(0x700u, RECORD_SEG);
     records[eff(0x100u, 0xbfu)] = 0u;
     records[eff(0x300u, 0xbfu)] = 2u;
-    link_to(0x100u, state.tail);
+    link_to(0x100u, far_at(0x300u, RECORD_SEG));
     put16(window, 0u, 0x67cu, 3u);
 
     assert(pr_u6f_party_insert_1446(&state, incoming, 3u, &out) ==
@@ -112,8 +112,8 @@ static void test_append_and_gap(void)
     assert(out.append_nodes == 2u && out.mark_nodes == 3u);
     assert(get16(records, 0x300u, 0x104u) == incoming.offset);
     assert(get16(records, 0x300u, 0x106u) == incoming.segment);
-    assert(state.tail.offset == incoming.offset &&
-           state.tail.segment == incoming.segment);
+    assert(state.active_character.offset == incoming.offset &&
+           state.active_character.segment == incoming.segment);
     assert(records[eff(incoming.offset, 0xbfu)] == 1u);
     assert(out.selected_slot == 1u && get16(window, 0u, 0x67cu) == 4u);
     assert(out.callee.increments == 0u);
@@ -132,8 +132,7 @@ static void test_all_slot_counts(void)
         state = state_with(views);
         if (n != 0u) {
             state.head = far_at(0x100u, RECORD_SEG);
-            state.tail = far_at((uint16_t)(0x100u + (n - 1u) * 0x200u),
-                                RECORD_SEG);
+            state.active_character = far_at(0x9000u, RECORD_SEG);
         }
         for (i = 0u; i < n; ++i) {
             uint16_t offset = (uint16_t)(0x100u + i * 0x200u);
@@ -158,8 +157,8 @@ static void test_cycle_guard_preserves_first_write(void)
     reset_memory();
     state = state_with(views);
     state.head = far_at(0x100u, RECORD_SEG);
-    state.tail = far_at(0x300u, RECORD_SEG);
-    link_to(0x100u, state.tail);
+    state.active_character = far_at(0x700u, RECORD_SEG);
+    link_to(0x100u, far_at(0x300u, RECORD_SEG));
     link_to(0x300u, state.head);
     put16(window, 0u, 0x67cu, 9u);
     assert(pr_u6f_party_insert_1446(&state, incoming, 2u, &out) ==
@@ -167,7 +166,8 @@ static void test_cycle_guard_preserves_first_write(void)
     assert(out.next_offset == 0x1487u && out.append_nodes == 2u);
     assert(records[eff(incoming.offset, 0xbfu)] == 0xffu);
     assert(get16(records, 0x300u, 0x104u) == state.head.offset);
-    assert(state.tail.offset == 0x300u && get16(window, 0u, 0x67cu) == 9u);
+    assert(state.active_character.offset == 0x700u &&
+           get16(window, 0u, 0x67cu) == 9u);
 }
 
 static void test_missing_reached_views(void)
@@ -184,19 +184,20 @@ static void test_missing_reached_views(void)
            PR_U6F_INSERT_BOUNDS);
     assert(out.next_offset == 0x1569u && out.selected_slot == 0u);
     assert(out.has_selected_slot && !out.incremented_window);
-    assert(state.head.offset == incoming.offset && state.tail.offset == incoming.offset);
+    assert(state.head.offset == incoming.offset &&
+           state.active_character.offset == incoming.offset);
     assert(records[eff(incoming.offset, 0xbfu)] == 0u);
     assert(get16(window, 0u, 0x67cu) == 7u);
 
     reset_memory();
     state = state_with(views);
     state.head = far_at(0x100u, 0x3333u);
-    state.tail = state.head;
+    state.active_character = far_at(0x700u, RECORD_SEG);
     assert(pr_u6f_party_insert_1446(&state, incoming, 2u, &out) ==
            PR_U6F_INSERT_BOUNDS);
     assert(out.next_offset == 0x148au && out.append_nodes == 1u);
     assert(records[eff(incoming.offset, 0xbfu)] == 0xffu);
-    assert(state.tail.segment == 0x3333u);
+    assert(state.active_character.offset == 0x700u);
 
     state = state_with(views);
     incoming.segment = 0x4444u;
@@ -214,15 +215,15 @@ static void test_mark_limit_retains_append_link(void)
     reset_memory();
     state = state_with(views);
     state.head = far_at(0x100u, RECORD_SEG);
-    state.tail = far_at(0x300u, RECORD_SEG);
-    link_to(0x100u, state.tail);
+    state.active_character = far_at(0x700u, RECORD_SEG);
+    link_to(0x100u, far_at(0x300u, RECORD_SEG));
     assert(pr_u6f_party_insert_1446(&state, incoming, 2u, &out) ==
            PR_U6F_INSERT_TRAVERSAL_LIMIT);
     assert(out.next_offset == 0x14dcu);
     assert(out.append_nodes == 2u && out.mark_nodes == 2u);
     assert(get16(records, 0x300u, 0x104u) == incoming.offset);
     assert(get16(records, 0x300u, 0x106u) == incoming.segment);
-    assert(state.tail.offset == 0x300u);
+    assert(state.active_character.offset == 0x700u);
     assert(records[eff(incoming.offset, 0xbfu)] == 0xffu);
     assert(get16(window, 0u, 0x67cu) == 0u);
 }
