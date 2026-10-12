@@ -1,5 +1,11 @@
 # ECL load word: the class-1 hook classifier (29 potential-effect addresses)
 
+> **Update:** supplied active-record views now resolve the
+> [`0x6B18`](U1C_ARITH_CLASS1_RECORD_6B18.md) and
+> [`0x6B9B`](ECL_LOAD_HOOK_6B9B_RECORD.md) branches. The 29-address classifier
+> still describes which addresses can have a hook effect; with no supplied
+> record, these two retain the bounded `HOOK`/window behavior described below.
+
 `pr_rec_ecl_load_word` used to report HOOK after every class-1 (window 1) load except a growing list of single addresses,
 each proven by [its own note](ECL_LOAD_HOOK_6DD5.md) (6DD5, 6E7D, 6E82, 6DCA, 6E7F). This change replaces that list with a
 classifier, `pr_rec_ecl_load_hook_may_effect(address)`, so the decision is made for all 1,024 class-1 addresses at once:

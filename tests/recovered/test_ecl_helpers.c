@@ -1595,26 +1595,52 @@ static int test_load_word_classifier(void) {
 }
 
 /* +0x07D5..+0x07E7: the 0x6B18 load hook returns active record byte +0x14
- * before load word can read its window. No other effect address is resolved. */
+ * before load word can read its window. */
 static int test_load_word_6b18_active_record(void) {
     static pr_rec_ecl_loader_state st;
     uint8_t record[0x15] = { 0 };
     uint16_t v = 0xBEEFu;
     memset(&st, 0, sizeof st);
     st.window1[0x18] = 10;
-    st.window1[0x9B] = 0x1234;
+    st.window1[0xA0] = 0x1234;
     CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_HOOK && v == 10);
     st.active_record = record; st.active_record_size = sizeof record;
     record[0x14] = 7;
     CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_OK && v == 7);
     record[0x14] = 0xFF;
     CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_OK && v == 0x00FFu);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6B9Bu, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234u);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6BA0u, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234u);
     st.tag[1] = 1; st.low[1] = 0x18; st.high[1] = 0x6B;
     record[0x14] = 7;
     CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_OK && v == 7);
     st.active_record_size = 0x14u; v = 0xBEEFu;
     CHECK(pr_rec_ecl_load_word(&st, 0x6B18u, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0xBEEFu);
+    CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0);
+    return 0;
+}
+
+/* +0x07EA..+0x07FC: 0x6B9B returns zero-extended active record byte +0x6E,
+ * leaves the hook flag set, and does not read the window word. */
+static int test_load_word_6b9b_active_record(void) {
+    static pr_rec_ecl_loader_state st;
+    static const uint8_t bytes[] = { 0, 1, 0xFF };
+    uint8_t record[0x6F] = { 0 };
+    uint16_t v = 0xBEEFu;
+    unsigned i;
+    memset(&st, 0, sizeof st);
+    st.window1[0x9B] = 0x1234u;
+    st.window1[0xA0] = 0x5678u;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B9Bu, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234u);
+    st.active_record = record; st.active_record_size = sizeof record;
+    st.tag[1] = 1; st.low[1] = 0x9B; st.high[1] = 0x6B;
+    for (i = 0; i < sizeof bytes / sizeof bytes[0]; ++i) {
+        record[0x6E] = bytes[i];
+        CHECK(pr_rec_ecl_load_word(&st, 0x6B9Bu, &v) == PR_REC_ECL_WINDOW_OK && v == bytes[i]);
+        CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_OK && v == bytes[i]);
+    }
+    CHECK(pr_rec_ecl_load_word(&st, 0x6BA0u, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x5678u);
+    st.active_record_size = 0x6Eu; v = 0xBEEFu;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B9Bu, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0xBEEFu);
     CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_BOUNDS && v == 0);
     return 0;
 }
@@ -1933,6 +1959,7 @@ int main(void) {
     rc |= test_store_word_classifier();
     rc |= test_load_word_classifier();
     rc |= test_load_word_6b18_active_record();
+    rc |= test_load_word_6b9b_active_record();
     rc |= test_store_word_84e8();
     rc |= test_save_6e7d();
     rc |= test_compare_words();

@@ -1,5 +1,9 @@
 # Arithmetic operand 0x6B18: active-record byte composition
 
+> **Update:** the next [record-byte branch at `0x6B9B`](ECL_LOAD_HOOK_6B9B_RECORD.md)
+> is also composed. References below to 28 remaining load-hook effect addresses
+> describe the model when this `0x6B18` note was written; 27 remain now.
+
 The unit `0x1C:+0x01A3` arithmetic model now composes the class-1 load-hook
 value at address `0x6B18` when its caller supplies the active character record.
 This repairs the concrete DIVIDE counterexample in
