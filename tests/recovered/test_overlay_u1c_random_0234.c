@@ -95,8 +95,8 @@ int main(void)
       memset(&st, 0, sizeof st); st.script = c4; st.script_size = sizeof c4; st.pc = 0x9900u; env_init(&env, &rec, 1);
       CHECK(pr_u1c_op_random(&st, &env, &rep) == PR_U1C_RANDOM_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && rec.n == 0 && !rep.stored); }
     /* a class-1 slot read: the handler completes (hooks, store), then reports HOOK */
-    { static const uint8_t c1[] = { 0x08, 0x01, 0x40, 0x6B, 0x01, 0x10, 0x97 };
-      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.window1[0x40] = 0x0003;
+    { static const uint8_t c1[] = { 0x08, 0x01, 0x18, 0x6B, 0x01, 0x10, 0x97 };
+      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.window1[0x18] = 0x0003;
       st.window2[0x10] = 0xAAAA; env_init(&env, &rec, 0x66);
       CHECK(pr_u1c_op_random(&st, &env, &rep) == PR_U1C_RANDOM_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status == PR_REC_ECL_WINDOW_HOOK);
       CHECK(rep.slot_byte == 3 && rep.argument == 4 && rec.n == 3 && st.window2[0x10] == 0x66 && rep.stored); }

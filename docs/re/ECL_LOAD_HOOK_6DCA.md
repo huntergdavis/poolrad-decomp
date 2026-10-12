@@ -1,9 +1,11 @@
 # ECL load word: the class-1 hook leaves its flag 0 for 0x6DCA
 
+> **Superseded in part (load hook classifier):** the per-address load exemption described below is now one case of `pr_rec_ecl_load_hook_may_effect`, which classifies all 1,024 class-1 addresses ([ECL_LOAD_HOOK_CLASSIFIER.md](ECL_LOAD_HOOK_CLASSIFIER.md)); the evidence and path trace here still stand, but "neighbours stay HOOK" statements no longer hold for plain neighbours.
+
 `pr_rec_ecl_load_word` reports HOOK after every class-1 (window 1) load except the addresses
 proven plain ([6DD5](ECL_LOAD_HOOK_6DD5.md), [6E7D](ECL_HOOKS_6E7D.md),
 [6E82](ECL_LOAD_HOOK_6E82.md)). This note adds **`0x6DCA`** (window-1 word `0x2CA`, byte offset
-`0x594`) to the **load** list only; the store hook there is **not** exempted. No count, strict
+`0x594`) to the **load** list only (at the time of writing the store hook there was still reported HOOK; the store hook is quiet at `0x6DCA` by the later [store classifier](ECL_STORE_HOOK_CLASSIFIER.md), `rel = 0x2CA` not being a potential-effect address). No count, strict
 full-C or DOS/native parity is claimed. `deja` had no earlier trace; the 6DD5/6E82 method and the
 private flow follower were reused.
 
@@ -38,10 +40,12 @@ them. `0x6DC9` and `0x6DCB` stay HOOK in the model because they are not reached 
 
 ## Change
 
-`PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D` (`0x6DCA`). Tests: the all-1,024 class-1 load sweep has
-exactly four OK addresses; `0x6DC9`/`0x6DCB` stay HOOK with their words read; the store word at
-`0x6DCA` still reports HOOK; a synthetic COMPARE of `0x6DCA` with an immediate byte completes with the
-flags of the window word as held, and the same shape at `0x6DCB` reports HOOK with the flags untouched.
+*(Historical, as merged then.)* `PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D` (`0x6DCA`). Tests: the all-1,024 class-1 load sweep had
+exactly four OK addresses; `0x6DC9`/`0x6DCB` stayed HOOK with their words read; the store word at
+`0x6DCA` still reported HOOK (**superseded:** PR #201's store classifier makes the `0x6DCA` store quiet/OK, `rel 0x2CA`
+not being a potential-effect address); a synthetic COMPARE of `0x6DCA` with an immediate byte completed with the
+flags of the window word as held, and the same shape at `0x6DCB` reported HOOK with the flags untouched (**superseded:**
+the load classifier makes `0x6DC9` and `0x6DCB` plain, so those now return OK).
 
 ## Private smoke, supplied-state search entry (documented, not committed)
 

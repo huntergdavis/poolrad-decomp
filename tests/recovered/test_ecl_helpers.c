@@ -315,7 +315,7 @@ static int test_windows_round_trip(void) {
     CHECK(pr_rec_ecl_store_word(&st, 0x9710, 0xBEEF) == PR_REC_ECL_WINDOW_OK);
     CHECK(pr_rec_ecl_load_word(&st, 0x9710, &v) == PR_REC_ECL_WINDOW_OK && v == 0xBEEF);
     CHECK(pr_rec_ecl_store_word(&st, 0x6B40, 7) == PR_REC_ECL_WINDOW_HOOK && st.window1[0x40] == 7);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_HOOK && v == 7);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_OK && v == 7);                 /* rel 0x40: a plain load, a store-effect address */
     CHECK(pr_rec_ecl_load_word(&st, 0x9901, &v) == PR_REC_ECL_WINDOW_OK && v == 'Z');
     CHECK(pr_rec_ecl_load_word(&st, 0x9902, &v) == PR_REC_ECL_WINDOW_OK && v == 0);
     CHECK(pr_rec_ecl_load_word(&st, 0x00B2, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
@@ -1041,7 +1041,7 @@ static int test_slot_value(void) {
     pr_rec_ecl_loader_state st; uint16_t v = 0x5555;
     static const uint8_t script[] = { 0x7B, 0x00 };
     memset(&st, 0, sizeof st); st.script = script; st.script_size = sizeof script;
-    st.window0[0x1C4] = 0xBEEF; st.window1[0x020] = 0x1234; st.window2[0x010] = 0x4321;
+    st.window0[0x1C4] = 0xBEEF; st.window1[0x018] = 0x1234; st.window2[0x010] = 0x4321;
     /* tag 0: the low byte, high ignored */
     st.tag[1] = 0x00; st.low[1] = 0x7E; st.high[1] = 0xFF;
     CHECK(pr_rec_ecl_slot_value(&st, 1, &v) == PR_REC_ECL_WINDOW_OK && v == 0x7E);
@@ -1055,7 +1055,7 @@ static int test_slot_value(void) {
     st.tag[4] = 0x80; st.low[4] = 0x10; st.high[4] = 0x97;
     CHECK(pr_rec_ecl_slot_value(&st, 4, &v) == PR_REC_ECL_WINDOW_OK && v == 0x4321);
     /* tag 1 into the 0x6B00 window: the read happens but the hook is reported */
-    st.tag[5] = 0x01; st.low[5] = 0x20; st.high[5] = 0x6B;
+    st.tag[5] = 0x01; st.low[5] = 0x18; st.high[5] = 0x6B;
     CHECK(pr_rec_ecl_slot_value(&st, 5, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1234);
     /* tag 2 and 0x81: the assembled word itself */
     st.tag[6] = 0x02; st.low[6] = 0x34; st.high[6] = 0x12;
@@ -1101,8 +1101,8 @@ static int test_op_save(void) {
       save_state(&st, s3, sizeof s3, NULL); st.window0[0x1C4] = 0x0BAD;
       CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK && st.window2[2] == 0x0BAD); }
     /* value read from the 0x6B00 window: stored, hook reported */
-    { static const uint8_t s4[] = { 0x09, 0x01, 0x40, 0x6B, 0x01, 0x00, 0x49 };
-      save_state(&st, s4, sizeof s4, NULL); st.window1[0x40] = 0x0C0D;
+    { static const uint8_t s4[] = { 0x09, 0x01, 0x18, 0x6B, 0x01, 0x00, 0x49 };
+      save_state(&st, s4, sizeof s4, NULL); st.window1[0x18] = 0x0C0D;
       CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0] == 0x0C0D); }
     /* destination in the 0x6B00 window at a potential-effect address (rel 0x20): stored, the store hook reported; at a quiet one (rel 0x10): OK */
     { static const uint8_t s5[] = { 0x09, 0x00, 0x09, 0x01, 0x20, 0x6B };
@@ -1269,8 +1269,8 @@ static int test_op_load_files(void) {
     { static const uint8_t s6[] = { 0x21, 0x01, 0x00, 0x49, 0x00, 0x00, 0x00, 0x03 };
       lf_state(&st, s6, sizeof s6, 0x21); st.window0[0] = 0x0107; lf_reset(&l, &io);
       CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_OK && strcmp(l.log, "W7 ") == 0 && st.window0[0xC5] == 7); }
-    { static const uint8_t s7[] = { 0x21, 0x01, 0x40, 0x6B, 0x00, 0x00, 0x00, 0x03 };
-      lf_state(&st, s7, sizeof s7, 0x21); st.window1[0x40] = 6; lf_reset(&l, &io);
+    { static const uint8_t s7[] = { 0x21, 0x01, 0x18, 0x6B, 0x00, 0x00, 0x00, 0x03 };
+      lf_state(&st, s7, sizeof s7, 0x21); st.window1[0x18] = 6; lf_reset(&l, &io);
       CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_HOOK && strcmp(l.log, "W6 ") == 0); }
     /* an unresolved source (class 4) stops before any effect */
     { static const uint8_t s8[] = { 0x21, 0x01, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x03 };
@@ -1490,69 +1490,63 @@ static int test_store_word_classifier(void) {
     CHECK(pr_rec_ecl_store_hook_may_effect(0x6AFF) != 0 && pr_rec_ecl_store_hook_may_effect(0x6F00) != 0 && pr_rec_ecl_store_hook_may_effect(0x4900) != 0);
     st.window0[0x10] = 0; CHECK(pr_rec_ecl_store_word(&st, 0x4910, 7) == PR_REC_ECL_WINDOW_OK && st.window0[0x10] == 7);
     st.window2[0x10] = 0; CHECK(pr_rec_ecl_store_word(&st, 0x9710, 7) == PR_REC_ECL_WINDOW_OK && st.window2[0x10] == 7);
-    /* the load hook is separate: the old store-quiet addresses still report HOOK on load unless proven plain */
+    /* the load hook has its own classifier (pr_rec_ecl_load_hook_may_effect): these addresses are plain for both hooks; the
+       sets differ (store effects at rel 0x20..0x70 etc., load effects at rel 0x18, 0xA5..0xAC, etc.) */
     {
         uint16_t v = 0;
-        CHECK(pr_rec_ecl_load_word(&st, 0x6E80, &v) == PR_REC_ECL_WINDOW_HOOK && pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_HOOK);
+        CHECK(pr_rec_ecl_load_word(&st, 0x6E80, &v) == PR_REC_ECL_WINDOW_OK && pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_OK);
         CHECK(pr_rec_ecl_load_word(&st, 0x6E7F, &v) == PR_REC_ECL_WINDOW_OK && pr_rec_ecl_load_word(&st, 0x6E82, &v) == PR_REC_ECL_WINDOW_OK);
+        CHECK(pr_rec_ecl_load_word(&st, 0x6B18, &v) == PR_REC_ECL_WINDOW_HOOK && pr_rec_ecl_store_word(&st, 0x6B18, 1) == PR_REC_ECL_WINDOW_OK);
     }
     return 0;
 }
 
 /* Load word class 1 (+0x0E41..+0x0E69): the hook +0x07BC runs first; a nonzero by-reference flag means its own value is used,
- * flag 0 means the window word is read. The load hook is proven plain, one address at a time from the original bytes, at
- * 0x6DD5, 0x6E7D, 0x6E82, 0x6DCA and 0x6E7F, so only those return OK; every other class-1 load address keeps HOOK. (The
- * STORE hook is classified separately for all addresses by pr_rec_ecl_store_hook_may_effect; the store side of these
- * addresses, e.g. 0x6DCA, is quiet.) The window value is whatever the host holds: nothing is seeded. */
-static int test_load_word_6dd5(void) {
+ * flag 0 means the window word is read. The HOOK decision is the classifier pr_rec_ecl_load_hook_may_effect: HOOK for the 29
+ * potential-effect addresses (the hook can read the record or DS, call, or leave the flag at 1), OK for every other class-1
+ * address (flag 1 then 0 and nothing else, so the caller reads the window word). The value read is the host's window word in
+ * both cases: nothing is seeded. The STORE hook is classified separately by pr_rec_ecl_store_hook_may_effect. */
+static int test_load_word_classifier(void) {
     static pr_rec_ecl_loader_state st;
     uint16_t v;
-    unsigned a, i;
+    unsigned a, i, j, n_effect = 0, n_ok = 0;
     static const uint16_t vals[] = { 0x0000, 0x0001, 0x00FF, 0x0100, 0x7FFF, 0x8000, 0xFFFF, 0x1234 };
+    static const unsigned effect_rel[] = { 0x018, 0x09B, 0x0A0, 0x0A5, 0x0A6, 0x0A7, 0x0A8, 0x0A9, 0x0AA, 0x0AB, 0x0AC, 0x0B8, 0x0BB,
+                                           0x0BD, 0x0BF, 0x0C1, 0x0C3, 0x0D8, 0x0F7, 0x0F9, 0x100, 0x10C, 0x10D, 0x11B, 0x2B1, 0x2B4,
+                                           0x2CF, 0x312, 0x33E };
     memset(&st, 0, sizeof st);
-    for (i = 0; i < sizeof vals / sizeof vals[0]; ++i) {
-        st.window1[0x2D5] = vals[i];
-        v = 0x7777;
-        CHECK(pr_rec_ecl_load_word(&st, 0x6DD5, &v) == PR_REC_ECL_WINDOW_OK && v == vals[i]);            /* the window word as held */
-    }
-    /* the neighbours and every other class-1 address keep HOOK (value still read) */
-    st.window1[0x2D4] = 0x0A0A; st.window1[0x2D6] = 0x0B0B;
-    CHECK(pr_rec_ecl_load_word(&st, 0x6DD4, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0A0A);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6DD6, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0B0B);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_HOOK);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6B18, &v) == PR_REC_ECL_WINDOW_HOOK);          /* a case that reads the character record */
-    CHECK(pr_rec_ecl_load_word(&st, 0x6C0C, &v) == PR_REC_ECL_WINDOW_HOOK);          /* a case that keeps the flag at 1 */
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E3E, &v) == PR_REC_ECL_WINDOW_HOOK);
-    /* 0x6E7D: OK with the host's window word; its neighbours stay HOOK */
-    st.window1[0x37D] = 0x0C0C; st.window1[0x37C] = 0x0D0D; st.window1[0x37E] = 0x0E0E;
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E7D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0C0C);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0D0D);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0E0E);
-    /* 0x6E7F: OK with the host's window word; its neighbours stay HOOK; the store side at 0x6E7F is classified separately (quiet, rel 0x37F) and unaffected */
-    st.window1[0x37F] = 0x1515; st.window1[0x37E] = 0x1616; st.window1[0x380] = 0x1717;
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E7F, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1515);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1616);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E80, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1717);
-    CHECK(pr_rec_ecl_store_word(&st, 0x6E7F, 0x0002) == PR_REC_ECL_WINDOW_OK && st.window1[0x37F] == 0x0002);
-    /* 0x6DCA: OK with the host's window word; its neighbours stay HOOK; the store side at 0x6DCA is classified separately (quiet, rel 0x2CA: OK) */
-    st.window1[0x2CA] = 0x1212; st.window1[0x2C9] = 0x1313; st.window1[0x2CB] = 0x1414;
-    CHECK(pr_rec_ecl_load_word(&st, 0x6DCA, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1212);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6DC9, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1313);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6DCB, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1414);
-    CHECK(pr_rec_ecl_store_word(&st, 0x6DCA, 0x0001) == PR_REC_ECL_WINDOW_OK && st.window1[0x2CA] == 0x0001);   /* the store side is classified quiet (rel 0x2CA) */
-    /* 0x6E82: OK with the host's window word; its neighbours stay HOOK */
-    st.window1[0x382] = 0x0F0F; st.window1[0x381] = 0x1010; st.window1[0x383] = 0x1111;
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E82, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0F0F);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E81, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1010);
-    CHECK(pr_rec_ecl_load_word(&st, 0x6E83, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1111);
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
-        pr_rec_ecl_window_status w = pr_rec_ecl_load_word(&st, (uint16_t)a, &v);
-        CHECK((a == 0x6DD5 || a == 0x6E7D || a == 0x6E82 || a == 0x6DCA || a == 0x6E7F) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+        unsigned rel = a - 0x6B00u;
+        int effect = 0;
+        for (j = 0; j < sizeof effect_rel / sizeof effect_rel[0]; ++j) if (rel == effect_rel[j]) effect = 1;
+        CHECK((pr_rec_ecl_load_hook_may_effect((uint16_t)a) != 0) == effect);
+        for (i = 0; i < sizeof vals / sizeof vals[0]; ++i) {
+            st.window1[rel] = vals[i];
+            v = 0x7777;
+            CHECK(pr_rec_ecl_load_word(&st, (uint16_t)a, &v) == (effect ? PR_REC_ECL_WINDOW_HOOK : PR_REC_ECL_WINDOW_OK));
+            CHECK(v == vals[i]);                                                    /* the window word as held, in both cases */
+        }
+        if (effect) ++n_effect; else ++n_ok;
     }
-    /* the load stays read-only on the window; classes 0 and 2 are unchanged */
+    CHECK(n_effect == PR_REC_ECL_LOAD_HOOK_EFFECT_COUNT && n_ok == 1024u - 29u);
+    /* boundaries and every earlier single-address exception: plain; the effect cases around them: HOOK */
+    {
+        static const uint16_t plain[] = { 0x6DD5, 0x6E7D, 0x6E82, 0x6DCA, 0x6E7F, 0x6DCB, 0x6DD4, 0x6DD6, 0x6E80, 0x6E7C, 0x6B00, 0x6B17, 0x6B19,
+                                          0x6B9A, 0x6B9C, 0x6BA1, 0x6BA4, 0x6BAD, 0x6BB7, 0x6BB9, 0x6C0B, 0x6E7E, 0x6EFF };
+        static const uint16_t hook[] = { 0x6B18, 0x6B9B, 0x6BA0, 0x6BA5, 0x6BA6, 0x6BAC, 0x6BB8, 0x6BBB, 0x6BBD, 0x6BBF, 0x6BC1, 0x6BC3, 0x6BD8,
+                                         0x6BF7, 0x6BF9, 0x6C00, 0x6C0C, 0x6C0D, 0x6C1B, 0x6DB1, 0x6DB4, 0x6DCF, 0x6E12, 0x6E3E };
+        for (i = 0; i < sizeof plain / sizeof plain[0]; ++i) CHECK(pr_rec_ecl_load_word(&st, plain[i], &v) == PR_REC_ECL_WINDOW_OK);
+        for (i = 0; i < sizeof hook / sizeof hook[0]; ++i) CHECK(pr_rec_ecl_load_word(&st, hook[i], &v) == PR_REC_ECL_WINDOW_HOOK);
+    }
+    /* outside class 1 the classifier is conservative; the load word does not call the hook there; classes 0 and 2 are unchanged */
+    CHECK(pr_rec_ecl_load_hook_may_effect(0x6AFF) != 0 && pr_rec_ecl_load_hook_may_effect(0x6F00) != 0 && pr_rec_ecl_load_hook_may_effect(0x4900) != 0);
     st.window0[0x10] = 0x0102; st.window2[0x10] = 0x0304;
     CHECK(pr_rec_ecl_load_word(&st, 0x4910, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0102);
     CHECK(pr_rec_ecl_load_word(&st, 0x9710, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0304);
+    /* the two hooks are separate classifiers: 0x6B20 is a store potential-effect address but a plain load; 0x6B18 the reverse */
+    st.window1[0x20] = 0x0A0A; st.window1[0x18] = 0x0B0B;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B20, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0A0A && pr_rec_ecl_store_word(&st, 0x6B20, 1) == PR_REC_ECL_WINDOW_HOOK);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6B18, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0B0B && pr_rec_ecl_store_word(&st, 0x6B18, 1) == PR_REC_ECL_WINDOW_OK);
     /* the saved-gate shape: COMPARE word 0x6DD5 with an immediate zero (script PC 0x9934: 03 01 D5 6D 00 00) */
     {
         static const uint8_t s[] = { 0x03, 0x01, 0xD5, 0x6D, 0x00, 0x00 };
@@ -1566,49 +1560,31 @@ static int test_load_word_6dd5(void) {
             CHECK(st.cmp_flags[0] == (vals[k] == 0) && st.cmp_flags[1] == (vals[k] != 0) && st.cmp_flags[2] == 0 &&
                   st.cmp_flags[3] == (vals[k] > 0) && st.cmp_flags[4] == (vals[k] == 0) && st.cmp_flags[5] == 1);
         }
-        /* the same compare against a different class-1 address still reports HOOK and leaves the flags untouched */
+        /* the same compare against a potential-effect class-1 address (0x6B18) reports HOOK and leaves the flags untouched */
         {
-            static const uint8_t h[] = { 0x03, 0x01, 0xD6, 0x6D, 0x00, 0x00 };
+            static const uint8_t h[] = { 0x03, 0x01, 0x18, 0x6B, 0x00, 0x00 };
             memset(&st, 0, sizeof st); st.script = h; st.script_size = sizeof h; st.pc = 0x9900u;
             memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
             CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55);
         }
-        /* an analogous synthetic compare of the word 0x6E82 with an immediate byte: OK, flags from the window word as held */
+        /* analogous plain-address compares: 0x6E82, 0x6DCA, 0x6DCB with an immediate byte complete with the flags of the window word */
         {
-            static const uint8_t c82[] = { 0x03, 0x01, 0x82, 0x6E, 0x00, 0x07 };
-            static const uint8_t c81[] = { 0x03, 0x01, 0x81, 0x6E, 0x00, 0x07 };
-            memset(&st, 0, sizeof st); st.script = c82; st.script_size = sizeof c82; st.pc = 0x9900u; st.window1[0x382] = 0x0007;
-            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
-            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9906u && st.cmp_flags[0] == 1 && st.cmp_flags[1] == 0);
-            memset(&st, 0, sizeof st); st.script = c81; st.script_size = sizeof c81; st.pc = 0x9900u; st.window1[0x381] = 0x0007;
-            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
-            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55);
+            static const uint16_t addrs[] = { 0x6E82, 0x6DCA, 0x6DCB, 0x6E7F };
+            unsigned q;
+            for (q = 0; q < sizeof addrs / sizeof addrs[0]; ++q) {
+                uint8_t c[6];
+                c[0] = 0x03; c[1] = 0x01; c[2] = (uint8_t)(addrs[q] & 0xFF); c[3] = (uint8_t)(addrs[q] >> 8); c[4] = 0x00; c[5] = 0x07;
+                memset(&st, 0, sizeof st); st.script = c; st.script_size = sizeof c; st.pc = 0x9900u; st.window1[addrs[q] - 0x6B00u] = 0x0007;
+                memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+                CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9906u && st.cmp_flags[0] == 1 && st.cmp_flags[1] == 0);
+            }
         }
-        /* an analogous synthetic compare of the word 0x6DCA with an immediate byte: OK with the window word as held */
-        {
-            static const uint8_t cca[] = { 0x03, 0x01, 0xCA, 0x6D, 0x00, 0x01 };
-            static const uint8_t ccb[] = { 0x03, 0x01, 0xCB, 0x6D, 0x00, 0x01 };
-            memset(&st, 0, sizeof st); st.script = cca; st.script_size = sizeof cca; st.pc = 0x9900u; st.window1[0x2CA] = 0x0001;
-            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
-            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9906u && st.cmp_flags[0] == 1 && st.cmp_flags[1] == 0);
-            memset(&st, 0, sizeof st); st.script = ccb; st.script_size = sizeof ccb; st.pc = 0x9900u; st.window1[0x2CB] = 0x0001;
-            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
-            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55);
-        }
-        /* analogous synthetic ON GOTO-shaped read of 0x6E7F: a slot value from the word completes with no HOOK, 0x6E7E reports HOOK */
-        {
-            uint16_t sv = 0;
-            memset(&st, 0, sizeof st); st.tag[1] = 0x01; st.low[1] = 0x7F; st.high[1] = 0x6E; st.window1[0x37F] = 0x0001;
-            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_OK && sv == 0x0001);
-            st.low[1] = 0x7E; st.window1[0x37E] = 0x0002;
-            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_HOOK && sv == 0x0002);
-        }
-        /* slot value through the load core */
+        /* slot value through the load core: a plain address completes, an effect address reports HOOK with the word read */
         {
             uint16_t sv = 0;
             memset(&st, 0, sizeof st); st.tag[1] = 0x01; st.low[1] = 0xD5; st.high[1] = 0x6D; st.window1[0x2D5] = 0x0042;
             CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_OK && sv == 0x0042);
-            st.low[1] = 0xD6; st.window1[0x2D6] = 0x0043;
+            st.low[1] = 0x18; st.high[1] = 0x6B; st.window1[0x18] = 0x0043;
             CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_HOOK && sv == 0x0043);
         }
     }
@@ -1679,7 +1655,7 @@ static int test_save_6e7d(void) {
     memset(&st, 0, sizeof st); st.script = s2; st.script_size = sizeof s2; st.pc = 0x9900u; st.window1[0x37D] = 0x000B;
     CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0xFD] == 0x000B && st.b84e8 == 1);
     memset(&st, 0, sizeof st); st.script = s3; st.script_size = sizeof s3; st.pc = 0x9900u; st.window1[0x37E] = 0x0001;
-    CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0xFD] == 0x0001);   /* the value read ran the hook model */
+    CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0xFD] == 0x0001);   /* 0x6E7E is a plain load and a quiet store */
     memset(&st, 0, sizeof st); st.script = s4; st.script_size = sizeof s4; st.pc = 0x9900u;
     CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window1[0x37E] == 0x000B);   /* the store at 0x6E7E is quiet */
     return 0;
@@ -1735,14 +1711,14 @@ static int test_op_compare(void) {
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1) && st.pc == 0x9907); }
     /* word path with a class-1 source in slot 1: HOOK at once, flags untouched, slot 2 never read
      * (slot 2 names a class-4 address, which would turn the result into UNRESOLVED if it were looked up) */
-    { static const uint8_t s3[] = { 0x03, 0x01, 0x40, 0x6B, 0x01, 0xB2, 0x00 };
-      save_state(&st, s3, sizeof s3, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+    { static const uint8_t s3[] = { 0x03, 0x01, 0x18, 0x6B, 0x01, 0xB2, 0x00 };
+      save_state(&st, s3, sizeof s3, NULL); st.window1[0x18] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK);
       CHECK(st.cmp_flags[0] == 0x55 && st.cmp_flags[1] == 0x55 && st.cmp_flags[2] == 0x55 && st.cmp_flags[3] == 0x55 && st.cmp_flags[4] == 0x55 && st.cmp_flags[5] == 0x55);
       CHECK(st.pc == 0x9907); }                                 /* the loader's advance stands */
     /* class-1 source in slot 2: HOOK before the compare, flags untouched */
-    { static const uint8_t s3b[] = { 0x03, 0x00, 0x02, 0x01, 0x40, 0x6B };
-      save_state(&st, s3b, sizeof s3b, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+    { static const uint8_t s3b[] = { 0x03, 0x00, 0x02, 0x01, 0x18, 0x6B };
+      save_state(&st, s3b, sizeof s3b, NULL); st.window1[0x18] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55); }
     /* word path with a class-4 source: unresolved, flags untouched */
     { static const uint8_t s4[] = { 0x03, 0x00, 0x02, 0x01, 0xB2, 0x00 };
@@ -1927,7 +1903,7 @@ int main(void) {
     rc |= test_load_files_composition();
     rc |= test_load_word_class4();
     rc |= test_store_word_classifier();
-    rc |= test_load_word_6dd5();
+    rc |= test_load_word_classifier();
     rc |= test_store_word_84e8();
     rc |= test_save_6e7d();
     rc |= test_compare_words();

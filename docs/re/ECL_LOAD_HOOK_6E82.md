@@ -1,5 +1,7 @@
 # ECL load word: the class-1 hook leaves its flag 0 for 0x6E82
 
+> **Superseded in part (load hook classifier):** the per-address load exemption described below is now one case of `pr_rec_ecl_load_hook_may_effect`, which classifies all 1,024 class-1 addresses ([ECL_LOAD_HOOK_CLASSIFIER.md](ECL_LOAD_HOOK_CLASSIFIER.md)); the evidence and path trace here still stand, but "neighbours stay HOOK" statements no longer hold for plain neighbours.
+
 `pr_rec_ecl_load_word` reports HOOK after every class-1 (window 1) load except the
 addresses proven plain ([6DD5](ECL_LOAD_HOOK_6DD5.md), [6E7D](ECL_HOOKS_6E7D.md)).
 This note adds **`0x6E82`** (window-1 word `0x382`, byte offset `0x704`) to the

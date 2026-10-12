@@ -1,5 +1,7 @@
 # ECL load word: the class-1 load hook leaves its flag 0 for 0x6DD5
 
+> **Superseded in part (load hook classifier):** the per-address load exemption described below is now one case of `pr_rec_ecl_load_hook_may_effect`, which classifies all 1,024 class-1 addresses ([ECL_LOAD_HOOK_CLASSIFIER.md](ECL_LOAD_HOOK_CLASSIFIER.md)); the evidence and path trace here still stand, but "neighbours stay HOOK" statements no longer hold for plain neighbours.
+
 `pr_rec_ecl_load_word` (lane A, `ecl_helpers.c`) reported HOOK after every
 class-1 (window 1) load because the engine first calls the load hook at unit
 `0x25` `+0x07BC`, which may override the window value. This note records an

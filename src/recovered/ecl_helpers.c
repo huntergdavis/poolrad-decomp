@@ -301,6 +301,24 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
     return PR_REC_ECL_WINDOW_OK;              /* class 4: nothing stored */
 }
 
+int pr_rec_ecl_load_hook_may_effect(uint16_t address)
+{
+    /* unit 0x25 +0x07BC: rel = address - 0x6B00 (16-bit). For these rel values the hook reads the character record or DS,
+     * calls, or does not clear its by-reference flag; for every other rel it takes the 62-instruction path that sets the
+     * flag to 1 (+0x07C5) and clears it to 0 (+0x0A67) and does nothing else. */
+    static const uint16_t effect[] = { 0x018u, 0x09Bu, 0x0A0u, 0x0A5u, 0x0A6u, 0x0A7u, 0x0A8u, 0x0A9u, 0x0AAu, 0x0ABu, 0x0ACu,
+                                       0x0B8u, 0x0BBu, 0x0BDu, 0x0BFu, 0x0C1u, 0x0C3u, 0x0D8u, 0x0F7u, 0x0F9u, 0x100u, 0x10Cu,
+                                       0x10Du, 0x11Bu, 0x2B1u, 0x2B4u, 0x2CFu, 0x312u, 0x33Eu };
+    uint16_t rel = (uint16_t)(address - 0x6B00u);
+    unsigned i;
+    if (rel >= 0x400u)
+        return 1;                                   /* outside class 1: not classified */
+    for (i = 0; i < sizeof effect / sizeof effect[0]; ++i)
+        if (rel == effect[i])
+            return 1;
+    return 0;
+}
+
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value) {
     uint8_t cls;
@@ -314,11 +332,9 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
             return PR_REC_ECL_WINDOW_BOUNDS;
         }
         *value = *w;
-        if (cls == 1u && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B &&
-            address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C && address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D &&
-            address != PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_E)
+        if (cls == 1u && pr_rec_ecl_load_hook_may_effect(address))
             return PR_REC_ECL_WINDOW_HOOK;     /* +0x0E4A: call +0x07BC, which may override the value for this address */
-        return PR_REC_ECL_WINDOW_OK;           /* class 0/2; class 1 at 0x6DD5, 0x6E7D, 0x6E82, 0x6DCA and 0x6E7F: the hook flag is 0 and the window word is read */
+        return PR_REC_ECL_WINDOW_OK;           /* class 0/2; class 1 where +0x07BC leaves the flag 0 and does nothing else: the window word is read */
     }
     if (cls == 3u) {
         int b = loader_read(state, address);

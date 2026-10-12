@@ -260,18 +260,17 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  * there. Store word's class-4 table is not modelled.
  *
  * Class-1 hooks (+0x07BC on load, +0x0A74 on store; they mirror character-record fields)
- * are not modelled in general: both cores report HOOK for class 1 after the window access,
- * except at the addresses below, each proven separately from the original bytes (the hook
- * subtracts 0x6B00 and compares that offset `rel` against its cases):
- *   load word returns OK at
- *     0x6DD5 (rel 0x2D5; docs/re/ECL_LOAD_HOOK_6DD5.md),
- *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md),
- *     0x6E82 (rel 0x382; docs/re/ECL_LOAD_HOOK_6E82.md) and
- *     0x6DCA (rel 0x2CA; docs/re/ECL_LOAD_HOOK_6DCA.md; load only) and
- *     0x6E7F (rel 0x37F; docs/re/ECL_LOAD_HOOK_6E7F.md; load only):
- *     for each, every case compare in +0x07BC falls through, the hook clears its
- *     by-reference flag to 0 (+0x0A67) and reads and writes nothing else, and the caller
- *     (+0x0E41..+0x0E69) then reads the window word;
+ * are not modelled in general; the status each core reports is a classification of the
+ * hook's control flow (the hook subtracts 0x6B00 and compares that offset `rel` against its
+ * cases):
+ *   load word: classified for EVERY class-1 address by pr_rec_ecl_load_hook_may_effect
+ *     (docs/re/ECL_LOAD_HOOK_CLASSIFIER.md): the hook can read the character record or DS,
+ *     call, or leave its by-reference flag at 1 only for 29 values of rel (0x018, 0x09B, 0x0A0,
+ *     0x0A5..0x0AC, 0x0B8, 0x0BB, 0x0BD, 0x0BF, 0x0C1, 0x0C3, 0x0D8, 0x0F7, 0x0F9, 0x100,
+ *     0x10C, 0x10D, 0x11B, 0x2B1, 0x2B4, 0x2CF, 0x312, 0x33E); for every other rel all compares
+ *     fall through, the hook sets its flag to 1 at +0x07C5 and clears it to 0 at +0x0A67 and
+ *     reads and writes nothing else, so the caller (+0x0E41..+0x0E69) reads the window word and the
+ *     load word returns OK. The 29 potential-effect addresses report HOOK (the value is still read);
  *   store word: the hook's decision is classified for EVERY class-1 address by
  *     pr_rec_ecl_store_hook_may_effect (docs/re/ECL_STORE_HOOK_CLASSIFIER.md): the hook can write
  *     or call only for rel = 0x000, 0x020..0x070 and the 14 exact values 0xB8, 0xBB, 0xBD, 0xBF,
@@ -279,17 +278,16 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     value); for every other rel all compares fall through to the epilogue with no DS/ES
  *     game-state write and no call (it only adjusts its own stack argument), so the store word
  *     returns OK after the window write. The 96 potential-effect addresses report HOOK.
- * Load-word exceptions stay as listed above; every other class-1 load address reports HOOK. */
+ */
+#define PR_REC_ECL_LOAD_HOOK_EFFECT_COUNT 29u    /* the potential-effect addresses among the 1,024 class-1 addresses */
+/* Nonzero when the load hook +0x07BC may read the record or DS, call, or leave its flag at 1 for this address
+ * (class 1 is 0x6B00..0x6EFF; an address outside it was never classified and also returns nonzero). */
+int pr_rec_ecl_load_hook_may_effect(uint16_t address);
 #define PR_REC_ECL_STORE_HOOK_EFFECT_COUNT 96u   /* the potential-effect addresses among the 1,024 class-1 addresses */
 /* Nonzero when the store hook +0x0A74 may write game state or call for this address (class 1 is
  * 0x6B00..0x6EFF; an address outside it was never classified and also returns nonzero). Independent of
  * the value stored. */
 int pr_rec_ecl_store_hook_may_effect(uint16_t address);
-#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS 0x6DD5u
-#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B 0x6E7Du   /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
-#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C 0x6E82u   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E82.md */
-#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D 0x6DCAu   /* proven the same way, docs/re/ECL_LOAD_HOOK_6DCA.md */
-#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_E 0x6E7Fu   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E7F.md */
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value);
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,

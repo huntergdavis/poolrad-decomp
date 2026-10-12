@@ -100,8 +100,8 @@ int main(void)
     { static const uint8_t c4[] = { 0x23, 0x00, 0x01, 0x00, 0x02, 0x01, 0xB2, 0x00, 0x00, 0x04 };
       memset(&st, 0, sizeof st); st.script = c4; st.script_size = sizeof c4; st.pc = 0x9900u; st.latch = 0x23; env_init(&env, &rec, 0, 0);
       CHECK(pr_u1c_op_surprise(&st, &env, &rep) == PR_U1C_SURPRISE_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && rec.n == 0 && !rep.stored); }
-    { static const uint8_t c1[] = { 0x23, 0x01, 0x40, 0x6B, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04 };
-      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 0x23; st.window1[0x40] = 0x0105; env_init(&env, &rec, 9, 9);
+    { static const uint8_t c1[] = { 0x23, 0x01, 0x18, 0x6B, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04 };
+      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 0x23; st.window1[0x18] = 0x0105; env_init(&env, &rec, 9, 9);
       CHECK(pr_u1c_op_surprise(&st, &env, &rep) == PR_U1C_SURPRISE_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK);
       CHECK(rep.s[0] == 5 && rec.n == 2 && rep.stored); }                    /* the word value's low byte only */
 
