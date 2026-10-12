@@ -3,8 +3,16 @@
 The no-argument unit `0x6F:+0x02AE..+0x032E` body has a bounded C model in
 `pr_u6f_postinsert_02ae`. Its only known direct call is `+0x19E7`, after
 the selector's nonzero-AL branch, allocation, record loader and party
-insertion. The saved slot-A selector return and this later call's execution
-remain unmeasured. This model earns no full-route or strict-function count.
+insertion. [Merged native first-slot evidence](https://github.com/huntergdavis/poolrad-decomp/pull/255)
+(main `8e7f8ee`) measures `AX=0x0001` at `+0x19AD`, selecting `+0x19B1`
+for that iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
+(main `080e7de`) observes the GetMem return at `+0x19BA` and the record
+loader's return at `+0x19DA`. The
+[merged insertion-return watch](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md)
+(main `311ed43`) observes the `+0x19E3` call returning at `+0x19E6`,
+before the separate near call to this routine at `+0x19E7`. That watch does not
+measure `+0x19E7` execution or any mkdir effect. This model earns no
+full-route or strict-function count.
 
 Before decoding, `deja "Poolrad u6f 02AE mkdir IOResult 0 5 retry directory"`
 found no matching indexed session; `deja "u6f 02AE"` returned prior party
