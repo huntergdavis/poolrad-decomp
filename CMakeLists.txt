@@ -111,6 +111,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u6f_party_filename.c
                                     src/recovered/overlay_u6f_postinsert_02ae.c
                                     src/recovered/overlay_u6f_party_insert_1446.c
+                                    src/recovered/overlay_u6f_party_insert_1446_dos.c
                                     src/recovered/resident_8ae_dispatch.c
                                     src/recovered/resident_8ae_table_17ae.c
                                     src/recovered/resident_8ae_table_1742.c)
@@ -607,6 +608,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6f_party_insert_1446_tests
              COMMAND poolrad_overlay_u6f_party_insert_1446_tests)
+    add_executable(poolrad_overlay_u6f_party_insert_1446_dos_tests
+                   tests/recovered/test_overlay_u6f_party_insert_1446_dos.c)
+    target_link_libraries(poolrad_overlay_u6f_party_insert_1446_dos_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6f_party_insert_1446_dos_tests
+             COMMAND poolrad_overlay_u6f_party_insert_1446_dos_tests)
     add_executable(poolrad_resident_8ae_dispatch_tests
                    tests/recovered/test_resident_8ae_dispatch.c)
     target_link_libraries(poolrad_resident_8ae_dispatch_tests PRIVATE
