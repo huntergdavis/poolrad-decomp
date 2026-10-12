@@ -59,23 +59,21 @@ statuses, and whether the compare and store were made. **No status is invented
 as success**; a host dispatching opcodes 0x2F/0x30 must treat HOOK and
 UNRESOLVED as stops.
 
-## The saved slot-A shape, and the blocker it exposes
+## The saved slot-A shape (class-4 source resolved by the load-word audit)
 
 The saved run entry's AND at PC `0x996B` is, by SLOT_A_UP_ECL_GATE.md, an AND of
 the immediate `0x7F` with the pseudo source `0xC04F`, stored to `0x6E82`
-(window 1). The script bytes `2F 00 7F 01 4F C0 01 82 6E` run through this
-model give: loader OK (PC advanced by 9), slot 1 = `0x7F` read, slot 2 =
-**UNRESOLVED** (address `0xC04F` is class 4 in `pr_rec_ecl_address_class`), so
-the handler returns UNRESOLVED with no compare and no store. That is the
-precise blocker for closing this handler on the saved route: the **class-4
-pseudo-address table of the load-word core** (unit `0x25` `+0x0E0C`, 327 bytes,
-`pr_rec_ecl_load_word`). FUNCTION_LEDGER.md function "load word" lists the class-4
-addresses (`0xB1`, `0xFB`, `0xFC`, `0x33D`, `0x35F` and the `0xC04B+0..4`
-group) and the data-segment bytes they map to (`[0x6F6E]`, `[0x6F6A]`,
-`[0x6F6C]`, `[0x6AAF]`, `[0x6AAD]`, `[0x6AAE]`, `[0x6AB0]`, `[0x6AB1]`) but does
-not model them or fix the one-to-one pairing for `0xC04F`. Reading that table
-is the next audit; until it is, the value of the source, and therefore the byte
-stored to `0x6E82` and the flags, are **not claimed**.
+(window 1). The script bytes `2F 00 7F 01 4F C0 01 82 6E` ran through this
+handler stopped at UNRESOLVED while the load-word core did not model class-4
+addresses. After the byte-derived class-4 table of unit `0x25` `+0x0E0C`
+([ECL_LOAD_WORD_CLASS4.md](ECL_LOAD_WORD_CLASS4.md)) `0xC04F` is `[0x6AB1]`
+zero-extended: slot 2 resolves to whatever that byte holds, the handler
+computes `0x7F and byte`, sets the six flags from comparing 0 with it, stores
+the byte to window-1 word `0x382` and reports HOOK (a class-1 destination).
+**The live value of `[0x6AB1]` at that PC is state-dependent and is not
+claimed**; the tests supply every byte value 0..255 and no expected move result
+is seeded. Unsupported class-4 addresses (for example `0xC059`) stay
+UNRESOLVED with no compare and no store.
 
 ## Verification
 
@@ -86,8 +84,9 @@ the low-byte truncation (`0x1234 and 0x00FF`, `0xFFFF or 0x0100`,
 `0x0100 or 0x0200` giving zero and the equal/greater-or-equal flags); a window-0
 variable source; about 2,000 generated word pairs against plain arithmetic for
 the stored word and the six flags of comparing 0 with the result; a class-1
-source in slot 1 and in slot 2 (HOOK after the store); class-4 sources in slot
-1 and slot 2 (UNRESOLVED, no compare, no store, slot 2 unread after a slot-1
-stop); a class-1 destination; truncated operands (BOUNDS); a null state. Strict
+source in slot 1 and in slot 2 (HOOK after the store); unsupported class-4
+sources (`0xB2`) in slot 1 and slot 2 (UNRESOLVED, no compare, no store, slot 2
+unread after a slot-1 stop); the saved shape with every `[0x6AB1]` value 0..255
+and the unsupported neighbour `0xC059`; a class-1 destination; truncated operands (BOUNDS); a null state. Strict
 `-Wall -Wextra -Wpedantic -Werror` full build. The restatement shares my reading
 of the decode; the correspondence is the table above, not a DOS replay.
