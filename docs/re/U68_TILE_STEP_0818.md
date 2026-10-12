@@ -65,8 +65,16 @@ selector byte.
   the model reads only `0x3C76 + selector` and the computed tile address, both
   with the original's 16-bit wrap, and returns `PR_U68_STEP_ARGUMENT` for an
   address outside the image. Window 0 needs 0x346 bytes; the direction tables
-  `facing + 10`; the message at most 35 characters (`NULL` = empty). All checked
-  before any write or hook call.
+  `facing + 10`. All checked before any write or hook call.
+* The string `cs:0x07F4` is read by the original only on the reached branch
+  (special tile and word `0x344` = 0, `+0x0916..+0x091B`). The model therefore
+  requires `message` non-NULL with at most 35 characters **only there**, and
+  returns `PR_U68_0818_MESSAGE` (no hook, no write) otherwise; on every other
+  path the message pointer is ignored, whatever it holds.
+* Every public name in this header carries the `PR_U68_0818_` / `pr_u68_0818_`
+  prefix; the test includes the coordinate-writer header in the same
+  translation unit as a dual-header compile check (those two headers both used
+  `PR_U68_STEP_OK`/`PR_U68_STEP_ARGUMENT` before the rename).
 * `PR_U68_STEP_HOOK`: the reached hook is `NULL`; unlike the adjacent `+0x04DF`
   model this is checked **before** the position words are written, so no effect
   is retained on that status.
@@ -84,9 +92,10 @@ address, the blocked and special sets (independent interval lists), the message
 and move outcomes, the hook arguments, that the position words are written
 before the clock call with zero high bytes, and that no other window byte
 changes (about 0.77 million cases, 0.4 s). Pinned clamp edges with a zero step
-table; the 35- and 36-character message boundary; guards (missing hooks only
-when reached and with no write, short window, short table, DS image too small
-for either read, null); and a connected run of the merged
+table; the 35- and 36-character message boundary and a NULL message on the reached
+branch (`PR_U68_0818_MESSAGE`), with the same invalid messages ignored on the
+move and blocked paths; guards (missing hooks only when reached and with no
+write, short window, short table, DS image too small for either read, null); and a connected run of the merged
 `pr_u7d_entry1` with `(0x0C, 0x03)` (`25 + 12` over a limit of 30: word 7 with one
 carry). Synthetic data only; clean under AddressSanitizer and
 UndefinedBehaviorSanitizer; strict `-Wall -Wextra -Wpedantic -Werror` full

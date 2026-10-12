@@ -38,26 +38,26 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define PR_U68_STEP_X_WORD 0x186u         /* window-0 words read and (on a move) written */
-#define PR_U68_STEP_Y_WORD 0x188u
-#define PR_U68_STEP_FLAG_WORD 0x344u      /* cmp word es:[di + 0x344], 0 */
-#define PR_U68_STEP_WINDOW0_MIN_SIZE 0x346u
-#define PR_U68_STEP_X_MAX 0x0F
-#define PR_U68_STEP_Y_MAX 0x23
-#define PR_U68_STEP_ROW_STRIDE 0x2Cu      /* mov dx, 0x2C; mul dx */
-#define PR_U68_STEP_TILE_BASE_DS 0x3648u  /* [di + 0x3648] */
-#define PR_U68_STEP_COLUMN_TABLE_DS 0x3C76u   /* [di + 0x3C76], di = selector */
-#define PR_U68_STEP_DX_TABLE_DS 0x2736u
-#define PR_U68_STEP_DY_TABLE_DS 0x273Fu
-#define PR_U68_STEP_MESSAGE_MAX 35u       /* the 36-byte local string slot [bp-0x27] */
-#define PR_U68_STEP_MESSAGE_COLOR 0x0Eu   /* mov al, 0xE before 0x709:0x0D68 */
-#define PR_U68_STEP_CLOCK_N 0x0Cu         /* pushed to 0x8C:0x25 first */
-#define PR_U68_STEP_CLOCK_IDX 0x03u       /* then 3 */
+#define PR_U68_0818_X_WORD 0x186u         /* window-0 words read and (on a move) written */
+#define PR_U68_0818_Y_WORD 0x188u
+#define PR_U68_0818_FLAG_WORD 0x344u      /* cmp word es:[di + 0x344], 0 */
+#define PR_U68_0818_WINDOW0_MIN_SIZE 0x346u
+#define PR_U68_0818_X_MAX 0x0F
+#define PR_U68_0818_Y_MAX 0x23
+#define PR_U68_0818_ROW_STRIDE 0x2Cu      /* mov dx, 0x2C; mul dx */
+#define PR_U68_0818_TILE_BASE_DS 0x3648u  /* [di + 0x3648] */
+#define PR_U68_0818_COLUMN_TABLE_DS 0x3C76u   /* [di + 0x3C76], di = selector */
+#define PR_U68_0818_DX_TABLE_DS 0x2736u
+#define PR_U68_0818_DY_TABLE_DS 0x273Fu
+#define PR_U68_0818_MESSAGE_MAX 35u       /* the 36-byte local string slot [bp-0x27] */
+#define PR_U68_0818_MESSAGE_COLOR 0x0Eu   /* mov al, 0xE before 0x709:0x0D68 */
+#define PR_U68_0818_CLOCK_N 0x0Cu         /* pushed to 0x8C:0x25 first */
+#define PR_U68_0818_CLOCK_IDX 0x03u       /* then 3 */
 
 /* 0x709:0x0D68 (resident, unresolved): the local string copy and the byte 0x0E. */
-typedef void (*pr_u68_step_message_hook)(void *ctx, const uint8_t *pascal_string, uint8_t color);
+typedef void (*pr_u68_0818_message_hook)(void *ctx, const uint8_t *pascal_string, uint8_t color);
 /* 0x8C:0x25 = unit 0x7d entry 1, called with (n, idx) = (0x0C, 0x03). */
-typedef void (*pr_u68_step_clock_hook)(void *ctx, uint8_t n, uint8_t idx);
+typedef void (*pr_u68_0818_clock_hook)(void *ctx, uint8_t n, uint8_t idx);
 
 typedef struct {
     uint8_t facing;                   /* [0x6AAF] */
@@ -68,18 +68,22 @@ typedef struct {
     size_t direction_table_size;
     const uint8_t *ds;                /* host DS image from offset 0; reads at 0x3648.. and 0x3C76 + selector */
     size_t ds_size;
-    const uint8_t *message;           /* the Pascal string cs:0x07F4 (host data; NULL = empty) */
-    pr_u68_step_message_hook message_hook;   /* may be NULL (reached -> PR_U68_STEP_HOOK) */
-    pr_u68_step_clock_hook clock_hook;       /* may be NULL (reached -> PR_U68_STEP_HOOK) */
+    const uint8_t *message;           /* the Pascal string cs:0x07F4 (host data). Read only on the reached
+                                         special-tile, word 0x344 == 0 branch, where it must be non-NULL
+                                         with at most 35 characters; ignored on every other path. */
+    pr_u68_0818_message_hook message_hook;   /* may be NULL (reached -> PR_U68_0818_HOOK) */
+    pr_u68_0818_clock_hook clock_hook;       /* may be NULL (reached -> PR_U68_0818_HOOK) */
     void *ctx;
-} pr_u68_step0818_state;
+} pr_u68_0818_state;
 
 typedef enum {
-    PR_U68_STEP_OK = 0,
-    PR_U68_STEP_ARGUMENT,   /* null state, window 0 shorter than 0x346, short direction table, a DS read
-                               outside the image, or a message longer than 35. Nothing written, no hook run. */
-    PR_U68_STEP_HOOK        /* the reached hook (message or clock) is NULL. Checked before any write. */
-} pr_u68_step0818_status;
+    PR_U68_0818_OK = 0,
+    PR_U68_0818_ARGUMENT,   /* null state, window 0 shorter than 0x346, short direction table, or a DS read
+                               outside the image. Nothing written, no hook run. */
+    PR_U68_0818_MESSAGE,    /* the message branch was reached (special tile, word 0x344 == 0) and `message`
+                               is NULL or longer than 35 characters. Nothing written, no hook run. */
+    PR_U68_0818_HOOK        /* the reached hook (message or clock) is NULL. Checked before any write. */
+} pr_u68_0818_status;
 
 typedef struct {
     uint8_t x_raw, y_raw;     /* the low bytes after the table steps */
@@ -91,14 +95,14 @@ typedef struct {
     unsigned special;         /* tile in {0x66..0x6C, 0x72} */
     unsigned flag_word_zero;  /* special and word 0x344 == 0: the message path */
     unsigned moved;           /* words 0x186/0x188 written and the clock hook called */
-} pr_u68_step0818_report;
+} pr_u68_0818_report;
 
 /* 1 when `tile` is in the blocked set (+0x08BB..+0x08F7), 0 otherwise. */
-int pr_u68_step0818_tile_blocked(uint8_t tile);
+int pr_u68_0818_tile_blocked(uint8_t tile);
 /* 1 when `tile` is in {0x66..0x6C, 0x72}. */
-int pr_u68_step0818_tile_special(uint8_t tile);
+int pr_u68_0818_tile_special(uint8_t tile);
 
 /* The routine. `report` may be NULL. */
-pr_u68_step0818_status pr_u68_step0818(pr_u68_step0818_state *state, pr_u68_step0818_report *report);
+pr_u68_0818_status pr_u68_0818_run(pr_u68_0818_state *state, pr_u68_0818_report *report);
 
 #endif

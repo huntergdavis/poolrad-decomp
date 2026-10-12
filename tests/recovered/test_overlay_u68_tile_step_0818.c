@@ -4,6 +4,7 @@
  * interval lists for the tile sets are compared with the model over many
  * positions, facings, selectors and every tile value; the clock hook is
  * also wired to the merged unit 0x7d entry 1. */
+#include "poolrad/recovered/overlay_u68_coordinate_writer.h"   /* dual-header compile check: both headers in one TU */
 #include "poolrad/recovered/overlay_u68_tile_step_0818.h"
 #include "poolrad/recovered/overlay_u7d_entry1.h"
 
@@ -47,7 +48,7 @@ static int in_iv(const unsigned (*iv)[2], unsigned n, unsigned t)
     return 0;
 }
 
-static void setup(pr_u68_step0818_state *st, H *h)
+static void setup(pr_u68_0818_state *st, H *h)
 {
     memset(st, 0, sizeof *st); memset(h, 0, sizeof *h);
     st->window0 = win0; st->window0_size = W0;
@@ -82,7 +83,7 @@ static unsigned ref_addr(unsigned xw, unsigned yw, unsigned facing, unsigned sel
 
 int main(void)
 {
-    pr_u68_step0818_state st; pr_u68_step0818_report rep; H h;
+    pr_u68_0818_state st; pr_u68_0818_report rep; H h;
     static const unsigned xws[] = { 0, 3, 14, 15, 16, 0xFF, 0x80, 0x100, 0x1005, 0xFFFF };
     static const unsigned yws[] = { 0, 7, 34, 35, 36, 0xFE, 0x7F, 0x8000, 0x0105 };
     static const unsigned facs[] = { 0, 2, 4, 6, 9, 255 };
@@ -107,7 +108,7 @@ int main(void)
                         st.facing = (uint8_t)facs[fi]; st.selector = (uint8_t)sels[si];
                         put_words(xws[xi], yws[yi], fl);
                         ds_image[addr] = (uint8_t)tileset;
-                        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_OK);
+                        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK);
                         CHECK(rep.x == x && rep.y == y && rep.column == col && rep.tile == tileset && rep.tile_address == addr);
                         CHECK((int)rep.blocked == blocked && (int)rep.special == special);
                         if (blocked) {
@@ -134,43 +135,64 @@ int main(void)
         unsigned i;
         for (i = 0; i < 6; i++) {
             setup(&st, &h); st.selector = 2; put_words(c[i].xw, c[i].yw, 1);
-            CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_OK && rep.x == c[i].x && rep.y == c[i].y);
+            CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK && rep.x == c[i].x && rep.y == c[i].y);
         }
     }
 
-    /* message slot size and guards: nothing written, no hook run */
+    /* message slot: required (non-NULL, <= 35 characters) only on the reached special-tile + word 0x344 == 0 branch */
     {
         static uint8_t long36[37] = { 36 }, long35[36] = { 35 };
         unsigned a;
+        CHECK(PR_U68_STEP_OK == 0 && PR_U68_0818_OK == 0);   /* the coordinate writer's and this header's constants coexist */
         for (k = 0; k < sizeof tab; k++) tab[k] = 0;
         ds_image[(0x3C76u + 2u) & 0xFFFF] = 0;
         a = 0x3648u + 0;                                     /* x = 0, y = 0, column 0 */
         ds_image[a] = 0x66;                                  /* special */
         setup(&st, &h); st.selector = 2; put_words(0, 0, 0);
         st.message = long35;
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_OK && h.msg_calls == 1);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK && h.msg_calls == 1);
         st.message = long36; memset(&h, 0, sizeof h);
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT && h.msg_calls == 0);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_MESSAGE && h.msg_calls == 0 && rep.flag_word_zero);
+        CHECK(win0[0x186] == 0 && win0[0x344] == 0);
         st.message = NULL;
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_OK && h.msg_calls == 1 && h.msg_ptr == NULL);
-        st.message_hook = NULL;                              /* reached hook missing: no write */
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_MESSAGE && h.msg_calls == 0);
+        /* the message is not examined on any other path: NULL and oversize are ignored there */
+        {
+            const uint8_t *bad[2] = { NULL, long36 };
+            unsigned bi;
+            for (bi = 0; bi < 2; bi++) {
+                st.message = bad[bi];
+                put_words(0, 0, 1);                          /* special tile but word 0x344 != 0: the move */
+                memset(&h, 0, sizeof h);
+                CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK && rep.moved && h.clock_calls == 1 && h.msg_calls == 0);
+                ds_image[a] = 0x4E;                          /* blocked tile */
+                put_words(0, 0, 0); memset(&h, 0, sizeof h);
+                CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK && rep.blocked && h.clock_calls == 0 && h.msg_calls == 0);
+                ds_image[a] = 0x10;                          /* ordinary tile */
+                put_words(0, 0, 0); memset(&h, 0, sizeof h);
+                CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_OK && rep.moved && h.clock_calls == 1);
+                ds_image[a] = 0x66;
+            }
+        }
+        st.message = msg;
+        st.message_hook = NULL;                              /* valid message, reached hook missing: no write */
         put_words(0, 0, 0);
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_HOOK && win0[0x186] == 0 && win0[0x344] == 0);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_HOOK && win0[0x186] == 0 && win0[0x344] == 0);
         ds_image[a] = 0x10;                                  /* an ordinary tile: the clock hook is the reached one */
         st.clock_hook = NULL; put_words(2, 3, 1);
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_HOOK && win0[0x186] == 2 && win0[0x188] == 3);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_HOOK && win0[0x186] == 2 && win0[0x188] == 3);
         st.message_hook = h_msg; st.clock_hook = h_clock; st.message = msg;
         st.window0_size = 0x345;
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_ARGUMENT);
         st.window0_size = W0; st.direction_table_size = 9;
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT);        /* facing 0 needs 10 bytes */
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_ARGUMENT);        /* facing 0 needs 10 bytes */
         st.direction_table_size = sizeof tab; st.ds_size = 0x3C77;       /* selector table read at 0x3C78 */
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_ARGUMENT);
         st.ds_size = 0x3649; st.selector = 0;                            /* tile read in range, nothing else */
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT);        /* sel table at 0x3C76 is outside */
-        CHECK(pr_u68_step0818(NULL, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_ARGUMENT);        /* sel table at 0x3C76 is outside */
+        CHECK(pr_u68_0818_run(NULL, &rep) == PR_U68_0818_ARGUMENT);
         st.ds_size = sizeof ds_image; st.ds = NULL;
-        CHECK(pr_u68_step0818(&st, &rep) == PR_U68_STEP_ARGUMENT);
+        CHECK(pr_u68_0818_run(&st, &rep) == PR_U68_0818_ARGUMENT);
     }
 
     /* connected: the clock hook is the merged unit 0x7d entry 1 (12 units of word index 3) */
@@ -182,7 +204,7 @@ int main(void)
         us.limit[0] = 60; us.limit[1] = 60; us.limit[2] = 24; us.limit[3] = 30; us.limit[4] = 12; us.limit[5] = 100; us.limit[6] = 3;
         w0[0x192] = 25;                                      /* word 3 = 25 */
         /* 12 increments with a limit of 30: 25 + 12 = 37 -> carry once into word 4 (+1), word 3 = 7 */
-        CHECK(pr_u7d_entry1(&us, PR_U68_STEP_CLOCK_N, PR_U68_STEP_CLOCK_IDX, &ur) == PR_U7D_OK);
+        CHECK(pr_u7d_entry1(&us, PR_U68_0818_CLOCK_N, PR_U68_0818_CLOCK_IDX, &ur) == PR_U7D_OK);
         CHECK(w0[0x192] == 7 && w0[0x194] == 1 && ur.iterations == 12 && ur.carries[3] == 1);
     }
 
