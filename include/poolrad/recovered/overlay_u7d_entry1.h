@@ -2,7 +2,7 @@
 #define POOLRAD_RECOVERED_OVERLAY_U7D_ENTRY1_H
 
 /* Portable C model of DOS v1.3 GAME.OVR unit 0x7d public entry 1 (+0x03D5,
- * file 0x23121, run-time stub 0x8C:0x0025; exactly 165 bytes +0x03D5..+0x0479,
+ * file 0x241A1, run-time stub 0x8C:0x0025; exactly 165 bytes +0x03D5..+0x0479,
  * 67 instructions, `retf 4`, no trailing data: the next prologue is +0x047A)
  * together with its near callee +0x02F2 (177 bytes, 7-word carry
  * normalizer). Evidence: docs/re/U7D_ENTRY1.md.

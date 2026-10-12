@@ -20,12 +20,12 @@ GAMEPLAY_PATH.md's window description (window 0 = far `[0x49D2]`).
 | --- | ---: | --- |
 | `GAME.OVR` | 206,105 | `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` |
 
-Unit `0x7d`: code at file offset `146,892` (`0x2334C`), stub paragraph `0x8C`.
+Unit `0x7d`: code at file offset `146,892` (`0x23DCC`), stub paragraph `0x8C`.
 Decoded with Capstone (16-bit).
 
 | Item | Value |
 | --- | --- |
-| entry 1 extent | `+0x03D5..+0x0479` = file `0x23721..0x237C5`, **165 bytes, 67 instructions**, `retf 4` at `+0x0477`; next prologue `+0x047A`, so the ledger bound is exact and there is **no trailing data**. SHA-256 `7bd8c6d35073b0d7101c4a3fbe2154e916a1f72424636636fcf0b48718f148a4` |
+| entry 1 extent | `+0x03D5..+0x0479` = file `0x241A1..0x24245`, **165 bytes, 67 instructions**, `retf 4` at `+0x0477`; next prologue `+0x047A`, so the ledger bound is exact and there is **no trailing data**. SHA-256 `7bd8c6d35073b0d7101c4a3fbe2154e916a1f72424636636fcf0b48718f148a4` |
 | frame | `sub sp, 0x12`: `[bp-0xE..bp-1]` = seven-word array, `[bp-0xF]` byte i, `[bp-0x10]` byte k, `[bp-0x11]` byte n; args `[bp+8]` n, `[bp+6]` idx (each pushed as a word, read as a byte) |
 | calls | near `+0x02F2` (in the loop, far-style frame: `push ss; push di` = far pointer to the local array, then `push cs; call`), near `+0x0000` (final) |
 | near callee `+0x02F2` | `+0x02F2..+0x03A2`, **177 bytes** (SHA-256 `8f39276ad357b6e05367ffc080afedc0df5a5cca2f3cbf54b3d96db18bea3dd9`), `retf 4`, one far pointer argument at `[bp+6]`, no calls |
