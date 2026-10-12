@@ -6,7 +6,8 @@
 int pr_u6f_ra_init(pr_u6f_ra *ra, pr_rec_res_ecl_dax_io *io, pr_u25_e5_object *objects, size_t slot_count, uint16_t key_segment_base)
 {
     size_t i;
-    if (!ra || !io || !objects || slot_count == 0u || slot_count > PR_U6F_RA_MAX_SLOTS || key_segment_base == 0u)
+    if (!ra || !io || !objects || slot_count == 0u || slot_count > PR_U6F_RA_MAX_SLOTS ||
+        key_segment_base == 0u || (size_t)key_segment_base + slot_count - 1u > UINT16_MAX)
         return PR_U6F_RA_STOP_ARGUMENT;
     memset(ra, 0, sizeof *ra);
     ra->io = io; ra->objects = objects; ra->slot_count = slot_count; ra->key_segment_base = key_segment_base;
@@ -29,6 +30,30 @@ static int to_c(const uint8_t *p, char *out)
     return 1;
 }
 
+/* obj_at in the U6F model scans the complete host table in order. A key
+ * matching an earlier object would resolve to that object, not this view. */
+static int keys_resolve_to_slots(const pr_u6f_ra *ra, const pr_u6f_e6_env *env)
+{
+    size_t i, j;
+    if (!env || !env->objects || !ra->io || !ra->objects ||
+        ra->slot_count == 0u || ra->slot_count > PR_U6F_RA_MAX_SLOTS)
+        return 0;
+    for (i = 0; i < ra->slot_count; i++) {
+        int found = 0;
+        for (j = 0; j < env->object_count; j++) {
+            const pr_u25_e5_object *o = &env->objects[j];
+            if (o == &ra->objects[i]) {
+                found = 1;
+            } else if (o->segment_id == (uint16_t)(ra->key_segment_base + i) &&
+                       o->offset == 0u) {
+                return 0;
+            }
+        }
+        if (!found) return 0;
+    }
+    return 1;
+}
+
 int pr_u6f_ra_block_hook(void *ctx, const pr_u6f_e6_env *env, const uint8_t *name, const uint8_t *ext, uint8_t id, uint16_t *size, pr_far16 *ptr)
 {
     pr_u6f_ra *ra = ctx;
@@ -37,9 +62,9 @@ int pr_u6f_ra_block_hook(void *ctx, const pr_u6f_e6_env *env, const uint8_t *nam
     uint16_t sz = 0u;
     size_t i;
     int rs;
-    (void)env;
     if (!ra || !size || !ptr) return PR_U6F_RA_STOP_ARGUMENT;
     *size = 0u; ptr->off = 0u; ptr->seg = 0u;
+    if (!keys_resolve_to_slots(ra, env)) return PR_U6F_RA_STOP_ARGUMENT;
     if (!to_c(name, cname) || !to_c(ext, cext)) return PR_U6F_RA_STOP_STRING;
     for (i = 0; i < ra->slot_count && ra->slots[i].live; i++) {}
     if (i == ra->slot_count) return PR_U6F_RA_STOP_NO_SLOT;                  /* before the reader runs: nothing to clean up */
@@ -93,7 +118,7 @@ unsigned pr_u6f_ra_teardown(pr_u6f_ra *ra)
     for (i = 0; i < ra->slot_count; i++) {
         if (!ra->slots[i].live) continue;
         pr_rec_res_0802_0716_release(ra->io, ra->slots[i].block, ra->slots[i].size);
-        ra->slots[i].live = 0u; ra->slots[i].block = NULL;
+        ra->slots[i].live = 0u; ra->slots[i].released = 1u; ra->slots[i].block = NULL;
         ra->objects[i].segment = NULL; ra->objects[i].segment_size = 0u;
         n++;
     }

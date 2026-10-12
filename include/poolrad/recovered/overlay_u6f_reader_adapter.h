@@ -59,7 +59,9 @@ typedef struct {
     void *user;                            /* free for the host's other u6f hooks */
 } pr_u6f_ra;
 
-/* Reserves `slot_count` entries of the host table starting at `objects` (each gets its unique key and an empty view). */
+/* Reserves `slot_count` entries of the host table starting at `objects`.
+ * The nonzero key range must not wrap 16 bits. The block hook also verifies
+ * that each slot belongs to env.objects and no other entry shadows its key. */
 int pr_u6f_ra_init(pr_u6f_ra *ra, pr_rec_res_ecl_dax_io *io, pr_u25_e5_object *objects, size_t slot_count, uint16_t key_segment_base);
 
 /* Hook-shaped entry points: bind `env.hooks.block_802_0716 = pr_u6f_ra_block_hook` and `env.hooks.free_af8_0254 = pr_u6f_ra_free_hook`

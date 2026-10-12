@@ -120,7 +120,7 @@ int main(void)
     /* a unit that would read past the returned size is VIEW (no padding): block 2 of 20 bytes, last unit reads 18..26 */
     setup(); { static const uint8_t r20[] = { 0xEC, 0x5A }; make_archive(1, 5, 20, sizeof r20, r20); }
     CHECK(pr_u6f_entry6(&ds, &env, OBJ, 5, &rep) == PR_U6F_E6_VIEW && rep.units9 == 2);
-    CHECK(fx.ra.releases == 1 && fx.ra.slots[0].live == 1 && pr_u6f_ra_teardown(&fx.ra) == 1 && fx.ra.teardown_releases == 1 && pr_u6f_ra_teardown(&fx.ra) == 0);
+    CHECK(fx.ra.releases == 1 && fx.ra.slots[0].live == 1 && pr_u6f_ra_teardown(&fx.ra) == 1 && fx.ra.teardown_releases == 1 && fx.ra.slots[0].released == 1 && pr_u6f_ra_teardown(&fx.ra) == 0);
     CHECK(fx.frees == 4);                                                      /* block 1: packed temporary + released output; block 2: packed temporary + torn-down output */
 
     /* MISSING_FILE on block 1: the zero-size path (ERROR_EXIT), nothing live, nothing to release */
@@ -174,7 +174,17 @@ int main(void)
     { pr_u6f_ra r;
       CHECK(pr_u6f_ra_init(NULL, &fx.io, table, 1, 1) != 0 && pr_u6f_ra_init(&r, NULL, table, 1, 1) != 0 && pr_u6f_ra_init(&r, &fx.io, NULL, 1, 1) != 0);
       CHECK(pr_u6f_ra_init(&r, &fx.io, table, 0, 1) != 0 && pr_u6f_ra_init(&r, &fx.io, table, PR_U6F_RA_MAX_SLOTS + 1, 1) != 0 && pr_u6f_ra_init(&r, &fx.io, table, 1, 0) != 0);
+      CHECK(pr_u6f_ra_init(&r, &fx.io, table, 2, 0xFFFF) == PR_U6F_RA_STOP_ARGUMENT);
       CHECK(pr_u6f_ra_block_hook(NULL, &env, KA0, KA0, 5, &(uint16_t){ 0 }, &(pr_far16){ 0, 0 }) == PR_U6F_RA_STOP_ARGUMENT); }
+    setup();
+    { uint16_t size = 7; pr_far16 key = { 1, 1 };
+      static const uint8_t pname[] = { 7, 'a','b','c','7','x','y','z' };
+      table[0].offset = 0; table[0].segment_id = 0x7000; /* shadows first reserved key */
+      CHECK(pr_u6f_ra_block_hook(&fx.ra, &env, pname, KA0, 5, &size, &key) == PR_U6F_RA_STOP_ARGUMENT);
+      CHECK(size == 0 && key.off == 0 && key.seg == 0 && fx.ra.loads == 0 && fx.opens == 0);
+      table[0].segment_id = 0x1000; table[0].offset = 0x10;
+      CHECK(pr_u6f_ra_block_hook(&fx.ra, NULL, pname, KA0, 5, &size, &key) == PR_U6F_RA_STOP_ARGUMENT);
+      CHECK(fx.ra.loads == 0 && fx.opens == 0); }
     puts("overlay_u6f_reader_adapter: ok");
     return 0;
 }

@@ -12,6 +12,7 @@ Host adapter (`overlay_u6f_reader_adapter.{h,c}`) between the merged `pr_u6f_ent
 | `OK` with size 0 | `PR_U6F_RA_STOP_ZERO_OK` after releasing the returned block (not a DOS outcome, not guessed) |
 
 Other stops: `NO_SLOT` (all reserved slots live, before the reader runs), `STRING` (a Pascal string with an embedded NUL or a NULL string), `FREE_MISMATCH`, `ARGUMENT`.
+The synthetic far key range must not wrap 16 bits. Before loading, the hook checks that its slots are in the supplied object table and that no other entry has the same far key; an invalid layout returns `ARGUMENT` before the reader runs.
 Ownership: each load takes one reserved slot; the u6f `FreeMem` hook releases it exactly once with the original key and size through `pr_rec_res_0802_0716_release`; afterwards the slot's view is
 dropped so a stale key is `VIEW` in the u6f model. A wrong size, an unknown key or a second release returns `FREE_MISMATCH` and releases nothing. If the model stops before its `FreeMem`
 (a failed roll, a unit read past the size, ...), `pr_u6f_ra_teardown` releases the still-live blocks as host cleanup and counts them separately (`teardown_releases`): it does not claim the DOS path freed them.
