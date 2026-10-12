@@ -3,7 +3,8 @@
  * four opcodes: 16-bit wrap of add and subtract, the subtract operand order (second minus first), unsigned
  * divide and its zero-divisor fault, and the multiply's dropped high word. Operand forms (byte literal, word
  * immediate, window variable), the store classes, loader and slot failures, and the stack-residue path are
- * checked individually. */
+ * checked individually. A two-instruction same-word chain and a variable zero divisor also check
+ * evaluation order, PC advance, and the absence of a store on a fault. */
 #include "poolrad/recovered/overlay_u1c_arith_01a3.h"
 
 #include <stdio.h>
@@ -78,6 +79,33 @@ int main(void)
     { static const uint8_t shape[] = { 0x06, 0x01, 0x10, 0x97, 0x00, 0x03, 0x01, 0x10, 0x97 };
       memset(&st, 0, sizeof st); st.script = shape; st.script_size = sizeof shape; st.pc = 0x9900u; st.latch = 6; st.window2[0x10] = 10;
       CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_OK && st.window2[0x10] == 3 && st.pc == 0x9909u); }
+
+    /* Two synthetic instructions reuse one source/destination word. The second must read the first store,
+     * and both loaders must leave PC at the following opcode. This also checks the 16-bit top boundary. */
+    { static const uint8_t chain[] = {
+          0x06, 0x01, 0x10, 0x97, 0x00, 0x03, 0x01, 0x10, 0x97,
+          0x07, 0x01, 0x10, 0x97, 0x00, 0x03, 0x01, 0x10, 0x97
+      };
+      memset(&st, 0, sizeof st); st.script = chain; st.script_size = sizeof chain;
+      st.pc = 0x9900u; st.latch = 6; st.window2[0x10] = 0xFFFFu;
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_OK);
+      CHECK(rep.v1 == 0xFFFFu && rep.v2 == 3u && rep.result == 0x5555u);
+      CHECK(rep.store_status == PR_REC_ECL_WINDOW_OK && st.window2[0x10] == 0x5555u && st.pc == 0x9909u);
+      st.latch = 7; /* the dispatcher fetches the next opcode before calling the handler */
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_OK);
+      CHECK(rep.v1 == 0x5555u && rep.v2 == 3u && rep.result == 0xFFFFu);
+      CHECK(rep.store_status == PR_REC_ECL_WINDOW_OK && st.window2[0x10] == 0xFFFFu && st.pc == 0x9912u); }
+
+    /* A zero divisor read from another class-2 word faults after all three operands are loaded.
+     * The aliased destination keeps its old value, and the store helper is never called. */
+    { static const uint8_t variable_zero[] = {
+          0x06, 0x01, 0x10, 0x97, 0x01, 0x12, 0x97, 0x01, 0x10, 0x97
+      };
+      memset(&st, 0, sizeof st); st.script = variable_zero; st.script_size = sizeof variable_zero;
+      st.pc = 0x9900u; st.latch = 6; st.window2[0x10] = 7u;
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_DIVIDE_ERROR);
+      CHECK(rep.v1 == 7u && rep.v2 == 0u && rep.dest == 0x9710u);
+      CHECK(rep.runtime_error == 200u && !rep.stored && st.window2[0x10] == 7u && st.pc == 0x990Au); }
 
     /* destination classes through the store word */
     setup_words(4, 2, 3, 0x6E82);

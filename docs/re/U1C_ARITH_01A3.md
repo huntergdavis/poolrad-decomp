@@ -60,3 +60,6 @@ plus this one.
 
 The first result AL = 13 is the only value above 12 that the RANDOM range allows; the real AL depends on the
 DOS clock seed. This is a supplied-state probe: no live DOS RNG, native search reachability or one-Up parity is claimed.
+
+A later native one-Up snapshot did produce AL = 13. Its DIVIDE operand and call audit is recorded in
+[U1C_DIVIDE_AL13_ROUTE.md](U1C_DIVIDE_AL13_ROUTE.md); that snapshot stops before DIVIDE executes.
