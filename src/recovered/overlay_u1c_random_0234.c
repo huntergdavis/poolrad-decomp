@@ -1,5 +1,6 @@
 /* Bounded model of GAME.OVR unit 0x1c +0x0234 (ECL opcode 0x08); see docs/re/U1C_RANDOM_0234.md. */
 #include "poolrad/recovered/overlay_u1c_random_0234.h"
+#include "poolrad/recovered/overlay_u9e_entry8_roll.h"
 
 #include <string.h>
 
@@ -89,4 +90,60 @@ pr_u1c_random_status pr_u1c_op_random(pr_rec_ecl_loader_state *st, pr_u1c_random
         return PR_U1C_RANDOM_CORE;
     }
     return PR_U1C_RANDOM_OK;
+}
+
+typedef struct {
+    uint32_t *seed;
+    uint8_t random_ax;
+    unsigned seed_missing;
+} seeded_runtime;
+
+static int seeded_11c0(void *ctx, pr_u1c_random_env *env, uint16_t range)
+{
+    seeded_runtime *rt = ctx;
+    uint8_t roll;
+    (void)env;
+    if (!rt->seed) {
+        rt->seed_missing = 1;
+        return 1;
+    }
+    /* The entry-8 roll with count=1 returns low8(random AX + 1). Here the
+     * handler's zero-extended range is at most 255, so AX is 0..254. */
+    if (pr_u9e_entry8_roll(1u, range, rt->seed, &roll, NULL)
+        != PR_U9E_ENTRY8_OK)
+        return 2;
+    rt->random_ax = (uint8_t)(roll - 1u);
+    return 0;
+}
+
+static int seeded_119a(void *ctx, pr_u1c_random_env *env, uint16_t dx)
+{
+    (void)ctx;
+    (void)env;
+    /* +0x0271 must clear DX before the proved 0..254 Real encoding. */
+    return dx == 0 ? 0 : 2;
+}
+
+static int seeded_119e(void *ctx, pr_u1c_random_env *env, uint8_t *al)
+{
+    seeded_runtime *rt = ctx;
+    (void)env;
+    *al = rt->random_ax; /* CH=0 truncation exactly returns this AX */
+    return 0;
+}
+
+pr_u1c_random_status pr_u1c_op_random_seeded(pr_rec_ecl_loader_state *state,
+                                             uint32_t *rand_seed,
+                                             pr_u1c_random_report *report)
+{
+    seeded_runtime rt = { rand_seed, 0, 0 };
+    pr_u1c_random_env env = { { seeded_11c0, seeded_119a, seeded_119e }, &rt };
+    pr_u1c_random_report local;
+    pr_u1c_random_report *r = report ? report : &local;
+    pr_u1c_random_status result = pr_u1c_op_random(state, &env, r);
+    if (result == PR_U1C_RANDOM_CALLBACK && rt.seed_missing) {
+        r->callback_status = 0;
+        return PR_U1C_RANDOM_SEED_MISSING;
+    }
+    return result;
 }
