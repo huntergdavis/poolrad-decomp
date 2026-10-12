@@ -27,7 +27,7 @@ ECL_LOAD_WORD_CLASS4.md.
 | extent | unit `0x1c` (file `3,398`) `+0x0856..+0x0950` = file `0x159C..0x1696`, **251 bytes, 91 instructions**, `retf` at `+0x0950`, the last byte; next prologue `+0x0951`, so the ledger bound is exact and there is **no trailing data**. SHA-256 `51628c4f1c9879395122bd027bd60463b7ad58181b768d48be6f1b697ee17663` (derived independently; it matches the PM's) |
 | data before it | `+0x0851..+0x0855` (5 bytes): two Pascal string constants read through `cs:` offsets: `cs:0x0851` of length 0 and `cs:0x0852` of length 3. Their text is not reproduced; the model takes them as host strings |
 | frame | `sub sp, 6`: `[bp-1]` the picture id, `[bp-2]` a 1-byte string slot, `[bp-5..-2]` a 4-byte string slot (overlapping `[bp-2]`, consumed earlier); no arguments, no result |
-| control flow | 14 conditional/unconditional jumps, all internal, all forward |
+| control flow | 10 conditional and unconditional jumps, all internal, all forward (no loop) |
 | calls | `0x2B:0x2A` (unit `0x25` entry 2, the operand loader) and `0x2B:0x25` (entry 1, slot value), both merged; `0xAF8:0x0B0B` x2 (string copy, folded into the model); resident `0x3F1:0x02E8` x1; unit `0x3b9` entry 2 (`0x3D0:0x2A`) and entry 1 (`0x3D0:0x25`); unit `0x25` entry 7 (`0x2B:0x43`); unit `0x3b4` entry 1 (`0x3CA:0x25`) |
 | DS and window accesses | reads `[0x49F9]`, `[0x49FA]`, `[0x84E0]`, `[0x84E3]`, `[0x6AC4]`, `[0x6AC6]`; window-0 word `0xE6` (byte offset `0x1CC`) and window-1 word `0x2E1` (byte offset `0x5C2`, script address `0x6DE1`); writes `[0x84C8]`, `[0x84C9]`, `[0x84E0]`, `[0x84E1]`, `[0x84E3]` (constants only) |
 
