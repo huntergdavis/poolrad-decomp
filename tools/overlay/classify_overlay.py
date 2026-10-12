@@ -136,6 +136,10 @@ U9B_RECORD_INCR = (0x9B, 0x01AF)
 # original bytes and saved/native RAM. Unit 0x9B +0 calls it on the saved
 # party-insertion route; see U9B_RECORD_TABLE_0255.md.
 U9B_RECORD_TABLE = (0x9B, 0x0255)
+# PR #279 matched the complete call-free record-field leaf at +0x0329 to
+# original bytes across 140 full-RAM/register Unicorn cases. Unit 0x9B +0
+# calls it conditionally; see U9B_RECORD_FIELDS_0329.md.
+U9B_RECORD_FIELDS = (0x9B, 0x0329)
 # Local review of the complete 75-byte count-and-sides roll and its exact
 # SYSTEM RandSeed step. Gameplay callers use it for encounter dice checks;
 # see U9E_ENTRY8_ROLL.md and U68_ROLL_GATE_0294.md.
@@ -161,7 +165,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11,
     U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN, U68_LIST_SEARCH,
     U68_RECORD_CLEAR, U68_MAP_UPDATE, U68_PARTY_BYTE, U68_FIELD_CLEAR,
-    U9B_RECORD_INCR, U9B_RECORD_TABLE, U9E_ENTRY8_ROLL} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U9B_RECORD_INCR, U9B_RECORD_TABLE, U9B_RECORD_FIELDS, U9E_ENTRY8_ROLL} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):
