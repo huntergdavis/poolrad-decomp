@@ -1556,6 +1556,57 @@ static int test_load_word_6dd5(void) {
     return 0;
 }
 
+/* Store word class 0 (+0x0C8E..+0x0CB4): the window-0 word is written, then 0x49FD and 0x49FE (and only they) set the DS byte
+ * [0x84E8] to 1; the store never clears it. The saved SAVE shape (PCs 0x9927 and 0x992E) goes through the same core. */
+static int test_store_word_84e8(void) {
+    static pr_rec_ecl_loader_state st;
+    unsigned a, i;
+    static const uint16_t near[] = { 0x49FC, 0x49FF, 0x49FB, 0x4A00, 0x49FA, 0x4900, 0x4CFF, 0x0000, 0x49FD ^ 0x0100, 0x49FE ^ 0x0100 };
+    memset(&st, 0, sizeof st);
+    st.window0[0xFD] = 0xAAAA; st.window0[0xFE] = 0xAAAA;
+    CHECK(pr_rec_ecl_store_word(&st, 0x49FD, 0x1111) == PR_REC_ECL_WINDOW_OK && st.window0[0xFD] == 0x1111 && st.b84e8 == 1 && st.window0[0xFE] == 0xAAAA);
+    st.b84e8 = 0;
+    CHECK(pr_rec_ecl_store_word(&st, 0x49FE, 0x2222) == PR_REC_ECL_WINDOW_OK && st.window0[0xFE] == 0x2222 && st.b84e8 == 1 && st.window0[0xFD] == 0x1111);
+    /* the value does not matter: zero and 0xFFFF also set the flag */
+    st.b84e8 = 0; CHECK(pr_rec_ecl_store_word(&st, 0x49FD, 0) == PR_REC_ECL_WINDOW_OK && st.b84e8 == 1 && st.window0[0xFD] == 0);
+    st.b84e8 = 0; CHECK(pr_rec_ecl_store_word(&st, 0x49FE, 0xFFFF) == PR_REC_ECL_WINDOW_OK && st.b84e8 == 1 && st.window0[0xFE] == 0xFFFF);
+    /* neighbours and other class-0 addresses write the window but never set the flag, and never clear it */
+    for (i = 0; i < sizeof near / sizeof near[0]; ++i) {
+        uint16_t addr = near[i];
+        st.b84e8 = 0;
+        if (pr_rec_ecl_address_class(addr) != 0u) continue;
+        CHECK(pr_rec_ecl_store_word(&st, addr, 0x3333) == PR_REC_ECL_WINDOW_OK && st.window0[addr - 0x4900u] == 0x3333 && st.b84e8 == 0);
+        st.b84e8 = 1;
+        CHECK(pr_rec_ecl_store_word(&st, addr, 0x4444) == PR_REC_ECL_WINDOW_OK && st.b84e8 == 1);   /* not cleared */
+    }
+    /* sweep of the whole window: exactly two addresses set the flag */
+    for (a = 0x4900; a <= 0x4CFF; ++a) {
+        st.b84e8 = 0;
+        CHECK(pr_rec_ecl_store_word(&st, (uint16_t)a, 7) == PR_REC_ECL_WINDOW_OK);
+        CHECK(st.b84e8 == ((a == 0x49FD || a == 0x49FE) ? 1u : 0u));
+    }
+    /* other classes never touch it: class 1 (HOOK or OK), 2, 3, and a class-4 UNRESOLVED store */
+    st.b84e8 = 0;
+    CHECK(pr_rec_ecl_store_word(&st, 0x6B40, 1) == PR_REC_ECL_WINDOW_HOOK && st.b84e8 == 0);
+    CHECK(pr_rec_ecl_store_word(&st, 0x9710, 1) == PR_REC_ECL_WINDOW_OK && st.b84e8 == 0);
+    CHECK(pr_rec_ecl_store_word(&st, 0xC04B, 1) == PR_REC_ECL_WINDOW_UNRESOLVED && st.b84e8 == 0);
+    /* the saved SAVE shape: SAVE immediate to 0x49FD, then to 0x49FE (script `09 00 v 01 FD 49` / `09 00 v 01 FE 49`) */
+    {
+        static const uint8_t s1[] = { 0x09, 0x00, 0x05, 0x01, 0xFD, 0x49 };
+        static const uint8_t s2[] = { 0x09, 0x00, 0x06, 0x01, 0xFE, 0x49 };
+        static const uint8_t s3[] = { 0x09, 0x00, 0x07, 0x01, 0xFC, 0x49 };
+        pr_rec_ecl_window_status ws;
+        memset(&st, 0, sizeof st); st.script = s1; st.script_size = sizeof s1; st.pc = 0x9900u;
+        CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0xFD] == 5 && st.b84e8 == 1);
+        memset(&st, 0, sizeof st); st.script = s2; st.script_size = sizeof s2; st.pc = 0x9900u;
+        CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0xFE] == 6 && st.b84e8 == 1);
+        memset(&st, 0, sizeof st); st.script = s3; st.script_size = sizeof s3; st.pc = 0x9900u;
+        CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && st.window0[0xFC] == 7 && st.b84e8 == 0);   /* 0x49FC: no flag */
+    }
+    CHECK(pr_rec_ecl_store_word(NULL, 0x49FD, 1) == PR_REC_ECL_WINDOW_ARGUMENT);
+    return 0;
+}
+
 static int test_compare_words(void) {
     pr_rec_ecl_loader_state st; unsigned i;
     memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
@@ -1799,6 +1850,7 @@ int main(void) {
     rc |= test_load_word_class4();
     rc |= test_store_word_6e82();
     rc |= test_load_word_6dd5();
+    rc |= test_store_word_84e8();
     rc |= test_compare_words();
     rc |= test_compare_strings();
     rc |= test_op_compare();

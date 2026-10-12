@@ -208,6 +208,11 @@ typedef struct {
     uint8_t b6aaf;
     uint8_t b6ab0;
     uint8_t b6ab1;
+    /* ---- Store word class 0 side effect (unit 0x25 + 0x0C77, +0x0CA1..+0x0CAF) -------
+     * byte [0x84E8]: set to 1 by a store word to window-0 address 0x49FD or 0x49FE (the
+     * window write comes first); the model never clears it (the only other direct
+     * store to it, unit 0x1c +0x2D42, writes 0). Its meaning is not asserted. */
+    uint8_t b84e8;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -241,7 +246,8 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
                                                  uint16_t address, const char *text, size_t len);
 
 /* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store
- * word). Load word resolves nine class-4 pseudo-addresses from the state's
+ * word; a store to window-0 address 0x49FD or 0x49FE also sets b84e8 := 1 after the
+ * window write, +0x0CA1..+0x0CAF, docs/re/ECL_STORE_WORD_84E8.md). Load word resolves nine class-4 pseudo-addresses from the state's
  * w6f6e/w6f6a/w6f6c/b6aad/b6aae/b6aaf/b6ab0/b6ab1 fields (0x00B1, 0x00FB, 0x00FC,
  * 0x033D, 0xC04B+0..4; see docs/re/ECL_LOAD_WORD_CLASS4.md); every other class-4
  * address (0x035F, 0xC04B+0xE and the rest) is UNRESOLVED, because the engine
