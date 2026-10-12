@@ -8,12 +8,13 @@ pointer, after the record loader returns. A
 (main `8e7f8ee`) establishes `AX=1` at `+0x19AD` and entry to `+0x19B1`
 for one saved iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
 (main `080e7de`) observes the GetMem return at `+0x19BA` and the
-`+0x0AEC` record-loader return at `+0x19DA`. Record contents, insertion
-at `+0x19E3`, and the later `+0x02AE` call remain unmeasured on that run.
+`+0x0AEC` record-loader return at `+0x19DA`. The merged public evidence
+cited here ends at that return; it does not establish record contents,
+completion of the insertion call at `+0x19E3`, or later `+0x02AE` effects.
 This is a bounded, path-complete model for supplied mapped state, with
 no strict full-C count. The host `max_nodes` guard can stop a finite DOS
 list early, and head/active-character/window globals are split from the segment
-views. Native saved-route insertion remains unobserved.
+views. This PR does not establish native saved-route insertion parity.
 
 Before decoding, `deja "Poolrad unit 0x6F 0x1446 party insertion Move
 membership u9B 01AF"` found no exact indexed session; `deja "u6f
