@@ -118,6 +118,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u6f_party_insert_1446_dos.c
                                     src/recovered/overlay_u6f_insert_ss_probe.c
                                     src/recovered/overlay_u6f_party_insert_1446_ss.c
+                                    src/recovered/resident_handler_prefix_02e6.c
                                     src/recovered/resident_8ae_dispatch.c
                                     src/recovered/resident_8ae_table_17ae.c
                                     src/recovered/resident_8ae_table_1742.c)
@@ -736,4 +737,10 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_mode0_iterator_tests
              COMMAND poolrad_resident_464_mode0_iterator_tests)
+    add_executable(poolrad_resident_handler_prefix_02e6_tests
+                   tests/recovered/test_resident_handler_prefix_02e6.c)
+    target_link_libraries(poolrad_resident_handler_prefix_02e6_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_handler_prefix_02e6_tests
+             COMMAND poolrad_resident_handler_prefix_02e6_tests)
 endif()
