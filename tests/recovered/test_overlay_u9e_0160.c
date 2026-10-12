@@ -31,7 +31,7 @@ static unsigned ref_slot(const pr_u3c6_state *s, const void *p)
 
 static int test_slots(void)
 {
-    pr_u3c6_state s; int a, b, c, d, i;
+    pr_u3c6_state s; int a = 0, b = 0, c = 0, d = 0, i = 0;
     unsigned j;
     memset(&s, 0, sizeof s);
     s.bytes[3] = 3;

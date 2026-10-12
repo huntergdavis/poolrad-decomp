@@ -192,7 +192,7 @@ int main(void)
     /* pinned quirk: A(q 30) -> B(q 5) -> C(q 30), chunk 10: B expires with head as its predecessor, so the
        walk restarts at A and subtracts from A a second time (30 -> 20 -> 10); C is then visited once (30 -> 20). */
     {
-        pr_u7d0_item a = { 1, 30, NULL }, b = { 2, 5, NULL }, c = { 3, 30, NULL };
+        pr_u7d0_item a = { 1, 30, NULL, 0 }, b = { 2, 5, NULL, 0 }, c = { 3, 30, NULL, 0 };
         pr_u7d0_member m = { &a, NULL };
         mworld mw; pr_u7d0_state st; pr_u7d0_report rep;
         static const uint16_t lim[2] = { 60, 6 };
@@ -230,7 +230,7 @@ int main(void)
     }
     /* a hook that never unlinks (here: none) on a two-item list: the head restart repeats, the step cap fires */
     {
-        pr_u7d0_item b = { 2, 1, NULL }, a = { 1, 1, NULL };
+        pr_u7d0_item b = { 2, 1, NULL, 0 }, a = { 1, 1, NULL, 0 };
         pr_u7d0_member m = { &a, NULL };
         pr_u7d0_state st; pr_u7d0_report rep;
         a.next = &b;
