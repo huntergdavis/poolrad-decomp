@@ -33,7 +33,13 @@ The merged [native exactly-one-Up write watch](docs/re/SLOT_A_ONE_UP_NATIVE_WRIT
 and `+0x0190: 5→5`, with numeric screen state `15,4 N 10:50 → 14,4 N 10:51`.
 The first observed value change was unit `0x7D` entry 1 `+0x045D`, reached
 through unit `0x68:+0x07ED` ([issue #3](https://github.com/huntergdavis/poolrad-decomp/issues/3));
-same-value stores are not excluded. C-native save/load/one-Up parity remains open under [issue #3](https://github.com/huntergdavis/poolrad-decomp/issues/3#issuecomment-6117868640). No native playable route exists. The active next steps are
+same-value stores are not excluded. C-native save/load/one-Up parity remains open under [issue #3](https://github.com/huntergdavis/poolrad-decomp/issues/3#issuecomment-6117868640). No native playable route exists.
+The [native resident-dispatch replay](docs/re/SLOT_A_ONE_UP_NATIVE_RESIDENT_DISPATCH.md)
+now measures the reached `RES_08AE:00DC` call with mode 1, active word 100,
+and argument 10. It records the selected `+1742(9)` branch and the active
+tail through `+006C(10)`, `+17AE(0)`, `+1742(0)`, and `+13B1`, returning to
+the coordinate writer. The callees' complete effects and C-native parity
+remain open. The active next steps include
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
