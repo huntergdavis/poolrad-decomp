@@ -22,7 +22,7 @@ The original spans and loaded saved set were independently checked again.
 | SYSTEM fill, loaded `0xC628..0xC63B` | 20 bytes | `f1c5fade96970aa1dd1a9ffc2d876c7aea57bef8680d929d9f65d6c5190e17f7` |
 | SYSTEM membership, loaded `0xBD40..0xBD60` | 33 bytes | `753159dded0f3f45bb0352cb9483a15271d85888b6c1b127f8631879473ec62c` |
 | CS set at `+0x1426..+0x1445`, GAME file `0x1F40C..0x1F42B` | 32 bytes; same in saved loaded RAM | `d22f8e3450655784853879c7ecfee4ff36192352f6ffe0d40593dee56f583350` |
-| u9B body `+0x01AF..+0x0254` | 166 bytes; 49 instructions | `5dd90fb8796e7aa15a770e4868aaceeee0a0886e0251a9fc7c10f3f32935652c` |
+| u9B leaf `+0x01AF..+0x0254` (not the direct callee) | 166 bytes; 49 instructions | `5dd90fb8796e7aa15a770e4868aaceeee0a0886e0251a9fc7c10f3f32935652c` |
 
 The saved `+0x19E3` caller has `SS:SP=1D16:37B2`, `BP=3DCA`, and
 `CS=2A8E`. The caller's near call pushes its return IP at `SS:37B0`;
@@ -63,12 +63,12 @@ record link, selected slot 1, and window count 2 agree with its returned
 snapshot. It too is a field comparison across the unresolved callee.
 
 The first unresolved effect is execution of the overlay thunk at
-`0x00AC:0x0025` after the source far call at `+0x1574`. The u9B body is
-known to begin at `+0x01AF` with `PUSH BP`, then write a four-byte local
-far pointer at `+0x01B8/+0x01BB`; the intervening thunk/dispatcher stack
-and memory effects are not modeled here. Strict full-routine credit
-requires that transfer and its callee stack effects, or a proved
-non-overlap contract for them.
+`0x00AC:0x0025` after the source far call at `+0x1574`. Its descriptor
+selects unit `0x9B:+0x0000`, a 431-byte body whose internal `+0x01AF`
+leaf call is conditional; see the [corrected transfer audit](U6F_U9B_TRANSFER_1574.md).
+The intervening dispatcher and reached callee stack and memory effects
+are not modeled here. Strict full-routine credit requires those effects
+or a proved non-overlap contract for them.
 
 Reproduce with ignored inputs:
 

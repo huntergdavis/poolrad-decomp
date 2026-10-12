@@ -63,7 +63,7 @@ pr_u6f_party_status pr_u6f_party_build(const uint8_t *const records[PR_U6F_PARTY
         else
             party->head = &party->node[n];                             /* +0x145E..+0x1467: the empty list */
         tail = &party->node[n];
-        {                                                              /* +0x1574: lcall 0xAC:0x25 = unit 0x9b +0x01AF */
+        {                                                              /* +0x1574: +0x01AF is a provisional substitute for reached u9B +0 */
             pr_u9b_record view;
             view.segment = rec; view.segment_size = PR_U6F_PARTY_RECORD_SIZE; view.offset = 0;
             (void)pr_u9b_record_incr(&view, NULL);                     /* +0x12 and +0xB2..+0xB4 lie inside the 285 bytes */

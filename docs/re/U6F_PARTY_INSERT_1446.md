@@ -1,7 +1,7 @@
 # Unit 0x6F party insertion at +0x1446
 
-`pr_u6f_party_insert_1446` translates the executable
-`+0x1446..+0x157E` code path over explicit DOS far-pointer segment views.
+`pr_u6f_party_insert_1446` models the pre-transfer path of the executable
+`+0x1446..+0x157E` routine over explicit DOS far-pointer segment views.
 Its caller at `+0x19E3` supplies a newly allocated character-record
 pointer, after the record loader returns. A
 [merged native first-slot selector measurement](https://github.com/huntergdavis/poolrad-decomp/pull/255)
@@ -15,7 +15,8 @@ party head and active character both become `449A:0008`, and the window-1
 word at `+0x67C` changes from 0 to 1. Its two snapshots do not show
 intermediate writes, record contents, or the later `+0x19E7` call and
 directory effect.
-This is a bounded, path-complete model for supplied mapped state, with
+This is a bounded model for supplied mapped state through the overlay call,
+with a provisional leaf substitute after transfer and
 no strict full-C count. The host `max_nodes` guard can stop a finite DOS
 list early, and head/active-character/window globals are split from the segment
 views. This PR does not establish native saved-route insertion parity.
@@ -64,8 +65,9 @@ It performs `rep stosb` then `RETF 8`, clearing the eight-byte local at
 `753159dded0f3f45bb0352cb9483a15271d85888b6c1b127f8631879473ec62c`.
 It tests bit `index % 8` of set byte `index / 8` and returns with ZF
 clear on membership; the `JE +0x1509` at `+0x14F7` skips marking a
-nonmember. The third far call, `0x00AC:0x0025` at `+0x1574`, is the
-merged unit `0x9B:+0x01AF` record updater. No other calls occur in the
+nonmember. The third far call, `0x00AC:0x0025` at `+0x1574`, selects
+unit `0x9B:+0x0000`, not the adjacent `+0x01AF` leaf; see the
+[transfer correction](U6F_U9B_TRANSFER_1574.md). No other calls occur in the
 99-instruction code span.
 
 ## State and branch order
@@ -78,7 +80,7 @@ merged unit `0x9B:+0x01AF` record updater. No other calls occur in the
 | `+0x14BE..+0x151C` | Clear eight stack bytes; walk from head, marking `used[record[+0xBF]]` only for indices in the 0..7 set. | Local eight-byte occupancy array. |
 | `+0x151E..+0x1563` | Set active character to incoming, reset its `+0xBF` to zero, and increment until the first unused index or eight. | Writes the actual byte on each increment; all eight occupied yields index 8. |
 | `+0x1565..+0x1569` | Increment the word at far `[DS:0x49D6]+0x67C` modulo 65536. | Reached mapped window-1 word write; a missing view stops here with list/index effects intact. |
-| `+0x156E..+0x157C` | Call unit `0x9B:+0x01AF` with incoming, then return. | Invoke merged `pr_u9b_record_incr`; retain its partial byte increments if a reached view ends. |
+| `+0x156E..+0x157C` | Call unit `0x9B:+0x0000` with incoming, then return. | The existing `pr_u9b_record_incr` invocation is a provisional stand-in for only its conditional `+0x01AF` leaf. |
 
 DS:`0x5D92/0x5D94` is the active-character pointer, as also mapped by
 the merged [monster-load pointer audit](U1C_LOAD_MONSTER_0450_MAP.md)

@@ -1,7 +1,7 @@
 # Unit `0x6F:+0x1446` party insertion over 20-bit DOS RAM
 
-The `pr_u6f_party_insert_1446_dos` entry follows the complete terminating
-path of the 313-byte unit `0x6F:+0x1446..+0x157E` routine through one
+The `pr_u6f_party_insert_1446_dos` entry follows the pre-transfer path
+of the 313-byte unit `0x6F:+0x1446..+0x157E` routine through one
 byte-addressable, A20-off 1 MiB RAM view. It reads DS globals from that
 view when each original instruction reaches them. Far record and window
 pointers use the same memory, so segment aliases and earlier writes can
@@ -25,7 +25,7 @@ model. Before debugging, `deja "Poolrad u6F +0x1446 party insertion faithful
 [PR #257 source audit](U6F_PARTY_INSERT_1446.md) and the merged
 [first saved-case snapshots](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md).
 
-The two SYSTEM helpers and final overlay callee were rechecked against
+The two SYSTEM helpers and final overlay callsite were rechecked against
 hash-pinned instructions. Loaded START.EXE `0xC628..0xC63B` (20 bytes,
 SHA-256 `f1c5fade96970aa1dd1a9ffc2d876c7aea57bef8680d929d9f65d6c5190e17f7`)
 uses `REP STOSB` to clear eight local bytes. Loaded `0xBD40..0xBD60`
@@ -33,12 +33,12 @@ uses `REP STOSB` to clear eight local bytes. Loaded `0xBD40..0xBD60`
 `753159dded0f3f45bb0352cb9483a15271d85888b6c1b127f8631879473ec62c`)
 tests membership using only the pushed low byte, so the source's retained
 AH does not change the slot decision. The set at file `0x1F40C..0x1F42B`
-has exactly members `0..7`. Far call `0x00AC:0x0025` reaches the merged
-[u9B five-step record updater](U9B_RECORD_INCR_01AF.md). Its five
-threshold checks re-read the type byte and conditionally re-read and
-increment counter bytes in source order. The new entry applies those steps
-through the same physical RAM view, including any aliases created by the
-window-word increment.
+has exactly members `0..7`. Far call `0x00AC:0x0025` selects unit
+`0x9B:+0x0000`, as the [transfer correction](U6F_U9B_TRANSFER_1574.md)
+establishes. The existing model applies the merged
+[u9B five-step leaf](U9B_RECORD_INCR_01AF.md) as a provisional
+post-transfer stand-in; actual `+0x0000` effects and conditional leaf
+reachability are outside its parity claim.
 
 ## Memory and write order
 

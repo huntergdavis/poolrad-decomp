@@ -2,10 +2,10 @@
 #define POOLRAD_RECOVERED_OVERLAY_U9B_RECORD_INCR_01AF_H
 
 /* Portable C translation of DOS v1.3 GAME.OVR unit 0x9b +0x01AF..+0x0254 (file
- * 175,158..175,323, exactly 166 bytes, 49 instructions, `retf 4`, no calls). The unit's memory
- * segment is 0xAC, so the far call `0xAC:0x25` made at the end of the party insertion
- * (unit 0x6f +0x1574) is the overlay thunk for this function (thunk offset 0x25). Evidence:
- * docs/re/U9B_RECORD_INCR_01AF.md.
+ * 175,158..175,323, exactly 166 bytes, 49 instructions, `retf 4`, no calls). Its
+ * direct stub is 0xAC:0x2A. Party insertion's 0xAC:0x25 call selects unit 0x9b
+ * +0x0000, which only conditionally calls this leaf. Evidence:
+ * docs/re/U6F_U9B_TRANSFER_1574.md and docs/re/U9B_RECORD_INCR_01AF.md.
  *
  * One far-pointer argument (offset [bp+6], segment [bp+8]; `retf 4`) addresses a character
  * record; t is the byte at +0x12. The routine has five independent steps in this order, each

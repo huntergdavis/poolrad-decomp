@@ -186,8 +186,8 @@ pr_u6f_insert_status pr_u6f_party_insert_1446(
     }
     result.incremented_window = 1u;
 
-    /* +0x156E..+0x1574: overlay thunk 0xAC:0x25 is the merged
-     * unit 0x9B:+0x01AF translation, with the same far record argument. */
+    /* +0x156E..+0x1574: the thunk 0xAC:0x25 selects unit 0x9B:+0x0000.
+     * This +0x01AF call is a provisional post-transfer substitute. */
     result.next_offset = 0x1574u;
     record_view = segment_for(state, incoming.segment);
     if (!record_view || !record_view->bytes) {

@@ -129,7 +129,7 @@ U68_PARTY_BYTE = (0x68, 0x0236)
 # clears the selector's two-bit cell field in the game map buffer at [0x6A5C].
 U68_FIELD_CLEAR = (0x68, 0x0000)
 # PR #194 reviewed the complete call-free record-counter routine. Unit 0x6F's
-# party insertion calls it through the unit 0x9B overlay thunk at 0xAC:0x25.
+# party insertion calls 0xAC:0x25 -> unit 0x9B +0, which conditionally calls this leaf at +0x00EC.
 # Its five conditional increments affect character bytes +0xB2..+0xB4.
 U9B_RECORD_INCR = (0x9B, 0x01AF)
 # Local review of the complete 75-byte count-and-sides roll and its exact

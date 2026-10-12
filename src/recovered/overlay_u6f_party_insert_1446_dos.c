@@ -160,8 +160,8 @@ pr_u6f_insert_dos_status pr_u6f_party_insert_1446_dos(
     result.window_word = (uint16_t)(count + 1u);
     write_word(ram, window, 0x67cu, result.window_word);
 
-    /* +0x1574 dispatches to the merged u9B:+0x01AF. Use the same five
-     * conditions and re-reads over physical RAM so aliases remain visible. */
+    /* +0x1574 dispatches to u9B:+0x0000. Applying its +0x01AF leaf here
+     * is provisional; its five byte steps use physical RAM to retain aliases. */
     run_u9b(ram, incoming, &result.callee);
     *report = result;
     return PR_U6F_INSERT_DOS_OK;

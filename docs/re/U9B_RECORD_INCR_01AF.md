@@ -1,8 +1,10 @@
-# Unit 0x9b +0x01AF: record counter increments (the call `0xAC:0x25`)
+# Unit 0x9b +0x01AF: record counter increments (stub `0xAC:0x2A`)
 
-Unit `0x9b` has memory segment `0xAC` (overlay inventory), so the far call `0xAC:0x25` made at the
-end of the party insertion (unit `0x6f` `+0x1574`) is the **overlay thunk** for this unit's function
-at `+0x01AF`; it is not a resident routine. Span: `+0x01AF..+0x0254` (the `retf 4` at `+0x0252`),
+Unit `0x9b` has memory segment `0xAC` (overlay inventory). Its `0xAC:0x2A` stub
+selects this function at `+0x01AF`. The party insertion's far call at unit
+`0x6f:+0x1574` instead uses `0xAC:0x25`, which selects unit `0x9b:+0x0000`;
+that body [conditionally calls this leaf](U6F_U9B_TRANSFER_1574.md). Span:
+`+0x01AF..+0x0254` (the `retf 4` at `+0x0252`),
 file `175,158..175,323`, 166 bytes, 49 instructions, no calls. SHA-256
 `5dd90fb8796e7aa15a770e4868aaceeee0a0886e0251a9fc7c10f3f32935652c` (GAME.OVR, 206,105 bytes,
 `872964a3…7928614`; unit file offset 174,727). `deja` found no earlier note.
