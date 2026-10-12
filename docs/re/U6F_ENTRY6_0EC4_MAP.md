@@ -45,7 +45,7 @@ stores, five rolls in all); `offset >= size` loop exits for the 9-byte and 0x3F-
 | --- | --- | --- |
 | `0xAF8:0x1366` | Pascal numeric-to-string (longint) | not decoded here |
 | `0xAF8:0x0B0B`, `0xB98`, `0xB25` | `StrLoad`, `StrCat`, `StrStore` | decoded earlier ([U1C_HORIZONTAL_MENU_10D1.md](U1C_HORIZONTAL_MENU_10D1.md)) |
-| `0x802:0x716` | **resident routine at START.EXE expanded image `0x8736`**: composes a file name (`StrStore`, `StrLoad`, `StrCat`, a near helper at `0x5CD`), and uses `0xAF8:0x14FB` / `0xAF8:0x04A9` (block read and file calls) four times, with an error path calling `0x899:0` | **earliest unresolved native/file boundary**: file open/read by name and block id, returning `size` and `ptr` |
+| `0x802:0x716` | **resident routine at START.EXE expanded image `0x8736`**: composes a file name (`StrStore`, `StrLoad`, `StrCat`, a near helper at `0x5CD`), and uses `0xAF8:0x14FB` / `0xAF8:0x04A9` (block read and file calls) four times, with an error path calling `0x899:0` | **first unresolved file/block-loading boundary** (an earlier undecoded runtime call, `0xAF8:0x1366`, only builds the file name): file open/read by name and block id, returning `size` and `ptr` |
 | `0xAF8:0x1685` | Move-shaped runtime copy (source far, destination far, count) | not decoded here |
 | `0xAF8:0x023F` / `0x0254` | `GetMem` / `FreeMem` wrappers | decoded ([U1C_CLEARMONSTERS_125D.md](U1C_CLEARMONSTERS_125D.md), [U1C_LOAD_MONSTER_0450_MAP.md](U1C_LOAD_MONSTER_0450_MAP.md)) |
 | `0xB0:0x48` | unit `0x9e` entry 8 roll | model exists ([U68_MOVEMENT_FLAG_04DF.md](U68_MOVEMENT_FLAG_04DF.md)) |
