@@ -105,15 +105,32 @@ int main(void)
       setup(s, sizeof s, 0x2F); st.window1[0x40] = 0x0055;
       CHECK(pr_u1c_op_and_or(&st, NULL, &rep) == PR_REC_ECL_HANDLER_HOOK && rep.slot2_status == PR_REC_ECL_WINDOW_HOOK && st.window0[0x1C4] == 0x0055); }
 
-    /* class-4 source (address 0x00B1): UNRESOLVED; neither the compare nor the store is made; slot 2 is not read after a slot-1 stop */
-    { static const uint8_t s[] = { 0x2F, 0x01, 0xB1, 0x00, 0x00, 0x7F, DEST };
+    /* an unsupported class-4 source (address 0x00B2): UNRESOLVED; neither the compare nor the store is made; slot 2 is not read after a slot-1 stop */
+    { static const uint8_t s[] = { 0x2F, 0x01, 0xB2, 0x00, 0x00, 0x7F, DEST };
       setup(s, sizeof s, 0x2F);
       CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_UNRESOLVED && !rep.compared && !rep.stored && !rep.slot2_read);
       CHECK(st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55 && st.window0[0x1C4] == 0xAAAA && ws == PR_REC_ECL_WINDOW_OK); }
-    { static const uint8_t s[] = { 0x2F, 0x00, 0x7F, 0x01, 0xB1, 0x00, DEST };        /* unresolved in slot 2: slot 1 was read */
+    { static const uint8_t s[] = { 0x2F, 0x00, 0x7F, 0x01, 0xB2, 0x00, DEST };        /* unresolved in slot 2: slot 1 was read */
       setup(s, sizeof s, 0x2F);
       CHECK(pr_u1c_op_and_or(&st, NULL, &rep) == PR_REC_ECL_HANDLER_UNRESOLVED && rep.slot1_read && rep.slot2_read && !rep.compared);
       CHECK(st.cmp_flags[0] == 0x55 && st.window0[0x1C4] == 0xAAAA); }
+
+    /* the saved-run shape: 0x7F AND the class-4 source 0xC04F (byte [0x6AB1]) stored to 0x6E82 (window 1, class 1).
+       The source value is whatever the host holds in b6ab1 (synthetic here); the store core reports HOOK after storing,
+       the flags are those of comparing 0 with the result */
+    { static const uint8_t s[] = { 0x2F, 0x00, 0x7F, 0x01, 0x4F, 0xC0, 0x01, 0x82, 0x6E };
+      unsigned v;
+      for (v = 0; v < 256; v++) {
+          uint8_t expect = (uint8_t)(0x7Fu & v);
+          setup(s, sizeof s, 0x2F); st.b6ab1 = (uint8_t)v;
+          CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_HOOK);
+          CHECK(rep.v1 == 0x7F && rep.v2 == v && rep.result == expect && st.window1[0x382] == expect && rep.compared && rep.stored);
+          CHECK(flags_are(expect == 0, expect != 0, expect != 0, 0, 1, expect == 0) && st.pc == 0x9909u);
+      }
+      /* an unsupported neighbour (0xC059 = 0xC04B + 0xE) is still unresolved: no compare, no store */
+      { static const uint8_t u[] = { 0x2F, 0x00, 0x7F, 0x01, 0x59, 0xC0, 0x01, 0x82, 0x6E };
+        setup(u, sizeof u, 0x2F);
+        CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_UNRESOLVED && !rep.compared && !rep.stored && st.window1[0x382] == 0xAAAA); } }
 
     /* the destination is class 1: the store core reports HOOK after storing; the flags were set before it */
     { static const uint8_t s[] = { 0x2F, 0x00, 0x0F, 0x00, 0x3C, 0x01, 0x40, 0x6B };
