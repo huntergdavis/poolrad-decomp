@@ -38,7 +38,6 @@ pr_u1c_on_goto_status pr_u1c_op_on_goto(pr_rec_ecl_loader_state *st, pr_u1c_on_g
     uint16_t w1 = 0u, w2 = 0u;
     unsigned i;
     uint8_t sel, n;
-    int hook_pending;
     memset(r, 0, sizeof *r);
     r->core_status = PR_REC_ECL_HANDLER_OK;
     if (!st)
@@ -55,13 +54,22 @@ pr_u1c_on_goto_status pr_u1c_op_on_goto(pr_rec_ecl_loader_state *st, pr_u1c_on_g
         r->core_status = window_to_handler(v1);
         return PR_U1C_ON_GOTO_CORE;
     }
+    if (v1 == PR_REC_ECL_WINDOW_HOOK) {                                /* the class-1 load hook may override the selector: stop before
+                                                                          slot value(2) is read or anything depends on the selector */
+        r->core_status = PR_REC_ECL_HANDLER_HOOK;
+        return PR_U1C_ON_GOTO_CORE;
+    }
     v2 = pr_rec_ecl_slot_value(st, 2u, &w2);                           /* +0x1915..+0x191D */
     r->slot_status[1] = v2;
     if (slot_fatal(v2)) {
         r->core_status = window_to_handler(v2);
         return PR_U1C_ON_GOTO_CORE;
     }
-    hook_pending = v1 == PR_REC_ECL_WINDOW_HOOK || v2 == PR_REC_ECL_WINDOW_HOOK;
+    if (v2 == PR_REC_ECL_WINDOW_HOOK) {                                /* the count may be overridden: stop before the PC decrement, loader(n),
+                                                                          the selection and any call-frame effect */
+        r->core_status = PR_REC_ECL_HANDLER_HOOK;
+        return PR_U1C_ON_GOTO_CORE;
+    }
     sel = (uint8_t)(w1 & 0xFFu);
     n = (uint8_t)(w2 & 0xFFu);
     r->selector = sel;
@@ -88,10 +96,6 @@ pr_u1c_on_goto_status pr_u1c_op_on_goto(pr_rec_ecl_loader_state *st, pr_u1c_on_g
             }
         }
         break;                                                         /* +0x197E: found := 1 ends the loop */
-    }
-    if (hook_pending) {
-        r->core_status = PR_REC_ECL_HANDLER_HOOK;                      /* a class-1 slot read ran the engine's load hook */
-        return PR_U1C_ON_GOTO_CORE;
     }
     return PR_U1C_ON_GOTO_OK;
 }
