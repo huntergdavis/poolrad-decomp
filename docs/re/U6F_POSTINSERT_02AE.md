@@ -7,9 +7,12 @@ insertion. [Merged native first-slot evidence](https://github.com/huntergdavis/p
 (main `8e7f8ee`) measures `AX=0x0001` at `+0x19AD`, selecting `+0x19B1`
 for that iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
 (main `080e7de`) observes the GetMem return at `+0x19BA` and the record
-loader's return at `+0x19DA`. Those merged reports do not establish
-record contents, insertion completion, `+0x19E7` execution, or mkdir
-effects. This model earns no full-route or strict-function count.
+loader's return at `+0x19DA`. The
+[merged insertion-return watch](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md)
+(main `311ed43`) observes the `+0x19E3` call returning at `+0x19E6`,
+before the separate near call to this routine at `+0x19E7`. That watch does not
+measure `+0x19E7` execution or any mkdir effect. This model earns no
+full-route or strict-function count.
 
 Before decoding, `deja "Poolrad u6f 02AE mkdir IOResult 0 5 retry directory"`
 found no matching indexed session; `deja "u6f 02AE"` returned prior party

@@ -8,9 +8,13 @@ pointer, after the record loader returns. A
 (main `8e7f8ee`) establishes `AX=1` at `+0x19AD` and entry to `+0x19B1`
 for one saved iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
 (main `080e7de`) observes the GetMem return at `+0x19BA` and the
-`+0x0AEC` record-loader return at `+0x19DA`. The merged public evidence
-cited here ends at that return; it does not establish record contents,
-completion of the insertion call at `+0x19E3`, or later `+0x02AE` effects.
+`+0x0AEC` record-loader return at `+0x19DA`. The
+[merged insertion-return watch](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md)
+(main `311ed43`) then observes the `+0x19E3` call returning at `+0x19E6`:
+party head and active character both become `449A:0008`, and the window-1
+word at `+0x67C` changes from 0 to 1. Its two snapshots do not show
+intermediate writes, record contents, or the later `+0x19E7` call and
+directory effect.
 This is a bounded, path-complete model for supplied mapped state, with
 no strict full-C count. The host `max_nodes` guard can stop a finite DOS
 list early, and head/active-character/window globals are split from the segment
