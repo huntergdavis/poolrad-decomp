@@ -5,8 +5,8 @@
  * 0x0F7A..0x0FD7, exactly 94 bytes, 35 instructions, `retf` last byte, four
  * bytes of locals, no arguments, no result): the handler of ECL opcode 0x08
  * (RANDOM). The next routine (+0x0292) is SAVE. Evidence:
- * docs/re/U1C_RANDOM_0234.md. The name is the reference name only: the three
- * runtime calls are opaque and no generator behavior is asserted.
+ * docs/re/U1C_RANDOM_0234.md. pr_u1c_op_random keeps the three runtime
+ * calls as hooks; pr_u1c_op_random_seeded supplies their decoded behavior.
  *
  * In the original's order:
  *   loader(2) (0x2B:0x2A)                                              (+0x023A..+0x023D)
@@ -19,15 +19,15 @@
  *   0x2B:0x52 (dest, zero-extended r), the store word call              (+0x0280..+0x0289)
  *   return
  *
- * The three 0xAF8 runtime routines are explicit fallible hooks run in this order. Their
- * registers flow between them (AX/DX left by one are the next one's inputs; `xor dx, dx`
- * sets DX before the second); that register contract is not decoded here, so the model
- * passes only the stack word and the DX value it can see and takes AL from the last hook.
- * No PRNG semantics and no saved result are modelled: a host that wants a value supplies it.
+ * In pr_u1c_op_random the three 0xAF8 routines remain explicit fallible
+ * hooks in original order. It passes the visible stack word and DX=0, then
+ * takes AL from the last hook. The seeded adapter composes the decoded
+ * SYSTEM behavior without changing that external hook API.
  *
  * Classification: bounded model (path-complete over the 94 bytes; composed of the lane-A
- * loader, slot value, operand word and store word, with the runtime trio as hooks). Not a
- * strict translation. No game-function credit is claimed. */
+ * loader, slot value, operand word and store word, with the runtime trio as hooks or
+ * the seeded adapter). Remaining lane-A core hooks prevent strict translation
+ * credit; no game-function credit is claimed. */
 
 #include <stdint.h>
 
@@ -60,7 +60,8 @@ typedef enum {
                                  the loader and slot value; after the store attempt for the store word. On HOOK the
                                  handler has completed. */
     PR_U1C_RANDOM_HOOK,       /* a reached hook is NULL; earlier hooks ran, nothing is stored */
-    PR_U1C_RANDOM_CALLBACK    /* a reached hook returned nonzero (report->callback_status); nothing is stored */
+    PR_U1C_RANDOM_CALLBACK,   /* a reached hook returned nonzero (report->callback_status); nothing is stored */
+    PR_U1C_RANDOM_SEED_MISSING /* seeded adapter reached +0x11C0 without a seed; earlier core effects remain */
 } pr_u1c_random_status;
 
 typedef enum {
@@ -85,5 +86,15 @@ typedef struct {
 /* The handler on lane A's loader state. `report` may be NULL. */
 pr_u1c_random_status pr_u1c_op_random(pr_rec_ecl_loader_state *state, pr_u1c_random_env *env,
                                       pr_u1c_random_report *report);
+
+/* Deterministic adapter for the DOS SYSTEM chain at +0x026C/+0x0273/+0x0278.
+ * rand_seed is caller-owned DS:0x4428..0x442B, not derived from a save.
+ * Missing seed is checked only when +0x11C0 is reached. The existing handler
+ * still supplies the loader, operand, store, and unresolved core-hook statuses.
+ * Supported AX values after +0x11C0 are 0..254, for which +0x119A/+0x119E
+ * with DX=0 and CH=0 round-trip AX without carry (see U1C_RANDOM_0234.md). */
+pr_u1c_random_status pr_u1c_op_random_seeded(pr_rec_ecl_loader_state *state,
+                                             uint32_t *rand_seed,
+                                             pr_u1c_random_report *report);
 
 #endif

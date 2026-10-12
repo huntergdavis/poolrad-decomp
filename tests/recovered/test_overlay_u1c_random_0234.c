@@ -43,6 +43,69 @@ static void env_init(pr_u1c_random_env *e, Rec *r, uint8_t al)
     e->hooks.rt_af8_11c0 = h_11c0; e->hooks.rt_af8_119a = h_119a; e->hooks.rt_af8_119e = h_119e; e->ctx = r;
 }
 
+static int seeded_tests(void)
+{
+    pr_u1c_random_report rep;
+    unsigned v;
+
+    /* The multiplier is odd. Inverting it chooses a seed whose next high
+     * word is each possible 0..254 remainder for handler range 255. */
+    for (v = 0; v < 255; ++v) {
+        uint32_t expected_seed = (uint32_t)v << 16;
+        uint32_t seed = (expected_seed - UINT32_C(1)) * UINT32_C(0xD94FA8CD);
+        setup(254, 0x9710); /* saturating slot increment -> range 255 */
+        CHECK(pr_u1c_op_random_seeded(&st, &seed, &rep) == PR_U1C_RANDOM_OK);
+        CHECK(seed == expected_seed && st.window2[0x10] == v && rep.result == v);
+        CHECK(rep.slot_byte == 254 && rep.argument == 255 && rep.stored);
+        CHECK(rep.calls_n == 3 && rep.calls[0] == PR_U1C_RANDOM_CALL_11C0 &&
+              rep.calls[1] == PR_U1C_RANDOM_CALL_119A &&
+              rep.calls[2] == PR_U1C_RANDOM_CALL_119E);
+    }
+    /* The handler cannot pass range zero: a slot byte of zero becomes one. */
+    { uint32_t seed = 0;
+      setup(0, 0x9710);
+      CHECK(pr_u1c_op_random_seeded(&st, &seed, &rep) == PR_U1C_RANDOM_OK);
+      CHECK(seed == 1 && st.window2[0x10] == 0 && rep.argument == 1);
+    }
+    /* The saved-script operand 13 produces range 14, but this is synthetic
+     * seed state and does not assert a DOS clock value or live route. */
+    { uint32_t seed = UINT32_C(0x12345678);
+      setup(13, 0x9710);
+      CHECK(pr_u1c_op_random_seeded(&st, &seed, &rep) == PR_U1C_RANDOM_OK);
+      CHECK(seed == UINT32_C(0xCB5B9059));
+      CHECK(st.window2[0x10] == ((seed >> 16) % 14) && rep.result == st.window2[0x10]);
+    }
+    /* PM/p9 native one-Up measurement: seed before/after 11C0, AX after
+     * 119E, and the 0x980F word. This tests the isolated handler with a
+     * supplied measured seed, not a full C-native Up replay. */
+    { uint32_t seed = UINT32_C(3140872353);
+      setup(13, 0x980F);
+      st.window2[0x10F] = 16;
+      CHECK(pr_u1c_op_random_seeded(&st, &seed, &rep) == PR_U1C_RANDOM_OK);
+      CHECK(seed == UINT32_C(3238563622) && rep.argument == 14);
+      CHECK(rep.result == 10 && st.window2[0x10F] == 10 && rep.stored);
+    }
+    /* A missing seed is detected at the reached SYSTEM call, after operand
+     * loading, but before any generator step or destination store. */
+    setup(13, 0x9710);
+    CHECK(pr_u1c_op_random_seeded(&st, NULL, &rep) == PR_U1C_RANDOM_SEED_MISSING);
+    CHECK(st.pc == 0x9906u && st.window2[0x10] == 0xAAAA && !rep.stored);
+    CHECK(rep.argument == 14 && rep.calls_n == 1 && rep.failed_call == PR_U1C_RANDOM_CALL_11C0);
+    { static const uint8_t truncated[] = { 0x08, 0x00 };
+      memset(&st, 0, sizeof st); st.script = truncated; st.script_size = sizeof truncated;
+      st.pc = 0x9900u;
+      CHECK(pr_u1c_op_random_seeded(&st, NULL, &rep) == PR_U1C_RANDOM_CORE);
+      CHECK(rep.core_status == PR_REC_ECL_HANDLER_BOUNDS && rep.calls_n == 0);
+    }
+    { uint32_t seed = UINT32_C(0x12345678);
+      setup(0xFF, 0x6B40);
+      CHECK(pr_u1c_op_random_seeded(&st, &seed, NULL) == PR_U1C_RANDOM_CORE);
+      CHECK(seed == UINT32_C(0xCB5B9059));
+      CHECK(st.window1[0x40] == ((seed >> 16) % 255));
+    }
+    return 0;
+}
+
 int main(void)
 {
     pr_u1c_random_env env; Rec rec; pr_u1c_random_report rep;
@@ -108,6 +171,7 @@ int main(void)
     CHECK(pr_u1c_op_random(NULL, &env, &rep) == PR_U1C_RANDOM_ARGUMENT && pr_u1c_op_random(&st, NULL, &rep) == PR_U1C_RANDOM_ARGUMENT);
     setup(3, 0x9710); env_init(&env, &rec, 1);
     CHECK(pr_u1c_op_random(&st, &env, NULL) == PR_U1C_RANDOM_OK);
+    CHECK(seeded_tests() == 0);
     puts("overlay_u1c_random_0234: ok");
     return 0;
 }
