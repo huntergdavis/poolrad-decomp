@@ -78,8 +78,8 @@ file, record, heap and string effects; existing party-input C skips them.
 
 The insertion callee `+0x1446` has three far calls: SYSTEM
 `0xAF8:0x16A8` at `+0x14CA`, SYSTEM `0xAF8:0x0DC0` at `+0x14F2`,
-and overlay thunk `0x00AC:0x0025` at `+0x1574`, already identified as
-unit `0x9B:+0x01AF` in the [party input note](SLOT_A_PARTY_INPUT.md).
+and overlay thunk `0x00AC:0x0025` at `+0x1574`, which selects unit
+`0x9B:+0x0000` per the [transfer correction](U6F_U9B_TRANSFER_1574.md).
 The same note maps its list append, slot byte `+0xBF`, and window-1 count
 increment. This static caller map does not rerun those effects.
 

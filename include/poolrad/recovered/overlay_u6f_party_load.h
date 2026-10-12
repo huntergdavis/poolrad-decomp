@@ -6,8 +6,8 @@
  * record fix-ups of the record loader (+0x0AEC) and the party insertion (+0x1446). It
  * does not read files, load sidecars, or run the unit's other post-load effects (the
  * 468-byte call at +0x02AE after each insertion is not modelled). The far call 0xAC:0x25 at
- * the end of each insertion is the overlay thunk for unit 0x9b +0x01AF (see
- * overlay_u9b_record_incr_01af.h) and is applied to the member's record.
+ * the end of each insertion selects unit 0x9b +0x0000. This model applies the
+ * +0x01AF leaf as a provisional substitute; see docs/re/U6F_U9B_TRANSFER_1574.md.
  * Evidence: docs/re/SLOT_A_PARTY_INPUT.md.
  *
  * Plan: the loader reads the local character count (world-save byte 0x3208) and eight
@@ -23,7 +23,8 @@
  *   - byte +0xBF is the first index 0..7 not used by an earlier member (+0x1538..+0x1563);
  *   - the member is appended at the tail through the link at +0x104/+0x106 (the model's
  *     node chain; the raw link bytes stay zero);
- *   - the unit 0x9b +0x01AF routine then runs on the member's record (+0xB2/+0xB3/+0xB4 counters);
+ *   - the model applies unit 0x9b +0x01AF to the record as a provisional
+ *     post-transfer effect (+0xB2/+0xB3/+0xB4 counters);
  *   - the window-1 counter (word [0x49D6]+0x67C) is zeroed before the loop and
  *     incremented once per present member (+0x1917, +0x1569): `loaded`.
  * A missing record (the existence test at +0x19A8 fails) is skipped and takes no slot.
