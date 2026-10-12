@@ -69,6 +69,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u1c_delay_271f.c
                                     src/recovered/overlay_u1c_horizontal_menu_10d1.c
                                     src/recovered/overlay_u1c_clearmonsters_125d.c
+                                    src/recovered/overlay_u25_entry5_0411.c
                                     src/recovered/overlay_u1c_exit_0001.c
                                     src/recovered/overlay_u68_record_scan.c
                                     src/recovered/overlay_u68_list_search.c
@@ -413,6 +414,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u1c_clearmonsters_125d_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u1c_clearmonsters_125d_tests
              COMMAND poolrad_overlay_u1c_clearmonsters_125d_tests)
+    add_executable(poolrad_overlay_u25_entry5_0411_tests
+                   tests/recovered/test_overlay_u25_entry5_0411.c)
+    target_link_libraries(poolrad_overlay_u25_entry5_0411_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u25_entry5_0411_tests
+             COMMAND poolrad_overlay_u25_entry5_0411_tests)
     add_executable(poolrad_overlay_u1c_exit_0001_tests
                    tests/recovered/test_overlay_u1c_exit_0001.c)
     target_link_libraries(poolrad_overlay_u1c_exit_0001_tests PRIVATE poolrad_recovered)
