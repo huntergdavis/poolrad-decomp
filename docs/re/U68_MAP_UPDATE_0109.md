@@ -5,9 +5,9 @@
 it updates one two-bit field in the far map byte at
 `DS:[0x6A5C] + 0x300 + 16*y + x`. All decoded target paths and its
 single memory effect are represented for a supplied full ES segment
-view. The **live** far pointer selector and backing contents have not
-been captured, so this note makes no saved one-Up reachability or
-strict/identity count claim.
+view. PM postmerge parity review accepted a complete game-specific C translation
+and verified identity. The **live** far pointer selector and backing contents
+have not been captured, so saved one-Up reachability remains unproved.
 
 Before decoding, `deja "Poolrad unit 0x68 +0x0109 +0x0235 map field updater 0x6A5C"`
 found no exact prior session. Reused and independently byte-checked
