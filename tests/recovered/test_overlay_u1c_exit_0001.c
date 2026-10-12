@@ -157,7 +157,7 @@ int main(void)
         tb.handler[0x09] = d_save; tb.handler[0x03] = d_cmp; tb.handler[0x01] = d_goto; tb.handler[0x00] = d_exit;
         for (i = 0x16; i <= 0x1B; i++) tb.handler[i] = d_if;
         tb.handler[0x2F] = d_andor; tb.handler[0x30] = d_andor;
-        for (v = 0; v < 256; v += 51) {   
+        for (v = 0; v < 256; v += 51) {
             init(script, sizeof script); env_init(&cenv, &cbox); memset(&crep, 0, sizeof crep);
             st.window0[0xC9] = 10;                    /* the compare word: below 14, so IF >= skips 0x9921 */
             st.window1[0x2D5] = 0;                    /* the gate word: zero, so IF = takes the GOTO */
