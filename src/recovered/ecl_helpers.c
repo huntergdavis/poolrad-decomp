@@ -324,7 +324,26 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
         *value = (uint16_t)b;                 /* zero-extended script byte */
         return PR_REC_ECL_WINDOW_OK;
     }
-    return PR_REC_ECL_WINDOW_UNRESOLVED;      /* class 4 pseudo-addresses */
+    /* class 4: +0x0EA0..+0x0F49, address [bp+6] compared unsigned */
+    if (address < 0xC04Bu) {                                    /* +0x0EA7..+0x0EAC: cmp word, 0xC04B; jae +0x0EEE */
+        switch (address) {
+        case 0x00B1u: *value = state->w6f6e; return PR_REC_ECL_WINDOW_OK;               /* +0x0EB6: [0x6F6E] */
+        case 0x00FBu: *value = state->w6f6a; return PR_REC_ECL_WINDOW_OK;               /* +0x0EC3: [0x6F6A] */
+        case 0x00FCu: *value = state->w6f6c; return PR_REC_ECL_WINDOW_OK;               /* +0x0ED0: [0x6F6C] */
+        case 0x033Du: *value = state->b6aaf; return PR_REC_ECL_WINDOW_OK;               /* +0x0EDD: byte [0x6AAF], zero-extended */
+        default: break;      /* 0x035F and the rest: the local [bp-2] is returned unwritten */
+        }
+        return PR_REC_ECL_WINDOW_UNRESOLVED;
+    }
+    switch ((uint16_t)(address - 0xC04Bu)) {                    /* +0x0EEE..+0x0F49 */
+    case 0u: *value = (uint16_t)(state->b6aad < 0x80u ? state->b6aad : 0xFF00u | state->b6aad); return PR_REC_ECL_WINDOW_OK;   /* cbw [0x6AAD] */
+    case 1u: *value = (uint16_t)(state->b6aae < 0x80u ? state->b6aae : 0xFF00u | state->b6aae); return PR_REC_ECL_WINDOW_OK;   /* cbw [0x6AAE] */
+    case 2u: *value = (uint16_t)(state->b6aaf >> 1); return PR_REC_ECL_WINDOW_OK;                                             /* [0x6AAF] >> 1 */
+    case 3u: *value = state->b6ab0; return PR_REC_ECL_WINDOW_OK;                                                              /* [0x6AB0] */
+    case 4u: *value = state->b6ab1; return PR_REC_ECL_WINDOW_OK;                                                              /* [0x6AB1] */
+    default: break;          /* +0xE and every other offset: the local is returned unwritten */
+    }
+    return PR_REC_ECL_WINDOW_UNRESOLVED;
 }
 
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,

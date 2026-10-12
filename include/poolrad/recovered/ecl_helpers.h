@@ -193,6 +193,21 @@ typedef struct {
     uint8_t b4433;
     uint8_t b4434;
     uint16_t piece_words[3][2];
+    /* ---- Class-4 pseudo-address sources of load word (unit 0x25 + 0x0E0C) ------
+     * The data-segment words and bytes the class-4 branch reads: w6f6e = word
+     * [0x6F6E] (address 0x00B1), w6f6a = [0x6F6A] (0x00FB), w6f6c = [0x6F6C]
+     * (0x00FC); b6aaf = byte [0x6AAF] (0x033D, and 0xC04B+2 as half its value);
+     * b6aad, b6aae = the party bytes [0x6AAD], [0x6AAE] (0xC04B+0, +1, sign
+     * extended); b6ab0, b6ab1 = bytes [0x6AB0], [0x6AB1] (0xC04B+3, +4). Meanings
+     * are not asserted; the host supplies whatever the engine holds. */
+    uint16_t w6f6e;
+    uint16_t w6f6a;
+    uint16_t w6f6c;
+    uint8_t b6aad;
+    uint8_t b6aae;
+    uint8_t b6aaf;
+    uint8_t b6ab0;
+    uint8_t b6ab1;
 } pr_rec_ecl_loader_state;
 
 typedef enum {
@@ -226,10 +241,14 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
                                                  uint16_t address, const char *text, size_t len);
 
 /* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store
- * word) for classes 0-3. Class 4 pseudo-addresses and the class-1 hooks
- * (+0x07BC on load, +0x0A74 on store, which mirror character-record fields)
- * are not modelled: load returns UNRESOLVED for class 4 and HOOK for class 1
- * (value read from the window); store returns HOOK after storing for class 1. */
+ * word). Load word resolves nine class-4 pseudo-addresses from the state's
+ * w6f6e/w6f6a/w6f6c/b6aad/b6aae/b6aaf/b6ab0/b6ab1 fields (0x00B1, 0x00FB, 0x00FC,
+ * 0x033D, 0xC04B+0..4; see docs/re/ECL_LOAD_WORD_CLASS4.md); every other class-4
+ * address (0x035F, 0xC04B+0xE and the rest) is UNRESOLVED, because the engine
+ * returns an uninitialized local there. The class-1 hooks (+0x07BC on load,
+ * +0x0A74 on store, which mirror character-record fields) are not modelled:
+ * load returns HOOK for class 1 (value read from the window); store returns
+ * HOOK after storing for class 1; store word's class-4 table is not modelled. */
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value);
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,

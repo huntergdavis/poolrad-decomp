@@ -317,7 +317,7 @@ static int test_windows_round_trip(void) {
     CHECK(pr_rec_ecl_load_word(&st, 0x6B40, &v) == PR_REC_ECL_WINDOW_HOOK && v == 7);
     CHECK(pr_rec_ecl_load_word(&st, 0x9901, &v) == PR_REC_ECL_WINDOW_OK && v == 'Z');
     CHECK(pr_rec_ecl_load_word(&st, 0x9902, &v) == PR_REC_ECL_WINDOW_OK && v == 0);
-    CHECK(pr_rec_ecl_load_word(&st, 0x00B1, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    CHECK(pr_rec_ecl_load_word(&st, 0x00B2, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
     CHECK(pr_rec_ecl_store_word(&st, 0xC04B, 1) == PR_REC_ECL_WINDOW_UNRESOLVED);
     return 0;
 }
@@ -1062,7 +1062,7 @@ static int test_slot_value(void) {
     st.tag[7] = 0x81; st.low[7] = 0x00; st.high[7] = 0x6B;
     CHECK(pr_rec_ecl_slot_value(&st, 7, &v) == PR_REC_ECL_WINDOW_OK && v == 0x6B00);
     /* tag 1 at a class-4 pseudo-address: unresolved from the core */
-    st.tag[8] = 0x01; st.low[8] = 0xB1; st.high[8] = 0x00;
+    st.tag[8] = 0x01; st.low[8] = 0xB2; st.high[8] = 0x00;
     CHECK(pr_rec_ecl_slot_value(&st, 8, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
     /* any other tag: the engine returns an uninitialized local */
     st.tag[9] = 0x05; st.low[9] = 0x11; st.high[9] = 0x22;
@@ -1112,12 +1112,12 @@ static int test_op_save(void) {
       memcpy(rw, s6, sizeof s6); save_state(&st, rw, sizeof rw, rw);
       CHECK(pr_rec_ecl_op_save(&st, NULL) == PR_REC_ECL_HANDLER_OK && rw[6] == 0x78); }
     /* destination class 4: nothing stored, unresolved */
-    { static const uint8_t s7[] = { 0x09, 0x00, 0x01, 0x01, 0xB1, 0x00 };
+    { static const uint8_t s7[] = { 0x09, 0x00, 0x01, 0x01, 0xB2, 0x00 };
       save_state(&st, s7, sizeof s7, NULL);
       CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_UNRESOLVED && ws == PR_REC_ECL_WINDOW_UNRESOLVED);
       for (i = 0; i < PR_REC_ECL_WINDOW0_WORDS; ++i) CHECK(st.window0[i] == 0xAAAA); }
     /* unresolved value (class-4 source): the store is not made */
-    { static const uint8_t s8[] = { 0x09, 0x01, 0xB1, 0x00, 0x01, 0x00, 0x49 };
+    { static const uint8_t s8[] = { 0x09, 0x01, 0xB2, 0x00, 0x01, 0x00, 0x49 };
       save_state(&st, s8, sizeof s8, NULL);
       CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_UNRESOLVED && ws == PR_REC_ECL_WINDOW_OK && st.window0[0] == 0xAAAA); }
     /* string path: an empty inline string writes one zero word at the destination */
@@ -1269,7 +1269,7 @@ static int test_op_load_files(void) {
       lf_state(&st, s7, sizeof s7, 0x21); st.window1[0x40] = 6; lf_reset(&l, &io);
       CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_HOOK && strcmp(l.log, "W6 ") == 0); }
     /* an unresolved source (class 4) stops before any effect */
-    { static const uint8_t s8[] = { 0x21, 0x01, 0xB1, 0x00, 0x00, 0x00, 0x00, 0x03 };
+    { static const uint8_t s8[] = { 0x21, 0x01, 0xB2, 0x00, 0x00, 0x00, 0x00, 0x03 };
       lf_state(&st, s8, sizeof s8, 0x21); lf_reset(&l, &io);
       CHECK(pr_rec_ecl_op_load_files(&st, &io) == PR_REC_ECL_HANDLER_UNRESOLVED && l.n == 0 && st.b4434 == 0 && st.b4431 == 1); }
     /* a reached boundary without its callback: UNRESOLVED after the earlier writes, before the later effects */
@@ -1363,6 +1363,83 @@ static int flags_are(const pr_rec_ecl_loader_state *st, int eq, int ne, int lt, 
     return st->cmp_flags[0] == eq && st->cmp_flags[1] == ne && st->cmp_flags[2] == lt && st->cmp_flags[3] == gt && st->cmp_flags[4] == le && st->cmp_flags[5] == ge;
 }
 
+/* Load word, class-4 pseudo-addresses (unit 0x25 + 0x0E0C, +0x0EA0..+0x0F49): every resolved pair, the
+ * extension rules, the boundaries, and every unmatched address staying UNRESOLVED. Synthetic DS values. */
+static int test_load_word_class4(void) {
+    static pr_rec_ecl_loader_state st;
+    uint16_t v;
+    unsigned a, i;
+    memset(&st, 0, sizeof st);
+    st.w6f6e = 0x1234; st.w6f6a = 0x5678; st.w6f6c = 0x9ABC;
+    st.b6aad = 0x11; st.b6aae = 0x22; st.b6aaf = 0x33; st.b6ab0 = 0x44; st.b6ab1 = 0x55;
+    /* each exact pair */
+    CHECK(pr_rec_ecl_load_word(&st, 0x00B1, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1234);       /* [0x6F6E] */
+    CHECK(pr_rec_ecl_load_word(&st, 0x00FB, &v) == PR_REC_ECL_WINDOW_OK && v == 0x5678);       /* [0x6F6A] */
+    CHECK(pr_rec_ecl_load_word(&st, 0x00FC, &v) == PR_REC_ECL_WINDOW_OK && v == 0x9ABC);       /* [0x6F6C] */
+    CHECK(pr_rec_ecl_load_word(&st, 0x033D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x33);         /* byte [0x6AAF] */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04B, &v) == PR_REC_ECL_WINDOW_OK && v == 0x11);         /* +0: [0x6AAD] */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04C, &v) == PR_REC_ECL_WINDOW_OK && v == 0x22);         /* +1: [0x6AAE] */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x19);         /* +2: [0x6AAF] >> 1 */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04E, &v) == PR_REC_ECL_WINDOW_OK && v == 0x44);         /* +3: [0x6AB0] */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04F, &v) == PR_REC_ECL_WINDOW_OK && v == 0x55);         /* +4: [0x6AB1] */
+    /* class 4 and word values are as stored: full 16-bit words, byte sources zero-extended, party bytes sign-extended */
+    st.w6f6e = 0xFFFF;
+    CHECK(pr_rec_ecl_load_word(&st, 0x00B1, &v) == PR_REC_ECL_WINDOW_OK && v == 0xFFFF);
+    st.b6aaf = 0xFF;
+    CHECK(pr_rec_ecl_load_word(&st, 0x033D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x00FF);       /* xor ah, ah */
+    for (i = 0; i < 256; ++i) {
+        uint16_t sx = (uint16_t)(i < 0x80u ? i : 0xFF00u | i);
+        st.b6aad = (uint8_t)i; st.b6aae = (uint8_t)(255u - i); st.b6aaf = (uint8_t)i; st.b6ab0 = (uint8_t)i; st.b6ab1 = (uint8_t)(i ^ 0x5Au);
+        CHECK(pr_rec_ecl_load_word(&st, 0xC04B, &v) == PR_REC_ECL_WINDOW_OK && v == sx);        /* cbw */
+        CHECK(pr_rec_ecl_load_word(&st, 0xC04C, &v) == PR_REC_ECL_WINDOW_OK && v == (uint16_t)((255u - i) < 0x80u ? (255u - i) : 0xFF00u | (255u - i)));
+        CHECK(pr_rec_ecl_load_word(&st, 0xC04D, &v) == PR_REC_ECL_WINDOW_OK && v == (uint16_t)(i >> 1));   /* zero-extended, then shr 1 */
+        CHECK(pr_rec_ecl_load_word(&st, 0xC04E, &v) == PR_REC_ECL_WINDOW_OK && v == i);
+        CHECK(pr_rec_ecl_load_word(&st, 0xC04F, &v) == PR_REC_ECL_WINDOW_OK && v == (uint16_t)(i ^ 0x5Au));
+    }
+    /* boundaries and every other class-4 address: the engine returns an uninitialized local there */
+    v = 0x7777;
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04A, &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);   /* just below the 0xC04B group */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC050, &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);   /* +5 */
+    CHECK(pr_rec_ecl_load_word(&st, 0xC059, &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);   /* +0xE: compared, nothing loaded */
+    CHECK(pr_rec_ecl_load_word(&st, 0xFFFF, &v) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    CHECK(pr_rec_ecl_load_word(&st, 0x035F, &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);   /* compared, nothing loaded */
+    {
+        static const uint16_t near_miss[] = { 0x00B0, 0x00B2, 0x00FA, 0x00FD, 0x033C, 0x033E, 0x0000, 0x00FF, 0x0360, 0x0100 };
+        for (i = 0; i < sizeof near_miss / sizeof near_miss[0]; ++i) {
+            CHECK(pr_rec_ecl_address_class(near_miss[i]) == 4u);
+            CHECK(pr_rec_ecl_load_word(&st, near_miss[i], &v) == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);
+        }
+    }
+    /* every class-4 address below 0xC04B other than the four pairs, and every one above 0xC04F, is unresolved;
+       classes 0-3 never reach the table */
+    for (a = 0; a < 0x10000u; ++a) {
+        uint8_t cls = pr_rec_ecl_address_class((uint16_t)a);
+        pr_rec_ecl_window_status ws;
+        if (cls != 4u) continue;
+        v = 0x7777;
+        ws = pr_rec_ecl_load_word(&st, (uint16_t)a, &v);
+        if (a == 0x00B1u || a == 0x00FBu || a == 0x00FCu || a == 0x033Du || (a >= 0xC04Bu && a <= 0xC04Fu))
+            CHECK(ws == PR_REC_ECL_WINDOW_OK);
+        else
+            CHECK(ws == PR_REC_ECL_WINDOW_UNRESOLVED && v == 0x7777);
+    }
+    /* a class-4 source through slot value and SAVE: 0xC04F gives the live [0x6AB1] the host holds, nothing else */
+    {
+        static const uint8_t s[] = { 0x09, 0x01, 0x4F, 0xC0, 0x01, 0x10, 0x4A };            /* SAVE [0x4A10] := [0xC04F] */
+        uint16_t sv = 0;
+        pr_rec_ecl_window_status ws;
+        memset(&st, 0, sizeof st); st.script = s; st.script_size = sizeof s; st.pc = 0x9900u; st.b6ab1 = 0x3C;
+        CHECK(pr_rec_ecl_op_save(&st, &ws) == PR_REC_ECL_HANDLER_OK && ws == PR_REC_ECL_WINDOW_OK && st.window0[0x110] == 0x3C);
+        st.tag[1] = 0x01; st.low[1] = 0x4F; st.high[1] = 0xC0; st.b6ab1 = 0x07;
+        CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_OK && sv == 0x07);
+        st.low[1] = 0x59;                                                                     /* 0xC059: unresolved stays unresolved */
+        CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_UNRESOLVED);
+    }
+    CHECK(pr_rec_ecl_load_word(NULL, 0xC04F, &v) == PR_REC_ECL_WINDOW_ARGUMENT);
+    CHECK(pr_rec_ecl_load_word(&st, 0xC04F, NULL) == PR_REC_ECL_WINDOW_ARGUMENT);
+    return 0;
+}
+
 static int test_compare_words(void) {
     pr_rec_ecl_loader_state st; unsigned i;
     memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
@@ -1413,7 +1490,7 @@ static int test_op_compare(void) {
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && flags_are(&st, 1, 0, 0, 0, 1, 1) && st.pc == 0x9907); }
     /* word path with a class-1 source in slot 1: HOOK at once, flags untouched, slot 2 never read
      * (slot 2 names a class-4 address, which would turn the result into UNRESOLVED if it were looked up) */
-    { static const uint8_t s3[] = { 0x03, 0x01, 0x40, 0x6B, 0x01, 0xB1, 0x00 };
+    { static const uint8_t s3[] = { 0x03, 0x01, 0x40, 0x6B, 0x01, 0xB2, 0x00 };
       save_state(&st, s3, sizeof s3, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK);
       CHECK(st.cmp_flags[0] == 0x55 && st.cmp_flags[1] == 0x55 && st.cmp_flags[2] == 0x55 && st.cmp_flags[3] == 0x55 && st.cmp_flags[4] == 0x55 && st.cmp_flags[5] == 0x55);
@@ -1423,7 +1500,7 @@ static int test_op_compare(void) {
       save_state(&st, s3b, sizeof s3b, NULL); st.window1[0x40] = 5; memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55); }
     /* word path with a class-4 source: unresolved, flags untouched */
-    { static const uint8_t s4[] = { 0x03, 0x00, 0x02, 0x01, 0xB1, 0x00 };
+    { static const uint8_t s4[] = { 0x03, 0x00, 0x02, 0x01, 0xB2, 0x00 };
       save_state(&st, s4, sizeof s4, NULL); memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
       CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_UNRESOLVED && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55); }
     /* string path: two inline strings; equal, then differing */
@@ -1603,6 +1680,7 @@ int main(void) {
     rc |= test_run_stops_on_hook();
     rc |= test_op_load_files();
     rc |= test_load_files_composition();
+    rc |= test_load_word_class4();
     rc |= test_compare_words();
     rc |= test_compare_strings();
     rc |= test_op_compare();
