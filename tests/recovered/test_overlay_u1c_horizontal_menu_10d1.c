@@ -179,6 +179,17 @@ int main(void)
     { static const uint8_t trunc[] = { 0x2B, 0x01 };
       memset(&st, 0, sizeof st); st.script = trunc; st.script_size = sizeof trunc; st.pc = 0x9900u; env_init(&env, &rec, 1);
       CHECK(pr_u1c_op_horizontal_menu(&st, &env, &rep) == PR_U1C_HMENU_CORE && rep.core_status == PR_REC_ECL_HANDLER_BOUNDS); }
+    /* slot value(2) from a class-1 address whose load hook may override the word (0x6B18, rel 0x18): n is unknown, so the handler stops
+       at that boundary: CORE/HOOK, the PC is not decremented, no loader(n), no hook, no store */
+    { static const uint8_t hk[] = { 0x2B, 0x01, 0x10, 0x97, 0x01, 0x18, 0x6B, 0x80, 0x00 };
+      memset(&st, 0, sizeof st); st.script = hk; st.script_size = sizeof hk; st.pc = 0x9900u; st.window1[0x18] = 1; st.window2[0x10] = 0xAAAA; env_init(&env, &rec, 1);
+      CHECK(pr_u1c_op_horizontal_menu(&st, &env, &rep) == PR_U1C_HMENU_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status == PR_REC_ECL_WINDOW_HOOK);
+      CHECK(rep.n == 0 && rec.n == 0 && !rep.stored && !rep.menu_called && st.window2[0x10] == 0xAAAA && st.string_len[1] == 0);
+      CHECK(st.pc == 0x9907u); }                                              /* the loader(2) advance stands; no decrement */
+    /* the same read from a plain class-1 address (0x6E80, rel 0x380) is an ordinary value: the handler runs with that n */
+    { static const uint8_t pl[] = { 0x2B, 0x01, 0x10, 0x97, 0x01, 0x80, 0x6E, 0x80, 0x00 };
+      memset(&st, 0, sizeof st); st.script = pl; st.script_size = sizeof pl; st.pc = 0x9900u; st.window1[0x380] = 1; env_init(&env, &rec, 3);
+      CHECK(pr_u1c_op_horizontal_menu(&st, &env, &rep) == PR_U1C_HMENU_OK && rep.n == 1 && rec.n == 2 && st.window2[0x10] == 3); }
     { static const uint8_t c4[] = { 0x2B, 0x01, 0x10, 0x97, 0x01, 0xB2, 0x00 };   /* slot 2: unsupported class-4 */
       memset(&st, 0, sizeof st); st.script = c4; st.script_size = sizeof c4; st.pc = 0x9900u; env_init(&env, &rec, 1);
       CHECK(pr_u1c_op_horizontal_menu(&st, &env, &rep) == PR_U1C_HMENU_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && rec.n == 0 && st.pc == 0x9907u); }

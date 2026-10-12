@@ -34,8 +34,7 @@ unresolved hooks; no strict full-C, count, identity, DOS/native or one-Up parity
 
 ## Model
 
-`pr_u1c_op_horizontal_menu` (`overlay_u1c_horizontal_menu_10d1.{h,c}`). Failure order: loader(2); slot value(2) BOUNDS/UNRESOLVED stops before `n` is used (the PC is not
-decremented); loader(`n`) failure after the decrement; missing code constants where reached (STRING); the menu hook (nothing stored on a missing or failing hook); the store word
+`pr_u1c_op_horizontal_menu` (`overlay_u1c_horizontal_menu_10d1.{h,c}`). Failure order: loader(2); slot value(2): BOUNDS/UNRESOLVED **and HOOK** stop before `n` is used (a class-1 read whose load hook may override the word leaves `n` unknown, so the handler reports CORE/HOOK at that boundary with the PC not decremented, no loader(`n`), no hook and no store; only the literal/plain-address route continues); loader(`n`) failure after the decrement; missing code constants where reached (STRING); the menu hook (nothing stored on a missing or failing hook); the store word
 (a class-1 effect destination stores and the display hook still runs, then HOOK; an unsupported destination stops before the display hook); the display hook.
 
 Tests (`test_overlay_u1c_horizontal_menu_10d1.c`) are fully synthetic (six-bit packed items, one-character code constants): the composed text for `n = 3` and the truncation to 50 bytes

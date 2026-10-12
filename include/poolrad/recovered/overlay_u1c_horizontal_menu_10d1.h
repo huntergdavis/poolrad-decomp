@@ -67,8 +67,9 @@ struct pr_u1c_hmenu_env {
 typedef enum {
     PR_U1C_HMENU_OK = 0,
     PR_U1C_HMENU_ARGUMENT,   /* null state or env */
-    PR_U1C_HMENU_CORE,       /* a lane-A core status ended the handler (report->core_status); on HOOK the handler completed
-                                and a class-1 slot read or the store ran the engine's hook model */
+    PR_U1C_HMENU_CORE,       /* a lane-A core status ended the handler (report->core_status). A HOOK from the slot value(2) read stops
+                                before any step that uses n (the PC decrement, loader(n), the hooks); a HOOK from the store word is
+                                reported after the display hook, the handler having completed */
     PR_U1C_HMENU_COUNT,      /* n = 0: not modelled (host bound) */
     PR_U1C_HMENU_STRING,     /* a reached code constant is NULL */
     PR_U1C_HMENU_HOOK,       /* a reached hook is NULL; earlier effects retained */

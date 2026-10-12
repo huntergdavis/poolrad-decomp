@@ -94,6 +94,11 @@ pr_u1c_hmenu_status pr_u1c_op_horizontal_menu(pr_rec_ecl_loader_state *st, pr_u1
         r->core_status = window_to_handler(vs);
         return PR_U1C_HMENU_CORE;
     }
+    if (vs == PR_REC_ECL_WINDOW_HOOK) {                                /* the class-1 hook may override the word: n is not known, so stop
+                                                                          before any n-dependent step (no PC decrement, no loader(n), no hooks) */
+        r->core_status = PR_REC_ECL_HANDLER_HOOK;
+        return PR_U1C_HMENU_CORE;
+    }
     n = (uint8_t)(v & 0xFFu);
     r->n = n;
     if (n == 0u)
@@ -158,7 +163,7 @@ pr_u1c_hmenu_status pr_u1c_op_horizontal_menu(pr_rec_ecl_loader_state *st, pr_u1
     r->region_called = 1;
     rc = env->hooks.region_709_0dd3(env->ctx, env, region_args);       /* +0x1248..+0x1254 */
     if (rc != 0) { r->callback_status = rc; return PR_U1C_HMENU_CALLBACK; }
-    if (r->store_status == PR_REC_ECL_WINDOW_HOOK || vs == PR_REC_ECL_WINDOW_HOOK) {
+    if (r->store_status == PR_REC_ECL_WINDOW_HOOK) {
         r->core_status = PR_REC_ECL_HANDLER_HOOK;
         return PR_U1C_HMENU_CORE;
     }
