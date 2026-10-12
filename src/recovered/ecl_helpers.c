@@ -350,6 +350,23 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
     return PR_REC_ECL_WINDOW_UNRESOLVED;
 }
 
+int pr_rec_ecl_store_hook_may_effect(uint16_t address)
+{
+    /* unit 0x25 +0x0A74: rel = address - 0x6B00 (16-bit); the potential-effect cases are +0x0A86 rel = 0, the range
+     * +0x0A99..+0x0AA1 (rel 0x20..0x70) and the exact compares below, each followed by a write or a call. */
+    static const uint16_t exact[] = { 0xB8u, 0xBBu, 0xBDu, 0xBFu, 0xC1u, 0xC3u, 0xF7u, 0xF9u, 0x100u, 0x10Cu, 0x312u, 0x322u, 0x324u, 0x326u };
+    uint16_t rel = (uint16_t)(address - 0x6B00u);
+    unsigned i;
+    if (rel >= 0x400u)
+        return 1;                                   /* outside class 1: not classified */
+    if (rel == 0u || (rel >= 0x20u && rel <= 0x70u))
+        return 1;
+    for (i = 0; i < sizeof exact / sizeof exact[0]; ++i)
+        if (rel == exact[i])
+            return 1;
+    return 0;
+}
+
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
                                                uint16_t address, uint16_t value) {
     uint8_t cls;
@@ -365,12 +382,9 @@ pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
         *w = value;
         if (cls == 0u && (address == 0x49FDu || address == 0x49FEu))
             state->b84e8 = 1u;                 /* +0x0CA1..+0x0CAF: after the window write, for either address */
-        if (cls == 1u && address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS && address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_B &&
-            address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_C &&
-            !(address >= PR_REC_ECL_STORE_HOOK_NOOP_FIRST_D && address <= PR_REC_ECL_STORE_HOOK_NOOP_LAST_D) &&
-            address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_E && address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_F)
+        if (cls == 1u && pr_rec_ecl_store_hook_may_effect(address))
             return PR_REC_ECL_WINDOW_HOOK;     /* +0x0CD5: call +0x0A74, which may write or call for this address */
-        return PR_REC_ECL_WINDOW_OK;           /* classes 0 and 2; class 1 at 0x6E82, 0x6E7D, 0x6DE1, 0x6E79..0x6E7B, 0x6E7F and 0x6DC1: +0x0A74 runs with no game-state write and no call */
+        return PR_REC_ECL_WINDOW_OK;           /* classes 0 and 2; class 1 where +0x0A74 falls through to its epilogue with no game-state write and no call */
     }
     if (cls == 3u) {
         if (state->script_rw == NULL) {

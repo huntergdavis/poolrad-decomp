@@ -272,23 +272,19 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     for each, every case compare in +0x07BC falls through, the hook clears its
  *     by-reference flag to 0 (+0x0A67) and reads and writes nothing else, and the caller
  *     (+0x0E41..+0x0E69) then reads the window word;
- *   store word returns OK at
- *     0x6E82 (rel 0x382; docs/re/ECL_STORE_HOOK_6E82.md),
- *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md) and
- *     0x6DE1 (rel 0x2E1; docs/re/ECL_STORE_HOOK_6DE1.md; store only, the load hook stays HOOK there) and
- *     0x6E79, 0x6E7A, 0x6E7B (rel 0x379..0x37B; docs/re/ECL_STORE_HOOK_6E79.md; store only) and
- *     0x6E7F (rel 0x37F; docs/re/ECL_STORE_HOOK_6E7F.md; store only) and
- *     0x6DC1 (rel 0x2C1; docs/re/ECL_STORE_HOOK_6DC1.md; store only):
- *     for each, every exact and range case in +0x0A74 is missed and it returns with no
- *     DS/ES game-state write and no call (it only adjusts its own stack argument).
- * Every other class-1 address, including the quiet neighbours, still reports HOOK. */
-#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS 0x6E82u
-#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_B 0x6E7Du    /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
-#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_C 0x6DE1u    /* proven the same way, docs/re/ECL_STORE_HOOK_6DE1.md */
-#define PR_REC_ECL_STORE_HOOK_NOOP_FIRST_D 0x6E79u      /* three contiguous addresses, each proven, docs/re/ECL_STORE_HOOK_6E79.md */
-#define PR_REC_ECL_STORE_HOOK_NOOP_LAST_D 0x6E7Bu
-#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_E 0x6E7Fu    /* proven the same way, docs/re/ECL_STORE_HOOK_6E7F.md */
-#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_F 0x6DC1u    /* proven the same way, docs/re/ECL_STORE_HOOK_6DC1.md */
+ *   store word: the hook's decision is classified for EVERY class-1 address by
+ *     pr_rec_ecl_store_hook_may_effect (docs/re/ECL_STORE_HOOK_CLASSIFIER.md): the hook can write
+ *     or call only for rel = 0x000, 0x020..0x070 and the 14 exact values 0xB8, 0xBB, 0xBD, 0xBF,
+ *     0xC1, 0xC3, 0xF7, 0xF9, 0x100, 0x10C, 0x312, 0x322, 0x324, 0x326 (96 addresses, whatever the
+ *     value); for every other rel all compares fall through to the epilogue with no DS/ES
+ *     game-state write and no call (it only adjusts its own stack argument), so the store word
+ *     returns OK after the window write. The 96 potential-effect addresses report HOOK.
+ * Load-word exceptions stay as listed above; every other class-1 load address reports HOOK. */
+#define PR_REC_ECL_STORE_HOOK_EFFECT_COUNT 96u   /* the potential-effect addresses among the 1,024 class-1 addresses */
+/* Nonzero when the store hook +0x0A74 may write game state or call for this address (class 1 is
+ * 0x6B00..0x6EFF; an address outside it was never classified and also returns nonzero). Independent of
+ * the value stored. */
+int pr_rec_ecl_store_hook_may_effect(uint16_t address);
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS 0x6DD5u
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B 0x6E7Du   /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C 0x6E82u   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E82.md */
