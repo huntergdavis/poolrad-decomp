@@ -92,8 +92,8 @@ int main(void)
       CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && st.pc == 0x9906u); }
 
     /* a class-1 selector (the load hook model): the handler completes the selection, then reports HOOK */
-    { static const uint8_t c1[] = { 0x25, 0x01, 0x40, 0x6B, 0x00, 0x02, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
-      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x40] = 1;
+    { static const uint8_t c1[] = { 0x25, 0x01, 0x18, 0x6B, 0x00, 0x02, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
+      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x18] = 1;
       CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK);
       CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK && rep.selected && st.pc == 0xA022u); }
 

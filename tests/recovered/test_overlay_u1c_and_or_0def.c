@@ -96,13 +96,13 @@ int main(void)
             }
         }
 
-    /* class-1 source (window 1, address 0x6B40): the read runs lane A's hook model: HOOK after the store */
-    { static const uint8_t s[] = { 0x2F, 0x01, 0x40, 0x6B, 0x00, 0xFF, DEST };
-      setup(s, sizeof s, 0x2F); st.window1[0x40] = 0x0055;
+    /* class-1 source (window 1, address 0x6B18): the read runs lane A's hook model: HOOK after the store */
+    { static const uint8_t s[] = { 0x2F, 0x01, 0x18, 0x6B, 0x00, 0xFF, DEST };
+      setup(s, sizeof s, 0x2F); st.window1[0x18] = 0x0055;
       CHECK(pr_u1c_op_and_or(&st, &ws, &rep) == PR_REC_ECL_HANDLER_HOOK && ws == PR_REC_ECL_WINDOW_OK);
       CHECK(rep.slot1_status == PR_REC_ECL_WINDOW_HOOK && rep.stored && st.window0[0x1C4] == 0x0055 && flags_are(0, 1, 1, 0, 1, 0)); }
-    { static const uint8_t s[] = { 0x2F, 0x00, 0xFF, 0x01, 0x40, 0x6B, DEST };        /* the same in slot 2 */
-      setup(s, sizeof s, 0x2F); st.window1[0x40] = 0x0055;
+    { static const uint8_t s[] = { 0x2F, 0x00, 0xFF, 0x01, 0x18, 0x6B, DEST };        /* the same in slot 2 */
+      setup(s, sizeof s, 0x2F); st.window1[0x18] = 0x0055;
       CHECK(pr_u1c_op_and_or(&st, NULL, &rep) == PR_REC_ECL_HANDLER_HOOK && rep.slot2_status == PR_REC_ECL_WINDOW_HOOK && st.window0[0x1C4] == 0x0055); }
 
     /* an unsupported class-4 source (address 0x00B2): UNRESOLVED; neither the compare nor the store is made; slot 2 is not read after a slot-1 stop */

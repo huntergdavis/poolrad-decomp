@@ -53,7 +53,7 @@ int main(void)
     static const uint8_t str_op[] = { 0x00, 0x80, 0x03, 0x41, 0x82, 0xC3 };      /* string operand: 3 six-bit packed bytes */
     static const uint8_t empty_op[] = { 0x00, 0x80, 0x00 };
     static const uint8_t num_op[] = { 0x00, 0x02, 0x34, 0x12 };                  /* immediate word 0x1234 */
-    static const uint8_t c1_op[] = { 0x00, 0x01, 0x40, 0x6B };                   /* window-1 variable: the load hook model */
+    static const uint8_t c1_op[] = { 0x00, 0x01, 0x18, 0x6B };                   /* window-1 variable: the load hook model */
     static const uint8_t c4_op[] = { 0x00, 0x01, 0xB2, 0x00 };                   /* unsupported class-4 address */
     unsigned latch;
     char want[8]; size_t want_len;
@@ -125,7 +125,7 @@ int main(void)
     CHECK(env.b84e4 == 0 && env.b4a00 == 1 && st.b5e25 == 7 && st.b5e24 == 7);
     /* class-1 slot read: the handler completes, then reports HOOK */
     for (latch = 0x11; latch <= 0x12; latch++) {
-        setup(c1_op, sizeof c1_op, (uint8_t)latch); env_init(&env, &rec); st.window1[0x40] = 0x0099;
+        setup(c1_op, sizeof c1_op, (uint8_t)latch); env_init(&env, &rec); st.window1[0x18] = 0x0099;
         CHECK(pr_u1c_op_print(&st, &env, &rep) == PR_U1C_PRINT_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status == PR_REC_ECL_WINDOW_HOOK);
         CHECK(rec.n == 3 && rep.value == 0x0099 && env.b4a00 == 0 && env.b84e4 == 0);
     }

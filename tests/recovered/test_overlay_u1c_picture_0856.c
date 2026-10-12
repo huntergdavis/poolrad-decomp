@@ -166,8 +166,8 @@ int main(void)
     { static const uint8_t c4ok[] = { 0x0E, 0x01, 0x4F, 0xC0 };                  /* 0xC04F = [0x6AB1], resolved by the class-4 table */
       setup(0x05, 1, 0x0001); env_init(&env, &rec); st.script = c4ok; st.script_size = sizeof c4ok; st.b6ab1 = 0x42;
       CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_OK && rep.id == 0x42 && rec.id43 == 0x42); }
-    { static const uint8_t c1[] = { 0x0E, 0x01, 0x40, 0x6B };                    /* window-1 variable: the load hook model */
-      setup(0x05, 1, 0x0001); env_init(&env, &rec); st.script = c1; st.script_size = sizeof c1; st.window1[0x40] = 0x00FF;
+    { static const uint8_t c1[] = { 0x0E, 0x01, 0x18, 0x6B };                    /* window-1 variable: the load hook model */
+      setup(0x05, 1, 0x0001); env_init(&env, &rec); st.script = c1; st.script_size = sizeof c1; st.window1[0x18] = 0x00FF;
       CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status == PR_REC_ECL_WINDOW_HOOK);
       CHECK(rep.id == 0xFF && rep.cleared && st.b84c8 == 0 && st.b84c9 == 0); }   /* the handler ran to completion first */
     /* a word value: only its low byte is the id */

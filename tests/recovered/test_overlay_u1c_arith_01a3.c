@@ -104,8 +104,8 @@ int main(void)
       memset(&st, 0, sizeof st); st.script = c4; st.script_size = sizeof c4; st.pc = 0x9900u; st.latch = 4;
       CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && rep.v1 == 1 && !rep.stored); }
     /* class-1 slot reads: the handler completes, then reports HOOK */
-    { static const uint8_t c1[] = { 0x04, 0x01, 0x40, 0x6B, 0x00, 0x02, 0x01, 0x10, 0x97 };
-      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 4; st.window1[0x40] = 5;
+    { static const uint8_t c1[] = { 0x04, 0x01, 0x18, 0x6B, 0x00, 0x02, 0x01, 0x10, 0x97 };
+      memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 4; st.window1[0x18] = 5;
       CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK);
       CHECK(rep.stored && st.window2[0x10] == 7); }
 

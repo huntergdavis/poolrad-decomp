@@ -5,8 +5,7 @@ addresses, each proven by [its own note](ECL_STORE_HOOK_0A74.md) (6E82, 6E7D, 6D
 change replaces that list with a classifier, `pr_rec_ecl_store_hook_may_effect(address)`, so the decision is made for all
 1,024 class-1 addresses at once: **HOOK exactly for the 96 addresses at which the original hook can write game
 state or call, OK for every other class-1 address**. The store hook is the one unit `0x25` routine at `+0x0A74`; the window
-write happens first and the hook is the last call (`+0x0CCE..+0x0CD5`), as before. The **load-hook** behavior is unchanged
-(its exceptions remain the separately proven addresses). No count, strict full-C or DOS/native parity is claimed; this is a
+write happens first and the hook is the last call (`+0x0CCE..+0x0CD5`), as before. The **load-hook** behavior was unchanged by that change (see [the load-hook classifier](ECL_LOAD_HOOK_CLASSIFIER.md)). No count, strict full-C or DOS/native parity is claimed; this is a
 bounded status classifier. `deja` timed out at the assigning step; the per-address notes above were reused.
 
 ## Provenance (ignored local inputs; hashes only)
