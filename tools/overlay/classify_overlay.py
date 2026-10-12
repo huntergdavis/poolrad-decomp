@@ -46,6 +46,12 @@ for _i in range(1, 16):
     DOC_GLOBALS[0x7085 + _i] = "slot_lo"
 for _i in range(6):
     DOC_GLOBALS[0x6F78 + _i] = "ecl_cmp"
+# The 28-byte DS block is cleared by game-verified ECL handler 0x1C:+0x125D
+# (explicit runtime-fill length 0x1C), read in the three game callers of
+# unit 0x7F entries 10/11, and updated alongside the active-character record.
+# Its field meanings remain unknown. See U7F_DIV5_DWORDS_ENTRY11.md.
+for _a in range(0x67F4, 0x6810):
+    DOC_GLOBALS[_a] = "shared_dwords"
 
 # Byte-verified routines (unit, unit-relative offset): docs/re/FUNCTION_LEDGER.md and
 # docs/re/ECL_CONTRACTS.md (interpreter loop, dispatcher, 49 distinct handlers).
@@ -88,6 +94,9 @@ U3BD_FIELD_ENTRY3 = (0x3BD, 0x0350)
 # PR #130 matched all paths of the active-character five-word clear and
 # unsigned divide-by-five split to the pinned DOS bytes.
 U7F_DIV5_ENTRY10 = (0x7F, 0x0130)
+# PR #132 matched all reachable 86 code bytes of entry 11. The PM's
+# independent block-ownership audit established its game-state role.
+U7F_DIV5_DWORDS_ENTRY11 = (0x7F, 0x0185)
 # PR #108 reviewed both ECL comparison helpers and decoded their Pascal
 # runtime calls; these two have strict full-C translations.
 ECL_COMPARE_HELPERS = {(0x25, 0x1815), (0x25, 0x18EB)}
@@ -105,7 +114,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x38, 0x0377), (0x38, 0x03AC), (0x38, 0x03E1),
     (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK,
     U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2,
-    U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):

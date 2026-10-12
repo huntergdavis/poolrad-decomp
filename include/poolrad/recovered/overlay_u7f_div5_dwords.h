@@ -25,12 +25,12 @@
  * loop's zeros in slots 3 and 4 are overwritten. Nothing else is written;
  * nothing is read from the block.
  * Classification: full translation of the 86 code bytes (FUNCTION_LEDGER.md
- * §1 vocabulary). Game ownership: the classifier leaves this routine
- * unresolved (no string, no documented global, no verified callee); the
- * block it writes is zero-filled with length 0x1C by a game_verified
- * routine and read by game_evidenced routines, which is recorded as
- * evidence in docs/re/U7F_DIV5_DWORDS_ENTRY11.md for the PM to weigh. No
- * strict game-function credit is claimed here. "div5" names the mechanism;
+ * §1 vocabulary). After the original PR, the PM independently confirmed
+ * that a game-verified ECL handler clears this same 28-byte block and that
+ * game callers read and update it alongside the active-character record.
+ * The block is now documented game state and this entry has strict
+ * game-function credit; see docs/re/U7F_DIV5_DWORDS_ENTRY11.md. "div5"
+ * names the mechanism;
  * what the slots hold is not asserted. No game data is embedded. */
 
 #include <stddef.h>
