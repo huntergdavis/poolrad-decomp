@@ -1441,8 +1441,8 @@ static int test_load_word_class4(void) {
     return 0;
 }
 
-/* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82 is proven to return from
- * the hook with no DS/ES game-state write and no call, so only it reports OK; every other class-1 address keeps HOOK. */
+/* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82, 0x6E7D and 0x6DE1 are proven to return from
+ * the hook with no DS/ES game-state write and no call, so only they report OK; every other class-1 address keeps HOOK. */
 static int test_store_word_6e82(void) {
     static pr_rec_ecl_loader_state st;
     unsigned a, n_effect = 0;
@@ -1464,7 +1464,7 @@ static int test_store_word_6e82(void) {
             CHECK(pr_rec_ecl_store_word(&st, hooked[i], 0x5A5A) == PR_REC_ECL_WINDOW_HOOK && st.window1[hooked[i] - 0x6B00u] == 0x5A5A);
         }
     }
-    /* sweep: exactly one class-1 address (0x6E82) returns OK; every other returns HOOK */
+    /* sweep: exactly three class-1 addresses (0x6E82, 0x6E7D, 0x6DE1) return OK; every other returns HOOK */
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
         pr_rec_ecl_window_status w = pr_rec_ecl_store_word(&st, (uint16_t)a, 1);
         CHECK((a == 0x6E82 || a == 0x6E7D || a == 0x6DE1) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
