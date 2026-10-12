@@ -1514,7 +1514,7 @@ static int test_store_word_6e82(void) {
             CHECK(pr_u25_store_hook_0a74(a2, 0x0002, record, &flags, NULL, &hr2) == PR_U25_HOOK_OK && hr2.which == PR_U25_HOOK_CASE_NONE && !hr2.callout_made);
             CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
             for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
-            CHECK(pr_rec_ecl_load_word(&st, a2, &v) == PR_REC_ECL_WINDOW_HOOK);
+            CHECK(pr_rec_ecl_load_word(&st, a2, &v) == (quiet ? PR_REC_ECL_WINDOW_OK : PR_REC_ECL_WINDOW_HOOK));   /* the load side of 0x6E7F is exempt separately (ECL_LOAD_HOOK_6E7F.md) */
         }
     }
     /* 0x6DE1 (rel 0x2E1): the write still happens, the status is OK, neighbours still HOOK */
@@ -1573,6 +1573,12 @@ static int test_load_word_6dd5(void) {
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0C0C);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0D0D);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0E0E);
+    /* 0x6E7F: OK with the host's window word; its neighbours stay HOOK; the store hook there is exempt separately and unaffected */
+    st.window1[0x37F] = 0x1515; st.window1[0x37E] = 0x1616; st.window1[0x380] = 0x1717;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E7F, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1515);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1616);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E80, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1717);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6E7F, 0x0002) == PR_REC_ECL_WINDOW_OK && st.window1[0x37F] == 0x0002);
     /* 0x6DCA: OK with the host's window word; its neighbours stay HOOK; the store hook is not exempted */
     st.window1[0x2CA] = 0x1212; st.window1[0x2C9] = 0x1313; st.window1[0x2CB] = 0x1414;
     CHECK(pr_rec_ecl_load_word(&st, 0x6DCA, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1212);
@@ -1586,7 +1592,7 @@ static int test_load_word_6dd5(void) {
     CHECK(pr_rec_ecl_load_word(&st, 0x6E83, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1111);
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
         pr_rec_ecl_window_status w = pr_rec_ecl_load_word(&st, (uint16_t)a, &v);
-        CHECK((a == 0x6DD5 || a == 0x6E7D || a == 0x6E82 || a == 0x6DCA) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+        CHECK((a == 0x6DD5 || a == 0x6E7D || a == 0x6E82 || a == 0x6DCA || a == 0x6E7F) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
     }
     /* the load stays read-only on the window; classes 0 and 2 are unchanged */
     st.window0[0x10] = 0x0102; st.window2[0x10] = 0x0304;
@@ -1633,6 +1639,14 @@ static int test_load_word_6dd5(void) {
             memset(&st, 0, sizeof st); st.script = ccb; st.script_size = sizeof ccb; st.pc = 0x9900u; st.window1[0x2CB] = 0x0001;
             memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
             CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55);
+        }
+        /* analogous synthetic ON GOTO-shaped read of 0x6E7F: a slot value from the word completes with no HOOK, 0x6E7E reports HOOK */
+        {
+            uint16_t sv = 0;
+            memset(&st, 0, sizeof st); st.tag[1] = 0x01; st.low[1] = 0x7F; st.high[1] = 0x6E; st.window1[0x37F] = 0x0001;
+            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_OK && sv == 0x0001);
+            st.low[1] = 0x7E; st.window1[0x37E] = 0x0002;
+            CHECK(pr_rec_ecl_slot_value(&st, 1, &sv) == PR_REC_ECL_WINDOW_HOOK && sv == 0x0002);
         }
         /* slot value through the load core */
         {

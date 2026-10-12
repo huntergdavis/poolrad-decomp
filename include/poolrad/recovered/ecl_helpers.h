@@ -267,7 +267,8 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     0x6DD5 (rel 0x2D5; docs/re/ECL_LOAD_HOOK_6DD5.md),
  *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md),
  *     0x6E82 (rel 0x382; docs/re/ECL_LOAD_HOOK_6E82.md) and
- *     0x6DCA (rel 0x2CA; docs/re/ECL_LOAD_HOOK_6DCA.md; load only):
+ *     0x6DCA (rel 0x2CA; docs/re/ECL_LOAD_HOOK_6DCA.md; load only) and
+ *     0x6E7F (rel 0x37F; docs/re/ECL_LOAD_HOOK_6E7F.md; load only):
  *     for each, every case compare in +0x07BC falls through, the hook clears its
  *     by-reference flag to 0 (+0x0A67) and reads and writes nothing else, and the caller
  *     (+0x0E41..+0x0E69) then reads the window word;
@@ -290,6 +291,7 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B 0x6E7Du   /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C 0x6E82u   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E82.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D 0x6DCAu   /* proven the same way, docs/re/ECL_LOAD_HOOK_6DCA.md */
+#define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_E 0x6E7Fu   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E7F.md */
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value);
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
