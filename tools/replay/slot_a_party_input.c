@@ -5,6 +5,7 @@
 #include "poolrad/recovered/overlay_u6f_party_load.h"
 
 #include <ctype.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +30,10 @@ int main(int argc, char **argv)
         return 2;
     }
     f = fopen(argv[1], "rb");
-    if (!f || fread(save, 1, sizeof save, f) != sizeof save) { fprintf(stderr, "world save unreadable\n"); return 2; }
+    if (!f || fread(save, 1, sizeof save, f) != sizeof save || fgetc(f) != EOF) {   /* exact length, no extra bytes */
+        fprintf(stderr, "world save unreadable or not exactly %u bytes\n", (unsigned)PR_U6F_SAVGAM_SIZE);
+        return 2;
+    }
     fclose(f);
     if (pr_u6f_party_plan_from_savgam(save, sizeof save, &plan) != PR_U6F_PARTY_OK) { fprintf(stderr, "plan failed\n"); return 2; }
     memset(recs, 0, sizeof recs);
@@ -40,9 +44,20 @@ int main(int argc, char **argv)
         memcpy(path, argv[2], n); path[n++] = '/';
         for (i = 0; i < plan.name_len[k]; i++) path[n++] = (char)toupper(plan.name_text[k][i]);
         memcpy(path + n, ".SAV", 5);
+        errno = 0;
         f = fopen(path, "rb");
-        if (f && fread(recbuf[k], 1, PR_U6F_PARTY_RECORD_SIZE, f) == PR_U6F_PARTY_RECORD_SIZE) { recs[k] = recbuf[k]; present++; }
-        if (f) fclose(f);
+        if (!f) {
+            if (errno == ENOENT) continue;                      /* a genuinely missing file is absent (the original's existence gate) */
+            fprintf(stderr, "slot %u record unreadable (not a missing file)\n", k);
+            return 2;
+        }
+        if (fread(recbuf[k], 1, PR_U6F_PARTY_RECORD_SIZE, f) != PR_U6F_PARTY_RECORD_SIZE || fgetc(f) != EOF) {
+            fprintf(stderr, "slot %u record present but not exactly %u bytes\n", k, (unsigned)PR_U6F_PARTY_RECORD_SIZE);
+            fclose(f);
+            return 2;
+        }
+        fclose(f);
+        recs[k] = recbuf[k]; present++;
     }
     if (pr_u6f_party_build(recs, plan.count, &party) != PR_U6F_PARTY_OK) { fprintf(stderr, "build failed\n"); return 2; }
     memset(&st, 0, sizeof st);
