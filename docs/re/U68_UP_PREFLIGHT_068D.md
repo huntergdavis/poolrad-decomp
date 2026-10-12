@@ -183,7 +183,8 @@ builds the model, the two merged unit 0x3bd sources and the test with no
 diagnostics and prints `unit 0x68 up preflight model tests passed` in
 under a second; the same with `-fsanitize=address,undefined
 -fno-sanitize-recover=all` passes; the CMake Release build has no
-warnings; `ctest` passes 41 of 41 targets on main b1ae840; the hygiene
+warnings; `ctest` passes 42 of 42 targets on main 1d0607d (after PRs
+#136/#137, rebased with no conflicts); the hygiene
 workflow's three checks pass locally.
 
 ## Limitations, stated plainly
