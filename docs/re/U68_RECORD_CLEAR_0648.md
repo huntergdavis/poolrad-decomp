@@ -10,6 +10,15 @@ cycle, and scratch guards bound malformed input. **No strict full-C or
 game-identity count is claimed before PM parity review.** The saved
 one-Up route through this routine is not established.
 
+**Postmerge ownership gate (PR #152).** PM independently decoded the full
+69-byte span and its two exact near calls. The first callee traverses the
+documented party list; the second locates byte `0x1F` in that party member's
+record, and this routine clears the matching record byte. This is a complete
+game-state mutation for valid mapped lists. Award one strict full-C game
+translation and one verified overlay identity. The live one-Up watch in
+[the later address-only note](SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md) proves the
+coordinate/clock writer, not execution of this record-clear branch.
+
 Before implementation, `deja "Poolrad unit 0x68 +0x0648 record clear +0x066D list search ABI"`
 found no prior exact trace. Reused and independently byte-checked the
 [merged record scan](U68_RECORD_SCAN_05AB.md) (PR #145) and

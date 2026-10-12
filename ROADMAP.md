@@ -15,9 +15,9 @@ the game versus library split remains open.
 The read-only DOS world-save reader now identifies the fixed ten-block frame
 and exposes the byte-verified fields needed to initialize the saved slot-A
 route. Restoring the entire game state and executing movement remain open.
-Fifty-two game-specific routines are fully translated and behavior-checked
+Fifty-seven game-specific routines are fully translated and behavior-checked
 across the overlay and resident lanes (PRs #63/#69 added twenty bounded unit
-`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, PRs #124/#126/#128 unit `0x3BD` cell, nibble and field lookups, PRs #130/#132's unit `0x7F` divide-by-five helpers, PR #136 unit `0x25` entry 19 party movement, PR #138 unit `0x68:+0x068D` Up preflight, PR #145 unit `0x68:+0x05AB` party-record scan, PR #149 unit `0x68:+0x05EE` party-list search, and PRs #70/#79 resident target reset/selection).
+`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, PRs #124/#126/#128 unit `0x3BD` cell, nibble and field lookups, PRs #130/#132's unit `0x7F` divide-by-five helpers, PR #136 unit `0x25` entry 19 party movement, PR #138 unit `0x68:+0x068D` Up preflight, PR #145 unit `0x68:+0x05AB` party-record scan, PR #149 unit `0x68:+0x05EE` party-list search, PR #152 unit `0x68:+0x0648` record clear, PR #150 four unit `0x3C6` character-slot helpers, and PRs #70/#79 resident target reset/selection).
 The PR #65 script-state initializer and PR #72 block loader remain
 path-complete models. The separately translated `0x464`
 bitmap release helper in PR #64 has unresolved game/library ownership and is
@@ -26,18 +26,18 @@ or heap semantics, two string routines have
 path-complete C translations with a provisional runtime-string cap, and five have
 extracted C cores with unresolved engine side effects. The DOS oracle reaches
 six-person exploration from a local save; a state-gated one-step move passes.
-A private exactly-one-Up native write watch measured window-0 `+0x018E: 0→1`
+The merged [native exactly-one-Up write watch](docs/re/SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md) measured window-0 `+0x018E: 0→1`
 and `+0x0190: 5→5`, with numeric screen state `15,4 N 10:50 → 14,4 N 10:51`.
 The first observed value change was unit `0x7D` entry 1 `+0x045D`, reached
 through unit `0x68:+0x07ED` ([issue #3](https://github.com/huntergdavis/poolrad-decomp/issues/3));
-same-value stores are not excluded. No native playable route exists. The active next steps are
+same-value stores are not excluded. C-native save/load/one-Up parity remains open under [issue #3](https://github.com/huntergdavis/poolrad-decomp/issues/3#issuecomment-6117868640). No native playable route exists. The active next steps are
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 104 verified identities, including
+The regenerated overlay classifier records 109 verified identities, including
 the twenty-two reviewed unit `0x38` entries, PR #65's view setter, unit
-`0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search. With
-ten verified resident identities, **114** is the current evidence-backed lower bound, not the full
+`0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, and PR #150's unit `0x3C6` entries 12–15. With
+ten verified resident identities, **119** is the current evidence-backed lower bound, not the full
 denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.

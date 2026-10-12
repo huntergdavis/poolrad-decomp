@@ -15,16 +15,18 @@ verified function inventory. For ECL, distinguish opcode mapping from handler
 implementation. Do not combine asset coverage and engine work into a single
 overall completion percentage without a measured weighting.
 
-Merged translation checkpoint through PR #149 and reviewed ownership accounting: **52 verified game-specific full C
-translations** (43 overlay, including PR #108's two ECL comparison helpers, PRs #124/#126/#128's unit `0x3BD` entries 4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` record scan, and PR #149's unit `0x68:+0x05EE` list search,
+Merged translation checkpoint through PRs #150/#152 and reviewed ownership accounting: **57 verified game-specific full C
+translations** (48 overlay, including PR #108's two ECL comparison helpers, PRs #124/#126/#128's unit `0x3BD` entries 4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` record scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's unit `0x68:+0x0648` record clear, and PR #150's four unit `0x3C6` slot helpers,
 and nine resident, including PR #79's `RES_00BA_2E8B`). PRs #65/#72's script initializer and block loader are
 models. The independently translated `0x464` helper from PR #64 has unresolved
 game/library ownership and is outside that count. The regenerated overlay
-classifier has 104 verified identities. With ten verified resident identities
-from the callable ledger, the evidence-backed game-identity floor is **114**.
+classifier has 109 verified identities. With ten verified resident identities
+from the callable ledger, the evidence-backed game-identity floor is **119**.
 PRs #96, #106 and #114 establish the class-1 hook and unit `0x3BD` entries 6 and 7 identities,
 respectively, without strict full-C credit because their callees remain unresolved.
-Refresh all of these counts before issuing a live card.
+The merged PR #153 native DOS watch establishes the first value-changing
+minute store for one saved Up; C-native replay remains open. Refresh all of
+these counts before issuing a live card.
 
 Keep the visible card in an ASCII code block with a conspicuous `*` border and
 short lines. Adapt the rows to the current evidence:

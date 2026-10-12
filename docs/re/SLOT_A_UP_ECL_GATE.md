@@ -1,5 +1,10 @@
 # Saved slot-A Up ECL gate and continuation
 
+**Later result:** [the native write watch](SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md)
+measured the `+0x18E` change and the live unit `0x68` to unit `0x7D` call.
+The script-branch audit below remains a static finding; no C-native replay
+is claimed by the watch.
+
 This note checks the restored slot-A script run entry at ECL PC `0x9914`,
 whose conditional CALL at `0x9945` was identified in [PR #136](https://github.com/huntergdavis/poolrad-decomp/pull/136).
 The result is a **bounded reachability finding**, not a native replay or a
