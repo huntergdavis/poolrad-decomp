@@ -27,6 +27,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_mode2.c
                                     src/recovered/resident_464_mode1.c
                                     src/recovered/resident_464_mode0_prefix.c
+                                    src/recovered/resident_464_mode0_primary.c
                                     src/recovered/overlay_unit38_effects.c
                                     src/recovered/resident_character_target_reset.c
                                     src/recovered/overlay_unit38_effects_next.c
@@ -590,4 +591,10 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_mode0_prefix_tests
              COMMAND poolrad_resident_464_mode0_prefix_tests)
+    add_executable(poolrad_resident_464_mode0_primary_tests
+                   tests/recovered/test_resident_464_mode0_primary.c)
+    target_link_libraries(poolrad_resident_464_mode0_primary_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_mode0_primary_tests
+             COMMAND poolrad_resident_464_mode0_primary_tests)
 endif()
