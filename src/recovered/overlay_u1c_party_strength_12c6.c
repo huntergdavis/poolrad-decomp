@@ -59,7 +59,7 @@ pr_u1c_pstr_status pr_u1c_op_party_strength(pr_rec_ecl_loader_state *st, const p
         w = (uint16_t)(w + (uint16_t)(5u * b));                        /* +0x136F..+0x137C */
         w = (uint16_t)(w + a);                                         /* +0x137E..+0x1383 */
         w = (uint16_t)(w + (uint16_t)((uint16_t)e << 2));              /* +0x138B..+0x1394 */
-        sum = (uint8_t)(sum + (uint8_t)(w / PR_U1C_PSTR_DIVISOR));     /* +0x1396..+0x139C: cdq; div 10 (dx = 0); add byte */
+        sum = (uint8_t)(sum + (uint8_t)(w / PR_U1C_PSTR_DIVISOR));     /* +0x1396..+0x139C: cwd; div 10 (dx = 0); add byte */
         ++visited;
     }
     r->visited = visited;

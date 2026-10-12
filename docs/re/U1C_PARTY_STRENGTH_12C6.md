@@ -20,13 +20,13 @@ nothing earlier for this handler.
 | `+0x1327..+0x133A` | `b > 0x3C` (unsigned `jbe`): `b := b - 0x3C`, else `b := 0` |
 | `+0x133E..+0x1351` | `c > 0x27`: `c := c - 0x27`, else `0` |
 | `+0x1355..+0x1394` | `w := (d << 3) + 5c + 5b + a + (e << 2)` (16-bit register arithmetic) |
-| `+0x1396..+0x139C` | `cdq; div 10`; `sum := sum + AL` (byte add of the low byte of the quotient) |
+| `+0x1396..+0x139C` | `cwd` (opcode `0x99`, 16-bit; `DX := 0`), `div cx` (10); `sum := sum + AL` (byte add of the low byte of the quotient) |
 | `+0x139F..+0x13B2` | `node := far pointer at +0x104 (offset) and +0x106 (segment)`; loop |
 | `+0x13B5..+0x13C2` | `dest := word([0x7086], [0x7046])` via `0x2B:0x4D` |
 | `+0x13C5..+0x13CE` | `0x2B:0x52 (dest, zero-extended sum)`, the store word call |
 
 16-bit and divide behavior: `w` is at most `255 + 5*195 + 5*216 + 8*255 + 4*255 = 5,370`,
-so no 16-bit wrap and the sign extension makes `DX = 0`; the divisor is the constant 10 (no
+so no 16-bit wrap and the `cwd` sign extension makes `DX = 0`; the divisor is the constant 10 (no
 fault). The quotient can exceed 255 (up to 537) and only its low byte is added to the
 byte accumulator, which wraps modulo 256.
 
