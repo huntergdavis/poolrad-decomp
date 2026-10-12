@@ -277,7 +277,8 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md) and
  *     0x6DE1 (rel 0x2E1; docs/re/ECL_STORE_HOOK_6DE1.md; store only, the load hook stays HOOK there) and
  *     0x6E79, 0x6E7A, 0x6E7B (rel 0x379..0x37B; docs/re/ECL_STORE_HOOK_6E79.md; store only) and
- *     0x6E7F (rel 0x37F; docs/re/ECL_STORE_HOOK_6E7F.md; store only):
+ *     0x6E7F (rel 0x37F; docs/re/ECL_STORE_HOOK_6E7F.md; store only) and
+ *     0x6DC1 (rel 0x2C1; docs/re/ECL_STORE_HOOK_6DC1.md; store only):
  *     for each, every exact and range case in +0x0A74 is missed and it returns with no
  *     DS/ES game-state write and no call (it only adjusts its own stack argument).
  * Every other class-1 address, including the quiet neighbours, still reports HOOK. */
@@ -287,6 +288,7 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
 #define PR_REC_ECL_STORE_HOOK_NOOP_FIRST_D 0x6E79u      /* three contiguous addresses, each proven, docs/re/ECL_STORE_HOOK_6E79.md */
 #define PR_REC_ECL_STORE_HOOK_NOOP_LAST_D 0x6E7Bu
 #define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_E 0x6E7Fu    /* proven the same way, docs/re/ECL_STORE_HOOK_6E7F.md */
+#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_F 0x6DC1u    /* proven the same way, docs/re/ECL_STORE_HOOK_6DC1.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS 0x6DD5u
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B 0x6E7Du   /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_C 0x6E82u   /* proven the same way, docs/re/ECL_LOAD_HOOK_6E82.md */
