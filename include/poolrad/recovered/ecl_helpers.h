@@ -248,7 +248,13 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  * returns an uninitialized local there. The class-1 hooks (+0x07BC on load,
  * +0x0A74 on store, which mirror character-record fields) are not modelled:
  * load returns HOOK for class 1 (value read from the window); store returns
- * HOOK after storing for class 1; store word's class-4 table is not modelled. */
+ * HOOK after storing for class 1 **except at address 0x6E82, where it returns OK**:
+ * the hook (unit 0x25 + 0x0A74) subtracts 0x6B00 (rel 0x382), which misses every
+ * one of its exact and range cases and returns with no DS/ES game-state write and no call
+ * (it only adjusts its own stack argument)
+ * (docs/re/ECL_STORE_HOOK_6E82.md). Every other class-1 address, including its
+ * no-op neighbours, still reports HOOK. Store word's class-4 table is not modelled. */
+#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS 0x6E82u
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
                                               uint16_t address, uint16_t *value);
 pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,

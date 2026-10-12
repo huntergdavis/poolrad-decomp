@@ -53,7 +53,7 @@ A loader result of bounds/argument, or a slot value that is BOUNDS,
 UNRESOLVED or ARGUMENT, returns at once with neither the compare nor the store
 made (the engine would use a value this model does not have; slot 2 is not
 read after a slot-1 stop). A class-1 window read (HOOK) lets the handler
-continue and reports HOOK after a successful store; a class-1 destination makes
+continue and reports HOOK after a successful store; a class-1 destination (other than 0x6E82) makes
 the store core report HOOK. The report records which slots were read, their
 statuses, and whether the compare and store were made. **No status is invented
 as success**; a host dispatching opcodes 0x2F/0x30 must treat HOOK and
@@ -69,7 +69,8 @@ addresses. After the byte-derived class-4 table of unit `0x25` `+0x0E0C`
 ([ECL_LOAD_WORD_CLASS4.md](ECL_LOAD_WORD_CLASS4.md)) `0xC04F` is `[0x6AB1]`
 zero-extended: slot 2 resolves to whatever that byte holds, the handler
 computes `0x7F and byte`, sets the six flags from comparing 0 with it, stores
-the byte to window-1 word `0x382` and reports HOOK (a class-1 destination).
+the byte to window-1 word `0x382` and now completes with OK: the class-1 store
+hook at that address is proven to make no game-state write and no call ([ECL_STORE_HOOK_6E82.md](ECL_STORE_HOOK_6E82.md)).
 **The live value of `[0x6AB1]` at that PC is state-dependent and is not
 claimed**; the tests supply every byte value 0..255 and no expected move result
 is seeded. Unsupported class-4 addresses (for example `0xC059`) stay

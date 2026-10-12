@@ -3,6 +3,7 @@
  * docs/re/FUNCTION_LEDGER.md and from independently constructed vectors. */
 
 #include "poolrad/recovered/ecl_helpers.h"
+#include "poolrad/recovered/overlay_ecl_store_hook.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -1440,6 +1441,59 @@ static int test_load_word_class4(void) {
     return 0;
 }
 
+/* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82 is proven to return from
+ * the hook with no DS/ES game-state write and no call, so only it reports OK; every other class-1 address keeps HOOK. */
+static int test_store_word_6e82(void) {
+    static pr_rec_ecl_loader_state st;
+    unsigned a, n_effect = 0;
+    static uint8_t record[PR_U25_HOOK_RECORD_SIZE];
+    pr_u25_hook_flags flags;
+    memset(&st, 0, sizeof st);
+    st.window1[0x382] = 0xAAAA; st.window1[0x381] = 0xAAAA; st.window1[0x383] = 0xAAAA;
+    CHECK(pr_rec_ecl_store_word(&st, 0x6E82, 0x1234) == PR_REC_ECL_WINDOW_OK && st.window1[0x382] == 0x1234);     /* the write still happens */
+    CHECK(st.window1[0x381] == 0xAAAA && st.window1[0x383] == 0xAAAA);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6E82, 0) == PR_REC_ECL_WINDOW_OK && st.window1[0x382] == 0);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6E82, 0xFFFF) == PR_REC_ECL_WINDOW_OK && st.window1[0x382] == 0xFFFF);
+    /* adjacent no-op addresses and every side-effectful address stay HOOK (after their window write) */
+    {
+        static const uint16_t hooked[] = { 0x6E81, 0x6E83, 0x6E80, 0x6E84, 0x6B00, 0x6B20, 0x6B70, 0x6B71, 0x6BB8, 0x6BBB, 0x6BF9,
+                                           0x6C00, 0x6C0C, 0x6E12, 0x6E22, 0x6E24, 0x6E26, 0x6EFF, 0x6B01 };
+        unsigned i;
+        for (i = 0; i < sizeof hooked / sizeof hooked[0]; ++i) {
+            st.window1[hooked[i] - 0x6B00u] = 0;
+            CHECK(pr_rec_ecl_store_word(&st, hooked[i], 0x5A5A) == PR_REC_ECL_WINDOW_HOOK && st.window1[hooked[i] - 0x6B00u] == 0x5A5A);
+        }
+    }
+    /* sweep: exactly one class-1 address (0x6E82) returns OK; every other returns HOOK */
+    for (a = 0x6B00; a <= 0x6EFF; ++a) {
+        pr_rec_ecl_window_status w = pr_rec_ecl_store_word(&st, (uint16_t)a, 1);
+        CHECK(a == 0x6E82 ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+    }
+    /* cross-check with the standalone model of the hook (+0x0A74): 0x6E82 matches no case, makes no game-state write or call, and the 96
+       addresses that do something are exactly the ones the byte-level control trace found (rel 0x000, 0x020..0x070,
+       0x0B8, 0x0BB, 0x0BD, 0x0BF, 0x0C1, 0x0C3, 0x0F7, 0x0F9, 0x100, 0x10C, 0x312, 0x322, 0x324, 0x326) */
+    memset(record, 0x77, sizeof record); memset(&flags, 0, sizeof flags);
+    {
+        pr_u25_hook_report hr;
+        CHECK(pr_u25_store_hook_0a74(0x6E82, 0x1234, record, &flags, NULL, &hr) == PR_U25_HOOK_OK && hr.which == PR_U25_HOOK_CASE_NONE && !hr.callout_made);
+        CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
+        for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
+    }
+    for (a = 0x6B00; a <= 0x6EFF; ++a) {
+        pr_u25_hook_report hr;
+        unsigned rel = a - 0x6B00u;
+        int expect = rel == 0x000u || (rel >= 0x020u && rel <= 0x070u) || rel == 0x0B8u || rel == 0x0BBu || rel == 0x0BDu ||
+                     rel == 0x0BFu || rel == 0x0C1u || rel == 0x0C3u || rel == 0x0F7u || rel == 0x0F9u || rel == 0x100u ||
+                     rel == 0x10Cu || rel == 0x312u || rel == 0x322u || rel == 0x324u || rel == 0x326u;
+        memset(record, 0x77, sizeof record); memset(&flags, 0, sizeof flags);
+        (void)pr_u25_store_hook_0a74((uint16_t)a, 0x00A5, record, &flags, NULL, &hr);
+        CHECK((hr.which != PR_U25_HOOK_CASE_NONE) == expect);
+        if (expect) ++n_effect;
+    }
+    CHECK(n_effect == 96);
+    return 0;
+}
+
 static int test_compare_words(void) {
     pr_rec_ecl_loader_state st; unsigned i;
     memset(&st, 0, sizeof st); memset(st.cmp_flags, 0xAA, sizeof st.cmp_flags);
@@ -1681,6 +1735,7 @@ int main(void) {
     rc |= test_op_load_files();
     rc |= test_load_files_composition();
     rc |= test_load_word_class4();
+    rc |= test_store_word_6e82();
     rc |= test_compare_words();
     rc |= test_compare_strings();
     rc |= test_op_compare();
