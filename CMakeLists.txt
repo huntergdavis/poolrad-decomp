@@ -8,7 +8,8 @@ set(CMAKE_C_EXTENSIONS OFF)
 add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
                                    src/formats/ecl.c src/formats/ega.c
                                    src/formats/walldef.c
-                                   src/formats/dos_character.c)
+                                   src/formats/dos_character.c
+                                   src/formats/dos_savgam.c)
 target_include_directories(poolrad_formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_sidecar_remove.c
@@ -86,6 +87,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_dos_character_tests tests/formats/test_dos_character.c)
     target_link_libraries(poolrad_dos_character_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_dos_character_tests COMMAND poolrad_dos_character_tests)
+    add_executable(poolrad_dos_savgam_tests tests/formats/test_dos_savgam.c)
+    target_link_libraries(poolrad_dos_savgam_tests PRIVATE poolrad_formats)
+    add_test(NAME poolrad_dos_savgam_tests COMMAND poolrad_dos_savgam_tests)
     add_executable(poolrad_recovered_tests tests/recovered/test_ecl_helpers.c)
     target_link_libraries(poolrad_recovered_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_recovered_tests COMMAND poolrad_recovered_tests)

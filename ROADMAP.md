@@ -12,6 +12,9 @@ contracts, recovered C helpers, and a resident called-target inventory are
 merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
+The read-only DOS world-save reader now identifies the fixed ten-block frame
+and exposes the byte-verified fields needed to initialize the saved slot-A
+route. Restoring the entire game state and executing movement remain open.
 Forty-eight game-specific routines are fully translated and behavior-checked
 across the overlay and resident lanes (PRs #63/#69 added twenty bounded unit
 `0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, PRs #124/#126/#128 unit `0x3BD` cell, nibble and field lookups, PRs #130/#132's unit `0x7F` divide-by-five helpers, and PRs #70/#79 resident target reset/selection).
