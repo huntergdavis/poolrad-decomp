@@ -35,7 +35,7 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 100)
+        self.assertEqual(len(co.VERIFIED), 101)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
@@ -66,6 +66,8 @@ class ClassifyTest(unittest.TestCase):
         self.assertTrue(all(co.DOC_GLOBALS[a] == "shared_dwords" for a in range(0x67F4, 0x6810)))
         self.assertEqual(co.ECL_COMPARE_HELPERS, {(0x25, 0x1815), (0x25, 0x18EB)})
         self.assertTrue(co.ECL_COMPARE_HELPERS <= co.VERIFIED)
+        self.assertEqual(co.U25_MOVE_ENTRY19, (0x25, 0x19DB))
+        self.assertIn(co.U25_MOVE_ENTRY19, co.VERIFIED)
 
     def test_reviewed_view_setter_only(self):
         self.assertEqual(co.VIEW_SETTER, (0x3BD, 0x0155))
