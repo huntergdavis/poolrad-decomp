@@ -63,7 +63,7 @@ selector byte.
 
 * `ds` is a host image of the data segment from offset 0 (`ds_size` bytes);
   the model reads only `0x3C76 + selector` and the computed tile address, both
-  with the original's 16-bit wrap, and returns `PR_U68_STEP_ARGUMENT` for an
+  with the original's 16-bit wrap, and returns `PR_U68_0818_ARGUMENT` for an
   address outside the image. Window 0 needs 0x346 bytes; the direction tables
   `facing + 10`. All checked before any write or hook call.
 * The string `cs:0x07F4` is read by the original only on the reached branch
@@ -72,10 +72,11 @@ selector byte.
   returns `PR_U68_0818_MESSAGE` (no hook, no write) otherwise; on every other
   path the message pointer is ignored, whatever it holds.
 * Every public name in this header carries the `PR_U68_0818_` / `pr_u68_0818_`
-  prefix; the test includes the coordinate-writer header in the same
-  translation unit as a dual-header compile check (those two headers both used
-  `PR_U68_STEP_OK`/`PR_U68_STEP_ARGUMENT` before the rename).
-* `PR_U68_STEP_HOOK`: the reached hook is `NULL`; unlike the adjacent `+0x04DF`
+  prefix. The test includes the coordinate-writer header in the same
+  translation unit as a dual-header compile check: before the rename this
+  header's status constants collided with that header's `PR_U68_STEP_OK` and
+  `PR_U68_STEP_ARGUMENT`.
+* `PR_U68_0818_HOOK`: the reached hook is `NULL`; unlike the adjacent `+0x04DF`
   model this is checked **before** the position words are written, so no effect
   is retained on that status.
 * The message hook receives the host string pointer (the original copies it to
