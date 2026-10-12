@@ -330,13 +330,17 @@ pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
     cls = pr_rec_ecl_address_class(address);
     if (cls <= 2u) {
         if (cls == 1u && state->active_record != NULL &&
-            (address == 0x6B18u || address == 0x6B9Bu)) {
-            /* +0x07D5..+0x07FC: these branches return zero-extended
-             * record[0x14] or record[0x6E] with the flag still 1. */
-            size_t offset = address == 0x6B18u ? 0x14u : 0x6Eu;
+            (address == 0x6B18u || address == 0x6B9Bu || address == 0x6BA0u)) {
+            /* +0x07D5..+0x0810: all three branches leave the flag at 1.
+             * 0x6BA0 uses CBW to sign-extend record[0x73] into AX. */
+            size_t offset = 0x73u;
+            if (address == 0x6B18u) offset = 0x14u;
+            else if (address == 0x6B9Bu) offset = 0x6Eu;
             if (state->active_record_size <= offset)
                 return PR_REC_ECL_WINDOW_BOUNDS;
             *value = state->active_record[offset];
+            if (address == 0x6BA0u && (*value & 0x80u))
+                *value = (uint16_t)(*value | 0xFF00u);
             return PR_REC_ECL_WINDOW_OK;
         }
         const uint16_t *w = window_word(state, cls, address);

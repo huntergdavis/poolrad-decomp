@@ -191,6 +191,22 @@ int main(void)
       CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_OK && rep.v1 == 21);
       CHECK(rep.slot_status[1] == PR_REC_ECL_WINDOW_BOUNDS && !rep.stored && st.window2[0x10] == 0xAAAA && st.pc == 0x9909u); }
 
+    /* 0x6BA0 sign-extends active record byte +0x73 before arithmetic. */
+    { static const uint8_t source[] = { 0x04, 0x01, 0xA0, 0x6B, 0x00, 0x01, 0x01, 0x10, 0x97 };
+      uint8_t record[0x74] = { 0 };
+      memset(&st, 0, sizeof st); st.script = source; st.script_size = sizeof source;
+      st.pc = 0x9900u; st.latch = 4; st.window1[0xA0] = 10;
+      st.active_record = record; st.active_record_size = sizeof record; record[0x73] = 0x80;
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_OK);
+      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_OK && rep.v1 == 0xFF80u && rep.v2 == 1);
+      CHECK(rep.result == 0xFF81u && rep.stored && st.window2[0x10] == 0xFF81u && st.window1[0xA0] == 10);
+      st.pc = 0x9900u; st.active_record = NULL; st.window2[0x10] = 0;
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_CORE);
+      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK && rep.v1 == 10 && st.window2[0x10] == 11);
+      st.pc = 0x9900u; st.active_record = record; st.active_record_size = 0x73u; st.window2[0x10] = 0xAAAA;
+      CHECK(pr_u1c_op_arith(&st, 0, &rep) == PR_U1C_ARITH_CORE);
+      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_BOUNDS && !rep.stored && st.window2[0x10] == 0xAAAA); }
+
     /* a latch outside 4..7: the stored word is the host's stack residue, status RESIDUE */
     setup_words(8, 1, 2, 0x9710);
     CHECK(pr_u1c_op_arith(&st, 0x1234, &rep) == PR_U1C_ARITH_RESIDUE && st.window2[0x10] == 0x1234 && rep.stored);

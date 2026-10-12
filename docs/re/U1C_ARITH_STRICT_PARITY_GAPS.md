@@ -2,7 +2,8 @@
 
 > **Update:** the `0x6B18` mismatch below describes the model before the
 > [active-record composition](U1C_ARITH_CLASS1_RECORD_6B18.md). A supplied
-> record now resolves this branch and the [next `0x6B9B` branch](ECL_LOAD_HOOK_6B9B_RECORD.md);
+> record now resolves this branch, the [`0x6B9B` branch](ECL_LOAD_HOOK_6B9B_RECORD.md),
+> and the [`0x6BA0` signed-byte branch](ECL_LOAD_HOOK_6BA0_SIGNED.md);
 > the other dependencies below remain.
 
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
