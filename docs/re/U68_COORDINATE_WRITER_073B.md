@@ -32,7 +32,7 @@ with Capstone (16-bit).
 
 | Item | Value |
 | --- | --- |
-| code extent | `+0x073B..+0x07F3` = file `0x16E06..0x16EBE`, **185 bytes, 54 instructions**, one `retf` at `+0x07F3`; SHA-256 `342da33f91df7b31ba2aa2819f3e2fc6508f9d0b6634f7f22df616788d675fc5` |
+| code extent | `+0x073B..+0x07F3` = file `0x16E06..0x16EBE`, **185 bytes, 66 instructions**, one `retf` at `+0x07F3`; SHA-256 `342da33f91df7b31ba2aa2819f3e2fc6508f9d0b6634f7f22df616788d675fc5` |
 | trailing data | `+0x07F4..+0x0817`, **36 bytes** = file `0x16EBF..0x16EE2`, SHA-256 `068ac240cc0bd037563adc671ff59de0b83af56efd85dc6b25a6b98374bd8d69`: a Pascal string constant (length byte 35, then 35 printable bytes), not code. The next routine `+0x0818` pushes `cs:+0x07F4` at `+0x0916` and calls runtime `0xAF8:0x0B0B` with it. Its text is not reproduced here. 185 + 36 = 221, the PM's bound; the ledger's own bound is 219 |
 | frame | `push bp; mov bp, sp` and **no locals** (`pop bp; retf` at the end, no `mov sp, bp`); no arguments; no result read |
 | branches | 5 forward conditionals (`+0x076A jge`, `+0x0776 jle`, `+0x0782 jge`, `+0x078E jle`, `+0x07D8 jbe`) and one `+0x07E5 jmp`; no loops |

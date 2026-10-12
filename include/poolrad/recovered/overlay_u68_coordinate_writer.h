@@ -2,7 +2,7 @@
 #define POOLRAD_RECOVERED_OVERLAY_U68_COORDINATE_WRITER_H
 
 /* Portable C model of DOS v1.3 GAME.OVR unit 0x68 internal routine
- * +0x073B..+0x07F3 (file 0x16E06, 185 bytes of code, 54 instructions, `retf`,
+ * +0x073B..+0x07F3 (file 0x16E06, 185 bytes of code, 66 instructions, `retf`,
  * no arguments, no result). The 36 bytes +0x07F4..+0x0817 up to the next
  * prologue are a Pascal string constant that the routine at +0x0818 reaches
  * with `push cs`; they are data, not part of this routine (the 221-byte
