@@ -22,7 +22,7 @@ credit is claimed.**
 
 | Item | Value |
 | --- | --- |
-| extent | unit `0x1c` (file `3,398`) `+0x0DEF..+0x0E5D` = file `0x1B35..0x1BA2`, **111 bytes, 43 instructions**, `retf` at `+0x0E5D` (the last byte); the next prologue is `+0x0E5E`, so the ledger bound is exact and there is **no trailing data**. SHA-256 `0c16bd23a8d5f91bf2131b9b8c2ae9cf785a88f919bf2f613ff6abb10f226967` (matches SLOT_A_UP_ECL_GATE.md) |
+| extent | unit `0x1c` (file `3,398`) `+0x0DEF..+0x0E5D` = file `0x1B35..0x1BA3`, **111 bytes, 43 instructions**, `retf` at `+0x0E5D` (the last byte); the next prologue is `+0x0E5E`, so the ledger bound is exact and there is **no trailing data**. SHA-256 `0c16bd23a8d5f91bf2131b9b8c2ae9cf785a88f919bf2f613ff6abb10f226967` (matches SLOT_A_UP_ECL_GATE.md) |
 | frame | `sub sp, 8`: `[bp-2]` destination word, `[bp-4]` second value, `[bp-6]` first value, `[bp-7]` result byte; no arguments, no result |
 | calls | six far calls, all unit `0x25` stubs, no near or runtime call |
 | DS reads | `[0x6F7F]` (the latched opcode), `[0x7088]` and `[0x7048]` (slot 3 low and high bytes) |

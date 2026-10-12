@@ -2,7 +2,7 @@
 #define POOLRAD_RECOVERED_OVERLAY_U1C_AND_OR_0DEF_H
 
 /* Path-complete model of DOS v1.3 GAME.OVR unit 0x1c +0x0DEF..+0x0E5D (file
- * 0x1B35..0x1BA2, exactly 111 bytes, 43 instructions, `retf`, no arguments, no
+ * 0x1B35..0x1BA3, exactly 111 bytes, 43 instructions, `retf`, no arguments, no
  * trailing data: the next prologue is +0x0E5E): the shared handler of ECL
  * opcodes 0x2F (AND) and 0x30 (OR), dispatcher cases of +0x2F2D. Evidence:
  * docs/re/U1C_AND_OR_0DEF.md.
