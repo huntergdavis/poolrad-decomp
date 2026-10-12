@@ -35,7 +35,9 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 117)
+        self.assertEqual(len(co.VERIFIED), 118)
+        self.assertEqual(co.U5E_PARTY_VALUE, (0x5E, 0x2879))
+        self.assertIn(co.U5E_PARTY_VALUE, co.VERIFIED)
         self.assertEqual(co.U9B_ENTRY_ZERO, (0x9B, 0x0000))
         self.assertIn(co.U9B_ENTRY_ZERO, co.VERIFIED)
         self.assertEqual(co.U9B_RECORD_INCR, (0x9B, 0x01AF))
