@@ -49,6 +49,25 @@ first) and an id of `0xFF` clears the picture state, refreshing the view only
 under the flag conditions. What the id values, the picture routines and the
 flags mean in game terms is **not asserted**.
 
+## Pushed argument widths (an abstraction, stated)
+
+Most arguments are pushed as `mov al, imm or [mem]; push ax`, so the high byte of
+each pushed word is whatever `AH` held at that point: the box call's six words
+(`+0x0881..+0x0890`), the id and the zero for `0x3D0:0x2A` (`+0x08D3..+0x08D9`),
+the `1` for `0x3D0:0x25` (`+0x08EC`), and the id and the window byte for
+`0x2B:0x43` (`+0x0902..+0x090B`). The `3, 3` for `0x3D0:0x25` are full words
+(`mov ax, 3`). The hooks are byte-typed (the two far-pointer words and the DS
+offset are 16-bit). Whether each callee reads only the low byte of those words
+has **not** been established, so the model does **not** claim argument parity
+for the upper bytes.
+
+## Call-site order of the hook checks
+
+Each hook is checked at its own call site: with `0x3D0:0x2A` present and
+`0x3D0:0x25` NULL, the `0x2A` call runs (and stays logged and counted) before
+the missing `0x25` hook returns `HOOK`; a missing `0x2A` stops before it, so `0x25`
+never runs.
+
 ## Status contract
 
 * Loader failure or a slot value that is BOUNDS, UNRESOLVED or ARGUMENT returns

@@ -35,6 +35,12 @@
  * stop before any effect; a class-1 slot read lets the handler finish and then
  * reports core_status HOOK, as lane A's SAVE model does.
  *
+ * Argument widths: the original pushes most of these as `mov al, imm/[mem]; push ax`, so the
+ * high byte of each pushed word is whatever AH held (not fixed here), and a few as
+ * `mov ax, imm; push ax` (the 3, 3 of 0x3D0:0x25). The hooks take byte (or the
+ * stated word) values; whether each callee reads only the low byte is NOT
+ * established, so full argument parity for the upper bytes is not claimed.
+ *
  * Classification: bounded model (path-complete over the 251 bytes with host
  * hooks for the resident box call, the picture routines of unit 0x3b9, unit
  * 0x25 entry 7 and the view refresh). Not a strict translation. It makes no

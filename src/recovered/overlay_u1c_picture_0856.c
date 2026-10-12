@@ -87,10 +87,12 @@ pr_u1c_picture_status pr_u1c_op_picture(pr_rec_ecl_loader_state *st, pr_u1c_pict
         if (st->window1[PR_U1C_PICTURE_W1_WORD] == PR_U1C_PICTURE_W1_MATCH) {   /* +0x08B7..+0x08C2 */
             if (!env->str_0852 || env->str_0852[0] > PR_U1C_PICTURE_STR1_MAX)
                 return PR_U1C_PICTURE_STRING;
-            if (!h->pic_3d0_2a || !h->pic_3d0_25)
+            if (!h->pic_3d0_2a)                                        /* +0x08DF: checked at its own call site */
                 return PR_U1C_PICTURE_HOOK;
             log_call(r, PR_U1C_PIC_CALL_2A);
             CALL(h->pic_3d0_2a(env->ctx, env, env->str_0852, id, 0, PR_U1C_PICTURE_BUFFER_DS), PR_U1C_PIC_CALL_2A);
+            if (!h->pic_3d0_25)                                        /* +0x08F7: the 2A call above has already run */
+                return PR_U1C_PICTURE_HOOK;
             log_call(r, PR_U1C_PIC_CALL_25);
             CALL(h->pic_3d0_25(env->ctx, env, 3, 3, 1, env->w6ac4, env->w6ac6), PR_U1C_PIC_CALL_25);
         } else {

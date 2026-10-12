@@ -129,6 +129,14 @@ int main(void)
     CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_HOOK && rec.n == 0 && st.b84c9 == 7);
     setup(0x05, 1, 0x00FF); env_init(&env, &rec); env.hooks.box_3f1_02e8 = NULL; env.hooks.view_3ca_25 = NULL; env.hooks.unit25_43 = NULL;
     CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_OK && rec.n == 2);   /* the box, view and entry-7 hooks are not reached */
+    /* hooks are checked at their own call sites: with 0x3D0:0x2A present and 0x3D0:0x25 NULL, the 2A call runs and stays logged */
+    setup(0x05, 1, 0x00FF); env_init(&env, &rec); env.hooks.pic_3d0_25 = NULL;
+    CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_HOOK && rec.n == 1 && rec.log[0] == PR_U1C_PIC_CALL_2A);
+    CHECK(rep.calls_n == 1 && rep.calls[0] == PR_U1C_PIC_CALL_2A && rec.s2a == S852 && rec.id2a == 0x05 && st.b84c9 == 1 && st.b84e0 == 1);
+    setup(0x05, 1, 0x00FF); env_init(&env, &rec); env.hooks.pic_3d0_2a = NULL;       /* 2A missing: stops before it; 25 never runs */
+    CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_HOOK && rec.n == 0 && rep.calls_n == 0);
+    setup(0x05, 1, 0x00FF); env_init(&env, &rec); env.hooks.pic_3d0_25 = NULL; rec.fail_call = PR_U1C_PIC_CALL_2A;   /* 2A fails first */
+    CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_CALLBACK && rep.failed_call == PR_U1C_PIC_CALL_2A && rec.n == 1);
     setup(0xFF, 1, 0); env_init(&env, &rec); env.b49f9 = 2; st.b84e0 = 1; env.hooks.view_3ca_25 = NULL;
     CHECK(pr_u1c_op_picture(&st, &env, &rep) == PR_U1C_PICTURE_HOOK && st.b84c8 == 7);
 
