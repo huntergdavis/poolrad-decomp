@@ -50,6 +50,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u7d_entry1.c
                                     src/recovered/overlay_u7d_zero.c
                                     src/recovered/overlay_u9e_entry2.c
+                                    src/recovered/overlay_u3c6_slot.c
+                                    src/recovered/overlay_u9e_0160.c
                                     src/recovered/resident_route_290b.c
                                     src/recovered/resident_field_08ef.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -285,6 +287,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u9e_entry2_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u9e_entry2_tests
              COMMAND poolrad_overlay_u9e_entry2_tests)
+    add_executable(poolrad_overlay_u9e_0160_tests
+                   tests/recovered/test_overlay_u9e_0160.c)
+    target_link_libraries(poolrad_overlay_u9e_0160_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u9e_0160_tests
+             COMMAND poolrad_overlay_u9e_0160_tests)
     add_executable(poolrad_resident_route_290b_tests
                    tests/recovered/test_resident_route_290b.c)
     target_link_libraries(poolrad_resident_route_290b_tests PRIVATE
