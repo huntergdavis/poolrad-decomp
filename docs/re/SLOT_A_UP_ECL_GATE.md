@@ -71,13 +71,13 @@ the word between the key handler and the compare. This is stronger than
 the saved-state result alone, but remains a static route rather than a
 captured guest PC trace.
 
-## Actually selected coordinate writer
+## Conditional coordinate-writer route
 
 After the run entry returns, the gameplay loop calls unit `0x68` entry 1
 at `0x1C:+0x348D` and later invokes the search entry `0x9975` at
-`0x1C:+0x34E7`. Entry 1 is unit `0x68:+0x0D6D..+0x10A7`, file
-`0x17438`, 827 bytes / 351 decoded instructions, SHA-256
-`b3fd5c1143ccc14da56fcd3c28a8f29833f701ac2fb483ea35b67260ceee1db9`.
+`0x1C:+0x34E7`. Entry 1 is unit `0x68:+0x0D6D..+0x10A6`, file
+`0x17438`, 826 bytes / 350 decoded instructions, SHA-256
+`a28055269b7373f984337022d88bfdea89993f8eb4a44ee69d6d8c23b2240c55`.
 It gates on selector 1 at `+0x0D78`, reads window-1 field `+0x592`
 at `+0x0D82`, calls unit `0x3BD` entry 3 with current x/y/facing at
 `+0x0D9E`, and, when that result is 1, takes `+0x0DA7` to its local
@@ -104,8 +104,11 @@ The ignored slot-A save has window-0 words `0x49C7=0`, `0x49C8=5`, and
 record offsets `+0x18E`, `+0x190`, and `+0x192` and passes
 `10 * word[+0x190] + word[+0x18E]` to its display callee, so the saved
 values yield 50. The DOS oracle screenshot reports the displayed minute
-changing 50→51 after Up. This screenshot does **not** identify which
-instruction wrote the underlying word or when it ran.
+changing 50→51 after Up. The merged
+[unit `0x7D` entry-1 note](U7D_ENTRY1.md) identifies its static
+write-back instruction at `+0x045D`, which rewrites those words when
+called from the coordinate writer. The screenshot does **not** prove
+that instruction ran on the saved Up route or that either word changed.
 
 The checked `0x9914` path writes neither `0x49C7` nor `0x49C8` nor
 `0x49C9`; the `0x996B` AND targets `0x6E82`. The x/y write sites above
@@ -114,12 +117,12 @@ at `0x9975` with SAVE `0xFF` to `0x6DE1`, then reaches PICTURE
 opcode `0x0E` at `0x997B` before its
 later conditional flow. Its handler/callee effects, any upstream Up-key
 time effect, and the display callee's indirect effects have not been
-traced to a write of the window-0 clock fields. **The minute writer is
-unresolved.** The next decisive evidence is a native memory write watch
+closed. **The live writer attribution remains unresolved.** The next
+decisive evidence is a native memory write watch
 on the restored window-0 record offsets `+0x18E/+0x190` during the one-Up
 oracle, with the owner instruction address and call stack recorded; an
 address-only trace would distinguish preflight, entry 1, search, and
-display-side effects. No writer is inferred from the displayed change.
+display-side effects. See [the later static writer audit](SLOT_A_MINUTE_WRITER_BOUNDARY.md).
 
 ## Reproduction and scope
 
