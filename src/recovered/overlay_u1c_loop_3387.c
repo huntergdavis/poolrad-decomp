@@ -35,9 +35,10 @@ static uint16_t get_word(const uint8_t *w, uint16_t off)
         if (rc_ != 0) { r->callback_status = rc_; r->failed_call = (callid); return PR_U1C_CALLBACK; } \
     } while (0)
 /* every access to a window is checked at that access (a hook may have changed the pointer or size) */
-#define WINDOW0_OK(st) ((st)->window0 && (st)->window0_size >= PR_U1C_WINDOW0_MIN_SIZE)
 #define WINDOW1_OK(st) ((st)->window1 && (st)->window1_size >= PR_U1C_WINDOW1_MIN_SIZE)
-#define NEED_W0(st) do { if (!WINDOW0_OK(st)) return PR_U1C_ARGUMENT; } while (0)
+/* each access needs only the bytes it touches: word +0x1E4 needs 0x1E6, word +0x1E0 needs 0x1E2, word +0x1E2 needs 0x1E4 */
+#define NEED_W0_MIN(st, n) do { if (!(st)->window0 || (st)->window0_size < (n)) return PR_U1C_ARGUMENT; } while (0)
+#define NEED_W0(st) NEED_W0_MIN(st, PR_U1C_W0_E4_MIN)
 #define NEED_W1(st) do { if (!WINDOW1_OK(st)) return PR_U1C_ARGUMENT; } while (0)
 
 pr_u1c_status pr_u1c_loop_3387(pr_u1c_state *st, pr_u1c_report *report)
@@ -65,7 +66,7 @@ L3395:
     r->last_key = key;
     st->ds_4436 = st->ds_5d92;                        /* +0x339D..+0x33A7 */
     st->ds_4438 = st->ds_5d94;
-    NEED_W0(st);                                      /* the hook may have changed window 0 */
+    NEED_W0(st);                                      /* +0x33B0 (word +0x1E4): the hook may have changed window 0 */
     put_word(st->window0, 0x1E4u, st->ds_84dc);       /* +0x33AB..+0x33B4 */
 
 L33B9:
@@ -131,9 +132,9 @@ L344C:
         goto L34F5;
     /* +0x3473..+0x34F2: movement bookkeeping */
     r->movement_passes++;
-    NEED_W0(st);                                      /* +0x3477: after the script hook */
+    NEED_W0_MIN(st, PR_U1C_W0_E0_MIN);                /* +0x3477: after the script hook; word +0x1E0 only */
     put_word(st->window0, 0x1E0u, (uint16_t)(st->party_x < 0x80u ? st->party_x : 0xFF00u | st->party_x));
-    NEED_W0(st);                                      /* +0x3484 */
+    NEED_W0_MIN(st, PR_U1C_W0_E2_MIN);                /* +0x3484: word +0x1E2 only */
     put_word(st->window0, 0x1E2u, (uint16_t)(st->party_y < 0x80u ? st->party_y : 0xFF00u | st->party_y));
     NEED(h->entry1);
     log_call(r, PR_U1C_CALL_ENTRY1);
@@ -146,12 +147,12 @@ L344C:
            the y compare runs only when x matched */
         uint32_t old_x, new_x, old_y, new_y;
         int same;
-        NEED_W0(st);                                  /* +0x3497: after entry 1 and the view call */
+        NEED_W0_MIN(st, PR_U1C_W0_E0_MIN);            /* +0x3497: after entry 1 and the view call; word +0x1E0 */
         old_x = get_word(st->window0, 0x1E0u);
         new_x = (st->party_x < 0x80u) ? st->party_x : (0xFFFFFF00u | st->party_x);
         same = (old_x == new_x);
         if (same) {
-            NEED_W0(st);                              /* +0x34B3 */
+            NEED_W0_MIN(st, PR_U1C_W0_E2_MIN);        /* +0x34B3: word +0x1E2 */
             old_y = get_word(st->window0, 0x1E2u);
             new_y = (st->party_y < 0x80u) ? st->party_y : (0xFFFFFF00u | st->party_y);
             same = (old_y == new_y);

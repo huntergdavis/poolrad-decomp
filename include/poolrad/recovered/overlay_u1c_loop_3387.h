@@ -46,7 +46,10 @@
 #include <stdint.h>
 
 #define PR_U1C_KEY_SEARCH 0x45u               /* cmp al, 0x45 after the upcase */
-#define PR_U1C_WINDOW0_MIN_SIZE 0x1E6u        /* words 0x1E0, 0x1E2, 0x1E4 */
+#define PR_U1C_WINDOW0_MIN_SIZE 0x1E6u        /* entry check and +0x33B0: word 0x1E4 */
+#define PR_U1C_W0_E4_MIN 0x1E6u               /* a word at 0x1E4 ends at 0x1E6 */
+#define PR_U1C_W0_E0_MIN 0x1E2u               /* +0x3477, +0x3497: word 0x1E0 only */
+#define PR_U1C_W0_E2_MIN 0x1E4u               /* +0x3484, +0x34B3: word 0x1E2 only */
 #define PR_U1C_WINDOW1_MIN_SIZE 0x596u        /* word 0x594 */
 #define PR_U1C_STEP_CAP 100000u               /* host guard on loop iterations */
 

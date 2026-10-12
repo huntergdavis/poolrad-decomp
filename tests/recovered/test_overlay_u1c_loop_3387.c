@@ -138,7 +138,8 @@ typedef struct {
     int exit_on_third_script, set_442f_first_script, exit_in_31b4, exit_on_first_script, exit_on_first_e3;
     int record_w594; unsigned w594_in_view, w594_in_script;
     int fail_key_at, key_calls, fail_8ae, fail_script_e5, e5_calls;
-    int kill_w0_in_key, kill_w1_in_view, kill_w0_in_view, kill_w1_in_e3, view_calls;   /* hooks that invalidate a window */
+    int kill_w0_in_key, kill_w1_in_view, kill_w0_in_view, kill_w1_in_e3, view_calls;
+    size_t shrink_w0_in_e3, shrink_w0_in_e3_to; int exit_in_e5;   /* hooks that invalidate a window */
 } Sc;
 static int sc_key(void *c, pr_u1c_state *s, uint8_t *key)
 {
@@ -161,6 +162,8 @@ static int sc_script(void *c, pr_u1c_state *s, uint16_t e)
     if (x->exit_on_first_e3 && e == s->ds_49e3) s->ds_49ff = 1;
     if (x->set_442f_first_script && i == 0) s->ds_442f = 1;
     if (x->kill_w1_in_e3 && e == s->ds_49e3) s->window1 = NULL;
+    if (x->shrink_w0_in_e3 && e == s->ds_49e3) s->window0_size = x->shrink_w0_in_e3_to;
+    if (x->exit_in_e5 && e == s->ds_49e5) s->ds_49ff = 1;
     if (e == s->ds_49e5) { x->e5_calls++; if (x->fail_script_e5 && x->e5_calls == x->fail_script_e5) { s->ds_84e0 = 9; return 4; } }
     return 0;
 }
@@ -350,6 +353,31 @@ int main(void)
         sc.keys[0] = 0x48; sc.nkeys = 1; sc.move_dx = -1; sc.kill_w1_in_e3 = 1;
         CHECK(pr_u1c_loop_3387(&st, &rep) == PR_U1C_ARGUMENT && st.window1 == NULL && rep.movement_passes == 1 && st.party_x == 14);
         CHECK(rep.iterations == 2 && sc.key_calls == 2 && rep.key_loops == 1);       /* the second prompt ran; its +0x33B9 read was refused */
+
+        /* scene 12 (exact access extents): a hook shrinks window 0 to 0x1E4 bytes: the movement-only accesses (word
+           0x1E0 needs 0x1E2, word 0x1E2 needs 0x1E4) are still valid, so the run completes (the closing script ends
+           the loop before the next +0x1E4 rewrite); at 0x1E3 the word 0x1E2 access is refused */
+        init(&st, w0, w1); memset(&sc, 0, sizeof sc);
+        st.hooks = hk; st.ctx = &sc; st.party_x = 15; st.party_y = 4; st.ds_49e3 = 0x6001; st.ds_49e5 = 0x6002; st.ds_2628 = 7;
+        sc.keys[0] = 0x48; sc.nkeys = 1; sc.move_dx = -1; sc.shrink_w0_in_e3 = 1; sc.shrink_w0_in_e3_to = 0x1E4; sc.exit_in_e5 = 1;
+        CHECK(pr_u1c_loop_3387(&st, &rep) == PR_U1C_OK && st.window0_size == 0x1E4 && rep.movement_passes == 1);
+        CHECK(rep.position_changed == 1 && sc.w8ae == 7 && st.party_x == 14 && w0[0x1E0] == 15 && w0[0x1E2] == 4 && rep.iterations == 1);
+        /* 0x1E2 (< 0x1E4): the word +0x1E2 write at +0x3484 is refused after the +0x1E0 write went through */
+        init(&st, w0, w1); memset(&sc, 0, sizeof sc);
+        st.hooks = hk; st.ctx = &sc; st.party_x = 15; st.party_y = 4; st.ds_49e3 = 0x6001; st.ds_49e5 = 0x6002;
+        w0[0x1E0] = 0; w0[0x1E2] = 0x33;
+        sc.keys[0] = 0x48; sc.nkeys = 1; sc.shrink_w0_in_e3 = 1; sc.shrink_w0_in_e3_to = 0x1E3; sc.exit_in_e5 = 1;
+        CHECK(pr_u1c_loop_3387(&st, &rep) == PR_U1C_ARGUMENT && w0[0x1E0] == 15 && w0[0x1E2] == 0x33 && rep.calls_n == 2);
+        /* 0x1E1: even the word +0x1E0 write at +0x3477 is refused */
+        init(&st, w0, w1); memset(&sc, 0, sizeof sc);
+        st.hooks = hk; st.ctx = &sc; st.party_x = 15; st.party_y = 4; st.ds_49e3 = 0x6001; w0[0x1E0] = 0x44;
+        sc.keys[0] = 0x48; sc.nkeys = 1; sc.shrink_w0_in_e3 = 1; sc.shrink_w0_in_e3_to = 0x1E1;
+        CHECK(pr_u1c_loop_3387(&st, &rep) == PR_U1C_ARGUMENT && w0[0x1E0] == 0x44 && rep.movement_passes == 1);
+        /* a window shrunk to 0x1E4 before the next iteration is refused at the +0x33B0 rewrite (word +0x1E4 needs 0x1E6) */
+        init(&st, w0, w1); memset(&sc, 0, sizeof sc);
+        st.hooks = hk; st.ctx = &sc; st.party_x = 15; st.party_y = 4; st.ds_49e3 = 0x6001; st.ds_84dc = 4; w0[0x1E4] = 0x22;
+        sc.keys[0] = 0x48; sc.keys[1] = 'x'; sc.nkeys = 2; sc.move_dx = -1; sc.shrink_w0_in_e3 = 1; sc.shrink_w0_in_e3_to = 0x1E4;
+        CHECK(pr_u1c_loop_3387(&st, &rep) == PR_U1C_ARGUMENT && rep.iterations == 2 && sc.key_calls == 2 && w0[0x1E4] == 4);
 
         /* scene 10: a reached NULL hook; the iteration cap */
         init(&st, w0, w1); memset(&sc, 0, sizeof sc);

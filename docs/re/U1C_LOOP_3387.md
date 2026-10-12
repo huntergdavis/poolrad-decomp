@@ -88,9 +88,12 @@ original first reads it at `+0x33BD`, after the `+0x3387` write, the first
 entry-2 call and the `+0x339D..+0x33B4` copies, so those effects are retained
 when window 1 is missing or short (`PR_U1C_ARGUMENT`). Because the hooks may
 change the state, **every** window access re-checks its pointer and size at
-that access: window 0 at the `+0x33B0` rewrite (after entry 2), at the
-`+0x3477`/`+0x3484` writes (after the script), and at the `+0x3497`/`+0x34B3`
-reads (after entry 1 and the view call); window 1 at the `+0x33BD` read, the
+that access, with only the extent that access touches: window 0 at the
+`+0x33B0` rewrite (after entry 2; word `+0x1E4` needs 0x1E6 bytes), at the
+`+0x3477` write and `+0x3497` read (word `+0x1E0` only: 0x1E2 bytes) and at the
+`+0x3484` write and `+0x34B3` read (word `+0x1E2` only: 0x1E4 bytes), so a hook
+that shrinks the window to 0x1E4 bytes does not stop a movement pass that the
+original would complete; window 1 at the `+0x33BD` read, the
 `+0x33EC` read, the `+0x33FB` write and the `+0x3423` restore (after the view,
 script and `+0x31B4`). A refused access returns `PR_U1C_ARGUMENT` with nothing
 dereferenced and all earlier effects retained.
@@ -117,8 +120,10 @@ movement words, the closing script after `[0x84E0]`/`[0x84E1]`); hooks that
 invalidate a window (entry 2 drops window 0 before the `+0x33B0` rewrite, the
 search-branch view drops window 1 before the `+0x3423` restore, the movement view
 drops window 0 before the `+0x3497` read, the first script drops window 1 before
-the next `+0x33BD` read); a reached `NULL` hook; the iteration cap; the upcase
-edges. Synthetic data only; clean under
+the next `+0x33BD` read); a reached `NULL` hook; the iteration cap; exact extents (a hook shrinks window 0 to 0x1E4 bytes: the
+movement pass completes and the loop exits before the next `+0x1E4` rewrite; at
+0x1E3 and 0x1E1 the `+0x1E2` and `+0x1E0` accesses are refused; at 0x1E4 the
+next iteration's `+0x33B0` rewrite is refused); the upcase edges. Synthetic data only; clean under
 AddressSanitizer and UndefinedBehaviorSanitizer; strict
 `-Wall -Wextra -Wpedantic -Werror` full build. The restatement shares my reading
 of the decode; the correspondence is the table above, not a DOS replay.
