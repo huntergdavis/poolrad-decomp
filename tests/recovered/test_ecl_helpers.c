@@ -1441,7 +1441,7 @@ static int test_load_word_class4(void) {
     return 0;
 }
 
-/* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82, 0x6E7D, 0x6DE1 and 0x6E79..0x6E7B are proven to return from
+/* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82, 0x6E7D, 0x6DE1, 0x6E79..0x6E7B and 0x6E7F are proven to return from
  * the hook with no DS/ES game-state write and no call, so only they report OK; every other class-1 address keeps HOOK. */
 static int test_store_word_6e82(void) {
     static pr_rec_ecl_loader_state st;
@@ -1456,7 +1456,7 @@ static int test_store_word_6e82(void) {
     CHECK(pr_rec_ecl_store_word(&st, 0x6E82, 0xFFFF) == PR_REC_ECL_WINDOW_OK && st.window1[0x382] == 0xFFFF);
     /* adjacent no-op addresses and every side-effectful address stay HOOK (after their window write) */
     {
-        static const uint16_t hooked[] = { 0x6E7C, 0x6E7E, 0x6E7F, 0x6E81, 0x6E83, 0x6E80, 0x6E84, 0x6B00, 0x6B20, 0x6B70, 0x6B71, 0x6BB8, 0x6BBB, 0x6BF9,
+        static const uint16_t hooked[] = { 0x6E7C, 0x6E7E, 0x6E81, 0x6E83, 0x6E80, 0x6E84, 0x6B00, 0x6B20, 0x6B70, 0x6B71, 0x6BB8, 0x6BBB, 0x6BF9,
                                            0x6C00, 0x6C0C, 0x6E12, 0x6E22, 0x6E24, 0x6E26, 0x6EFF, 0x6B01 };
         unsigned i;
         for (i = 0; i < sizeof hooked / sizeof hooked[0]; ++i) {
@@ -1464,10 +1464,10 @@ static int test_store_word_6e82(void) {
             CHECK(pr_rec_ecl_store_word(&st, hooked[i], 0x5A5A) == PR_REC_ECL_WINDOW_HOOK && st.window1[hooked[i] - 0x6B00u] == 0x5A5A);
         }
     }
-    /* sweep: exactly six class-1 addresses (0x6E82, 0x6E7D, 0x6DE1, 0x6E79..0x6E7B) return OK; every other returns HOOK */
+    /* sweep: exactly seven class-1 addresses (0x6E82, 0x6E7D, 0x6DE1, 0x6E79..0x6E7B, 0x6E7F) return OK; every other returns HOOK */
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
         pr_rec_ecl_window_status w = pr_rec_ecl_store_word(&st, (uint16_t)a, 1);
-        CHECK((a == 0x6E82 || a == 0x6E7D || a == 0x6DE1 || (a >= 0x6E79 && a <= 0x6E7B)) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+        CHECK((a == 0x6E82 || a == 0x6E7D || a == 0x6DE1 || (a >= 0x6E79 && a <= 0x6E7B) || a == 0x6E7F) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
     }
     /* cross-check with the standalone model of the hook (+0x0A74): 0x6E82 matches no case, makes no game-state write or call, and the 96
        addresses that do something are exactly the ones the byte-level control trace found (rel 0x000, 0x020..0x070,
@@ -1500,6 +1500,21 @@ static int test_store_word_6e82(void) {
             CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
             for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
             CHECK(pr_rec_ecl_load_word(&st, a2, &v) == PR_REC_ECL_WINDOW_HOOK);                  /* the load hook is not exempted there */
+        }
+    }
+    /* 0x6E7F (rel 0x37F): the write still happens, OK, the standalone hook model is quiet, neighbours 0x6E7E/0x6E80 and the load hook are not */
+    {
+        uint16_t v = 0xEEEE, a2;
+        pr_u25_hook_report hr2;
+        for (a2 = 0x6E7E; a2 <= 0x6E80; ++a2) {
+            int quiet = a2 == 0x6E7F;
+            st.window1[a2 - 0x6B00u] = 0xAAAA;
+            memset(record, 0x77, sizeof record); memset(&flags, 0, sizeof flags);
+            CHECK(pr_rec_ecl_store_word(&st, a2, 0x0002) == (quiet ? PR_REC_ECL_WINDOW_OK : PR_REC_ECL_WINDOW_HOOK) && st.window1[a2 - 0x6B00u] == 2);
+            CHECK(pr_u25_store_hook_0a74(a2, 0x0002, record, &flags, NULL, &hr2) == PR_U25_HOOK_OK && hr2.which == PR_U25_HOOK_CASE_NONE && !hr2.callout_made);
+            CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
+            for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
+            CHECK(pr_rec_ecl_load_word(&st, a2, &v) == PR_REC_ECL_WINDOW_HOOK);
         }
     }
     /* 0x6DE1 (rel 0x2E1): the write still happens, the status is OK, neighbours still HOOK */
