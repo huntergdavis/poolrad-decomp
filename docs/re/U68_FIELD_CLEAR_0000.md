@@ -82,6 +82,6 @@ out-of-view guard, and that only the one byte changes (full buffer comparison on
 a sample); three 16-bit wrap cases on a 64 KiB view (`0xFF00` + `0x0353` wraps to
 `0x0253`; `x = -1` at offset `0xFFFF`; `y = -128` at offset 0); the merged entry
 3 run on the cleared byte (the selected facing reads 0, the other three still
-read 3); the guards. About 2.9 million cases, 0.1 s, clean under AddressSanitizer
+read 3); the guards. About 2.9 million cases, 0.3 s, clean under AddressSanitizer
 and UndefinedBehaviorSanitizer. The restatement shares my reading of the decode;
 the byte-level correspondence is the table above, not a DOS replay.
