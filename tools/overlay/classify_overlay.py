@@ -106,6 +106,10 @@ U25_MOVE_ENTRY19 = (0x25, 0x19DB)
 # PR #138 matched the complete Up preflight and clamp routine against the
 # audited DOS bytes; its one overlay callee is already fully translated.
 U68_UP_PREFLIGHT = (0x68, 0x068D)
+# PR #145 matched the complete call-free record scan. PM postmerge ownership
+# review traced both near callers through the party list and its record-byte
+# clear path; see U68_RECORD_SCAN_05AB.md. Saved one-Up execution is unproved.
+U68_RECORD_SCAN = (0x68, 0x05AB)
 # Reviewed full view-parameter setter translation in FUNCTION_LEDGER.md,
 # section 1.14 (PR #65); the neighboring script initializer is a model.
 VIEW_SETTER = (0x3BD, 0x0155)
@@ -121,7 +125,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK,
     U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2,
     U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11,
-    U25_MOVE_ENTRY19, U68_UP_PREFLIGHT} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):
