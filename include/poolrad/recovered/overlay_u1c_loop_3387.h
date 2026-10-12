@@ -36,8 +36,11 @@
  * every callee (unit 0x68 entries 2 and 1, near +0x2DD3/+0x3171/+0x31B4, unit
  * 0x3b4 entry 1, resident 0x8AE:0x00DC) is an explicit hook that may change
  * the state (e.g. entry 1 moves the party); a NULL reached hook returns
- * PR_U1C_HOOK at once (effects before it are retained). No saved party tuple
- * or branch is assumed. No game-function credit is claimed. */
+ * PR_U1C_HOOK at once (effects before it are retained); every hook is
+ * fallible (nonzero = PR_U1C_CALLBACK, effects retained). Window 0 is
+ * validated at entry, window 1 only at its first reached read (+0x33BD). No
+ * saved party tuple or branch is assumed. No game-function credit is
+ * claimed. */
 
 #include <stddef.h>
 #include <stdint.h>
@@ -49,14 +52,18 @@
 
 typedef struct pr_u1c_state pr_u1c_state;
 
+/* Every hook is fallible: it returns 0 on success and nonzero when the callee could not do what the original's
+ * would have done (no key supplied, a script/view/resident call that failed). A nonzero return stops the run at
+ * once with PR_U1C_CALLBACK, keeping the callback's own effects and everything done before it. entry2_key
+ * writes *key only on success; the model never uses *key after a failure. */
 typedef struct {
-    uint8_t (*entry2_key)(void *ctx, pr_u1c_state *st);                   /* lcall 0x72:0x2A, AL */
-    void (*entry1)(void *ctx, pr_u1c_state *st);                          /* lcall 0x72:0x25 */
-    void (*near_2dd3)(void *ctx, pr_u1c_state *st);
-    void (*script_3171)(void *ctx, pr_u1c_state *st, uint16_t entry);     /* near +0x3171, one word */
-    void (*near_31b4)(void *ctx, pr_u1c_state *st);
-    void (*view_3ca_25)(void *ctx, pr_u1c_state *st);                     /* lcall 0x3CA:0x25 */
-    void (*resident_8ae_00dc)(void *ctx, pr_u1c_state *st, uint16_t word);
+    int (*entry2_key)(void *ctx, pr_u1c_state *st, uint8_t *key);          /* lcall 0x72:0x2A, AL */
+    int (*entry1)(void *ctx, pr_u1c_state *st);                            /* lcall 0x72:0x25 */
+    int (*near_2dd3)(void *ctx, pr_u1c_state *st);
+    int (*script_3171)(void *ctx, pr_u1c_state *st, uint16_t entry);       /* near +0x3171, one word */
+    int (*near_31b4)(void *ctx, pr_u1c_state *st);
+    int (*view_3ca_25)(void *ctx, pr_u1c_state *st);                       /* lcall 0x3CA:0x25 */
+    int (*resident_8ae_00dc)(void *ctx, pr_u1c_state *st, uint16_t word);
 } pr_u1c_hooks;
 
 struct pr_u1c_state {
@@ -80,8 +87,12 @@ struct pr_u1c_state {
 
 typedef enum {
     PR_U1C_OK = 0,
-    PR_U1C_ARGUMENT,   /* null state/window or a window too small. Nothing done. */
+    PR_U1C_ARGUMENT,   /* null state; window 0 null or too small (checked at entry, nothing done); or window 1
+                          null or too small, checked only where the original first reads it (+0x33BD), after
+                          the +0x3387 write, the first entry-2 call and the +0x3395..+0x33B4 copies, which are
+                          retained */
     PR_U1C_HOOK,       /* a reached hook is NULL; earlier effects are retained */
+    PR_U1C_CALLBACK,   /* a reached hook returned nonzero; its own effects and all earlier effects are retained */
     PR_U1C_LIMIT       /* more than PR_U1C_STEP_CAP key-loop or outer-loop iterations; state partly updated */
 } pr_u1c_status;
 
@@ -95,7 +106,9 @@ typedef struct {
     unsigned key_loops;       /* passes through +0x33B9 */
     unsigned movement_passes; /* times +0x3473 ran */
     unsigned position_changed;/* times 0x8AE:0x00DC was called */
-    uint8_t last_key;
+    uint8_t last_key;         /* the last key a successful entry-2 call supplied (0 before one) */
+    int callback_status;      /* the nonzero value a failing hook returned (0 otherwise) */
+    pr_u1c_call failed_call;  /* which call failed (valid when callback_status is nonzero) */
     unsigned calls_n;
     pr_u1c_call calls[256];   /* calls in order (capped; calls_n counts all) */
 } pr_u1c_report;

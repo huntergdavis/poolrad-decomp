@@ -73,9 +73,27 @@ and on what the script runner leaves in them; none of that is asserted here.
 | `0x3CA:0x25` | unit `0x3b4` entry 1 (the view refresh of GAMEPLAY_PATH.md) | |
 | `0x8AE:0x00DC` | resident, one word | p5 |
 
-The model stops explicitly: a reached `NULL` hook returns `PR_U1C_HOOK` and
-earlier effects are retained; a loop that never ends returns `PR_U1C_LIMIT`
-after 100,000 iterations (a host guard; the original has none).
+**Hooks are fallible.** Every hook returns an `int` (0 = success). `entry2_key`
+writes its key through an output pointer only on success; a nonzero return from
+any reached hook stops the run with `PR_U1C_CALLBACK` (the failing call and
+value are in the report), keeping that callback's own effects and everything
+done before it, so a failed input, script, view or resident call cannot look
+successful. A reached `NULL` hook returns `PR_U1C_HOOK` the same way; a loop that
+never ends returns `PR_U1C_LIMIT` after 100,000 iterations (a host guard; the
+original has none).
+
+**Staged window guards.** Window 0 is validated once at entry (the first
+instruction, `+0x3387`, writes it). Window 1 is **not** checked at entry: the
+original first reads it at `+0x33BD`, after the `+0x3387` write, the first
+entry-2 call and the `+0x339D..+0x33B4` copies, so those effects are retained
+when window 1 is missing or short (`PR_U1C_ARGUMENT`). Because the hooks may
+change the state, **every** window access re-checks its pointer and size at
+that access: window 0 at the `+0x33B0` rewrite (after entry 2), at the
+`+0x3477`/`+0x3484` writes (after the script), and at the `+0x3497`/`+0x34B3`
+reads (after entry 1 and the view call); window 1 at the `+0x33BD` read, the
+`+0x33EC` read, the `+0x33FB` write and the `+0x3423` restore (after the view,
+script and `+0x31B4`). A refused access returns `PR_U1C_ARGUMENT` with nothing
+dereferenced and all earlier effects retained.
 
 ## Verification
 
@@ -85,13 +103,22 @@ and `0x0100`, party bytes including `>= 0x80`, key sequences with `0x48`, `E`,
 `e`, `h`, `x`, and hooks that randomly change the party, `[0x442F]`,
 `[0x49FF]`) compare the model with a program-counter restatement of the jump
 structure on the call order, final DS state, both windows and the `0x8AE` word;
-hand-traced scenes with deterministic hooks: the Up route (exact call sequence
+a third of the generated runs inject a callback failure at a random call, and
+model and restatement must agree on the call log, the status and every byte of
+state at the stop; hand-traced scenes with deterministic hooks: the Up route (exact call sequence
 including the second prompt, the pre-move words `0x1E0/0x1E2`, the `0x8AE`
 word), an unchanged position (no `0x8AE`), `[0x442F]` set by the first script
 (`+0x31B4`, no movement pass), a coordinate byte `0x90` always changed, the
 `E`/`e` search branch, word `0x594` of 3 and 2 (saved bit, forced to 1 during
-the view and script, restored), a reached `NULL` hook, the iteration cap, and
-the argument guards; the upcase edges. Synthetic data only; clean under
+the view and script, restored); the staged guard (window 1 missing or short after
+the early effects, window 0 refused at entry); an entry-2 callback that supplies
+no key (first prompt and re-prompt); late callback failures (`0x8AE` after the
+movement words, the closing script after `[0x84E0]`/`[0x84E1]`); hooks that
+invalidate a window (entry 2 drops window 0 before the `+0x33B0` rewrite, the
+search-branch view drops window 1 before the `+0x3423` restore, the movement view
+drops window 0 before the `+0x3497` read, the first script drops window 1 before
+the next `+0x33BD` read); a reached `NULL` hook; the iteration cap; the upcase
+edges. Synthetic data only; clean under
 AddressSanitizer and UndefinedBehaviorSanitizer; strict
 `-Wall -Wextra -Wpedantic -Werror` full build. The restatement shares my reading
 of the decode; the correspondence is the table above, not a DOS replay.
