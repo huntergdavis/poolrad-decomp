@@ -7,9 +7,10 @@ node, and returns the first matching node in AX:DX or null 0:0 when
 the list ends. For finite lists with mapped far segments and readable
 next words, all decoded paths are represented. Host-only missing-view,
 cycle, scratch-capacity, and segment-view boundary guards keep malformed
-inputs bounded. **No strict full-C or game-identity count is claimed**
-before PM parity review, and the saved one-Up route through this helper
-is not established.
+inputs bounded. PM byte-parity review of PR #149 found a complete match
+for valid finite lists. The postmerge game-state audit below gives this
+routine one strict full-C game-function credit and one verified identity.
+The saved one-Up route through this helper is not established.
 
 Before implementation, `deja "Poolrad unit 0x68 +0x05EE list search +0x0614 pointer ABI no match"`
 and `deja "Poolrad 0x05EE list search"` found no prior exact trace.
@@ -68,7 +69,18 @@ then tests the returned AX:DX for null before calling scan
 entry 1 pushes the same value after a nonzero `[0x6DE0]` gate and
 branches on the returned far pointer. These are static links;
 the saved one-Up observation provides no guest PC trace showing either
-call executed. The list bytes' game meaning remains unclassified.
+call executed. The sought byte's meaning remains unclassified.
+
+**Postmerge ownership gate.** The PM independently decoded all 90 bytes and
+both near call sites against the pinned DOS build. The routine reads the
+documented party-list far pointer `[0x5D96]`, walks member links at `+0x104`,
+passes a byte to the separately verified record scan, and returns a matching
+party member. Its direct callers are unit `0x68`'s record-clear helper and
+game entry 1. This is game-state traversal. The C translation covers every
+finite valid-input path; cycle, segment-view, and scratch-capacity guards
+apply only to host error cases. Promote only `0x68:+0x05EE` to verified
+identity and award one strict full-C credit. The static callers and the
+observed one-Up store do not prove this search ran in that saved-key execution.
 
 ## Synthetic verification
 

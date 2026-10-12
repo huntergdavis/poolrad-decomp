@@ -35,7 +35,7 @@ class ClassifyTest(unittest.TestCase):
                     0x2490, 0x25A2, 0x2A6D, 0x2B63}
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES,
                          {(0x38, rel) for rel in expected})
-        self.assertEqual(len(co.VERIFIED), 103)
+        self.assertEqual(len(co.VERIFIED), 104)
         self.assertTrue(co.UNIT38_EFFECT_ENTRIES <= co.VERIFIED)
         self.assertEqual(co.UNIT38_EFFECT_ENTRIES_NEXT,
                          {(0x38, rel) for rel in (0x01C3, 0x24D9, 0x2700, 0x2A28)})
@@ -72,6 +72,8 @@ class ClassifyTest(unittest.TestCase):
         self.assertIn(co.U68_UP_PREFLIGHT, co.VERIFIED)
         self.assertEqual(co.U68_RECORD_SCAN, (0x68, 0x05AB))
         self.assertIn(co.U68_RECORD_SCAN, co.VERIFIED)
+        self.assertEqual(co.U68_LIST_SEARCH, (0x68, 0x05EE))
+        self.assertIn(co.U68_LIST_SEARCH, co.VERIFIED)
 
     def test_reviewed_view_setter_only(self):
         self.assertEqual(co.VIEW_SETTER, (0x3BD, 0x0155))
