@@ -2,19 +2,19 @@
 
 The CTO sets scope and priorities. The primary Codex session coordinates the
 project, reviews evidence, and integrates pull requests. Four worker lanes are
-defined. Active workers use isolated deep copies and exchange changes through
-the public GitHub repository. The active lanes are
-one Claude C worker, one Codex C worker, and one Codex native replay worker,
-each in an isolated copy.
-Active workers use their own branches and open pull requests; the primary
+defined. When staffed, workers use isolated deep copies and exchange changes
+through the public GitHub repository. The currently assigned lanes are one
+Claude C worker, one Codex C worker, and one Codex native replay worker, each
+in an isolated copy; temporary capacity holds are recorded in issue #3.
+Workers use their own branches and open pull requests; the primary
 session merges after review.
 
 | Lane | Owner | Delivered; current focus | Owned paths |
 | --- | --- | --- | --- |
 | A: DOS code recovery | Claude | Thirty-four full overlay translations merged through PR #108; COMPARE, IF and RETURN are bounded models, the latter merged in PR #119. Idle pending PM assignment. | `tools/overlay/`, `docs/re/`, `src/recovered/ecl_*`, `include/poolrad/recovered/ecl_*`, `tests/recovered/test_ecl_*` (no edits to Codex's resident files) |
-| B: portable data foundation and resident recovery | Codex worker (p5) | Nine full resident translations merged through PR #79. The entry-2 Up slice and coordinate-writer hook correction merged in PRs #163/#167; the bounded resident `0x8AE:0x00DC` dispatch and exact `+0x181A` leaf merged in PR #171. Current target is a reached local callee of that dispatch, with live branch evidence from lane D. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
-| C: separate overlay recovery | Claude worker 2 (p6) | Unit `0x68` entry 1 bounded model merged in PR #156, full party-byte and field-clear helpers in PRs #158/#162, bounded roll-gate and tile-step models in PRs #165/#166, and saved-state gameplay loop `0x1C:+0x3387..+0x3507` in PR #169. The reached script runner `+0x3171` already has the lane-A `pr_rec_ecl_run` callback model. Current target is the missing AND handler `0x1C:+0x0DEF`. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
-| D: native replay evidence | Codex worker 2 (p9) | Native exactly-one-Up minute and coordinate watches merged in PRs #153/#157; saved-game C restore adapter merged in PR #160 with explicit key-dispatch blocker. The native prompt key/extended-flag ABI merged in PR #170. Current target is the first reached script-runner call and its live state before/after exactly one Up. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence or synthetic replay code. |
+| B: portable data foundation and resident recovery | Codex worker (p5) | Nine full resident translations merged through PR #79. The entry-2 Up slice and coordinate-writer hook correction merged in PRs #163/#167; the bounded resident `0x8AE:0x00DC` dispatch and `+0x181A` leaf merged in PR #171. The bounded `+0x17AE` table writer merged in PR #176; whether the saved one-Up dispatch calls it remains unproved. Awaiting lane-D live branch evidence. | `src/formats/`, `include/poolrad/formats/`, `tests/formats/`, `CMakeLists.txt`, `docs/formats/`; resident-specific files under `src/recovered/`, `include/poolrad/recovered/`, `tests/recovered/`, and `docs/re/` (no edits to Claude's ECL helper files or overlay research) |
+| C: separate overlay recovery | Claude worker 2 (p6) | Unit `0x68` entry 1 bounded model merged in PR #156, full party-byte and field-clear helpers in PRs #158/#162, bounded roll-gate and tile-step models in PRs #165/#166, and saved-state gameplay loop `0x1C:+0x3387..+0x3507` in PR #169. The reached `+0x3171` script runner already has the lane-A callback model. The AND/OR handler `0x1C:+0x0DEF` and its `0xC04F` load-word source merged in PRs #175/#177. Current target is the saved search-side PICTURE handler `0x1C:+0x0856`. | New uniquely named overlay recovered source, header, test, and evidence files only; coordinate any shared CMake edit. |
+| D: native replay evidence | Codex worker 2 (p9) | Native exactly-one-Up minute and coordinate watches merged in PRs #153/#157; saved-game C restore adapter merged in PR #160 with explicit key-dispatch blocker. The native prompt key/extended-flag ABI merged in PR #170. Current target is the first reached script-runner call and its live state before/after exactly one Up; the latest watch did not reach saved gameplay, so its retry is pending. | Private `resources/` and ignored captures in its own clone; public output only address/hash/count evidence or synthetic replay code. |
 | Integration | Primary Codex session | Review PRs, maintain roadmap and issue tracker, establish DOS replay/oracle cases, track the game-function denominator in issue #24, and connect the lanes at the first playable route. | `README.md`, `ROADMAP.md`, `WORKSTREAMS.md`, `.github/`, `tools/overlay/function_evidence.py`, `docs/re/OVERLAY_FUNCTION_INVENTORY.md` |
 
 ## Shared rules
@@ -50,7 +50,10 @@ PRs #106/#114/#124/#126/#128's unit `0x3BD` entries 6/7/4/2/3, PRs #130/#132's u
 and the callable ledger records ten resident identities. The combined
 evidence-backed floor is therefore 122 game routines. The full game-function
 denominator remains open. The merged DOS one-Up watches now identify the first
-value-changing writer and the prompt return ABI; the bounded gameplay-loop and
-resident-dispatch C models still have unresolved hooks. C-native one-Up parity
-remains open at the key-dispatch, reached ECL-handler, and runtime-state
-integration gates. The `+0x3171` script runner is already a merged callback model.
+value-changing writer and the prompt return ABI; the bounded gameplay-loop,
+AND/OR, and resident-dispatch C models still have unresolved hooks. The saved
+AND/OR source `0xC04F` now resolves to host-supplied DS byte `[0x6AB1]`, whose
+live value on that route remains unmeasured. C-native one-Up parity remains open
+at the key-dispatch, reached PICTURE handler, class-1 destination hook, and
+runtime-state integration gates. The `+0x3171` script runner is already a
+merged callback model.
