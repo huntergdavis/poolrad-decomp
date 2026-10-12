@@ -12,17 +12,16 @@ static size_t physical(uint16_t segment, uint16_t offset)
 
 static uint16_t read16(const uint8_t *ram, uint16_t segment, uint16_t offset)
 {
-    size_t address = physical(segment, offset);
-    return (uint16_t)(ram[address] |
-                      ((uint16_t)ram[(address + 1u) & RAM_MASK] << 8));
+    return (uint16_t)(ram[physical(segment, offset)] |
+                      ((uint16_t)ram[physical(segment,
+                                              (uint16_t)(offset + 1u))] << 8));
 }
 
 static void write16(uint8_t *ram, uint16_t segment, uint16_t offset,
                     uint16_t value)
 {
-    size_t address = physical(segment, offset);
-    ram[address] = (uint8_t)value;
-    ram[(address + 1u) & RAM_MASK] = (uint8_t)(value >> 8);
+    ram[physical(segment, offset)] = (uint8_t)value;
+    ram[physical(segment, (uint16_t)(offset + 1u))] = (uint8_t)(value >> 8);
 }
 
 static void push16(uint8_t *ram, pr_handler_02e6_cpu *cpu, uint16_t value)

@@ -16,17 +16,14 @@ static size_t at(uint16_t seg, uint16_t off)
 
 static void put16(uint16_t seg, uint16_t off, uint16_t value)
 {
-    size_t address = at(seg, off);
-    ram[address] = (uint8_t)value;
-    ram[(address + 1u) & (PR_HANDLER_02E6_RAM_SIZE - 1u)] = (uint8_t)(value >> 8);
+    ram[at(seg, off)] = (uint8_t)value;
+    ram[at(seg, (uint16_t)(off + 1u))] = (uint8_t)(value >> 8);
 }
 
 static uint16_t get16(uint16_t seg, uint16_t off)
 {
-    size_t address = at(seg, off);
-    return (uint16_t)(ram[address] |
-                      ((uint16_t)ram[(address + 1u) &
-                                      (PR_HANDLER_02E6_RAM_SIZE - 1u)] << 8));
+    return (uint16_t)(ram[at(seg, off)] |
+                      ((uint16_t)ram[at(seg, (uint16_t)(off + 1u))] << 8));
 }
 
 static pr_handler_02e6_cpu frame(uint16_t saved_ip)
@@ -98,6 +95,46 @@ static int segment_wrap(void)
     return 0;
 }
 
+static int odd_sp_word_crossing(void)
+{
+    pr_handler_02e6_cpu cpu = frame(0x0002u);
+    size_t next_segment = (((size_t)cpu.ss << 4) + 0x10000u) &
+                          (PR_HANDLER_02E6_RAM_SIZE - 1u);
+    cpu.sp = 0x0001u;
+    cpu.bp = 0xBEEFu;
+    put16(cpu.ss, 0x0001u, 0x0002u);
+    put16(cpu.ss, 0x0003u, 0x08D0u);
+    put16(cpu.ss, 0x0005u, 0x7202u);
+    ram[next_segment] = 0xA5u;
+    CHECK(pr_resident_handler_prefix_02e6(ram, sizeof ram, &cpu) ==
+          PR_HANDLER_02E6_AT_LOADER);
+    CHECK(cpu.ip == 0x0303u && cpu.bp == 0xFFFFu);
+    CHECK(cpu.sp == 0xFFEDu);
+    CHECK(ram[at(cpu.ss, 0xFFFFu)] == 0xEFu);
+    CHECK(ram[at(cpu.ss, 0x0000u)] == 0xBEu);
+    CHECK(get16(cpu.ss, 0xFFFFu) == 0xBEEFu);
+    CHECK(ram[next_segment] == 0xA5u);
+    return 0;
+}
+
+static int saved_ip_word_crossing(void)
+{
+    pr_handler_02e6_cpu cpu = frame(0x0002u);
+    size_t next_segment = (((size_t)cpu.ss << 4) + 0x10000u) &
+                          (PR_HANDLER_02E6_RAM_SIZE - 1u);
+    cpu.sp = 0xFFFFu;
+    put16(cpu.ss, 0xFFFFu, 0x0002u);
+    put16(cpu.ss, 0x0001u, 0x08D0u);
+    put16(cpu.ss, 0x0003u, 0x7202u);
+    ram[next_segment] = 0xA5u;
+    CHECK(pr_resident_handler_prefix_02e6(ram, sizeof ram, &cpu) ==
+          PR_HANDLER_02E6_AT_LOADER);
+    CHECK(cpu.ip == 0x0303u && cpu.bx == 0x0002u);
+    CHECK(get16(cpu.ss, 0xFFFFu) == 0u);
+    CHECK(ram[next_segment] == 0xA5u);
+    return 0;
+}
+
 static int arguments(void)
 {
     pr_handler_02e6_cpu cpu = frame(0x0027u), before = cpu;
@@ -114,8 +151,9 @@ static int arguments(void)
 
 int main(void)
 {
-    if (saved_branch() || equal_branch() || segment_wrap() || arguments())
+    if (saved_branch() || equal_branch() || segment_wrap() ||
+        odd_sp_word_crossing() || saved_ip_word_crossing() || arguments())
         return 1;
-    puts("resident handler +02E6 prefix synthetic routes: 4 passed");
+    puts("resident handler +02E6 prefix synthetic routes: 6 passed");
     return 0;
 }

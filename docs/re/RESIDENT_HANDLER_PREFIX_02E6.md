@@ -61,7 +61,10 @@ those bytes to zero and does not make a native parity claim there.
 
 Focused synthetic tests cover the measured branch, the `+0303`
 zero-result branch, loaded-immediate variation, a segment-offset
-stack wrap, and invalid arguments without mutation. The branch that
+stack wrap, word access across offset `FFFF`, and invalid arguments
+without mutation. The crossing tests assert that a word's high byte
+uses the same segment at offset `0000`, leaving linear
+`segment:10000` untouched. The branch that
 stops at `+0303` has no native saved-route checkpoint; its behavior
 is instruction-derived and synthetic-tested.
 
