@@ -361,6 +361,8 @@ pr_rec_ecl_window_status pr_rec_ecl_store_word(pr_rec_ecl_loader_state *state,
             return PR_REC_ECL_WINDOW_BOUNDS;
         }
         *w = value;
+        if (cls == 0u && (address == 0x49FDu || address == 0x49FEu))
+            state->b84e8 = 1u;                 /* +0x0CA1..+0x0CAF: after the window write, for either address */
         if (cls == 1u && address != PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS)
             return PR_REC_ECL_WINDOW_HOOK;     /* +0x0CD5: call +0x0A74, which may write or call for this address */
         return PR_REC_ECL_WINDOW_OK;           /* classes 0 and 2; class 1 at 0x6E82: +0x0A74 runs with no game-state write and no call */
