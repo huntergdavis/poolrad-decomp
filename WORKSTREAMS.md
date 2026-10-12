@@ -37,18 +37,18 @@ session merges after review.
 
 The C parser audits all local DOS DAX archives, the overlay map and Ghidra
 feasibility pilot are published, and the ECL, EGA, and WALLDEF readers are merged.
-Sixty-two verified game-specific routines have strict full-C translations across the
-overlay and resident lanes: fifty-three overlay and nine resident. PR #64's
+Sixty-three verified game-specific routines have strict full-C translations across the
+overlay and resident lanes: fifty-four overlay and nine resident. PR #64's
 separate `0x464` helper has unresolved source ownership.
 Three handler/callee models have unresolved dependencies or heap semantics;
 PRs #65/#72 add separate path-complete script-state initializer and ECL block-loader models.
 Two string routines have path-complete C translations with a provisional runtime
 cap, and five more have extracted C cores whose engine side effects remain to be
-translated. The regenerated classifier records 114 verified overlay identities,
+translated. The regenerated classifier records 115 verified overlay identities,
 including PRs #63/#69's twenty unit `0x38` entries, PR #65's view setter,
-PRs #106/#114/#124/#126/#128's unit `0x3BD` entries 6/7/4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's `0x68:+0x05AB` scan, PR #149's `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, PRs #158/#159's `0x68:+0x0236` party test and `+0x0109` map updater, PR #162's `0x68:+0x0000` field clear, and PR #194's `0x9B:+0x01AF` record update,
+PRs #106/#114/#124/#126/#128's unit `0x3BD` entries 6/7/4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's `0x68:+0x05AB` scan, PR #149's `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, PRs #158/#159's `0x68:+0x0236` party test and `+0x0109` map updater, PR #162's `0x68:+0x0000` field clear, PR #194's `0x9B:+0x01AF` record update, and PR #276's `0x9B:+0x0255` table leaf,
 and the callable ledger records ten resident identities. The combined
-evidence-backed floor is therefore 124 game routines. The full game-function
+evidence-backed floor is therefore 125 game routines. The full game-function
 denominator remains open. The merged DOS one-Up watches now identify the first
 value-changing writer and the prompt return ABI; the bounded gameplay-loop,
 AND/OR, and resident-dispatch C models still have unresolved hooks. The saved
