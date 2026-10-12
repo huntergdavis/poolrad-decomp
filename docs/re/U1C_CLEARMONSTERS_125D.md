@@ -18,20 +18,24 @@ host boundary; no strict full-C, count, identity, DOS/native or one-Up parity cl
 | `+0x12A2..+0x12AE` | `FreeMem(head, 0x3F)` via `0xAF8:0x0254`: pushes the segment word, the offset word, then the size `0x3F` |
 | `+0x12B3..+0x12C0` | `head := link`; loop; at the end `mov sp,bp; pop bp; retf` |
 
-Resident routines (decoded from the START.EXE expanded image at `0xAF80 + off`): `0xAF8:0x16A8` (image `0xC628`, 32 bytes, `retf 8`) is `les di,[far]; mov cx,[count];
+Resident routines (decoded from the START.EXE expanded image at `0xAF80 + off`): `0xAF8:0x16A8` (image `0xC628..0xC63B`, **20 bytes**, `retf 8` at `0xC63B`; the next routine starts at `0xC63C`) is `les di,[far]; mov cx,[count];
 mov al,[value]; cld; rep stosb`, the Pascal `FillChar`, translated exactly: the 28 bytes at `DS:0x67F4..0x680F` become 0 and **the head words at `0x6810..0x6813` are
-not part of the block**. `0xAF8:0x0254` (image `0xB1D4`, 92 bytes) is `FreeMem`: it calls the heap-manager routine at `0xAF8:0x03D3` and treats carry as runtime error 204
+not part of the block**. `0xAF8:0x0254` (image `0xB1D4..0xB1ED`, **26 bytes**: success `retf 6` at `0xB1E5`, then the carry branch `mov ax,0xCC; jmp 0xB062`; the next routine starts at `0xB1EE`) is `FreeMem`: it makes a near call to the heap manager at image `0xB353` (`0xAF8:0x03D3`) and treats carry as runtime error 204
 (`mov ax,0xCC`); the heap manager is not decoded and is the model's explicit boundary.
 
 ## Model
 
-`pr_u1c_op_clearmonsters` (`overlay_u1c_clearmonsters_125d.{h,c}`): the PC advances first, the three DS bytes are set and the 28-byte DS block (host state) is zeroed, then each
-list node (explicit host state: view, far offset, next link at `+0x2A/+0x2C`; a view too small for the four link bytes or a cyclic list is a host guard, LIST status) is passed to the
-fallible hook `free_af8_0254(node, 0x3F)` in list order, the link having been read first; the head advances only after a successful free (missing hook: HOOK status;
-nonzero return: CALLBACK status; the earlier frees, the zero fill and the DS bytes stand). No heap parity is claimed.
+`pr_u1c_op_clearmonsters` (`overlay_u1c_clearmonsters_125d.{h,c}`): the PC advances first, the three DS bytes are set and the 28-byte DS block (host state) is zeroed. The head is the
+raw word pair `[0x6810]` (offset), `[0x6812]` (segment); both zero means nil, one zero word alone does not. For each non-nil pair the host's **node table** (segment identity + offset)
+supplies the node bytes (an unmapped non-nil pair is the status UNMAPPED, reported when the loop reaches it); the node's **raw link words are decoded from its bytes at `+0x2A` and `+0x2C`
+(little-endian, byte addresses wrapping at 16 bits) before the free**, the fallible hook `free_af8_0254(node, 0x3F)` is called, and only after a success are the head words replaced by the decoded
+link (missing hook: HOOK status; nonzero return: CALLBACK status; the earlier frees, the zero fill and the DS bytes stand). A view too small for the four link bytes or a cycle (a cap) is a host guard (LIST).
+The heap manager and the pointer-to-bytes mapping are the explicit bounded boundaries; no heap parity is claimed.
 
-Tests (`test_overlay_u1c_clearmonsters_125d.c`) are fully synthetic: lists of 0..6 nodes (free order, size argument, head left nil, the zero fill of exactly 28 bytes,
-the three DS bytes, the PC advance and wrap, nodes unmodified), a failing hook mid-list, a missing hook, the link-view guards (including a 16-bit offset wrap) and a cycle.
+Tests (`test_overlay_u1c_clearmonsters_125d.c`) are fully synthetic, with **real encoded link bytes** (the segments are otherwise filled with `0x5A` garbage that must never be followed): lists of 0..6 nodes (free order,
+size argument, head words nil, the zero fill of exactly 28 bytes, the three DS bytes, the PC advance and wrap, nodes unmodified); a list whose raw links give a free order different from the table order; deliberately
+inconsistent mappings (right segment with wrong offset, right offset with wrong segment, a single zero word, an unmapped head), each stopping UNMAPPED with the head words holding the raw link; a failing hook mid-list
+(head stays at that node), a missing hook, the link-view guards, a cycle, and the 16-bit wrap of the link byte addresses.
 
 ## Private supplied-state probe (documented, not committed)
 
