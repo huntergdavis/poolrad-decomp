@@ -1558,9 +1558,14 @@ static int test_load_word_6dd5(void) {
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0C0C);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0D0D);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0E0E);
+    /* 0x6E82: OK with the host's window word; its neighbours stay HOOK */
+    st.window1[0x382] = 0x0F0F; st.window1[0x381] = 0x1010; st.window1[0x383] = 0x1111;
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E82, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0F0F);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E81, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1010);
+    CHECK(pr_rec_ecl_load_word(&st, 0x6E83, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1111);
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
         pr_rec_ecl_window_status w = pr_rec_ecl_load_word(&st, (uint16_t)a, &v);
-        CHECK((a == 0x6DD5 || a == 0x6E7D) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+        CHECK((a == 0x6DD5 || a == 0x6E7D || a == 0x6E82) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
     }
     /* the load stays read-only on the window; classes 0 and 2 are unchanged */
     st.window0[0x10] = 0x0102; st.window2[0x10] = 0x0304;
@@ -1585,6 +1590,17 @@ static int test_load_word_6dd5(void) {
             memset(&st, 0, sizeof st); st.script = h; st.script_size = sizeof h; st.pc = 0x9900u;
             memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
             CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55 && st.cmp_flags[5] == 0x55);
+        }
+        /* an analogous synthetic compare of the word 0x6E82 with an immediate byte: OK, flags from the window word as held */
+        {
+            static const uint8_t c82[] = { 0x03, 0x01, 0x82, 0x6E, 0x00, 0x07 };
+            static const uint8_t c81[] = { 0x03, 0x01, 0x81, 0x6E, 0x00, 0x07 };
+            memset(&st, 0, sizeof st); st.script = c82; st.script_size = sizeof c82; st.pc = 0x9900u; st.window1[0x382] = 0x0007;
+            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_OK && st.pc == 0x9906u && st.cmp_flags[0] == 1 && st.cmp_flags[1] == 0);
+            memset(&st, 0, sizeof st); st.script = c81; st.script_size = sizeof c81; st.pc = 0x9900u; st.window1[0x381] = 0x0007;
+            memset(st.cmp_flags, 0x55, sizeof st.cmp_flags);
+            CHECK(pr_rec_ecl_op_compare(&st) == PR_REC_ECL_HANDLER_HOOK && st.cmp_flags[0] == 0x55);
         }
         /* slot value through the load core */
         {
