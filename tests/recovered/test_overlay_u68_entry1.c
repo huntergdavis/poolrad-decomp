@@ -57,14 +57,19 @@ static const pr_u68_e1_hooks hooks = { h_0000, h_0236, h_0294, h_04df, h_05ee, h
 /* adapter: +0x073B = the merged coordinate writer, run on the entry-1 state */
 typedef struct { uint8_t tab[265]; uint8_t win[0x800]; const uint8_t *buf; unsigned runs; uint8_t x_before, y_before; } W73;
 typedef struct { H h; W73 w; } Combo;      /* H first: the other hooks cast ctx to H * */
+static int writer_resident(void *c, uint16_t word) { (void)c; (void)word; return 0; }
+static int writer_u7d(void *c, uint16_t first, uint16_t second)
+{ (void)c; (void)first; (void)second; return 0; }
 static void run_writer(void *c, pr_u68_e1_state *s)
 {
     W73 *w = &((Combo *)c)->w; pr_u68_step_state ws; pr_u68_step_report wr;
+    pr_u68_step_hooks wh = { writer_resident, writer_u7d, NULL };
     memset(&ws, 0, sizeof ws);
     ws.party_x = s->party_x; ws.party_y = s->party_y; ws.facing = s->facing;
     ws.window1 = w->win; ws.window1_size = sizeof w->win;
     ws.direction_table = w->tab; ws.direction_table_size = sizeof w->tab;
     ws.map_id = s->field.map_id; ws.buffer = w->buf;
+    ws.hooks = &wh;
     w->x_before = s->party_x; w->y_before = s->party_y;
     if (pr_u68_step_coordinate_writer(&ws, &wr) == PR_U68_STEP_OK) {
         s->party_x = ws.party_x; s->party_y = ws.party_y;

@@ -7,9 +7,9 @@ it by `push cs; call +0x073B` at `+0x102E` when its local movement flag
 position**: it adds a facing-indexed step from two data-segment byte tables to
 `[0x6AAD]` / `[0x6AAE]`, wraps the result into 0..15, then refreshes three
 lookup results and notifies unit `0x7d`. Classification: **path-complete
-model** of the 185 code bytes with the two unmerged far callees as explicit
-host hooks. **No game-function credit is claimed**; the PM decides the
-accounting. This note does not claim the full slot-A route.
+model** of the 185 code bytes with the resident and unit `0x7d` external
+effects as required host hooks. **No game-function credit is claimed**;
+the PM decides the accounting. This note does not claim the full slot-A route.
 
 `deja "Poolrad unit 0x68 +0x073B coordinate writer entry1 0x102E"` found
 only this session's own prompt. Reused with citation and re-checked here:
@@ -19,6 +19,13 @@ semantics, unit provenance); the merged unit `0x3bd` entries 2 and 4
 ([U3BD_NIBBLE_ENTRY2.md](U3BD_NIBBLE_ENTRY2.md),
 [U3BD_CELL_ENTRY4.md](U3BD_CELL_ENTRY4.md)); GAMEPLAY_PATH.md for the
 entry-1 movement bookkeeping row (resident `0x8AE:0x00DC`, party bytes).
+The hook-contract correction ran `deja "Poolrad 073B coordinate writer"`;
+it found the prior Claude p6 coordinate-writer session and PR #142. This
+follow-up rechecked that work against the ignored hash-locked span and the
+merged [one-Up native write watch](SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md),
+then changed only the C host-boundary contract. The native watch observes
+the bit-clear `+0x07ED` call into unit `0x7d`; it does not establish C-native
+saved-route parity.
 
 ## Provenance (ignored local inputs; hashes only)
 
@@ -33,7 +40,7 @@ with Capstone (16-bit).
 | Item | Value |
 | --- | --- |
 | code extent | `+0x073B..+0x07F3` = file `0x16E06..0x16EBE`, **185 bytes, 66 instructions**, one `retf` at `+0x07F3`; SHA-256 `342da33f91df7b31ba2aa2819f3e2fc6508f9d0b6634f7f22df616788d675fc5` |
-| trailing data | `+0x07F4..+0x0817`, **36 bytes** = file `0x16EBF..0x16EE2`, SHA-256 `068ac240cc0bd037563adc671ff59de0b83af56efd85dc6b25a6b98374bd8d69`: a Pascal string constant (length byte 35, then 35 printable bytes), not code. The next routine `+0x0818` pushes `cs:+0x07F4` at `+0x0916` and calls runtime `0xAF8:0x0B0B` with it. Its text is not reproduced here. 185 + 36 = 221, the PM's bound; the ledger's own bound is 219 |
+| trailing data | `+0x07F4..+0x0817`, **36 bytes** = file `0x16EBF..0x16EE2`, SHA-256 `068ac240cc0bd037563adc671ff59de0b83af56efd85dc6b25a6b98374bd8d69`: a Pascal string constant (length byte 35, then 35 printable bytes), not code. The next routine `+0x0818` pushes `cs:+0x07F4` at `+0x0916` and calls runtime `0xAF8:0x0B0B` with it. Its text is not reproduced here. 185 + 36 = 221, the ledger span bound; its `decoded=219` estimate crosses this data and is not the code length |
 | frame | `push bp; mov bp, sp` and **no locals** (`pop bp; retf` at the end, no `mov sp, bp`); no arguments; no result read |
 | branches | 5 forward conditionals (`+0x076A jge`, `+0x0776 jle`, `+0x0782 jge`, `+0x078E jle`, `+0x07D8 jbe`) and one `+0x07E5 jmp`; no loops |
 | near callers | one: `+0x102E` (entry 1). A scan of every `call rel16` in the unit whose target is `+0x073B` finds only that site, preceded by `push cs` |
@@ -63,9 +70,38 @@ with Capstone (16-bit).
 for entry 1, so `0x2A` = entry 2 and `0x34` = entry 4, matching the nibble and
 cell notes' caller rows). Stub segment `0x8C` is unit `0x7d` (the inventory
 row `0x7d`, stub paragraph `0x8C`); `0x8C:0x25` is its entry 1 at `+0x03D5`
-(ledger: 165 bytes, 8 far callers). It is **not translated** in this tree.
-Resident `0x8AE:0x00DC` is also untranslated and unresolved. Both are
-behind hooks; neither's effects are asserted. They are the call boundaries.
+(ledger: 165 bytes, 8 far callers). Its bounded model is merged in
+[U7D_ENTRY1.md](U7D_ENTRY1.md), but this routine leaves the callee's
+window-0/list effects to a host hook. Resident `0x8AE:0x00DC` is unresolved.
+Both hooks are required when reached and must return zero on completion;
+their effects are not fabricated by this C routine.
+
+## Reached host boundaries
+
+The original performs unchecked reads and calls in order. The portable
+model checks host memory **at the first reached operation**. It reports
+`PR_U68_STEP_ARGUMENT` for missing/short host memory, `PR_U68_STEP_HOOK`
+for a missing or nonzero-returning reached external callback, and
+`PR_U68_STEP_LOOKUP` when a merged unit `0x3bd` callee reports
+`ARGUMENT`. The optional report's `stop_offset` is the first failed unit
+offset, or `+0x07F4` after a successful `RETF`. Earlier calls and stores
+remain visible on every failure. A null state stops at `+0x073B` before
+any effect.
+
+| First failed operation | Reached effects retained |
+| --- | --- |
+| `+0x0742` resident callback | no later party or lookup writes; callback effects, if it ran, remain |
+| `+0x074E` direction x read | resident callback already completed |
+| `+0x075D` direction y read | resident callback and x byte addition already completed |
+| `+0x07A1` merged entry-2 lookup | x/y additions and wrap already stored; `[0x6AB0]` not overwritten |
+| `+0x07C2` merged entry-4 lookup | entry-2 result and the three-byte fill already stored; `[0x6AB1]` not overwritten |
+| `+0x07CE` window-1 word read | both lookups and fill already stored |
+| `+0x07E0` or `+0x07ED` unit `0x7d` callback | all local writes completed; the callback's reached effects remain even if it returns nonzero |
+
+For an unrecognised facing, merged entry 2 returns its explicitly supplied
+stack-residue byte with status `UNSPECIFIED`. That is a provenance marker,
+not a missing-memory failure; this routine stores that byte and continues
+to entry 4, as the DOS path does. The report retains entry 2's marker.
 
 **State effects, exactly.** Stored: `[0x6AAD]`, `[0x6AAE]` (the stepped,
 wrapped position), `[0x6AB0]`, `[0x6AB1]`, `DS:0x6DDE..0x6DE0 = 1,1,1`.
@@ -131,4 +167,8 @@ two map ids and both values of the window bit. It checks the stored position,
 `[0x6AB0]`/`[0x6AB1]`, the 1,1,1 fill, hook order (resident first, unit `0x7d`
 last), the hook words (`[0x2628]`; `(1, 2)` or `(1, 1)`), that window 1 is
 untouched, pinned wrap cases (15+1 → 0, 0−1 → 15, 127+1 → 15, 0x10+1 → 0)
-and that every ARGUMENT guard leaves state untouched with no hook run.
+and the earlier effects at each missing/failing hook, short direction
+table, missing lookup buffer, and short window. The connected entry-1 test
+now installs explicit synthetic host callbacks rather than relying on
+silent null-hook success. Strict status tests do not claim native one-Up
+parity or a new full-C count.
