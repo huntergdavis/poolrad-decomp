@@ -125,6 +125,9 @@ U68_MAP_UPDATE = (0x68, 0x0109)
 # comparisons and 16-bit far-offset wrapping. Entry 1 calls it with indices
 # 5 and 6 while constructing movement messages.
 U68_PARTY_BYTE = (0x68, 0x0236)
+# PR #162 matched all 112 instructions of the call-free field clear. It
+# clears the selector's two-bit cell field in the game map buffer at [0x6A5C].
+U68_FIELD_CLEAR = (0x68, 0x0000)
 # PR #150 matched four complete unit 0x3c6 slot-table accessors. Their DS
 # tables contain party-character far pointers and per-slot game-state bytes;
 # unit 0x9e:+0x0160 calls all four in its character-sidecar path.
@@ -145,7 +148,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2,
     U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11,
     U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN, U68_LIST_SEARCH,
-    U68_RECORD_CLEAR, U68_MAP_UPDATE, U68_PARTY_BYTE} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U68_RECORD_CLEAR, U68_MAP_UPDATE, U68_PARTY_BYTE, U68_FIELD_CLEAR} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):

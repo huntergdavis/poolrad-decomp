@@ -24,7 +24,7 @@ prologue, after a digest check of `GAME.OVR`:
 | string constants | `mov di,imm16; push cs; push di` where `imm16` addresses a length-prefixed, fully printable byte string inside the unit's own code segment (Turbo Pascal typed string constant) | 216 (664 references) |
 | documented engine globals | DS-relative operands equal to byte-verified engine state addresses from the ledgers and contracts (ECL PC, buffer, opcode latch, stop flags, call stack, compare flags, operand slots, the three windows, party and active-character pointers, shared dword block, window state, the procedure variable) | 249 |
 | calls into verified routines | direct near calls, or far calls through entry slots, to a byte-verified routine | 116 |
-| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the reviewed unit 0x25 helpers, the window initializer, five unit 0x38 entries and the unit `0x3bd:0x0155` view setter in [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md), sixteen unit 0x38 entries in [OVERLAY_UNIT38_EFFECT_ENTRIES.md](OVERLAY_UNIT38_EFFECT_ENTRIES.md) (PR #63), four more in [OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md](OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md) (PR #69), and entries 81 and 110 in [OVERLAY_UNIT38_WALK_ENTRIES.md](OVERLAY_UNIT38_WALK_ENTRIES.md) (PR #85), plus the class-1 store hook (PR #96), unit `0x3bd:+0x0e08` (PR #106), two comparison helpers (PR #108), unit `0x3bd:+0x10c7` (PR #114), unit `0x3bd:+0x057a` (PR #124), unit `0x3bd:+0x047b` (PR #126), unit `0x3bd:+0x0350` (PR #128), unit `0x7f:+0x0130` (PR #130) and `+0x0185` (PR #132, ownership reviewed after merge), unit `0x25:+0x19db` (PR #136), and unit `0x68:+0x068d` (PR #138), `+0x05ab` (PR #145) and `+0x05ee` (PR #149, ownership reviewed after merge), `+0x0648` (PR #152, ownership reviewed after merge), and unit `0x3c6` entries 12–15 (PR #150, ownership reviewed after merge), and unit `0x68:+0x0236` (PR #158) and `+0x0109` (PR #159, both ownership reviewed after merge) | 111 |
+| verified routine | the routine itself is byte-verified: the ECL loop, dispatcher and its 49 handlers, the reviewed unit 0x25 helpers, the window initializer, five unit 0x38 entries and the unit `0x3bd:0x0155` view setter in [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md), sixteen unit 0x38 entries in [OVERLAY_UNIT38_EFFECT_ENTRIES.md](OVERLAY_UNIT38_EFFECT_ENTRIES.md) (PR #63), four more in [OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md](OVERLAY_UNIT38_EFFECT_ENTRIES_NEXT.md) (PR #69), and entries 81 and 110 in [OVERLAY_UNIT38_WALK_ENTRIES.md](OVERLAY_UNIT38_WALK_ENTRIES.md) (PR #85), plus the class-1 store hook (PR #96), unit `0x3bd:+0x0e08` (PR #106), two comparison helpers (PR #108), unit `0x3bd:+0x10c7` (PR #114), unit `0x3bd:+0x057a` (PR #124), unit `0x3bd:+0x047b` (PR #126), unit `0x3bd:+0x0350` (PR #128), unit `0x7f:+0x0130` (PR #130) and `+0x0185` (PR #132, ownership reviewed after merge), unit `0x25:+0x19db` (PR #136), and unit `0x68:+0x068d` (PR #138), `+0x05ab` (PR #145) and `+0x05ee` (PR #149, ownership reviewed after merge), `+0x0648` (PR #152, ownership reviewed after merge), and unit `0x3c6` entries 12–15 (PR #150, ownership reviewed after merge), and unit `0x68:+0x0236` (PR #158) and `+0x0109` (PR #159, both ownership reviewed after merge), and `+0x0000` (PR #162, PM parity reviewed) | 112 |
 | leaf | no calls and no DS-relative globals | 70 |
 | runtime-only | every call goes to the SYSTEM segment 0xAF8, no DS-relative globals | 16 |
 
@@ -32,13 +32,13 @@ prologue, after a digest check of `GAME.OVR`:
 
 | class | rule (applied in this order) | confidence | count |
 | --- | --- | --- | ---: |
-| `game_verified` | verified routine | verified (identity and role; semantics verified for the translated subset in FUNCTION_LEDGER.md and both unit 0x38 effect-entry notes) | 111 |
+| `game_verified` | verified routine | verified (identity and role; semantics verified for the translated subset in FUNCTION_LEDGER.md and both unit 0x38 effect-entry notes) | 112 |
 | `game_evidenced` | string constant, documented engine global, or call into a verified routine | provisional: printable text and engine state are evidence of application code, not proof of game logic | 313 |
 | `helper_candidate` | leaf or runtime-only, no strings, no DS globals, not verified | provisional: small utilities; a leaf can still be game arithmetic | 79 |
-| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 170 |
+| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 169 |
 
-By evidence grade from the function ledger: `game_verified` 48 A, 62 B, 1 D; `game_evidenced`
-191 A, 121 B, 1 D; `helper_candidate` 58 A, 21 B; unresolved 105 A, 65 B.
+By evidence grade from the function ledger: `game_verified` 48 A, 63 B, 1 D; `game_evidenced`
+191 A, 121 B, 1 D; `helper_candidate` 58 A, 21 B; unresolved 105 A, 64 B.
 The sixteen PR #63 IDs are distinct from the prior verified set and promote
 fifteen unresolved rows and one helper candidate. The generated CSV records
 each exact ID, with no changes to measured call or byte-signal columns.
@@ -119,10 +119,15 @@ roles. The classifier promotes the party test from provisional and the map
 updater from unresolved to verified; one caller gains a verified-call signal.
 Both earn strict full-C credit. Their execution in the saved one-Up case is
 unproved.
+PR #162 translates all 112 instructions of the call-free cell-field clear at
+unit `0x68:+0x0000`. The PM independently matched the exact private DOS span,
+four selector masks, signed-byte coordinates, wrapped far address, and one-byte
+store. It promotes one unresolved row to verified and earns one strict full-C
+game-routine credit. Its execution on the saved one-Up route remains unproved.
 
 What the rules do not do: they do not identify third-party or standard library units. If a
 library unit is linked into the overlay, its routines can fall into `helper_candidate`
-(if they are leaves or runtime-only) or the unresolved class. The 170 unresolved
+(if they are leaves or runtime-only) or the unresolved class. The 169 unresolved
 routines may contain such code; their split is not determined by these bytes.
 No count here is a game-function denominator.
 
