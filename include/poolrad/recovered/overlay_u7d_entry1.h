@@ -23,7 +23,7 @@
  *
  * Classification: bounded path-complete model of the 165 bytes plus the
  * 177-byte normalizer. NOT strict full C: the near callee +0x0000 (754
- * bytes, a runtime fill and resident 0xB0:0x2A) is a host hook, the limit
+ * bytes, a runtime fill and unit 0x9e entry 2) is a host hook, the limit
  * table is host state (its live bytes are not established), the window-0
  * and list host representations replace far pointers, and idx > 6 (which
  * the original lets write past its 14-byte local array) is rejected.
