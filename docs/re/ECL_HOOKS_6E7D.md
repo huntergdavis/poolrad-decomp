@@ -79,14 +79,16 @@ to OK.
 | after this change | **9** dispatches complete in order: PCs `0x9914`, `0x991A`, `0x9920`, `0x9927`, `0x992E`, `0x9934`, `0x993A`, `0x993B`, `0x996B`; the 10th dispatch stops with run status UNMODELLED at PC `0x9974`: opcode `0x00` (EXIT, handler `+0x0001`), latch `0x00`, previous opcode `0x2F` |
 
 Measured state at the stop (numbers from the model, not a DOS trace): `[0x84E8] = 1`
-(set by the SAVEs to `0x49FD` and `0x49FE`), `[0x49FF] = 0`, `[0x442E] = 0`, the
-six compare flags from COMPARE `0x6DD5` against 0 are equal, less-or-equal and
-greater-or-equal (the saved gate word is 0), and the IF at `0x993A` leads through
-the GOTO at `0x993B` to `0x996B`, matching the static path of
-SLOT_A_UP_ECL_GATE.md (the SAVE at `0x9921` and the CALL at `0x9945` are not
-reached). The AND at `0x996B` completed with OK and stored a byte to `0x6E82`;
-its value depends on the saved `[0x6AB1]` as the host supplied it and is not
-asserted here. The first unmodelled piece is the EXIT handler.
+(set by the SAVEs to `0x49FD` and `0x49FE`), `[0x49FF] = 0`, `[0x442E] = 0`. The six
+compare flags at the stop are those of the **AND's own compare of 0 with its result**
+(the AND at `0x996B` runs after the COMPARE at `0x9934` and overwrites its flags);
+with the saved `[0x6AB1]` the host supplied they read equal, less-or-equal and
+greater-or-equal. (An earlier version of this note attributed them to the COMPARE of
+`0x6DD5`; the IF at `0x993A` did see that COMPARE's equal flag, which is why it led
+through the GOTO at `0x993B` to `0x996B`, matching the static path of
+SLOT_A_UP_ECL_GATE.md: the SAVE at `0x9921` and the CALL at `0x9945` are not reached.)
+The AND completed with OK and stored a byte to `0x6E82`; its value depends on the
+saved `[0x6AB1]` as the host supplied it and is not asserted here. The first unmodelled piece is the EXIT handler.
 
 ## Verification
 
