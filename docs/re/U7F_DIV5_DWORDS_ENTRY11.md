@@ -1,4 +1,4 @@
-# Unit 0x7f entry 11 (+0x0185, stub 0x8F:0x0057): full translation of the code bytes (five-dword clear, div 5 split); game ownership evidenced, not asserted
+# Unit 0x7f entry 11 (+0x0185, stub 0x8F:0x0057): full translation of the code bytes (five-dword clear, div 5 split)
 
 `src/recovered/overlay_u7f_div5_dwords.c` translates DOS v1.3 `GAME.OVR`
 unit `0x7f` public entry 11, the 86-byte leaf three fixup-confirmed
@@ -10,8 +10,7 @@ PR #130), which does the same with word slots of the active-character
 record. Classification of the bytes: **full translation** (FUNCTION_LEDGER.md
 §1 vocabulary): every instruction path of the reachable code is reproduced
 with the same input and the same twenty output bytes; no calls; nothing is
-read. Classification of the routine's owner: see "Ownership" below; **no
-strict game-function credit is claimed** by this note.
+read. Game ownership was resolved by the postmerge PM review below.
 
 `deja "Poolrad unit 0x7f +0x0185 entry 11 0x67F4"` and one broader query
 found only this session. Reused with citation and re-checked here: the
@@ -142,12 +141,18 @@ globals are documented". The evidence this note adds for the PM:
 - The routine is the data-segment twin of entry 10, which PR #130 merged
   as game_evidenced through the `[0x5D92]` global.
 
-None of this is a per-routine signal under the current rules, so this
-note does **not** claim game-function credit. If the PM documents
-`0x67F4..0x680F` as an engine global on the strength of the
-game_verified writer, the routine gains the "documented engine global"
-signal and moves to `game_evidenced` by the existing rule; that decision
-is the integration lane's.
+At PR #132 merge, none of this was a per-routine signal under the
+classifier's rules, so the worker did not claim game-function credit.
+The PM independently decoded the unit `0x1c:+0x125d` writer: at
+`+0x1276..+0x1282` it passes `DS:0x67F4`, length `0x1C`, and fill value 0
+to the verified runtime fill routine, in the same handler that advances
+the ECL PC `[0x49ED]`. Along with the three game-evidenced callers and
+the paired active-character updates above, this identifies the block as
+game-owned state without assigning meanings to its fields. The postmerge
+accounting change documents `0x67F4..0x680F` as `shared_dwords` in the
+classifier and promotes this byte-verified entry to `game_verified`.
+It earns one strict full-C game-function credit; no other routine gains
+full-C credit from this ownership decision.
 
 ## C contract and tests
 
@@ -185,8 +190,8 @@ in the change reproduces the trailing string text.
 - What the seven dword slots hold, why the split is by 5, and what the
   callers' thresholds (0xC8, the per-caller amounts) mean are not
   established; "div5" names the mechanism only.
-- Game ownership is evidenced by cross-references, not by a per-routine
-  signal; no strict game-function credit is claimed (see "Ownership").
+- The block's field meanings are still unknown. Game ownership and the
+  strict-count decision follow the postmerge PM review in "Ownership".
 - Entry 12 (`+0x00A8`), unit 0x77 entry 11 (`+0x28BE`), the `+0x0203`
   routine and unit 0x20's reader are decoded at the cited sites only, not
   translated.

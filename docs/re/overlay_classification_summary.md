@@ -4,19 +4,19 @@ Inputs: GAME.OVR `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee79286
 
 | classification | confidence | count |
 | --- | --- | ---: |
-| game_verified | verified | 99 |
+| game_verified | verified | 100 |
 | game_evidenced | provisional | 299 |
 | helper_candidate | provisional | 80 |
-| game_or_other_library_unresolved | unresolved | 195 |
+| game_or_other_library_unresolved | unresolved | 194 |
 
-Signals (not mutually exclusive): string constants 216 routines (664 references), documented engine globals 248, calls into verified routines 73, leaves 70, runtime-only 16.
+Signals (not mutually exclusive): string constants 216 routines (664 references), documented engine globals 249, calls into verified routines 73, leaves 70, runtime-only 16.
 
 | class | grade A | grade B | grade D |
 | --- | ---: | ---: | ---: |
-| game_verified | 42 | 56 | 1 |
+| game_verified | 43 | 56 | 1 |
 | game_evidenced | 179 | 119 | 1 |
 | helper_candidate | 58 | 22 | 0 |
-| game_or_other_library_unresolved | 123 | 72 | 0 |
+| game_or_other_library_unresolved | 122 | 72 | 0 |
 
 Linear decode: 196236 of 197451 unit code bytes (99.4%) linearly decoded between prologue candidates (not reachable-code coverage); 184 undecoded ranges (166 of 8 bytes or less; 712 bytes precede a unit's first prologue); the gap heuristic (a range that decodes completely, starts with a plausible opcode and contains a return) flagged 0 ranges; 0 `jmp cs:[table]` dispatch sites found by that one pattern; incoming fixup-confirmed far calls recorded per row as far_in (1161 total).
 
