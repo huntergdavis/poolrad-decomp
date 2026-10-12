@@ -9,6 +9,7 @@ cflags=(-std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -I"$repo_dir/include")
 srcs=("$repo_dir/src/recovered/ecl_helpers.c"
       "$repo_dir/src/recovered/overlay_u68_party_byte_0236.c"
       "$repo_dir/src/recovered/overlay_u1c_party_strength_12c6.c"
+      "$repo_dir/src/recovered/overlay_u9b_record_incr_01af.c"
       "$repo_dir/src/recovered/overlay_u6f_party_load.c")
 
 cc "${cflags[@]}" "${srcs[@]}" "$repo_dir/tests/recovered/test_overlay_u6f_party_load.c" \
