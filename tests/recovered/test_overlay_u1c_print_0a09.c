@@ -17,7 +17,7 @@ static pr_rec_ecl_loader_state st;
 typedef struct {
     int log[8]; unsigned n;
     uint16_t num_value;
-    uint8_t store_max; uint8_t store_local[PR_U1C_PRINT_LOCAL_SIZE];   /* a copy: the model's local does not outlive the call */
+    uint8_t store_max; uint8_t store_len; uint8_t store_payload[PR_U1C_PRINT_LOCAL_SIZE];   /* length byte and payload only: the model's local does not outlive the call */
     uint8_t print_args[6]; uint8_t print_len; char print_text[8]; const char *print_text_ptr;
     int fail_call;                      /* PR_U1C_PRINT_CALL_* that returns 9; 0 = none */
 } Rec;
@@ -26,7 +26,7 @@ static int note(Rec *r, int which) { r->log[r->n++] = which; return r->fail_call
 static int h_num(void *c, pr_u1c_print_env *e, uint8_t local[PR_U1C_PRINT_LOCAL_SIZE], uint16_t v)
 { Rec *r = c; (void)e; local[0] = 2; local[1] = '4'; local[2] = '2'; r->num_value = v; return note(r, PR_U1C_PRINT_CALL_NUM); }
 static int h_store(void *c, pr_u1c_print_env *e, pr_rec_ecl_loader_state *s, uint8_t max, const uint8_t local[PR_U1C_PRINT_LOCAL_SIZE])
-{ Rec *r = c; (void)e; r->store_max = max; memcpy(r->store_local, local, PR_U1C_PRINT_LOCAL_SIZE);
+{ Rec *r = c; (void)e; r->store_max = max; r->store_len = local[0]; memcpy(r->store_payload, local + 1, local[0]);
   s->string_len[1] = local[0]; memcpy(s->string_text[1], local + 1, local[0]);   /* a synthetic callee that assigns */
   return note(r, PR_U1C_PRINT_CALL_STORE); }
 static int h_print(void *c, pr_u1c_print_env *e, const uint8_t a[6], uint8_t len, const char *s)
@@ -91,7 +91,7 @@ int main(void)
       CHECK(pr_u1c_op_print(&st, &env, &rep) == PR_U1C_PRINT_OK);
       CHECK(st.string_len[1] == 2 && st.string_text[1][0] == '4' && st.string_text[1][1] == '2');   /* the synthetic hook B copied len + payload */
       for (i = 2; i < PR_REC_ECL_TEXT_MAX; i++) CHECK(st.string_text[1][i] == 0x5A);               /* nothing else of the local reached buffer 1 */
-      for (i = 3; i < PR_U1C_PRINT_LOCAL_SIZE; i++) CHECK(rec.store_local[i] == 0);                 /* the model's scratch beyond hook A's bytes is zero, not DOS data */
+      CHECK(rec.store_len == 2 && rec.store_payload[0] == '4' && rec.store_payload[1] == '2');   /* hook B read the length byte and payload only */
     }
 
     /* failing hook at each step: earlier effects stay, [0x4A00] is not cleared, later hooks do not run */
