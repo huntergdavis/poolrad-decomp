@@ -51,15 +51,24 @@ name that region and this routine only tests the sign and zero.
 
 ## Host representation and guards
 
-* `pr_u68_0236_node` stands for a far pointer: `record` is the host byte view
-  addressed from the pointer (the far offset is taken as 0; the original's
-  16-bit offset arithmetic would only differ if the offset were near the top
-  of a segment), `next` the far pointer at `+0x104`.
-* `PR_U68_0236_ARGUMENT` (result untouched): a null result pointer, a tested
-  node with a null or too-short record (the original would read whatever is
-  there), or a list longer than 65,536 nodes (the original has no cycle exit).
-  Nodes after a hit are not validated, matching the original, which never reads
-  them.
+* `pr_u68_0236_node` stands for a far pointer: `segment` is the host byte view
+  of the node's ES segment from offset 0 (at most 64 KiB), `offset` the far
+  pointer's offset word, `next` the far pointer at `+0x104`.
+* **16-bit address semantics are reproduced.** `add di, ax` at `+0x0262` is
+  `(offset + cbw(k)) mod 65536` and the displacement `+0x96` of the read at
+  `+0x0264` wraps the same way, so the byte read is
+  `segment[(offset + cbw(k) + 0x96) mod 65536]`. The report carries the
+  effective address of the hit. Tests cover wraps in the first addition
+  (`0xFFF0` with `k = 0x7F`, and `0x0010` with `k = 0x80`) and in the
+  displacement (`0xFFE0`, `k = 0`).
+* The positivity test is written without an implementation-defined cast:
+  signed byte `> 0` is `b > 0 && b < 0x80`.
+* `PR_U68_0236_ARGUMENT` (result untouched): a null result pointer, or a
+  visited node whose segment is null or smaller than the wrapped byte address
+  or than the four link bytes at `offset + 0x104` (the link is read after a
+  hit too), or a list longer than 65,536 nodes (the original has no cycle
+  exit). Nodes after a hit are not validated, matching the original, which
+  never reads them.
 
 ## Verification
 
@@ -67,9 +76,12 @@ name that region and this routine only tests the sign and zero.
 every byte value at the tested index, and lists of 0..4 nodes (the first
 positive byte wins; later nodes carry other values), the result, the index,
 the visited count and the hit node against an independent raw-byte
-restatement (about 1.3 million cases); the sign boundary values
+restatement (about 1.3 million cases, 0.1 s); the sign boundary values
 `0, 1, 0x7F, 0x80, 0xFF` at `+0x9B` and `+0x9C` (the arguments entry 1 passes);
-the index extremes `+0x16` and `+0x115`; a short record after a hit (not read)
+the index extremes `+0x16` and `+0x115`; the three 16-bit wrap cases above
+on a 64 KiB view (including that the unwrapped address is not what is read);
+a view too small for the wrapped address; a short record after a hit (not read)
 and before one (ARGUMENT); a cyclic list with and without a hit; and the null
-result. Synthetic data only. The restatement shares my reading of the decode;
+result. The test also runs clean under AddressSanitizer and
+UndefinedBehaviorSanitizer. Synthetic data only. The restatement shares my reading of the decode;
 the byte-level correspondence is the table above, not a DOS replay.

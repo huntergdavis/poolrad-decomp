@@ -17,9 +17,13 @@
  *   AL := found
  * The next pointer is read once more after a hit, before the loop test
  * ends it; that read is not observable here beyond the node being valid.
- * `k` is signed, so 128..255 index below +0x96 (down to +0x16). The offset
- * arithmetic is 16-bit; the model takes the far pointer's offset as 0 and
- * indexes the record bytes directly. What the byte means is not asserted.
+ * `k` is signed, so 128..255 index below +0x96 (down to +0x16). The
+ * address arithmetic is the original's 16-bit one: `add di, ax` (di = far
+ * offset + cbw(k)) wraps modulo 65536 and so does the effective address
+ * di + 0x96 of the read. Each node is a 64 KiB-or-smaller host view of its
+ * ES segment plus the far offset, and the read is view[(offset + k + 0x96)
+ * mod 65536]; an address at or past the view's size is a host guard.
+ * What the byte means is not asserted.
  *
  * Classification: full translation of all 32 instructions: the routine
  * makes no calls and writes nothing but its own locals. The party list and
@@ -31,26 +35,29 @@
 #include <stdint.h>
 
 #define PR_U68_0236_BYTE_BASE 0x96u         /* es:[di + 0x96] */
-#define PR_U68_0236_NEXT_OFFSET 0x104u      /* far next pointer at es:[di + 0x104] (host: node->next) */
-#define PR_U68_0236_MIN_RECORD 0x116u       /* 0x96 + 127 + 1: the largest index the signed byte reaches */
+#define PR_U68_0236_NEXT_OFFSET 0x104u      /* far next pointer at es:[di + 0x104]..+0x107 (host: node->next) */
+#define PR_U68_0236_NEXT_BYTES 4u
 #define PR_U68_0236_LIST_CAP 65536u         /* host guard: the original has no cycle check */
 
 typedef struct pr_u68_0236_node {
-    const uint8_t *record;                  /* host bytes of the node record, addressed from its far pointer */
-    size_t record_size;
+    const uint8_t *segment;                 /* host bytes of the node's ES segment, from offset 0 */
+    size_t segment_size;                    /* at most 0x10000; reads at or past it are a host guard */
+    uint16_t offset;                        /* the far pointer's offset word */
     const struct pr_u68_0236_node *next;    /* far pointer at +0x104 (NULL = both words zero) */
 } pr_u68_0236_node;
 
 typedef enum {
     PR_U68_0236_OK = 0,
-    PR_U68_0236_ARGUMENT   /* null result; a node with a null record or a record shorter than the byte
-                              index it is read at; or a list longer than the cap. Result untouched. */
+    PR_U68_0236_ARGUMENT   /* null result; a visited node whose segment is null or too small for the byte
+                              address or the four link bytes; or a list longer than the cap. Result
+                              untouched. */
 } pr_u68_0236_status;
 
 typedef struct {
     unsigned visited;                       /* nodes whose byte was tested */
     const pr_u68_0236_node *hit;            /* the node that set found, or NULL */
-    int index;                              /* 0x96 + sign-extended k */
+    int index;                              /* 0x96 + sign-extended k (before adding a node's offset) */
+    uint16_t hit_address;                   /* effective offset of the byte read at the hit (valid when hit) */
 } pr_u68_0236_report;
 
 /* The routine. `head` = far [0x5D96], `k` = the low byte of [bp+6]. On OK, *result = AL (0 or 1). */
