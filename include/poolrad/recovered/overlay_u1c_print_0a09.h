@@ -24,9 +24,9 @@
  *
  * The three far callees are unresolved and modelled as fallible host hooks.
  * The model does not copy a converted number into buffer 1: hook B receives the
- * loader state and owns the write to string_len[1]/string_text[1] (the
- * original's argument shape is the Pascal string-assign convention, but the
- * callee is not decoded here). When the operand tag is >= 0x80, buffer 1 holds
+ * loader state and may modify string_len[1]/string_text[1] (the original callee's
+ * effect is unresolved; the argument shape resembles a Pascal string assign, but
+ * the callee is not decoded here). When the operand tag is >= 0x80, buffer 1 holds
  * the string operand the loader stored and the numeric calls are skipped.
  *
  * Argument widths: all six words are pushed as `mov al, imm; push ax`, so the high
@@ -53,10 +53,14 @@ typedef struct pr_u1c_print_env pr_u1c_print_env;
 
 typedef struct {
     /* 0xBA:0x1073: (far pointer to the 256-byte local Pascal string, value word). Nonzero return stops
-       the handler with PR_U1C_PRINT_CALLBACK. */
+       the handler with PR_U1C_PRINT_CALLBACK. The model passes a zeroed host scratch buffer (the original's
+       stack local is uninitialised; the initial bytes have no DOS parity). A hook that returns 0 must write
+       the whole Pascal string it means hook B to see (length byte local[0] and local[1..local[0]]); the
+       model gives hook B no other meaning for the remaining bytes. */
     int (*num_ba_1073)(void *ctx, pr_u1c_print_env *env, uint8_t local[PR_U1C_PRINT_LOCAL_SIZE], uint16_t value);
-    /* 0xAF8:0x0B25: (far pointer DS:0x70C8, 0xFF) with the local string beneath. The hook owns any write to
-       state->string_len[1] / string_text[1]. */
+    /* 0xAF8:0x0B25: (far pointer DS:0x70C8, 0xFF) with the local string beneath. The original callee's effect is
+       unresolved; this callback receives the loader state and may modify string_len[1] / string_text[1] (a
+       host choice, not a decoded behavior). Only local[0] and local[1..local[0]] are meaningful to it. */
     int (*store_af8_0b25)(void *ctx, pr_u1c_print_env *env, pr_rec_ecl_loader_state *state, uint8_t max_len,
                           const uint8_t local[PR_U1C_PRINT_LOCAL_SIZE]);
     /* 0x709:0x0768: six byte words in push order and the far pointer DS:0x70C8 (string buffer 1), passed as

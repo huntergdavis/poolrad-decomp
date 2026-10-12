@@ -32,14 +32,18 @@ only after the print call returns.
 `pr_u1c_op_print` (`overlay_u1c_print_0a09.{h,c}`): `BA:1073`, `AF8:0B25` and
 `709:0768` are separate fallible hooks (NULL = HOOK, nonzero = CALLBACK, each
 keeping prior effects). `AF8:0B25` is a reached runtime callback with the loader
-state, destination buffer 1 and maxlen `0xFF`; the model does not copy for it and
-no host-side copy is claimed (its callee is not decoded). The print hook receives
+state, destination buffer 1 and maxlen `0xFF`; the model does not copy for it, its
+original effect is unresolved, and the callback may modify the loader string buffer
+as a host choice (its callee is not decoded). The print hook receives
 buffer 1 as the loader state's own `string_len[1]`/`string_text[1]` (no copy).
-`[0x84E4]` and `[0x4A00]` are explicit host bytes. Core loader/slot BOUNDS and
-UNRESOLVED stop before any hook (loader state and the two DS writes retained as
-the original order dictates); a class-1 slot read runs to completion, then reports
-HOOK. Argument widths are `mov al, imm; push ax`: upper bytes unstated and not
-claimed.
+`[0x84E4]` and `[0x4A00]` are explicit host bytes. A loader BOUNDS stops before
+both DS writes (neither is made). A slot-value BOUNDS/UNRESOLVED stops after both
+writes (`[0x84E4] = 0`, `[0x4A00] = 1`, loader state retained) and before any hook.
+A class-1 slot read runs to completion, then reports HOOK. The 256-byte local is a
+zeroed host scratch buffer for safety only (the original stack local is
+uninitialised; its initial bytes have no DOS parity); hook A must write the Pascal
+length and payload that hook B reads, and nothing else of the local is meaningful.
+Argument widths are `mov al, imm; push ax`: upper bytes unstated and not claimed.
 
 Tests (`test_overlay_u1c_print_0a09.c`) are fully synthetic: both opcodes, string
 and numeric tags, call order and arguments, a failing and a missing hook at each

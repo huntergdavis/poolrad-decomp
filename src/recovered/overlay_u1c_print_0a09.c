@@ -71,7 +71,8 @@ pr_u1c_print_status pr_u1c_op_print(pr_rec_ecl_loader_state *st, pr_u1c_print_en
             return PR_U1C_PRINT_CORE;
         }
         r->value = value;
-        memset(local, 0, sizeof local);                                /* the original's local is uninitialised */
+        memset(local, 0, sizeof local);                                /* host scratch safety only: the original's stack local is
+                                                                          uninitialised, so these initial bytes have no DOS parity */
         if (!h->num_ba_1073)
             return PR_U1C_PRINT_HOOK;
         log_call(r, PR_U1C_PRINT_CALL_NUM);
