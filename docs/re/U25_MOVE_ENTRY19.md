@@ -76,15 +76,28 @@ The pinned, decoded path is:
    address and branch contract; the ECL side effects remain necessary.
 3. The fixup-aware overlay call graph finds one direct incoming overlay call to entry 19:
    unit `0x1C:+0x2DA8`, inside the ECL opcode `0x2D` (`CALL`) handler
-   `+0x2CCF`. That handler invokes entry 19 only when a word returned by
-   unit `0x25` entry 9, after subtracting `0x7FFF`, equals `0x401F`
-   (`+0x2DA3..+0x2DA8`). Other action words take different branches.
+   `+0x2CCF`. That handler invokes entry 19 only when the operand word
+   assembled by unit `0x25` entry 9 is `0xC01E`: subtracting `0x7FFF`
+   then gives the compared value `0x401F` (`+0x2DA3..+0x2DA8`). Other
+   operand values take different branches.
 
-**Next integration gate:** trace the restored slot-A ECL run to the
-`0x401F` action word, then account for the game's time increment and the
+A read-only check of the ignored slot-A world frame's saved ECL buffer
+decodes its five entry addresses as `0x9914`, `0x9975`, `0x9A0E`, `0x9A49`,
+`0x9A5E`. At logical script address `0x9945` (buffer offset 69) sits an
+opcode `0x2D` with one tag-`0x01` operand whose stored low/high bytes
+assemble to `0xC01E`. The loader copies those bytes to operand slot 1;
+this **particular handler** calls unit `0x25` entry 9 to assemble them
+directly. It does not call the tag-aware slot-value helper, so no
+dereference changes this handler's operand. The conditional dispatch to
+entry 19 is therefore byte-backed *if execution reaches `0x9945`*.
+These are addresses, tags and derived values only; the saved script is
+not published.
+
+**Next integration gate:** show that the restored slot-A Up-key ECL run
+reaches `0x9945`, then account for the game's time increment and the
 entry-1/search effects. The available DOS screenshot confirms position and
 displayed minute before/after Up; it is not a memory-level trace of that
-action word. Native save/load/move/save-reload also needs the complete
+ECL PC. Native save/load/move/save-reload also needs the complete
 restore and writeback paths. None of those gaps earns strict full-C credit
 here.
 
@@ -107,4 +120,4 @@ No original save or executable bytes enter the test or repository.
 | `signals` | Exact entry and `retf` extent; four facing constants and signed boundary branches; byte stores to x/y; ordered fixup-confirmed calls to unit `0x3BD` entries 4 and 2; AL stores to `[0x6AB1]` and `[0x6AB0]`; synthetic boundary and lookup checks |
 | `score` | 9/10 for the isolated routine on defined map-buffer inputs; no CPU-level differential oracle yet |
 | `verdict` | `match` for the isolated function's defined path; `unclear` for the full Up-to-time route |
-| `review_notes` | The C API reports missing host map memory instead of attempting the original far-pointer access; unmatched facing passes entry 2's unwritten frame byte as an explicit input. The call graph has no proof that the slot-A keypress produced action `0x401F`; no time writer or complete native ECL effects are claimed. |
+| `review_notes` | The C API reports missing host map memory instead of attempting the original far-pointer access; unmatched facing passes entry 2's unwritten frame byte as an explicit input. The slot-A script contains the conditionally matching `CALL`, but Up-to-`0x9945` reachability has not been proved. No time writer or complete native ECL effects are claimed. |
