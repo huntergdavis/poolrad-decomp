@@ -1467,7 +1467,7 @@ static int test_store_word_6e82(void) {
     /* sweep: exactly one class-1 address (0x6E82) returns OK; every other returns HOOK */
     for (a = 0x6B00; a <= 0x6EFF; ++a) {
         pr_rec_ecl_window_status w = pr_rec_ecl_store_word(&st, (uint16_t)a, 1);
-        CHECK((a == 0x6E82 || a == 0x6E7D) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
+        CHECK((a == 0x6E82 || a == 0x6E7D || a == 0x6DE1) ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
     }
     /* cross-check with the standalone model of the hook (+0x0A74): 0x6E82 matches no case, makes no game-state write or call, and the 96
        addresses that do something are exactly the ones the byte-level control trace found (rel 0x000, 0x020..0x070,
@@ -1482,6 +1482,20 @@ static int test_store_word_6e82(void) {
         CHECK(pr_u25_store_hook_0a74(0x6E7D, 0x000B, record, &flags, NULL, &hr) == PR_U25_HOOK_OK && hr.which == PR_U25_HOOK_CASE_NONE && !hr.callout_made);
         CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
         for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
+        memset(record, 0x77, sizeof record);
+        CHECK(pr_u25_store_hook_0a74(0x6DE1, 0x00FF, record, &flags, NULL, &hr) == PR_U25_HOOK_OK && hr.which == PR_U25_HOOK_CASE_NONE && !hr.callout_made);
+        CHECK(flags.b84d2 == 0 && flags.b84d3 == 0);
+        for (a = 0; a < PR_U25_HOOK_RECORD_SIZE; ++a) CHECK(record[a] == 0x77);
+    }
+    /* 0x6DE1 (rel 0x2E1): the write still happens, the status is OK, neighbours still HOOK */
+    st.window1[0x2E1] = 0xAAAA; st.window1[0x2E0] = 0xAAAA; st.window1[0x2E2] = 0xAAAA;
+    CHECK(pr_rec_ecl_store_word(&st, 0x6DE1, 0x00FF) == PR_REC_ECL_WINDOW_OK && st.window1[0x2E1] == 0x00FF);
+    CHECK(st.window1[0x2E0] == 0xAAAA && st.window1[0x2E2] == 0xAAAA);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6DE0, 0x00FF) == PR_REC_ECL_WINDOW_HOOK && st.window1[0x2E0] == 0x00FF);
+    CHECK(pr_rec_ecl_store_word(&st, 0x6DE2, 0x00FF) == PR_REC_ECL_WINDOW_HOOK && st.window1[0x2E2] == 0x00FF);
+    {
+        uint16_t v = 0xEEEE;
+        CHECK(pr_rec_ecl_load_word(&st, 0x6DE1, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x00FF);      /* the load hook is not exempted */
     }
     /* 0x6E7D: the window write still happens, the status is OK, neighbours still HOOK */
     st.window1[0x37D] = 0xAAAA; st.window1[0x37C] = 0xAAAA; st.window1[0x37E] = 0xAAAA;
