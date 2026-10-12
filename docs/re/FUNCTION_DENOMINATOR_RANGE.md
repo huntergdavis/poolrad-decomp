@@ -22,18 +22,20 @@ Two prologue byte patterns in the overlay file header are data, outside the
 distinct in the current ledger; the 48 SYSTEM targets are separate. These
 partitions must not be added again to the counts above.
 
-The reviewed game-identity floor is **123**: 113 overlay identities and ten
-resident identities. Of these, **61** game-specific routines have strict,
-reviewed full-C translations. Bounded C slices and models, including the
+The locally reviewed game-identity floor is **124**: 114 overlay identities
+and ten resident identities. Of these, **62** game-specific routines have
+strict, reviewed full-C translations. The last public merged baseline was
+123 identities and 61 full-C routines; the additional unit `0x9E` entry-8
+dice helper is integrated locally pending publication. Bounded C slices and models, including the
 `RES_0464:02A5` route slices, add no identity or full-C credit merely by
 compiling; the game/library ownership of `0x464` support code remains open.
 
 Within the **818 currently audited non-SYSTEM candidates** (`673 + 145`),
-the conservative game-classification range is **123–818**: 123 verified game
+the conservative game-classification range is **124–818**: 124 verified game
 identities at the floor, and no candidate discarded solely on a library
 inference at the ceiling. If the nine high-confidence but unverified resident
 CRT classifications are accepted as exclusions, the working candidate-set
-range narrows to **123–809** (`673 + 10 + 126`). Both upper figures assume
+range narrows to **124–809** (`673 + 10 + 126`). Both upper figures assume
 every remaining candidate is a distinct game function; they are deliberately
 loose. They are **not whole-game upper bounds or completion denominators**.
 There may be further resident starts outside the candidate-seeded walk,
@@ -70,5 +72,5 @@ has 673 rows with grades A=402, B=269, D=2;
 game_verified=10, linked_crt_inferred=9, unresolved=126. Their generation
 and byte/provenance checks are documented in
 [the overlay ledger](OVERLAY_FUNCTION_LEDGER.md) and
-[resident callable coverage](RESIDENT_CALLABLE_COVERAGE.md). The 123/61
+[resident callable coverage](RESIDENT_CALLABLE_COVERAGE.md). The local 124/62
 reviewed progress floors are maintained in [the battle card](../BATTLE_CARD.md).

@@ -57,3 +57,11 @@ live value on that route remains unmeasured. C-native one-Up parity remains open
 reachability, live RNG seed/AL, AL=13 DIVIDE, and remaining runtime-state
 integration gates. The `+0x3171` script runner is already a
 merged callback model.
+
+Local unpublished PM main adds one independently reviewed full-C game dice
+helper, unit `0x9E` entry 8: **62 full-C routines** and **124 verified game
+identities** locally. A native replay now measures the saved one-Up
+`RES_08AE:00DC` branch (mode 1, active word 100, argument 10 and its selected
+calls), while the callees' complete effects and C-native parity stay open.
+The public merged checkpoint above remains 61/123 during the owner's
+no-external hold.

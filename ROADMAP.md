@@ -29,6 +29,10 @@ or heap semantics, two string routines have
 path-complete C translations with a provisional runtime-string cap, and five have
 extracted C cores with unresolved engine side effects. The DOS oracle reaches
 six-person exploration from a local save; a state-gated one-step move passes.
+The PM's locally reviewed, unpublished unit `0x9E` entry-8 dice helper raises
+the local checkpoint to **62 full-C game routines** (53 overlay, nine resident).
+It uses the byte-verified SYSTEM seed recurrence with caller-supplied state;
+the authentic saved-run seed has not been measured.
 The merged [native exactly-one-Up write watch](docs/re/SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md) measured window-0 `+0x018E: 0→1`
 and `+0x0190: 5→5`, with numeric screen state `15,4 N 10:50 → 14,4 N 10:51`.
 The first observed value change was unit `0x7D` entry 1 `+0x045D`, reached
@@ -43,12 +47,12 @@ remain open. The active next steps include
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 113 verified identities, including
+The locally regenerated overlay classifier records 114 verified identities, including
 the twenty-two reviewed unit `0x38` entries, PR #65's view setter, unit
 `0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's unit `0x3C6` entries 12–15, PRs #158/#159's unit `0x68:+0x0236` party test and `+0x0109` map updater, PR #162's `+0x0000` field clear, and PR #194's unit `0x9B:+0x01AF` record update. With
-ten verified resident identities, **123** is the current evidence-backed lower bound, not the full
+ten verified resident identities, **124** is the locally reviewed evidence-backed lower bound, not the full
 denominator. The [audited candidate-set range](docs/re/FUNCTION_DENOMINATOR_RANGE.md)
-is 123–818, or 123–809 if nine likely linked CRT routines are excluded;
+is 124–818, or 124–809 if nine likely linked CRT routines are excluded;
 neither ceiling is a whole-game upper bound or a completion denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.

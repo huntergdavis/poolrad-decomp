@@ -132,6 +132,10 @@ U68_FIELD_CLEAR = (0x68, 0x0000)
 # party insertion calls it through the unit 0x9B overlay thunk at 0xAC:0x25.
 # Its five conditional increments affect character bytes +0xB2..+0xB4.
 U9B_RECORD_INCR = (0x9B, 0x01AF)
+# Local review of the complete 75-byte count-and-sides roll and its exact
+# SYSTEM RandSeed step. Gameplay callers use it for encounter dice checks;
+# see U9E_ENTRY8_ROLL.md and U68_ROLL_GATE_0294.md.
+U9E_ENTRY8_ROLL = (0x9E, 0x0DE3)
 # PR #150 matched four complete unit 0x3c6 slot-table accessors. Their DS
 # tables contain party-character far pointers and per-slot game-state bytes;
 # unit 0x9e:+0x0160 calls all four in its character-sidecar path.
@@ -153,7 +157,7 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11,
     U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN, U68_LIST_SEARCH,
     U68_RECORD_CLEAR, U68_MAP_UPDATE, U68_PARTY_BYTE, U68_FIELD_CLEAR,
-    U9B_RECORD_INCR} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U9B_RECORD_INCR, U9E_ENTRY8_ROLL} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):

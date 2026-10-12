@@ -5,8 +5,12 @@
 The C translation is `pr_u9e_entry8_roll`. It includes the called SYSTEM
 random step as an explicit caller-owned mutable 32-bit seed, so there is no
 arbitrary random-result callback. This is an isolated routine translation;
-the saved one-Up route, initial DOS clock seed, and strict function accounting
-remain unproven here.
+the saved one-Up route and initial DOS clock seed remain unproven here.
+After independent byte and seed-algebra review, the PM classified this
+count-and-sides dice helper as game-owned: documented movement and encounter
+branches call it to decide game outcomes. The local reviewed translation
+adds one game identity and one strict full-C routine; publication remains
+pending under the owner's no-external policy.
 
 Before decoding, `deja "Poolrad unit 0x9E entry 8 +0x0DE3 0xAF8:11C0 roll RNG"`
 found no exact prior session. Reused and independently checked the unit-stub

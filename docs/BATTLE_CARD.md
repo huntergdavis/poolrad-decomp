@@ -28,6 +28,13 @@ The merged PR #153 native DOS watch establishes the first value-changing
 minute store for one saved Up; C-native replay remains open. Refresh all of
 these counts before issuing a live card.
 
+The current **local unpublished** PM main additionally contains the reviewed
+unit `0x9E` entry-8 dice helper. Local totals are **124 verified game
+identities** and **62 strict full-C routines** (53 overlay, nine resident),
+subject to publication after the owner's no-external hold. The native one-Up
+resident-dispatch replay now measures mode 1, active word 100, argument 10,
+and its selected local calls; C-native one-Up parity remains open.
+
 Keep the visible card in an ASCII code block with a conspicuous `*` border and
 short lines. Adapt the rows to the current evidence:
 
