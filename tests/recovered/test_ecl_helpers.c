@@ -1500,8 +1500,10 @@ static int test_store_word_classifier(void) {
 }
 
 /* Load word class 1 (+0x0E41..+0x0E69): the hook +0x07BC runs first; a nonzero by-reference flag means its own value is used,
- * flag 0 means the window word is read. Only 0x6DD5 is proven to leave the flag 0 with nothing else done, so only it returns
- * OK; every other class-1 address keeps HOOK. The window value is whatever the host holds: nothing is seeded. */
+ * flag 0 means the window word is read. The load hook is proven plain, one address at a time from the original bytes, at
+ * 0x6DD5, 0x6E7D, 0x6E82, 0x6DCA and 0x6E7F, so only those return OK; every other class-1 load address keeps HOOK. (The
+ * STORE hook is classified separately for all addresses by pr_rec_ecl_store_hook_may_effect; the store side of these
+ * addresses, e.g. 0x6DCA, is quiet.) The window value is whatever the host holds: nothing is seeded. */
 static int test_load_word_6dd5(void) {
     static pr_rec_ecl_loader_state st;
     uint16_t v;
@@ -1526,13 +1528,13 @@ static int test_load_word_6dd5(void) {
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7D, &v) == PR_REC_ECL_WINDOW_OK && v == 0x0C0C);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7C, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0D0D);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x0E0E);
-    /* 0x6E7F: OK with the host's window word; its neighbours stay HOOK; the store hook there is exempt separately and unaffected */
+    /* 0x6E7F: OK with the host's window word; its neighbours stay HOOK; the store side at 0x6E7F is classified separately (quiet, rel 0x37F) and unaffected */
     st.window1[0x37F] = 0x1515; st.window1[0x37E] = 0x1616; st.window1[0x380] = 0x1717;
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7F, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1515);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E7E, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1616);
     CHECK(pr_rec_ecl_load_word(&st, 0x6E80, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1717);
     CHECK(pr_rec_ecl_store_word(&st, 0x6E7F, 0x0002) == PR_REC_ECL_WINDOW_OK && st.window1[0x37F] == 0x0002);
-    /* 0x6DCA: OK with the host's window word; its neighbours stay HOOK; the store hook is not exempted */
+    /* 0x6DCA: OK with the host's window word; its neighbours stay HOOK; the store side at 0x6DCA is classified separately (quiet, rel 0x2CA: OK) */
     st.window1[0x2CA] = 0x1212; st.window1[0x2C9] = 0x1313; st.window1[0x2CB] = 0x1414;
     CHECK(pr_rec_ecl_load_word(&st, 0x6DCA, &v) == PR_REC_ECL_WINDOW_OK && v == 0x1212);
     CHECK(pr_rec_ecl_load_word(&st, 0x6DC9, &v) == PR_REC_ECL_WINDOW_HOOK && v == 0x1313);
