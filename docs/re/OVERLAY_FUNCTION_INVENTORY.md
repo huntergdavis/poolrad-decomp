@@ -1,7 +1,12 @@
 # Overlay function-count evidence
 
-This is a **candidate inventory**, not the denominator for game-function
-completion. It covers the exact DOS v1.3 files identified by the SHA-256 hashes
+This is the **raw candidate baseline**, not the denominator for game-function
+completion. Its five apparent entry exceptions and five candidates without
+listed callers were subsequently resolved in the
+[canonical overlay function ledger](OVERLAY_FUNCTION_LEDGER.md) by checking
+the expanded runtime stubs and normalizing five `+0x800` descriptor aliases.
+The raw counts below remain reproducible and show why that later audit was
+needed. This inventory covers the exact DOS v1.3 files identified by the SHA-256 hashes
 in [overlay_inventory.md](overlay_inventory.md). The existing inventory parses
 all 34 `GAME.OVR` units without a file gap; the existing call graph resolves
 fixup-confirmed far calls but scans raw bytes for near-call opcodes. This report
@@ -20,11 +25,16 @@ Radiance function-inventory work returned no matching session.
 | Prologues with entry, far-call, or decoded near-call evidence | 668 | Union of the sets above, not their sum |
 | Prologues without any listed entry/call evidence | 5 | May be dead, indirectly called, or false matches |
 
-Five public entry offsets do not coincide with a unit-code prologue. Three
-(`0x19` entry 1, `0x36` entry 1, `0x3d2` entry 1) exceed their unit's code size;
-the latter has one fixup-confirmed far-call candidate. The two in-bounds cases
-(`0x2f` entry 1 and `0x31` entry 1) need instruction-boundary review. They are
-**not** added as five functions. A Capstone 5 path walk from each candidate
+In this raw baseline, five public entry offsets do not coincide with a
+unit-code prologue. Three (`0x19` entry 1, `0x36` entry 1, `0x3d2` entry 1)
+exceed their unit's code size; the latter has a fixup-confirmed far-call
+candidate. The two in-bounds cases (`0x2f` entry 1 and `0x31` entry 1)
+required instruction-boundary review. The later ledger established that each
+raw word is exactly `0x800` above one of the five otherwise unsupported
+prologues. Its expanded runtime stubs contain the normalized offsets, and the
+two in-bounds raw words are not instruction starts. They are **not** added as
+five additional functions: all five are already among the 673 candidates.
+A Capstone 5 path walk from each candidate
 prologue decoded 71,693 instruction positions, including all 966 direct near
 calls that the earlier byte scan associated with exact prologues. Those calls
 target 354 distinct starts; 269 of them lack a public entry. No path failed to
@@ -61,10 +71,14 @@ python3 tools/overlay/validate_near_calls.py \
   --ovr "$G/GAME.OVR"
 ```
 
-To establish a denominator, [issue #24](https://github.com/huntergdavis/poolrad-decomp/issues/24)
-tracks three remaining checks: validate instruction boundaries and exceptional
-entries, inventory and classify resident routines, and distinguish game logic
-from Turbo Pascal runtime or library code. Each accepted original routine will
-have one stable address ID and evidence grade. The portable C implementation
-may combine or split original routines, so the progress numerator will track
-reviewed original behavior covered rather than count C symbols.
+The later [overlay function ledger](OVERLAY_FUNCTION_LEDGER.md) resolves all
+five aliases, validates the 966 direct near-call sites to prologues, and gives
+all 673 candidate starts entry, call, or alias evidence (402 grade A, 269 B,
+two D, zero unsupported). This strengthens start evidence; it does not prove
+that all 673 are game-authored routines or that no starts exist outside the
+candidate set. [Issue #24](https://github.com/huntergdavis/poolrad-decomp/issues/24)
+continues the executable-region, indirect-path, resident-start, and
+game-versus-linked-library audit. Each accepted original routine needs a
+stable address ID and evidence grade. The portable C implementation may
+combine or split original routines, so the progress numerator tracks reviewed
+original behavior covered rather than C symbol counts.
