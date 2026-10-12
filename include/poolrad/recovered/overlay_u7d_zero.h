@@ -48,6 +48,8 @@ typedef struct pr_u7d0_item {
     uint8_t type;                 /* byte at +0 */
     uint16_t quantity;            /* word at +1 */
     struct pr_u7d0_item *next;    /* far pointer at +5 (NULL = both words zero) */
+    uint8_t flag4;                /* byte at +4: unit 0x9e entry 2 calls its handler when nonzero
+                                     (not read by overlay_u7d_zero.c) */
 } pr_u7d0_item;
 
 typedef struct pr_u7d0_member {
