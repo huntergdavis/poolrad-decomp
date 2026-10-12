@@ -91,11 +91,31 @@ int main(void)
       memset(&st, 0, sizeof st); st.script = c4; st.script_size = sizeof c4; st.pc = 0x9900u; st.latch = 0x25;
       CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_UNRESOLVED && st.pc == 0x9906u); }
 
-    /* a class-1 selector (the load hook model): the handler completes the selection, then reports HOOK */
+    /* a class-1 selector at a load-hook-effect address (0x6B18, rel 0x18): the selector is unknown, so the handler stops before slot
+       value(2) is read: CORE/HOOK, the PC is only advanced by loader(2), no count, no selection, no call frame */
     { static const uint8_t c1[] = { 0x25, 0x01, 0x18, 0x6B, 0x00, 0x02, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
       memset(&st, 0, sizeof st); st.script = c1; st.script_size = sizeof c1; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x18] = 1;
       CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK);
-      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK && rep.selected && st.pc == 0xA022u); }
+      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_HOOK && rep.slot_status[1] == PR_REC_ECL_WINDOW_OK && rep.count == 0 && !rep.selected && st.pc == 0x9906u && st.call_depth == 0); }
+    { static const uint8_t c1g[] = { 0x26, 0x01, 0x18, 0x6B, 0x00, 0x02, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };    /* the same for the call-frame opcode */
+      memset(&st, 0, sizeof st); st.script = c1g; st.script_size = sizeof c1g; st.pc = 0x9900u; st.latch = 0x26; st.window1[0x18] = 1;
+      CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && st.call_depth == 0 && st.pc == 0x9906u); }
+    /* a class-1 count (slot 2) at an effect address: stop before the PC decrement, loader(n), the selection and any call-frame effect */
+    { static const uint8_t c2[] = { 0x25, 0x00, 0x01, 0x01, 0x18, 0x6B, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
+      memset(&st, 0, sizeof st); st.script = c2; st.script_size = sizeof c2; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x18] = 2;
+      CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK);
+      CHECK(rep.slot_status[0] == PR_REC_ECL_WINDOW_OK && rep.slot_status[1] == PR_REC_ECL_WINDOW_HOOK && rep.selector == 0 && rep.count == 0 && !rep.selected);
+      CHECK(st.pc == 0x9906u && st.low[3] == 0); }                                  /* no decrement (0x9907 - 1) and no loader(n): slot 3 was never loaded */
+    { static const uint8_t c2g[] = { 0x26, 0x00, 0x01, 0x01, 0x18, 0x6B, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
+      memset(&st, 0, sizeof st); st.script = c2g; st.script_size = sizeof c2g; st.pc = 0x9900u; st.latch = 0x26; st.window1[0x18] = 2;
+      CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_CORE && rep.core_status == PR_REC_ECL_HANDLER_HOOK && st.call_depth == 0 && st.pc == 0x9906u); }
+    /* contrasting quiet class-1 reads (0x6E80, rel 0x380, no load-hook effect): ordinary values, the handler runs through */
+    { static const uint8_t q1[] = { 0x25, 0x01, 0x80, 0x6E, 0x00, 0x02, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
+      memset(&st, 0, sizeof st); st.script = q1; st.script_size = sizeof q1; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x380] = 1;
+      CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_OK && rep.selected && st.pc == 0xA022u); }
+    { static const uint8_t q2[] = { 0x25, 0x00, 0x01, 0x01, 0x80, 0x6E, 0x01, 0x11, 0xA0, 0x01, 0x22, 0xA0 };
+      memset(&st, 0, sizeof st); st.script = q2; st.script_size = sizeof q2; st.pc = 0x9900u; st.latch = 0x25; st.window1[0x380] = 2;
+      CHECK(pr_u1c_op_on_goto(&st, &rep) == PR_U1C_ON_GOTO_OK && rep.count == 2 && rep.selected && st.pc == 0xA022u); }
 
     /* a slot with a literal tag keeps the stale high byte left in the loader state */
     { static const uint8_t lit[] = { 0x25, 0x00, 0x00, 0x00, 0x01, 0x00, 0x34 };

@@ -24,8 +24,9 @@
  * matching index is acted on; no match, or n = 0, leaves the PC just past the n
  * operands (the second loader's own increment). A slot whose tag is not 1, 2 or 3 supplies
  * the stale high byte left in the loader state. The slot value reads can run the engine's
- * load hook (class-1 addresses): as in the PICTURE model, the handler then completes and
- * reports HOOK. The count n must be below PR_REC_ECL_SLOT_COUNT (a model bound, the
+ * load hook (class-1 addresses) that may override the word: the selector and the count steer control
+ * (the loader(n), the selection), so a HOOK from slot value(1) stops the handler before slot value(2) is read, and a HOOK
+ * from slot value(2) stops it before the PC decrement, loader(n), the selection and any call-frame effect (CORE/HOOK). The count n must be below PR_REC_ECL_SLOT_COUNT (a model bound, the
  * loader reports COUNT, mapped to an ARGUMENT handler status, with the first loader's
  * state and the PC decrement already done).
  *
@@ -42,8 +43,8 @@
 typedef enum {
     PR_U1C_ON_GOTO_OK = 0,
     PR_U1C_ON_GOTO_ARGUMENT,   /* null state */
-    PR_U1C_ON_GOTO_CORE        /* a lane-A core status ended the handler (report->core_status); on HOOK the handler
-                                  has completed and a slot value read ran the engine's load hook */
+    PR_U1C_ON_GOTO_CORE        /* a lane-A core status ended the handler (report->core_status); a HOOK is a slot value(1) or
+                                  slot value(2) read whose class-1 load hook may override the word: nothing after that read ran */
 } pr_u1c_on_goto_status;
 
 typedef struct {

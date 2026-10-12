@@ -30,9 +30,11 @@ DOS/native parity is claimed. `deja` found nothing earlier for this handler.
 
 `pr_u1c_op_on_goto` (`overlay_u1c_on_goto_18f8.{h,c}`). Only the first match is acted on;
 no match or `n = 0` leaves the PC just past the `n` operands. A literal-tag slot supplies
-the stale `high` byte left in the loader state. A slot-value BOUNDS/UNRESOLVED stops
-after loader(2) and before the PC decrement; a class-1 slot read runs to completion
-and then reports HOOK (PICTURE pattern). The call-frame arm's STACK_FULL (model bound,
+the stale `high` byte left in the loader state. Failure order (corrected after review of PR #208's identical issue): a slot-value BOUNDS/UNRESOLVED stops
+after loader(2) and before the PC decrement; a **HOOK** from slot value(1) (a class-1 address whose load hook may override the selector, e.g.
+`0x6B18`) stops the handler immediately, **before slot value(2) is read**; a HOOK from slot value(2) (the count) stops it **before the PC decrement, loader(`n`),
+the selection and any call-frame effect**; both report CORE/HOOK with only loader(2)'s PC advance done. Quiet class-1 addresses (e.g. `0x6E80`) are ordinary values and
+continue. The call-frame arm's STACK_FULL (model bound,
 64 frames) stops with no frame pushed.
 
 **Count bound (lane-A change).** The saved script's count is 21, above the old
@@ -48,8 +50,8 @@ arrays and are not modelled.
 Tests (`test_overlay_u1c_on_goto_18f8.c`) are fully synthetic: a grid of selectors
 (0..9) and counts (0..7) for both latches against an independent restatement, every
 other latch taking the call-frame arm, count 63 working and 64 failing, stack full,
-loader failure in each loader, slot value UNRESOLVED in slot 1 and 2, a class-1
-selector (HOOK after completion), and the stale high byte.
+loader failure in each loader, slot value UNRESOLVED in slot 1 and 2, class-1
+selector and count at an effect address (stop at each HOOK boundary, both opcodes) with quiet class-1 contrasts, and the stale high byte.
 
 ## Private smoke on the restored slot-A state (documented, not committed)
 
