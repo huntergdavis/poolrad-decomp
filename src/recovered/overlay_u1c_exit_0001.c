@@ -28,6 +28,8 @@ pr_u1c_exit_status pr_u1c_op_exit(pr_rec_ecl_loader_state *st, pr_u1c_exit_env *
             return PR_U1C_EXIT_CALLBACK;
         }
         if (st->window0[PR_U1C_EXIT_W0_WORD] != 0u) {                /* +0x0034..+0x003E */
+            if (!env->hooks.box_3f1_02e8)                            /* the first call may have changed the hooks */
+                return PR_U1C_EXIT_HOOK;                             /* first-call effects retained */
             rc = env->hooks.box_3f1_02e8(env->ctx, env, box2, empty_pascal_string); /* +0x005C, +0x0061 */
             r->boxes++;
             if (rc != 0) {

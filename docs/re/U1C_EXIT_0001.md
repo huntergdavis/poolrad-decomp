@@ -55,7 +55,9 @@ What the box call draws, and what the cleared bytes mean, is **not asserted**.
 * The call list is emptied (`call_depth := 0`) and the node count is reported.
   `call_depth` above the array returns `PR_U1C_EXIT_ARGUMENT` before any effect.
 * The box call is a fallible hook that runs only under `[0x84E2] <> 0`. A missing
-  reached hook returns `PR_U1C_EXIT_HOOK` with **no effect made**; a failing hook
+  reached hook returns `PR_U1C_EXIT_HOOK` with **no effect made** (for the second
+  call, with the first call's effects retained, since the first call may have
+  changed the hooks); a failing hook
   returns `PR_U1C_EXIT_CALLBACK` with the effects before it retained (none, or the
   first box call when the second fails) and **no later clear, PC increment, stack
   release or `[0x5E24]`/`[0x5E25]` write**.
@@ -75,16 +77,19 @@ bytes): the zero-input path (every clear, the PC increment and its 16-bit wrap,
 the box gating (`[0x84E2]` zero skips both, nonzero with window-0 word `0xE6` zero
 makes one call with `1, 1, 0x0F, 0x0F, 0, 0x0F`, nonzero as a word such as `0x0100`
 makes two); missing hook (reached and not reached), failing first and second calls
-with the retained and unmade effects; null arguments. A **synthetic composition in
-the saved run entry's shape** (SAVE, COMPARE, `IF >=`, a skipped SAVE, SAVE to
-`0x49FD`/`0x49FE`, COMPARE, `IF =`, GOTO, AND, EXIT; synthetic operand values at
-PCs `0x9914..0x9974`) runs through `pr_rec_ecl_run` with the merged handlers: ten
-dispatches, the run stops with status OK at PC `0x9975` with latch `0x00` and
-previous opcode `0x2F`, `[0x442E]` cleared by the run, `[0x84E8] = 1`, both
-words written, the AND destination equal to `0x7F` and the host `[0x6AB1]`, the six
-flags equal to those of the AND's compare, the call list of three nodes freed;
-a nonzero gate word does not reach EXIT; `[0x84E2] <> 0` without a box hook stops
-at EXIT with HOOK and `[0x5E24]` untouched.
+with the retained and unmade effects; null arguments. An **analogous synthetic flow**
+(not the saved entry's bytes: a different PC layout starting at `0x9A10`, a different
+operand order, different immediates and branch targets, an OR in place of the AND)
+runs through `pr_rec_ecl_run` with the merged SAVE, COMPARE, IF, GOTO, OR and this
+EXIT handlers: a skipped SAVE, a SAVE and a load through `0x6E7D` (the hook
+exceptions), the two `0x49FD`/`0x49FE` stores (the `[0x84E8]` flag), a taken GOTO,
+the OR to `0x6E82`, and EXIT: ten dispatches, the run stops with status OK at PC
+`0x9A5A` with latch `0x00` and previous opcode `0x30`, `[0x442E]` cleared by the run,
+`[0x84E8] = 1`, the OR destination equal to the low byte of `0x30` or the host
+`[0x6AB1]`, the six flags equal to those of the OR's own compare, the call list of two
+nodes freed; a false `IF <` does not reach EXIT; `[0x84E2] <> 0` without a box hook
+stops at EXIT with HOOK and `[0x5E24]` untouched. A second box hook that the first
+call removed stops with HOOK, keeping the first call's effects and nothing after it.
 
 ## Private hash-pinned smoke on the restored slot-A state (not committed)
 

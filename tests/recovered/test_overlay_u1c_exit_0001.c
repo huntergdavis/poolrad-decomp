@@ -1,6 +1,6 @@
-/* Synthetic test for the unit 0x1c +0x0001 EXIT handler model, including a composition
- * test in the shape of the saved slot-A run entry (synthetic operand values and no
- * game script bytes) from 0x9914 through the merged handlers to EXIT and the run stop. */
+/* Synthetic test for the unit 0x1c +0x0001 EXIT handler model, including an analogous
+ * synthetic flow (own PC layout, operand order and immediates; no game script bytes)
+ * through the merged handlers to EXIT and the run stop. */
 #include "poolrad/recovered/overlay_u1c_exit_0001.h"
 #include "poolrad/recovered/overlay_u1c_and_or_0def.h"
 
@@ -21,6 +21,15 @@ static int h_box(void *c, pr_u1c_exit_env *e, const uint8_t a[6], const uint8_t 
     if (b->n < 2) { memcpy(b->args[b->n], a, 6); b->str[b->n] = s; }
     b->n++;
     return (b->fail_at && b->n == (unsigned)b->fail_at) ? 5 : 0;
+}
+
+static pr_u1c_exit_env *clear_target;
+static int h_box_clears_hook(void *c, pr_u1c_exit_env *e, const uint8_t a[6], const uint8_t *s)
+{
+    Box *b = c; (void)a; (void)s; b->n++;
+    e->hooks.box_3f1_02e8 = NULL;              /* the first call removes the hook the second call would use */
+    (void)clear_target;
+    return 0;
 }
 
 static void init(const uint8_t *script, size_t size)
@@ -127,64 +136,76 @@ int main(void)
     CHECK(pr_u1c_op_exit(&st, &env, NULL) == PR_U1C_EXIT_ARGUMENT && st.pc == 0x9974u && st.b442e == 0);
     CHECK(pr_u1c_op_exit(NULL, &env, NULL) == PR_U1C_EXIT_ARGUMENT && pr_u1c_op_exit(&st, NULL, NULL) == PR_U1C_EXIT_ARGUMENT);
 
-    /* ---- composition in the shape of the saved slot-A run entry (synthetic script and values) ----
-       0x9914 SAVE 0x0B -> 0x6E7D; 0x991A COMPARE [0x49C9] with 14; 0x9920 IF >=; 0x9921 SAVE 8 -> 0x6E7D (skipped);
-       0x9927 SAVE [0x6E7D] -> 0x49FD; 0x992E SAVE 9 -> 0x49FE; 0x9934 COMPARE [0x6DD5] with 0; 0x993A IF =;
-       0x993B GOTO 0x996B; 0x996B AND 0x7F with [0xC04F] -> 0x6E82; 0x9974 EXIT */
+    /* ---- second box hook: the first call may change env->hooks; a missing hook for the second call stops with HOOK and
+       keeps the first call's effects (and nothing after it) ---- */
     {
-        static uint8_t script[0x80];
+        init(s0, sizeof s0); env_init(&env, &box); st.b84e2 = 1; st.window0[0xE6] = 1; st.pc = 0x9974u; st.b84c8 = 7; env.b4430 = 1; st.call_depth = 2;
+        env.hooks.box_3f1_02e8 = h_box_clears_hook; clear_target = &env;
+        CHECK(pr_u1c_op_exit(&st, &env, &rep) == PR_U1C_EXIT_HOOK && rep.boxes == 1 && box.n == 1 && env.hooks.box_3f1_02e8 == NULL);
+        CHECK(st.pc == 0x9974u && st.b442e == 0 && st.b84c8 == 7 && st.b84e2 == 1 && env.b4430 == 1 && st.call_depth == 2 && st.b5e24 == 0);
+    }
+
+    /* ---- an analogous synthetic flow (not the saved entry's bytes: different PCs, operand order, immediates and branch
+       targets, an OR in place of the AND), through pr_rec_ecl_run and the merged handlers ----
+       0x9A10 COMPARE [0x49D0] with 9; 0x9A16 IF >=; 0x9A17 SAVE 0x77 -> 0x6E7D (skipped); 0x9A1D SAVE 0x21 -> 0x6E7D;
+       0x9A23 SAVE [0x6E7D] -> 0x49FE; 0x9A2A SAVE 5 -> 0x49FD; 0x9A30 COMPARE [0x49D4] with 4; 0x9A36 IF <;
+       0x9A37 GOTO 0x9A50; 0x9A3B SAVE 1 -> 0x49FB (not reached); 0x9A50 OR 0x30 with [0xC04F] -> 0x6E82; 0x9A59 EXIT */
+    {
+        static uint8_t script[0x180];
         static pr_rec_ecl_dispatch_table tb;
         unsigned steps = 0;
         pr_rec_ecl_handler_status hs = PR_REC_ECL_HANDLER_OK;
-        static const uint8_t p1[] = { 0x09, 0x00, 0x0B, 0x01, 0x7D, 0x6E };
-        static const uint8_t p2[] = { 0x03, 0x01, 0xC9, 0x49, 0x00, 0x0E };
-        static const uint8_t p3[] = { 0x1B };
-        static const uint8_t p4[] = { 0x09, 0x00, 0x08, 0x01, 0x7D, 0x6E };
-        static const uint8_t p5[] = { 0x09, 0x01, 0x7D, 0x6E, 0x01, 0xFD, 0x49 };
-        static const uint8_t p6[] = { 0x09, 0x00, 0x09, 0x01, 0xFE, 0x49 };
-        static const uint8_t p7[] = { 0x03, 0x01, 0xD5, 0x6D, 0x00, 0x00 };
-        static const uint8_t p8[] = { 0x16 };
-        static const uint8_t p9[] = { 0x01, 0x02, 0x6B, 0x99 };
-        static const uint8_t pA[] = { 0x2F, 0x00, 0x7F, 0x01, 0x4F, 0xC0, 0x01, 0x82, 0x6E };
-        static const uint8_t pB[] = { 0x00 };
+        static const uint8_t q1[] = { 0x03, 0x01, 0xD0, 0x49, 0x00, 0x09 };
+        static const uint8_t q2[] = { 0x1B };
+        static const uint8_t q3[] = { 0x09, 0x00, 0x77, 0x01, 0x7D, 0x6E };
+        static const uint8_t q4[] = { 0x09, 0x00, 0x21, 0x01, 0x7D, 0x6E };
+        static const uint8_t q5[] = { 0x09, 0x01, 0x7D, 0x6E, 0x01, 0xFE, 0x49 };
+        static const uint8_t q6[] = { 0x09, 0x00, 0x05, 0x01, 0xFD, 0x49 };
+        static const uint8_t q7[] = { 0x03, 0x01, 0xD4, 0x49, 0x00, 0x04 };
+        static const uint8_t q8[] = { 0x18 };
+        static const uint8_t q9[] = { 0x01, 0x02, 0x50, 0x9A };
+        static const uint8_t qA[] = { 0x09, 0x00, 0x01, 0x01, 0xFB, 0x49 };
+        static const uint8_t qB[] = { 0x30, 0x00, 0x30, 0x01, 0x4F, 0xC0, 0x01, 0x82, 0x6E };
+        static const uint8_t qC[] = { 0x00 };
         unsigned v;
         memset(script, 0xEE, sizeof script);                                  /* never-executed filler */
-        memcpy(script + 0x14, p1, sizeof p1); memcpy(script + 0x1A, p2, sizeof p2); memcpy(script + 0x20, p3, sizeof p3);
-        memcpy(script + 0x21, p4, sizeof p4); memcpy(script + 0x27, p5, sizeof p5); memcpy(script + 0x2E, p6, sizeof p6);
-        memcpy(script + 0x34, p7, sizeof p7); memcpy(script + 0x3A, p8, sizeof p8); memcpy(script + 0x3B, p9, sizeof p9);
-        memcpy(script + 0x6B, pA, sizeof pA); memcpy(script + 0x74, pB, sizeof pB);
+        memcpy(script + 0x110, q1, sizeof q1); memcpy(script + 0x116, q2, sizeof q2); memcpy(script + 0x117, q3, sizeof q3);
+        memcpy(script + 0x11D, q4, sizeof q4); memcpy(script + 0x123, q5, sizeof q5); memcpy(script + 0x12A, q6, sizeof q6);
+        memcpy(script + 0x130, q7, sizeof q7); memcpy(script + 0x136, q8, sizeof q8); memcpy(script + 0x137, q9, sizeof q9);
+        memcpy(script + 0x13B, qA, sizeof qA); memcpy(script + 0x150, qB, sizeof qB); memcpy(script + 0x159, qC, sizeof qC);
         memset(&tb, 0, sizeof tb);
         tb.handler[0x09] = d_save; tb.handler[0x03] = d_cmp; tb.handler[0x01] = d_goto; tb.handler[0x00] = d_exit;
         for (i = 0x16; i <= 0x1B; i++) tb.handler[i] = d_if;
         tb.handler[0x2F] = d_andor; tb.handler[0x30] = d_andor;
         for (v = 0; v < 256; v += 51) {
             init(script, sizeof script); env_init(&cenv, &cbox); memset(&crep, 0, sizeof crep);
-            st.window0[0xC9] = 10;                    /* the compare word: below 14, so IF >= skips 0x9921 */
-            st.window1[0x2D5] = 0;                    /* the gate word: zero, so IF = takes the GOTO */
-            st.b6ab1 = (uint8_t)v; st.b84e2 = 0; st.call_depth = 3; st.call_stack[0] = 1; st.call_stack[1] = 2; st.call_stack[2] = 3;
+            st.window0[0xD0] = 3;                     /* below 9: IF >= fails and skips the SAVE at 0x9A17 */
+            st.window0[0xD4] = 2;                     /* below 4: IF < holds, the GOTO is taken */
+            st.b6ab1 = (uint8_t)v; st.b84e2 = 0; st.call_depth = 2; st.call_stack[0] = 1; st.call_stack[1] = 2;
             st.window0[0xFD] = 0xAAAA; st.window0[0xFE] = 0xAAAA;
-            CHECK(pr_rec_ecl_run(&st, &tb, 0x9914u, 100, &steps, &hs) == PR_REC_ECL_RUN_OK);
-            CHECK(steps == 10 && st.pc == 0x9975u && st.latch == 0x00 && st.prev_opcode == 0x2F);      /* the exact stop at EXIT */
+            CHECK(pr_rec_ecl_run(&st, &tb, 0x9A10u, 100, &steps, &hs) == PR_REC_ECL_RUN_OK);
+            CHECK(steps == 10 && st.pc == 0x9A5Au && st.latch == 0x00 && st.prev_opcode == 0x30);     /* the exact stop at EXIT */
             CHECK(st.b442e == 0 && st.b49ff == 0);                                  /* [0x442E] cleared again by the run function */
-            CHECK(st.window1[0x37D] == 0x000B);                                      /* the 0x9921 SAVE of 8 was skipped */
-            CHECK(st.window0[0xFD] == 0x000B && st.window0[0xFE] == 0x0009 && st.b84e8 == 1);   /* 0x49FD/0x49FE: values and the flag */
-            CHECK(st.window1[0x382] == (uint16_t)(0x7Fu & v));                       /* the AND destination: host [0x6AB1] & 0x7F */
-            /* the six flags at the stop are those of the AND's own compare of 0 with its result (it runs after the gate
-               COMPARE and overwrites it): equal and >= when the result is 0, not-equal and < otherwise */
-            CHECK(st.cmp_flags[0] == ((0x7Fu & v) == 0) && st.cmp_flags[1] == ((0x7Fu & v) != 0) && st.cmp_flags[2] == ((0x7Fu & v) != 0) &&
-                  st.cmp_flags[3] == 0 && st.cmp_flags[4] == 1 && st.cmp_flags[5] == ((0x7Fu & v) == 0));
-            CHECK(st.call_depth == 0 && crep.freed_nodes == 3 && st.b5e24 == 1 && st.b5e25 == 0x11);
+            CHECK(st.window1[0x37D] == 0x0021);                                      /* the SAVE of 0x77 was skipped; 0x6E7D takes OK */
+            CHECK(st.window0[0xFE] == 0x0021 && st.window0[0xFD] == 0x0005 && st.b84e8 == 1);   /* both flag addresses, from a load at 0x6E7D */
+            CHECK(st.window1[0x382] == (uint16_t)(0x30u | v));                       /* the OR destination: low byte of 0x30 | host [0x6AB1] */
+            {
+                unsigned r = (0x30u | v) & 0xFFu;
+                CHECK(st.cmp_flags[0] == (r == 0) && st.cmp_flags[1] == (r != 0) && st.cmp_flags[2] == (r != 0) &&
+                      st.cmp_flags[3] == 0 && st.cmp_flags[4] == 1 && st.cmp_flags[5] == (r == 0));  /* the OR's own compare of 0 with r */
+            }
+            CHECK(st.call_depth == 0 && crep.freed_nodes == 2 && st.b5e24 == 1 && st.b5e25 == 0x11);
+            CHECK(st.window0[0xFB] == 0xAAAA);                                       /* the unreached SAVE did not run */
         }
-        /* a nonzero gate word takes the other path: IF = fails, GOTO is skipped, and the filler at 0x993F stops the run
-           at an unmodelled/no-case opcode instead of EXIT (the model never reaches it silently) */
+        /* a false IF < sends the run into the unreachable filler: it never completes at EXIT */
         init(script, sizeof script); env_init(&cenv, &cbox);
-        st.window0[0xC9] = 10; st.window1[0x2D5] = 1;
-        CHECK(pr_rec_ecl_run(&st, &tb, 0x9914u, 100, &steps, &hs) != PR_REC_ECL_RUN_OK && st.b84e8 == 1);
-        /* [0x84E2] <> 0 with no box hook stops at EXIT (HOOK status), nothing else of EXIT done */
+        st.window0[0xD0] = 3; st.window0[0xD4] = 9;
+        CHECK(pr_rec_ecl_run(&st, &tb, 0x9A10u, 100, &steps, &hs) != PR_REC_ECL_RUN_OK && st.b84e8 == 1 && st.window1[0x382] == 0xAAAA);
+        /* [0x84E2] <> 0 with no box hook stops at EXIT with HOOK, nothing else of EXIT done */
         init(script, sizeof script); env_init(&cenv, &cbox); cenv.hooks.box_3f1_02e8 = NULL;
-        st.window0[0xC9] = 10; st.window1[0x2D5] = 0; st.b84e2 = 1;
-        CHECK(pr_rec_ecl_run(&st, &tb, 0x9914u, 100, &steps, &hs) == PR_REC_ECL_RUN_HANDLER && hs == PR_REC_ECL_HANDLER_HOOK);
-        CHECK(steps == 10 && st.pc == 0x9974u && st.latch == 0x00 && st.b5e24 == 0 && st.b84e8 == 1);
+        st.window0[0xD0] = 3; st.window0[0xD4] = 2; st.b84e2 = 1;
+        CHECK(pr_rec_ecl_run(&st, &tb, 0x9A10u, 100, &steps, &hs) == PR_REC_ECL_RUN_HANDLER && hs == PR_REC_ECL_HANDLER_HOOK);
+        CHECK(steps == 10 && st.pc == 0x9A59u && st.latch == 0x00 && st.b5e24 == 0 && st.b84e8 == 1);
     }
 
     puts("overlay_u1c_exit_0001: ok");
