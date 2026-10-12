@@ -53,7 +53,7 @@ A loader result of bounds/argument, or a slot value that is BOUNDS,
 UNRESOLVED or ARGUMENT, returns at once with neither the compare nor the store
 made (the engine would use a value this model does not have; slot 2 is not
 read after a slot-1 stop). A class-1 window read (HOOK) lets the handler
-continue and reports HOOK after a successful store; a class-1 destination makes
+continue and reports HOOK after a successful store; a class-1 destination (other than 0x6E82) makes
 the store core report HOOK. The report records which slots were read, their
 statuses, and whether the compare and store were made. **No status is invented
 as success**; a host dispatching opcodes 0x2F/0x30 must treat HOOK and
