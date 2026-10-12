@@ -44,12 +44,15 @@ PARTYSTRENGTH notes; they were reused ([DOS_SAVGAM](../formats/DOS_SAVGAM.md),
 * **Counter.** The window-1 word at script address `0x6E3E` (`[0x49D6]+0x67C`) is zeroed before the
   loop (`+0x1917`) and incremented per inserted member (`+0x1569`): **6**, equal to the value saved in the
   world file (saved word `0x6E3E` = 6), a consistency check.
-* **Not covered.** The unresolved resident far call `0xAC:0x25` after each insertion (record far
-  pointer pushed, `+0x1574`) and `call +0x02AE` (468 bytes) are not modelled. A search of the decoded
-  instructions of `+0x02AE`, `+0x0482`, `+0x0AEC` and `+0x1446` finds no write to record offsets `0x96`,
-  `0x9B`, `0x110`, `0x111` or `0x11B` (only `+0xBF` is touched, in `+0x0482` and `+0x1446`); but
-  `0xAC:0x25` is undecoded, so a write there is **not excluded**. The sidecar (`.itm`/`.spc`) loads are not
-  modelled.
+* **Not covered.** `call +0x02AE` after each insertion (468 bytes) and the sidecar (`.itm`/`.spc`) loads
+  are not modelled. The far call `0xAC:0x25` pushed at `+0x1574` is **not** a resident routine: memory
+  segment `0xAC` is unit `0x9b`, and thunk offset `0x25` is the unit's function at `+0x01AF`, translated in
+  [U9B_RECORD_INCR_01AF.md](U9B_RECORD_INCR_01AF.md) (it only conditionally increments record bytes `+0xB2`,
+  `+0xB3`, `+0xB4`, and `pr_u6f_party_build` applies it). A search of the decoded instructions of `+0x02AE`,
+  `+0x0482`, `+0x0AEC` and `+0x1446` finds no write to record offsets `0x96`, `0x9B`, `0x110`, `0x111` or
+  `0x11B` (only `+0xBF` is touched, in `+0x0482` and `+0x1446`). The remaining gap in the party input is the
+  actual sidecar and `+0x02AE` post-load effects, which are not shown to touch those offsets but are not
+  executed either.
 
 ## Host model and private numeric result
 
@@ -102,5 +105,5 @@ over the raw bytes gives the same value.
 
 Model opcode `0x06` DIVIDE (`+0x01A3`, 3 operands) only if the AL = 13 branch is wanted; and obtain the
 authentic `RandSeed` (or AL) from a private DOS oracle run before claiming which branch the real game
-takes. The undecoded `0xAC:0x25` call after each party insertion is the remaining gap in the party
-input.
+takes. The remaining gap in the party input is the sidecar loads and the `+0x02AE` post-load call (the
+`0xAC:0x25` call is unit `0x9b` `+0x01AF`, translated).

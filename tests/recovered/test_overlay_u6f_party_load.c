@@ -4,6 +4,7 @@
  * left untouched, and the composition with the PARTYSTRENGTH model against an independent sum. */
 #include "poolrad/recovered/overlay_u6f_party_load.h"
 #include "poolrad/recovered/overlay_u1c_party_strength_12c6.h"
+#include "poolrad/recovered/overlay_u9b_record_incr_01af.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -72,13 +73,18 @@ int main(void)
     CHECK(pr_u6f_party_build(recs, 6, &party) == PR_U6F_PARTY_OK && party.loaded == 6 && party.head == &party.node[0]);
     for (k = 0; k < 6; k++) {
         const uint8_t *r = party.record[k];
+        uint8_t want[PR_U6F_PARTY_RECORD_SIZE];
+        pr_u9b_record view;
+        memcpy(want, orig[k], sizeof want);                                   /* the 0x9b +0x01AF step on a copy of the source */
+        view.segment = want; view.segment_size = sizeof want; view.offset = 0;
+        CHECK(pr_u9b_record_incr(&view, NULL) == PR_U9B_INCR_OK);
         CHECK(party.node[k].segment == party.record[k] && party.node[k].segment_size == PR_U6F_PARTY_RECORD_SIZE && party.node[k].offset == 0);
         CHECK(party.node[k].next == (k < 5 ? &party.node[k + 1] : NULL));
         CHECK(party.slot[k] == k && r[PR_U6F_PARTY_SLOT_BYTE] == k);
         for (i = 0; i < PR_U6F_PARTY_RECORD_SIZE; i++) {
             int cleared = (i >= 0x7F && i <= 0x82) || (i >= 0xC8 && i <= 0xCB) || (i >= 0x104 && i <= 0x10B);
             if (cleared) CHECK(r[i] == 0);
-            else if (i != PR_U6F_PARTY_SLOT_BYTE) CHECK(r[i] == orig[k][i]);
+            else if (i != PR_U6F_PARTY_SLOT_BYTE) CHECK(r[i] == want[i]);
         }
         CHECK(memcmp(rec[k], orig[k], PR_U6F_PARTY_RECORD_SIZE) == 0);       /* the caller's bytes are not modified */
     }
@@ -88,7 +94,7 @@ int main(void)
     recs[1] = NULL; recs[3] = NULL;
     CHECK(pr_u6f_party_build(recs, 5, &party) == PR_U6F_PARTY_OK && party.loaded == 3);
     CHECK(party.slot[0] == 0 && party.slot[1] == 1 && party.slot[2] == 2);
-    CHECK(memcmp(party.record[0] + 1, orig[0] + 1, 0x7E) == 0 && memcmp(party.record[1] + 1, orig[2] + 1, 0x7E) == 0 && memcmp(party.record[2] + 1, orig[4] + 1, 0x7E) == 0);
+    CHECK(memcmp(party.record[0] + 1, orig[0] + 1, 0x7E) == 0 && memcmp(party.record[1] + 1, orig[2] + 1, 0x7E) == 0 && memcmp(party.record[2] + 1, orig[4] + 1, 0x7E) == 0);   /* before +0x7F: untouched by any step */
     CHECK(party.head == &party.node[0] && party.node[2].next == NULL);
     recs[0] = NULL; recs[1] = NULL; recs[2] = NULL;
     CHECK(pr_u6f_party_build(recs, 3, &party) == PR_U6F_PARTY_OK && party.head == NULL && party.loaded == 0);
