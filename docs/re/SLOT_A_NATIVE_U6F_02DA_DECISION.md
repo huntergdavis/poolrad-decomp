@@ -54,7 +54,7 @@ linear `0x00000..0x9FFFF` (655,360 bytes).
 | `031F` | `7246` | same as `02DD` |
 
 The only RAM changes from `+02DA` to each later stop are linear
-`0x20810..0x20811`, the SS:[BP−2] word: `0x19E6` to `0x0005`.
+`0x20910..0x20911`, the SS:[BP−2] word: `0x19E6` to `0x0005`.
 The native first JE at `+02E1` is not taken (ZF=0); the second at
 `+02E7` is taken (ZF=1). The ignored normalized EV transcript at
 `resources/oracle-runs/slot-a-native-u6f-02da-045/ev-transcript.txt`
