@@ -12,7 +12,7 @@ DOS/native or one-Up parity claim.
 | Step | Evidence |
 | --- | --- |
 | handler | `+0x2722 inc word [0x49ED]` (the PC advances **before** the call), then `lcall 0x709:0x0DBE` |
-| resident `0x709:0x0DBE` (START.EXE expanded image `0x7090 + 0x0DBE = 0x7E4E`) | `al := [0x49E2]; ah := 0; dx := 0xE1; mul dx; push ax; lcall 0xA40:0x029C; pop bp; retf` (13 bytes): the word pushed is `[0x49E2] * 225`, at most `255 * 225 = 57,375`, so no 16-bit overflow and `DX` is discarded |
+| resident `0x709:0x0DBE` (START.EXE expanded image `0x7090 + 0x0DBE = 0x7E4E`) | `push bp; mov bp,sp; al := [0x49E2]; ah := 0; dx := 0xE1; mul dx; push ax; lcall 0xA40:0x029C; pop bp; retf` (**21 bytes, 10 instructions**, image `0x7E4E..0x7E62`, `retf` at `0x7E62`, next prologue `0x7E63`; SHA-256 `a7b0396a671f47e30f7123716ac21bce6271d5508b6f4acbe9e7fad20aae861d`; bytes `55 89 e5 a0 e2 49 30 e4 ba e1 00 f7 e2 50 9a 9c 02 40 0a 5d cb`): the word pushed is `[0x49E2] * 225`, at most `255 * 225 = 57,375`, so no 16-bit overflow and `DX` is discarded |
 | resident `0xA40:0x029C` (image `0xA400 + 0x029C = 0xA69C`) | takes the word `n` (`retf 2`); `n = 0` returns at once; else repeats `n` times: `al := es:[0]` (`es = 0x40`, the BIOS data byte at `0x40:0x0000`), `cx := [0x84FC]` and a loop (`bx := 4; dec bx` spin, `cmp al, es:[di]`, `loope`) that ends when `cx` runs out or that BIOS byte changes (the Turbo Pascal `Delay` calibrated wait) |
 
 `[0x49E2]` is set by the world-save loader from window-0 byte `0x1F8` (unit `0x6f` `+0x190B..+0x1910`, `mov al, es:[di+0x1F8]; mov [0x49E2], al`).

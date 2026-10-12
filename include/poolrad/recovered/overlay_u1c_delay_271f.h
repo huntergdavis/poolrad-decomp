@@ -8,7 +8,7 @@
  *
  * In the original's order:
  *   [0x49ED] := [0x49ED] + 1  (the PC skips the opcode byte)             (+0x2722)
- *   lcall 0x709:0x0DBE (resident, START.EXE image 0x7E4E):              (+0x2726)
+ *   lcall 0x709:0x0DBE (resident, START.EXE image 0x7E4E..0x7E62, 21 bytes, 10 instructions):   (+0x2726)
  *       arg := word ([0x49E2] * 225)   (`mul dx` with dx = 0xE1; at most 255 * 225 = 57,375, no overflow)
  *       lcall 0xA40:0x029C with the word arg (retf 2)
  *   return
