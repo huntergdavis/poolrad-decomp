@@ -114,6 +114,13 @@ U68_RECORD_SCAN = (0x68, 0x05AB)
 # It reads the documented DS party head [0x5D96], walks member links +0x104,
 # and returns a matching member; see U68_LIST_SEARCH_05EE.md.
 U68_LIST_SEARCH = (0x68, 0x05EE)
+# PR #152 matched the complete record-clear helper. It mutates the first
+# matching node in the documented party list via the reviewed search/scan.
+U68_RECORD_CLEAR = (0x68, 0x0648)
+# PR #150 matched four complete unit 0x3c6 slot-table accessors. Their DS
+# tables contain party-character far pointers and per-slot game-state bytes;
+# unit 0x9e:+0x0160 calls all four in its character-sidecar path.
+U3C6_SLOT_ENTRIES = {(0x3C6, off) for off in (0x0BE7, 0x0C0F, 0x0C37, 0x0C5F)}
 # Reviewed full view-parameter setter translation in FUNCTION_LEDGER.md,
 # section 1.14 (PR #65); the neighboring script initializer is a model.
 VIEW_SETTER = (0x3BD, 0x0155)
@@ -129,7 +136,8 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     (0x38, 0x0C06), (0x38, 0x0C15), VIEW_SETTER, ECL_STORE_HOOK,
     U3BD_PIECES_ENTRY6, U3BD_WALLSET_ENTRY7, U3BD_CELL_ENTRY4, U3BD_NIBBLE_ENTRY2,
     U3BD_FIELD_ENTRY3, U7F_DIV5_ENTRY10, U7F_DIV5_DWORDS_ENTRY11,
-    U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN, U68_LIST_SEARCH} | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+    U25_MOVE_ENTRY19, U68_UP_PREFLIGHT, U68_RECORD_SCAN, U68_LIST_SEARCH,
+    U68_RECORD_CLEAR} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
 
 
 def is_pascal_string(code, off, min_len=1):

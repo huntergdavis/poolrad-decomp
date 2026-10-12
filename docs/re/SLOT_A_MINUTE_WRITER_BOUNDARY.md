@@ -1,5 +1,9 @@
 # Slot-A one-Up minute fields: static writer identified, live route unproved
 
+**Later result:** [the native write watch](SLOT_A_ONE_UP_NATIVE_WRITE_WATCH.md)
+measured the `+0x18E` change and observed this writer on exactly one saved
+Up. The analysis below records the earlier static-only boundary.
+
 The owner-held DOS oracle displays 10:50 before one Up key and 10:51
 afterward. The merged [unit `0x7D` entry-1 audit](U7D_ENTRY1.md) now
 identifies a **static instruction that rewrites** restored window-0 words
