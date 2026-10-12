@@ -37,24 +37,39 @@ window-1 word `0x6DCA` at byte `+0x594` is zero, independently measured
 at the native pre-RNG stop. Seeded RANDOM changes saved window-2 word
 `0x980F`, byte `+0x21E`, from 16 to 10 and advances the seed to
 3238563622 before this continuation begins. The saved window-0 word
-`0x4A0B` is zero. The native trace reports its **comparison result** as
-below 255, not its exact post-key value; this gate claims branch/flag
-parity at that point, not exact parity for that word.
+`0x4A0B` is zero. PM's independent read of ignored run010 RAM snapshots
+also measured **live `0x4A0B=0`** at the pre-RNG stop and all dispatcher
+stops `00..06`: `DS:[49D2]=3996:0000`, so logical word `0x4A0B` is at
+window-0 byte `+0x216` (`3996:0216`, physical `0x39B76`). The snapshots
+are absent from this isolated clone, so the direct RAM read is attributed
+to that review; the C check independently maps the hash-pinned saved word.
+The pre-RNG RAM SHA-256 is
+`ff29bedcec345c2953433dc13300da097a43940e2ed6ce54eb54c1b5276c1284`.
+The dispatcher snapshots at `00..06` respectively hash to
+`26ea01908c6c4b9e512687ff5d9a2dfc3876d9834c27480ae7c1805b9c7ab5e8`,
+`9c3a223bd89941cabe4bc2410f29dc21cfced283a13a3eb8a0ee6c2cb21a9bb7`,
+`9e7cb4f44ee120a836bbd2c5d1ce6c5c4f4c7f4ed0f7c2378b744e87d5ea7672`,
+`c5cf5066193216df0cd480dad0de485aed18bbff448b8545c10fd40e0503d926`,
+`b931382d4e68b25233ec64d23412f12e8b3ca49f09e74697707f7a98d529adff`,
+`a208851898a27a6d1034d5c795166e6c10c1a557fddcbddf49f84872161738c7`,
+and `bae33746a473a4b2c28aa40097095f67615cf1552641b0a6002bf02bbe4500a8`
+([native capture table](SLOT_A_ONE_UP_NATIVE_AL10_BRANCH.md)).
 
 ## Six matched dispatches
 
 The hash-pinned script has three numeric compares. The C test checks the
 prior/current latch, handler successor PC, six flags **before and after**
-each handler, and five measured window words at every dispatch. The common
+each handler, and six measured window words at every dispatch. The common
 flag vector is `(equal, unequal, below, above, below-or-equal,
 above-or-equal)=(0,1,1,0,1,0)`. The common window tuple
-`(minute,tens,hour,window1 +0x594,window2 +0x21E)` is `(1,5,10,0,10)`.
+`(minute,tens,hour,window1 +0x594,window2 +0x21E,window0 +0x216)` is
+`(1,5,10,0,10,0)`.
 
 | Dispatch PC | Operation | Numeric comparison / branch | Successor PC |
 | --- | --- | --- | --- |
 | `0x9B40` | COMPARE `0x03` | `0x6DCA` (0) below literal 1 | `0x9B46` |
 | `0x9B46` | IF `0x16` | equality false; skip the next statement | `0x9B50` |
-| `0x9B50` | COMPARE `0x03` | supplied `0x4A0B` (0) below literal 255 | `0x9B56` |
+| `0x9B50` | COMPARE `0x03` | measured `0x4A0B` (0) below literal 255 | `0x9B56` |
 | `0x9B56` | IF `0x16` | equality false; skip the next statement | `0x9B60` |
 | `0x9B60` | COMPARE `0x03` | RNG word `0x980F` (10) below literal 12 | `0x9B66` |
 | `0x9B66` | IF `0x1A` | below-or-equal true; proceed | `0x9B67` |

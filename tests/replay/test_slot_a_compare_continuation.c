@@ -16,7 +16,7 @@ typedef struct {
     uint16_t pc, next_pc;
     uint8_t previous, opcode, latch_after;
     uint8_t flags_before[6], flags_after[6];
-    uint16_t windows_before[5], windows_after[5];
+    uint16_t windows_before[6], windows_after[6];
 } route_step;
 
 typedef struct {
@@ -24,12 +24,13 @@ typedef struct {
     unsigned count;
 } route_log;
 
-static void measured_windows(const pr_rec_ecl_loader_state *state, uint16_t words[5]) {
+static void measured_windows(const pr_rec_ecl_loader_state *state, uint16_t words[6]) {
     words[0] = state->window0[PR_SLOT_A_CLOCK_MINUTE_OFFSET / 2u];
     words[1] = state->window0[PR_SLOT_A_CLOCK_TENS_OFFSET / 2u];
     words[2] = state->window0[PR_SLOT_A_CLOCK_HOUR_OFFSET / 2u];
     words[3] = state->window1[0x2CAu];
     words[4] = state->window2[0x10Fu];
+    words[5] = state->window0[0x10Bu];
 }
 
 static pr_rec_ecl_handler_status record_step(pr_rec_ecl_loader_state *state, void *ctx,
@@ -124,7 +125,7 @@ static int private_test(const char *path) {
     uint16_t before0[PR_REC_ECL_WINDOW0_WORDS], before1[PR_REC_ECL_WINDOW1_WORDS];
     uint16_t before2[PR_REC_ECL_WINDOW2_WORDS];
     static const uint8_t native_below[6] = {0u, 1u, 1u, 0u, 1u, 0u};
-    static const uint16_t native_windows[5] = {1u, 5u, 10u, 0u, 10u};
+    static const uint16_t native_windows[6] = {1u, 5u, 10u, 0u, 10u, 0u};
     static const uint16_t pc[6] = {0x9B40u, 0x9B46u, 0x9B50u, 0x9B56u, 0x9B60u, 0x9B66u};
     static const uint16_t next[6] = {0x9B46u, 0x9B50u, 0x9B56u, 0x9B60u, 0x9B66u, 0x9B67u};
     static const uint8_t prior[6] = {0x08u, 0x03u, 0x04u, 0x03u, 0x04u, 0x03u};
