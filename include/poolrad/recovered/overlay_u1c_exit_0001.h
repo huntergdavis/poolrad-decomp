@@ -67,8 +67,9 @@ struct pr_u1c_exit_env {
 typedef enum {
     PR_U1C_EXIT_OK = 0,
     PR_U1C_EXIT_ARGUMENT,   /* null state/env, or call_depth above the array: nothing done */
-    PR_U1C_EXIT_HOOK,       /* a box call is reached and its hook is NULL: no effect made if it is the first call; the first
-                               call's effects (report->boxes == 1) retained if the first call removed the hook for the second */
+    PR_U1C_EXIT_HOOK,       /* a box call is reached and its hook is NULL. If it is the FIRST box call, nothing has
+                               been done. If it is the SECOND call (the first call removed the hook before it), the
+                               first call's effects are retained (report->boxes == 1) and nothing after it is done */
     PR_U1C_EXIT_CALLBACK    /* the box hook returned nonzero (report->callback_status); effects before it retained */
 } pr_u1c_exit_status;
 

@@ -23,12 +23,10 @@ static int h_box(void *c, pr_u1c_exit_env *e, const uint8_t a[6], const uint8_t 
     return (b->fail_at && b->n == (unsigned)b->fail_at) ? 5 : 0;
 }
 
-static pr_u1c_exit_env *clear_target;
 static int h_box_clears_hook(void *c, pr_u1c_exit_env *e, const uint8_t a[6], const uint8_t *s)
 {
     Box *b = c; (void)a; (void)s; b->n++;
     e->hooks.box_3f1_02e8 = NULL;              /* the first call removes the hook the second call would use */
-    (void)clear_target;
     return 0;
 }
 
@@ -140,7 +138,7 @@ int main(void)
        keeps the first call's effects (and nothing after it) ---- */
     {
         init(s0, sizeof s0); env_init(&env, &box); st.b84e2 = 1; st.window0[0xE6] = 1; st.pc = 0x9974u; st.b84c8 = 7; env.b4430 = 1; st.call_depth = 2;
-        env.hooks.box_3f1_02e8 = h_box_clears_hook; clear_target = &env;
+        env.hooks.box_3f1_02e8 = h_box_clears_hook;
         CHECK(pr_u1c_op_exit(&st, &env, &rep) == PR_U1C_EXIT_HOOK && rep.boxes == 1 && box.n == 1 && env.hooks.box_3f1_02e8 == NULL);
         CHECK(st.pc == 0x9974u && st.b442e == 0 && st.b84c8 == 7 && st.b84e2 == 1 && env.b4430 == 1 && st.call_depth == 2 && st.b5e24 == 0);
     }
