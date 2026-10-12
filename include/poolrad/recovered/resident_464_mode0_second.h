@@ -48,4 +48,12 @@ pr_r464_mode0_second_status pr_r464_mode0_second_primary_byte(
     const uint8_t *lookup, size_t lookup_size,
     pr_r464_mode0_second_report *report);
 
+/* The same +0x04CE..+0x05CB instructions at a carried pixel offset. */
+pr_r464_mode0_second_status pr_r464_mode0_secondary_byte(
+    const pr_r464_mode0_report *prefix,
+    const pr_r464_mode0_primary_report *first,
+    pr_r464_block_object *object, pr_r464_block_object *auxiliary,
+    const uint8_t *lookup, size_t lookup_size,
+    pr_r464_mode0_second_report *report);
+
 #endif

@@ -15,7 +15,7 @@ static pr_r464_mode0_second_status stop(
     return status;
 }
 
-pr_r464_mode0_second_status pr_r464_mode0_second_primary_byte(
+pr_r464_mode0_second_status pr_r464_mode0_secondary_byte(
     const pr_r464_mode0_report *prefix,
     const pr_r464_mode0_primary_report *first,
     pr_r464_block_object *object, pr_r464_block_object *auxiliary,
@@ -28,7 +28,8 @@ pr_r464_mode0_second_status pr_r464_mode0_second_primary_byte(
         prefix->stopped_at != PR_R464_MODE0_STOP_PRIMARY_HELPERS ||
         prefix->next_offset != 0x03D1u ||
         first->stopped_at != PR_R464_MODE0_PRIMARY_STOP_SECOND_GROUP ||
-        first->next_offset != 0x04CEu || first->data_offset != 1u ||
+        first->next_offset != 0x04CEu ||
+        first->data_offset != (uint16_t)(prefix->data_offset + 1u) ||
         first->primary_index != 4u ||
         first->source_offset != prefix->source_offset ||
         first->auxiliary_index != prefix->auxiliary_index)
@@ -95,4 +96,16 @@ pr_r464_mode0_second_status pr_r464_mode0_second_primary_byte(
     report->next_offset = 0x05CBu;
     return stop(report, PR_R464_MODE0_SECOND_STOP_LOOP_CONTINUATION,
                 PR_R464_MODE0_SECOND_READY_LOOPS);
+}
+
+pr_r464_mode0_second_status pr_r464_mode0_second_primary_byte(
+    const pr_r464_mode0_report *prefix,
+    const pr_r464_mode0_primary_report *first,
+    pr_r464_block_object *object, pr_r464_block_object *auxiliary,
+    const uint8_t *lookup, size_t lookup_size,
+    pr_r464_mode0_second_report *report) {
+    if (!prefix || prefix->data_offset != 0u)
+        return PR_R464_MODE0_SECOND_ARGUMENT;
+    return pr_r464_mode0_secondary_byte(prefix, first, object, auxiliary,
+                                        lookup, lookup_size, report);
 }

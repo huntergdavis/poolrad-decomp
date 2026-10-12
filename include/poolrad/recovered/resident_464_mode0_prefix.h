@@ -55,4 +55,15 @@ pr_r464_mode0_status pr_r464_mode0_first_pixel_prefix(
     pr_r464_block_object *auxiliary, const uint8_t *aux_pattern_low,
     size_t aux_pattern_size, pr_r464_mode0_report *report);
 
+/* Resume at +0x0328 after a reviewed y backedge. The caller supplies the
+ * carried loop state; no header setup or index reset is repeated. */
+pr_r464_mode0_status pr_r464_mode0_resume_pixel_prefix(
+    const uint8_t *source, size_t source_size, uint16_t source_offset,
+    uint16_t data_offset, uint16_t auxiliary_index,
+    uint16_t width_end, uint16_t height_end, uint16_t x, uint16_t y,
+    uint8_t layer, uint8_t count, uint8_t selector,
+    pr_r464_block_object *object, pr_r464_block_object *auxiliary,
+    const uint8_t *aux_pattern_low, size_t aux_pattern_size,
+    pr_r464_mode0_report *report);
+
 #endif

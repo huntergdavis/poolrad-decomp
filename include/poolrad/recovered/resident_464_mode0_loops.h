@@ -50,4 +50,11 @@ pr_r464_mode0_loop_status pr_r464_mode0_after_first_pixel(
     const pr_r464_block_object *object,
     pr_r464_mode0_loop_report *report);
 
+/* Apply the same +0x05CB gate after a carried pixel. */
+pr_r464_mode0_loop_status pr_r464_mode0_after_pixel(
+    const pr_r464_mode0_report *prefix,
+    const pr_r464_mode0_second_report *second,
+    const pr_r464_block_object *object,
+    pr_r464_mode0_loop_report *report);
+
 #endif

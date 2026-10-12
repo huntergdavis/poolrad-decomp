@@ -13,7 +13,7 @@ static pr_r464_mode0_loop_status stop(
     return status;
 }
 
-pr_r464_mode0_loop_status pr_r464_mode0_after_first_pixel(
+pr_r464_mode0_loop_status pr_r464_mode0_after_pixel(
     const pr_r464_mode0_report *prefix,
     const pr_r464_mode0_second_report *second,
     const pr_r464_block_object *object,
@@ -21,9 +21,9 @@ pr_r464_mode0_loop_status pr_r464_mode0_after_first_pixel(
     if (!prefix || !second || !report ||
         prefix->stopped_at != PR_R464_MODE0_STOP_PRIMARY_HELPERS ||
         prefix->next_offset != 0x03D1u || prefix->count == 0u ||
-        prefix->layer != 1u || prefix->x != 0u || prefix->y != 0u ||
         second->stopped_at != PR_R464_MODE0_SECOND_STOP_LOOP_CONTINUATION ||
-        second->next_offset != 0x05CBu || second->data_offset != 2u ||
+        second->next_offset != 0x05CBu ||
+        second->data_offset != (uint16_t)(prefix->data_offset + 2u) ||
         second->source_offset !=
             (uint16_t)(prefix->source_offset + 4u) ||
         second->auxiliary_index != prefix->auxiliary_index)
@@ -90,4 +90,15 @@ pr_r464_mode0_loop_status pr_r464_mode0_after_first_pixel(
     report->next_offset = 0x08CEu;
     return stop(report, PR_R464_MODE0_LOOP_STOP_COMMON_RETURN,
                 PR_R464_MODE0_LOOP_RETURN);
+}
+
+pr_r464_mode0_loop_status pr_r464_mode0_after_first_pixel(
+    const pr_r464_mode0_report *prefix,
+    const pr_r464_mode0_second_report *second,
+    const pr_r464_block_object *object,
+    pr_r464_mode0_loop_report *report) {
+    if (!prefix || prefix->layer != 1u || prefix->x != 0u ||
+        prefix->y != 0u || prefix->data_offset != 0u)
+        return PR_R464_MODE0_LOOP_ARGUMENT;
+    return pr_r464_mode0_after_pixel(prefix, second, object, report);
 }
