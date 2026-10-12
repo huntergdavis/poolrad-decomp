@@ -15,13 +15,13 @@ verified function inventory. For ECL, distinguish opcode mapping from handler
 implementation. Do not combine asset coverage and engine work into a single
 overall completion percentage without a measured weighting.
 
-Merged translation checkpoint through PR #162 and reviewed ownership accounting: **60 verified game-specific full C
-translations** (51 overlay, including PR #108's two ECL comparison helpers, PRs #124/#126/#128's unit `0x3BD` entries 4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` record scan, PR #149's unit `0x68:+0x05EE` list search, PR #152's unit `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, PRs #158/#159's unit `0x68:+0x0236` party-byte test and `+0x0109` map updater, and PR #162's `+0x0000` cell-field clear,
+Merged translation checkpoint through PR #194 and reviewed ownership accounting: **61 verified game-specific full C
+translations** (52 overlay, including PR #108's two ECL comparison helpers, PRs #124/#126/#128's unit `0x3BD` entries 4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` record scan, PR #149's unit `0x68:+0x05EE` list search, PR #152's unit `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, PRs #158/#159's unit `0x68:+0x0236` party-byte test and `+0x0109` map updater, PR #162's `+0x0000` cell-field clear, and PR #194's unit `0x9B:+0x01AF` record update,
 and nine resident, including PR #79's `RES_00BA_2E8B`). PRs #65/#72's script initializer and block loader are
 models. The independently translated `0x464` helper from PR #64 has unresolved
 game/library ownership and is outside that count. The regenerated overlay
-classifier has 112 verified identities. With ten verified resident identities
-from the callable ledger, the evidence-backed game-identity floor is **122**.
+classifier has 113 verified identities. With ten verified resident identities
+from the callable ledger, the evidence-backed game-identity floor is **123**.
 PRs #96, #106 and #114 establish the class-1 hook and unit `0x3BD` entries 6 and 7 identities,
 respectively, without strict full-C credit because their callees remain unresolved.
 The merged PR #153 native DOS watch establishes the first value-changing

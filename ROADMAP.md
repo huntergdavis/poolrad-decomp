@@ -1,6 +1,6 @@
 # Pool of Radiance DOS source reconstruction: roadmap for review
 
-**Status:** in progress, 2026-10-11. **Primary target:** the supplied DOS v1.3
+**Status:** in progress, 2026-10-12. **Primary target:** the supplied DOS v1.3
 installation. **End state:** maintainable modern C source that runs the complete
 DOS game from owner-supplied data on supported host backends. A future Nintendo
 DS port is an architectural constraint, not work scheduled in this repository.
@@ -13,12 +13,14 @@ merged (PRs #6, #11, #15, #20, #25, #27). The resident audit finds 86 distinct
 non-SYSTEM called targets, 84 mapped to exact prologues under empirical shifts;
 the game versus library split remains open.
 The read-only DOS world-save reader identifies the fixed ten-block frame.
-The C-native slot-A adapter now copies all ten world-save transfer spans and
-stops explicitly at the untranslated key-dispatch route. Loading character
-records and map blocks, post-load effects, and executing movement remain open.
-Sixty game-specific routines are fully translated and behavior-checked
+The C-native slot-A adapter copies all ten world-save transfer spans. A bounded
+host model loads the six matching character records in saved order and applies
+the verified unit `0x9B:+0x01AF` record updates (PRs #193/#194). The adapter still
+stops explicitly at the untranslated key-dispatch route. Sidecars, map blocks,
+other post-load effects, and executing movement remain open.
+Sixty-one game-specific routines are fully translated and behavior-checked
 across the overlay and resident lanes (PRs #63/#69 added twenty bounded unit
-`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, PRs #124/#126/#128 unit `0x3BD` cell, nibble and field lookups, PRs #130/#132's unit `0x7F` divide-by-five helpers, PR #136 unit `0x25` entry 19 party movement, PR #138 unit `0x68:+0x068D` Up preflight, PR #145 unit `0x68:+0x05AB` party-record scan, PR #149 unit `0x68:+0x05EE` party-list search, PR #152 unit `0x68:+0x0648` record clear, PR #150 four unit `0x3C6` character-slot helpers, PRs #158/#159/#162's unit `0x68` party-byte, map-update and cell-field-clear helpers, and PRs #70/#79 resident target reset/selection).
+`0x38` routines, PR #85 two more walk entries, PR #65 a view setter, PR #108 two ECL compare helpers, PRs #124/#126/#128 unit `0x3BD` cell, nibble and field lookups, PRs #130/#132's unit `0x7F` divide-by-five helpers, PR #136 unit `0x25` entry 19 party movement, PR #138 unit `0x68:+0x068D` Up preflight, PR #145 unit `0x68:+0x05AB` party-record scan, PR #149 unit `0x68:+0x05EE` party-list search, PR #152 unit `0x68:+0x0648` record clear, PR #150 four unit `0x3C6` character-slot helpers, PRs #158/#159/#162's unit `0x68` party-byte, map-update and cell-field-clear helpers, PR #194 unit `0x9B:+0x01AF` record updates, and PRs #70/#79 resident target reset/selection).
 The PR #65 script-state initializer and PR #72 block loader remain
 path-complete models. The separately translated `0x464`
 bitmap release helper in PR #64 has unresolved game/library ownership and is
@@ -35,10 +37,10 @@ same-value stores are not excluded. C-native save/load/one-Up parity remains ope
 [measuring the game-function denominator](https://github.com/huntergdavis/poolrad-decomp/issues/24)
 using the merged [overlay audit](https://github.com/huntergdavis/poolrad-decomp/pull/32)
 and [resident callable audit](https://github.com/huntergdavis/poolrad-decomp/pull/33).
-The regenerated overlay classifier records 112 verified identities, including
+The regenerated overlay classifier records 113 verified identities, including
 the twenty-two reviewed unit `0x38` entries, PR #65's view setter, unit
-`0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's unit `0x3C6` entries 12–15, PRs #158/#159's unit `0x68:+0x0236` party test and `+0x0109` map updater, and PR #162's `+0x0000` field clear. With
-ten verified resident identities, **122** is the current evidence-backed lower bound, not the full
+`0x3BD` entries 6, 7, 4, 2 and 3 from PRs #106/#114/#124/#126/#128, PRs #130/#132's unit `0x7F` entries 10 and 11, PR #108's two compare helpers, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` scan, and PR #149's unit `0x68:+0x05EE` list search, PR #152's `0x68:+0x0648` record clear, PR #150's unit `0x3C6` entries 12–15, PRs #158/#159's unit `0x68:+0x0236` party test and `+0x0109` map updater, PR #162's `+0x0000` field clear, and PR #194's unit `0x9B:+0x01AF` record update. With
+ten verified resident identities, **123** is the current evidence-backed lower bound, not the full
 denominator. Work continues
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.
