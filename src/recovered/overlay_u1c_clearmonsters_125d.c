@@ -27,7 +27,7 @@ pr_u1c_cmon_status pr_u1c_op_clearmonsters(pr_rec_ecl_loader_state *st, pr_u1c_c
     pr_u1c_cmon_report local;
     pr_u1c_cmon_report *r = report ? report : &local;
     memset(r, 0, sizeof *r);
-    if (!st || !env)
+    if (!st || !env || (env->nodes == NULL && env->node_count != 0u))   /* a malformed host table is rejected before any effect */
         return PR_U1C_CMON_ARGUMENT;
     st->pc = (uint16_t)(st->pc + 1u);                                  /* +0x1263: inc word [0x49ED] */
     env->b4435 = 0u;                                                   /* +0x1267 */

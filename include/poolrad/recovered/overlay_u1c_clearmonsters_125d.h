@@ -69,7 +69,7 @@ struct pr_u1c_cmon_env {
 
 typedef enum {
     PR_U1C_CMON_OK = 0,
-    PR_U1C_CMON_ARGUMENT,   /* null state or env */
+    PR_U1C_CMON_ARGUMENT,   /* null state or env, or a null node table with a nonzero count (rejected before any effect) */
     PR_U1C_CMON_LIST,       /* host guard: a node has a null or too small view for its four link bytes, or the list exceeds the
                                cap; the earlier frees stand and the PC has advanced */
     PR_U1C_CMON_UNMAPPED,   /* the head pair is non-nil but no table node has that segment identity and offset; the earlier frees stand */

@@ -140,6 +140,13 @@ int main(void)
         CHECK(pr_u1c_op_clearmonsters(&st, &env, &rep) == PR_U1C_CMON_OK && rep.freed == 2 && rec.seen[0] == &w[0] && rec.seen[1] == &w[1]);
     }
 
+    /* a malformed host table (null pointer, nonzero count) is rejected before any effect; a null table with count 0 is a valid empty table */
+    make_list(2); env_init(&env, &rec, 2); env.nodes = NULL; env.node_count = 3; memset(&st, 0, sizeof st); st.pc = 5;
+    CHECK(pr_u1c_op_clearmonsters(&st, &env, &rep) == PR_U1C_CMON_ARGUMENT && st.pc == 5 && env.b6f83 == 0x33 && env.block_67f4[0] == 0xAA && rec.n == 0);
+    make_list(0); env_init(&env, &rec, 0); env.nodes = NULL; env.node_count = 0; memset(&st, 0, sizeof st);
+    CHECK(pr_u1c_op_clearmonsters(&st, &env, &rep) == PR_U1C_CMON_OK);
+    make_list(1); env_init(&env, &rec, 1); env.nodes = NULL; env.node_count = 0; memset(&st, 0, sizeof st);          /* non-nil head, empty table: UNMAPPED */
+    CHECK(pr_u1c_op_clearmonsters(&st, &env, &rep) == PR_U1C_CMON_UNMAPPED && rep.freed == 0);
     CHECK(pr_u1c_op_clearmonsters(NULL, &env, &rep) == PR_U1C_CMON_ARGUMENT && pr_u1c_op_clearmonsters(&st, NULL, &rep) == PR_U1C_CMON_ARGUMENT);
     puts("overlay_u1c_clearmonsters_125d: ok");
     return 0;
