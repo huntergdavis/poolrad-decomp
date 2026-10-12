@@ -1,5 +1,7 @@
 # ECL class-1 hooks for address 0x6E7D (store and load)
 
+> **Superseded in part (store and load classifiers):** the statements below that every other class-1 address (including `0x6E7C`, `0x6E7E`, ...) reports HOOK and that only the listed addresses are exempt describe the code as merged with this note. They are now historical: the store hook is classified for all 1,024 class-1 addresses by `pr_rec_ecl_store_hook_may_effect` ([ECL_STORE_HOOK_CLASSIFIER.md](ECL_STORE_HOOK_CLASSIFIER.md); 96 potential-effect addresses) and the load hook by `pr_rec_ecl_load_hook_may_effect` ([ECL_LOAD_HOOK_CLASSIFIER.md](ECL_LOAD_HOOK_CLASSIFIER.md); 29), under which `0x6E7C`, `0x6E7E` and the other plain neighbours return OK. The before/after traces and path evidence below are preserved unchanged.
+
 `pr_rec_ecl_store_word` and `pr_rec_ecl_load_word` report HOOK after every
 class-1 (window 1) access except the addresses proven to leave the engine's hook
 quiet: `0x6E82` (store, [ECL_STORE_HOOK_6E82.md](ECL_STORE_HOOK_6E82.md)) and

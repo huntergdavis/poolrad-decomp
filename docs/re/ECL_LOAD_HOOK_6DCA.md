@@ -40,10 +40,12 @@ them. `0x6DC9` and `0x6DCB` stay HOOK in the model because they are not reached 
 
 ## Change
 
-`PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D` (`0x6DCA`). Tests: the all-1,024 class-1 load sweep has
-exactly four OK addresses; `0x6DC9`/`0x6DCB` stay HOOK with their words read; the store word at
-`0x6DCA` still reports HOOK; a synthetic COMPARE of `0x6DCA` with an immediate byte completes with the
-flags of the window word as held, and the same shape at `0x6DCB` reports HOOK with the flags untouched.
+*(Historical, as merged then.)* `PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_D` (`0x6DCA`). Tests: the all-1,024 class-1 load sweep had
+exactly four OK addresses; `0x6DC9`/`0x6DCB` stayed HOOK with their words read; the store word at
+`0x6DCA` still reported HOOK (**superseded:** PR #201's store classifier makes the `0x6DCA` store quiet/OK, `rel 0x2CA`
+not being a potential-effect address); a synthetic COMPARE of `0x6DCA` with an immediate byte completed with the
+flags of the window word as held, and the same shape at `0x6DCB` reported HOOK with the flags untouched (**superseded:**
+the load classifier makes `0x6DC9` and `0x6DCB` plain, so those now return OK).
 
 ## Private smoke, supplied-state search entry (documented, not committed)
 
