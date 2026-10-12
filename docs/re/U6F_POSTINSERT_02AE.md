@@ -5,9 +5,11 @@ The no-argument unit `0x6F:+0x02AE..+0x032E` body has a bounded C model in
 the selector's nonzero-AL branch, allocation, record loader and party
 insertion. [Merged native first-slot evidence](https://github.com/huntergdavis/poolrad-decomp/pull/255)
 (main `8e7f8ee`) measures `AX=0x0001` at `+0x19AD`, selecting `+0x19B1`
-for that iteration.
-It does not measure the later allocation, record load, insertion or
-`+0x19E7` execution. This model earns no full-route or strict-function count.
+for that iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
+(main `080e7de`) observes the GetMem return at `+0x19BA` and the record
+loader's return at `+0x19DA`. Record contents, insertion, `+0x19E7`
+execution, and mkdir effects remain unmeasured. This model earns no
+full-route or strict-function count.
 
 Before decoding, `deja "Poolrad u6f 02AE mkdir IOResult 0 5 retry directory"`
 found no matching indexed session; `deja "u6f 02AE"` returned prior party

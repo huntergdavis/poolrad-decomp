@@ -6,10 +6,12 @@ Its caller at `+0x19E3` supplies a newly allocated character-record
 pointer, after the record loader returns. A
 [merged native first-slot selector measurement](https://github.com/huntergdavis/poolrad-decomp/pull/255)
 (main `8e7f8ee`) establishes `AX=1` at `+0x19AD` and entry to `+0x19B1`
-for one saved iteration. Allocation, record-load completion, insertion,
-and the later `+0x02AE` call remain unobserved on that run. This C
-translation claims no saved-route or strict-function credit before PM
-parity review.
+for one saved iteration. [Merged native caller evidence](https://github.com/huntergdavis/poolrad-decomp/pull/256)
+(main `080e7de`) observes the GetMem return at `+0x19BA` and the
+`+0x0AEC` record-loader return at `+0x19DA`. Record contents, insertion
+at `+0x19E3`, and the later `+0x02AE` call remain unmeasured on that run.
+This C translation claims no saved-route or strict-function credit
+before PM parity review.
 
 Before decoding, `deja "Poolrad unit 0x6F 0x1446 party insertion Move
 membership u9B 01AF"` found no exact indexed session; `deja "u6f
