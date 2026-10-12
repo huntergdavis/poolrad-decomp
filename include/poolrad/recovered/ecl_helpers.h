@@ -267,13 +267,15 @@ pr_rec_ecl_window_status pr_rec_ecl_store_string(pr_rec_ecl_loader_state *state,
  *     by-reference flag to 0 (+0x0A67) and reads and writes nothing else, and the caller
  *     (+0x0E41..+0x0E69) then reads the window word;
  *   store word returns OK at
- *     0x6E82 (rel 0x382; docs/re/ECL_STORE_HOOK_6E82.md) and
- *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md):
+ *     0x6E82 (rel 0x382; docs/re/ECL_STORE_HOOK_6E82.md),
+ *     0x6E7D (rel 0x37D; docs/re/ECL_HOOKS_6E7D.md) and
+ *     0x6DE1 (rel 0x2E1; docs/re/ECL_STORE_HOOK_6DE1.md; store only, the load hook stays HOOK there):
  *     for each, every exact and range case in +0x0A74 is missed and it returns with no
  *     DS/ES game-state write and no call (it only adjusts its own stack argument).
  * Every other class-1 address, including the quiet neighbours, still reports HOOK. */
 #define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS 0x6E82u
 #define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_B 0x6E7Du    /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
+#define PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS_C 0x6DE1u    /* proven the same way, docs/re/ECL_STORE_HOOK_6DE1.md */
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS 0x6DD5u
 #define PR_REC_ECL_LOAD_HOOK_PLAIN_ADDRESS_B 0x6E7Du   /* proven the same way, docs/re/ECL_HOOKS_6E7D.md */
 pr_rec_ecl_window_status pr_rec_ecl_load_word(pr_rec_ecl_loader_state *state,
