@@ -10,7 +10,8 @@
  * For each node of the far list at DS:[0x5D96] (next far pointer at +0x104),
  * until a node sets `found`, it calls the merged unit 0x3bd entry 3 with the
  * party x, y and facing bytes (the same arguments every iteration) and
- * branches on the node's byte +0x10 ("type") and, for type 0x12, byte +0x16:
+ * branches on the node's byte +0x10 ("type") and, for type 0x12 only (the only
+ * place byte +0x16 is read), byte +0x16:
  *   entry 3 result = 3:
  *     type 0x12: byte +0x16 in 0x5B..0x63 -> roll 1d6 == 1;  == 0x64 -> roll 1d6 <= 2;
  *                otherwise [0x6DDE] := 0 and no roll

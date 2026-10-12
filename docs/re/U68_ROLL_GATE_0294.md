@@ -32,13 +32,13 @@ stub mapping: `0xB0:0x48` = entry 8).
 | near callers | exactly two, both in entry 1: `+0x0ECA` and `+0x1009` (a scan of every `push cs; call rel16` with target `+0x0294`) |
 | DS reads | `[0x5D96]` (party head), `[0x6AAD..0x6AAF]`, direction tables `[di + 0x2736]` and `[di + 0x273F]` (`di` = facing, on a hit only) |
 | DS writes | `[0x6DDE] := 0` at two sites (`+0x0328`, `+0x03A5`); nothing else |
-| memory reads | node bytes `+0x10`, `+0x16`, and the next far pointer at `+0x104`/`+0x106` |
+| memory reads | node byte `+0x10` every node; byte `+0x16` **only on the type `0x12` branches** (`+0x02EB` with entry 3 = 3, `+0x0410` otherwise; never read for another type); the next far pointer at `+0x104`/`+0x106` |
 
 ## Rules (the byte-verified compare chains)
 
 For each node, entry 3 is called with the party bytes (the arguments never
 change between iterations), then the branch is chosen by entry 3's result and
-the node's byte `+0x10` (`type`), plus byte `+0x16` (`value`) for type `0x12`.
+the node's byte `+0x10` (`type`), plus byte `+0x16` (`value`), which is read only for type `0x12` (the model reads it only then).
 Rolls are `0xB0:0x48` with the byte arguments pushed as (1, sides). The compare
 on AL is unsigned; the two `== 1` forms use `cmp al, 1; jne`, so a roll of 0 does
 **not** count there, while every `<= n` form (`ja` skips) does.

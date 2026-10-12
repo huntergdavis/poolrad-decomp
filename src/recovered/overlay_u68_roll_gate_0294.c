@@ -95,8 +95,9 @@ pr_u68_roll_gate_status pr_u68_roll_gate(pr_u68_roll_gate_state *st, uint8_t *al
             return PR_U68_ROLL_ARGUMENT;
         if (r->nodes == 1u)
             r->first_entry3 = e3;
-        type = view->bytes[(uint16_t)(cur.offset + PR_U68_ROLL_TYPE_OFFSET)];
-        value = view->bytes[(uint16_t)(cur.offset + PR_U68_ROLL_VALUE_OFFSET)];
+        type = view->bytes[(uint16_t)(cur.offset + PR_U68_ROLL_TYPE_OFFSET)];      /* +0x02E3 / +0x03B0 */
+        /* byte +0x16 is read only on the type 0x12 branches (+0x02EB, +0x0410), never for another type */
+        value = (type == 0x12u) ? view->bytes[(uint16_t)(cur.offset + PR_U68_ROLL_VALUE_OFFSET)] : 0u;
         ru = (e3 == 3u) ? rule_hit(type, value) : rule_miss(type, value);
 
         if (ru.clear_flag) {
