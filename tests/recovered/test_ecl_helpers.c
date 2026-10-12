@@ -1442,7 +1442,7 @@ static int test_load_word_class4(void) {
 }
 
 /* Store word class 1 (+0x0CB7..+0x0CD8): window write, then the hook +0x0A74. Only 0x6E82 is proven to return from
- * the hook with no write and no call, so only it reports OK; every other class-1 address keeps HOOK. */
+ * the hook with no DS/ES game-state write and no call, so only it reports OK; every other class-1 address keeps HOOK. */
 static int test_store_word_6e82(void) {
     static pr_rec_ecl_loader_state st;
     unsigned a, n_effect = 0;
@@ -1469,7 +1469,7 @@ static int test_store_word_6e82(void) {
         pr_rec_ecl_window_status w = pr_rec_ecl_store_word(&st, (uint16_t)a, 1);
         CHECK(a == 0x6E82 ? w == PR_REC_ECL_WINDOW_OK : w == PR_REC_ECL_WINDOW_HOOK);
     }
-    /* cross-check with the standalone model of the hook (+0x0A74): 0x6E82 matches no case, does nothing, and the 96
+    /* cross-check with the standalone model of the hook (+0x0A74): 0x6E82 matches no case, makes no game-state write or call, and the 96
        addresses that do something are exactly the ones the byte-level control trace found (rel 0x000, 0x020..0x070,
        0x0B8, 0x0BB, 0x0BD, 0x0BF, 0x0C1, 0x0C3, 0x0F7, 0x0F9, 0x100, 0x10C, 0x312, 0x322, 0x324, 0x326) */
     memset(record, 0x77, sizeof record); memset(&flags, 0, sizeof flags);

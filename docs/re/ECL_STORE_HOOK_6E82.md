@@ -6,7 +6,7 @@ class-1 (window 1) store because the engine then calls the hook at unit `0x25`
 an independent proof that, for the single address **`0x6E82`** (window-1 byte
 offset `0x382`, the destination of the saved AND at PC `0x996B`,
 [U1C_AND_OR_0DEF.md](U1C_AND_OR_0DEF.md)), the hook runs and returns without a
-write or a call, and the narrow change that follows: `pr_rec_ecl_store_word`
+persistent game-state write (DS or ES) and without a call, and the narrow change that follows: `pr_rec_ecl_store_word`
 returns **OK** after its window write at `0x6E82` and still returns HOOK at
 every other class-1 address. Lane-A files were edited with the PM's approval.
 **No count or credit is claimed**, no strict full-C claim, and no value is
@@ -47,12 +47,17 @@ value decides the case; the cases are `rel = 0`, `0x20..0x70`, `0xB8`, `0xBB`,
 `+0x0B6C` `0x100`, `+0x0BA1` `0x10C`, `+0x0BFA` `0x312`, `+0x0C0A` `0x322`,
 `+0x0C2D` `0x324`, `+0x0C50` `0x326`) and the last `jne` lands on the epilogue
 `+0x0C71`. The executed path is 42 instructions, all compares, conditional jumps
-and the prologue moves: **no memory store and no call**.
+and the prologue moves: **no DS or ES (game-state) write and no call**. The only stores it makes are to its
+own stack frame: the prologue pushes and `+0x0A80`, which stores the adjusted
+address back to its stack argument `[bp+8]` (`+0x0A7A` loads the address, `+0x0A7D`
+subtracts `0x6B00`, `+0x0A80` stores it). That is a mutation of the hook's local
+argument copy, not of caller or game state.
 
 **Method (tool-assisted static trace).** A small flow follower over the decoded
 bytes (private scratch, not in the repository) runs the compare chain with a
 concrete address for each of the 65,536 sixteen-bit values and records any
-instruction that stores to ES or an absolute DS address or calls, exploring both
+instruction that stores to ES or an absolute DS address or calls (stores to the
+hook's own stack argument `[bp+8]` are tracked as the value flow, not counted as effects), exploring both
 sides of any branch that depends on the value word. Result: within
 `0x6B00..0x6EFF` exactly **96** addresses can do something (`0x6B00`,
 `0x6B20..0x6B70`, `0x6BB8`, `0x6BBB`, `0x6BBD`, `0x6BBF`, `0x6BC1`, `0x6BC3`,
@@ -67,7 +72,7 @@ static proof for the instruction bytes, not a captured guest run.
   `PR_REC_ECL_STORE_HOOK_NOOP_ADDRESS` (`0x6E82`) it returns **OK**, otherwise
   HOOK. Classes 0 and 2, class 3 and class 4 are unchanged.
 * The other no-op addresses (for example `0x6E81`, `0x6E83`) are deliberately
-  **not** exempted: the trace shows they also do nothing, but this slice only
+  **not** exempted: the trace shows they also make no game-state write and no call, but this slice only
   claims the proven address the saved route needs.
 * `tests/recovered/test_ecl_helpers.c` `test_store_word_6e82`; the saved-shape AND
   test in `test_overlay_u1c_and_or_0def.c` now expects OK.

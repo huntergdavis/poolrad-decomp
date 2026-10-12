@@ -70,7 +70,7 @@ addresses. After the byte-derived class-4 table of unit `0x25` `+0x0E0C`
 zero-extended: slot 2 resolves to whatever that byte holds, the handler
 computes `0x7F and byte`, sets the six flags from comparing 0 with it, stores
 the byte to window-1 word `0x382` and now completes with OK: the class-1 store
-hook at that address is proven to do nothing ([ECL_STORE_HOOK_6E82.md](ECL_STORE_HOOK_6E82.md)).
+hook at that address is proven to make no game-state write and no call ([ECL_STORE_HOOK_6E82.md](ECL_STORE_HOOK_6E82.md)).
 **The live value of `[0x6AB1]` at that PC is state-dependent and is not
 claimed**; the tests supply every byte value 0..255 and no expected move result
 is seeded. Unsupported class-4 addresses (for example `0xC059`) stay
