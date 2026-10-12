@@ -3,8 +3,9 @@
 The no-argument unit `0x6F:+0x02AE..+0x032E` body has a bounded C model in
 `pr_u6f_postinsert_02ae`. Its only known direct call is `+0x19E7`, after
 the selector's nonzero-AL branch, allocation, record loader and party
-insertion. A [provisional native first-slot measurement](https://github.com/huntergdavis/poolrad-decomp/pull/255)
-reports `AX=0x0001` at `+0x19AD`, selecting `+0x19B1` for that iteration.
+insertion. [Merged native first-slot evidence](https://github.com/huntergdavis/poolrad-decomp/pull/255)
+(main `8e7f8ee`) measures `AX=0x0001` at `+0x19AD`, selecting `+0x19B1`
+for that iteration.
 It does not measure the later allocation, record load, insertion or
 `+0x19E7` execution. This model earns no full-route or strict-function count.
 
