@@ -4,7 +4,9 @@
 > [active-record composition](U1C_ARITH_CLASS1_RECORD_6B18.md). A supplied
 > record now resolves this branch, the [`0x6B9B` branch](ECL_LOAD_HOOK_6B9B_RECORD.md),
 > and the [`0x6BA0` signed-byte branch](ECL_LOAD_HOOK_6BA0_SIGNED.md);
-> the other dependencies below remain.
+> the other dependencies below remain. The saved AL=13 class-2 path now has a
+> [measured native DIVIDE/store/return trace](U1C_DIVIDE_AL13_NATIVE_EXECUTION.md),
+> which does not resolve the other dependencies.
 
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
 for its four dispatched opcodes. It cannot yet receive strict full-C credit for the whole
