@@ -37,8 +37,8 @@ The Turbo Pascal `Registers` record sits at `DS:0x4A02` (AX BX CX DX BP SI DI DS
 
 ## Native check (numbers only)
 
-At all three stops `DS:4A1E = 1`, `DS:4A1D = 0x0D`, `DS:4A1C = 3`, `DS:4A1A = DS:4A1B = 0`, `DS:4A16 = DS:4A18 = 0xA000`, and the register record's AX is `0x0500` (AH = 5, AL = 0: the page select was the last
-`Intr(0x10)` call) with BX..ES zero. `pr_vi_select_mode` run on adapter letter `0x45` with a fabricated BIOS whose mode query answers 3 reproduces **all 23 compared values with zero mismatches at each of the three stops** (an endpoint match: the snapshots do not show the order or number of intervening calls)
+At all three stops `DS:4A1E = 1`, `DS:4A1D = 0x0D`, `DS:4A1C = 3`, `DS:4A1A = DS:4A1B = 0`, `DS:4A16 = DS:4A18 = 0xA000`, and the register record's AX is `0x0500` (AH = 5, AL = 0: consistent with the page-select call
+being the most recent writer of this register record; the snapshots do not prove it) with BX..ES zero. `pr_vi_select_mode` run on adapter letter `0x45` with a fabricated BIOS whose mode query answers 3 reproduces **all 23 compared values with zero mismatches at each of the three stops** (an endpoint match: the snapshots do not show the order or number of intervening calls)
 (`tests/replay/check_first_view_display_state.sh DIR` verifies the image hashes and runs `tools/replay/first_view_display_state.c`). The register record and `4A1C` are the same in the `+3382` and `+3387` images; that endpoint equality does **not** show that no `Intr` call happened inside the first view refresh (a same-value call, or a palette call followed by a page select, would leave the same endpoint). The previous mode 3 and every BIOS side effect of the calls (the hardware mode change, the default EGA palette) are host/BIOS inputs, not recovered code.
 
 ## Palette negative result
