@@ -87,8 +87,43 @@ static int test_negative_routes(void) {
     return 0;
 }
 
+static int test_single_cell_color_ten(void) {
+    pr_font201 font;
+    pr_slot_a_printer_page_report report;
+    uint8_t *page[4] = {storage[0], storage[1], storage[2], storage[3]};
+    size_t row, at;
+    unsigned plane;
+
+    memset(block, 0, sizeof block);
+    for (row = 0u; row < 7u; ++row) {
+        block[1u * 8u + row] = 0x3Cu; /* synthetic glyph A */
+    }
+    for (plane = 0u; plane < 4u; ++plane) {
+        memset(storage[plane], 0u, PAGE_BYTES);
+    }
+    CHECK(pr_font201_open(block, sizeof block, &font) == PR_FONT201_OK);
+    CHECK(pr_slot_a_printer_page_apply(page, BASE, PAGE_BYTES, &font,
+                                       34u, 4u, 10u, "A", 1u, &report) ==
+          PR_SLOT_A_PRINTER_PAGE_OK);
+    CHECK(report.cells == 1u && report.plane_stores == 32u &&
+          report.changed_plane_bytes == 14u);
+    for (row = 0u; row < 8u; ++row) {
+        at = (32u + row) * 40u + 34u - BASE;
+        CHECK(storage[0][at] == 0u && storage[2][at] == 0u);
+        CHECK(storage[1][at] == (row < 7u ? 0x3Cu : 0u));
+        CHECK(storage[3][at] == (row < 7u ? 0x3Cu : 0u));
+        CHECK(storage[1][at - 1u] == 0u && storage[3][at + 1u] == 0u);
+    }
+    CHECK(pr_slot_a_printer_page_apply(page, BASE, PAGE_BYTES, &font,
+                                       34u, 4u, 10u, "A", 1u, &report) ==
+          PR_SLOT_A_PRINTER_PAGE_OK);
+    CHECK(report.changed_plane_bytes == 0u);
+    return 0;
+}
+
 int main(void) {
     CHECK(test_reached_cells() == 0);
     CHECK(test_negative_routes() == 0);
+    CHECK(test_single_cell_color_ten() == 0);
     return 0;
 }
