@@ -780,6 +780,22 @@ on the empty list falling through to EXIT (11 dispatches, both SAVEs landed, dep
 
 Throughput: 20 minutes.
 
+### 1.21 The text font block and its EGA glyph route (inbox task i1200, first slot-A view)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 29 | font load = resident `0x709:0x017C` (`RES_0709_017C`, image 0x0720C..0x0726E), called once from unit 0x36 + 0x0481 | 99 bytes, 44 instructions | far Pascal, no arguments, `retf` | **documented route** (name constants, id 0xC9, DAX loader boundary, copy into `[0x5E20]`, release); the C reader `pr_font201_open` takes the copied block | **verified**; no translation claimed |
+| 30 | glyph draw = resident `0x709:0x01DF` (`RES_0709_01DF`, image 0x0726F..0x0767A) | 1,036 bytes, 403 instructions | far Pascal: column, row, color, count, character, upcase flag; `retf 0xC` | **path-complete model of the EGA path** (`pr_font201_draw_glyph_ega`, `pr_font201_draw_ega`); the CGA and four-bank paths documented, not implemented | EGA path **verified** instruction by instruction; not counted |
+| 31 | string print = resident `0x709:0x0626` (`RES_0709_0626`, image 0x076B6..0x07736) | 129 bytes, 51 instructions | far Pascal: string, color, row, column; `retf 0xA` | **path-complete model** (`pr_font201_print_ega`, composes 30) | **verified**; not counted |
+
+Evidence, offsets, the block format (177 glyphs of 8 bytes, one bit per pixel, bit 7
+leftmost; `GetMem(0x588)` at unit 0x36 + 0x0074 equals the block size) and the private audit
+are in [FONT_8X8D_201.md](FONT_8X8D_201.md). These are resident routines recovered under the
+owner's font-slice assignment; the resident ledger ids are cited for cross-reference. No
+count paragraph changes.
+
+Throughput: 55 minutes for the route and format, 25 for the C and tests.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
