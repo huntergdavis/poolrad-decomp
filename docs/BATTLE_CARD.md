@@ -1,62 +1,86 @@
 # Project battle card
 
-Use this format when the CTO asks for a Pool of Radiance decomp status update.
-Refresh the evidence first: current `main`, open PRs/issues, local test results,
-and active worker panes when available. Distinguish merged, PR, and unpublished
-worker findings. Include an as-of time in America/Los_Angeles.
+Use this format when the CTO asks for Pool of Radiance progress. Refresh
+main, open PRs, local verification, the PM, and active worker panes first.
+Give the observation time in America/Los_Angeles. Distinguish merged work,
+open PRs, and unpublished worker findings. Put the visible outcome ahead of
+routine counts.
 
-Report percentages only where both the completed count and denominator are
-measured for the same scope. Give the ratio beside the percentage. For game
-functions, count only translated functions that compile and pass a stated
-behavior check; if the total is not yet verified, write `0 verified / total
-unknown` (or the current count) rather than inventing a completion percentage.
-The 675 Pascal prologues in the first audit are candidate entry points, not a
-verified function inventory. For ECL, distinguish opcode mapping from handler
-implementation. Do not combine asset coverage and engine work into a single
-overall completion percentage without a measured weighting.
+## Current demonstration ladder
 
-Reviewed translation checkpoint: **66 verified game-specific full C
-translations** (57 overlay, including PR #108's two ECL comparison helpers, PRs #124/#126/#128's unit `0x3BD` entries 4/2/3, PRs #130/#132's unit `0x7F` entries 10/11, PR #136's unit `0x25` entry 19, PR #138's unit `0x68:+0x068D` preflight, PR #145's unit `0x68:+0x05AB` record scan, PR #149's unit `0x68:+0x05EE` list search, PR #152's unit `0x68:+0x0648` record clear, PR #150's four unit `0x3C6` slot helpers, PRs #158/#159's unit `0x68:+0x0236` party-byte test and `+0x0109` map updater, PR #162's `+0x0000` cell-field clear, PR #194's unit `0x9B:+0x01AF` record update, PR #276's unit `0x9B:+0x0255` table leaf, PR #279's unit `0x9B:+0x0329` field leaf, PR #281's unit `0x9B:+0x0000` caller, PR #286's unit `0x5E:+0x2879` party value, and unit `0x9E` entry-8 dice roll,
-and nine resident, including PR #79's `RES_00BA_2E8B`). PRs #65/#72's script initializer and block loader are
-models. The independently translated `0x464` helper from PR #64 has unresolved
-game/library ownership and is outside that count. The regenerated overlay
-classifier has 118 verified identities. With ten verified resident identities
-from the callable ledger, the evidence-backed game-identity floor is **128**.
-PRs #96, #106 and #114 establish the class-1 hook and unit `0x3BD` entries 6 and 7 identities,
-respectively, without strict full-C credit because their callees remain unresolved.
-The merged PR #153 native DOS watch establishes the first value-changing
-minute store for one saved Up; C-native replay remains open. Refresh all of
-these counts before issuing a live card.
+1. **Original DOS oracle:** boot, show the loading screen, load owner slot A,
+   and take one Up step. These captures are references, not portable C output.
+2. **Portable C static saved view:** assemble original art, text, and palette
+   into one full 320x200 frame from slot A, then compare it with the DOS
+   reference. As of merged PR #312, only 128 of 64,000 pixels are covered by
+   the checker, with zero mismatches in that bounded region. The other 63,872
+   pixels are unknown; this is not a screen-completion percentage.
+3. **Portable C interaction:** load slot A in the C build, press Up once, and
+   compare the resulting position and frame with the DOS oracle.
+4. **Long-range program:** complete DOS decompilation, then integrate Amiga
+   graphics and C64 sound/music, then port that edition to Nintendo DS.
 
-The native one-Up
-resident-dispatch replay now measures mode 1, active word 100, argument 10,
-and its selected local calls. The first live script RNG call advances seed
-`3140872353 → 3238563622` and stores result 10; C-native one-Up parity remains
-open.
+The current static view combines three dependencies. Recover the DOS art and
+tile selection; decode the text/font path; establish palette and display
+state. The PM reviews each evidence-bounded result, joins the interfaces,
+and checks the complete frame against the captured DOS screen. A worker's
+assignment is not integrated code. Refresh the actual owners and task status
+for each live card.
 
-Keep the visible card in an ASCII code block with a conspicuous `*` border and
-short lines. Adapt the rows to the current evidence:
+## Counting and capacity rules
 
-```text
-************************************************************
-* POOL OF RADIANCE DOS DECOMP -- BATTLE CARD              *
-* AS OF: YYYY-MM-DD HH:MM TZ                              *
-************************************************************
-* GAME FUNCTIONS:    <verified> / <verified total|unknown> *
-* FULL C ROUTINES:   <game-specific count> / unknown         *
-* ECL OPCODES MAPPED: <n> / <total> = <percent|unknown>    *
-* ECL HANDLERS IN C: <n> / <total> = <percent|unknown>     *
-* DAX ARCHIVES READ: <n> / <supplied> = <percent>          *
-* DAX BLOCKS READ:   <n> / <supplied> = <percent>          *
-* GEO RECORDS READ:  <n> / <supplied> = <percent>          *
-* DOS ORACLE:        <last observed milestone>             *
-************************************************************
-* CLAUDE: <branch/PR and current deliverable>              *
-* CODEX:  <branch/PR and current deliverable>              *
-* PM:     <integration status and next gate>               *
-************************************************************
-```
+Report percentages only when completed count and denominator measure the
+same scope. The full game-function denominator is unknown. Candidate Pascal
+prologues are not a verified inventory. Keep ECL opcode mapping separate
+from implemented C handlers, and do not combine assets and engine work into
+an overall percentage. The reviewed checkpoint at PR #312 is **66 strict
+full-C game routines** (57 overlay, nine resident) and **128 verified game
+identities** (118 overlay, ten resident); refresh before reporting live.
+Neither count measures the fraction of a playable screen completed.
 
-After the card, give one short paragraph on the main blocker/next step and
-link the relevant PR, issue, or evidence file. If no worker pane is accessible,
-use the latest published evidence and mark its age; do not imply live progress.
+For Claude, state the observed time, remaining included Current session,
+Current week all-model, and Current week Fable bars, and their reset times.
+Report Codex quota separately. If a panel is unavailable, say when the last
+direct reading was taken. Monthly Claude usage credits are extra/overage
+capacity, not the included subscription balance. State the current owner
+staffing or stop rule; do not reuse an old rule without checking.
+
+## Executive card layout
+
+Keep the visible card in an ASCII code block with large * separators and
+short lines. Adapt every row to fresh evidence:
+
+~~~text
+*******************************************************
+* POOLRAD DOS  |  CTO BATTLE CARD                     *
+* AS OF: YYYY-MM-DD HH:MM TZ                          *
+*******************************************************
+* OWNER CAN SEE                                       *
+* DOS: <last verified reference demonstration>       *
+* C:   <last verified portable demonstration>        *
+* NEXT: <one concrete visible demonstration gate>    *
+*******************************************************
+* HOW THE WORK JOINS                                  *
+* ART/GEOMETRY: <owner, output, status>               *
+* TEXT/FONT:    <owner, output, status>               *
+* DISPLAY STATE: <owner, output, status>              *
+* PM GATE:      <integration and comparison>          *
+*******************************************************
+* CAPACITY & STAFFING                                 *
+* CLAUDE: <last verified bars, reset, active lanes>    *
+* CODEX:  <last verified quota, active lanes>         *
+* RULE:   <current owner stop/scale decision>         *
+*******************************************************
+* ROADMAP: full C frame > load > one Up > full DOS    *
+*          > Amiga art/C64 sound > Nintendo DS        *
+* VERIFIED: <full-C routines> / unknown total         *
+* IDENTITIES: <evidence-backed floor> / unknown       *
+*******************************************************
+~~~
+
+After the card, give one short paragraph on the main blocker and next step.
+Link the current PR or evidence file, such as
+[SLOT_A_STATIC_VIEW_FIRST_REGION.md](re/SLOT_A_STATIC_VIEW_FIRST_REGION.md)
+and the DOS first-view trace
+[SLOT_A_NATIVE_FIRST_VIEW_AFTER_196F.md](re/SLOT_A_NATIVE_FIRST_VIEW_AFTER_196F.md).
+If no worker pane is accessible, mark the age of the last published state.
