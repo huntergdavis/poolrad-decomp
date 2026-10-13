@@ -31,4 +31,27 @@ typedef enum {
 pr_slot_a_key_return_status pr_slot_a_key_return_step(
     pr_slot_a_key_return_state *state, uint8_t returned_al);
 
+/* Live caller inputs at +0x33BD after the return step. Only the measured
+ * extended-Up route with window-1 word +0x594 <= 1 is covered. */
+typedef struct {
+    const uint8_t *window1;
+    size_t window1_size;
+    uint8_t local_key_bp_minus_1;
+    uint8_t exit_flag_49ff;
+    uint16_t script_entry_49e3;
+} pr_slot_a_key_gate_state;
+
+typedef enum {
+    PR_SLOT_A_KEY_GATE_BLOCKED_SCRIPT_3171 = 0,
+    PR_SLOT_A_KEY_GATE_ARGUMENT,
+    PR_SLOT_A_KEY_GATE_OUTSIDE_SLICE
+} pr_slot_a_key_gate_status;
+
+/* Follow the saved Up gate at +0x33BD through the conditional jump and
+ * report the reached +0x3458 call's live script argument. This function
+ * does not execute +0x3171 or mutate memory. On any other status,
+ * script_entry_out is unchanged. */
+pr_slot_a_key_gate_status pr_slot_a_key_gate_next(
+    const pr_slot_a_key_gate_state *state, uint16_t *script_entry_out);
+
 #endif
