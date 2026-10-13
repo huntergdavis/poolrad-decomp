@@ -10,9 +10,9 @@ initial screen; it does not draw any pixel. `deja "first view palette display st
 | --- | ---: | --- |
 | `START.EXE` (unpacked image by `resident_loader_map.unpack`) | 65,231 | `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd` |
 | image `0x04426..0x044B5` (selection slice) | 144 | `2440fd4b5d83a6f17e4fa0b430ade9577c13dee48c4419aa0cf63c998e960dc5` |
-| `0x0464:0x00CF..0x00FC` SetVideoMode (image `0x0470F`) | 46 | `00b4eeb04b3d56df415fd30afc06459e274781988b95d51d458bcbacf4df6bc1` |
-| `0x0709:0x0071..0x009D` SetActivePage (image `0x07101`) | 45 | `2b82498089cf568b357c15015858e6560186bfabf18e16471aada53a1dee04b2` |
-| `0x0709:0x00A0..0x00B4` SetDrawPage (image `0x07130`) | 21 | `73b8762504f0c61eb4fe3426a7281330e44312937a36515344321b28801dfc61` |
+| `0x0464:0x00CF..0x00FE` SetVideoMode, through `retf 2` (image `0x0470F..0x0473E`) | 48 | `1291e63d47f0d18e3c3708159546250c155647778751c8e8a2123f8bcc44afb3` |
+| `0x0709:0x0071..0x009F` SetActivePage, through `retf 2` (image `0x07101..0x0712F`) | 47 | `26854c57a4d438a0e37a6c00ab8a7a6b9bff9567da09f681ee4247aeccd42b77` |
+| `0x0709:0x00A0..0x00B6` SetDrawPage, through `retf 2` (image `0x07130..0x07146`) | 23 | `6b28b416d116890c77ab785a4763866b260b60a9b0f540f224b5db1b64c3760d` |
 | native RAM at `2A8E:196F` (DS = 0x14A0) | 655,360 | `3e46c01d37b393bd88b558584f72f8f93b8ab545a6a607fdddbb738eb0a45844` |
 | native RAM at `3582:3382` | 655,360 | `31424ea33ec4abce1967fff7032be17b95d4b70b4cfab0d9624c29a54e3072c3` |
 | native RAM at `3582:3387` | 655,360 | `d5cc4a1f61561bbb19766616f3addfa100fb63284bc248854ce13079d678f7a0` |

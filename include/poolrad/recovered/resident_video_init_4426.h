@@ -6,10 +6,10 @@
  * mode 0x0D) and fixes the two video segments, i.e. the geometry and memory plane the first gameplay view is drawn into. Evidence:
  * docs/re/RESIDENT_VIDEO_INIT_4426.md (static decode plus the hash-pinned native first-view RAM images).
  *
- *   SetVideoMode(mode)     0x0464:0x00CF (+0x00CF..+0x00FC, 46 bytes, `retf 2`): prev := cur; regs.AH := 0; regs.AL := mode; INT 10h through the
+ *   SetVideoMode(mode)     0x0464:0x00CF (+0x00CF..+0x00FE, image 0x470F..0x473E, 48 bytes, SHA-256 1291e63d47f0d18e..., ends `CA 02 00`): prev := cur; regs.AH := 0; regs.AL := mode; INT 10h through the
  *                          Pascal Intr unit routine 0x0A32:0x000B; cur := mode                                           (full translation, one hook)
- *   SetActivePage(page)    0x0709:0x0071 (+0x0071..+0x009D, 45 bytes, `retf 2`): regs.AH := 5; regs.AL := page; INT 10h; [0x4A16] := 0xA000 + (page << 9)
- *   SetDrawPage(page)      0x0709:0x00A0 (+0x00A0..+0x00B4, 21 bytes, `retf 2`): [0x4A18] := 0xA000 + (page << 9)       (no hook)
+ *   SetActivePage(page)    0x0709:0x0071 (+0x0071..+0x009F, image 0x7101..0x712F, 47 bytes, SHA-256 26854c57a4d438a0..., ends `CA 02 00`): regs.AH := 5; regs.AL := page; INT 10h; [0x4A16] := 0xA000 + (page << 9)
+ *   SetDrawPage(page)      0x0709:0x00A0 (+0x00A0..+0x00B6, image 0x7130..0x7146, 23 bytes, SHA-256 6b28b416d116890c..., ends `CA 02 00`): [0x4A18] := 0xA000 + (page << 9)       (no hook)
  *   selection              regs.AH := 0x0F; INT 10h; prev := cur := regs.AL; then on the adapter byte [0x484C]:
  *                            0x45: [0x4A1E] := 1; SetVideoMode(0x0D); [0x4A1B] := [0x4A1A] := 0; SetActivePage([0x4A1B]); SetDrawPage([0x4A1A])
  *                            0x54: [0x4A1E] := 2; [0x440A] -= 0x400 (via the scratch words 0x4848/0x484A); SetVideoMode(9)
