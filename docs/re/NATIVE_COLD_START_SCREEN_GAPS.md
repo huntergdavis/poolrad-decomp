@@ -26,8 +26,11 @@ at `1796:0012`; the no-argument `START` command was then released with `RUN`.
 No save was selected. One Return was sent while credits were visible, followed
 by the menu's exit key and its Yes confirmation. The game returned to the DOS
 shell. A private `640×400` X window at `(320,312)` was sampled at 15 fps from
-before `RUN` through the DOS return. The resulting 1,830-frame, 122.000-second
-FFV1 file hashes `6e0e2ba53d71820b482c4abdeae9ecc55d4bd5394e0cbf4ef999e4e4527af7e4`.
+before `RUN` through the DOS return. The resulting 122.000-second FFV1 file
+hashes `6e0e2ba53d71820b482c4abdeae9ecc55d4bd5394e0cbf4ef999e4e4527af7e4`.
+It contains **1,825 encoded and decoded frames**. Its nominal 15-fps timeline
+has **1,830 slots** from PTS 0.000 through 121.933 seconds, including five
+slots without an encoded frame.
 
 The separate corrected gate run `native-cold-start-gap-003` stopped at
 `0824:011D`, the resident far call to `083D:0025` established in the earlier
@@ -42,12 +45,24 @@ at `+0x011D`, so the video timestamps are **not** guest instruction timestamps.
 
 ## Continuous visual order
 
-Each digest is SHA-256 of the decoded frame's `RGB24` pixel bytes. Rows are
-stable frame groups. Short transition frames between them were retained in the
-private capture and are not classified as separate screens. Times are video
-times (`frame / 15`), not guest BIOS ticks or native DOS durations.
+Each digest is SHA-256 of a frame's `RGB24` pixel bytes. The table uses the
+constant-frame-rate (CFR) RGB export's **sample-slot indexes**, not encoded
+frame indexes. Short transition samples between stable groups were retained
+in the private capture and are not classified as separate screens. Times are
+video times (`slot / 15`), not guest BIOS ticks or native DOS durations.
 
-| Frames | First video second | Directly observed state | RGB SHA-256 |
+`ffprobe -count_frames -count_packets` and `ffmpeg -f null -` each count
+**1,825** frames/packets. Frame PTS values skip nominal slots **279, 280, 593,
+962, and 1582** (18.600, 18.667, 39.533, 64.133, and 105.467 seconds).
+The default ffmpeg rawvideo export used for this table inserted a duplicate of
+the preceding RGB frame at each absent slot, yielding **1,830 CFR samples**.
+Explicit `-fps_mode passthrough` yields 1,825 RGB frames. Removing exactly
+those five slots from the CFR RGB MD5 sequence reproduces all 1,825
+passthrough hashes in order. The container's 122.000-second duration is the
+end of the final 121.933-second frame slot, not evidence of 1,830 encoded
+frames.
+
+| CFR sample slots | First video second | Directly observed state | RGB SHA-256 |
 | ---: | ---: | --- | --- |
 | 0–126 | 0.000 | blank initial display | `351a8054b23144894668c6a51d5dbba82f56523ef43cc45b6f4d7060a969c31a` |
 | 133–215 | 8.867 | loading message | `be0ff6f19aa525049a12a3794c3fe4475ce7549030ed6d5e8f7d7cb41635100f` |
@@ -59,7 +74,7 @@ times (`frame / 15`), not guest BIOS ticks or native DOS durations.
 | 841–1236 | 56.067 | main menu | `ac9ba01824990b222f43278faa287185f7b65406f525a47a44696b29645c7449` |
 | 1237–1745 | 82.467 | exit confirmation | `952021ae915bbb816e6c5dd3c0edc9c1dd6589ed9122a17fc0431d334b6ca780` |
 
-The code-word prompt persisted for **240 sampled frames** (16.000 video
+The code-word prompt persisted for **240 CFR sample slots** (16.000 video
 seconds) between credits and the menu. The capture proves its display on this
 route; it does not prove its input validation or why the menu followed. No
 screen in this table is attributed to a specific unit instruction beyond the
@@ -101,5 +116,8 @@ ffmpeg -nostdin -f x11grab -draw_mouse 0 -framerate 15 \
 Replace `DISPLAY` and `NEW-RUN` with the private display number and ignored
 run name. Issue `RUN` at `1796:0012`, send one Return when credits appear, and
 select Exit to DOS followed by Yes at the menu. Decode the video to `RGB24`
-and group consecutive frames by SHA-256 to reproduce the table. Keep all
-captured media and decoded frames under ignored `resources/`.
+in CFR mode and group consecutive sample slots by SHA-256 to reproduce the
+table. Use `-fps_mode passthrough` to count only encoded frames; comparing
+RGB frame hashes after removing the five CFR-only slots reproduces the 1,825
+frame sequence. Keep all captured media and decoded frames under ignored
+`resources/`.
