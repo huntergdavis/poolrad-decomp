@@ -954,6 +954,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_slot_a_printer_page_tests
              COMMAND poolrad_slot_a_printer_page_tests)
+    add_executable(poolrad_slot_a_row5_one_cell_printer_tests
+                   tests/replay/test_slot_a_row5_one_cell_printer.c)
+    target_link_libraries(poolrad_slot_a_row5_one_cell_printer_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_row5_one_cell_printer_tests
+             COMMAND poolrad_slot_a_row5_one_cell_printer_tests)
     add_executable(poolrad_slot_a_printer_page_probe
                    tools/replay/slot_a_printer_page_probe.c)
     target_link_libraries(poolrad_slot_a_printer_page_probe PRIVATE
