@@ -1,5 +1,10 @@
 # Saved one-Up AL=13: ECL DIVIDE route and call audit
 
+> **Update:** A later controlled native replay reached the DIVIDE handler,
+> measured `10 / 3 = 3`, stored the result to `0x9808`, and returned.
+> See [the execution trace](U1C_DIVIDE_AL13_NATIVE_EXECUTION.md). The run-007
+> observations below remain the prebranch evidence for this original audit.
+
 The ignored native run `slot-a-branch-live-007` stopped just after the first ECL RANDOM store at
 `3582:028E`, before the conditional branch or DIVIDE executes. Its RAM has latch `0x08`, script PC
 `0x9B40`, window-2 word `0x980F = 13`, and word `0x9808 = 10`. The script's later `0x9B68`

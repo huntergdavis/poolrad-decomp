@@ -61,6 +61,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3bd_first_wall.c
                                     src/recovered/overlay_u3bd_view9_wall.c
                                     src/recovered/overlay_u3bd_dual_wall.c
+                                    src/recovered/overlay_u3bd_view1_scan.c
+                                    src/recovered/overlay_u3bd_view3_wall.c
                                     src/recovered/overlay_u40c_tile_plane.c
                                     src/recovered/overlay_u3bd_field.c
                                     src/recovered/overlay_u25_move.c
@@ -383,6 +385,16 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u3bd_dual_wall_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u3bd_dual_wall_tests
              COMMAND poolrad_overlay_u3bd_dual_wall_tests)
+    add_executable(poolrad_overlay_u3bd_view1_scan_tests
+                   tests/recovered/test_overlay_u3bd_view1_scan.c)
+    target_link_libraries(poolrad_overlay_u3bd_view1_scan_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3bd_view1_scan_tests
+             COMMAND poolrad_overlay_u3bd_view1_scan_tests)
+    add_executable(poolrad_overlay_u3bd_view3_wall_tests
+                   tests/recovered/test_overlay_u3bd_view3_wall.c)
+    target_link_libraries(poolrad_overlay_u3bd_view3_wall_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3bd_view3_wall_tests
+             COMMAND poolrad_overlay_u3bd_view3_wall_tests)
     add_executable(poolrad_overlay_u40c_tile_plane_tests
                    tests/recovered/test_overlay_u40c_tile_plane.c)
     target_link_libraries(poolrad_overlay_u40c_tile_plane_tests PRIVATE poolrad_recovered)
@@ -978,6 +990,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_slot_a_six_cell_printer_tests
              COMMAND poolrad_slot_a_six_cell_printer_tests)
+    add_executable(poolrad_slot_a_row5_one_cell_printer_tests
+                   tests/replay/test_slot_a_row5_one_cell_printer.c)
+    target_link_libraries(poolrad_slot_a_row5_one_cell_printer_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_row5_one_cell_printer_tests
+             COMMAND poolrad_slot_a_row5_one_cell_printer_tests)
     add_executable(poolrad_slot_a_row6_eight_cell_printer_tests
                    tests/replay/test_slot_a_row6_eight_cell_printer.c)
     target_link_libraries(poolrad_slot_a_row6_eight_cell_printer_tests PRIVATE
