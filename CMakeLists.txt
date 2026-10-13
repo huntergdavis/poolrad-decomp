@@ -23,6 +23,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_block_wrapper.c
                                     src/recovered/resident_464_bitmap_constructor.c
                                     src/recovered/resident_464_bitmask.c
+                                    src/recovered/resident_464_row56_transfer.c
                                     src/recovered/resident_464_nibble_007b.c
                                     src/recovered/resident_464_mode2.c
                                     src/recovered/resident_464_mode1.c
@@ -185,6 +186,10 @@ if(BUILD_TESTING)
     add_executable(poolrad_ega_planar_row_probe
                    tools/replay/ega_planar_row_probe.c)
     target_link_libraries(poolrad_ega_planar_row_probe PRIVATE poolrad_formats)
+    add_executable(poolrad_slot_a_ega_row56_transfer_probe
+                   tools/replay/slot_a_ega_row56_transfer_probe.c)
+    target_link_libraries(poolrad_slot_a_ega_row56_transfer_probe PRIVATE
+                          poolrad_recovered)
     add_executable(poolrad_walldef_tests tests/formats/test_walldef.c)
     target_link_libraries(poolrad_walldef_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_walldef_tests COMMAND poolrad_walldef_tests)
@@ -768,6 +773,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_bitmask_tests
              COMMAND poolrad_resident_464_bitmask_tests)
+    add_executable(poolrad_resident_464_row56_transfer_tests
+                   tests/recovered/test_resident_464_row56_transfer.c)
+    target_link_libraries(poolrad_resident_464_row56_transfer_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_row56_transfer_tests
+             COMMAND poolrad_resident_464_row56_transfer_tests)
     add_executable(poolrad_resident_464_nibble_007b_tests
                    tests/recovered/test_resident_464_nibble_007b.c)
     target_link_libraries(poolrad_resident_464_nibble_007b_tests PRIVATE
