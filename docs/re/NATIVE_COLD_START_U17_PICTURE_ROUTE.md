@@ -72,7 +72,7 @@ this run.
 
 BIOS ticks are the little-endian dword at physical `0x046C` in each private
 640-KiB RAM dump. The 452-tick interval between the call and return includes
-one Return key sent while the credits splash was visible. The later `L` key was
+one Return key sent while the credits screen was visible. The later `L` key was
 sent only after the main-menu sample. Pauses and debugger inspection make host
 wall time unsuitable for guest-duration claims.
 
@@ -80,14 +80,14 @@ wall time unsuitable for guest-duration claims.
 | --- | ---: | --- | --- |
 | before image `+0x011D` call | 1,374,442 | `3de44fb40c3490f5e540d7ec1ffff7e764326eb6badcfc1638144ac08bfb45d6` | `351a8054b23144894668c6a51d5dbba82f56523ef43cc45b6f4d7060a969c31a` |
 | loaded unit `+0x0627` entry | 1,374,442 | `11853e655ee5399644edc78c34ef3c3ae603ac685cec0cb8d3892f50d28e78a6` | — |
-| credits splash during unit call | between 1,374,442 and 1,374,894 | — | `15e405dac036c9530d5f87ccb67c9427012e6860195ada76b56193ed03c557dc` |
+| publisher splash during unit call | between 1,374,442 and 1,374,894 | — | `15e405dac036c9530d5f87ccb67c9427012e6860195ada76b56193ed03c557dc` |
 | image `+0x0122` return, credits frame | 1,374,894 | `6e0ae646dc59e13992f760e0a899c7482d62b62b375f7d1f2934e514f4a4a3fe` | `624f69b5f7bce90ba859eee24aee2e4ac97daf66c405b145f20534123eb28698` |
 | main menu, paused at `2116:0566` | 1,375,067 | `4e60dcc86ee706f332f285c08d6672d6524f8e9bd50c113f09df81f7016b73da` | `ac9ba01824990b222f43278faa287185f7b65406f525a47a44696b29645c7449` |
 | saved-game chooser, paused at `2116:06D3` | 1,375,209 | `1f6edef9cfe80c674566c946195db97c436568550fff56f8c48e46adadd487de` | `341eb227760736f978d4bddcdc82e94abc6d26505e9b04ed661c2e83c190931f` |
 
 Each RGB hash is `sha256(Image.open(private_png).convert("RGB").tobytes())`.
 The sampled frame changed by 140,268 pixels from the pre-call frame to the
-credits splash, 161,160 from that splash to the return frame, 63,564 from the
+publisher splash, 161,160 from that splash to the return frame, 63,564 from the
 return frame to the menu, and 1,908 from the menu to the chooser. These are
 screen-state differences across observations, not attribution to one callee.
 
@@ -134,7 +134,7 @@ RUN
 At `+0x011D`, add `BP 083D:0025`; there add `BP 3909:0627`. At each stop,
 record `EV CS IP DS ES SS SP BP AX BX CX DX FLAGS` and
 `MEMDUMPBIN 0000 0000 A0000`, moving each dump before the next. In the Xvfb
-emulator window, send one Return key while the credits splash is visible.
+emulator window, send one Return key while the credits screen is visible.
 After the `+0x0122` stop, resume; pause with Alt+Pause at the main menu,
 sample it, resume, send `L`, and pause at the chooser. Keep the screenshots,
 RAM images, emulator trace, media, and any audio under ignored `resources/`.
