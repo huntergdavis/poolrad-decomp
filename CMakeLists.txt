@@ -51,6 +51,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_load_route_27d9.c
                                     src/recovered/resident_load_pieces_0767.c
                                     src/recovered/overlay_u3bd_wallset.c
+                                    src/recovered/font_8x8d_201.c
                                     src/recovered/overlay_u3bd_cell.c
                                     src/recovered/overlay_u3bd_nibble.c
                                     src/recovered/overlay_u3bd_field.c
@@ -875,4 +876,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_loader_0355_tests
              COMMAND poolrad_resident_loader_0355_tests)
+    add_executable(poolrad_font_8x8d_201_tests
+                   tests/recovered/test_font_8x8d_201.c
+                   src/replay/slot_a_static_view.c
+                   src/replay/slot_a_native_save.c)
+    target_link_libraries(poolrad_font_8x8d_201_tests PRIVATE
+                          poolrad_recovered poolrad_formats)
+    add_test(NAME poolrad_font_8x8d_201_tests
+             COMMAND poolrad_font_8x8d_201_tests)
 endif()
