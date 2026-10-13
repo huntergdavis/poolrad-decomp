@@ -37,6 +37,11 @@ typedef struct {
 } pr_ega_block;
 
 pr_ega_status pr_ega_open(const uint8_t *data, size_t size, pr_ega_block *out);
+/* Decode one byte from each of the four EGA display-memory planes.
+ * The leftmost pixel uses bit 7; plane n contributes index bit n.
+ * Input requires four bytes and output requires eight bytes. This does not
+ * select a palette, map a display page, or draw any other framebuffer bytes. */
+pr_ega_status pr_ega_planar_byte(const uint8_t planes[4], uint8_t indices[8]);
 /* Returns a palette index 0..15, without choosing an EGA palette. */
 pr_ega_status pr_ega_pixel(const pr_ega_block *block, size_t item,
                             size_t x, size_t y, uint8_t *index);

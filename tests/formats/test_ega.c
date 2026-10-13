@@ -111,8 +111,38 @@ static int test_malformed(void) {
     return 0;
 }
 
+static int test_planar_byte(void) {
+    uint8_t planes[4] = {0, 0, 0, 0};
+    uint8_t pixels[8];
+    static const uint8_t mixed[8] = {7, 6, 5, 4, 11, 10, 9, 8};
+    size_t i;
+    memset(pixels, 0xa5, sizeof pixels);
+    CHECK(pr_ega_planar_byte(planes, pixels) == PR_EGA_OK);
+    for (i = 0; i < 8; ++i) CHECK(pixels[i] == 0);
+    planes[0] = 0x80;
+    planes[1] = 0x40;
+    planes[2] = 0x20;
+    planes[3] = 0x10;
+    CHECK(pr_ega_planar_byte(planes, pixels) == PR_EGA_OK);
+    CHECK(pixels[0] == 1 && pixels[1] == 2 && pixels[2] == 4 &&
+          pixels[3] == 8);
+    for (i = 4; i < 8; ++i) CHECK(pixels[i] == 0);
+    planes[0] = 0xaa;
+    planes[1] = 0xcc;
+    planes[2] = 0xf0;
+    planes[3] = 0x0f;
+    CHECK(pr_ega_planar_byte(planes, pixels) == PR_EGA_OK);
+    CHECK(memcmp(pixels, mixed, sizeof mixed) == 0);
+    memset(pixels, 0x5a, sizeof pixels);
+    CHECK(pr_ega_planar_byte(NULL, pixels) == PR_EGA_ARGUMENT);
+    for (i = 0; i < 8; ++i) CHECK(pixels[i] == 0x5a);
+    CHECK(pr_ega_planar_byte(planes, NULL) == PR_EGA_ARGUMENT);
+    return 0;
+}
+
 int main(void) {
-    if (test_pixels() || test_dimensions() || test_malformed()) return 1;
+    if (test_pixels() || test_dimensions() || test_malformed() ||
+        test_planar_byte()) return 1;
     puts("synthetic EGA image tests passed");
     return 0;
 }
