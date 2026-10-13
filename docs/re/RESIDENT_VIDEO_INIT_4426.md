@@ -21,6 +21,8 @@ The three RAM images are the ones hash-pinned in [SLOT_A_NATIVE_FIRST_VIEW_AFTER
 
 ## Decoded sequence
 
+Static fact (decoded code) and native fact (endpoint values) are kept apart below: the code description is exact; the native comparison only shows that the model's endpoint equals the three snapshots.
+
 The Turbo Pascal `Registers` record sits at `DS:0x4A02` (AX BX CX DX BP SI DI DS ES Flags); `0xA32:0x000B` is `Intr(intno, regs)` (loads the registers, calls the vector at `[intno*4]`, stores them back).
 
 | Step | Effect |
@@ -36,9 +38,8 @@ The Turbo Pascal `Registers` record sits at `DS:0x4A02` (AX BX CX DX BP SI DI DS
 ## Native check (numbers only)
 
 At all three stops `DS:4A1E = 1`, `DS:4A1D = 0x0D`, `DS:4A1C = 3`, `DS:4A1A = DS:4A1B = 0`, `DS:4A16 = DS:4A18 = 0xA000`, and the register record's AX is `0x0500` (AH = 5, AL = 0: the page select was the last
-`Intr(0x10)` call) with BX..ES zero. `pr_vi_select_mode` run on adapter letter `0x45` with a fabricated BIOS whose mode query answers 3 reproduces **all 23 compared values with zero mismatches at each of the three stops**
-(`tests/replay/check_first_view_display_state.sh DIR` verifies the image hashes and runs `tools/replay/first_view_display_state.c`). The register record and `4A1C` are unchanged between the `+3382` and `+3387` images,
-so no `Intr` call through this record happened inside the first view refresh. The previous mode 3 and every BIOS side effect of the calls (the hardware mode change, the default EGA palette) are host/BIOS inputs, not recovered code.
+`Intr(0x10)` call) with BX..ES zero. `pr_vi_select_mode` run on adapter letter `0x45` with a fabricated BIOS whose mode query answers 3 reproduces **all 23 compared values with zero mismatches at each of the three stops** (an endpoint match: the snapshots do not show the order or number of intervening calls)
+(`tests/replay/check_first_view_display_state.sh DIR` verifies the image hashes and runs `tools/replay/first_view_display_state.c`). The register record and `4A1C` are the same in the `+3382` and `+3387` images; that endpoint equality does **not** show that no `Intr` call happened inside the first view refresh (a same-value call, or a palette call followed by a page select, would leave the same endpoint). The previous mode 3 and every BIOS side effect of the calls (the hardware mode change, the default EGA palette) are host/BIOS inputs, not recovered code.
 
 ## Palette negative result
 
@@ -49,7 +50,7 @@ and `+0x0105`, file `0x3082D..0x3085A`, four calls). The two unit-`0x3C6` routin
 
 ## Open items
 
-* `[0x484C]` is `0x46` in all three images but the slice compares it with `0x45`/`0x54` when it runs; the value is read from a startup text-file read at image `0x043D4..0x0441E` and rewritten at image `0x0456C`/`0x04617`. The observed `[4A1E] = 1` shows the `0x45` path ran at startup; the later `0x46` is not explained here.
+* `[0x484C]` is `0x46` in all three images but the slice compares it with `0x45`/`0x54` when it runs; the value is read from a startup text-file read at image `0x043D4..0x0441E` and rewritten at image `0x0456C`/`0x04617`. `[4A1E] = 1` in the images is *consistent with* the `0x45` branch having run; it is not proof of it. A byte scan of the unpacked resident image and of `GAME.OVR` finds exactly three direct-address stores to `DS:4A1E`, all in the decoded slice (values 1, 2, 0 at `+0x444B`, `+0x447A`, `+0x44A9`); every other `DS:4A1E` operand is a load or a compare. Indirect writers (pointer or block-move stores) are not excluded by such a scan, and the later `0x46` in `[0x484C]` is not explained here.
 * The code after `+0x44B6` and the hardware effect of `INT 10h` are not modelled. The visible pixels, tile selection and fonts belong to other lanes.
 
 ## Claims
