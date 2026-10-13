@@ -182,6 +182,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_ega_planar_byte_probe
                    tools/replay/ega_planar_byte_probe.c)
     target_link_libraries(poolrad_ega_planar_byte_probe PRIVATE poolrad_formats)
+    add_executable(poolrad_ega_planar_row_probe
+                   tools/replay/ega_planar_row_probe.c)
+    target_link_libraries(poolrad_ega_planar_row_probe PRIVATE poolrad_formats)
     add_executable(poolrad_walldef_tests tests/formats/test_walldef.c)
     target_link_libraries(poolrad_walldef_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_walldef_tests COMMAND poolrad_walldef_tests)
