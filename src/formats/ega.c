@@ -80,6 +80,20 @@ pr_ega_status pr_ega_decode_item(const pr_ega_block *block, size_t item,
     return PR_EGA_OK;
 }
 
+pr_ega_status pr_ega_planar_byte(const uint8_t planes[4], uint8_t indices[8]) {
+    uint8_t decoded[8];
+    size_t x, plane;
+    if (!planes || !indices) return PR_EGA_ARGUMENT;
+    for (x = 0; x < 8; ++x) {
+        uint8_t index = 0;
+        for (plane = 0; plane < 4; ++plane)
+            index |= (uint8_t)(((planes[plane] >> (7u - x)) & 1u) << plane);
+        decoded[x] = index;
+    }
+    memcpy(indices, decoded, sizeof decoded);
+    return PR_EGA_OK;
+}
+
 const char *pr_ega_status_string(pr_ega_status status) {
     switch (status) {
     case PR_EGA_OK: return "ok";
