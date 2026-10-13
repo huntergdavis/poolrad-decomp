@@ -639,6 +639,20 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered poolrad_formats)
     add_test(NAME poolrad_overlay_u6f_party_filename_tests
              COMMAND poolrad_overlay_u6f_party_filename_tests)
+    add_executable(poolrad_slot_a_static_view_tests
+                   tests/replay/test_slot_a_static_view.c
+                   src/replay/slot_a_static_view.c
+                   src/replay/slot_a_native_save.c)
+    target_link_libraries(poolrad_slot_a_static_view_tests PRIVATE
+                          poolrad_formats)
+    add_test(NAME poolrad_slot_a_static_view_tests
+             COMMAND poolrad_slot_a_static_view_tests)
+    add_executable(poolrad_slot_a_static_view_probe
+                   tools/replay/slot_a_static_view_probe.c
+                   src/replay/slot_a_static_view.c
+                   src/replay/slot_a_native_save.c)
+    target_link_libraries(poolrad_slot_a_static_view_probe PRIVATE
+                          poolrad_formats)
     add_executable(poolrad_overlay_u6f_postinsert_02ae_tests
                    tests/recovered/test_overlay_u6f_postinsert_02ae.c)
     target_link_libraries(poolrad_overlay_u6f_postinsert_02ae_tests
