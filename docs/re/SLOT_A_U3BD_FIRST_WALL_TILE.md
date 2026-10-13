@@ -78,7 +78,13 @@ hash already recorded in the first-view note.
 At `+3382`, live `DS:0x6AAD..+0x6AAF` is `(15,4,6)`, map ID
 `DS:0x84DC` is 20, and facing-6 steps at `DS:0x273C` and
 `DS:0x2745` are signed `(-1,0)`. Entry 5 multiplies the step by
-its first distance 2, giving `(13,4)`. The merged entry-2 lookup reads
+its first distance 2, giving `(13,4)` as signed word locals. At
+`+0x06DB/+0x06EB` the original passes only AL from each local to the
+`+0x031F` grid leaf, which compares those bytes as signed values in
+0..15. For example, a synthetic word coordinate 256 becomes byte zero and
+takes the in-grid branch; word 17 stays out of grid. The C report retains
+the original word coordinates and narrows only for this gate and lookup.
+The merged entry-2 lookup reads
 offset `0x100 + 16*4 + 13 = 0x14D` of far `[0x6A5C]` and returns
 the low nibble 14. The 1,024 live bytes at that pointer exactly match
 the decoded body of `GEO2.DAX` block 20; live-body SHA-256 is

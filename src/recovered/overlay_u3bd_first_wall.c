@@ -16,6 +16,7 @@ pr_u3bd_first_wall_status pr_u3bd_entry5_first_wall(
     pr_u3bd_nibble_status lookup_status;
     int16_t first_x, first_y;
     int16_t grid_x, grid_y;
+    uint8_t sample_x, sample_y;
     unsigned row, col;
     size_t first_item;
     uint8_t wall;
@@ -33,7 +34,11 @@ pr_u3bd_first_wall_status pr_u3bd_entry5_first_wall(
                         2 * (int16_t)(int8_t)state->step_y);
     r->sample_x = first_x;
     r->sample_y = first_y;
-    if (first_x < 0 || first_x > 15 || first_y < 0 || first_y > 15)
+    /* +0x06DB/+0x06EB push AL from each word local. The +0x031F leaf
+     * compares those bytes as signed values; only 0..15 pass. */
+    sample_x = (uint8_t)first_x;
+    sample_y = (uint8_t)first_y;
+    if (sample_x > 15u || sample_y > 15u)
         return PR_U3BD_FIRST_WALL_OTHER_PATH;
 
     /* +0x06C8..+0x06D8: the merged +0x047B leaf receives low bytes of
@@ -43,8 +48,8 @@ pr_u3bd_first_wall_status pr_u3bd_entry5_first_wall(
     lookup.map_id = state->map_id;
     lookup.buffer = state->geo;
     lookup.frame_residue = state->lookup_frame_residue;
-    lookup_status = pr_u3bd_entry2(&lookup, (uint8_t)first_x,
-                                   (uint8_t)first_y, state->facing,
+    lookup_status = pr_u3bd_entry2(&lookup, sample_x,
+                                   sample_y, state->facing,
                                    &wall, NULL);
     if (lookup_status == PR_U3BD_NIBBLE_ARGUMENT)
         return PR_U3BD_FIRST_WALL_BOUNDS;

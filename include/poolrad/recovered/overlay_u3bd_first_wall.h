@@ -41,7 +41,7 @@ typedef enum {
 } pr_u3bd_first_wall_status;
 
 typedef struct {
-    int16_t sample_x, sample_y;  /* signed word locals before byte arguments */
+    int16_t sample_x, sample_y;  /* signed word locals; +0x031F sees low bytes */
     uint8_t wall;                /* AL from merged +0x047B lookup */
     uint8_t entered_draw;        /* nonzero wall takes +0x0726..+0x0742 */
     unsigned cells_seen;         /* +0x0211 loop cells, including clipped */
@@ -49,8 +49,9 @@ typedef struct {
 } pr_u3bd_first_wall_report;
 
 /* Starts with the entry-5 frame state at +0x0682: first distance is 2,
- * previous wall and horizontal offset are zero. This is the in-grid path;
- * an out-of-grid sample returns OTHER_PATH because +0x06F8 performs a
+ * previous wall and horizontal offset are zero. This is the in-grid path
+ * after +0x06DB/+0x06EB narrow each word sample to a signed low byte;
+ * an out-of-grid byte returns OTHER_PATH because +0x06F8 performs a
  * second lookup. A zero wall stops at the +0x0744 continuation; a nonzero
  * wall returns after the +0x073F call.
  * Remaining entry-5 scan iterations and renderer effects are outside this

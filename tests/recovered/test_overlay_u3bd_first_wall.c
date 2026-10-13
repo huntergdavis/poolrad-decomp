@@ -115,6 +115,21 @@ int main(void)
            PR_U3BD_FIRST_WALL_OTHER_PATH);
     assert(report.sample_x == 17 && !report.entered_draw);
 
+    /* The word 256 narrows to byte 0 at +0x06DB. The signed-byte grid
+     * leaf accepts it, and the nibble lookup receives the same byte. */
+    state.party_x = 2;
+    state.step_x = 127;
+    state.map_id = 20;
+    state.pieces = pieces;
+    pieces[13 * 156] = 17;
+    pieces[13 * 156 + 1] = 19;
+    geo[0x100 + 16 * 4] = 0x0E;
+    memset(&out, 0, sizeof out);
+    assert(pr_u3bd_entry5_first_wall(&state, record_draw, &out, &report) ==
+           PR_U3BD_FIRST_WALL_OK);
+    assert(report.sample_x == 256 && report.sample_y == 4);
+    assert(report.wall == 14 && report.calls_done == 2 && out.count == 2);
+
     assert(pr_u3bd_entry5_first_wall(NULL, record_draw, &out, &report) ==
            PR_U3BD_FIRST_WALL_ARGUMENT);
     state.geo_size = 511;
