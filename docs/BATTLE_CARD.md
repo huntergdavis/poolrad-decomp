@@ -81,7 +81,8 @@ short lines. Adapt every row to fresh evidence:
 * AS OF: YYYY-MM-DD HH:MM TZ                              *
 **********************************************************
 * PLAYER EXPERIENCE             DOS         PORTABLE C     *
-* Startup/title/credits/music   <seen>      <actual gate>  *
+* Startup/title/credits         <seen>      <actual gate>  *
+* Music                         <observed/unknown> <C gate>*
 * Protection and save load      <seen>      <actual gate>  *
 * First saved view              <seen>      <actual gate>  *
 * One movement step             <seen>      <actual gate>  *
