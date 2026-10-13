@@ -195,6 +195,16 @@ if(BUILD_TESTING)
                    tools/replay/slot_a_ega_all_dirty_probe.c)
     target_link_libraries(poolrad_slot_a_ega_all_dirty_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_ega_dirty_indexed_probe
+                   tools/replay/slot_a_ega_dirty_indexed_probe.c)
+    target_link_libraries(poolrad_slot_a_ega_dirty_indexed_probe PRIVATE
+                          poolrad_recovered poolrad_formats)
+    add_executable(poolrad_resident_464_dirty_indexed_tests
+                   tests/recovered/test_resident_464_dirty_indexed.c)
+    target_link_libraries(poolrad_resident_464_dirty_indexed_tests PRIVATE
+                          poolrad_recovered poolrad_formats)
+    add_test(NAME poolrad_resident_464_dirty_indexed_tests
+             COMMAND poolrad_resident_464_dirty_indexed_tests)
     add_executable(poolrad_walldef_tests tests/formats/test_walldef.c)
     target_link_libraries(poolrad_walldef_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_walldef_tests COMMAND poolrad_walldef_tests)
