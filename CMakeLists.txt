@@ -130,6 +130,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_loader_0366.c
                                     src/recovered/resident_loader_0268.c
                                     src/recovered/resident_loader_seek_028f.c
+                                    src/recovered/resident_loader_read_gate_0291.c
                                     src/recovered/resident_loader_0355.c
                                     src/recovered/resident_8ae_dispatch.c
                                     src/recovered/resident_8ae_table_17ae.c
@@ -821,6 +822,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_loader_seek_028f_tests
              COMMAND poolrad_resident_loader_seek_028f_tests)
+    add_executable(poolrad_resident_loader_read_gate_0291_tests
+                   tests/recovered/test_resident_loader_read_gate_0291.c)
+    target_link_libraries(poolrad_resident_loader_read_gate_0291_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_loader_read_gate_0291_tests
+             COMMAND poolrad_resident_loader_read_gate_0291_tests)
     add_executable(poolrad_resident_loader_0355_tests
                    tests/recovered/test_resident_loader_0355.c)
     target_link_libraries(poolrad_resident_loader_0355_tests PRIVATE
