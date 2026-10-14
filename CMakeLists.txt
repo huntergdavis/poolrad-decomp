@@ -1432,4 +1432,10 @@ if(BUILD_TESTING)
                    tools/replay/slot_a_two_cycle_reset_compose_probe.c)
     target_link_libraries(poolrad_slot_a_two_cycle_reset_compose_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_res464_second_flush_tests
+                   tests/replay/test_slot_a_res464_second_flush.c)
+    target_link_libraries(poolrad_slot_a_res464_second_flush_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_res464_second_flush_tests
+             COMMAND poolrad_slot_a_res464_second_flush_tests)
 endif()
