@@ -55,6 +55,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3bd_wallset.c
                                     src/recovered/font_8x8d_201.c
                                     src/recovered/slot_a_printer_page.c
+                                    src/recovered/slot_a_second_cycle_zero_row.c
                                     src/recovered/slot_a_glyph_plane_byte.c
                                     src/recovered/overlay_u3bd_cell.c
                                     src/recovered/overlay_u3bd_nibble.c
@@ -1041,6 +1042,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_slot_a_printer_page_tests
              COMMAND poolrad_slot_a_printer_page_tests)
+    add_executable(poolrad_slot_a_second_cycle_zero_row_tests
+                   tests/recovered/test_slot_a_second_cycle_zero_row.c)
+    target_link_libraries(poolrad_slot_a_second_cycle_zero_row_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_second_cycle_zero_row_tests
+             COMMAND poolrad_slot_a_second_cycle_zero_row_tests)
     add_executable(poolrad_slot_a_third_printer_cells_tests
                    tests/replay/test_slot_a_third_printer_cells.c)
     target_link_libraries(poolrad_slot_a_third_printer_cells_tests PRIVATE
@@ -1193,5 +1200,9 @@ if(BUILD_TESTING)
     target_compile_definitions(poolrad_slot_a_full_ega_printer_page_probe
                                PRIVATE PR_PAGE_BASE=0 PR_PAGE_BYTES=8000)
     target_link_libraries(poolrad_slot_a_full_ega_printer_page_probe PRIVATE
+                          poolrad_recovered)
+    add_executable(poolrad_slot_a_second_cycle_compose_probe
+                   tools/replay/slot_a_second_cycle_compose_probe.c)
+    target_link_libraries(poolrad_slot_a_second_cycle_compose_probe PRIVATE
                           poolrad_recovered)
 endif()
