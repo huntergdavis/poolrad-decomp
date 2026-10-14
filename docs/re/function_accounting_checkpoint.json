@@ -1,44 +1,44 @@
 {
   "artifacts_sha256": {
-    "classification": "45247828236539533b8299b5475c37a2d3b2af41062f6a03bc987894242c3353",
-    "full_c_map": "150924dcd605f72a5a1a8e3b0939ec5a83a437751e47011f7a9813902f9d01c9",
+    "classification": "435c440114b071f6b96f67509ad78bc1b49dc0fd86a9f8155a469cbce563d224",
+    "full_c_map": "b79fb1f5958b1d109a8ad296ffb5298379ceb21027faa4a9771cd485730724e4",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "f96e46b0941fd367aecbdae393729feb14b591fd7000d11cf837adf5a27ee904"
+    "reviewed_identities": "b5fc9a2a1ef072ef24b40b3fff79ab74f5f89d4f8b771b0c8aba8f18e1c13816"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "abc917b6a5aa3d66b6c1091ced37e6765f7e820baef665a66b6e39969016edb7",
+  "queue_sha256": "4f4800bfc5cfa73b343a84dd3befebbc6eb731d753f5f8ae7e9cb9ce09672287",
   "reviewed_change": {
-    "approval_reference": "inbox:i2920",
+    "approval_reference": "PM review of PR #407 exact head 8b44db1565d30ee164c3dc466f64f36d1280e6e7",
     "approved_by": "PM",
-    "body_bytes": 41,
-    "body_sha256": "c99969f9b7b28b6bdd15297e8b711a8491b605df8055135eb114b6215dfc82a2",
-    "evidence_doc": "docs/re/U5E_HALF_0E52.md",
+    "body_bytes": 166,
+    "body_sha256": "949abe77fa2823648d99cd3b76412560837646604ed9526f5f575dd8d3118b14",
+    "evidence_doc": "docs/re/U6A_RECORD_REMAINING_025C.md",
     "game_identity": true,
-    "native_reachability": "Native parity uses a controlled synthetic harness; natural gameplay reachability remains unmeasured",
-    "original_id": "OVL_005E_0E52",
-    "review_pr": 383,
-    "reviewed_commit": "fb342dbef3b38fcd33c88e907f0c2dda69316948",
+    "native_reachability": "256 DOSBox-X native synthetic cases and 339 original-byte parity cases; natural saved-game call frame remains unmeasured",
+    "original_id": "OVL_006A_025C",
+    "review_pr": 407,
+    "reviewed_commit": "b1aff86ce8dc982f57bf6f79c8a6a84985b292c3",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 59,
+    "overlay": 60,
     "resident": 9
   },
-  "strict_full_c_originals": 68,
-  "unknown_ownership": 679,
+  "strict_full_c_originals": 69,
+  "unknown_ownership": 678,
   "verified_game_by_domain": {
-    "overlay": 120,
+    "overlay": 121,
     "resident": 10
   },
-  "verified_game_identities": 130,
+  "verified_game_identities": 131,
   "whole_game_denominator": "unknown"
 }
