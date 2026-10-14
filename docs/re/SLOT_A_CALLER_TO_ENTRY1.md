@@ -80,3 +80,9 @@ that or equivalent measured state exists, neither this projection nor PR
 #341 establishes full C-native one-Up parity, a final coordinate result, or
 a new game-routine count. `pr_slot_a_native_one_up` remains
 `BLOCKED_KEY_DISPATCH`.
+
+**Later direct evidence:** [the post-EXIT native return trace](SLOT_A_POST_EXIT_NATIVE_RETURN.md)
+captures `+345B`, `+348D`, the entry-1 return `+3492`, and the caller through
+`+34E7`. Its private audit verifies exact full-RAM C/native parity for this
+caller's `+345B..+348C` prefix. The earlier limitation above describes the
+state of evidence when this prefix model was first merged.
