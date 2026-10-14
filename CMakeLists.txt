@@ -1066,6 +1066,12 @@ if(BUILD_TESTING)
                                PR_PAGE_BASE=0 PR_PAGE_BYTES=8192)
     target_link_libraries(poolrad_slot_a_row2_title_page_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_row7_col37_two_cell_printer_tests
+                   tests/replay/test_slot_a_row7_col37_two_cell_printer.c)
+    target_link_libraries(poolrad_slot_a_row7_col37_two_cell_printer_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_row7_col37_two_cell_printer_tests
+             COMMAND poolrad_slot_a_row7_col37_two_cell_printer_tests)
     add_executable(poolrad_slot_a_glyph_plane_byte_tests
                    tests/recovered/test_slot_a_glyph_plane_byte.c)
     target_link_libraries(poolrad_slot_a_glyph_plane_byte_tests PRIVATE
