@@ -59,6 +59,34 @@ int main(void)
     assert(cpu.bp == 0x7777u && cpu.sp == 0x8006u);
     assert(cpu.cs == 0xF000u && cpu.ip == 0x0712u);
     assert(cpu.flags == 0x7246u);
+
+    /* The active-pointer destination aliases the caller's far return. */
+    cpu = (pr_u77_27df_cpu){
+        0, 0, 0, 0, 0, 0, 0x7777u, 0x5D92u, 0xF000u, 0x27DFu,
+        0x1000u, 0, 0x1000u, 0x0202u
+    };
+    put16(ram, cpu.ss, 0x5D92u, 0x0712u);
+    put16(ram, cpu.ss, 0x5D94u, 0xF000u);
+    put16(ram, cpu.ss, 0x5D96u, 0x0058u); /* argument also party head */
+    put16(ram, cpu.ds, 0x5D98u, 0x4000u);
+    assert(pr_u77_active_select_27df(ram, PR_U77_27DF_RAM_SIZE, &cpu) ==
+           PR_U77_27DF_OK);
+    assert(cpu.cs == 0x4000u && cpu.ip == 0x0058u);
+    assert(cpu.sp == 0x5D98u && cpu.bp == 0x7777u);
+
+    /* RETF's CS word follows IP physically, independently of 16-bit SP. */
+    cpu = (pr_u77_27df_cpu){
+        0, 0, 0, 0, 0, 0, 0x7777u, 0xFFFFu, 0xF000u, 0x27DFu,
+        0x1000u, 0, 0x2000u, 0x0202u
+    };
+    put16(ram, cpu.ds, 0x5D96u, 0);
+    put16(ram, cpu.ds, 0x5D98u, 0);
+    put16(ram, cpu.ss, 0xFFFFu, 0x0712u);
+    put16(ram, 0x3000u, 1u, 0xF000u);
+    put16(ram, cpu.ss, 1u, 0xBEEFu); /* wrapped-CS decoy */
+    assert(pr_u77_active_select_27df(ram, PR_U77_27DF_RAM_SIZE, &cpu) ==
+           PR_U77_27DF_OK);
+    assert(cpu.cs == 0xF000u && cpu.ip == 0x0712u && cpu.sp == 5u);
     free(ram);
     return 0;
 }
