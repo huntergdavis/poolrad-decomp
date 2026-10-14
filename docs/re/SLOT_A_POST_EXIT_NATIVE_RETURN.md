@@ -73,3 +73,7 @@ separate return boundaries, but are not composed into a full C one-Up replay.
 The next boundary is the call at `+34E7` and its return, including the
 post-script `[442F]` and `[49FF]` gates. No new full-C routine or complete
 one-Up claim follows from this trace.
+
+**Later direct evidence:** [the script-return gate trace](SLOT_A_SCRIPT_RETURN_NATIVE_GATE.md)
+captures the `+34E7` call through `+34EA`, both zero gates, and the `+3395`
+loop target in the same run.
