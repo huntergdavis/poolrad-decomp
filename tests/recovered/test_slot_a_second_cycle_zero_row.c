@@ -11,7 +11,7 @@
     } \
 } while (0)
 
-enum { PAGE_BASE = 5 * 8 * 40, PAGE_BYTES = 5 * 8 * 40 };
+enum { PAGE_BASE = 4 * 8 * 40, PAGE_BYTES = 6 * 8 * 40 };
 
 static int check_page(uint8_t page[4][PAGE_BYTES], unsigned cleared_row) {
     size_t plane, at;
@@ -39,6 +39,12 @@ int main(void) {
 
     memset(storage, 0xA5, sizeof storage);
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
+           4u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_OK);
+    CHECK(report.plane_stores == 704u && report.changed_plane_bytes == 704u);
+    CHECK(check_page(storage, 4u));
+
+    memset(storage, 0xA5, sizeof storage);
+    CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
            5u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_OK);
     CHECK(report.plane_stores == 704u && report.changed_plane_bytes == 704u);
     CHECK(check_page(storage, 5u));
@@ -62,7 +68,7 @@ int main(void) {
 
     memcpy(snapshot, storage, sizeof snapshot);
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
-           4u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
+           3u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
            10u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
@@ -72,7 +78,7 @@ int main(void) {
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE, PAGE_BYTES,
            5u, 17u, 38u, 1u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
     CHECK(pr_slot_a_second_zero_row_apply(page, PAGE_BASE + 18u, PAGE_BYTES - 18u,
-           5u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
+           4u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY);
     CHECK(memcmp(storage, snapshot, sizeof storage) == 0);
     CHECK(pr_slot_a_second_zero_row_apply(NULL, PAGE_BASE, PAGE_BYTES,
            5u, 17u, 38u, 0u, &report) == PR_SLOT_A_SECOND_ZERO_ROW_ARGUMENT);
