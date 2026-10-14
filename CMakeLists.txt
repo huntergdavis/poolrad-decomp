@@ -93,6 +93,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u1c_return_0a9f.c
                                     src/recovered/overlay_u1c_compare_and_0aed.c
                                     src/recovered/overlay_u1c_gosub_0111.c
+                                    src/recovered/overlay_u1c_goto_00f4.c
                                     src/recovered/overlay_u7f_div5.c
                                     src/recovered/overlay_u7f_div5_dwords.c
                                     src/recovered/overlay_u7f_party_count_05e0.c
@@ -616,6 +617,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u1c_gosub_0111_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u1c_gosub_0111_tests
              COMMAND poolrad_overlay_u1c_gosub_0111_tests)
+    add_executable(poolrad_overlay_u1c_goto_00f4_tests
+                   tests/recovered/test_overlay_u1c_goto_00f4.c)
+    target_link_libraries(poolrad_overlay_u1c_goto_00f4_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u1c_goto_00f4_tests
+             COMMAND poolrad_overlay_u1c_goto_00f4_tests)
     add_executable(poolrad_overlay_u68_up_preflight_tests
                    tests/recovered/test_overlay_u68_up_preflight.c)
     target_link_libraries(poolrad_overlay_u68_up_preflight_tests PRIVATE poolrad_recovered)
