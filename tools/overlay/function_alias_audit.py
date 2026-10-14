@@ -17,6 +17,12 @@ from classify_overlay import KNOWN_GAME_OVR_SHA256, KNOWN_START_EXE_SHA256
 
 
 BUILD = dict(start_exe_sha256=KNOWN_START_EXE_SHA256, game_ovr_sha256=KNOWN_GAME_OVR_SHA256)
+DEFAULT_CHECKPOINT = Path(__file__).resolve().parents[2] / "docs/re/function_accounting_checkpoint.json"
+
+
+def check_checkpoint(summary, strict, verified):
+    require(summary["strict_full_c_originals"] == strict and summary["verified_game_identities"] == verified,
+            "reviewed strict-C or verified-identity checkpoint differs")
 
 
 def require(condition, message):
@@ -211,10 +217,21 @@ def rank_leaves(queue, features, claims, inventory, overlay):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    for flag in ("queue", "queue-sha256", "inventory", "resident", "classification", "claims", "ovr", "json"):
+    for flag in ("queue", "inventory", "resident", "classification", "claims", "ovr", "json"):
         parser.add_argument("--" + flag, required=True)
+    parser.add_argument("--queue-sha256")
+    parser.add_argument("--checkpoint", default=str(DEFAULT_CHECKPOINT))
+    parser.add_argument("--expected-strict", type=int, help="explicit frozen historical checkpoint")
+    parser.add_argument("--expected-verified", type=int, help="explicit frozen historical checkpoint")
     args = parser.parse_args()
-    paths = {k: Path(v) for k, v in vars(args).items() if k not in ("queue_sha256", "json")}
+    require((args.expected_strict is None) == (args.expected_verified is None), "both historical counts are required")
+    if args.expected_strict is None:
+        checkpoint = json.loads(Path(args.checkpoint).read_text())
+        args.expected_strict = checkpoint["strict_full_c_originals"]
+        args.expected_verified = checkpoint["verified_game_identities"]
+        args.queue_sha256 = args.queue_sha256 or checkpoint["queue_sha256"]
+    require(args.queue_sha256 is not None, "historical queue hash is required")
+    paths = {k: Path(getattr(args, k)) for k in ("queue", "inventory", "resident", "classification", "claims", "ovr")}
     blobs = {k: p.read_bytes() for k, p in paths.items()}
     try:
         require(hashlib.sha256(blobs["queue"]).hexdigest() == args.queue_sha256, "queue artifact hash mismatch")
@@ -227,8 +244,7 @@ def main():
             require(hashlib.sha256(blobs[key]).hexdigest() == queue["artifacts_sha256"][artifact],
                     "audit input differs from queue provenance")
         summary = audit_aliases(queue, inventory, resident)
-        require(summary["strict_full_c_originals"] == 66 and summary["verified_game_identities"] == 128,
-                "reviewed strict-C or verified-identity checkpoint differs")
+        check_checkpoint(summary, args.expected_strict, args.expected_verified)
         result = dict(inputs=BUILD, alias_audit=summary,
                       artifacts_sha256={k: hashlib.sha256(v).hexdigest() for k, v in sorted(blobs.items())},
                       **rank_leaves(queue, list(csv.DictReader(blobs["classification"].decode().splitlines())),

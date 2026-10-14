@@ -19,9 +19,11 @@ verified game identities. State both counts against unknown whole-game
 denominators. A larger count does not by itself make the game playable.
 Keep ECL opcode mapping, assets, and bounded models separate from strict
 full-C routine credit. Candidate Pascal prologues are not a verified function
-inventory. The reviewed checkpoint at PR #312 was **66 strict full-C game
-routines** (57 overlay, nine resident) and **128 verified game identities**
-(118 overlay, ten resident); refresh before reporting live.
+inventory.
+
+<!-- FUNCTION_ACCOUNTING:BEGIN -->
+The independently reviewed checkpoint after PR #380 is **67 strict full-C game routines** (58 overlay, 9 resident) and **129 verified game identities** (119 overlay, 10 resident). Both whole-game denominators remain unknown. Counts and queue provenance are in [the generated accounting checkpoint](re/function_accounting_checkpoint.json).
+<!-- FUNCTION_ACCOUNTING:END -->
 
 The current portable-C static-view checker compares **128 of 64,000 pixels**
 with zero mismatches in that bounded region. The other 63,872 pixels are

@@ -25,6 +25,7 @@ carry the audited v1.3 digests and the function ledger IDs equal the candidate s
 Outputs contain offsets and counts only.
 """
 import argparse, collections, csv, hashlib, json, re
+from pathlib import Path
 
 try:
     from capstone import Cs, CS_ARCH_X86, CS_MODE_16
@@ -162,7 +163,7 @@ ECL_HANDLERS = [0x0001, 0x00F4, 0x0111, 0x0126, 0x01A3, 0x0234, 0x0292, 0x02E0, 
                 0x1629, 0x16C9, 0x179B, 0x18F8, 0x19B0, 0x1DB1, 0x1EF8, 0x0E5E, 0x10D1, 0x25CB, 0x2CCF, 0x2775,
                 0x0DEF, 0x2AA2, 0x266A, 0x2AEB, 0x2AC1, 0x0EBC, 0x2B7E, 0x2E10, 0x2B33, 0x271F, 0x2C03, 0x2E7D,
                 0x2B14]
-VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} | {
+BASE_VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} | {
     (0x25, 0x0000), (0x25, 0x06AF), (0x25, 0x06D3), (0x25, 0x06FB), (0x25, 0x0E0C), (0x25, 0x0C77),
     (0x25, 0x0F53), (0x25, 0x1153), (0x25, 0x12FB), (0x25, 0x1EA6), (0x36, 0x002D),
     (0x38, 0x0377), (0x38, 0x03AC), (0x38, 0x03E1),
@@ -173,6 +174,30 @@ VERIFIED = {(0x1c, 0x3171), (0x1c, 0x2F2D)} | {(0x1c, h) for h in ECL_HANDLERS} 
     U68_RECORD_CLEAR, U68_MAP_UPDATE, U68_PARTY_BYTE, U68_FIELD_CLEAR,
     U5E_PARTY_VALUE,
     U9B_ENTRY_ZERO, U9B_RECORD_INCR, U9B_RECORD_TABLE, U9B_RECORD_FIELDS, U9E_ENTRY8_ROLL} | U3C6_SLOT_ENTRIES | ECL_COMPARE_HELPERS | UNIT38_EFFECT_ENTRIES | UNIT38_EFFECT_ENTRIES_NEXT | UNIT38_WALK_ENTRIES
+
+DEFAULT_REVIEWED_IDENTITIES = Path(__file__).resolve().parents[2] / "docs/re/reviewed_function_identities.csv"
+
+
+def load_reviewed_identities(path, root=None):
+    """Approved additions to the historical identity set, not C-symbol counts."""
+    root = Path(root) if root is not None else Path(__file__).resolve().parents[2]
+    result = set()
+    with Path(path).open() as source:
+        for row in csv.DictReader(source):
+            match = re.fullmatch(r"OVL_([0-9A-F]{4})_([0-9A-F]{4})", row["id"])
+            if not match or not re.fullmatch(r"[0-9a-f]{40}", row["reviewed_commit"]) or int(row["review_pr"]) <= 0:
+                raise ValueError("reviewed identity lacks canonical address/approval provenance")
+            address = tuple(int(x, 16) for x in match.groups())
+            if address in result or address in BASE_VERIFIED:
+                raise ValueError("duplicate reviewed game identity")
+            doc = row["evidence_doc"]
+            if not doc.startswith("docs/re/") or ".." in doc.split("/") or not (root / doc).is_file():
+                raise ValueError("reviewed identity evidence document is absent")
+            result.add(address)
+    return result
+
+
+VERIFIED = BASE_VERIFIED | load_reviewed_identities(DEFAULT_REVIEWED_IDENTITIES)
 
 
 def is_pascal_string(code, off, min_len=1):
@@ -267,6 +292,7 @@ def decode_unit(md, u, code, overlay_segs, slot_to_rel):
 
 
 def main():
+    global VERIFIED
     ap = argparse.ArgumentParser()
     ap.add_argument("--inventory", required=True)
     ap.add_argument("--callgraph", required=True)
@@ -274,7 +300,9 @@ def main():
     ap.add_argument("--ovr", required=True)
     ap.add_argument("--csv", required=True)
     ap.add_argument("--md", required=True)
+    ap.add_argument("--reviewed-identities", default=str(DEFAULT_REVIEWED_IDENTITIES))
     a = ap.parse_args()
+    VERIFIED = BASE_VERIFIED | load_reviewed_identities(a.reviewed_identities)
     if Cs is None:
         raise SystemExit("Capstone 5 is required")
     inv = json.load(open(a.inventory))

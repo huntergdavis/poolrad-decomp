@@ -118,6 +118,7 @@ PYTHONPATH=/tmp/poolrad-capstone PYTHONDONTWRITEBYTECODE=1 \
   python3 tools/overlay/function_alias_audit.py \
   --queue resources/function-census-audit/queue.json \
   --queue-sha256 5df46c8f516f0670f2974eeae9d2cab3504c39a10404f197f63ae3c9cca74a77 \
+  --expected-strict 66 --expected-verified 128 \
   --inventory resources/function-census-audit/inventory.json \
   --resident resources/function-census-audit/resident.json \
   --classification resources/function-census-audit/classification.csv \

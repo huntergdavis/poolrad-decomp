@@ -12,7 +12,8 @@ from pathlib import Path
 import subprocess
 import sys
 
-from function_queue import DIGESTS
+from function_queue import DIGESTS, DEFAULT_CREDIT
+from classify_overlay import DEFAULT_REVIEWED_IDENTITIES
 
 
 def main():
@@ -20,6 +21,10 @@ def main():
     parser.add_argument("--exe", required=True)
     parser.add_argument("--ovr", required=True)
     parser.add_argument("--out-dir", required=True)
+    parser.add_argument("--full-c-map", default=str(DEFAULT_CREDIT))
+    parser.add_argument("--reviewed-identities", default=str(DEFAULT_REVIEWED_IDENTITIES))
+    parser.add_argument("--refresh-classification", action="store_true",
+                        help="stage a newly reviewed classifier; keep other ledger comparisons strict")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     exe, ovr = Path(args.exe).resolve(), Path(args.ovr).resolve()
@@ -50,17 +55,22 @@ def main():
         "--csv", p("overlay.csv"), "--md", p("overlay.md"))
     run("classify_overlay.py", "--inventory", p("inventory.json"), "--callgraph", p("callgraph.json"),
         "--ledger-csv", p("overlay.csv"), "--ovr", ovr,
+        "--reviewed-identities", Path(args.reviewed_identities).resolve(),
         "--csv", p("classification.csv"), "--md", p("classification.md"))
     run("resident_callable_coverage.py", "--exe", exe, "--ovr", ovr,
         "--json", p("resident.json"), "--csv", p("resident.csv"))
     for generated, checked_in in (("overlay.csv", "overlay_function_ledger.csv"),
                                    ("classification.csv", "overlay_classification.csv"),
                                    ("resident.csv", "resident_callable_ledger.csv")):
+        if generated == "classification.csv" and args.refresh_classification:
+            continue
         if (out / generated).read_bytes() != (root / "docs/re" / checked_in).read_bytes():
             parser.exit(2, f"regenerated ledger differs: {checked_in}\n")
     for filename in ("queue.json", "queue-repeat.json"):
         run("function_queue.py", "--inventory", p("inventory.json"), "--ledger", p("overlay.csv"),
             "--classification", p("classification.csv"), "--near-calls", p("near.json"),
+            "--full-c-map", Path(args.full_c_map).resolve(),
+            "--reviewed-identities", Path(args.reviewed_identities).resolve(),
             "--resident-audit", p("resident.json"), "--json", p(filename))
     content = (out / "queue.json").read_bytes()
     if content != (out / "queue-repeat.json").read_bytes():
