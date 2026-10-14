@@ -79,14 +79,26 @@ Focused C tests pass with -Wall -Wextra -Wpedantic -Werror, including all 256
 byte values, unwritten locals, argument mutation, record/window precedence,
 indexed and conditional record cases, both party calls, and guards.
 The complete project builds with the same strict warning flags; all
-**192 CTest targets passed**.
+**200 CTest targets passed** after rebasing onto main 92546e9.
+
+The separate DOSBox-X synthetic COM executes the pinned original classifier,
+load hook, party-index callee, and whole load-word entry at their original
+relative offsets. **56 native cases passed**, comparing all fourteen returned
+CPU words, defined flags, 80 frame/argument bytes, and the record/window input
+words. AF is masked only on the class-3 and class-4 XOR/shift paths where it
+is architecturally undefined; defined CMP/ADD AF remains checked. The ignored
+result file SHA-256 is
+27e0ea0d867a482ada8a0f4be70857ea12b224f3b41135ba362ec849d6b7b136.
+The header contains its DOS allocation segment, so its hash may change in
+another emulator environment while comparisons continue to pass.
 
 The published native note independently observes record byte 7 overriding
-window word 10 at 6B18 after a controlled script edit. A synthetic test checks
-that discrimination. Full RAM captures referenced by that note are absent
-from this clone; their locations have been requested from the PM. No new
-native entry/return comparison is claimed. Natural unedited-script
-reachability remains unmeasured.
+window word 10 at 6B18 after a controlled script edit. Both the C test and
+fresh synthetic native oracle check that discrimination. Full RAM captures
+referenced by that reached-state note are absent from this clone; their
+locations have been requested from the PM. The new native oracle is synthetic,
+not a new saved-game capture or a reached-state whole-RAM comparison.
+Natural unedited-script reachability remains unmeasured.
 
 Reproduce with owner media and local Capstone 5 / Unicorn 2:
 
@@ -94,6 +106,7 @@ Reproduce with owner media and local Capstone 5 / Unicorn 2:
     cmake --build resources/build-u25-load-word
     ctest --test-dir resources/build-u25-load-word --output-on-failure
     PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn python3 tools/overlay/u25_load_word_0e0c_audit.py
+    PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn python3 tools/overlay/u25_load_word_0e0c_native.py
 
 Media, decoded instructions, builds, and captures stay under ignored
 resources. The audit reports counts, hashes, and mismatch addresses only.
@@ -103,6 +116,6 @@ resources. The audit reports counts, hashes, and mismatch addresses only.
 | target_function | Unit 0x25 +0E0C and its complete +07BC dependency |
 | source_candidates | src/recovered/overlay_u25_load_word_0e0c.c; merged party-index callee |
 | signals | Four pinned spans; complete call map; source-ordered RAM ABI; original-byte whole-RAM/register differential; published native branch evidence |
-| score | 4,077 cases passed; native captures pending; checklist, not a probability |
-| verdict | likely_match under the documented contract; native captured-state check pending |
+| score | Four checks passed: pinned CFG/ABI, focused C tests, 4,077 whole-RAM/register cases, 56 synthetic native cases; checklist, not a probability |
+| verdict | match for defined terminating routine behavior under the documented RAM/CPU contract |
 | review_notes | Immutable code; cyclic lists do not return; altered returns exposed as TRANSFER; AF not a DOS guarantee; no credit promotion |
