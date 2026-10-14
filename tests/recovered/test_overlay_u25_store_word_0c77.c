@@ -47,6 +47,8 @@ static void setup(void)
     ram[at(0x1000u, 0x84E5u)] = 0u;
     ram[at(0x1000u, 0x84E6u)] = 0u;
     ram[at(0x1000u, 0x84E8u)] = 0u;
+    put(0x3000u, 0x0C04u, 0x094Au);
+    put(0x3000u, 0x0C06u, 0x0802u);
 }
 
 static pr_u25_store_word_cpu cpu(void)
@@ -156,10 +158,11 @@ static int test_explicit_dependencies_and_guards(void)
 {
     pr_u25_store_word_cpu c;
     setup();
-    CHECK(run(0x6E12u, 0xFF42u, &c) == PR_U25_STORE_WORD_DEPENDENCY);
-    CHECK(c.cs == 0x3000u && c.ip == 0x0C03u && c.ax == 0x0342u);
-    CHECK(get(c.ss, c.sp) == 0x0342u && c.sp == (uint16_t)(c.bp - 4u));
-    CHECK(get(0x4200u, 0x724u) == 0xFF42u); /* window already stored */
+    ram[at(0x1000u, 0x5376u)] = 7u;
+    CHECK(run(0x6E12u, 0xFF42u, &c) == PR_U25_STORE_WORD_OK);
+    CHECK(c.cs == 0x7000u && c.ip == 0x1111u && c.ax == 0x0342u);
+    CHECK(ram[at(0x1000u, 0x5377u)] == 7u && ram[at(0x1000u, 0x5376u)] == 0x42u);
+    CHECK(get(0x4200u, 0x724u) == 0xFF42u);
     CHECK(run(0x6E22u, 0x81u, &c) == PR_U25_STORE_WORD_DEPENDENCY);
     CHECK(c.ip == 0x0C26u && get(c.ss, c.sp) == 1u);
     CHECK(get(c.ss, (uint16_t)(c.sp + 2u)) == 1u && get(c.ss, (uint16_t)(c.bp + 6u)) == 1u);
@@ -177,10 +180,31 @@ static int test_explicit_dependencies_and_guards(void)
     return 0;
 }
 
+static int test_selector_frame_alias(void)
+{
+    pr_u25_store_word_cpu c = cpu();
+    setup();
+    memcpy(ram + at(0x2000u, 0u), ram + at(0x1000u, 0u), 0x10000u);
+    c.ds = c.ss = 0x2000u;
+    c.sp = 0x5389u;
+    put(c.ss, c.sp, 0x1111u);
+    put(c.ss, (uint16_t)(c.sp + 2u), 0x7000u);
+    put(c.ss, (uint16_t)(c.sp + 4u), 0xFF42u);
+    put(c.ss, (uint16_t)(c.sp + 6u), 0x6E12u);
+    CHECK(pr_u25_store_word_0c77(ram, sizeof ram, &c) == PR_U25_STORE_WORD_OK);
+    /* Far CALL's CS high byte aliases 5376; copying it to 5377 overwrites
+     * the resident's argument low byte before that byte is loaded. */
+    CHECK(c.ax == 0x0330u && c.sp == 0x5391u);
+    CHECK(ram[at(c.ds, 0x5376u)] == 0x30u && ram[at(c.ds, 0x5377u)] == 0x30u);
+    CHECK(get(c.ss, 0x5377u) == 0x0330u);
+    return 0;
+}
+
 int main(void)
 {
     if (test_class4() || test_windows_and_record_order() ||
-        test_local_hook_conditions() || test_explicit_dependencies_and_guards())
+        test_local_hook_conditions() || test_explicit_dependencies_and_guards() ||
+        test_selector_frame_alias())
         return 1;
     puts("bounded u25 store-word tests passed");
     return 0;

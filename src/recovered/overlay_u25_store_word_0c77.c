@@ -167,6 +167,20 @@ static void record(const uint8_t *ram, pr_u25_store_word_cpu *c)
     les(ram, c, c->ds, 0x5D92u);
 }
 
+/* Complete raw ABI of the existing RES_0802:094A selector-push leaf.
+ * Its DS stores can alias its frame, so the pushed byte is read only
+ * AFTER copying the prior selector to 5377. No SUB SP, hence no new flags. */
+static void selector_push(uint8_t *ram, pr_u25_store_word_cpu *c)
+{
+    push(ram, c, c->bp);
+    c->bp = c->sp;
+    al(c, r8(ram, c->ds, 0x5376u));
+    w8(ram, c->ds, 0x5377u, (uint8_t)c->ax);
+    al(c, r8(ram, c->ss, (uint16_t)(c->bp + 6u)));
+    w8(ram, c->ds, 0x5376u, (uint8_t)c->ax);
+    finish(ram, c, 2u);
+}
+
 static pr_u25_store_word_status store_hook(uint8_t *ram, pr_u25_store_word_cpu *c)
 {
     static const uint16_t fields[][2] = {
@@ -261,10 +275,20 @@ static pr_u25_store_word_status store_hook(uint8_t *ram, pr_u25_store_word_cpu *
         goto done;
     }
     if (eq16(c, 0x312u)) {
+        uint16_t cs, target_cs, target_ip;
         al(c, r8(ram, c->ss, (uint16_t)(c->bp + 6u)));
         push(ram, c, c->ax);
-        c->ip = 0x0C03u;
-        return PR_U25_STORE_WORD_DEPENDENCY;
+        cs = c->cs;
+        /* Fetch the actual far operand, including its loader relocation. */
+        target_ip = r16(ram, cs, 0x0C04u);
+        target_cs = r16(ram, cs, 0x0C06u);
+        push(ram, c, c->cs);
+        push(ram, c, 0x0C08u);
+        c->cs = target_cs;
+        c->ip = target_ip;
+        selector_push(ram, c);
+        if (c->cs != cs || c->ip != 0x0C08u) return PR_U25_STORE_WORD_TRANSFER;
+        goto done;
     }
     for (i = 0u; i < 3u; ++i) {
         if (!eq16(c, calls[i][0])) continue;

@@ -14,9 +14,10 @@ typedef enum {
 
 /* Raw A20-off RAM model of CS:0C77, after the far CALL. Return IP/CS,
  * value word and address word occupy SS:SP. Includes +06FB and the local
- * +0A74 store-hook effects. Code must remain immutable.
+ * +0A74 store-hook effects and the complete resident selector-push leaf.
+ * Code must remain immutable, with valid loader-relocated call operands.
  *
- * DEPENDENCY stops BEFORE an untranslated far CALL, with IP at 0C03,
+ * DEPENDENCY stops BEFORE an untranslated unit-3BD far CALL, with IP at
  * 0C26, 0C49 or 0C6C and its argument words already pushed. A host executor
  * must execute the actual (possibly relocated) instruction and remaining
  * continuation. No callee result or post-call effect is invented.

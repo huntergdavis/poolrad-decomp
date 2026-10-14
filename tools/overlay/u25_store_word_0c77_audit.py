@@ -28,6 +28,9 @@ from unicorn.x86_const import (
 ROOT = Path(__file__).resolve().parents[2]
 SIZE = 1 << 20
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
+START_SHA = "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
+RESIDENT_KEY = 0x1896A
+RESIDENT_SITES = set()
 SPANS = (
     (0x06FB, 0x0756, "e41b64e0284b3dff9398b1d8fe08f2c8c773f8521975021c8d10734118d39347"),
     (0x0A74, 0x0C77, "258b587e214213205991b5eb810131948000e266d244bf086a7b427bb8bf0938"),
@@ -84,7 +87,17 @@ def source(ovr):
         bodies[start] = body
         for i in decoded:
             instructions[i.address] = (i.mnemonic, i.size)
-    require(len(instructions) == 332, "original instruction set differs")
+    exe = (ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
+    require(len(exe) == 65231 and sha256(exe).hexdigest() == START_SHA, "owner executable hash mismatch")
+    resident = exe[0x89A1:0x89B4]
+    require(sha256(resident).hexdigest() == "9cb0afed6f73df887b61f47778db5d55bd9063b59c8f6067ab0c38ec3350d205",
+            "resident selector body hash mismatch")
+    bodies[RESIDENT_KEY] = resident
+    for i in md.disasm(resident, 0x094A):
+        require(i.address not in instructions, "resident and overlay instruction keys collide")
+        instructions[i.address] = (i.mnemonic, i.size)
+        RESIDENT_SITES.add(i.address)
+    require(len(RESIDENT_SITES) == 8 and len(instructions) == 340, "original instruction set differs")
     return bodies, instructions
 
 
@@ -117,14 +130,14 @@ def make_case(bodies, address, value=0x137, *, sp=0x8000, ds=0x1000, ss=0x2000):
     put16(ram, ss, (sp + 4) & 0xFFFF, value)
     put16(ram, ss, (sp + 6) & 0xFFFF, address)
     for start, body in bodies.items():
-        at = physical(cpu.cs, start)
+        at = physical(0x0802, 0x094A) if start == RESIDENT_KEY else physical(cpu.cs, start)
         ram[at:at + len(body)] = body
     return ram, cpu
 
 
 def compare(label, ram, initial, bodies, instructions, lib, visited):
     for start, body in bodies.items():
-        at = physical(initial.cs, start)
+        at = physical(0x0802, 0x094A) if start == RESIDENT_KEY else physical(initial.cs, start)
         require(ram[at:at + len(body)] == body, "case overlaps immutable code")
     baseline = bytes(ram)
     original_ram = (ctypes.c_uint8 * SIZE).from_buffer(ram)
@@ -142,14 +155,15 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
             return
         ip = emulator.reg_read(UC_X86_REG_IP)
         cs = emulator.reg_read(UC_X86_REG_CS)
-        require(cs == initial.cs and ip in instructions, "unexpected original execution before return")
+        require((cs == initial.cs and ip in instructions and ip not in RESIDENT_SITES) or
+                (cs == 0x0802 and ip in RESIDENT_SITES), "unexpected original execution before return")
         visited.add(ip)
         count[0] += 1
         require(count[0] <= 1000000, "original exceeded bounded audit execution")
         mnemonic, size = instructions[ip]
-        if mnemonic == "call":
+        if mnemonic == "call" or mnemonic == "lcall" and ip == 0x0C03:
             calls.append((cs, (ip + size) & 0xFFFF))
-        if mnemonic == "lcall":
+        if mnemonic == "lcall" and ip != 0x0C03:
             stopped.append("dependency")
             emulator.emu_stop()
         if mnemonic == "retf":
@@ -233,6 +247,8 @@ def cases(bodies, quick):
     ram, cpu = make_case(bodies, 0x6C0C, 0x81)
     pointer(ram, cpu.ds, 0x5D92, cpu.ds, 0x5C84)
     yield "record-pair-reloads-aliased-pointer", ram, cpu
+    # The prior-selector store aliases the resident's pushed argument byte.
+    yield "selector-argument-alias", *make_case(bodies, 0x6E12, 0xFF42, sp=0x5389, ds=0x2000)
 
 
 def check_nontermination(bodies):
@@ -294,7 +310,7 @@ def main():
         internal_return_transfers=counts[2], dependency_stops=counts[3],
         visited_instruction_sites=len(visited), total_instruction_sites=len(instructions),
         unvisited_original_addresses=[f"{offset:04X}" for offset in sorted(set(instructions) - visited)],
-        game_ovr_sha256=OVR_SHA), sort_keys=True))
+        game_ovr_sha256=OVR_SHA, start_exe_sha256=START_SHA), sort_keys=True))
 
 
 if __name__ == "__main__":
