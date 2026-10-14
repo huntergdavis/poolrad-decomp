@@ -76,20 +76,27 @@ joins and the placement return agree byte for byte.
 
 ## Measured boundary after placement
 
-The placement-return object SHA-256 is
+In ignored run `slot-a-view4-last6-compose-p5-001`, the
+`ram-placement-return.bin` placement-return object SHA-256 is
 `8664637ddd0016f3ef9978c4694f87ecbb7fb325ab147475f936c410ce9c6e8d`.
-In ignored run `slot-a-view4-writer-order-p5-002`, this post-sixteenth
-`+0AD8` baseline is `ram-next-0ad8.bin` (also present in
-`ram-after16-next-stop.bin` and `ram-after16-first-tile-pre.bin`);
-the older `ram-third-0ad8.bin` has object SHA-256
-`d6652ff7e295001957eff907a855f7629dca6ba5579aa8634bafd44667d5e806`
-and is not this baseline.
-The same run's flush-entry object SHA-256 is
+That run's `ram-flush-entry.bin` object SHA-256 is
 `489572698be6487b4d9c88b470f62b530e0bd98539c99b75444a76b3639b14e1`.
-The private 640 KiB RAM captures at those stops have SHA-256
+Its same-run 640 KiB RAM captures at those stops have SHA-256
 `e05bb3cc8974b4bef870c7fbaf46177b09b9531f16b92eb19f4c7f6c0b4e2483`
 and
 `48becc9f9848794f232e6887a08edfd8b59d901833ccffbbbea4c336245080d7`.
+Separately, ignored run `slot-a-view4-writer-order-p5-002` records the
+post-sixteenth `+0AD8` baseline in `ram-next-0ad8.bin` (the same object
+appears in `ram-after16-next-stop.bin` and
+`ram-after16-first-tile-pre.bin`); its full-RAM SHA-256 is
+`0b382a52527735a86d9b997883892256897818427df9584b2ad4a13914f59e97`,
+and that run's `ram-flush-entry.bin` full-RAM SHA-256 is
+`d0ce92b6a3da99664fef97111ff9c82129307c377fc789ab5e1cbaf7de37df17`.
+The two run002 objects have the same respective object hashes as run001,
+but these full-RAM captures are distinct; the older run002
+`ram-third-0ad8.bin` has object SHA-256
+`d6652ff7e295001957eff907a855f7629dca6ba5579aa8634bafd44667d5e806`
+and is not the post-sixteenth baseline.
 There are **615 changed offscreen bytes**, zero header bytes: scanlines
 17..103, in planes 0/2/3 (174/219/222 bytes; plane 1 has none).
 These bytes change between `2D14:0AD8` and `0C88:1B52`. The writer
