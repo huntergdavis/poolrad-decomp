@@ -8,7 +8,9 @@
 > [measured native DIVIDE/store/return trace](U1C_DIVIDE_AL13_NATIVE_EXECUTION.md),
 > and the `0x6B18` record-byte path has a
 > [controlled native load/DIVIDE/store trace](U25_LOAD_HOOK_6B18_NATIVE_RECORD.md).
-> Neither resolves the other dependencies.
+> Its zero-divisor variant now has a
+> [measured INT 0 and DOS exit trace](U25_LOAD_HOOK_6B18_ZERO_DIVIDE_NATIVE_FAULT.md).
+> These traces leave the other dependencies unresolved.
 
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
 for its four dispatched opcodes. It cannot yet receive strict full-C credit for the whole
@@ -84,8 +86,10 @@ has INT 0 vector `131C:00DF`. The first native instructions set AX to `0x00C8`,
 pop CX and BX, set DS to `0x14A0`, enable interrupts, then store AX to
 DS:`[0x441C]` at `131C:00F3`. The 64-byte runtime entry span at that vector
 hashes `2e0d02cf1da6ef322f33ac78239cb6e20711c9be3ce83e29563a2a1bad2c2a5e`.
-This is an installed runtime path, not an observed zero-divisor fault. Later
-runtime error handling is not represented in the arithmetic state.
+That earlier audit identified an installed path. A later
+[controlled zero-divisor fault trace](U25_LOAD_HOOK_6B18_ZERO_DIVIDE_NATIVE_FAULT.md)
+observed INT 0 entry, error word 200, and the DOS terminate call. Runtime
+error handling is not represented in the arithmetic state.
 
 ## Classification and next interface
 
