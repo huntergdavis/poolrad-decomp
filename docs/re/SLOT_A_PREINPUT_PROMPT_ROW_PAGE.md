@@ -1,6 +1,6 @@
 # Saved slot-A first view: bounded prompt-row page before input
 
-This local-only note stops at the first repeated keyboard poll after unit
+This note stops at the first repeated keyboard poll after unit
 `0x1C:+3387` returns from the saved slot-A first-view draw. No gameplay key was
 sent. `pr_slot_a_u3b0_prompt_row_apply` models **only the EGA page effect** of
 the reached unit `0x3B0:+01DA` helper. It is not a full helper translation, an
