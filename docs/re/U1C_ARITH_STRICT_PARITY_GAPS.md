@@ -6,7 +6,9 @@
 > and the [`0x6BA0` signed-byte branch](ECL_LOAD_HOOK_6BA0_SIGNED.md);
 > the other dependencies below remain. The saved AL=13 class-2 path now has a
 > [measured native DIVIDE/store/return trace](U1C_DIVIDE_AL13_NATIVE_EXECUTION.md),
-> which does not resolve the other dependencies.
+> and the `0x6B18` record-byte path has a
+> [controlled native load/DIVIDE/store trace](U25_LOAD_HOOK_6B18_NATIVE_RECORD.md).
+> Neither resolves the other dependencies.
 
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
 for its four dispatched opcodes. It cannot yet receive strict full-C credit for the whole
