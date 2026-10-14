@@ -130,6 +130,6 @@ int main(void)
         assert(memcmp(destination, expected, sizeof expected) == 0);
     }
 
-    puts("saved view-four last-six persistent-object composition passed");
+    puts("saved view-four calls 11-16 persistent-object composition passed");
     return 0;
 }

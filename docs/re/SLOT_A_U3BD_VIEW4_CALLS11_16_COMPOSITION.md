@@ -1,13 +1,13 @@
-# Saved slot-A view-four: last six tile calls and display boundary
+# Saved slot-A view-four: tile calls 11–16 and display boundary
 
-The saved view-four placement reaches 16 tile callbacks. This audit
-composes callbacks 11 through 16 on **one persistent offscreen object**
+The saved view-four placement reaches at least 16 tile callbacks. This
+audit composes callbacks 11 through 16 on **one persistent offscreen object**
 using the merged group-three and group-zero plane models. Every complete
 14,135-byte C object equals the immediate native post-call object, and
-the sixth equals the placement return. Call 16 is a measured no-op on
+the sixth equals the post-sixteenth tile return. Call 16 is a measured no-op on
 that object. The native object then changes by **615 bytes** before the
-already modeled display flush. That intervening writer is the next
-causal gate; the placement result alone is not the flush input.
+already modeled display flush. Later placement calls are the next
+causal gate; the sixteenth tile result alone is not the flush input.
 
 Before debugging, `deja "Poolrad saved slot A view four after eighth tile
 callback next group offscreen display transfer"` found no matching
@@ -37,7 +37,8 @@ Ignored `GAME.OVR` has SHA-256
 | Resident flush | `0464:1B52..1E5B`, `START.EXE [0x61CB,0x64D5)` | 778 | `7b5347e6e6af0127e2d089c495dcf0e67e8882338e2a792e44a318d82b2c228c` |
 
 The native run stopped at placement `2D14:0AD5`, each tile call
-`2D14:02FB` and return `2D14:0300`, placement return `2D14:0AD8`,
+`2D14:02FB` and return `2D14:0300`, the sixteenth call's return
+`2D14:0AD8`,
 flush entry `0C88:1B52`, and immediate flush return `2D14:05FB`.
 At each tile call, `SS:SP=1D16:3E78` supplies two flag words equal to
 one, then item, y, x. `DS=14A0`, video state `DS:[4A1E]=1`, and
@@ -72,11 +73,11 @@ RAM, calls the appropriate merged C model, then compares all 14,135
 bytes with native post-call RAM. It never assigns a native expected
 post-call object to the C buffer. All six models report 32 plane-byte
 writes, and native/C changed-byte counts agree. Adjacent native object
-joins and the placement return agree byte for byte.
+joins and the sixteenth call's return agree byte for byte.
 
 ## Measured boundary after placement
 
-The placement-return object SHA-256 is
+The post-sixteenth-call object SHA-256 is
 `8664637ddd0016f3ef9978c4694f87ecbb7fb325ab147475f936c410ce9c6e8d`.
 The same run's flush-entry object SHA-256 is
 `489572698be6487b4d9c88b470f62b530e0bd98539c99b75444a76b3639b14e1`.
@@ -86,9 +87,10 @@ and
 `48becc9f9848794f232e6887a08edfd8b59d901833ccffbbbea4c336245080d7`.
 There are **615 changed offscreen bytes**, zero header bytes: scanlines
 17..103, in planes 0/2/3 (174/219/222 bytes; plane 1 has none).
-These bytes change between `2D14:0AD8` and `0C88:1B52`. The writer
-address and exact call path within that interval remain unproved. This
-measured gap blocks a direct C placement-to-display prediction.
+These bytes change between `2D14:0AD8` and `0C88:1B52`. The placement
+caller continues after `+0x0AD8`; the chronological writer sequence and
+its exact call path within that interval remain unproved in this audit.
+This measured gap blocks a direct C tile-sequence-to-display prediction.
 
 Starting instead from the **native flush-entry** object and same-run
 pre-flush `A200`/`A000` plane windows, the merged all-dirty C transfer
