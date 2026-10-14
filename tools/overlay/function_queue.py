@@ -235,6 +235,7 @@ def main():
     parser.add_argument("--full-c-map", default=str(DEFAULT_CREDIT))
     parser.add_argument("--near-calls")
     parser.add_argument("--resident-audit")
+    parser.add_argument("--reviewed-identities", help="bind approved identity manifest into queue provenance")
     parser.add_argument("--json", required=True)
     args = parser.parse_args()
     paths = {name: Path(value) for name, value in vars(args).items()

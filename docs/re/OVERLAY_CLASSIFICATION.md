@@ -23,8 +23,8 @@ prologue, after a digest check of `GAME.OVR`:
 | --- | ---: | ---: |
 | string constants | `mov di,imm16; push cs; push di` where `imm16` addresses a length-prefixed, fully printable byte string inside the unit's own code segment (Turbo Pascal typed string constant) | 216 (664 references) |
 | documented engine globals | DS-relative operands equal to byte-verified engine state addresses from the ledgers and contracts (ECL PC, buffer, opcode latch, stop flags, call stack, compare flags, operand slots, the three windows, party and active-character pointers, shared dword block, window state, the procedure variable) | 249 |
-| calls into verified routines | direct near calls, or far calls through entry slots, to a byte-verified routine | 176 |
-| verified routine | an address in the reviewed verified set in `tools/overlay/classify_overlay.py`, with per-routine evidence linked below and in the recovered-code notes | 118 |
+| calls into verified routines | direct near calls, or far calls through entry slots, to a byte-verified routine | 178 |
+| verified routine | an address in the classifier's historical set or [reviewed additions](reviewed_function_identities.csv), with per-routine evidence linked below and in the recovered-code notes | 120 |
 | leaf | no calls and no DS-relative globals | 70 |
 | runtime-only | every call goes to the SYSTEM segment 0xAF8, no DS-relative globals | 16 |
 
@@ -32,13 +32,13 @@ prologue, after a digest check of `GAME.OVR`:
 
 | class | rule (applied in this order) | confidence | count |
 | --- | --- | --- | ---: |
-| `game_verified` | verified routine | verified identity and role, with complete behavior reviewed for the translated subset | 118 |
+| `game_verified` | verified routine | verified identity and role, with complete behavior reviewed for the translated subset | 120 |
 | `game_evidenced` | string constant, documented engine global, or call into a verified routine | provisional: printable text and engine state are evidence of application code, not proof of game logic | 338 |
 | `helper_candidate` | leaf or runtime-only, no strings, no DS globals, not verified | provisional: small utilities; a leaf can still be game arithmetic | 75 |
-| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 142 |
+| `game_or_other_library_unresolved` | everything else (calls resident game-code segments or overlay routines, or touches undocumented globals, without text or verified engine state) | unresolved | 140 |
 
-By evidence grade from the function ledger: `game_verified` 54 A, 63 B, 1 D; `game_evidenced`
-207 A, 130 B, 1 D; `helper_candidate` 54 A, 21 B; unresolved 87 A, 55 B.
+By evidence grade from the function ledger: `game_verified` 54 A, 65 B, 1 D; `game_evidenced`
+208 A, 129 B, 1 D; `helper_candidate` 54 A, 21 B; unresolved 86 A, 54 B.
 The sixteen PR #63 IDs are distinct from the prior verified set and promote
 fifteen unresolved rows and one helper candidate. The generated CSV records
 each exact ID, with no changes to measured call or byte-signal columns.
@@ -165,9 +165,19 @@ verified-call signal, while their classes stay provisional. One strict
 full-C game-routine credit is awarded. Saved slot-A one-Up reachability
 remains unobserved, and the total denominator remains unknown.
 
+PRs #380/#383 add the independently reviewed party-index leaf
+`0x25:+0x0756` and byte-half leaf `0x5E:+0x0E52`, respectively. Each gains one
+verified identity and one strict full-C original. Regeneration also updates
+signals for three callers and moves one unresolved caller to provisional game
+evidence; those callers gain no identity or strict credit. Exact approval commits, body
+hashes, counts, and reproduction are in
+[FUNCTION_ACCOUNTING_REFRESH.md](FUNCTION_ACCOUNTING_REFRESH.md). The first
+leaf's native evidence uses a controlled script edit; the second's native
+oracle is synthetic. Natural saved-game reachability remains unmeasured.
+
 What the rules do not do: they do not identify third-party or standard library units. If a
 library unit is linked into the overlay, its routines can fall into `helper_candidate`
-(if they are leaves or runtime-only) or the unresolved class. The 142 unresolved
+(if they are leaves or runtime-only) or the unresolved class. The 140 unresolved
 routines may contain such code; their split is not determined by these bytes.
 No count here is a game-function denominator.
 

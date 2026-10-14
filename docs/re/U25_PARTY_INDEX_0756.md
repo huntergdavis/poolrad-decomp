@@ -22,9 +22,10 @@ capacity, as recorded in [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md). Therefore
 wrapping that core cannot establish a strict full-C translation of entry 22.
 No full-C credit is claimed for it here.
 
-`+0x0756` is the smallest unclaimed, game-evidenced, call-free leaf found in
+At selection, `+0x0756` was the smallest unclaimed, game-evidenced, call-free leaf found in
 the unit `0x25` classification: 102 bytes, 35 instructions, party evidence,
-provisional ownership in [overlay_classification.csv](overlay_classification.csv).
+provisional ownership in the then-current classification. The approved
+accounting below promotes it in [overlay_classification.csv](overlay_classification.csv).
 The load hook at `+0x07BC` calls it at `+0x0981` for class-1 address `0x6DB1`
 and at `+0x099A` for `0x6DB4`. The caller map in
 [ECL_LOAD_HOOK_6DD5.md](ECL_LOAD_HOOK_6DD5.md) was reused and checked against
@@ -106,5 +107,9 @@ produced **zero mismatches across all captured 640 KiB bytes and all fourteen
 returned CPU fields**, including exact FLAGS. The audit's `--native-run`
 option hash-locks both ignored captures and repeats that comparison.
 
-This leaf's strict count and ownership remain for PM parity review. The
-blocked `+0x1EA6` entry still receives no full-C credit.
+After independent parity review and PR #380 merge
+`bb77539ed4444ad2bd430ce3ed88d8322902a328`, the PM approved exactly one new
+verified identity and one strict full-C original for `+0x0756` (inbox i2886).
+The [accounting refresh](FUNCTION_ACCOUNTING_REFRESH.md) records that decision
+and its regenerated checkpoint. Natural unedited-script reachability remains
+unmeasured. The blocked `+0x1EA6` entry still receives no full-C credit.
