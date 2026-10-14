@@ -3,10 +3,17 @@
 #include <stdio.h>
 #include <string.h>
 
+#ifndef PR_PAGE_BASE
+#define PR_PAGE_BASE 0x3C0
+#endif
+#ifndef PR_PAGE_BYTES
+#define PR_PAGE_BYTES 3520
+#endif
+
 enum {
     TEXT_CAP = 255,
-    PAGE_BASE = 0x3C0,
-    PAGE_BYTES = 3520,
+    PAGE_BASE = PR_PAGE_BASE,
+    PAGE_BYTES = PR_PAGE_BYTES,
     INPUT_BYTES = PR_FONT201_BLOCK_SIZE + 4 + TEXT_CAP + 4 * PAGE_BYTES
 };
 
