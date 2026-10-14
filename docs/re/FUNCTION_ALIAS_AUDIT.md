@@ -52,6 +52,9 @@ unknown**, not newly verified game-specific functions. Each has entry or
 validated near-call evidence, documented engine-global evidence, and a bounded
 control-flow walk with a return and no reachable call, interrupt, indirect
 branch, external branch or port-I/O dependency.
+Candidate selection starts with call-free bounded linear-classifier rows and
+documented engine-global evidence. Other candidate spans and unseeded entries
+remain unaudited for this ranking.
 
 | Rank | Original address | Span / reachable bytes | Instruction starts | Far-return cleanup bytes |
 | ---: | --- | ---: | ---: | ---: |
