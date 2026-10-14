@@ -1,4 +1,5 @@
 #include "poolrad/replay/slot_a_string_0356_abi.h"
+#include "poolrad/replay/system_cbc_abi.h"
 
 enum reg { AX, BX, CX, DX, SI, DI, BP, SP, CS, DS, ES, SS, FS, GS,
            AL = AX, AH = AX + 16, CL = CX, CH = CX + 16 };
@@ -91,7 +92,7 @@ static int branch(uint16_t flags, unsigned condition)
     }
 }
 
-pr_slot_a_string_0356_status pr_slot_a_string_0356_step(
+pr_slot_a_string_0356_status pr_slot_a_string_0356_prefix_step(
     pr_slot_a_directory_state *s, pr_slot_a_string_0356_report *report)
 {
     const instruction *table, *in = NULL;
@@ -232,4 +233,23 @@ pr_slot_a_string_0356_status pr_slot_a_string_0356_step(
         c->ip = next;
     }
     return PR_SLOT_A_STRING_0356_STEPPED;
+}
+
+/* The normal composition replaces the historical Delete gate only after
+ * the complete CBC/dependency/native parity gate has passed. */
+pr_slot_a_string_0356_status pr_slot_a_string_0356_step(
+    pr_slot_a_directory_state *s, pr_slot_a_string_0356_report *report)
+{
+    pr_system_b98_status status;
+    if (!s || !report) return PR_SLOT_A_STRING_0356_ARGUMENT;
+    if ((s->cpu.cs == 0x1026u && s->cpu.ip == 0x03FCu) ||
+        (s->cpu.cs == 0x131Cu && ((s->cpu.ip >= 0x0CBCu && s->cpu.ip < 0x0D12u) ||
+                                (s->cpu.ip >= 0x0B98u && s->cpu.ip < 0x0BC4u)))) {
+        *report = (pr_slot_a_string_0356_report){0};
+        status = pr_system_cbc_step(s);
+        if (status == PR_SYSTEM_B98_STEPPED) return PR_SLOT_A_STRING_0356_STEPPED;
+        if (status == PR_SYSTEM_B98_BLOCKED_MEMORY) return PR_SLOT_A_STRING_0356_BLOCKED_MEMORY;
+        return PR_SLOT_A_STRING_0356_BLOCKED_PC;
+    }
+    return pr_slot_a_string_0356_prefix_step(s, report);
 }

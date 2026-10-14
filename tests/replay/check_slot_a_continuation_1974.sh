@@ -5,6 +5,8 @@ build_dir="$repo_dir/resources/build-continuation1974"
 mkdir -p "$build_dir"
 sources=("$repo_dir/src/replay/slot_a_continuation_1974.c"
          "$repo_dir/src/replay/slot_a_string_0356_abi.c"
+         "$repo_dir/src/replay/system_cbc_abi.c"
+         "$repo_dir/src/replay/system_b98_abi.c"
          "$repo_dir/src/replay/slot_a_saved_copy_1965.c")
 cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -I"$repo_dir/include" \
     "${sources[@]}" "$repo_dir/tests/replay/test_slot_a_continuation_1974.c" \
