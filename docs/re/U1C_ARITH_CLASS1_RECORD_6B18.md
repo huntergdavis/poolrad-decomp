@@ -3,6 +3,8 @@
 > **Update:** the next [record-byte branch at `0x6B9B`](ECL_LOAD_HOOK_6B9B_RECORD.md)
 > is also composed. References below to 28 remaining load-hook effect addresses
 > describe the model when this `0x6B18` note was written; 27 remain now.
+> A later [controlled native trace](U25_LOAD_HOOK_6B18_NATIVE_RECORD.md)
+> confirms this `0x6B18` record-byte path and its DIVIDE/store result.
 
 The unit `0x1C:+0x01A3` arithmetic model now composes the class-1 load-hook
 value at address `0x6B18` when its caller supplies the active character record.
@@ -55,4 +57,6 @@ slot 2, `21 / 7` stores 3; changing that record byte to zero takes the
 divide-error path with no store even though the window word remains 3. A
 short supplied record also stops before store. Direct load and slot-value
 tests cover the status, zero extension and isolation of address `0x6B9B`.
-These are synthetic tests, not a native DOS execution of this operand.
+These tests are synthetic. The later
+[controlled native execution](U25_LOAD_HOOK_6B18_NATIVE_RECORD.md) measures
+the same `7 / 3` case in the original DOS code.
