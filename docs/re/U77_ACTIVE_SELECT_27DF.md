@@ -87,9 +87,13 @@ binary and DOSBox-X outputs only under ignored resources/u77-active-select-parit
 Twelve fresh cases execute an actual far CALL and compare all 14 CPU words,
 48 caller/local stack bytes, active/head globals and all three next links.
 Null/head/middle/tail states and G/O/other byte arguments pass. The result
-SHA-256 is a3413e6ef39acc4e041508a98bd44fb127b3774a23f45b27ba144d761c3a1c79;
+SHA-256 is 62a7bbb4a29a698ea2cca1c731aaf3c53e3f6269ea17289688fee21d98b4833e;
 DOS allocation segments can make this output hash environment-dependent.
 This reuses the COM-oracle method from tools/overlay/u25_load_word_0e0c_native.py.
+Interrupts are disabled from frame initialization through capture (caller
+FLAGS=0002), then enabled for DOS I/O. This isolates the routine's stack
+effects from asynchronous interrupt-handler writes observed while building
+the longer U33 native oracle. All 12 isolated native cases pass.
 
 The captured RAM originates from another native route. No real `+27DF`
 call/return frame or route-specific pointer state was measured. The static

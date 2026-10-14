@@ -41,7 +41,7 @@ def main():
            f"mov word ptr [header+4],{len(CASES)}", "mov dx,offset filename",
            "xor cx,cx", "mov ah,0x3c", "int 0x21", "jc failure",
            "mov word ptr [handle],ax", "mov bx,ax", "mov dx,offset header",
-           "mov cx,6", "mov ah,0x40", "int 0x21", "again:",
+           "mov cx,6", "mov ah,0x40", "int 0x21", "again:", "cli",
            "mov sp,0xf000", "push cs", "pop es", "cld",
            f"mov di,{FRAME}", f"mov cx,{FRAME_SIZE}", "mov al,0xa5", "rep stosb"]
     for off, target in ((0x9104, 0x9200), (0x9304, 0x9400), (0x9504, 0)):
@@ -54,7 +54,7 @@ def main():
             "mov ax,word ptr [cases+si+2]", "mov word ptr [0x5d92],ax",
             "mov dx,cs", "test ax,ax", "jnz active_segment", "xor dx,dx",
             "active_segment:", "mov word ptr [0x5d94],dx",
-            "push word ptr [cases+si+4]", "push 0x0202", "popf",
+            "push word ptr [cases+si+4]", "push 0x0002", "popf",
             "mov ax,0xabcd", "mov bx,0x3456", "mov cx,0x5678", "mov dx,0x789a",
             "mov si,0x9abc", "mov di,0xbcde", "mov bp,0x7777",
             ".byte 0x9a", ".word 0x27df", "call_segment: .word 0", "returned:"]
@@ -66,7 +66,7 @@ def main():
     offsets += [0x9104, 0x9106, 0x9304, 0x9306, 0x9504, 0x9506]
     for index, off in enumerate(offsets):
         asm += [f"mov ax,word ptr [{off}]", f"mov word ptr [output+{28+2*index}],ax"]
-    asm += ["pushf", "pop ax", "mov word ptr [output+26],ax",
+    asm += ["pushf", "pop ax", "mov word ptr [output+26],ax", "sti",
             "mov bx,word ptr [handle]", "mov dx,offset output",
             f"mov cx,{RECORD_SIZE}", "mov ah,0x40", "int 0x21", "jc failure",
             f"cmp ax,{RECORD_SIZE}", "jne failure", "inc word ptr [index]",
@@ -111,7 +111,7 @@ def main():
         for off, value in ((0xEFFA, return_ip), (0xEFFC, segment), (0xEFFE, key)):
             put_word(memory, segment, off, value)
         cpu = Cpu(0xABCD, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE,
-                  0x7777, 0xEFFA, segment, 0x27DF, segment, segment, segment, 0x0202)
+                  0x7777, 0xEFFA, segment, 0x27DF, segment, segment, segment, 0x0002)
         ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer(memory)
         if lib.pr_u77_active_select_27df(ram, RAM_SIZE, ctypes.byref(cpu)):
             raise ValueError("C rejected native state")
@@ -125,6 +125,7 @@ def main():
         if actual != observed[28:]:
             raise ValueError(f"native {index} frame/table/link mismatch")
     report = dict(native_cases=count, actual_far_call=True, reached_game_caller=False,
+                  interrupts_isolated=True, source_sha256=sha256(source).hexdigest(),
                   compared_cpu_words=14, compared_frame_bytes=FRAME_SIZE,
                   result_sha256=sha256(result).hexdigest())
     (directory / "report.json").write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
