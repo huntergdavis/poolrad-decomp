@@ -55,6 +55,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3bd_pieces.c
                                     src/recovered/resident_load_route_27d9.c
                                     src/recovered/resident_load_pieces_0767.c
+                                    src/recovered/resident_unequal_display_1816.c
                                     src/recovered/overlay_u3bd_wallset.c
                                     src/recovered/font_8x8d_201.c
                                     src/recovered/slot_a_printer_page.c
@@ -385,6 +386,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_load_pieces_0767_tests
              COMMAND poolrad_resident_load_pieces_0767_tests)
+    add_executable(poolrad_resident_unequal_display_1816_tests
+                   tests/recovered/test_resident_unequal_display_1816.c)
+    target_link_libraries(poolrad_resident_unequal_display_1816_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_unequal_display_1816_tests
+             COMMAND poolrad_resident_unequal_display_1816_tests)
     add_executable(poolrad_overlay_u3bd_wallset_tests
                    tests/recovered/test_overlay_u3bd_wallset.c)
     target_link_libraries(poolrad_overlay_u3bd_wallset_tests PRIVATE poolrad_recovered)
