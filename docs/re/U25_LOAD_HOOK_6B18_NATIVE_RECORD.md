@@ -1,5 +1,9 @@
 # Native class-1 load at `0x6B18`: active-record byte
 
+> A subsequent [zero-byte native fault trace](U25_LOAD_HOOK_6B18_ZERO_DIVIDE_NATIVE_FAULT.md)
+> measures this hook as DIVIDE's divisor and follows the INT 0 runtime to its
+> DOS exit call.
+
 The original DOS v1.3 code, continued from a saved slot-A replay, loaded the
 active-record byte **7** for a class-1 operand at `0x6B18` while the distinct
 window-1 word at that address was **10**. The load-word caller retained the
