@@ -169,8 +169,8 @@ def main():
         ("synthetic-no-match", b"ABC", b"Z", 1),
         ("synthetic-long-needle", b"A", b"XY", 1),
         ("synthetic-empty-source", b"", b"Z", 1),
-        ("synthetic-delete-boundary", b"ABA", b"A", 2),
-        ("synthetic-empty-needle", b"ABC", b"", 2),
+        ("synthetic-composed-delete", b"ABA", b"A", 1),
+        ("synthetic-empty-needle", b"ABC", b"", 1),
     ):
         synthetic = bytearray(image)
         values = live_cpu["196a"].copy()

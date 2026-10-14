@@ -31,11 +31,12 @@ int main(void)
     CHECK(report.caller == 0x6Fu && report.call_pc == 0x197Eu);
     CHECK(report.callee_segment == 0x0AF8u && report.callee_pc == 0x0B25u);
     CHECK(report.return_pc == 0x1983u);
-    s.cpu.cs = 0x1026u; s.cpu.ip = 0x03FCu;
-    CHECK(unchanged(&s, PR_SLOT_A_STRING_0425_BLOCKED_DELETE) == 0);
-    CHECK(pr_slot_a_string_0425_step(&s, &report) == PR_SLOT_A_STRING_0425_BLOCKED_DELETE);
-    CHECK(report.dependency_valid && !report.caller_is_overlay);
-    CHECK(report.call_pc == 0x03FCu && report.callee_pc == 0x0CBCu);
+    s.cpu.cs = 0x1026u; s.cpu.ip = 0x03FCu; s.cpu.sp = 0x100u;
+    CHECK(pr_slot_a_string_0425_step(&s, &report) == PR_SLOT_A_STRING_0425_STEPPED);
+    CHECK(s.cpu.cs == 0x131Cu && s.cpu.ip == 0x0CBCu && s.cpu.sp == 0xFCu);
+    CHECK(ram[0xFCu] == 1u && ram[0xFDu] == 4u && ram[0xFEu] == 0x26u && ram[0xFFu] == 0x10u);
+    CHECK(!report.dependency_valid);
+    s.cpu.cs = 0x1026u;
     s.cpu.ip = 0x0427u;
     CHECK(unchanged(&s, PR_SLOT_A_STRING_0425_BLOCKED_PC) == 0);
     CHECK(pr_slot_a_string_0425_step(&s, &report) == PR_SLOT_A_STRING_0425_BLOCKED_PC);

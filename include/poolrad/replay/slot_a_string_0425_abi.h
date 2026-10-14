@@ -17,8 +17,9 @@ typedef pr_slot_a_string_0356_report pr_slot_a_string_0425_report;
 /* One original instruction on 2A8E:196F -> 1026:0425 -> 2A8E:1974,
  * including nested +0356 and SYSTEM helpers. REP is one atomic host step.
  * +1974 blocks before the caller continuation prefix; its report names the
- * following +197E -> SYSTEM 0B25 call, return +1983. Delete still blocks
- * before its frame push. Every blocked outcome preserves CPU and RAM.
+ * following +197E -> SYSTEM 0B25 call, return +1983. Nested Delete uses
+ * the complete CBC/B57/B98/B25 composition from the 0356 adapter.
+ * Every blocked outcome preserves CPU and RAM.
  * Actual audited live CPU/RAM and original/loaded code identity are required.
  * State/report must not alias each other or RAM. Spans must fit one 64 KiB
  * segment and ram_size <= 1 MiB. Incoming DF is cleared by reached CLD;

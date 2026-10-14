@@ -15,7 +15,9 @@ static int unchanged(pr_slot_a_directory_state *s,
     pr_slot_a_directory_cpu before = s->cpu;
     pr_slot_a_string_0356_report report;
     memcpy(before_ram, ram, sizeof ram);
-    CHECK(pr_slot_a_string_0356_step(s, &report) == status);
+    CHECK((status == PR_SLOT_A_STRING_0356_BLOCKED_DELETE
+        ? pr_slot_a_string_0356_prefix_step(s, &report)
+        : pr_slot_a_string_0356_step(s, &report)) == status);
     CHECK(memcmp(&s->cpu, &before, sizeof before) == 0);
     CHECK(memcmp(ram, before_ram, sizeof ram) == 0);
     return 0;
@@ -35,7 +37,7 @@ int main(void)
     CHECK(report.return_pc == 0x1974u);
     s.cpu.cs = 0x1026u; s.cpu.ip = 0x03FCu;
     CHECK(unchanged(&s, PR_SLOT_A_STRING_0356_BLOCKED_DELETE) == 0);
-    CHECK(pr_slot_a_string_0356_step(&s, &report) == PR_SLOT_A_STRING_0356_BLOCKED_DELETE);
+    CHECK(pr_slot_a_string_0356_prefix_step(&s, &report) == PR_SLOT_A_STRING_0356_BLOCKED_DELETE);
     CHECK(report.dependency_valid && !report.caller_is_overlay);
     CHECK(report.caller == 0x0802u && report.call_pc == 0x03FCu);
     CHECK(report.callee_segment == 0x0AF8u && report.callee_pc == 0x0CBCu);

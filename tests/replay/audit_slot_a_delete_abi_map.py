@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Map controlled native Delete ABI; the C Delete gate remains blocked."""
+"""Historical controlled Delete ABI map; the prefix-only C gate stays blocked."""
 import ctypes as ct
 from hashlib import sha256
 import json
@@ -180,6 +180,10 @@ def main():
     cpus,images=inputs(root)
     for image in images.values():code(root,image)
     lib=ct.CDLL(str(library))
+    # Preserve this ABI-only historical gate audit after the normal adapter
+    # gains a complete Delete body. Original evidence/doc remains immutable.
+    if hasattr(lib,'pr_slot_a_string_0356_prefix_step'):
+        lib.pr_slot_a_string_0356_step=lib.pr_slot_a_string_0356_prefix_step
     lib.pr_slot_a_string_0356_step.argtypes=[ct.POINTER(State),ct.POINTER(Report)]
     lib.pr_slot_a_string_0356_step.restype=ct.c_int
     checkpoints={'actual-Delete-gate':((0x1026,0x3FC,False),cpus['03fc'],images['03fc'])}
@@ -187,7 +191,7 @@ def main():
     blocked(lib,images['03fc'],cpus['03fc'])
     controlled_native(cpus,images)
     nonpositive(lib,cpus,images)
-    print('Delete ABI mapping complete; C Delete remains explicitly unsupported')
+    print('Historical Delete ABI map verified; prefix-only gate retained, normal composition audited separately')
 
 
 if __name__=='__main__':main()

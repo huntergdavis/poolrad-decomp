@@ -3,17 +3,24 @@
 import ctypes as ct
 from hashlib import sha256
 import json
+import math
+import os
 from pathlib import Path
 import re
 import sys
+import time
 import unicorn
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'tests/replay'))
 from audit_slot_a_string_0356_abi import CPU, State, Report, NAMES, REGS, cpu_values, compare_cpu
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_16
 RAM_SIZE = 655360
+CASE_TIMEOUT = float(os.environ.get('POOLRAD_0425_CASE_TIMEOUT', '300'))
 
 def differential(lib, label, image, values, expected_status, checkpoints=None):
+    started = time.monotonic()
+    deadline = started + CASE_TIMEOUT
+    print(f'{label}: starting; limit=200000 C instructions/{CASE_TIMEOUT:g}s', flush=True)
     memory = ct.create_string_buffer(image, len(image))
     cpu = CPU(**dict(zip(NAMES, values)))
     state = State(cpu, ct.cast(memory, ct.POINTER(ct.c_uint8)), len(image))
@@ -26,6 +33,9 @@ def differential(lib, label, image, values, expected_status, checkpoints=None):
     seen = set()
     for steps in range(200000):
         pc = (state.cpu.cs, state.cpu.ip)
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f'{label}: case deadline at C step {steps}, PC {pc[0]:04X}:{pc[1]:04X}; '
+                               f'native checkpoints={len(seen)}/{len(checkpoints or {})}')
         before_cpu, before_ram = cpu_values(state.cpu), memory.raw
         status = lib.pr_slot_a_string_0425_step(ct.byref(state), ct.byref(report))
         if status:
@@ -46,9 +56,13 @@ def differential(lib, label, image, values, expected_status, checkpoints=None):
                             0x0802, 0x03FC, 0x0AF8, 0x0CBC, 0x0401, 0)
             if checkpoints and seen != set(checkpoints):
                 raise AssertionError("not all native checkpoints were reached")
-            print(f"{label}: {steps} C instruction steps, CPU/full-RAM Unicorn differential passed; blocker={status}")
+            print(f"{label}: {steps} C instruction steps, CPU/full-RAM Unicorn differential passed; "
+                  f"blocker={status}; elapsed={time.monotonic()-started:.1f}s", flush=True)
             return steps, len(seen)
         for repetition in range(65537):
+            if repetition % 256 == 0 and time.monotonic() >= deadline:
+                raise TimeoutError(f'{label}: REP deadline at C step {steps}, '
+                                   f'PC {pc[0]:04X}:{pc[1]:04X}, iteration {repetition}')
             uc.emu_start((uc.reg_read(REGS[0]) << 4) + uc.reg_read(REGS[1]),
                          0x100000, count=1)
             if (uc.reg_read(REGS[0]), uc.reg_read(REGS[1])) != pc:
@@ -67,6 +81,10 @@ def differential(lib, label, image, values, expected_status, checkpoints=None):
                     if memory.raw != expected_ram:
                         raise AssertionError(checkpoint + ": native full RAM differs")
                     seen.add(checkpoint)
+        if steps and steps % 1000 == 0:
+            print(f'{label}: C step {steps}, PC {state.cpu.cs:04X}:{state.cpu.ip:04X}; '
+                  f'native checkpoints={len(seen)}/{len(checkpoints or {})}; '
+                  f'elapsed={time.monotonic()-started:.1f}s', flush=True)
     raise AssertionError("C instruction bound exhausted")
 
 
@@ -148,6 +166,8 @@ def main():
         raise SystemExit('usage: audit_slot_a_string_0425_abi.py SHARED_C_LIBRARY IGNORED_NATIVE_ROOT')
     if unicorn.__version__ != '2.1.4' or not __debug__:
         raise SystemExit('requires Unicorn 2.1.4 and non-optimized Python assertions')
+    if not math.isfinite(CASE_TIMEOUT) or CASE_TIMEOUT <= 0:
+        raise SystemExit('POOLRAD_0425_CASE_TIMEOUT must be finite and positive')
     library, root = (Path(arg).resolve(strict=True) for arg in sys.argv[1:])
     private = (ROOT / 'resources').resolve()
     if not library.is_relative_to(private) or not root.is_relative_to(private):
@@ -168,8 +188,8 @@ def main():
         ('prefix-truncation', b'abcdefghijklmno', False, False, 1),
         ('source-output-alias', b'abcdefghijk', True, False, 1),
         ('table-miss-binary', b'\x00\x80\xffABC', False, False, 1),
-        ('delete-boundary', b'\xe0ABC', False, False, 2),
-        ('live-table-local-alias', b'ABCDEFGH', False, True, 2),
+        ('composed-delete', b'\xe0ABC', False, False, 1),
+        ('live-table-local-alias', b'ABCDEFGH', False, True, 1),
     ):
         image = bytearray(images['196f'])
         values = cpus['196f'].copy()
@@ -187,7 +207,7 @@ def main():
         image[table:table + 10] = bytes(range(0xE0, 0xEA))
         image[stack + 0x5000:stack + 0x5001 + len(source)] = bytes([len(source)]) + source
         differential(lib, 'synthetic-' + name, bytes(image), values, status)
-    print('0425 original-byte/native/Unicorn/C differential complete')
+    print('0425 original-byte/native/Unicorn/C differential complete: 8/8 cases, 0 pending', flush=True)
 
 
 if __name__ == '__main__':
