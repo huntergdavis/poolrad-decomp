@@ -117,7 +117,8 @@ def main() -> None:
 
     print("U3BD +07F9..+080A: caller 17 bytes/8 instructions hash locked")
     print("U3BD +031F..+0350: local leaf 49 bytes/18 instructions hash locked")
-    print("same-run native/C: 640 KiB RAM, 13 CPU fields and IP exact")
+    print("same-run native/C: 640 KiB RAM exact")
+    print("CPU tuple/IP match manually observed EV stops; no saved EV transcript")
     print("saved pre-branch ZF clear; +080A JNE not executed by this model")
 
 

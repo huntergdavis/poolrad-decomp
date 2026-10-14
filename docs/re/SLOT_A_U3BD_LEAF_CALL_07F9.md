@@ -50,7 +50,9 @@ All media, RAM and screenshots remain ignored under `resources/`.
 | Leaf entry `+031F` | `e76369ece75277656911157e71f8789566f5ed29f0d598c50fe3bc3efb236ef8` | `0004 004D 3EB6 3E96 7202` |
 | Pre-branch `+080A` | `94656b315a93486dff325d530db006586b3e89b1c2fbc3b2d0903dc2c7d76e9e` | `0001 004D 3EB6 3E9E 7202` |
 
-At every stop, the other fields are `BX=0 CX=4 DX=000D SI=3E68
+The CPU values in the table were read manually from debugger `EV` output;
+the private run does not retain a machine-readable EV transcript. At every
+stop, the other manually observed fields are `BX=0 CX=4 DX=000D SI=3E68
 DS=14A0 ES=3DA1 SS=1D16 CS=2D14`. The reached leaf-entry stack holds
 x=`000D`, y=`0004`, `CS=2D14`, and return IP=`0808`. The caller changes
 five physical bytes at `0x20FF6..0x20FF9` and `0x21002`; the leaf changes
@@ -61,8 +63,10 @@ would be taken for this saved input. Its execution is outside this slice.
 `tools/replay/u3bd_leaf_call_07f9_audit.py` hash-locks the original and
 loaded spans and all three private RAM captures. It checks the reached
 leaf frame, then runs the C model from the first capture and compares all
-640 KiB RAM, 13 CPU fields, and IP against the pre-branch capture. The
-saved-route comparison is exact. The `OR` instruction leaves AF undefined
+640 KiB RAM against the pre-branch capture. The audit also compares the C
+CPU fields and IP with constants transcribed from the manually observed EV
+stops; that CPU comparison is not independently machine-verifiable from the
+retained native evidence. The RAM comparison is exact. The `OR` instruction leaves AF undefined
 on x86; the C model retains the host-provided AF bit for other synthetic
 inputs and tests only defined flags there.
 
