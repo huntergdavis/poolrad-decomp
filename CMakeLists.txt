@@ -408,6 +408,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u40c_tile_plane_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u40c_tile_plane_tests
              COMMAND poolrad_overlay_u40c_tile_plane_tests)
+    add_executable(poolrad_slot_a_view4_tile04_tests
+                   tests/replay/test_slot_a_view4_tile04.c)
+    target_link_libraries(poolrad_slot_a_view4_tile04_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_slot_a_view4_tile04_tests
+             COMMAND poolrad_slot_a_view4_tile04_tests)
     add_executable(poolrad_overlay_u40c_group3_tile_plane_tests
                    tests/recovered/test_overlay_u40c_group3_tile_plane.c)
     target_link_libraries(poolrad_overlay_u40c_group3_tile_plane_tests
