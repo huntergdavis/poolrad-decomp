@@ -284,7 +284,23 @@ def audit_coverage(exe, ovr):
                               system_candidate_decoded_bytes=len(runtime_bytes),
                               shared_candidate_and_system_bytes=len(decoded_bytes & runtime_bytes),
                               bins=bins),
-                rows=rows)
+                rows=rows,
+                # Expose the already-audited SYSTEM closure as addresses only.
+                # These starts are not new game identities; aliases are joined
+                # by loaded image address by function_queue.py.
+                runtime_rows=[dict(
+                    id=(f"SYS_0AF8_{start - 0xAF80:04X}" if start in runtime_called
+                        else f"SYSNEAR_{start:05X}"),
+                    image_offset=start,
+                    boundary="decoded_system_closure_seed",
+                    overlay_far_sites=sum(item["call_sites"] for item in runtime_inventory["runtime_targets"]
+                                          if 16 * item["segment"] + item["offset"] == start),
+                    loader_far_sites=sum(16 * word(image, site + 3) +
+                                         word(image, site + 1) == start for site in far_sites),
+                    decoded_near_sites=len(runtime_walk["near"].get(start, ())),
+                    init_fallthrough=int(start == 0xAF80),
+                    classification="linked_runtime_evidenced")
+                    for start in sorted(runtime_seeds)])
 
 
 FIELDS = ("id", "kind", "image_offset", "source_file_offset", "boundary",
