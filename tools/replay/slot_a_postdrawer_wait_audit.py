@@ -103,12 +103,12 @@ def audit(args: argparse.Namespace) -> None:
         if actual != expected:
             raise ValueError(f"{name} saved-slot frame or no-key branch input changed: {actual}")
 
-    print("native stops: 2116:048E -> 0566 -> 056B AL=0 -> 06CF -> 048E -> 0566")
+    print("operator-labelled RAM/page snapshots: 2116:048E, 2116:0566, later 2116:0566")
     print("EGA page: three 32000-byte snapshots equal; changed=0")
-    print("RAM: first interval identical; full no-key loop changes 10 stack bytes")
+    print("RAM: first interval identical; two wait snapshots differ at 10 stack bytes")
     print("original/loaded code: far-call segment relocations +0824 only")
     print("page SHA-256", PAGE_SHA)
-    print("no C page model or key-dispatch parity is claimed")
+    print("no pinned CPU route, C page model, or key-dispatch parity is claimed")
 
 
 def main() -> None:

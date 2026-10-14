@@ -1,12 +1,13 @@
 # Saved slot-A UI: post-drawer no-key wait page
 
-This bounded native trace follows the saved-slot prompt drawer return at
-`2116:048E` through the first wait at `2116:0566`, one zero-result key poll,
-and the next wait at `2116:0566`. The full four-plane EGA page is unchanged at
-all three stops: **32,000/32,000 bytes equal**. The reached no-key path has no
-value-changing page writer. This is a measured waiting interval, not a claim
-about the subsequent key route, a complete UI frame, or a C game-function
-count. A page-effect C model is deferred until a changed page is measured.
+This bounded native trace captures the saved-slot prompt drawer return at
+`2116:048E`, the first wait at `2116:0566`, and a later wait at `2116:0566`.
+The full four-plane EGA page is unchanged at all three stops:
+**32,000/32,000 bytes equal**. The audit pins the RAM and page images, but no
+same-run CPU transcript was retained to prove every intervening branch or
+exclude transient stores. This is a measured waiting-page interval, not a
+complete UI frame, key route, or C game-function count. A page-effect C model
+is deferred until a changed page is measured.
 
 Before analysis, `deja "Poolrad slot A 2116:048E prompt drawer return to
 2116:0566 waiting input first EGA page write cursor blink"` returned no
@@ -38,10 +39,11 @@ The live far pointer `[DS:49D2]` was `3996:0000`; its window-0 word `+03FE`
 was 3. Party `(DS:6AAD..6AAF)` was `(15,4,6)`, window-0 time words
 `+018E/+0190/+0192` were `(0,5,10)`, and map byte `DS:84DC` was 20.
 `DS:6ABF`, `DS:6ABE`, words `DS:6B2E` and `DS:6B30`, and local
-`SS:[BP-63]` were zero at the captured stops. The resident poll returned
-`AL=0` at `2116:056B`; the `+06CF` stop showed local `-63=0` and the
-`+06D5` jump back to `+048E`. Across that complete loop, only ten stack RAM
-bytes at physical `0x20F5E..0x20F67` differed.
+`SS:[BP-63]` were zero at the captured stops. Between the two wait captures,
+only ten stack RAM bytes at physical `0x20F5E..0x20F67` differed. The
+debugger displayed a zero-result poll at `+056B` and the local-zero branch
+at `+06CF`, but those CPU rows were not saved in a hash-pinned transcript;
+the audit does not assert that route.
 
 | Original bounded span | Length | SHA-256 | Loaded-byte check |
 | --- | ---: | --- | --- |
@@ -50,15 +52,15 @@ bytes at physical `0x20F5E..0x20F67` differed.
 | GAME.OVR unit `0x3B0:+06CF..+06D7` | 9 | `c24571c84c5a3cb61e27a19efc23ad8695b66634c428cae065cb3bad1a954916` | Exact loaded match |
 | START.EXE resident `0x0A40:+02FD..+030E`, file `0xA3F6..0xA407` | 18 | `83af1ee6b1d5cebb5dee97b742228b8a4fb3cbb12ade84b39e5ce82275e7fc5e` | Exact loaded match at `1264:02FD` |
 
-The reached path from `+048E` takes the nonzero window test to `+04A3`;
-`DS:6ABF=0` jumps to `+0530`; zero `DS:6B30/6B2E` branches to `+0566`.
-Those instructions contain no call or EGA store. The 18-byte resident poll
-checks its flag, calls BIOS keyboard status (`INT 16h`, `AH=1`), returns
-`AL=0`, and does not store to EGA memory. The caller's zero-result branch
-goes `+056B` → `+056F` → `+06CF` → `+06D5` → `+048E`. The nonzero key path
-from `+0572` is outside this trace and belongs to the key-route lane.
-Equal page snapshots alone would not rule out transient writes; the reached
-branch and poll bytes bound this specific no-key route.
+Given the captured window and DS values, the original bytes from `+048E`
+select `+04A3` → `+0530` → `+0566`; those instructions contain no call or
+EGA store. The 18-byte resident poll checks its flag, calls BIOS keyboard
+status (`INT 16h`, `AH=1`) when required, and returns `AL=0` or 1 without
+an EGA store. **If** it returns zero and local `-63` is zero, the caller
+selects `+056B` → `+056F` → `+06CF` → `+06D5` → `+048E`. This is a
+conditional original-byte route, not an audit-verified same-run CPU route.
+The nonzero key path from `+0572` belongs to the key-route lane. Equal page
+snapshots alone do not rule out transient or same-value stores.
 
 Reproduce the private audit with the ignored hash-pinned inputs:
 
@@ -78,8 +80,9 @@ chooser, arm `BP 3582:3387` and select A. At that stop, arm
 `MEMDUMPBIN 0000 0000 A0000`; select EGA read maps using `OUTP 3CE 04` and
 `OUTP 3CF 00` through `03`, then dump each plane with
 `MEMDUMPBIN A000 0000 1F40`. Restore read map 0 and selector 5 before
-resuming. At the first `+0566`, also stop at `+056B` and `+06CF` to verify
-the zero-result branch; then continue to the second `+0566`. Screenshots,
+resuming. To promote the conditional route to same-run proof, record and
+hash CPU rows at `+056B` and `+06CF` as well; then continue to the second
+`+0566`. Screenshots,
 save, media, RAM, EGA pages, and emulator output remain under ignored
 `resources/`.
 
