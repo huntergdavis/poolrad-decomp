@@ -8,8 +8,10 @@ from the 16-tile `+0x0211` view-four placement and has the audited
 The first later tile call, `(x,y,item)=(12,5,1)`, leaves that object
 unchanged. The second, `(12,6,40)`, is the first **observed
 value-changing completed tile call**: resident `0464:+0x0C6A` writes 16
-changed object bytes over rows 48..55. All 16 remain changed at the
-subsequent display-flush entry. The merged group-zero tile-plane C model
+changed object bytes over rows 48..55. At the subsequent display-flush
+entry, all 16 positions still differ from the pre-call object, but later
+writes have replaced eight of the item-40 values. The merged group-zero
+tile-plane C model
 matches this call's complete immediate native post-object,
 **14,135/14,135 bytes**. The other 599 net offscreen-byte changes before
 the flush remain outside this audit.
@@ -44,7 +46,8 @@ The private heavy DOSBox-X SHA-256 is
 | Resident masked-store path | `START.EXE [0x52BE,0x52E7)`, `0464:+0x0C45..+0x0C6E` | 41 bytes / 15 aligned instructions | `c3c456d06b70229f099a78f57ba95eec544c486c32cd0e04b9d13c78627a3c86` |
 | Exact store instruction | `START.EXE [0x52E3,0x52E7)`, `0464:+0x0C6A..+0x0C6E` | 4 bytes | `f1798d82c73cbb1d10f18e8d3d5f89265a778c5e2ea9cdfaca48e0dd4d68ec90` |
 
-At the verified third `2D14:0AD8` stop, the offscreen far pointer
+At the verified third `2D14:0AD8` placement-return stop, the offscreen
+far pointer
 `DS:[4A20]` resolves to `3DE4:0008` (physical `0x3DE48`). Continuing
 to the next `2D14:02FB` entry gives flag words 1/1, item 1, y 5, x 12
 at `SS:3E78..3E80`; its immediate `+0x0300` return changes zero
@@ -93,10 +96,21 @@ first data offset 4080, first changed offset 4082, 32 byte stores and
 16 changed bytes, exactly matching the complete native post-call object.
 It did not copy any expected post-call bytes into the C destination.
 
+The private file `ram-third-0ad8.bin` in the writer-order run has object
+SHA-256 `d6652ff7e295001957eff907a855f7629dca6ba5579aa8634bafd44667d5e806`;
+its filename alone does not identify the completed placement return. The
+verified return capture is `ram-current-return.bin`, object SHA-256
+`8664637ddd0016f3ef9978c4694f87ecbb7fb325ab147475f936c410ce9c6e8d`,
+which matches the first later tile pre-state and the independent placement
+audit. The branch and byte counts below use that verified return capture.
+
 At the same run's `0C88:1B52` flush entry, the object SHA-256 is
 `489572698be6487b4d9c88b470f62b530e0bd98539c99b75444a76b3639b14e1`,
 identical to the prior run. Compared with the third `+0x0AD8` object,
-615 bytes differ; **all 16** changed by item 40 persist among them.
+615 bytes differ. All 16 item-40 changed positions still differ from their
+pre-call values, but only eight retain the exact item-40 byte value; the
+other eight have a third value at flush. Comparing the item-40 post-object
+directly with the flush object gives 607 different positions.
 The remaining 599 net changes need further caller sequencing. The
 public synthetic test uses the two observed call tuples, a persistent
 artificial object, a high-index host bounds rejection, and a 16-byte
