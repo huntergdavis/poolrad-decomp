@@ -1163,4 +1163,16 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_slot_a_row9_three_call_composition_tests
              COMMAND poolrad_slot_a_row9_three_call_composition_tests)
+    add_executable(poolrad_slot_a_after_row9_full_page_tests
+                   tests/replay/test_slot_a_after_row9_full_page.c)
+    target_link_libraries(poolrad_slot_a_after_row9_full_page_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_after_row9_full_page_tests
+             COMMAND poolrad_slot_a_after_row9_full_page_tests)
+    add_executable(poolrad_slot_a_full_ega_printer_page_probe
+                   tools/replay/slot_a_printer_page_probe.c)
+    target_compile_definitions(poolrad_slot_a_full_ega_printer_page_probe
+                               PRIVATE PR_PAGE_BASE=0 PR_PAGE_BYTES=8000)
+    target_link_libraries(poolrad_slot_a_full_ega_printer_page_probe PRIVATE
+                          poolrad_recovered)
 endif()
