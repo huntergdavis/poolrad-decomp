@@ -21,7 +21,7 @@ pr_slot_a_second_zero_row_status pr_slot_a_second_zero_row_apply(
             return PR_SLOT_A_SECOND_ZERO_ROW_ARGUMENT;
         }
     }
-    if (row < 5u || row > 9u || left != 17u || right != 38u ||
+    if (row < 4u || row > 9u || left != 17u || right != 38u ||
         color != 0u) {
         return PR_SLOT_A_SECOND_ZERO_ROW_BOUNDARY;
     }

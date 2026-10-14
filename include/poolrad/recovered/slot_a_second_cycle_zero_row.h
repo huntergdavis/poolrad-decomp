@@ -15,8 +15,9 @@ typedef struct {
     size_t changed_plane_bytes;
 } pr_slot_a_second_zero_row_report;
 
-/* Bounded EGA page effect of the five reached second-cycle row clears.
- * Only color 0, rows 5..9, and inclusive columns 17..38 are supported.
+/* Bounded EGA page effect of the inter-cycle row-four reset and the five
+ * reached second-cycle row clears. Only color 0, rows 4..9, and inclusive
+ * columns 17..38 are supported.
  * page[p][0] is video byte page_base; each plane has page_bytes. This models
  * the page result of the observed RES_03F1:0137 -> RES_0709:00B7 route,
  * not the complete rectangle routine or transient hardware state. */

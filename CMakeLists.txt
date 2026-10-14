@@ -1217,4 +1217,8 @@ if(BUILD_TESTING)
                    tools/replay/slot_a_second_cycle_compose_probe.c)
     target_link_libraries(poolrad_slot_a_second_cycle_compose_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_two_cycle_reset_compose_probe
+                   tools/replay/slot_a_two_cycle_reset_compose_probe.c)
+    target_link_libraries(poolrad_slot_a_two_cycle_reset_compose_probe PRIVATE
+                          poolrad_recovered)
 endif()
