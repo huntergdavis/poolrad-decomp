@@ -78,6 +78,12 @@ joins and the placement return agree byte for byte.
 
 The placement-return object SHA-256 is
 `8664637ddd0016f3ef9978c4694f87ecbb7fb325ab147475f936c410ce9c6e8d`.
+In ignored run `slot-a-view4-writer-order-p5-002`, this post-sixteenth
+`+0AD8` baseline is `ram-next-0ad8.bin` (also present in
+`ram-after16-next-stop.bin` and `ram-after16-first-tile-pre.bin`);
+the older `ram-third-0ad8.bin` has object SHA-256
+`d6652ff7e295001957eff907a855f7629dca6ba5579aa8634bafd44667d5e806`
+and is not this baseline.
 The same run's flush-entry object SHA-256 is
 `489572698be6487b4d9c88b470f62b530e0bd98539c99b75444a76b3639b14e1`.
 The private 640 KiB RAM captures at those stops have SHA-256
