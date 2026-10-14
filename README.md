@@ -22,3 +22,8 @@ a later project.
 The PM's [DOS oracle setup](docs/oracle/README.md) prepares isolated local
 runs for behavior comparisons. It keeps every original file and capture under
 ignored `resources/`.
+
+The [local evidence dashboard](tools/dashboard/README.md) shows the function
+triage queue, commit-bound build results, and scoped DOS/C comparisons. Its
+review tags and generated reports stay local; identity evidence is kept
+separate from strict full-C credit.
