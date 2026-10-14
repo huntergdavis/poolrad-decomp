@@ -56,11 +56,11 @@ def aliases_for(queue):
 def plan_change(queue, credits, identities, approval):
     require(approval.get("status") == "approved" and approval.get("approved_by") == "PM",
             "an explicit PM approval record is required")
-    require(isinstance(approval.get("review_pr"), int) and approval["review_pr"] > 0
+    require(type(approval.get("review_pr")) is int and approval["review_pr"] > 0
             and re.fullmatch(r"[0-9a-f]{40}", approval.get("reviewed_commit", "")),
             "approval requires exact reviewed merge commit and PR")
     require(re.fullmatch(r"[0-9a-f]{64}", approval.get("body_sha256", ""))
-            and isinstance(approval.get("body_bytes"), int) and approval["body_bytes"] > 0,
+            and type(approval.get("body_bytes")) is int and approval["body_bytes"] > 0,
             "approval requires bounded original-body hash")
     require(all(isinstance(approval.get(key), bool) for key in ("game_identity", "strict_full_c")),
             "approval must state identity and strict-C decisions separately")

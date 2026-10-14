@@ -1,5 +1,10 @@
 # Function alias audit and shortest callable leaf leads
 
+This report preserves the PR #382 historical **66 strict / 128 verified**
+snapshot. Current counts and the default audit gate come from the
+[reviewed accounting checkpoint](function_accounting_checkpoint.json);
+see [the refresh workflow](FUNCTION_ACCOUNTING_REFRESH.md).
+
 This bounded follow-up consumes the 898-start queue produced by
 [PR #377](https://github.com/huntergdavis/poolrad-decomp/pull/377), producer
 commit `b30847c2b549ae8b251c979a2ccbd92aeffdc9f3`, with queue SHA-256

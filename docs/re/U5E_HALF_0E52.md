@@ -130,5 +130,8 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
 | `verdict` | `match` for defined routine behavior under the documented RAM/CPU contract |
 | `review_notes` | AF is undefined and differs between emulators; saved-game reachability unmeasured; prior +0x2879 translation excluded |
 
-Function accounting and strict credit remain the PM's review decision;
-this change edits no classifier or count ledger.
+After independent parity review and PR #383 merge
+`fb342dbef3b38fcd33c88e907f0c2dda69316948`, the PM approved exactly one new
+verified identity and one strict full-C original for `+0x0E52` (inbox i2920).
+The separate [accounting refresh](FUNCTION_ACCOUNTING_REFRESH.md) updates the
+classifier and credit manifest. Saved-game reachability remains unmeasured.

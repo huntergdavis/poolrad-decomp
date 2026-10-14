@@ -68,7 +68,8 @@ class AccountingRefreshTest(unittest.TestCase):
 
     def test_missing_approval_bad_head_and_nonboolean_decisions_fail(self):
         for changes in (dict(status="pending"), dict(approved_by="worker"),
-                        dict(reviewed_commit="not-exact"), dict(strict_full_c="yes"), dict(body_sha256="bad")):
+                        dict(reviewed_commit="not-exact"), dict(strict_full_c="yes"), dict(body_sha256="bad"),
+                        dict(review_pr=True), dict(body_bytes=True)):
             before, credits, approval = fixture()
             approval.update(changes)
             with self.subTest(changes=changes), self.assertRaises(ValueError):

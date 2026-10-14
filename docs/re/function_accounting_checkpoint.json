@@ -1,44 +1,44 @@
 {
   "artifacts_sha256": {
-    "classification": "68ab2583d71a04b95096855facfa69dee8131170533b2ffbb513134dbb672aac",
-    "full_c_map": "b7a7cde005585f0d0fe626bd9984bcf1f30979bd6eae83a2e516adc0cf60ac75",
+    "classification": "45247828236539533b8299b5475c37a2d3b2af41062f6a03bc987894242c3353",
+    "full_c_map": "150924dcd605f72a5a1a8e3b0939ec5a83a437751e47011f7a9813902f9d01c9",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "d8bf2dd95cc003c13419a65ba8cedbdc9289390a1f17694e1989e7b412c86dfc"
+    "reviewed_identities": "f96e46b0941fd367aecbdae393729feb14b591fd7000d11cf837adf5a27ee904"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "b5673dd1b8fb6c2b200e28113636cfbe403ac3c3210e16e5337b80f47076012e",
+  "queue_sha256": "abc917b6a5aa3d66b6c1091ced37e6765f7e820baef665a66b6e39969016edb7",
   "reviewed_change": {
-    "approval_reference": "inbox:i2886",
+    "approval_reference": "inbox:i2920",
     "approved_by": "PM",
-    "body_bytes": 102,
-    "body_sha256": "b307e1dd310b369eeb068ef1e0fd7b84667e59382144bec02e5295b974c3fcb9",
-    "evidence_doc": "docs/re/U25_PARTY_INDEX_0756.md",
+    "body_bytes": 41,
+    "body_sha256": "c99969f9b7b28b6bdd15297e8b711a8491b605df8055135eb114b6215dfc82a2",
+    "evidence_doc": "docs/re/U5E_HALF_0E52.md",
     "game_identity": true,
-    "native_reachability": "Controlled script edit 0x6DCA to 0x6DB1 at PC 0x9B40 after second Up; natural unedited reachability unmeasured",
-    "original_id": "OVL_0025_0756",
-    "review_pr": 380,
-    "reviewed_commit": "bb77539ed4444ad2bd430ce3ed88d8322902a328",
+    "native_reachability": "Native parity uses a controlled synthetic harness; natural gameplay reachability remains unmeasured",
+    "original_id": "OVL_005E_0E52",
+    "review_pr": 383,
+    "reviewed_commit": "fb342dbef3b38fcd33c88e907f0c2dda69316948",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 58,
+    "overlay": 59,
     "resident": 9
   },
-  "strict_full_c_originals": 67,
-  "unknown_ownership": 680,
+  "strict_full_c_originals": 68,
+  "unknown_ownership": 679,
   "verified_game_by_domain": {
-    "overlay": 119,
+    "overlay": 120,
     "resident": 10
   },
-  "verified_game_identities": 129,
+  "verified_game_identities": 130,
   "whole_game_denominator": "unknown"
 }
