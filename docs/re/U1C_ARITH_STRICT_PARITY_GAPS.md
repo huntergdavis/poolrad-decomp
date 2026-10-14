@@ -10,6 +10,8 @@
 > [controlled native load/DIVIDE/store trace](U25_LOAD_HOOK_6B18_NATIVE_RECORD.md).
 > Its zero-divisor variant now has a
 > [measured INT 0 and DOS exit trace](U25_LOAD_HOOK_6B18_ZERO_DIVIDE_NATIVE_FAULT.md).
+> A controlled class-1 destination at `0x6B20` now has a
+> [measured native window-then-record store trace](U25_STORE_HOOK_6B20_NATIVE_RECORD.md).
 > These traces leave the other dependencies unresolved.
 
 The bounded `pr_u1c_op_arith` model follows the 145-byte handler's arithmetic and call order
