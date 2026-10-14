@@ -1041,4 +1041,11 @@ if(BUILD_TESTING)
                    tools/replay/slot_a_glyph_plane_probe.c)
     target_link_libraries(poolrad_slot_a_glyph_plane_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_caller_to_entry1_tests
+                   tests/replay/test_slot_a_caller_to_entry1.c
+                   src/replay/slot_a_caller_to_entry1.c)
+    target_include_directories(poolrad_slot_a_caller_to_entry1_tests PRIVATE
+                               ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME poolrad_slot_a_caller_to_entry1_tests
+             COMMAND poolrad_slot_a_caller_to_entry1_tests)
 endif()
