@@ -66,6 +66,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3bd_view4_wall.c
                                     src/recovered/overlay_u40c_tile_plane.c
                                     src/recovered/overlay_u40c_group3_tile_plane.c
+                                    src/recovered/resident_464_group3_dirty_metadata.c
                                     src/recovered/overlay_u3bd_field.c
                                     src/recovered/overlay_u25_move.c
                                     src/recovered/overlay_u7f_div5.c
@@ -413,6 +414,16 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u40c_group3_tile_plane_tests
              COMMAND poolrad_overlay_u40c_group3_tile_plane_tests)
+    add_executable(poolrad_resident_464_group3_dirty_metadata_tests
+                   tests/recovered/test_resident_464_group3_dirty_metadata.c)
+    target_link_libraries(poolrad_resident_464_group3_dirty_metadata_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_464_group3_dirty_metadata_tests
+             COMMAND poolrad_resident_464_group3_dirty_metadata_tests)
+    add_executable(poolrad_slot_a_u40c_group3_dirty_probe
+                   tools/replay/slot_a_u40c_group3_dirty_probe.c)
+    target_link_libraries(poolrad_slot_a_u40c_group3_dirty_probe
+                          PRIVATE poolrad_recovered)
     add_executable(poolrad_overlay_u3bd_field_tests
                    tests/recovered/test_overlay_u3bd_field.c)
     target_link_libraries(poolrad_overlay_u3bd_field_tests PRIVATE poolrad_recovered)
