@@ -1,7 +1,7 @@
 {
   "artifacts_sha256": {
     "classification": "435c440114b071f6b96f67509ad78bc1b49dc0fd86a9f8155a469cbce563d224",
-    "full_c_map": "b79fb1f5958b1d109a8ad296ffb5298379ceb21027faa4a9771cd485730724e4",
+    "full_c_map": "f6c039945ca50423638b1f581e6c9539e58b3a9efc1343a6e82d8b619f4c602b",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
@@ -13,27 +13,27 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "4f4800bfc5cfa73b343a84dd3befebbc6eb731d753f5f8ae7e9cb9ce09672287",
+  "queue_sha256": "f70f3694cdbb95c170323ec5908bd474a07d7c35b4ea99cfadf45686a65f8c94",
   "reviewed_change": {
-    "approval_reference": "PM review of PR #407 exact head 8b44db1565d30ee164c3dc466f64f36d1280e6e7",
+    "approval_reference": "PM parity review of PR #413 exact head 937ad5c17e6fbee478459af96d4eb504f036c489",
     "approved_by": "PM",
-    "body_bytes": 166,
-    "body_sha256": "949abe77fa2823648d99cd3b76412560837646604ed9526f5f575dd8d3118b14",
-    "evidence_doc": "docs/re/U6A_RECORD_REMAINING_025C.md",
-    "game_identity": true,
-    "native_reachability": "256 DOSBox-X native synthetic cases and 339 original-byte parity cases; natural saved-game call frame remains unmeasured",
-    "original_id": "OVL_006A_025C",
-    "review_pr": 407,
-    "reviewed_commit": "b1aff86ce8dc982f57bf6f79c8a6a84985b292c3",
+    "body_bytes": 327,
+    "body_sha256": "e8f999e62ee3f04b194908f90ce7c0e15b0478a2af16a3843a1a076c86c67ce5",
+    "evidence_doc": "docs/re/U25_LOAD_WORD_0E0C.md",
+    "game_identity": false,
+    "native_reachability": "4,077 independently repeated original-byte full-RAM/CPU cases and 56 synthetic DOSBox-X native cases; natural saved-game entry frame unmeasured",
+    "original_id": "OVL_0025_0E0C",
+    "review_pr": 413,
+    "reviewed_commit": "ed9f9d8f600864a057ad8419588825470d9282af",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 60,
+    "overlay": 61,
     "resident": 9
   },
-  "strict_full_c_originals": 69,
+  "strict_full_c_originals": 70,
   "unknown_ownership": 678,
   "verified_game_by_domain": {
     "overlay": 121,
