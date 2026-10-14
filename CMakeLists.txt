@@ -120,6 +120,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u1c_setup_monster_03b4.c
                                     src/recovered/overlay_u1c_approach_0817.c
                                     src/recovered/overlay_u1c_delay_271f.c
+                                    src/recovered/resident_a40_delay_029c.c
                                     src/recovered/overlay_u1c_horizontal_menu_10d1.c
                                     src/recovered/overlay_u1c_clearmonsters_125d.c
                                     src/recovered/overlay_u25_entry5_0411.c
@@ -721,6 +722,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u1c_delay_271f_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u1c_delay_271f_tests
              COMMAND poolrad_overlay_u1c_delay_271f_tests)
+    add_executable(poolrad_resident_a40_delay_029c_tests
+                   tests/recovered/test_resident_a40_delay_029c.c)
+    target_link_libraries(poolrad_resident_a40_delay_029c_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_a40_delay_029c_tests
+             COMMAND poolrad_resident_a40_delay_029c_tests)
     add_executable(poolrad_overlay_u1c_horizontal_menu_10d1_tests
                    tests/recovered/test_overlay_u1c_horizontal_menu_10d1.c)
     target_link_libraries(poolrad_overlay_u1c_horizontal_menu_10d1_tests PRIVATE poolrad_recovered)
