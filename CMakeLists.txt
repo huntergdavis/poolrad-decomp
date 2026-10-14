@@ -24,6 +24,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_bitmap_constructor.c
                                     src/recovered/resident_464_bitmask.c
                                     src/recovered/resident_464_bitmask_frame.c
+                                    src/recovered/resident_464_masked_byte_0c3d.c
                                     src/recovered/resident_464_reverse_1484.c
                                     src/recovered/resident_464_row56_transfer.c
                                     src/recovered/resident_464_dirty_transfer.c
@@ -985,6 +986,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_bitmask_frame_tests
              COMMAND poolrad_resident_464_bitmask_frame_tests)
+    add_executable(poolrad_resident_464_masked_byte_0c3d_tests
+                   tests/recovered/test_resident_464_masked_byte_0c3d.c)
+    target_link_libraries(poolrad_resident_464_masked_byte_0c3d_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_masked_byte_0c3d_tests
+             COMMAND poolrad_resident_464_masked_byte_0c3d_tests)
     add_executable(poolrad_resident_464_reverse_1484_tests
                    tests/recovered/test_resident_464_reverse_1484.c)
     target_link_libraries(poolrad_resident_464_reverse_1484_tests PRIVATE
