@@ -22,41 +22,36 @@ full-C routine credit. Candidate Pascal prologues are not a verified function
 inventory.
 
 <!-- FUNCTION_ACCOUNTING:BEGIN -->
-The independently reviewed checkpoint after PR #467 is **77 strict full-C game routines** (68 overlay, 9 resident) and **138 verified game identities** (128 overlay, 10 resident). Both whole-game denominators remain unknown. Counts and queue provenance are in [the generated accounting checkpoint](re/function_accounting_checkpoint.json).
+The independently reviewed checkpoint after PR #476 is **79 strict full-C game routines** (70 overlay, 9 resident) and **140 verified game identities** (130 overlay, 10 resident). Both whole-game denominators remain unknown. Counts and queue provenance are in [the generated accounting checkpoint](re/function_accounting_checkpoint.json).
 <!-- FUNCTION_ACCOUNTING:END -->
 
-The current portable-C static-view checker compares **128 of 64,000 pixels**
-with zero mismatches in that bounded region. The other 63,872 pixels are
-unknown. This is comparison scope, not screen-completion percentage or proof
-of a full frame. Refresh this measurement before a live card.
+The saved slot-A **first-view** C page matches the same-state native page in
+32,000/32,000 plane bytes; after measured AC/DAC palette conversion, the full
+320×200 C RGB frame matches the native screenshot in **64,000/64,000 pixels**
+([frame evidence](re/SLOT_A_RGB_FRAME_PALETTE.md)). The joined C route still
+stops at key dispatch for one Up, so a complete **post-input** C frame has
+not been measured.
 
-## Next visible milestone: one complete C slot-A frame
+## Next visible milestone: one complete post-Up C slot-A frame
 
 Show four concrete outputs and the PM's integration gate:
 
-1. **Art and geometry:** determine every first-view wall, door, and item
-   selection, placement, and constructed offscreen source object. Compare
-   the full native draw-call list and resulting offscreen object bytes with C.
-2. **Display transfer:** trace the reached path from offscreen objects to
-   actual display memory, then compare changed plane-byte addresses and
-   values with C. A matched first transfer does not prove the whole frame.
-3. **Text and UI:** recover the reached saved-view text callbacks, glyph
-   positions, and covered indexed pixels; compare with the native frame.
-4. **Palette and integration:** measure the native palette for that exact
-   slot-A state, join the three outputs, and compare all 64,000 indexed
-   pixels and their colors with a normalized DOS oracle. Only then show
-   matching DOS and C screenshots side by side.
+1. **Native post-Up oracle:** pin the owner save, one-Up input, resulting
+   coordinates, display planes, palette, and 320×200 RGB frame in one run.
+2. **C key route:** carry that input through the reached game dispatch and
+   movement state updates. The current joined C route explicitly returns
+   `BLOCKED_KEY_DISPATCH` before this point.
+3. **C post-input render:** compose art, text, and display transfer from the
+   resulting state, then compare all 32,000 plane bytes. The first-view C
+   page differs from native post-Up by 725 plane bytes and cannot be reused.
+4. **PM integration:** compare all 64,000 same-state RGB pixels and show DOS
+   and C screenshots side by side only when the entire route passes.
 
-The first three outputs can be researched independently if interfaces and
-files do not overlap. The fourth consumes all three and is owned by the PM.
-This is a four-part **work map**, not a request to staff four agents. Name
-actual active, held, and proposed workers from current PM evidence. The
-startup/title/credits/protection/music research is a separate experience
-track; it does not silently count as first-frame delivery.
-
-The next experience gates after the full frame are C save loading and one
-Up movement with DOS parity. The longer roadmap is full DOS decompilation,
-then Amiga graphics and C64 sound/music, then a Nintendo DS port.
+These are evidence gates, not implied staffing. Name actual active, held, and
+proposed workers from current PM evidence. Startup, title, protection, and
+music remain separate experience gates. After one Up is playable, extend the
+route to repeated movement and an encounter. The longer roadmap is full DOS
+decompilation, then Amiga graphics and C64 sound/music, then Nintendo DS.
 
 ## Capacity and evidence rules
 
@@ -95,10 +90,10 @@ short lines. Adapt every row to fresh evidence:
 * IDENTITIES:    <count> / unknown game total             *
 * PIXEL CHECK:   <covered>/<64000>; <mismatch>; scope only*
 **********************************************************
-* FOUR OUTPUTS TO FIRST COMPLETE C FRAME                  *
-* 1 ART/GEOMETRY: <owner, result, status>                 *
-* 2 DISPLAY TRANSFER: <owner, result, status>             *
-* 3 TEXT/UI: <owner, result, status>                      *
+* FOUR OUTPUTS TO POST-UP C FRAME                       *
+* 1 NATIVE ORACLE: <owner, result, status>                *
+* 2 C KEY ROUTE: <owner, result, status>                  *
+* 3 C RENDER: <owner, result, status>                     *
 * 4 PALETTE + INTEGRATION: <PM gate, status>              *
 * STAFFED NOW: <actual workers and separate tracks>      *
 **********************************************************

@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "c159e566af3ac48df94d7503d81813e2094fd3571875952e9c2fa3921aece3ee",
-    "full_c_map": "f20cf81e7a070c072d3852c27b2ae8f522438f34dcd558fcb399497d947f526c",
+    "classification": "67f19136fe8d7ec39729056116411c59cecdf9c6e2d2698373a5ec14efbc5785",
+    "full_c_map": "a21f954b3831c5cb72ffa76c3bb72c663c8650843625cf1b799fc5bcf785fa29",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "624b88cfee80fc2ae7d945d116f5279cbde74bb5ef644da1a0b16e812fd37aaa"
+    "reviewed_identities": "8a6c34a1192b0e47d97bdb386900bfbb01255163e38dc13adbe15af784433ef1"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "3cc31164a7c77e8baab9d41c3b2d6105e76414516201e4fc9ef0feb28ea5bec9",
+  "queue_sha256": "06b4e157cf3c3ca3eb742e98456c21d629b61e2502b03a705bedaaf84a15f9fd",
   "reviewed_change": {
-    "approval_reference": "PM exact-head PR #467 review on 2026-10-14: 747 full-RAM/14-CPU original-byte cases covering 556/556 sites, seven bounded DOSBox-X cases, 138 ordered fixup pointers and game-effect dispatch role via U36 allocator after U86",
+    "approval_reference": "PM exact-head PR #476 review on 2026-10-14: 258 returning full-RAM/all-CPU original-byte cases covering 69 sites/eight branch outcomes, 128 native carry-mask cases, aligned public entry-1 caller and party-chain role; two malformed nonreturn-budget cases excluded; saved-game reach unmeasured",
     "approved_by": "PM",
-    "body_bytes": 1799,
-    "body_sha256": "4a60eda9584cb62276f52b14e2ae7af2077857c521f3d5a835a344f2f50b2519",
-    "evidence_doc": "docs/re/U38_EFFECTS_INSTALL_31A2.md",
+    "body_bytes": 177,
+    "body_sha256": "8f39276ad357b6e05367ffc080afedc0df5a5cca2f3cbf54b3d96db18bea3dd9",
+    "evidence_doc": "docs/re/U7D_CARRY_02F2.md",
     "game_identity": true,
-    "original_id": "OVL_0038_31A2",
-    "review_pr": 467,
-    "reviewed_commit": "aca640cf5617d5625e59564b0ed95d807a3bf2a2",
+    "original_id": "OVL_007D_02F2",
+    "review_pr": 476,
+    "reviewed_commit": "62e1fb09c8500d6da1192824c737c2a65ba7d476",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 68,
+    "overlay": 70,
     "resident": 9
   },
-  "strict_full_c_originals": 77,
-  "unknown_ownership": 671,
+  "strict_full_c_originals": 79,
+  "unknown_ownership": 669,
   "verified_game_by_domain": {
-    "overlay": 128,
+    "overlay": 130,
     "resident": 10
   },
-  "verified_game_identities": 138,
+  "verified_game_identities": 140,
   "whole_game_denominator": "unknown"
 }
