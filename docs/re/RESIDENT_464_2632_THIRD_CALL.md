@@ -43,28 +43,31 @@ Original-byte control flow takes the positive-X, nonnegative-row route
 through `+28E0`, makes 22 runtime `Move` calls at `+29C6`, takes the
 outer-loop backedge at `+2A04` once, then returns through `+2A0A`.
 The original-byte return at `+01E9` is reached at instruction 1017 from
-the measured second return. Its **provisional** RAM SHA-256 is
+the measured second return. Its RAM SHA-256, subsequently confirmed by
+the direct native return, is
 `d5876edf3a5bab07f2bcf4531a6a0d804837a380dab89a6e3716e01da654f24b`;
 the original-byte CPU tuple, ordered `CS IP AX BX CX DX SI DI BP SP DS ES
 SS FLAGS`, is
 
 `2D14 01E9 0001 3E4E 0000 14A0 3E68 007A 3E98 3E98 14A0 3DE4 1D16 7246`.
 
-The provisional caller-pre to return change set has 88 bytes: 66 object,
+The caller-pre to return change set has 88 bytes: 66 object,
 12 dirty/extent metadata, and ten stack/frame, with none outside those
-regions. The two-row C composition matches that original-byte return
+regions. The two-row C composition matches that original-byte and direct return
 across full 640 KiB RAM and all 14 CPU fields, and matches the saved native
 entry RAM after the far-call push. The entry CPU comparison is against
 original-byte replay. Synthetic tests exercise both
 rows, the three selected mask bytes, metadata, return frame, and unsupported
 no-mutation paths.
 
-## Pending direct gate
+## Direct return gate
 
-A direct DOS debugger `+01E9` return RAM/CPU capture was requested from pD.
-The current result is **original-byte replay parity**, not a comparison
-against a directly captured native return. The optional replay accepts
-`--native-return` when that ignored image becomes available. No third-call
-PR or complete-function/count claim should use the direct-native label
-until that independent comparison passes. The parent caller instructions
-after `+01E9` are a separate follow-on.
+pD subsequently captured a direct same-run DOS debugger return at
+`2D14:+01E9`. Its private 640 KiB RAM SHA-256 is
+`d5876edf3a5bab07f2bcf4531a6a0d804837a380dab89a6e3716e01da654f24b`.
+The original-byte replay and C third-call return each differ from that
+direct image by zero bytes; the C entry observer reports one check and
+zero errors. All 14 C CPU fields match the direct CPU tuple above. This
+passes the bounded third-call return gate, but does not establish the
+complete resident routine or a strict/full-C count. The parent caller
+instructions after `+01E9` remain a separate follow-on.
