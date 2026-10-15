@@ -112,6 +112,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u33_byte_flags_08a4.c
                                     src/recovered/overlay_u86_procvars_3413.c
                                     src/recovered/overlay_u86_record_predicate_323d.c
+                                    src/recovered/overlay_u38_effects_install_31a2.c
                                     src/recovered/overlay_u77_stack_189d.c
                                     src/recovered/overlay_u68_up_preflight.c
                                     src/recovered/overlay_u77_spell_299c.c
@@ -609,6 +610,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u86_record_predicate_323d_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u86_record_predicate_323d_tests
              COMMAND poolrad_overlay_u86_record_predicate_323d_tests)
+    add_executable(poolrad_overlay_u38_effects_install_31a2_tests
+                   tests/recovered/test_overlay_u38_effects_install_31a2.c)
+    target_link_libraries(poolrad_overlay_u38_effects_install_31a2_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_effects_install_31a2_tests
+             COMMAND poolrad_overlay_u38_effects_install_31a2_tests)
     add_executable(poolrad_overlay_u86_procvars_3413_tests
                    tests/recovered/test_overlay_u86_procvars_3413.c)
     target_link_libraries(poolrad_overlay_u86_procvars_3413_tests PRIVATE poolrad_recovered)
