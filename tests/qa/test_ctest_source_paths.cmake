@@ -490,5 +490,55 @@ execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
 if(result EQUAL 0 OR NOT error MATCHES "unterminated CMake bracket comment")
     message(FATAL_ERROR "unterminated bracket comment not rejected:\n${output}${error}")
 endif()
+foreach(sources IN ITEMS "exists.c \"\"" "\"\" exists.c" "EXCLUDE_FROM_ALL \"\" exists.c" "\"\" exists.c \"\"")
+    file(WRITE "${fixture}/CMakeLists.txt"
+         "add_executable(empty_target ${sources})\nadd_test(NAME empty_source_test COMMAND empty_target)\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 1 source paths")
+        message(FATAL_ERROR "empty source contributed a path or hid its real source:\n${output}${error}")
+    endif()
+endforeach()
+foreach(sources IN ITEMS "\"\"" "\"\" \"\"" "EXCLUDE_FROM_ALL \"\" \"\"")
+    file(WRITE "${fixture}/CMakeLists.txt"
+         "add_executable(empty_target ${sources})\nadd_test(NAME empty_source_test COMMAND empty_target)\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(result EQUAL 0 OR NOT error MATCHES "empty_source_test: executable has no actual source paths")
+        message(FATAL_ERROR "empty-only source list was not rejected:\n${output}${error}")
+    endif()
+endforeach()
+file(WRITE "${fixture}/CMakeLists.txt" [=[
+add_executable(empty_target "" missing_after_empty.c)
+add_test(NAME empty_source_test COMMAND empty_target)
+]=])
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(result EQUAL 0 OR NOT error MATCHES "missing registered test source:.*missing_after_empty.c")
+    message(FATAL_ERROR "empty source masked a genuine missing source:\n${output}${error}")
+endif()
+# Earlier fixtures restored this option-named file. Remove only that owned
+# fixture file to prove the empty argument preserves positional source rules.
+file(REMOVE "${fixture}/EXCLUDE_FROM_ALL")
+file(WRITE "${fixture}/CMakeLists.txt" [=[
+add_executable(empty_target "" EXCLUDE_FROM_ALL exists.c)
+add_test(NAME empty_source_test COMMAND empty_target)
+]=])
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(result EQUAL 0 OR NOT error MATCHES "missing registered test source:.*EXCLUDE_FROM_ALL")
+    message(FATAL_ERROR "empty source incorrectly extended leading options:\n${output}${error}")
+endif()
+file(WRITE "${fixture}/EXCLUDE_FROM_ALL" "/* synthetic option-named source */\n")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 2 source paths")
+    message(FATAL_ERROR "restored option-named source lost count after empty entry:\n${output}${error}")
+endif()
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Exact command boundaries enforced; real duplicate/missing-source checks preserved")
