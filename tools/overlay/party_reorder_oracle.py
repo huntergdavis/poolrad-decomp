@@ -123,9 +123,9 @@ def differential(body, decoded, function, target):
     specifications += [(f"stack-{sp:04x}", nodes, 0, {"sp": sp})
                        for sp in (0, 1, 2, 3, 4, 5, 6, 7, 10, 11, 0xFFFD, 0xFFFE, 0xFFFF)]
     specifications += [
-        ("successor-local-head-alias", nodes, 0, {"ss": 0x1000, "sp": 0x5DA4}),
-        ("current-head-successor-active-alias", nodes, 0, {"ss": 0x1000, "sp": 0x5DA0}),
-        ("previous-head-current-active-alias", nodes, 0, {"ss": 0x1000, "sp": 0x5D9C}),
+        ("stack-global-alias-5da4", nodes, 0, {"ss": 0x1000, "sp": 0x5DA4}),
+        ("stack-global-alias-5da0", nodes, 0, {"ss": 0x1000, "sp": 0x5DA0}),
+        ("stack-global-alias-5d9c", nodes, 0, {"ss": 0x1000, "sp": 0x5D9C}),
         ("DS-SS-shared", nodes, 2, {"ss": 0x1000}),
         ("node-offset-wrap", [(0x4000, 0xFF00), (0x5000, 0xFF00)], 1, {}),
         ("A20-node", [(0xFFFF, 0x100), (0x5000, 0x100)], 1, {}),
