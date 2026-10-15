@@ -29,6 +29,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_reverse_1484.c
                                     src/recovered/resident_464_row56_transfer.c
                                     src/recovered/resident_464_dirty_transfer.c
+                                    src/recovered/slot_a_post_up_view_flush_page.c
                                     src/recovered/resident_464_2632_run014.c
                                     src/recovered/resident_464_nibble_007b.c
                                     src/recovered/resident_464_mode2.c
@@ -269,6 +270,10 @@ if(BUILD_TESTING)
     add_executable(poolrad_slot_a_ega_all_dirty_probe
                    tools/replay/slot_a_ega_all_dirty_probe.c)
     target_link_libraries(poolrad_slot_a_ega_all_dirty_probe PRIVATE
+                          poolrad_recovered)
+    add_executable(poolrad_slot_a_post_up_view_flush_page_probe
+                   tools/replay/slot_a_post_up_view_flush_page_probe.c)
+    target_link_libraries(poolrad_slot_a_post_up_view_flush_page_probe PRIVATE
                           poolrad_recovered)
     add_executable(poolrad_slot_a_ega_dirty_indexed_probe
                    tools/replay/slot_a_ega_dirty_indexed_probe.c)
@@ -1284,6 +1289,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_dirty_transfer_tests
              COMMAND poolrad_resident_464_dirty_transfer_tests)
+    add_executable(poolrad_slot_a_post_up_view_flush_page_tests
+                   tests/replay/test_slot_a_post_up_view_flush_page.c)
+    target_link_libraries(poolrad_slot_a_post_up_view_flush_page_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_post_up_view_flush_page_tests
+             COMMAND poolrad_slot_a_post_up_view_flush_page_tests)
     add_executable(poolrad_resident_464_2632_run014_tests
                    tests/recovered/test_resident_464_2632_run014.c)
     target_link_libraries(poolrad_resident_464_2632_run014_tests PRIVATE
