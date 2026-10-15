@@ -90,20 +90,24 @@ and return IP. Invalid inputs/entry IP leave RAM, CPU and pending unchanged.
 
 ## Measured parity and verification
 
-The initial sweep passed **659 original/C cases**; the targeted boundary
-pass passed **41 cases**, adding 22 new configurations. Their union is
-**681 case configurations** (700 executions): 673 unresolved-call stops
-and 8 changed-helper-return stops. Every 1 MiB RAM byte and all fourteen CPU
-words match, including unmasked FLAGS. The default audit now enumerates
-that same union.
+The former published head 58fac09 reported 681 configurations with 673
+callbacks and eight changed-return stops. Seven of those stops were false
+results of the shared C/Unicorn RETF wrap defect. The corrected default sweep
+passes **681 configurations**, with **680 unresolved-call stops and one
+alias-altered helper-return stop**. Every 1 MiB RAM byte and all fourteen CPU
+words match, including unmasked FLAGS. The earlier claim at divergent return
+offsets is superseded by [the native repair evidence](U6F_0482_RETF_NATIVE_WRAP.md).
 
 Cases cover all 256 literal lengths and descriptor indexes, 128 seeded
 register/data cases, live selector/local aliases, word/far-stack boundaries,
 shared code/data/stack segments, relocated helpers and A20 wrapping. The
 full sweep reached 32/32 caller starts and 47/47 helper starts, including
 both append-cap outcomes. No unresolved callee was executed. The oracle
-executes every closed RETF separately so an altered return into the prefix
-remains an explicit control stop.
+stops before every closed RETF. At helper SP FFFE/FFFF it applies the
+independently measured native two-word stack-pop rule; other offsets execute
+the original RETF separately. This disclosed hybrid oracle prevents the
+Unicorn CS-pop defect from validating the same C defect. Altered returns
+remain explicit control stops. Memory far operands retain contiguous reads.
 
 Callback arithmetic flags are defined by the append's DI arithmetic; string
 helpers clear DF. Logical AF on some early stops is architecturally undefined.
@@ -112,7 +116,8 @@ emulator observation, not a claim about undefined native hardware flags.
 
 The independent registered CTest checks complete normal callback registers,
 frame/string/selector effects, empty append, length-255 clamp, alias-altered
-BP/return and atomic invalid inputs. Strict warnings and ASan/UBSan pass
+BP/return, integrated FFFD/FFFE/FFFF helper returns, contiguous memory far
+arguments crossing FFFF, and atomic invalid inputs. Strict warnings and ASan/UBSan pass
 (sandbox leak detection disabled), as does focused CTest 1/1. The recovered
 library also compiles with strict warnings.
 

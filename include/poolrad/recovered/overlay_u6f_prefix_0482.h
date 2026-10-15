@@ -19,6 +19,8 @@ typedef enum {
  * Loaded caller call operands/literals must be in RAM. Entry IP is 0482.
  * Host CPU and pending-output storage must not overlap RAM or each other.
  * Closed calls: 0802:094A, SYSTEM 0B0B/0C3B/0B98, using loaded segment operands.
+ * Closed RETF reads IP/CS at separate 16-bit stack word offsets; individual
+ * words and loaded far-pointer operands remain physically contiguous.
  * CALLBACK stops BEFORE the unresolved far CALL at 04D8: no return words pushed,
  * no host callback invoked. CPU and RAM include all preceding effects; pending
  * gives the loaded target. Arguments remain on SS:SP. No continuation is run.

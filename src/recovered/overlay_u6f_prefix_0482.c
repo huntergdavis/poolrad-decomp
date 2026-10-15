@@ -47,7 +47,8 @@ static void pop_bp(const uint8_t *m,pr_u6f_0482_cpu *c) {
     c->bp=rw(m,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
 }
 static void retf(const uint8_t *m,pr_u6f_0482_cpu *c,uint16_t n) {
-    uint16_t ip,cs;far_read(m,c->ss,c->sp,&ip,&cs);
+    uint16_t ip=rw(m,c->ss,c->sp);
+    uint16_t cs=rw(m,c->ss,(uint16_t)(c->sp+2u));
     c->sp=(uint16_t)(c->sp+4u+n);c->ip=ip;c->cs=cs;
 }
 static void lodsb(const uint8_t *m,pr_u6f_0482_cpu *c) {

@@ -115,7 +115,7 @@ def fixture(code,helpers,*,length=11,index=7,char=0x51,slot=4,sp=0x8000,
     memory[physical(ds,0x8c5+index)]=char
     memory[physical(ds,0x5376)]=0x72
     memory[physical(ds,0x5377)]=0x39
-    put_far(memory,ss,sp,(0x9000,0x200))
+    put_word(memory,ss,sp,0x200);put_word(memory,ss,(sp+2)&0xffff,0x9000)
     put_word(memory,ss,(sp+4)&0xffff,0xab06)
     return memory,cpu
 
@@ -132,11 +132,11 @@ def compare(label,memory,cpu,starts,helpers,library):
     uc,backing=emulator(memory,cpu)
     parent_cs=cpu.cs
     allowed={physical(parent_cs,i.address) for i in starts}
-    ret_sites=set();code_ranges=[(physical(parent_cs,0x482),91)]
+    ret_sites={};code_ranges=[(physical(parent_cs,0x482),91)]
     for seg,ip,body,instructions in helpers:
         loaded=memory[physical(parent_cs,0x48f)] | (memory[physical(parent_cs,0x490)]<<8) if seg==0x802 else memory[physical(parent_cs,0x4a9)] | (memory[physical(parent_cs,0x4aa)]<<8)
         allowed.update(physical(loaded,i.address) for i in instructions)
-        ret_sites.add(physical(loaded,instructions[-1].address))
+        ret_sites[physical(loaded,instructions[-1].address)]=int(instructions[-1].op_str,0)
         code_ranges.append((physical(loaded,ip),len(body)))
     stop=[None];ignore=[False];visited=set()
     def hook(u,address,size,data):
@@ -153,7 +153,18 @@ def compare(label,memory,cpu,starts,helpers,library):
         if stop[0]=='callback':status=1;break
         check(stop[0]=='retf',label+': original escaped bounded instructions')
         ret_address=physical(uc.reg_read(REGISTERS[8]),uc.reg_read(REGISTERS[9]))
-        ignore[0]=True;uc.emu_start(ret_address,0x110000,count=1);ignore[0]=False
+        ss=uc.reg_read(REGISTERS[12]);sp=uc.reg_read(REGISTERS[7])
+        if sp>=0xfffe:
+            # Direct original-byte native probes pin this rule for all four helpers.
+            # Unicorn fetches the CS word linearly instead of wrapping its offset.
+            def stack_word(offset):
+                at=physical(ss,offset)
+                return backing[at] | (backing[(at+1)&0xfffff]<<8)
+            ip=stack_word(sp);cs=stack_word((sp+2)&0xffff)
+            uc.reg_write(REGISTERS[8],cs);uc.reg_write(REGISTERS[9],ip)
+            uc.reg_write(REGISTERS[7],(sp+4+ret_sites[ret_address])&0xffff)
+        else:
+            ignore[0]=True;uc.emu_start(ret_address,0x110000,count=1);ignore[0]=False
         expected=(0x491,0x4ab,0x4c7,0x4cc)[return_index];return_index+=1
         if uc.reg_read(REGISTERS[8])!=parent_cs or uc.reg_read(REGISTERS[9])!=expected:
             status=2;break

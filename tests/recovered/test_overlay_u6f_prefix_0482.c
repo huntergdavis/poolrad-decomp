@@ -67,6 +67,26 @@ static void changed_return(uint8_t *m) {
     assert(memcmp(&call,&before,sizeof call)==0);
     assert(m[p(c.ds,0x5377)]==0x55u && m[p(c.ds,0x5376)]==3u);
 }
+static void wrapped_helpers(uint8_t *m) {
+    /* Selector entry SP=parent-232; load/concat=parent-238; char=parent-23A.
+     * These parent offsets place each helper RETF at FFFD/FFFE/FFFF. */
+    static const uint16_t stacks[]={0x22f,0x230,0x231,0x235,0x236,0x237,0x238,0x239};
+    for(unsigned i=0;i<sizeof stacks/sizeof stacks[0];++i) {
+        pr_u6f_0482_cpu c;pr_u6f_0482_pending_call call;
+        setup(m,&c,3u,0x3000,stacks[i]);
+        assert(pr_u6f_prefix_0482(m,PR_U6F_0482_RAM_SIZE,&c,&call)==PR_U6F_0482_CALLBACK);
+        assert(c.cs==0x8000u && c.ip==0x4d8u && c.bp==(uint16_t)(stacks[i]-2u));
+        assert(c.sp==(uint16_t)(stacks[i]-0x234u));
+        assert(call.target_cs==0x4000u && call.target_ip==0x34u);
+        /* At parent 022F the destination far operand starts at SS:FFFF.
+         * LES reads its segment from the linear extension (zero in setup),
+         * even though RETF pops CS using a wrapped stack-word offset. */
+        uint16_t output_segment=stacks[i]==0x22fu?0u:c.ss;
+        assert(m[p(output_segment,(uint16_t)(c.bp-0x229u))]==4u);
+        for(unsigned j=0;j<4u;++j)
+            assert(m[p(output_segment,(uint16_t)(c.bp-0x228u+j))]==(uint8_t)(j==3u?'Q':'A'+j));
+    }
+}
 static void invalid(uint8_t *m,uint8_t *copy) {
     pr_u6f_0482_cpu c,before;pr_u6f_0482_pending_call call={1u,2u,3u,4u},out=call;
     setup(m,&c,3u,0x3000,0x8000);before=c;memcpy(copy,m,PR_U6F_0482_RAM_SIZE);
@@ -82,6 +102,6 @@ static void invalid(uint8_t *m,uint8_t *copy) {
 }
 int main(void) {
     uint8_t *ram=malloc(PR_U6F_0482_RAM_SIZE),*copy=malloc(PR_U6F_0482_RAM_SIZE);
-    assert(ram && copy);callback(ram);lengths(ram);changed_return(ram);invalid(ram,copy);
+    assert(ram && copy);callback(ram);lengths(ram);changed_return(ram);wrapped_helpers(ram);invalid(ram,copy);
     free(copy);free(ram);return 0;
 }
