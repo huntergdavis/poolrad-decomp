@@ -60,6 +60,27 @@ int main(void)
         assert(pr_u33_both_outside_1403(ram, PR_U33_1403_RAM_SIZE, &cpu) == PR_U33_1403_OK);
         assert(cpu.flags == expected_flags[i]);
     }
+    /* Native-backed RETF regressions: the linear CS decoy must be ignored. */
+    for (i = 0xFFFDu; i <= 0xFFFFu; ++i) {
+        size_t linear;
+        memset(ram, 0xA5, PR_U33_1403_RAM_SIZE);
+        cpu = initial();cpu.sp = (uint16_t)i;
+        put16(ram, cpu.ss, cpu.sp, 0x0712u);
+        put16(ram, cpu.ss, (uint16_t)(i + 2u), 0xF000u);
+        put16(ram, cpu.ss, (uint16_t)(i + 4u), 0xFFFFu);
+        put16(ram, cpu.ss, (uint16_t)(i + 6u), 0xFFFFu);
+        if (i >= 0xFFFEu) {
+            linear = physical(cpu.ss, cpu.sp) + 2u;
+            ram[linear] = 0x44u;ram[linear + 1u] = 0x44u;
+        }
+        assert(pr_u33_both_outside_1403(ram, PR_U33_1403_RAM_SIZE, &cpu) == PR_U33_1403_OK);
+        assert(cpu.ax == 0xAB01u && cpu.flags == 0x0686u);
+        assert(cpu.sp == (uint16_t)(i + 8u) && cpu.bp == 0x7777u);
+        assert(cpu.cs == 0xF000u && cpu.ip == 0x0712u);
+        assert(cpu.bx == 0x3456u && cpu.cx == 0x5678u && cpu.dx == 0x789Au && cpu.si == 0x9ABCu);
+        assert(cpu.di == 0xBCDEu && cpu.ds == 0x1000u && cpu.es == 0x1111u && cpu.ss == 0x2000u);
+        assert(ram[physical(cpu.ss, (uint16_t)(i - 3u))] == 1u);
+    }
     free(ram);
     return 0;
 }

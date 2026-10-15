@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import random
 import subprocess
+import sys
 import tempfile
 from capstone import CS_ARCH_X86,CS_MODE_16,Cs
 from unicorn import Uc,UC_ARCH_X86,UC_HOOK_CODE,UC_MODE_16
@@ -53,15 +54,23 @@ def library(directory):
 def make_case(body,*,a=0,b=0,ax=0xABCD,ss=0x2000,sp=0x8000,flags=0x0202,background=None):
     memory=bytearray([0xA5])*SIZE if background is None else bytearray(background)
     cpu=Cpu(ax,0x3456,0x5678,0x789A,0x9ABC,0xBCDE,0x7777,sp,0xF000,ENTRY,0x1000,0x1111,ss,flags)
-    at=physical(ss,sp)
-    for i,value in enumerate((0x12,7,cpu.cs & 255,cpu.cs>>8)):memory[(at+i)&(SIZE-1)]=value
+    put16(memory,ss,sp,0x0712)
+    put16(memory,ss,(sp+2)&0xFFFF,cpu.cs)
     put16(memory,ss,(sp+4)&0xFFFF,a);put16(memory,ss,(sp+6)&0xFFFF,b)
     at=physical(cpu.cs,ENTRY);memory[at:at+len(body)]=body;return memory,cpu
 
 
-def compare(label,memory,cpu,decoded,lib):
-    original=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(memory)
+def new_engine():
+    original=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE)()
     original.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));original.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
+    return original,backing
+
+
+def compare(label,memory,cpu,decoded,lib,engine):
+    original,backing=engine
+    # Hash-locked code stays at the same address; every RAM byte and CPU
+    # word is reset before the next case. No prior data state is retained.
+    ctypes.memmove(ctypes.addressof(backing),ctypes.addressof((ctypes.c_uint8*SIZE).from_buffer(memory)),SIZE)
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):original.reg_write(reg,getattr(cpu,name))
     entry=physical(cpu.cs,ENTRY);visited,edges=set(),set();previous,at_return=[None],[False]
     def hook(uc,address,size,user):
@@ -89,10 +98,11 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--quick',action='store_true');parser.add_argument('--output',type=Path);args=parser.parse_args()
     body,decoded,meta=source();visited,edges=set(),set();count=0
     with tempfile.TemporaryDirectory(prefix='poolrad-u33-1403-') as tmp:
-        lib=library(Path(tmp))
+        lib=library(Path(tmp));engine=new_engine()
         def run(label,**options):
             nonlocal visited,edges,count
-            memory,cpu=make_case(body,**options);v,e=compare(label,memory,cpu,decoded,lib);visited|=v;edges|=e;count+=1
+            memory,cpu=make_case(body,**options);v,e=compare(label,memory,cpu,decoded,lib,engine);visited|=v;edges|=e;count+=1
+            if count%512==0:print(f'U33 full-state cases passed: {count}',file=sys.stderr,flush=True)
         for a in range(0,256,16 if args.quick else 1):
             for b in (0,10,11,127,128,255):run(f'a-{a}-{b}',a=a,b=b)
         for b in range(0,256,16 if args.quick else 1):
@@ -103,7 +113,9 @@ def main():
             for a,b in ((5,10),(6,11),(128,255)):
                 run(f'upper-{high}-{a}-{b}',a=(high<<8)|a,b=((255-high)<<8)|b,ax=(high<<8)|0xCD)
         for ss in (0,0x2000,0xFFFF):
-            for sp in (*range(16),0xFFFA,0xFFFB,0xFFFC,0xFFFD,0xFFFE,0xFFFF):run(f'wrap-{ss:X}-{sp:X}',ss=ss,sp=sp,a=255,b=11)
+            # Unicorn's RETF CS pop differs at FFFE/FFFF; the native wrap
+            # oracle covers those boundaries with distinct CS words.
+            for sp in (*range(16),0xFFFA,0xFFFB,0xFFFC,0xFFFD):run(f'wrap-{ss:X}-{sp:X}',ss=ss,sp=sp,a=255,b=11)
         rng=random.Random(0x331403)
         for i in range(8 if args.quick else 128):
             run(f'seeded-{i}',a=rng.randrange(65536),b=rng.randrange(65536),ax=rng.randrange(65536),
@@ -112,7 +124,8 @@ def main():
     if visited!=set(decoded) or edges!=required:raise ValueError('instruction/edge coverage incomplete')
     report=dict(target='OVL_0033_1403',source_sha256=BODY_SHA,cases=count,covered_sites=len(visited),source_sites=len(decoded),
         conditional_edges=len(edges),compared_ram_bytes=SIZE,compared_cpu_words=14,masked_flags=0,aligned_near_callers=['1577:+17C8','1577:+18C8'],
-        file_extent=meta['file_extent'],natural_game_route_measured=False)
+        file_extent=meta['file_extent'],natural_game_route_measured=False,
+        native_only_stack_offsets=['FFFE','FFFF'],unicorn_ret_pop_wrap_limitation=True)
     if args.output:args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
     print(json.dumps(report,sort_keys=True))
 if __name__=='__main__':main()

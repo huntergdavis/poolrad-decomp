@@ -42,7 +42,10 @@ order is retained instead of deriving flags from a Boolean expression.
 
 One local byte at BP-1 stores the result. MOV AL preserves the incoming AH;
 MOV SP,BP, POP BP and RETF 4 use live RAM. The model returns actual CS:IP
-after the far pop without following that destination. Other general/segment
+after the far pop without following that destination. RETF pops IP at the
+entry SP, then CS at (entry SP+2) modulo 65536: the two word reads use
+separately wrapped offsets. Each individual word still reads contiguous
+physical bytes. Other general/segment
 registers remain unchanged. Effective offsets/SP wrap at 16 bits, contiguous
 multi-byte operands and A20-off RAM at 20 bits. Code must remain immutable
 and disjoint from writes. Null pointers/small RAM are rejected before mutation.
@@ -57,14 +60,17 @@ PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn 
   python3 tools/overlay/u33_both_outside_1403_native.py
 ```
 
-The full original-byte oracle passes 4,090 cases, comparing the complete
+The full original-byte oracle passes 4,084 cases, comparing the complete
 1 MiB and fourteen CPU words, including all flags without masking. All
 18 instruction starts and all eight conditional edges are covered. The
 matrix sweeps every byte value across representative opposite arguments,
 boundary pairs, all word upper-byte values and preserved AH, frame/operand
-wrap and deterministic random initial memory/flags. Quick: 370 cases.
+wrap and deterministic random initial memory/flags. Quick: 364 cases.
 The finite original path is checked within 32 instructions; no loop-budget
-exclusions apply.
+exclusions apply. Six SP FFFE/FFFF cases across three SS values are
+excluded because Unicorn uses a linear second RETF word read there;
+those two SP boundaries are verified by the separate DOSBox-X proof.
+All compared registers and flags remain unmasked.
 
 DOSBox-X normal-core 386 passes 1,024 synthetic native cases executing the
 original +17BF..17CA prefix and complete leaf in a separately allocated
@@ -79,8 +85,11 @@ remain unmeasured. Native captures do not compare the entire RAM image.
 The focused C test exhausts all 65,536 signed-byte pairs against the
 independent mathematical predicate, varies preserved AH, uses unrelated
 argument-word high bytes, and checks exact flag vectors, guards, frame
-effects and unchanged registers. All 246 strict CTests pass with
--Wall/-Wextra/-Wpedantic/-Werror. Shell syntax, research checksums, staged
+effects and unchanged registers. Three additional native-backed
+regressions at SP FFFD/FFFE/FFFF compare all fourteen CPU words and
+the local result byte, with contradictory linear CS decoys at the
+two wrapped boundaries. The repair's focused predicate/adjacent U33
+CTests pass 2/2 with -Wall/-Wextra/-Wpedantic/-Werror. Shell syntax, research checksums, staged
 whitespace and public-media hygiene pass. All copied original bytes,
 disassembly, generated COM files and captures stay under ignored resources/.
 
@@ -91,7 +100,7 @@ disassembly, generated COM files and captures stay under ignored resources/.
   exhaustive synthetic truth table and independent native execution.
 - `score`: 18/18 starts and 8/8 edges; no whole-game percentage or count.
 - `verdict`: match within the immutable-code/raw-frame contract.
-- `review_notes`: caller-local meanings, natural reach, verified identity,
+- `review_notes`: separate wrapped RETF pops are proven natively; caller-local meanings, natural reach, verified identity,
   credit eligibility and merge remain separate gates.
 
 The bounded deja query returned no completed finding. Reused findings:
@@ -101,13 +110,66 @@ ranked-ledger selection and source pins, and the independently reviewed
 This branch requires no unmerged symbol. Its CMake registration is adjacent
 to five pending registrations; integration must preserve all entries.
 
-Second distinct candidate queued: U3C2 public entry 1 at +0000..002D,
-46 bytes/17 instructions, terminal RETF 2. It returns signed-word signum
-(-1,0,+1), has two conditional sites/four edges and no calls/interrupts.
-Source SHA256 is
-`5e8e5fc8a5907fee2efd922fc4f96682fd1f2e8e58cbebcd058d3f025948e5bf`,
-file [195410,195456). Two aligned PUSH CS callers are U3C2:+01A0 sites
-+01F9/+0213; two fixup-confirmed aligned far callers are U86:+30D9 sites
-+3150/+316D through public stub 03DB:0025. It is grade A,
-helper_candidate/unknown, rank 445, with no matching implementation/claim
-or public open-PR collision found. It remains queued, not translated here.
+
+## Native-backed RETF repair
+
+This repair starts from published head
+3986c34c00232eb12c662ea3bd39767b69888d98 on a fresh branch. At
+entry SP FFFE or FFFF the former linear physical-IP+2 CS read selected
+the wrong word. The model now wraps the second word-pop offset to
+0000 or 0001, matching original-byte DOSBox-X execution. The original
+extent, branch behavior, predicates, flags and caller ABI are unchanged.
+
+The new u33_both_outside_1403_wrap_native.py checks two original-byte
+native cases at those SP boundaries, one true and one false predicate.
+It compares all fourteen CPU words, 96 stack/sentinel bytes and sixteen
+auxiliary sentinel bytes, with no masks. The wrapped CS word and a
+distinct linear CS decoy are both primed. Flag-preserving dual return
+trampolines record the actual returned CS before entering the shared
+capture code; both cases must reject the linear decoy. Native entry AX
+is 1234; AH is checked along with the predicate and exact CMP flags.
+
+The COM reserves 64 KiB for its code/data, then obtains a separate
+DOS-owned 0x1100-paragraph block for its stack and alternate return
+trampoline. The proof primes and compares SS:FFE0..FFFF, SS:0000..001F
+and (SS+1000):0000..001F, including saved BP, local result, return frame,
+arguments and the linear decoy. CLI covers priming through capture;
+DOS output resumes with the original SS and SP. No naturally reached
+game frame or loader dispatch is claimed. Generated original
+bytes/COM/assembly/results stay ignored under resources/.
+
+Native wrap RESULT.BIN SHA256:
+`f468e5a6e06f0db384ac7d22d21cfcbe897d1f81c88d1a80f446772850e392ee`.
+
+The full-state oracle reuses one emulator, restoring every RAM byte and
+all fourteen CPU words before each case. Hash-locked immutable code
+stays at the same address. This removes repeated emulator setup after
+the original per-case setup exceeded a 300-second run budget; comparisons
+and coverage requirements remain unchanged.
+
+```sh
+cmake -S . -B resources/build-u33-1403-retf \
+  -DCMAKE_C_FLAGS='-Wall -Wextra -Wpedantic -Werror'
+cmake --build resources/build-u33-1403-retf --target \
+  poolrad_overlay_u33_both_outside_1403_tests poolrad_overlay_u33_byte_flags_08a4_tests
+ctest --test-dir resources/build-u33-1403-retf \
+  -R 'poolrad_overlay_u33_(both_outside_1403|byte_flags_08a4)_tests' --output-on-failure
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
+  timeout 300s python3 tools/overlay/u33_both_outside_1403_audit.py \
+  --output resources/u33-1403-parity/retf-repair-audit.json
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
+  timeout 180s python3 tools/overlay/u33_both_outside_1403_native.py
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
+  timeout 180s python3 tools/overlay/u33_both_outside_1403_wrap_native.py
+```
+
+The bounded repair recall query
+timeout 30s deja "Poolrad U33 3986c34 RETF stack CS pop FFFE FFFF native repair"
+ended 124 without results. The proof adapts the independently reviewed
+[U7F native RETF experiment](https://github.com/huntergdavis/poolrad-decomp/blob/0395ec049aaf0b8e53e2fa10fdcf6a3953e36271/docs/re/U7F_RECORD_SUBTRACT_0020.md).
+Unicorn's disagreeing boundary states are documented and tested natively;
+no expected CS is silently normalized. The original-byte fixture builder
+also constructs return IP and CS with the proper separate word offsets.
+
+The former U3C2 follow-on is reserved to pP, who also owns U3C6.
+This repair claims no additional game identity or strict count.
