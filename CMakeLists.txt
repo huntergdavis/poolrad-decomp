@@ -1403,6 +1403,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_overlay_u3bd_post_up_0dae_outer_return_tests
              COMMAND poolrad_overlay_u3bd_post_up_0dae_outer_return_tests)
+    add_executable(poolrad_overlay_u3bd_post_up_wrapper_outer_compose_tests
+                   tests/recovered/test_overlay_u3bd_post_up_wrapper_outer_compose.c)
+    target_link_libraries(poolrad_overlay_u3bd_post_up_wrapper_outer_compose_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3bd_post_up_wrapper_outer_compose_tests
+             COMMAND poolrad_overlay_u3bd_post_up_wrapper_outer_compose_tests)
     add_executable(poolrad_overlay_u3bd_post_up_0903_helper_call_tests
                    tests/recovered/test_overlay_u3bd_post_up_0903_helper_call.c)
     target_link_libraries(poolrad_overlay_u3bd_post_up_0903_helper_call_tests PRIVATE
