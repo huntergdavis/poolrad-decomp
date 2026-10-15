@@ -14,9 +14,9 @@ The ignored original `START.EXE` is 65,231 bytes with SHA-256
 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`;
 `GAME.OVR` is 206,105 bytes with SHA-256
 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`.
-The test executes the expanded glyph drawer `[0x726F,0x767A)` (1,035
+The test executes the complete expanded glyph drawer `[0x726F,0x767B)` (1,036
 bytes, SHA-256
-`8d71dd4c0162462f99aef0fbbd4cfee472702f330bca1e07b50f192ffd972aef`)
+`a9d1c72241b6810c3e0995b03cca98edc56cb76734e948333e360d82ef7e1840`)
 and original SYSTEM upcase helper START `[0xC4A0,0xC4B3)` (19 bytes,
 SHA-256
 `738c9a82c7faab6335f0952cc5d989d273cb85828a0735f34966220f370d012c`).
