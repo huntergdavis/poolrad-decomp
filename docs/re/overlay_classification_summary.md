@@ -4,8 +4,8 @@ Inputs: GAME.OVR `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee79286
 
 | classification | confidence | count |
 | --- | --- | ---: |
-| game_verified | verified | 125 |
-| game_evidenced | provisional | 336 |
+| game_verified | verified | 126 |
+| game_evidenced | provisional | 335 |
 | helper_candidate | provisional | 74 |
 | game_or_other_library_unresolved | unresolved | 138 |
 
@@ -13,8 +13,8 @@ Signals (not mutually exclusive): string constants 216 routines (664 references)
 
 | class | grade A | grade B | grade D |
 | --- | ---: | ---: | ---: |
-| game_verified | 56 | 68 | 1 |
-| game_evidenced | 207 | 128 | 1 |
+| game_verified | 57 | 68 | 1 |
+| game_evidenced | 206 | 128 | 1 |
 | helper_candidate | 53 | 21 | 0 |
 | game_or_other_library_unresolved | 86 | 52 | 0 |
 
