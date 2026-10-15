@@ -73,8 +73,10 @@ same source-order accesses. An OR can change the later global pointer; an AND
 can change a later nested pointer or the far return. The loaded mode stays
 selected even if an inline write changes its RAM byte. Aliased loop storage
 can retain source nontermination; no host cap silently changes the C body.
-Effective offsets/SP wrap at 16 bits, word/far operands read contiguous
-physical bytes, and physical RAM wraps at 1 MiB with A20 disabled.
+Effective offsets/SP wrap at 16 bits. RETF reads IP and CS at separate stack
+word offsets, including wrapping SP+2; each individual word and memory far
+operand remains physically contiguous. Physical RAM wraps at 1 MiB with A20
+disabled.
 
 The API models flat RAM and immutable code. Hardware video-memory semantics
 are not supplied by a raw byte array. The current native mode-1 EGA evidence
@@ -90,15 +92,18 @@ compare every 1 MiB RAM byte and all fourteen CPU words, including full FLAGS.
 They cover all 256 mode values, seeded data/register/flag states, stack and
 array offset boundaries, A20 wrapping, shared DS/SS, both 65536-iteration
 underflows, live nested/global pointer aliases, a mode-byte write after its
-read, a mutated far return, and a return into the same body. RETF is executed
-separately so an in-body caller continuation is not mistaken for another
-iteration of the callee.
+read, a mutated far return, and a return into the same body. The audit stops
+before RETF. At SP FFFE/FFFF it applies the native-established two-word pop
+rule because Unicorn reads CS incorrectly there; other offsets execute the
+original RETF separately. This disclosed hybrid oracle avoids both an
+unintended continuation and repeating the old C/Unicorn false positive.
 
 All 121/121 instruction starts and 15/18 conditional outcomes are reached;
 the three omitted outcomes are the impossible unsigned-zero `JA` branches.
 The focused registered CTest checks independent OR/AND results, mode-specific
 counts, unchanged source data, ABI/register/flag results, atomic invalid-input
-guards, a nested-pointer write affecting the next LES, and count underflow.
+guards, a nested-pointer write affecting the next LES, count underflow, and
+all four mode routes at FFFD/FFFE/FFFF with distinct linear-CS canaries.
 It passes with strict warnings and with ASan/UBSan (sandbox leak detection
 disabled). The new CMake source/test additions were coordinated in i3462.
 

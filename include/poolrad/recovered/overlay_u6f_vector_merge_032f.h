@@ -18,6 +18,8 @@ typedef enum {
 
 /* Complete unit 6F:+032F..+0475 through RETF 8. Entry SS:SP contains
  * return IP/CS, destination far pointer, then source far pointer.
+ * RETF pops IP and CS at separate 16-bit stack offsets; individual words
+ * and memory far-pointer operands remain physically contiguous.
  * The mode at DS:4A1E controls inline OR / pointed-vector AND operations.
  * Reads and writes retain source order, live pointers, and 20-bit wrapping.
  * A zero source count underflows to 65536 iterations, matching the original.

@@ -178,11 +178,8 @@ pr_u6f_032f_status pr_u6f_vector_merge_032f(
     c->sp = c->bp;
     c->bp = word(ram, c->ss, c->sp);
     c->sp = (uint16_t)(c->sp + 2u);
-    {
-        size_t at = physical(c->ss, c->sp);
-        c->ip = read16_at(ram, at);
-        c->cs = read16_at(ram, at + 2u);
-    }
+    c->ip = word(ram, c->ss, c->sp);
+    c->cs = word(ram, c->ss, (uint16_t)(c->sp + 2u));
     c->sp = (uint16_t)(c->sp + 12u);
     return PR_U6F_032F_OK;
 }
