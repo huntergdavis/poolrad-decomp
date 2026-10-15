@@ -1,0 +1,6 @@
+run,order,anchor,transcript_byte_offset,relation_to_post_mode,screen_relation
+mode-p5-002,0,0C88:00EE,7981,pre_call_baseline,no_screen_join
+mode-p5-002,1,0C88:00F3,11323,changed_ac_dac,no_screen_join
+mode-p5-002,2,later_first_view,15528,equal_post_call,same_first_view_hash
+mode-p5-002,3,later_one_up,18759,equal_post_call,distinct_one_up_hash
+rgb-p5-001,0,stable_first_view,9044,equal_post_call,same_first_view_hash
