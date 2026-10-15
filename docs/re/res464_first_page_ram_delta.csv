@@ -1,0 +1,7 @@
+class,physical_first,physical_last,segment_offsets,changed_bytes
+bios_tick,0046C,0046C,0040:006C,1
+dirty_flags,19438,1948F,14A0:4A38..4A8F,88
+first_extent_words,19640,196EF,14A0:4C40..4CEF,176
+last_extent_words,19790,1983F,14A0:4D90..4E3F,176
+stack_residue,20FD6,20FE7,1D16:3E76..3E87,18
+stack_residue,20FEA,20FF3,1D16:3E8A..3E93,10
