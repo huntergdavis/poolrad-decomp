@@ -1,0 +1,211 @@
+{
+  "schema_version": 1,
+  "media_hashes": {
+    "start_exe": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd",
+    "game_overlay": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
+    "saved_a": "abca248371287c43c99e1b34e03394819fca3cf406bed184e7e4fbfe4f0c08f1"
+  },
+  "rows": [
+    {
+      "id": "measured_d8f_baseline",
+      "classification": "measured",
+      "pc": "2A8E:0D8F",
+      "condition": "baseline_file_set",
+      "derived_from": [],
+      "state_snapshot": "retained",
+      "evidence": {
+        "kind": "native_capture",
+        "capture": "slot-a-loader-sidecar-context-20261014",
+        "cpu_row_index": 18
+      },
+      "hashes": {
+        "cpu_json": "3534ae3d4aac40b2115c83cd279a6503202e65b1b731c38d31c4e0a2c0377845",
+        "ram": "ae19b0f97c827ba6aaf1471d23243eaf5638f1fb28ee4a6e39fbd532a7cd64bb",
+        "raw_transcript": "4f2a7c7374b2447d9b0bbb5908698ca4e23b1fb4338a30021801c6a94c68c76a"
+      }
+    },
+    {
+      "id": "measured_d8f_file_absent",
+      "classification": "measured",
+      "pc": "2A8E:0D8F",
+      "condition": "controlled_file_absence",
+      "derived_from": [],
+      "state_snapshot": "retained",
+      "evidence": {
+        "kind": "native_capture",
+        "capture": "slot-a-d8f-zero-boundary-20261015",
+        "cpu_row_index": 4
+      },
+      "hashes": {
+        "cpu_json": "b9404e68b0ed2a914b59b76e4fe7d92087c5fb514761da1cc10625a1ed15beb2",
+        "ram": "703158962dd166cdd91e6aab4a5522dba9cbb4f5ccc151f2a0d8a7883b6ba4e4",
+        "raw_transcript": "ca7583396bd1358af2cde731f59bc908fe2b8b470380a51d10cee9fc92c6a024"
+      }
+    },
+    {
+      "id": "measured_allocator_entry",
+      "classification": "measured",
+      "pc": "131C:023F",
+      "condition": "baseline_file_set",
+      "derived_from": [],
+      "state_snapshot": "retained",
+      "evidence": {
+        "kind": "native_capture",
+        "capture": "slot-a-cba-getmem-frame-20261015",
+        "cpu_row_index": 1
+      },
+      "hashes": {
+        "cpu_json": "70651201cde689fbd1d22dc24149963f4ac6a43f108bde5e42b88ca6f5f3f5ba",
+        "ram": "e67d7dca4163ea8c12ec26a7933f0d17c104d771459877e739b1ce5110712e53",
+        "raw_transcript": "d37b7f81c8ac7ecc5f866a376cbed7d4b7c5c4f8936258e3608dfd8ea72458e5"
+      }
+    },
+    {
+      "id": "measured_allocator_first_return",
+      "classification": "measured",
+      "pc": "131C:0248",
+      "condition": "baseline_file_set",
+      "derived_from": [],
+      "state_snapshot": "retained",
+      "evidence": {
+        "kind": "native_capture",
+        "capture": "slot-a-cba-getmem-frame-20261015",
+        "cpu_row_index": 5
+      },
+      "hashes": {
+        "cpu_json": "7d03ce697b9e8fd8dea7062a6ed0adcde972f20ebc133ab9af040ae3b371970a",
+        "ram": "d6ef2d838eaeb89cc4875cfe9ec4fae591f067e719e34957a6d8fc83af2c0356",
+        "raw_transcript": "d37b7f81c8ac7ecc5f866a376cbed7d4b7c5c4f8936258e3608dfd8ea72458e5"
+      }
+    },
+    {
+      "id": "measured_ccc_seed",
+      "classification": "measured",
+      "pc": "2A8E:0CCC",
+      "condition": "baseline_file_set",
+      "derived_from": [],
+      "state_snapshot": "retained",
+      "evidence": {
+        "kind": "native_capture",
+        "capture": "slot-a-cbf-pointer-store-20261015",
+        "cpu_row_index": 7
+      },
+      "hashes": {
+        "cpu_json": "010ab1026157d1e3cb79f0078391fa8db1b01f5589e7e0aaa8c7071d07622d21",
+        "ram": "a8f0716b57a0298e2532a388f1f99e1fcd9e62df87f784b5a4e8de38db2094a0",
+        "raw_transcript": "4dd8420de126889728142c9ca8893411f7b12b8abf358434d0c3a1dc7ab85466"
+      }
+    },
+    {
+      "id": "static_ce1_original_endpoint",
+      "classification": "original_produced_static",
+      "pc": "2A8E:0CE1",
+      "condition": "static_original_execution",
+      "derived_from": [
+        "measured_ccc_seed"
+      ],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "original_execution_report",
+        "source_commit": "890c0ae2660b5ff1f7429144bbb9a42b8d2de630",
+        "source_path": "tests/replay/audit_slot_a_ccc_pointer_reload.py",
+        "source_pc": "2A8E:0CCC"
+      },
+      "hashes": {
+        "source_code": "bb1853103e680101dadd5d59e469f076d9e9574762362697d107b58f334a8916",
+        "execution_log": "f09e9c411957aa5dc7c4a017320bb784baa8ba4497b718ad0d631a88e30373f5",
+        "seed_cpu_json": "010ab1026157d1e3cb79f0078391fa8db1b01f5589e7e0aaa8c7071d07622d21",
+        "seed_ram": "a8f0716b57a0298e2532a388f1f99e1fcd9e62df87f784b5a4e8de38db2094a0"
+      }
+    },
+    {
+      "id": "synthetic_ccc_controlled_input",
+      "classification": "synthetic",
+      "pc": "2A8E:0CCC",
+      "condition": "synthetic_fixture",
+      "derived_from": [
+        "measured_ccc_seed"
+      ],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "static_control_fixture",
+        "source_commit": "890c0ae2660b5ff1f7429144bbb9a42b8d2de630",
+        "source_path": "tests/replay/audit_slot_a_ccc_pointer_reload.py"
+      },
+      "hashes": {
+        "fixture_source": "bb1853103e680101dadd5d59e469f076d9e9574762362697d107b58f334a8916",
+        "test_log": "f09e9c411957aa5dc7c4a017320bb784baa8ba4497b718ad0d631a88e30373f5"
+      }
+    },
+    {
+      "id": "synthetic_ce1_input",
+      "classification": "synthetic",
+      "pc": "2A8E:0CE1",
+      "condition": "synthetic_fixture",
+      "derived_from": [],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "c_fixture",
+        "source_commit": "0f9bd45e20dc8f5d2c37a659a8ca1152ffb08ec3",
+        "source_path": "tests/replay/test_slot_a_ce1_copy_setup.c"
+      },
+      "hashes": {
+        "fixture_source": "054f2bf9940aa59e335994277be34e4090d76d821de740e3fa6a5a8f00fb0845",
+        "test_log": "4287bbeb6ac1f297c3a626490060a8229115d14e57811e936edcd99d47b2f55d"
+      }
+    },
+    {
+      "id": "synthetic_ced_call_input",
+      "classification": "synthetic",
+      "pc": "2A8E:0CED",
+      "condition": "synthetic_fixture",
+      "derived_from": [],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "c_fixture",
+        "source_commit": "c7a06e6cdcd839f1d81ced520dfb39ca97f705d5",
+        "source_path": "tests/replay/test_slot_a_ced_copy_frame.c"
+      },
+      "hashes": {
+        "fixture_source": "43b08414bebbc63743fd33a74411ab13eb44e56c1f86f843f8ef8ec89ff5c95e",
+        "test_log": "d01a0769c817cee579769cbbd75d8d0dbcf89272bd60e8ef598c003232547aa1"
+      }
+    },
+    {
+      "id": "synthetic_b0b_return_input",
+      "classification": "synthetic",
+      "pc": "131C:0B20",
+      "condition": "synthetic_fixture",
+      "derived_from": [],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "c_fixture",
+        "source_commit": "c7a06e6cdcd839f1d81ced520dfb39ca97f705d5",
+        "source_path": "tests/replay/test_slot_a_ced_copy_frame.c"
+      },
+      "hashes": {
+        "fixture_source": "43b08414bebbc63743fd33a74411ab13eb44e56c1f86f843f8ef8ec89ff5c95e",
+        "test_log": "d01a0769c817cee579769cbbd75d8d0dbcf89272bd60e8ef598c003232547aa1"
+      }
+    },
+    {
+      "id": "synthetic_cf2_return_boundary",
+      "classification": "synthetic",
+      "pc": "2A8E:0CF2",
+      "condition": "synthetic_fixture",
+      "derived_from": [
+        "synthetic_b0b_return_input"
+      ],
+      "state_snapshot": "not_retained",
+      "evidence": {
+        "kind": "c_fixture",
+        "source_commit": "c7a06e6cdcd839f1d81ced520dfb39ca97f705d5",
+        "source_path": "tests/replay/test_slot_a_ced_copy_frame.c"
+      },
+      "hashes": {
+        "fixture_source": "43b08414bebbc63743fd33a74411ab13eb44e56c1f86f843f8ef8ec89ff5c95e",
+        "test_log": "d01a0769c817cee579769cbbd75d8d0dbcf89272bd60e8ef598c003232547aa1"
+      }
+    }
+  ]
+}
