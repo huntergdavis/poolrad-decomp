@@ -5,7 +5,7 @@
 
 /* Saved-view fourth far call at overlay 2D14:020A. This bounded prefix
  * stops at resident 0C88:2646, before the first runtime Move call.
- * The starting caller image is original-byte provisional. */
+ * The starting caller image has a direct same-run DOS capture. */
 pr_r464_2632_status pr_r464_2632_fourth_prefix(
     uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu);
 

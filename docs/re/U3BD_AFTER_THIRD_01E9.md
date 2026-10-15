@@ -11,8 +11,8 @@ Before implementation, `deja "Poolrad U3BD entry5 01E9 020A after third
 RES_0464 2632 parent stack argument setup"` found no indexed match.
 Reused the local third-call [address note](RESIDENT_464_2632_THIRD_CALL.md)
 and its hash-locked original-byte return. pD has since supplied direct
-DOS debugger `+01E9` RAM/CPU; the `+020A` pre-call capture remains
-pending.
+DOS debugger `+01E9` and `+020A` RAM/CPU captures; both match the
+original-byte route.
 
 The original `GAME.OVR` file span `0x2EAE0..0x2EB01` and loaded overlay
 span have the same 33-byte SHA-256,
@@ -45,7 +45,8 @@ The +01E9 input has since been compared against a direct native image
 with zero 640 KiB RAM differences and all 14 CPU fields equal. Running
 the original-byte and C parent setup from that direct image yields
 the stated +020A result with zero RAM differences. The public replay
-accepts an optional direct native `+020A` image when pD supplies one.
+accepts the direct native `+020A` image; its full 640 KiB RAM matches
+with zero differences and all 14 CPU fields match the tuple above.
 This parent segment and fourth call
 must remain separate from complete-routine accounting until their reached
 native boundaries are independently checked.

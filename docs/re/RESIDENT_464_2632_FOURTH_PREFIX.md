@@ -5,9 +5,10 @@
 This bounded model starts at overlay `2D14:+020A`, follows its far call to
 resident `0C88:+2632`, and stops at `0C88:+2646` **before** the resident's
 first runtime `Move` call. It does not model that callee or the fourth
-resident return. The +020A image is generated from original instructions
-starting at pD's directly captured third-call return `2D14:+01E9`; a
-direct DOS debugger +020A stop remains pending. There is no complete
+resident return. The +020A image was generated from original instructions
+starting at pD's directly captured third-call return `2D14:+01E9`. pD
+subsequently captured direct same-run +020A RAM/CPU; all 640 KiB and
+all 14 CPU fields match that generated image. There is no complete
 routine, game-identity, or strict-C count claim.
 
 Before implementation, `deja "Poolrad U3BD entry5 fourth 020A RES_0464
@@ -62,12 +63,13 @@ and
 Only 11 bytes differ between the +020A and +2646 images, all in the
 resident stack. No object or EGA plane byte changes in this prefix.
 
-The C prefix matches the provisional original-byte +2646 RAM across
-all 640 KiB with zero differences and all 14 CPU fields exactly.
+The C prefix matches original-byte +2646 RAM replayed from the direct
++020A prestate across all 640 KiB with zero differences and all 14 CPU
+fields exactly.
 Synthetic tests cover return-frame placement, stack argument order,
 source-pointer variation, invalid host input, and unsupported CPU input
 with no mutation. The public hash-locked
 `tools/replay/resident_464_fourth_prefix_unicorn.py` accepts optional
-direct native +2632/+2646 images when pD supplies them. Until a direct
-same-run +020A stop is available, fourth-call reachability and the
-fourth resident continuation retain an explicit provisional label.
+direct native +2632/+2646 images when pD supplies them. The +020A
+callsite is directly verified; resident +2632, +2646, and the fourth
+return remain original-byte replay states pending direct stops.
