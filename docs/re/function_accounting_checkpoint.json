@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "d9aad51863b8e83111b755efa4ee268654416739a5d930e3b873112887da233c",
-    "full_c_map": "37ede9d65b5336dca1059fe9d431a3f5b0f4d34daa2db6c633991477ac1da22e",
+    "classification": "67e1e440773f6a028a41b3456ce61f97f3560f407c3b3e713ca22bf75e406667",
+    "full_c_map": "e7c59e8db59abce1751821c2192b7014d837c1cb22e0bcb84a21fba62bf0ec91",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "6a235730c0278f3c3007a53f7df98fb6ae966eba9bdbf36bdac096dc967cab86"
+    "reviewed_identities": "03c30caaea2d5b738c88b00b0c40472923bb9fe28b8ac6abeb3d583af73e2d24"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "4fffa3b5d2a3aa06ca51f58b8007d5e4db62b128b70ff3e3b265da11bcb235fe",
+  "queue_sha256": "be8c41956ab7fc3b55c1052611dd23ecd39c12cd7ddd78a6ffc66d7148988350",
   "reviewed_change": {
-    "approval_reference": "PM exact-head PR #481 review on 2026-10-14: 1143 original-byte full-RAM/all-CPU cases covering 23 sites/four edges, 518 native original-caller cases, aligned party-chain game role; natural saved-game reach unmeasured",
+    "approval_reference": "PM exact-head PR #491 review on 2026-10-14: 2522 original-byte full-RAM/all-CPU cases covering 44 sites/12 edges, 1282 native original-caller cases, three aligned game-evidenced callers; natural saved-game reach unmeasured",
     "approved_by": "PM",
-    "body_bytes": 79,
-    "body_sha256": "ef58c3eedf096f21b9b923c9c303dfc629e5f0935d2673dabf93e1bc9749de9a",
-    "evidence_doc": "docs/re/U2F_RECORD_LINK_CLEAR_122B.md",
+    "body_bytes": 130,
+    "body_sha256": "9f192cb8fe704324facbbec368d1e24602558b878aa3f7e0031f644862e09767",
+    "evidence_doc": "docs/re/U6C_RECORD_TABLE_SUM_3F31.md",
     "game_identity": true,
-    "original_id": "OVL_002F_122B",
-    "review_pr": 481,
-    "reviewed_commit": "8a03a1b64a8d0e60d8a940d47f6eb47fb54a38ea",
+    "original_id": "OVL_006C_3F31",
+    "review_pr": 491,
+    "reviewed_commit": "df9d516cb6862e84a0f749e709f79913dfb042d3",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 71,
+    "overlay": 72,
     "resident": 9
   },
-  "strict_full_c_originals": 80,
-  "unknown_ownership": 668,
+  "strict_full_c_originals": 81,
+  "unknown_ownership": 667,
   "verified_game_by_domain": {
-    "overlay": 131,
+    "overlay": 132,
     "resident": 10
   },
-  "verified_game_identities": 141,
+  "verified_game_identities": 142,
   "whole_game_denominator": "unknown"
 }
