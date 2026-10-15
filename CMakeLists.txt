@@ -182,6 +182,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u9e_0160.c
                                     src/recovered/overlay_u9e_entry8_roll.c
                                     src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c
+                                    src/recovered/overlay_u3c2_entry3_02cc.c
                                     src/recovered/resident_route_290b.c
                                     src/recovered/resident_field_08ef.c
                                     src/recovered/resident_field_0973.c
@@ -1629,4 +1630,10 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_slot_a_res464_second_flush_tests
              COMMAND poolrad_slot_a_res464_second_flush_tests)
+    add_executable(poolrad_overlay_u3c2_entry3_02cc_tests
+                   tests/recovered/test_overlay_u3c2_entry3_02cc.c)
+    target_link_libraries(poolrad_overlay_u3c2_entry3_02cc_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_entry3_02cc_tests
+             COMMAND poolrad_overlay_u3c2_entry3_02cc_tests)
 endif()
