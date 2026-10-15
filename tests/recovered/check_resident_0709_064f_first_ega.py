@@ -25,7 +25,7 @@ from check_resident_0709_0626_postcopy_control import (  # noqa: E402
 )
 from resident_loader_map import unpack  # noqa: E402
 
-DRAWER_SHA = "8d71dd4c0162462f99aef0fbbd4cfee472702f330bca1e07b50f192ffd972aef"
+DRAWER_SHA = "a9d1c72241b6810c3e0995b03cca98edc56cb76734e948333e360d82ef7e1840"
 UPCASE_SHA = "738c9a82c7faab6335f0952cc5d989d273cb85828a0735f34966220f370d012c"
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
 
@@ -33,9 +33,9 @@ OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
 def original_extra():
     raw = (ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
     image, *_ = unpack(raw)
-    drawer = image[0x726F:0x767A]
+    drawer = image[0x726F:0x767B]
     upcase = raw[0xC4A0:0xC4B3]
-    assert len(drawer) == 1035 and sha256(drawer).hexdigest() == DRAWER_SHA
+    assert len(drawer) == 1036 and sha256(drawer).hexdigest() == DRAWER_SHA
     assert len(upcase) == 19 and sha256(upcase).hexdigest() == UPCASE_SHA
     return drawer, upcase
 
