@@ -294,6 +294,11 @@ foreach(registration IN LISTS registrations)
                 continue()
             endif()
             set(leading_options FALSE)
+            # CMake ignores an empty source path, but its position still ends
+            # the leading executable-option list.
+            if(source STREQUAL "")
+                continue()
+            endif()
             require_source("${source}" "${test_name}")
             math(EXPR target_source_count "${target_source_count} + 1")
             math(EXPR source_count "${source_count} + 1")
