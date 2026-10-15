@@ -44,6 +44,15 @@ ordered original input frames. The quick matrix varies SS, SP, saved BP,
 initial flags and seeded full RAM. All original media and derived frames
 stay under ignored `resources/`; public C tests contain synthetic data.
 
+The quick gate passes 190/190 original-produced frames, covering the one
+JMP site and reaching +0918 in every case. All 14 CPU words match, and the
+original branch leaves every byte of the captured 1 MiB RAM unchanged.
+There are zero post-capture guest edits, masked flags or emulator
+substitutions. The ordered original-frame digest is SHA-256
+`70364c7e86f9a84dfef119245f882d53f550fb7ff4efefe7565e18b1bc29a06f`.
+Both states of CF/PF/ZF/SF/OF occur in the input frames; AF is defined zero
+by the original SUB that produced them and remains unchanged by JMP.
+
 The focused C test checks all 65,536 flag words with varied CPU fields,
 requiring only IP to change, plus null/wrong-IP rejection. These are C
 state-preservation tests, not native execution of every flag combination.
@@ -57,8 +66,10 @@ Tracked-file media hygiene and the copied research snapshot checksums pass.
 - `source_candidates`: `src/recovered/overlay_u3c2_jump_successor_0913.c`.
 - `signals`: pinned jump identity, original-produced frame provenance,
   exact source/stop boundaries, all-CPU and whole-RAM invariants.
-- `score`: original-frame gate pending; no full-function score inferred.
-- `verdict`: `unclear` until the original-frame gate completes.
+- `score`: 1/1 jump site and 190/190 original-produced frame comparisons;
+  bounded coverage only, with no full-function score inferred.
+- `verdict`: `match` for this JMP under the documented preconditions;
+  whole-caller parity remains `unclear`.
 - `review_notes`: the entry prefix produces frames but is outside the C
   jump implementation. The successor, remaining caller, callee and return
   path are unmodeled. No natural/native or strict-function claim is made.
