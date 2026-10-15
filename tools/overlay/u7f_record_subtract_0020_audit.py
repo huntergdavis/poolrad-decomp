@@ -473,6 +473,7 @@ leaf:
 
 def native_wrap_audit(root,body,function):
     directory=root/"resources/oracle-runs/u7f-record-subtract-0020-wrap"
+    directory.mkdir(parents=True,exist_ok=True)
     source=directory/"leaf.bin";source.write_bytes(body)
     asm,obj,com=directory/"oracle.S",directory/"oracle.o",directory/"ORACLE.COM"
     asm.write_text(wrap_assembly(source))
