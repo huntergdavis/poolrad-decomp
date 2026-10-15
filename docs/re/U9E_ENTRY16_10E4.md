@@ -31,14 +31,40 @@ host guard is outside DOS parity.
 
 `tests/recovered/check_overlay_u9e_entry16_10e4.py` verifies the exact
 original slice and compares the C model to 16-bit Unicorn at the far-return
-target. It compares all 1 MiB RAM bytes and all 14 CPU words across 70
+target. It compares all 1 MiB RAM bytes and all 14 CPU words across 72
 synthetic entry frames: five first argument bytes, seven second argument
-bytes, both paths, normal and wrapped stack layouts, and two flag patterns.
+bytes, both paths, normal and wrapped stack layouts, two flag patterns, and
+directed SP `FFFD` frames for the two branch outcomes.
 It requires Python `capstone` and `unicorn`; they may be installed under
 ignored `resources/` and supplied through `PYTHONPATH`.
 `tests/recovered/test_overlay_u9e_entry16_10e4.c` pins both result paths,
 wrapped stack behavior and API rejection under strict C11 ASan/UBSan.
 
-These are synthetic frames. Native reach remains provisional: no natural
+The same Unicorn setup misses the intended far-return target at SP `FFFE`
+and `FFFF` with first byte `FF`, second byte `11` or `12`, SS `E000`, and
+FLAGS `0002`. SP `FFFD` passes for both outcomes. This is an oracle limit for
+those stack placements; it is not evidence that the C return is wrong.
+
+`tools/overlay/u9e_entry16_10e4_native.py` runs the exact original 41-byte
+body in synthetic DOSBox-X COM frames at SP `FFFE` and `FFFF`, with second
+byte `11` and `12`. The normal-core 386 executable is 12,192,432 bytes,
+SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`.
+All four native returns match the C translation for all 14 CPU words and
+25 relevant stack bytes, including the byte physically beyond SS:`FFFF`.
+The harness checks the COM's loaded body against the original hash; all COM,
+body and native result files remain under ignored `resources/`.
+
+These are synthetic frames. Natural native reach remains provisional: no
 saved-game caller frame has been captured for entry 16. Function accounting
 remains with PM review.
+
+## Adversarial parity review
+
+| Field | Assessment |
+| --- | --- |
+| `target_function` | Original U9E `+10E4..+110C`, public entry 16 |
+| `source_candidates` | `pr_u9e_entry16_10e4` |
+| `signals` | Exact byte extent and hash; branch and arithmetic shape; stack and `RETF 4` effects; 72 full-state Unicorn comparisons; four native wrap comparisons |
+| `score` | Five corroborating signals; no contradiction in the tested frames |
+| `verdict` | `match` for the complete executable body under the tested synthetic frames |
+| `review_notes` | Unicorn cannot decide SP `FFFE`/`FFFF` here; DOSBox-X covers those placements. Native saved-game reach remains unmeasured. The native oracle compares all CPU words and affected stack bytes, while the Unicorn oracle compares full RAM. |

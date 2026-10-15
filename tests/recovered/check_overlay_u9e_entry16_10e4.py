@@ -125,6 +125,11 @@ def main():
                  for first, second in pairs
                  for ss, sp, flags in ((0x7000, 0x8000, 0x0202),
                                       (0xE000, 0xFFFC, 0x0AD7))]
+        # FFFD is the last directed RETF boundary that this Unicorn setup
+        # returns to the expected target. FFFE/FFFF are covered by the
+        # original-byte DOSBox-X oracle in tools/overlay/.
+        cases += [(0xFF, second, 0xE000, 0xFFFD, 0x0002)
+                  for second in (0x11, 0x12)]
         for case in cases:
             compare_case(leaf, model, case)
     print(f"U9E +10E4 original-byte full RAM/14-register parity: {len(cases)} cases PASS")
