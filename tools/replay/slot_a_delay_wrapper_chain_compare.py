@@ -167,15 +167,36 @@ def audit(run_dir: Path) -> None:
         lib = build_shim(Path(tmp))
         raw = run_chain(lib, entry, 0)
         calibrated = run_chain(lib, entry, tick_delta)
+    expected_intervals = {
+        "raw": [(0x46C, 0x46E), (0x21022, 0x2102B),
+                (0x2102C, 0x21034)],
+        "timer-calibrated": [(0x21022, 0x2102B),
+                             (0x2102C, 0x21034)],
+    }
     for label, result in (("raw", raw), ("timer-calibrated", calibrated)):
         status, memory, cpu, wrapper, counts = result
         require(status == 0, f"{label}: first C boundary status {status}")
-        print(f"{label}: RAM {describe(intervals(memory, native))}")
+        residual = intervals(memory, native)
+        wrapper_diff = {key: (wrapper[key], value)
+                        for key, value in WRAPPER_RETURN.items()
+                        if wrapper[key] != value}
+        u1c_diff = {key: (cpu[key], value)
+                    for key, value in U1C_RETURN.items()
+                    if cpu[key] != value}
+        pc = word(memory, 0x14A0, 0x49ED)
+        require(residual == expected_intervals[label],
+                f"{label}: captured RAM residual changed")
+        require(not wrapper_diff and not u1c_diff,
+                f"{label}: recorded CPU fields differ")
+        require(pc == 0x9C29, f"{label}: ECL PC differs")
+        require(counts == (900, 242101, 900, 242100),
+                f"{label}: C callback counts changed")
+        print(f"{label}: RAM {describe(residual)}")
         print(f"{label}: wrapper CPU differences "
-              f"{ {key: (wrapper[key], value) for key, value in WRAPPER_RETURN.items() if wrapper[key] != value} }")
+              f"{wrapper_diff}")
         print(f"{label}: U1C CPU differences "
-              f"{ {key: (cpu[key], value) for key, value in U1C_RETURN.items() if cpu[key] != value} }")
-        print(f"{label}: ECL PC=0x{word(memory, 0x14A0, 0x49ED):04X}; "
+              f"{u1c_diff}")
+        print(f"{label}: ECL PC=0x{pc:04X}; "
               f"A40 units/BIOS/calibration/spin={counts}")
     print("unmeasured native CPU fields: SI, DI, FLAGS")
 
