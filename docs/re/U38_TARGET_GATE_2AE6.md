@@ -2,9 +2,10 @@
 
 ## Provenance and gate
 
-This candidate is stacked on the provisional
+This candidate composes the merged
 [+0x101D target selector](U38_TARGET_SELECT_101D.md), corrected helper
-head `8ee237f0c7bf791c40345b4e15acda5d1501d623`. The initial
+head `8ee237f0c7bf791c40345b4e15acda5d1501d623` (PR #470,
+merged at `23f18d7`). The initial
 `deja "poolrad U38 +2AE6 entry100 helper +101D parity"` query spent
 several minutes rebuilding its index and returned no session result
 before it was stopped. The candidate reuses the helper's checked
@@ -63,5 +64,5 @@ frame to match across four cases and 52 frame bytes. Capture SHA-256:
 `6d5791241c76b5ca83c538c1a52d619027900fdd6d4a67d3a9b8c69d1f4c8877`.
 Its result is not a reached
 gameplay frame. The +0x101D helper's game-versus-library ownership
-classification and PR #470 review remain integration gates. No strict
-identity or count credit is claimed for this stacked entry.
+classification remains an integration gate. No strict identity or
+count credit is claimed for this entry.
