@@ -1,44 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "435c440114b071f6b96f67509ad78bc1b49dc0fd86a9f8155a469cbce563d224",
-    "full_c_map": "f6c039945ca50423638b1f581e6c9539e58b3a9efc1343a6e82d8b619f4c602b",
+    "classification": "b5aaf9e964906062e2f6f5806d4b512ae8558e8843ae0e64efefb89a6bafeb00",
+    "full_c_map": "4a1333d098878a4ea61151335b501f8cab7f0ad5396c816270ada394cb75f26a",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "b5fc9a2a1ef072ef24b40b3fff79ab74f5f89d4f8b771b0c8aba8f18e1c13816"
+    "reviewed_identities": "3f9b7521fa4582d45230d3d0a540ba71de3890a9401685f73889097a55fde545"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "f70f3694cdbb95c170323ec5908bd474a07d7c35b4ea99cfadf45686a65f8c94",
+  "queue_sha256": "a2645d2ff7734f88e122f88cd6fdafa19b156c89ca93d92e301ac92356419c1d",
   "reviewed_change": {
-    "approval_reference": "PM parity review of PR #413 exact head 937ad5c17e6fbee478459af96d4eb504f036c489",
+    "approval_reference": "PM exact-head parity review of PR #433 on 2026-10-14",
     "approved_by": "PM",
-    "body_bytes": 327,
-    "body_sha256": "e8f999e62ee3f04b194908f90ce7c0e15b0478a2af16a3843a1a076c86c67ce5",
-    "evidence_doc": "docs/re/U25_LOAD_WORD_0E0C.md",
-    "game_identity": false,
-    "native_reachability": "4,077 independently repeated original-byte full-RAM/CPU cases and 56 synthetic DOSBox-X native cases; natural saved-game entry frame unmeasured",
-    "original_id": "OVL_0025_0E0C",
-    "review_pr": 413,
-    "reviewed_commit": "ed9f9d8f600864a057ad8419588825470d9282af",
+    "body_bytes": 344,
+    "body_sha256": "76faaa709b22d0d563ae00745d122c9bd9d192a4f31bec85c60e69b1514486c7",
+    "evidence_doc": "docs/re/U6A_PARTY_BEFORE_14A9.md",
+    "game_identity": true,
+    "original_id": "OVL_006A_14A9",
+    "review_pr": 433,
+    "reviewed_commit": "3a4912ccebb3d9acba0794e8f4a6bfd4b5f8eb98",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 61,
+    "overlay": 62,
     "resident": 9
   },
-  "strict_full_c_originals": 70,
-  "unknown_ownership": 678,
+  "strict_full_c_originals": 71,
+  "unknown_ownership": 677,
   "verified_game_by_domain": {
-    "overlay": 121,
+    "overlay": 122,
     "resident": 10
   },
-  "verified_game_identities": 131,
+  "verified_game_identities": 132,
   "whole_game_denominator": "unknown"
 }
