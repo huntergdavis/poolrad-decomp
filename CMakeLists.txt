@@ -132,6 +132,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_mov_sp_0903_fixt
                                     src/recovered/overlay_u3b0_08c8_ss_dx_store.c
                                     src/recovered/overlay_u3b0_08cb_ss_inc.c
                                     src/recovered/overlay_u3b0_08ce_jmp.c
+                                    src/recovered/overlay_u3b0_0892_ss_al_load.c
                                     src/recovered/overlay_u38_sidecar_flag_0918.c
                                     src/recovered/overlay_u38_target_select_101d.c
                                     src/recovered/overlay_u38_roll_dispatch_1699.c
@@ -893,6 +894,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u3b0_08ce_jmp_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u3b0_08ce_jmp_tests
              COMMAND poolrad_overlay_u3b0_08ce_jmp_tests)
+    add_executable(poolrad_overlay_u3b0_0892_ss_al_load_tests
+                   tests/recovered/test_overlay_u3b0_0892_ss_al_load.c)
+    target_link_libraries(poolrad_overlay_u3b0_0892_ss_al_load_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3b0_0892_ss_al_load_tests
+             COMMAND poolrad_overlay_u3b0_0892_ss_al_load_tests)
     add_executable(poolrad_overlay_u3b0_087d_les_di_tests
                    tests/recovered/test_overlay_u3b0_087d_les_di.c)
     target_link_libraries(poolrad_overlay_u3b0_087d_les_di_tests PRIVATE poolrad_recovered)
