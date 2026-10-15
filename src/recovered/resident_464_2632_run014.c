@@ -403,3 +403,10 @@ pr_r464_2632_status pr_r464_2632_first_call(
 {
     return compose(ram, ram_size, cpu, observer, context, 43u, 0x000Bu);
 }
+
+pr_r464_2632_status pr_r464_2632_third_body(
+    uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
+    pr_r464_2632_observer observer, void *context)
+{
+    return compose(ram, ram_size, cpu, observer, context, 2u, 0x0007u);
+}

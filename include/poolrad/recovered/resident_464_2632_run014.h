@@ -37,4 +37,10 @@ pr_r464_2632_status pr_r464_2632_first_call(
     uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
     pr_r464_2632_observer observer, void *context);
 
+/* Measured third saved-view shape: two rows from +01E4 with selection mask
+ * 0007. This remains a bounded path, not the full resident routine. */
+pr_r464_2632_status pr_r464_2632_third_body(
+    uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
+    pr_r464_2632_observer observer, void *context);
+
 #endif
