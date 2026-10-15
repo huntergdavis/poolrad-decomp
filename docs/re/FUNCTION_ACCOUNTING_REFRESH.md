@@ -1,10 +1,10 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**81 strict full-C originals** (72 overlay, nine resident) and **142 verified
-game identities** (132 overlay, ten resident). The queue still contains 898
+**82 strict full-C originals** (73 overlay, nine resident) and **143 verified
+game identities** (133 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
-seeds. There are 89 inferred-library starts and 667 unknown-ownership starts.
+seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
 from these counts. The [battle card](../BATTLE_CARD.md) uses this checkpoint.
 
@@ -23,10 +23,11 @@ merge. Passing tests alone never promotes an original.
 | `OVL_007D_02F2` | PR #476, `62e1fb09c8500d6da1192824c737c2a65ba7d476`; PM exact-head review | 177 bytes, SHA-256 `8f39276ad357b6e05367ffc080afedc0df5a5cca2f3cbf54b3d96db18bea3dd9` | [carry-mask helper](U7D_CARRY_02F2.md) |
 | `OVL_002F_122B` | PR #481, `8a03a1b64a8d0e60d8a940d47f6eb47fb54a38ea`; PM exact-head review | 79 bytes, SHA-256 `ef58c3eedf096f21b9b923c9c303dfc629e5f0935d2673dabf93e1bc9749de9a` | [record link clearer](U2F_RECORD_LINK_CLEAR_122B.md) |
 | `OVL_006C_3F31` | PR #491, `df9d516cb6862e84a0f749e709f79913dfb042d3`; PM exact-head review | 130 bytes, SHA-256 `9f192cb8fe704324facbbec368d1e24602558b878aa3f7e0031f644862e09767` | [record/table byte sum](U6C_RECORD_TABLE_SUM_3F31.md) |
+| `OVL_007F_0F7E` | PR #492, `04d96904fd74bbb7586db3d992cf6fa959072e4c`; PM exact-head review | 84 bytes, SHA-256 `5db57d103e9038273938138f1980a39a0af093ac1b811d8e50fa178f5371c51b` | [state flags](U7F_STATE_FLAGS_0F7E.md) |
 
-The first two historical changes produced 67/129 and 68/130. The six latest
+The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
-80/141, and 81/142. Each is
+80/141, 81/142, and 82/143. Each is
 credited once by original address, regardless of entry slots, runtime stubs,
 aliases, or the number of C symbols. Unit `0x25:+0x1EA6` remains an extracted
 core with zero strict credit. PRs #387/#388/#389 receive no additional identity
@@ -42,7 +43,10 @@ saved-game calls remain unmeasured. U2F +122B has original-byte and native
 party-caller parity; natural saved-game reach remains unmeasured. U6C +3F31
 has 2,522 original-byte full-RAM/all-CPU cases, 1,282 native original-caller
 cases, and three aligned game-evidenced callers. Its natural saved-game reach
-remains unmeasured. None of
+remains unmeasured. U7F +0F7E has 389 returning original-byte full-RAM/all-CPU
+cases, 256 native copied-leaf cases, and seven aligned fixup-backed game
+callers. One alias fixture exceeded the original return budget and is excluded
+from returning-path parity; natural saved-game reach remains unmeasured. None of
 these approvals completes a continuous playable C route.
 
 ## Canonical inputs and generated outputs
