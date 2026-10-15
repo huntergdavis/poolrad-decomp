@@ -30,4 +30,11 @@ pr_r464_2632_status pr_r464_2632_run014(
     uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
     pr_r464_2632_observer observer, void *context);
 
+/* Separate measured first-call shape: 43 rows from +0198, selection mask
+ * 000B, then RETF 12 to overlay +019D. Still a bounded path, not the full
+ * resident routine. */
+pr_r464_2632_status pr_r464_2632_first_call(
+    uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
+    pr_r464_2632_observer observer, void *context);
+
 #endif

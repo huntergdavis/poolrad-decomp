@@ -175,14 +175,15 @@ static void runtime_fill(uint8_t *ram, pr_r464_2632_cpu *cpu)
     cpu->cs = return_cs;
 }
 
-pr_r464_2632_status pr_r464_2632_run014(
+static pr_r464_2632_status compose(
     uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
-    pr_r464_2632_observer observer, void *context)
+    pr_r464_2632_observer observer, void *context,
+    uint16_t required_rows, uint16_t required_mask)
 {
     uint16_t bp, object_off, object_seg, source_off, source_seg;
-    uint16_t mask, count, row, x, width, height, row_slot;
+    uint16_t mask, count, row, x, width, height, row_slot, rows, current_row;
     uint16_t pixel_start, pixel_end, row_base, tail;
-    uint16_t counter, i, return_ip, return_cs;
+    uint16_t counter, i, row_index, return_ip, return_cs;
 
     if (ram == NULL || cpu == NULL || ram_size < PR_R464_2632_RAM_BYTES)
         return PR_R464_2632_INVALID_HOST;
@@ -194,6 +195,7 @@ pr_r464_2632_status pr_r464_2632_run014(
     source_off = word_at(ram, cpu->ss, (uint16_t)(bp + 0x0Au));
     source_seg = word_at(ram, cpu->ss, (uint16_t)(bp + 0x0Cu));
     mask = word_at(ram, cpu->ss, (uint16_t)(bp + 0x0Eu));
+    rows = word_at(ram, cpu->ss, (uint16_t)(bp + 0x10u));
     count = word_at(ram, cpu->ss, (uint16_t)(bp + 0x12u));
     row = word_at(ram, cpu->ss, (uint16_t)(bp + 0x14u));
     x = word_at(ram, cpu->ss, (uint16_t)(bp + 0x16u));
@@ -207,21 +209,36 @@ pr_r464_2632_status pr_r464_2632_run014(
     /* These guards describe the directly observed branch successors. They
      * run before the first push, leaving unsupported paths untouched. */
     if ((object_off | object_seg) == 0u ||
-        word_at(ram, cpu->ss, (uint16_t)(bp + 0x10u)) != 1u ||
+        rows != required_rows ||
+        (required_rows > 1u && mask != required_mask) ||
         row > 255u || x == 0u || x > 0x7FFFu ||
         count == 0u || count > 64u ||
-        (uint32_t)row + 1u > height ||
+        (uint32_t)row + rows > height ||
+        (uint32_t)row + rows > 256u ||
         (uint32_t)x + count > width ||
-        (uint32_t)(row * (uint32_t)width + x + count) * 4u > 0xFFFFu ||
-        (uint32_t)object_off + pixel_start + 0x17u +
+        (uint32_t)(((uint32_t)row + rows - 1u) * width + x + count) *
+            4u > 0xFFFFu ||
+        (uint32_t)object_off +
+            (uint32_t)(((uint32_t)row + rows - 1u) * width + x) * 4u +
+            0x17u +
             ((uint32_t)count - 1u) * 4u >
             (uint16_t)(bp - 0x1Cu) ||
-        byte_at(ram, cpu->ds, 0x4A1Eu) != 1u ||
-        word_at(ram, cpu->ds, (uint16_t)(0x4C20u + row_slot)) <= pixel_start ||
-        word_at(ram, cpu->ds, (uint16_t)(0x4D70u + row_slot)) >= pixel_end)
+        byte_at(ram, cpu->ds, 0x4A1Eu) != 1u)
         return PR_R464_2632_UNSUPPORTED_PATH;
     for (i = 0; i < 4u; ++i) {
-        if ((byte_at(ram, cpu->ds, (uint16_t)(0x25F6u + i)) & mask) == 0u)
+        uint8_t table = byte_at(ram, cpu->ds,
+                                (uint16_t)(0x25F6u + i));
+        if ((required_rows > 1u && table != (uint8_t)(1u << i)) ||
+            (required_rows == 1u && (table & mask) == 0u))
+            return PR_R464_2632_UNSUPPORTED_PATH;
+    }
+    for (i = 0; i < rows; ++i) {
+        uint16_t current = (uint16_t)(row + i);
+        uint16_t slot = (uint16_t)(current * 2u);
+        uint16_t start = (uint16_t)(((uint32_t)current * width + x) * 4u);
+        uint16_t end = (uint16_t)(start + count * 4u - 1u);
+        if (word_at(ram, cpu->ds, (uint16_t)(0x4C20u + slot)) <= start ||
+            word_at(ram, cpu->ds, (uint16_t)(0x4D70u + slot)) >= end)
             return PR_R464_2632_UNSUPPORTED_PATH;
     }
 
@@ -257,8 +274,8 @@ pr_r464_2632_status pr_r464_2632_run014(
               (uint16_t)(width - count - x));
     set_local(ram, cpu, (uint16_t)-0x1E, row);
     set_local(ram, cpu, (uint16_t)-0x16, row_base);
-    set_local(ram, cpu, (uint16_t)-0x14, 0u);
-    cpu->cx = (uint16_t)(row + 1u);
+    set_local(ram, cpu, (uint16_t)-0x14, (uint16_t)(rows - 1u));
+    cpu->cx = (uint16_t)(row + rows);
     cpu->ax = 1u;
     cpu->flags = sub_flags8(cpu->flags, 1u, 1u);
     observe(0x28E0u, ram, cpu, observer, context);
@@ -287,63 +304,77 @@ pr_r464_2632_status pr_r464_2632_run014(
     for (i = 0; i < 4u; ++i) {
         put_byte(ram, cpu->ss, (uint16_t)(cpu->bp - 0x21u), (uint8_t)i);
         put_byte(ram, cpu->ss,
-                 (uint16_t)(cpu->bp - 0x1Cu + i), 0xFFu);
+                 (uint16_t)(cpu->bp - 0x1Cu + i),
+                 (byte_at(ram, cpu->ds, (uint16_t)(0x25F6u + i)) & mask)
+                    != 0u ? 0xFFu : 0u);
     }
     cpu->ax = 3u;
     cpu->di = 3u;
     cpu->flags = sub_flags8(cpu->flags, 3u, 3u);
     observe(0x294Du, ram, cpu, observer, context);
 
-    /* +294D..+2999: one reached row and its dirty metadata. */
-    set_local(ram, cpu, (uint16_t)-0x23, 0u);
+    /* +294D onward: the observed caller performs one or 43 rows. */
+    set_local(ram, cpu, (uint16_t)-0x23, (uint16_t)(rows - 1u));
     set_local(ram, cpu, (uint16_t)-0x18, 0u);
-    put_byte(ram, cpu->ds, (uint16_t)(0x4A28u + row), 1u);
-    set_local(ram, cpu, (uint16_t)-0x16, pixel_start);
-    put_word(ram, cpu->ds, (uint16_t)(0x4AD0u + row_slot), x);
-    put_word(ram, cpu->ds, (uint16_t)(0x4C20u + row_slot), pixel_start);
-    cpu->di = row_slot;
-    cpu->ax = pixel_start;
-    cpu->flags = add_flags16(cpu->flags, row, row);
-    observe(0x2999u, ram, cpu, observer, context);
+    for (row_index = 0; row_index < rows; ++row_index) {
+        current_row = (uint16_t)(row + row_index);
+        row_slot = (uint16_t)(current_row * 2u);
+        pixel_start = (uint16_t)(((uint32_t)current_row * width + x) * 4u);
+        pixel_end = (uint16_t)(pixel_start + count * 4u - 1u);
+        put_byte(ram, cpu->ds, (uint16_t)(0x4A28u + current_row), 1u);
+        set_local(ram, cpu, (uint16_t)-0x16, pixel_start);
+        put_word(ram, cpu->ds, (uint16_t)(0x4AD0u + row_slot), x);
+        put_word(ram, cpu->ds, (uint16_t)(0x4C20u + row_slot), pixel_start);
+        cpu->di = row_slot;
+        cpu->ax = pixel_start;
+        cpu->flags = add_flags16(cpu->flags, current_row, current_row);
+        if (row_index == 0u) observe(0x2999u, ram, cpu, observer, context);
 
-    /* +2999..+29D7: one byte-counted row of four-byte runtime Moves. */
-    put_byte(ram, cpu->ss, (uint16_t)(cpu->bp - 0x24u), (uint8_t)count);
-    counter = 1u;
-    for (;;) {
-        put_byte(ram, cpu->ds, 0x70C7u, (uint8_t)counter);
-        cpu->di = (uint16_t)(cpu->bp - 0x1Cu);
-        push(ram, cpu, cpu->ss);
-        push(ram, cpu, cpu->di);
-        cpu->ax = local(ram, cpu, (uint16_t)-0x16);
-        cpu->di = (uint16_t)(object_off + cpu->ax);
-        cpu->es = object_seg;
-        cpu->flags = add_flags16(cpu->flags, cpu->di, 0x17u);
-        cpu->di = (uint16_t)(cpu->di + 0x17u);
-        push(ram, cpu, cpu->es);
-        push(ram, cpu, cpu->di);
-        cpu->ax = 4u;
-        push(ram, cpu, cpu->ax);
-        if (counter == 1u) observe(0x29C6u, ram, cpu, observer, context);
-        runtime_move(ram, cpu, 0x29CBu, 1u);
-        if (counter == 1u) observe(0x29CBu, ram, cpu, observer, context);
+        /* +2999..+29D7: byte-counted four-byte runtime Moves. */
+        put_byte(ram, cpu->ss, (uint16_t)(cpu->bp - 0x24u), (uint8_t)count);
+        counter = 1u;
+        for (;;) {
+            put_byte(ram, cpu->ds, 0x70C7u, (uint8_t)counter);
+            cpu->di = (uint16_t)(cpu->bp - 0x1Cu);
+            push(ram, cpu, cpu->ss);
+            push(ram, cpu, cpu->di);
+            cpu->ax = local(ram, cpu, (uint16_t)-0x16);
+            cpu->di = (uint16_t)(object_off + cpu->ax);
+            cpu->es = object_seg;
+            cpu->flags = add_flags16(cpu->flags, cpu->di, 0x17u);
+            cpu->di = (uint16_t)(cpu->di + 0x17u);
+            push(ram, cpu, cpu->es);
+            push(ram, cpu, cpu->di);
+            cpu->ax = 4u;
+            push(ram, cpu, cpu->ax);
+            if (row_index == 0u && counter == 1u)
+                observe(0x29C6u, ram, cpu, observer, context);
+            runtime_move(ram, cpu, 0x29CBu, 1u);
+            if (row_index == 0u && counter == 1u)
+                observe(0x29CBu, ram, cpu, observer, context);
+            set_local(ram, cpu, (uint16_t)-0x16,
+                      (uint16_t)(local(ram, cpu, (uint16_t)-0x16) + 4u));
+            cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | (uint8_t)counter);
+            cpu->flags = sub_flags8(cpu->flags, (uint8_t)counter, (uint8_t)count);
+            if (counter == count) break;
+            ++counter;
+        }
+        if (row_index == 0u) observe(0x29D7u, ram, cpu, observer, context);
+
+        /* +29D7..+2A02: upper extent, row advance, outer counter. */
+        put_word(ram, cpu->ds, (uint16_t)(0x4D70u + row_slot), pixel_end);
         set_local(ram, cpu, (uint16_t)-0x16,
-                  (uint16_t)(local(ram, cpu, (uint16_t)-0x16) + 4u));
-        cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | (uint8_t)counter);
-        cpu->flags = sub_flags8(cpu->flags, (uint8_t)counter, (uint8_t)count);
-        if (counter == count) break;
-        ++counter;
+                  (uint16_t)(local(ram, cpu, (uint16_t)-0x16) + tail));
+        set_local(ram, cpu, (uint16_t)-0x1E,
+                  (uint16_t)(current_row + 1u));
+        cpu->di = row_slot;
+        cpu->ax = local(ram, cpu, (uint16_t)-0x18);
+        cpu->flags = sub_flags16(cpu->flags, cpu->ax,
+                                  local(ram, cpu, (uint16_t)-0x23));
+        if (row_index + 1u < rows)
+            set_local(ram, cpu, (uint16_t)-0x18,
+                      (uint16_t)(row_index + 1u));
     }
-    observe(0x29D7u, ram, cpu, observer, context);
-
-    /* +29D7..+2A07: upper bound, row/tail advance, equal outer counters. */
-    put_word(ram, cpu->ds, (uint16_t)(0x4D70u + row_slot), pixel_end);
-    set_local(ram, cpu, (uint16_t)-0x16,
-              (uint16_t)(local(ram, cpu, (uint16_t)-0x16) + tail));
-    set_local(ram, cpu, (uint16_t)-0x1E, (uint16_t)(row + 1u));
-    cpu->di = row_slot;
-    cpu->ax = local(ram, cpu, (uint16_t)-0x18);
-    cpu->flags = sub_flags16(cpu->flags, cpu->ax,
-                              local(ram, cpu, (uint16_t)-0x23));
     observe(0x2A02u, ram, cpu, observer, context);
     observe(0x2A07u, ram, cpu, observer, context);
 
@@ -357,4 +388,18 @@ pr_r464_2632_status pr_r464_2632_run014(
     cpu->cs = return_cs;
     observe(return_ip, ram, cpu, observer, context);
     return PR_R464_2632_OK;
+}
+
+pr_r464_2632_status pr_r464_2632_run014(
+    uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
+    pr_r464_2632_observer observer, void *context)
+{
+    return compose(ram, ram_size, cpu, observer, context, 1u, 0x000Fu);
+}
+
+pr_r464_2632_status pr_r464_2632_first_call(
+    uint8_t *ram, size_t ram_size, pr_r464_2632_cpu *cpu,
+    pr_r464_2632_observer observer, void *context)
+{
+    return compose(ram, ram_size, cpu, observer, context, 43u, 0x000Bu);
 }
