@@ -268,6 +268,15 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_test(NAME poolrad_ctest_source_paths
+             COMMAND "${CMAKE_COMMAND}" -P
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/qa/test_ctest_source_paths.cmake")
+    add_test(NAME poolrad_ctest_depends
+             COMMAND "${CMAKE_COMMAND}" -P
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/qa/test_ctest_depends.cmake")
+    add_test(NAME poolrad_ctest_depends_graph
+             COMMAND "${CMAKE_COMMAND}" -P
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/qa/test_ctest_depends_graph.cmake")
     add_executable(poolrad_overlay_u3c2_stack_load_05e7_fixture_tests
                    tests/recovered/test_overlay_u3c2_stack_load_05e7_fixture.c)
     target_link_libraries(poolrad_overlay_u3c2_stack_load_05e7_fixture_tests PRIVATE poolrad_recovered)
