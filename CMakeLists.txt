@@ -35,6 +35,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_464_2632_fourth_prefix.c
                                     src/recovered/resident_464_2632_fourth_move.c
                                     src/recovered/resident_464_2632_fourth_positive.c
+                                    src/recovered/resident_464_2632_fourth_width.c
                                     src/recovered/resident_464_nibble_007b.c
                                     src/recovered/resident_464_mode2.c
                                     src/recovered/resident_464_mode1.c
@@ -1331,6 +1332,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_2632_fourth_positive_tests
              COMMAND poolrad_resident_464_2632_fourth_positive_tests)
+    add_executable(poolrad_resident_464_2632_fourth_width_tests
+                   tests/recovered/test_resident_464_2632_fourth_width.c)
+    target_link_libraries(poolrad_resident_464_2632_fourth_width_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_2632_fourth_width_tests
+             COMMAND poolrad_resident_464_2632_fourth_width_tests)
     add_executable(poolrad_resident_464_nibble_007b_tests
                    tests/recovered/test_resident_464_nibble_007b.c)
     target_link_libraries(poolrad_resident_464_nibble_007b_tests PRIVATE
