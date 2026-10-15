@@ -47,20 +47,28 @@ it before any new launch.
 1. Verify the original, emulator binary, launcher, and debugger-source
    hashes. Reserve one exclusive heavy emulator slot. Record the **entire
    initial debugger PTY**, including commands and stops, into ignored
-   `resources/` before typing `RUN`; retain a bounded timeout and process
-   cleanup. Use X11 input only for game navigation, not debugger commands.
+   `resources/` before typing `RUN`. Stop after **32 target hits or 175
+   seconds total**, whichever comes first; terminate the launch process
+   group and verify no child remains. Use X11 input only for game
+   navigation, not debugger commands.
 2. At the initial debugger prompt, clear stale breakpoints, arm only
    `BP 0AF8:16A1`, confirm the sole code breakpoint with `BPLIST`, and type
    `RUN` in that same PTY. Navigate title, Load, and saved slot A. Do not
    re-arm `0C88:1B52`; avoid its repeated-entry pauses.
 3. At each `16A1` hit, record `EV CS IP DS ES SS SP BP AX BX CX DX SI DI
-   FLAGS` and `MEMDUMPBIN 0000 0000 A0000`, moving the generated private
-   dump before the next command overwrites it. Classify the **live** frame:
-   `DS:SI=A200:03C3`, `ES:DI=A000:03C3`, `CX=11`, DF clear, return from
-   resident `+1DA0`, saved first-flush caller frame, and dirty row 16 in
-   `14A0` video metadata. Earlier unrelated Move calls are not evidence
-   for the saved first page. If classification fails, record and resume
-   under the time cap.
+   FLAGS` and a small `MEMDUMPBIN SS SP 80` caller window. If the CPU
+   tuple suggests the first row, capture only `14A0:4A1E` (video state),
+   `14A0:4A38` (row-16 dirty flag), `14A0:4C40` and `14A0:4D90` (its two
+   extent words) with one- or two-byte `MEMDUMPBIN` commands. Move each
+   generated private `MEMDUMP.BIN` to a hit-numbered name before another
+   dump overwrites it. Classify the **live** frame: `DS:SI=A200:03C3`,
+   `ES:DI=A000:03C3`, `CX=11`, DF clear, return from resident `+1DA0`,
+   saved first-flush caller frame, and dirty row 16 in `14A0` metadata.
+   Only after all those checks match, take the full
+   `MEMDUMPBIN 0000 0000 A0000` capture. Earlier unrelated Move calls
+   are not evidence for the saved first page. Log each unclassified hit's
+   sequence number, CPU tuple, reason, and hashes of its small private
+   captures, then resume within the hit/time cap; publish no values.
 4. Only at a classified pre-`REP` stop, capture current GC/write-mode and
    read-map state plus all four source and destination plane bytes under
    ignored `resources/`. Restore any debugger-modified read-map register
@@ -74,7 +82,8 @@ it before any new launch.
    iteration. A changed `CX=1` input is not original-path parity.
 
 If the slot ends before a classified pre-`REP` and measured after-one-byte
-state, report the exact stop, process result, transcript hash, and blocker.
+state, stop cleanly and report the hit count, last exact stop, process
+result, transcript hash, unclassified-hit log hash, and blocker.
 Do not infer a saved first-page write from an unclassified `16A1` hit,
 whole-`REP` return, or the existing entry-to-return plane equality.
 No game bytes, RAM values, EGA bytes, or pixels belong in a public note.
