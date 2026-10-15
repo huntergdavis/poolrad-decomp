@@ -82,6 +82,8 @@ class FocusedRecoveredLinkTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertEqual(report["required_link_count"], 0)
         self.assertEqual(report["issues"]["interface_required_links"], ["poolrad_a_tests"])
+        self.assertEqual(len(report["issues"]["out_of_scope_links"]), 1)
+        self.assertEqual(report["issues"]["out_of_scope_links"][0]["visibility"], "INTERFACE")
 
     def test_unsupported_or_malformed_links_fail_closed(self):
         cases = [
@@ -113,6 +115,7 @@ class FocusedRecoveredLinkTests(unittest.TestCase):
             "add_library(other_library STATIC)\ntarget_link_libraries(poolrad_a_tests PRIVATE poolrad_recovered other_library)")
         self.assertEqual(result.returncode, 1)
         self.assertEqual(report["issues"]["out_of_scope_links"][0]["library"], "other_library")
+        self.assertEqual(len(report["issues"]["out_of_scope_links"]), 1)
         self.assertEqual(report["issues"]["unknown_libraries"], [])
 
     def test_outside_selection_and_before_definition(self):

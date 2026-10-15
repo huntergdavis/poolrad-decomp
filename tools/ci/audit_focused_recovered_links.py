@@ -241,8 +241,6 @@ def audit(root, registry_path, cmake, allowed=("poolrad_formats",)):
                 out_of_scope.append(location)
             if value not in definitions and value not in allowed:
                 unknown_libraries.append(location)
-            if value not in {"poolrad_recovered"} | allowed or visibility == "INTERFACE":
-                out_of_scope.append(location)
             if value == "poolrad_recovered":
                 (interface_links if visibility == "INTERFACE" else required_links)[target].append(location)
         if not group_has_library:
