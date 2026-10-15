@@ -61,8 +61,10 @@ not a C timing prediction or a forced party/result tuple.
 
 The 17 remaining bytes are below the A40 near-call word at physical
 `[0x21034,0x21036)`. No instruction in the bounded A40 body writes them.
-Interrupt activity is plausible, but no first writer or IRQ frame was
-captured, so their cause remains unresolved. The two tick bytes at
+Interrupt activity was plausible in this comparison, but no first writer or
+IRQ frame was captured at that time. A subsequent
+[native watch](SLOT_A_DELAY_IRQ_STACK_WRITER.md) measured IRQ0 stack effects
+in a separate replay. The two tick bytes at
 `[0x46C,0x46E)` are supplied by the
 external callback; the C body does not read this clock DWORD.
 
