@@ -1,4 +1,4 @@
-/* Parser/bridge for a future pre-0AF8:16A1 state record.
+/* Parser/bridge for a future pre-loaded-SYSTEM:16A1 state record.
  * Only synthetic records are supplied in this test program.
  * A parsed record is not proof of a native capture or replay route. */
 #include "res464_16a1_explicit_byte_model.h"
@@ -61,6 +61,7 @@ static bool exact_bool(const char *text, bool *value) {
 }
 
 static bridge_status parse_field(field_id field, const char *text,
+                                  uint16_t loaded_cs,
                                   explicit_byte_input *input,
                                   uint16_t *source_offset,
                                   uint16_t *page_offset) {
@@ -76,7 +77,7 @@ static bridge_status parse_field(field_id field, const char *text,
         memcpy(offset, text + 5, 4); offset[4] = '\0';
         if (!exact_hex(segment, 4, &seg) || !exact_hex(offset, 4, &off))
             return BRIDGE_FORMAT;
-        return seg == 0x0AF8u && off == 0x16A1u ? BRIDGE_OK : BRIDGE_FRAME;
+        return seg == loaded_cs && off == 0x16A1u ? BRIDGE_OK : BRIDGE_FRAME;
     }
     if (field == F_HANDLER) {
         if (strcmp(text, "unchained") == 0) {
@@ -123,6 +124,7 @@ static bridge_status parse_field(field_id field, const char *text,
 }
 
 static bridge_status parse_and_project(const char *record, size_t length,
+                                       uint16_t loaded_cs,
                                        explicit_byte_input *parsed,
                                        explicit_byte_result *projected) {
     explicit_byte_input next_input = {0};
@@ -130,7 +132,7 @@ static bridge_status parse_and_project(const char *record, size_t length,
     uint32_t seen = 0;
     uint16_t source_offset = 0, page_offset = 0;
     size_t pos = 0;
-    if (!record || !parsed || !projected || length == 0 ||
+    if (!record || !parsed || !projected || loaded_cs == 0 || length == 0 ||
         length > RECORD_LIMIT)
         return BRIDGE_ARGUMENT;
     while (pos < length) {
@@ -155,7 +157,8 @@ static bridge_status parse_and_project(const char *record, size_t length,
                 break;
         if (field == FIELD_COUNT) return BRIDGE_FORMAT;
         if (seen & (UINT32_C(1) << field)) return BRIDGE_DUPLICATE;
-        status = parse_field((field_id)field, equals + 1, &next_input,
+        status = parse_field((field_id)field, equals + 1, loaded_cs,
+                             &next_input,
                              &source_offset, &page_offset);
         if (status != BRIDGE_OK) return status;
         seen |= UINT32_C(1) << field;
@@ -182,7 +185,7 @@ static bridge_status parse_and_project(const char *record, size_t length,
 
 /* These fields are invented test values. There is no native +16A1 capture. */
 static const char *const synthetic_lines[FIELD_COUNT] = {
-    "phase=pre_16A1", "pc=0AF8:16A1", "ds=A200", "si=03C3",
+    "phase=pre_16A1", "pc=ABCD:16A1", "ds=A200", "si=03C3",
     "es=A000", "di=03C3", "cx=000B", "df=0",
     "gc6=04", "seq4=04", "seq2=0F", "gc4=00", "gc5=01",
     "handler=unchained", "compatible_chain4=0", "ignore_odd_even=0",
@@ -222,7 +225,8 @@ static int synthetic_tests(void) {
     size_t length, field;
     length = build_record(record, -1, NULL, NULL);
     CHECK(length > 0);
-    CHECK(parse_and_project(record, length, &input, &result) == BRIDGE_OK);
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
+          == BRIDGE_OK);
     CHECK(input.known == HAVE_ALL && input.gc6 == 4u && input.seq4 == 4u);
     CHECK(result.source_planar_offset == 0x23C3u);
     CHECK(result.page_planar_offset == 0x03C3u);
@@ -231,7 +235,7 @@ static int synthetic_tests(void) {
     for (field = 0; field < FIELD_COUNT; ++field) {
         length = build_record(record, (int)field, NULL, NULL);
         before_input = input; before_result = result;
-        CHECK(parse_and_project(record, length, &input, &result)
+        CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
               == BRIDGE_MISSING);
         CHECK(memcmp(&input, &before_input, sizeof input) == 0);
         CHECK(memcmp(&result, &before_result, sizeof result) == 0);
@@ -239,25 +243,47 @@ static int synthetic_tests(void) {
     length = build_record(record, -1, NULL, NULL);
     CHECK(length + 7u < RECORD_LIMIT);
     memcpy(record + length, "gc6=04\n", 7);
-    CHECK(parse_and_project(record, length + 7u, &input, &result)
+    CHECK(parse_and_project(record, length + 7u, 0xABCDu, &input, &result)
           == BRIDGE_DUPLICATE);
     length = build_record(record, -1, "gc6", "gc6=GG");
-    CHECK(parse_and_project(record, length, &input, &result)
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
           == BRIDGE_FORMAT);
-    length = build_record(record, -1, "pc", "pc=0AF8:16A2");
-    CHECK(parse_and_project(record, length, &input, &result)
+    before_input = input; before_result = result;
+    length = build_record(record, -1, "pc", "pc=ABCD:16A2");
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
           == BRIDGE_FRAME);
+    CHECK(memcmp(&input, &before_input, sizeof input) == 0);
+    CHECK(memcmp(&result, &before_result, sizeof result) == 0);
+    length = build_record(record, -1, "pc", "pc=ABCE:16A1");
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
+          == BRIDGE_FRAME);
+    CHECK(memcmp(&input, &before_input, sizeof input) == 0);
+    CHECK(memcmp(&result, &before_result, sizeof result) == 0);
+    length = build_record(record, -1, "pc", "pc=0AF8:16A1");
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
+          == BRIDGE_FRAME);
+    CHECK(memcmp(&input, &before_input, sizeof input) == 0);
+    CHECK(memcmp(&result, &before_result, sizeof result) == 0);
+    length = build_record(record, -1, NULL, NULL);
+    CHECK(parse_and_project(record, length, 0xABCEu, &input, &result)
+          == BRIDGE_FRAME);
+    CHECK(memcmp(&input, &before_input, sizeof input) == 0);
+    CHECK(memcmp(&result, &before_result, sizeof result) == 0);
+    CHECK(parse_and_project(record, length, 0, &input, &result)
+          == BRIDGE_ARGUMENT);
+    CHECK(memcmp(&input, &before_input, sizeof input) == 0);
+    CHECK(memcmp(&result, &before_result, sizeof result) == 0);
     length = build_record(record, -1, "gc6", "gc6=08");
-    CHECK(parse_and_project(record, length, &input, &result)
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
           == BRIDGE_HARDWARE);
     length = build_record(record, -1, "source_planar", "source_planar=23C2");
-    CHECK(parse_and_project(record, length, &input, &result)
+    CHECK(parse_and_project(record, length, 0xABCDu, &input, &result)
           == BRIDGE_ADDRESS);
-    puts("synthetic capture bridge: complete frame, 29 required-field stops, typed guards");
+    puts("synthetic capture bridge: loaded-PC frame, 29 required-field stops, typed guards");
     return 0;
 }
 
-static int project_record_file(const char *path) {
+static int project_record_file(const char *path, uint16_t loaded_cs) {
     char record[RECORD_LIMIT + 1u];
     explicit_byte_input input;
     explicit_byte_result result;
@@ -276,9 +302,14 @@ static int project_record_file(const char *path) {
         fputs("capture bridge: read failed or record exceeds 4096 bytes\n", stderr);
         return 1;
     }
-    status = parse_and_project(record, length, &input, &result);
+    status = parse_and_project(record, length, loaded_cs, &input, &result);
     if (status != BRIDGE_OK) {
-        fprintf(stderr, "capture bridge: unsupported stop %u\n", (unsigned)status);
+        static const char *const names[] = {
+            "ok", "argument", "format", "duplicate", "missing-field",
+            "wrong-frame", "unsupported-hardware", "planar-address"
+        };
+        fprintf(stderr, "capture bridge: unsupported stop %s\n",
+                names[(unsigned)status]);
         return 1;
     }
     printf("source/page planar offsets %04X/%04X, effective mask %02X\n",
@@ -295,10 +326,13 @@ static int project_record_file(const char *path) {
 }
 
 int main(int argc, char **argv) {
+    uint16_t loaded_cs;
     if (argc == 1) return synthetic_tests();
-    if (argc == 3 && strcmp(argv[1], "--record") == 0)
-        return project_record_file(argv[2]);
-    fputs("usage: res464-16a1-capture-bridge [--record ignored-state.txt]\n",
+    if (argc == 5 && strcmp(argv[1], "--record") == 0 &&
+        strcmp(argv[3], "--loaded-cs") == 0 &&
+        exact_hex(argv[4], 4u, &loaded_cs) && loaded_cs != 0)
+        return project_record_file(argv[2], loaded_cs);
+    fputs("usage: res464-16a1-capture-bridge [--record ignored-state.txt --loaded-cs HEX4]\n",
           stderr);
     return 2;
 }

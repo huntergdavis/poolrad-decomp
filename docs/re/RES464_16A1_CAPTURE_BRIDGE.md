@@ -1,7 +1,7 @@
 # First-page +16A1 capture-state bridge
 
 The [bounded C bridge](../../tools/replay/res464_16a1_capture_bridge.c)
-parses a **future** pre-0AF8:16A1 native state record and passes it to the
+parses a **future** pre-loaded-SYSTEM:16A1 native state record and passes it to the
 [explicit one-byte model](../../tools/replay/res464_16a1_explicit_byte_model.h).
 The model was extracted unchanged from the earlier
 [one-byte fixture](RES464_16A1_EXPLICIT_BYTE_PROJECTION.md) so that the
@@ -17,7 +17,7 @@ fields are required:
 
 | Group | Fields | Meaning |
 | --- | --- | --- |
-| Stop | phase=pre_16A1, pc=0AF8:16A1 | Exact stop before the first REP MOVSB source read |
+| Stop | phase=pre_16A1, pc=loaded-SYSTEM:16A1 | Exact stop before the first REP MOVSB source read; expected segment comes from the pinned loaded far caller |
 | CPU | ds, si, es, di, cx, df | Must be A200, 03C3, A000, 03C3, 000B, 0 respectively |
 | EGA registers | gc6, seq4, seq2, gc4, gc5 | Explicit current register values, never inferred from earlier writes |
 | EGA mapping | handler, compatible_chain4, ignore_odd_even, memmask, bank_read, bank_write | Explicit handler and memory-bank state |
@@ -32,7 +32,11 @@ malformed, wrong-frame, unsupported-hardware, or inconsistent-address field
 causes a typed stop before the caller's parsed input or projection changes.
 The bridge cannot establish that a supplied text file really came from the
 saved route; its native capture provenance and RAM/VRAM hashes must be checked
-separately.
+separately. The [loaded-PC audit](../../tools/replay/res464_16a1_loaded_pc_audit.py)
+hash-checks the ignored flush-entry RAM, checks the far-call opcode and
+`+1685` destination offset at loaded caller `0C88:+1DA0`, and supplies its
+relocated segment to the C bridge. The bridge has no globally hardcoded
+loaded segment. Its synthetic fixture uses an invented segment.
 
 The ignored DOS START.EXE hash is
 d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd.
@@ -49,11 +53,16 @@ reused evidence is the local one-byte fixture and hash-locked operand audit.
 
 No emulator was started. The bridge's **invented synthetic** record exercises
 the complete parsed projection, each of 29 missing fields, duplicate and
-malformed fields, the wrong PC, an unsupported GC6 mode, and mismatched
+malformed fields, the wrong segment/IP, an unsupported GC6 mode, and mismatched
 planar addressing. The original five-projection one-byte fixture still
 passes after sharing the model. To check a future private state record,
-place it under ignored resources/ and run the optional --record command;
-the output is a local projection, not a native parity result.
+place it under ignored resources/, compile the bridge under ignored resources/,
+and run the loaded-PC audit with `--bridge` and `--record`; the wrapper passes
+the hash-derived segment to the C bridge. Direct bridge invocation requires
+`--record ignored-state.txt --loaded-cs HEX4`; an arbitrary supplied segment
+has no provenance. The output is a local projection, not a native parity
+result. Until the handler, memory mask, and banks are measured, missing or
+unsupported fields stop before projection.
 
 Run the hash audit with python3 -B tools/replay/res464_16a1_explicit_byte_audit.py.
 Compile the original fixture with a strict C11 warning build against

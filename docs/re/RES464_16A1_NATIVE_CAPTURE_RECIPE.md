@@ -11,9 +11,12 @@ synthetic capture bridge in this tree.
 
 The original-image `0AF8:16A1` notation names the routine in the existing
 ledger. The reviewed loaded caller at `0C88:1DA0` invokes **`131C:1685`**;
-the natural breakpoint is therefore **`BP 131C:16A1`**. The existing bridge
-accepts `pc=0AF8:16A1` only. A loaded native record must not be passed to
-that bridge until the address contract is reconciled and independently tested.
+the natural breakpoint is therefore **`BP 131C:16A1`**. The corrected bridge
+takes its expected loaded segment from the
+[hash-locked caller audit](../../tools/replay/res464_16a1_loaded_pc_audit.py),
+which checks the ignored flush-entry RAM and extracts the relocated far-call
+operand. The segment is not fixed in the C bridge. This repairs the parser's
+address contract; it does not establish a natural native stop.
 
 Use a fresh ignored `resources/` run directory with the pinned saved-slot-A
 inputs and a private DEBUGBOX command transcript. When PM grants the sole
@@ -75,8 +78,9 @@ fields. In particular, do not infer `memmask=FFFF` or zero banks from the
 visible register output, and do not label CPU-window dumps as physical planes
 until the handler is confirmed. Capture these missing values through a
 separately reviewed host-side instrumentation step, or report
-`STOP_UNMEASURED_EGA_MAPPING`. The bridge's `pc=0AF8:16A1` acceptance is a
-second, independent `STOP_LOADED_PC_CONTRACT` for a natural `131C:16A1` stop.
+`STOP_UNMEASURED_EGA_MAPPING`. The earlier `STOP_LOADED_PC_CONTRACT` is
+resolved in source by the caller-derived expected segment, but no native
+record has been supplied to exercise it.
 
 Only after those stops are resolved may a private native record be converted
 to the bridge's 29-field format and compared with the bounded C projection.
