@@ -1,35 +1,39 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**75 strict full-C originals** (66 overlay, nine resident) and **136 verified
-game identities** (126 overlay, ten resident). The queue still contains 898
+**77 strict full-C originals** (68 overlay, nine resident) and **138 verified
+game identities** (128 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
-seeds. There are 89 inferred-library starts and 673 unknown-ownership starts.
+seeds. There are 89 inferred-library starts and 671 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
 from these counts. The [battle card](../BATTLE_CARD.md) uses this checkpoint.
 
 ## Approved changes
 
-The PM explicitly approved these two independent +1 identity/+1 strict-C
-changes after merge. Passing tests alone never promotes an original.
+The PM explicitly approved each listed +1 identity/+1 strict-C change after
+merge. Passing tests alone never promotes an original.
 
 | Original | Review and exact merge | Complete body | Evidence |
 | --- | --- | --- | --- |
 | `OVL_0025_0756` | PR #380, `bb77539ed4444ad2bd430ce3ed88d8322902a328`; PM inbox i2886 | 102 bytes, SHA-256 `b307e1dd310b369eeb068ef1e0fd7b84667e59382144bec02e5295b974c3fcb9` | [party-list index](U25_PARTY_INDEX_0756.md) |
 | `OVL_005E_0E52` | PR #383, `fb342dbef3b38fcd33c88e907f0c2dda69316948`; PM inbox i2920 | 41 bytes, SHA-256 `c99969f9b7b28b6bdd15297e8b711a8491b605df8055135eb114b6215dfc82a2` | [byte-half helper](U5E_HALF_0E52.md) |
+| `OVL_009E_0E2E` | PR #468, `cc3b27f84d91ea7b8aeedea9a915c9d0d49a2dbe`; PM exact-head review | 36 bytes, SHA-256 `08dc2c3413d0fcfa12d26b589873f619761741e3f38c235477e89ed3a7350443` | [roll latch wrapper](U9E_ENTRY9_ROLL_LATCH_0E2E.md) |
+| `OVL_0038_31A2` | PR #467, `aca640cf5617d5625e59564b0ed95d807a3bf2a2`; PM exact-head review | 1,799 bytes, SHA-256 `4a60eda9584cb62276f52b14e2ae7af2077857c521f3d5a835a344f2f50b2519` | [effect-table installer](U38_EFFECTS_INSTALL_31A2.md) |
 
-The first change produces 67/129; the second produces 68/130. Each is credited
-once by original address, regardless of entry slots, runtime stubs, aliases,
-or the number of C symbols. Unit `0x25:+0x1EA6` remains an extracted core with
-zero strict credit. PRs #387/#388/#389 receive no additional identity or
-strict-C credit in this refresh.
+The first two historical changes produced 67/129 and 68/130. The latest two
+advanced the prior 75/136 checkpoint to 76/137 and then 77/138. Each is
+credited once by original address, regardless of entry slots, runtime stubs,
+aliases, or the number of C symbols. Unit `0x25:+0x1EA6` remains an extracted
+core with zero strict credit. PRs #387/#388/#389 receive no additional identity
+or strict-C credit in this refresh.
 
 For `+0x0756`, native entry/return parity used the documented controlled
 script edit from address `0x6DCA` to `0x6DB1` at PC `0x9B40` after the second
 Up. Natural unedited-script reachability remains unmeasured. The `+0x0E52`
 native oracle is a synthetic routine harness; saved-game reachability remains
-unmeasured. Neither change completes a playable C route or expands the
-separate 128-of-64,000-pixel comparison scope.
+unmeasured. The two latest approvals likewise have bounded original-byte and
+synthetic native evidence, with no naturally reached saved-game call. None of
+these approvals completes a continuous playable C route.
 
 ## Canonical inputs and generated outputs
 
