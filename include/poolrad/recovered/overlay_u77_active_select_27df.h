@@ -20,7 +20,11 @@ typedef enum {
 /* Executes the entire 223-byte body through RETF 2. The byte at entry
  * SS:[SP+4] becomes SS:[BP+6] after PUSH BP. Cyclic next-pointer chains
  * may loop as in the DOS
- * source. Physical addresses wrap at 1 MiB. */
+ * source. Effective offsets and SP wrap at 16 bits; multi-byte memory
+ * operands and RETF read contiguous physical bytes, wrapping at 1 MiB
+ * with A20 disabled. The original code must remain immutable. Returned
+ * CS:IP reflects actual RAM, including return frames aliased by writes.
+ * AF is unspecified after OR; all other tracked defined flags match. */
 pr_u77_27df_status pr_u77_active_select_27df(
     uint8_t *ram, size_t ram_size, pr_u77_27df_cpu *cpu);
 

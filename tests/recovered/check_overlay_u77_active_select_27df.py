@@ -4,9 +4,12 @@
 Original media and optional captured RAM stay under ignored resources/.
 """
 
+import argparse
 import ctypes
 from hashlib import sha256
+import json
 from pathlib import Path
+import random
 import subprocess
 import tempfile
 
@@ -107,21 +110,36 @@ def compare_case(label, memory, cpu, source, library):
     code_end = code_start + len(source)
     check(memory[code_start:code_end] == source, f"code changed: {label}")
     original = Uc(UC_ARCH_X86, UC_MODE_16)
-    original.mem_map(0, RAM_SIZE)
-    original.mem_write(0, bytes(memory))
+    backing = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
+    original.mem_map_ptr(0, RAM_SIZE, 7, ctypes.addressof(backing))
+    original.mem_map_ptr(RAM_SIZE, RAM_SIZE, 7, ctypes.addressof(backing))
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         original.reg_write(register, getattr(cpu, name))
     returned = [False]
+    visited = set()
+    last_flags = [None]
+    decoded = {i.address: i for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(source, 0x27DF)}
 
     def on_instruction(emulator, address, size, user):
         del size, user
-        if not code_start <= address < code_end:
+        ip = emulator.reg_read(UC_X86_REG_IP)
+        check(code_start <= address < code_end and ip in decoded,
+              f"unexpected control transfer: {label}")
+        visited.add(ip)
+        if decoded[ip].mnemonic in ("sub", "cmp", "or"):
+            last_flags[0] = decoded[ip].mnemonic
+        if ip == 0x28BB:
             returned[0] = True
             emulator.emu_stop()
 
-    original.hook_add(UC_HOOK_CODE, on_instruction)
+    hook = original.hook_add(UC_HOOK_CODE, on_instruction)
     original.emu_start(code_start, RAM_SIZE, count=40000)
     check(returned[0], f"original did not return: {label}")
+    original.hook_del(hook)
+    original.emu_start(physical(original.reg_read(UC_X86_REG_CS), 0x28BB),
+                       2 * RAM_SIZE, count=1)
+    check(bytes(backing[code_start:code_end]) == source,
+          f"case modified immutable code: {label}")
     expected = bytes(original.mem_read(0, RAM_SIZE))
     ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
     status = library.pr_u77_active_select_27df(ram, RAM_SIZE, ctypes.byref(cpu))
@@ -134,9 +152,10 @@ def compare_case(label, memory, cpu, source, library):
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         observed = original.reg_read(register) & 0xFFFF
         candidate = getattr(cpu, name)
-        mask = 0xFFEF if name == "flags" else 0xFFFF
+        mask = 0xFFEF if name == "flags" and last_flags[0] == "or" else 0xFFFF
         check(((candidate ^ observed) & mask) == 0,
               f"{name} mismatch {label}: C={candidate:04x} DOS={observed:04x}")
+    return visited
 
 
 def make_case(source, key, nodes, active=None, *, sp=0x8000,
@@ -177,6 +196,10 @@ def make_case(source, key, nodes, active=None, *, sp=0x8000,
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--include-capture", action="store_true")
+    parser.add_argument("--output", type=Path)
+    args = parser.parse_args()
     source = load_source()
     with tempfile.TemporaryDirectory(prefix="poolrad-u77-27df-") as tmp:
         library = build_library(Path(tmp))
@@ -205,13 +228,15 @@ def main():
              {"first_offset": 0xFF00}),
             ("stack-return-wrap", ord("G"), 1, 0, {"sp": 0xFFFF}),
             ("stack-frame-wrap", ord("O"), 1, 0, {"sp": 0x0005}),
-            ("captured-G", ord("G"), 0, None, {"captured": True}),
-            ("captured-O", ord("O"), 0, None, {"captured": True}),
         ]
+        if args.include_capture:
+            cases += [("captured-G", ord("G"), 0, None, {"captured": True}),
+                      ("captured-O", ord("O"), 0, None, {"captured": True})]
         case_count = 0
+        visited = set()
         for label, key, nodes, active, options in cases:
             memory, cpu = make_case(source, key, nodes, active, **options)
-            compare_case(label, memory, cpu, source, library)
+            visited |= compare_case(label, memory, cpu, source, library)
             case_count += 1
         for label, target in (("segment-only-head", (0x4000, 0)),
                               ("offset-only-head", (0, 0x0100))):
@@ -220,18 +245,64 @@ def main():
             put_far(memory, cpu.ds, 0x5D92, target)
             put_far(memory, target[0], (target[1] + 0x104) & 0xFFFF,
                     (0, 0))
-            compare_case(label, memory, cpu, source, library)
+            visited |= compare_case(label, memory, cpu, source, library)
             case_count += 1
         # An active record whose next link is the DS active-pointer table.
         memory, cpu = make_case(source, ord("O"), 0)
         target = (cpu.ds, 0x5C8E)
         put_far(memory, cpu.ds, 0x5D96, target)
         put_far(memory, cpu.ds, 0x5D92, target)
-        compare_case("link-overlaps-active-global", memory, cpu,
-                     source, library)
+        visited |= compare_case("link-overlaps-active-global", memory, cpu,
+                                source, library)
         case_count += 1
-    print(f"unit 0x77:+27DF: 223 bytes, 71 instructions, {case_count} "
-          "original-byte/C cases; full RAM and defined returned CPU state equal")
+        for key in range(256):
+            for active in (0, 1, 2):
+                memory, cpu = make_case(source, 0xA500 | key, 3, active)
+                visited |= compare_case(f"key-{key:02x}-active-{active}",
+                                        memory, cpu, source, library)
+                case_count += 1
+        for sp in (0, 1, 2, 3, 4, 5, 0x5D90, 0x5D92, 0x5D94,
+                   0x5D96, 0x5D98, 0x5D9A, 0xFFFD, 0xFFFE, 0xFFFF):
+            for key in (0x47, 0x4F, 0x58):
+                memory, cpu = make_case(source, key, 3, 1, sp=sp)
+                cpu.ss = cpu.ds
+                put_word(memory, cpu.ss, sp, 0x0712)
+                at = physical(cpu.ss, sp)
+                memory[(at + 2) & (RAM_SIZE - 1)] = cpu.cs & 255
+                memory[(at + 3) & (RAM_SIZE - 1)] = cpu.cs >> 8
+                put_word(memory, cpu.ss, (sp + 4) & 0xFFFF, key)
+                visited |= compare_case(f"stack-table-{sp:04x}-{key:02x}",
+                                        memory, cpu, source, library)
+                case_count += 1
+        rng = random.Random(0x7727DF)
+        for index in range(128):
+            nodes = rng.randrange(1, 8)
+            memory, cpu = make_case(source, rng.choice((0x47, 0x4F, 0x58)),
+                                    nodes, rng.randrange(nodes),
+                                    first_offset=rng.randrange(0x10000))
+            cpu.flags = rng.choice((0x0202, 0x0247, 0x0A93, 0x0602))
+            visited |= compare_case(f"seeded-{index}", memory, cpu, source, library)
+            case_count += 1
+        for off in (0, 0xF, 0x10, 0xFFFE, 0xFFFF):
+            for key in (0x47, 0x4F):
+                memory, cpu = make_case(source, key, 0)
+                target = (0xFFFF, off)
+                put_far(memory, cpu.ds, 0x5D96, target)
+                put_far(memory, cpu.ds, 0x5D92, target)
+                put_far(memory, target[0], (off + 0x104) & 0xFFFF, (0, 0))
+                visited |= compare_case(f"a20-{off:04x}-{key:02x}",
+                                        memory, cpu, source, library)
+                case_count += 1
+    report = dict(target="OVL_0077_27DF", source_sha256=SPAN_SHA,
+                  cases=case_count, covered_sites=len(visited), source_sites=71,
+                  unvisited_sites=sorted(set(i.address for i in
+                      Cs(CS_ARCH_X86, CS_MODE_16).disasm(source, 0x27DF)) - visited),
+                  compared_ram_bytes=RAM_SIZE, compared_cpu_words=len(REGISTERS),
+                  captured_input_cases=2 if args.include_capture else 0)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
+    print(json.dumps(report, sort_keys=True))
 
 
 if __name__ == "__main__":
