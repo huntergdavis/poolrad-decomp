@@ -306,5 +306,41 @@ execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
 if(result EQUAL 0 OR NOT error MATCHES "unterminated CMake bracket (argument|data)")
     message(FATAL_ERROR "unterminated bracket data not rejected:\n${output}${error}")
 endif()
+set(pair_base [=[
+add_executable(target exists.c)
+add_test(NAME first COMMAND target)
+add_test(NAME second COMMAND target)
+]=])
+foreach(setter IN ITEMS
+        "set_tests_properties(first PROPERTIES)"
+        "set_tests_properties(first second PROPERTIES)"
+        "set_tests_properties(first PROPERTIES DEPENDS)"
+        "set_tests_properties(first PROPERTIES TIMEOUT 1 DEPENDS)")
+    file(WRITE "${fixture}/CMakeLists.txt" "${pair_base}${setter}\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(result EQUAL 0 OR NOT error MATCHES "set_tests_properties requires property/value pairs")
+        message(FATAL_ERROR "missing or incomplete property pair not rejected:\n${output}${error}")
+    endif()
+endforeach()
+foreach(properties IN ITEMS "DEPENDS \"\"" "TIMEOUT 1 DEPENDS \"\"" "DEPENDS second TIMEOUT 1")
+    file(WRITE "${fixture}/CMakeLists.txt" "${pair_base}"
+         "set_tests_properties(first PROPERTIES ${properties})\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 literal CTest DEPENDS setters")
+        message(FATAL_ERROR "valid complete property pairs or empty value rejected:\n${output}${error}")
+    endif()
+endforeach()
+file(WRITE "${fixture}/CMakeLists.txt" "${pair_base}"
+     "set_tests_properties(first PROPERTIES TIMEOUT 1)\n")
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 0 literal CTest DEPENDS setters")
+    message(FATAL_ERROR "valid non-DEPENDS property rejected or counted:\n${output}${error}")
+endif()
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Semicolon DEPENDS identities preserved; full-name dangling/unsupported diagnostics checked")
