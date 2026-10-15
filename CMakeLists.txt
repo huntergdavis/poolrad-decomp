@@ -11,7 +11,8 @@ add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
                                    src/formats/dos_character.c
                                    src/formats/dos_savgam.c)
 target_include_directories(poolrad_formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
+add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_jle_decision_05af_fixture.c
+                                    src/recovered/ecl_helpers.c
                                     src/recovered/resident_sidecar_remove.c
                                     src/recovered/resident_sidecar_append.c
                                     src/recovered/resident_sidecar_lookup.c
@@ -247,6 +248,12 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_overlay_u3c2_jle_decision_05af_fixture_tests
+                   tests/recovered/test_overlay_u3c2_jle_decision_05af_fixture.c)
+    target_link_libraries(poolrad_overlay_u3c2_jle_decision_05af_fixture_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_jle_decision_05af_fixture_tests
+             COMMAND poolrad_overlay_u3c2_jle_decision_05af_fixture_tests)
+
     add_executable(poolrad_format_tests tests/formats/test_formats.c)
     target_link_libraries(poolrad_format_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_format_tests COMMAND poolrad_format_tests)
