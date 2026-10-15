@@ -76,6 +76,7 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/overlay_u3bd_jne_080a.c
                                     src/recovered/overlay_u3bd_dual_wall.c
                                     src/recovered/overlay_u3bd_view1_scan.c
+                                    src/recovered/overlay_u3bd_post_up_tile_loop_gate.c
                                     src/recovered/overlay_u3bd_view3_wall.c
                                     src/recovered/overlay_u3bd_view4_wall.c
                                     src/recovered/overlay_u40c_tile_plane.c
@@ -1303,6 +1304,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_2632_post_up_01be_tests
              COMMAND poolrad_resident_464_2632_post_up_01be_tests)
+    add_executable(poolrad_overlay_u3bd_post_up_tile_loop_gate_tests
+                   tests/recovered/test_overlay_u3bd_post_up_tile_loop_gate.c)
+    target_link_libraries(poolrad_overlay_u3bd_post_up_tile_loop_gate_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3bd_post_up_tile_loop_gate_tests
+             COMMAND poolrad_overlay_u3bd_post_up_tile_loop_gate_tests)
     add_executable(poolrad_slot_a_post_up_02fb_two_tile_calls_tests
                    tests/recovered/test_slot_a_post_up_02fb_two_tile_calls.c)
     target_link_libraries(poolrad_slot_a_post_up_02fb_two_tile_calls_tests PRIVATE
