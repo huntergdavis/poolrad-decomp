@@ -145,6 +145,7 @@ def compare(data, com):
                 assert size == audit.RAM_SIZE
                 state = state_ptr.contents
                 calls[0] += 1
+                assert state.cs == seg and state.ip == 0x2E8B
                 assert audit.get16(ptr, state.ss, state.sp) == 0x104A
                 assert audit.get16(ptr, state.ss, state.sp + 2) == seg
                 output_off = audit.get16(ptr, state.ss, state.sp + 4)

@@ -113,7 +113,7 @@ pr_u38_101d_status pr_u38_target_select_101d(
         push16(ram, cpu, cpu->di);
         push16(ram, cpu, cpu->cs);
         push16(ram, cpu, 0x104Au);
-        cpu->cs = 0x00BAu;
+        cpu->cs = read16(ram, cpu->cs, 0x1048u);
         cpu->ip = 0x2E8Bu;
         if (!select_target(context, ram, ram_size, cpu))
             return PR_U38_101D_CALL_ABORT;

@@ -9,6 +9,7 @@
 typedef struct {
     uint8_t *ram;
     uint16_t ds;
+    uint16_t loaded_segment;
     int calls, abort;
 } fixture;
 
@@ -70,7 +71,7 @@ static int select_target(void *context, uint8_t *ram, size_t size,
     pr_rec_select_far_ptr output, character;
     uint16_t ax = 0;
     assert(size == RAM_SIZE && ram == f->ram);
-    assert(cpu->cs == 0x00BAu && cpu->ip == 0x2E8Bu);
+    assert(cpu->cs == f->loaded_segment && cpu->ip == 0x2E8Bu);
     assert(get16(ram, cpu->ss, cpu->sp) == 0x104Au);
     assert(get16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u)) == 0xF000u);
     output.offset = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 4u));
@@ -90,12 +91,12 @@ static int select_target(void *context, uint8_t *ram, size_t size,
     return 1;
 }
 
-static void run(int mode)
+static void run(int mode, uint16_t loaded_segment)
 {
     static const uint8_t flags[] = {0, 0x10, 0, 0x0A, 0x09, 0x88, 0x08, 0x10};
     uint8_t *ram = calloc(RAM_SIZE, 1u);
     pr_u38_101d_cpu cpu = {0};
-    fixture f = {ram, 0x3000u, 0, mode == 7};
+    fixture f = {ram, 0x3000u, loaded_segment, 0, mode == 7};
     uint16_t expected_off = 0, expected_seg = 0;
     assert(ram != NULL);
     cpu.ax = 0xA5CDu;
@@ -107,6 +108,7 @@ static void run(int mode)
     cpu.ds = f.ds;
     cpu.ss = 0xE000u;
     cpu.flags = 0x0202u;
+    put16(ram, cpu.cs, 0x1048u, loaded_segment);
     put16(ram, cpu.ss, cpu.sp, 0x1234u);
     put16(ram, cpu.ss, (uint16_t)(cpu.sp + 2u), 0xD000u);
     put16(ram, cpu.ss, (uint16_t)(cpu.sp + 4u), 0x2300u);
@@ -125,7 +127,8 @@ static void run(int mode)
         assert(pr_u38_target_select_101d(ram, RAM_SIZE, &cpu,
                                           select_target, &f) ==
                PR_U38_101D_CALL_ABORT);
-        assert(cpu.cs == 0x00BAu && cpu.ip == 0x2E8Bu && cpu.sp == 0x7FE8u);
+        assert(cpu.cs == loaded_segment && cpu.ip == 0x2E8Bu &&
+               cpu.sp == 0x7FE8u);
     } else {
         if (mode == 4) { expected_off = 0x3300u; expected_seg = 0x6000u; }
         else if (mode == 5) { expected_off = 0x4400u; expected_seg = 0x7000u; }
@@ -146,6 +149,9 @@ static void run(int mode)
 
 int main(void)
 {
-    for (int mode = 0; mode < 8; ++mode) run(mode);
+    const uint16_t loaded_segments[] = {0x00BAu, 0x3456u, 0xD123u};
+    for (size_t i = 0; i < sizeof loaded_segments / sizeof loaded_segments[0];
+         ++i)
+        for (int mode = 0; mode < 8; ++mode) run(mode, loaded_segments[i]);
     return 0;
 }

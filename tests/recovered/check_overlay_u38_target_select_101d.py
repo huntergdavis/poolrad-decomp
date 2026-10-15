@@ -78,10 +78,11 @@ def source():
     return body
 
 
-def make_case(body, mode, ds, ss, sp):
+def make_case(body, mode, ds, ss, sp, loaded_segment):
     ram = bytearray(RAM_SIZE)
     pos = physical(0xF000, 0x101D)
     ram[pos:pos + len(body)] = body
+    put16(ram, 0xF000, 0x1048, loaded_segment)
     cpu = Cpu(0xA5CD, 0x3456, 0x5678, 0x789A, 0x9ABC,
               0xBCDE, 0x7777, sp, 0xF000, 0x101D, ds, 0x1111,
               ss, 0x72D3)
@@ -149,7 +150,7 @@ def compare(label, model, callback_type, body):
 
     def on_code(emu, address, size, user):
         del size, user
-        if address == physical(0x00BA, 0x2E8B):
+        if address == physical(label[4], 0x2E8B):
             state = Cpu(*(emu.reg_read(reg) & 0xFFFF for reg in REGISTERS))
             snapshot = bytearray(emu.mem_read(0, RAM_SIZE))
             expected_calls.append((snap(state), frame(snapshot, state)))
@@ -208,7 +209,9 @@ def main():
         model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
                           ctypes.POINTER(Cpu), callback_type, ctypes.c_void_p]
         model.restype = ctypes.c_int
-        cases = [(mode, *layout) for mode in range(8)
+        cases = [(mode, *layout, loaded_segment)
+                 for loaded_segment in (0x00BA, 0x3456, 0xD123)
+                 for mode in range(8)
                  for layout in ((0x3000, 0xE000, 0x8000),
                                 (0x3000, 0x3000, 0x7000),
                                 (0xF123, 0xE000, 0x0002))]
