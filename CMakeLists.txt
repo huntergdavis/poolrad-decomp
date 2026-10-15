@@ -502,6 +502,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u3bd_0211_art_join_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u3bd_0211_art_join_tests
              COMMAND poolrad_overlay_u3bd_0211_art_join_tests)
+    add_executable(poolrad_overlay_u3bd_first_view_object_chain_tests
+                   tests/recovered/test_overlay_u3bd_first_view_object_chain.c)
+    target_link_libraries(poolrad_overlay_u3bd_first_view_object_chain_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3bd_first_view_object_chain_tests
+             COMMAND poolrad_overlay_u3bd_first_view_object_chain_tests)
     add_executable(poolrad_overlay_u3bd_dual_wall_tests
                    tests/recovered/test_overlay_u3bd_dual_wall.c)
     target_link_libraries(poolrad_overlay_u3bd_dual_wall_tests PRIVATE poolrad_recovered)
