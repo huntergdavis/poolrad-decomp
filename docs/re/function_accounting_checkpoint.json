@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "b5aaf9e964906062e2f6f5806d4b512ae8558e8843ae0e64efefb89a6bafeb00",
-    "full_c_map": "4a1333d098878a4ea61151335b501f8cab7f0ad5396c816270ada394cb75f26a",
+    "classification": "1cc77a75c5bf45dbf9c2fea0f25662c2b0655f8bc7e4ed99d0e17bdb680d9258",
+    "full_c_map": "59aac2587920ba6454b74cf1dcb0816f562c80b4b1e0d20c379008db14e1bdbc",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "3f9b7521fa4582d45230d3d0a540ba71de3890a9401685f73889097a55fde545"
+    "reviewed_identities": "87d418012512eaafdc5fcce8e63141a909145a6491edbfb046f0286da8bf09c4"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "a2645d2ff7734f88e122f88cd6fdafa19b156c89ca93d92e301ac92356419c1d",
+  "queue_sha256": "d89e0a67d147ff1386007e475a81e14ec55cddeecee3c08ff0424d3b9132edc9",
   "reviewed_change": {
-    "approval_reference": "PM exact-head parity review of PR #433 on 2026-10-14",
+    "approval_reference": "PM exact-head original-byte and native parity review of PR #448 on 2026-10-14",
     "approved_by": "PM",
-    "body_bytes": 344,
-    "body_sha256": "76faaa709b22d0d563ae00745d122c9bd9d192a4f31bec85c60e69b1514486c7",
-    "evidence_doc": "docs/re/U6A_PARTY_BEFORE_14A9.md",
+    "body_bytes": 925,
+    "body_sha256": "66ffc8c06e80199ee68e064db44ccb47bcb2e51d661786e0bcdc4f466080e5d5",
+    "evidence_doc": "docs/re/U86_PROCVARS_3413.md",
     "game_identity": true,
-    "original_id": "OVL_006A_14A9",
-    "review_pr": 433,
-    "reviewed_commit": "3a4912ccebb3d9acba0794e8f4a6bfd4b5f8eb98",
+    "original_id": "OVL_0086_3413",
+    "review_pr": 448,
+    "reviewed_commit": "a55000acc09f780621ca500346e7557f30b7143d",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 62,
+    "overlay": 63,
     "resident": 9
   },
-  "strict_full_c_originals": 71,
-  "unknown_ownership": 677,
+  "strict_full_c_originals": 72,
+  "unknown_ownership": 676,
   "verified_game_by_domain": {
-    "overlay": 122,
+    "overlay": 123,
     "resident": 10
   },
-  "verified_game_identities": 132,
+  "verified_game_identities": 133,
   "whole_game_denominator": "unknown"
 }
