@@ -1,8 +1,10 @@
 # Saved slot-A post-Up offscreen first 43-row gate
 
-**Classification:** measured native boundary and explicit C `UNSUPPORTED_PATH`.
-This note does not claim C parity, a complete static frame, or a first writer
-across every possible transient store.
+**Classification:** bounded C page-state model of the reached 43-row
+`0C88:2632` mode-one path. It has direct native parity for the entire
+offscreen object, dirty/extent metadata, and loop counter. It does not model
+CPU registers or runtime stack residue, claim a complete static frame, or
+establish a first writer across every possible transient store.
 
 Before debugging, `deja "Poolrad slot A post-Up second printer return U1C view
 offscreen object dirty extents 88 rows first unsupported writer"` was attempted
@@ -28,8 +30,12 @@ The ignored saved slot A is SHA-256
 | Original resident `+2632..+2A0D`, START `[0x6CAB,0x7086)` | 987 / uncounted path body | `ee35f98f513d5144e92e55e2afafbe176bba9ab65acc905ea151c19c5a9d713a` |
 | Loaded `0C88:2632..2A0D` | 987 / uncounted path body | `f47503d6c3cdf12965eb9c1f33349d49c3ae8f8ed7d07682691a1a7de33ba4fc` |
 | Original and loaded SYSTEM Move `+1685..+16A8`, START `[0xC2FB,0xC31E)` | 35 / 16 | `1941e7e4eafb9300636ac7ff777605d8ea0b96654893d1198ca3d5f0bfd93972` |
+| Original mode-one tail `+28E0..+2A0D` | 301 / 113 | `6c94e57f546a7788df39d4b854595fe582ababb3af6b73456189209169d63afc` |
+| Loaded mode-one tail `0C88:28E0..2A0D` | 301 / 113 | `92e07d39ba3cd4554cbbbaf7c63f406a7bdecdf194a8a6e440da0cecb8a54636` |
+| Original and loaded SYSTEM FillChar `+16A8..+16BC`, START `[0xC31E,0xC332)` | 20 / uncounted here | `f1c5fade96970aa1dd1a9ffc2d876c7aea57bef8680d929d9f65d6c5190e17f7` |
 
-Capstone 5.0.7 in 16-bit mode reached both short-span end addresses exactly.
+Capstone 5.0.7 in 16-bit mode reached both short-span and mode-one end
+addresses exactly.
 The full resident span includes unvisited branches; no instruction count or
 full-body parity is inferred for it.
 
@@ -70,16 +76,53 @@ left extent is 2, start extent is `(row*21+2)*4`, and end extent is start+43.
 The first and last `(row,left,start,end)` tuples are `(16,2,1352,1395)` and
 `(58,2,4880,4923)`; dirty flags outside this interval did not change.
 
-## C boundary and next proof
+## C page-state parity and boundary
 
 The existing `pr_r464_2632_run014` C model explicitly requires the outer
 row-count word at `[BP+0x10]` to equal 1. This reached frame supplies 43.
 A strict private C probe fed the captured entry RAM plus the far-call return
 frame to that model: it returned `PR_R464_2632_UNSUPPORTED_PATH` (numeric 2)
-with all 1 MiB of caller-owned RAM unchanged. This is a correct boundary,
-not native/C output parity. The first missing C effect is the bounded
-43-row `0C88:2632` path beginning at `2D14:0198`; no subsequent tile or
-flush effects are composed here.
+with all 1 MiB of caller-owned RAM unchanged. This is the correct boundary
+for that older one-row model.
+
+The new `pr_r464_2632_post_up_43row` parses the reached 18-byte caller
+frame from `SS:SP`, requires the observed no-clipping shape and video state,
+and rejects all other shapes before mutation. The original `+2910..+294D`
+FillChar and four table/mask tests give the four-byte plane pattern from
+caller-owned `DS:25F6..25F9` and mask `0x000B`. The original
+`+294D..+2A07` loop marks each row dirty, conditionally adjusts both extent
+bounds, and copies the pattern through SYSTEM Move. The C model derives all
+output bytes from the input RAM; no native output tuple is embedded in it.
+
+A strict C probe replayed the **same-run** `2D14:0198` entry RAM and compared
+its output with the direct `2D14:019D` native return:
+
+| Compared state | Exact bytes |
+| --- | ---: |
+| Entire offscreen object, including header | 14,135 / 14,135 |
+| Dirty flags and three extent arrays `DS:4A28..4EBF` | 1,176 / 1,176 |
+| Loop counter `DS:70C7` | 1 / 1 |
+
+The model and native return differ in 55 bytes, all inside the resident and
+runtime stack interval `SS:3E60..3EC1`. The private probe rejects a
+difference anywhere else in the 640 KiB RAM image. Its changed-object count
+is derived from the native entry/return pair and agrees at 546; this is a
+value-change count, not a native write count. The model has no CPU or stack
+parity and does not earn a full-C routine count. No later tile or flush
+effect is composed here.
+
+The focused synthetic test checks the plane mask, full 43-row bounds,
+conditional retention of wider extents, and unsupported input with no RAM
+mutation. It passed 1/1 under `-Wall -Wextra -Wpedantic -Werror`; the complete
+strict CMake/CTest suite passed **246/246**. Public hygiene passed: no tracked
+media or resources, copied research snapshot hashes, oracle shell syntax, and
+Git whitespace checks. The private comparison command is:
+
+```sh
+resources/build-post-up-43row-p9/poolrad_resident_464_2632_post_up_43row_tests \
+  resources/oracle-runs/slot-a-post-up-view-writer-p9-118/pre-0198-ram-private.bin \
+  resources/oracle-runs/slot-a-post-up-view-writer-p9-118/post-0198-second-ram-private.bin
+```
 
 The native recapture uses `BP 3582:3492`, sends exactly one Up, then uses
 `BP 2D14:0198`, `BPM 3DE4:05BD`, and `BP 2D14:019D` in sequence, with
