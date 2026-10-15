@@ -194,7 +194,8 @@ add_library(poolrad_recovered STATIC src/recovered/ecl_helpers.c
                                     src/recovered/resident_8ae_table_1742.c
                                     src/recovered/resident_time_caller_prefix_08ae_001f.c
                                     src/recovered/resident_time_caller_return_08ae_002a.c
-                                    src/recovered/resident_time_caller_08ae_0031.c)
+                                    src/recovered/resident_time_caller_08ae_0031.c
+                                    src/recovered/resident_time_caller_composed_08ae_001f.c)
 target_include_directories(poolrad_recovered PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(poolrad_formats PRIVATE -Wall -Wextra -Wpedantic)
@@ -1087,6 +1088,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_time_caller_08ae_0031_tests
              COMMAND poolrad_resident_time_caller_08ae_0031_tests)
+    add_executable(poolrad_resident_time_caller_composed_08ae_001f_tests
+                   tests/recovered/test_resident_time_caller_composed_08ae_001f.c)
+    target_link_libraries(poolrad_resident_time_caller_composed_08ae_001f_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_time_caller_composed_08ae_001f_tests
+             COMMAND poolrad_resident_time_caller_composed_08ae_001f_tests)
     add_executable(poolrad_resident_464_bitmask_tests
                    tests/recovered/test_resident_464_bitmask.c)
     target_link_libraries(poolrad_resident_464_bitmask_tests PRIVATE
