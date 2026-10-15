@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "528f1a1a4b1d48c3d37a87d77d66a345370e69ccb0d7b713cb3eb4ecc6060272",
-    "full_c_map": "4ec11d1b5f689b9154fe70f5a5f88e87e6f7a174a73a2a259bd2df4af6ed048d",
+    "classification": "c159e566af3ac48df94d7503d81813e2094fd3571875952e9c2fa3921aece3ee",
+    "full_c_map": "f20cf81e7a070c072d3852c27b2ae8f522438f34dcd558fcb399497d947f526c",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "f2f05591be75dfebfaf34a6421acf63537508fcd1c565757bcf19db60bdeb158"
+    "reviewed_identities": "624b88cfee80fc2ae7d945d116f5279cbde74bb5ef644da1a0b16e812fd37aaa"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "2ab2dda227421adf68f0cb6686cf8a5df7a51c889615e33f9e5e017420d6d6df",
+  "queue_sha256": "3cc31164a7c77e8baab9d41c3b2d6105e76414516201e4fc9ef0feb28ea5bec9",
   "reviewed_change": {
-    "approval_reference": "PM exact-head original-byte 96-case full-RAM review and native 46-byte far-call frame review of PR #461 on 2026-10-14; unit-38 installed game entry 22 and sidecar flag behavior",
+    "approval_reference": "PM exact-head PR #467 review on 2026-10-14: 747 full-RAM/14-CPU original-byte cases covering 556/556 sites, seven bounded DOSBox-X cases, 138 ordered fixup pointers and game-effect dispatch role via U36 allocator after U86",
     "approved_by": "PM",
-    "body_bytes": 47,
-    "body_sha256": "da2ea19cc6e9bfb6da374a2e8f3342839e094563651b39b5758cdc223ca4873e",
-    "evidence_doc": "docs/re/U38_SIDECAR_FLAG_0918.md",
+    "body_bytes": 1799,
+    "body_sha256": "4a60eda9584cb62276f52b14e2ae7af2077857c521f3d5a835a344f2f50b2519",
+    "evidence_doc": "docs/re/U38_EFFECTS_INSTALL_31A2.md",
     "game_identity": true,
-    "original_id": "OVL_0038_0918",
-    "review_pr": 461,
-    "reviewed_commit": "2bf2fa5b1331ec71cfd2361012309687cc0363f7",
+    "original_id": "OVL_0038_31A2",
+    "review_pr": 467,
+    "reviewed_commit": "aca640cf5617d5625e59564b0ed95d807a3bf2a2",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 66,
+    "overlay": 68,
     "resident": 9
   },
-  "strict_full_c_originals": 75,
-  "unknown_ownership": 673,
+  "strict_full_c_originals": 77,
+  "unknown_ownership": 671,
   "verified_game_by_domain": {
-    "overlay": 126,
+    "overlay": 128,
     "resident": 10
   },
-  "verified_game_identities": 136,
+  "verified_game_identities": 138,
   "whole_game_denominator": "unknown"
 }
