@@ -193,9 +193,7 @@ def render(repo: Path) -> Path:
         (reports_dir / source.name).write_bytes(source.read_bytes())
     local_diff = read_json(STATE / "local_diff.json")
     data = {"generated": timestamp(), "commit": rev, "summary": counts, "queue": q,
-            "verification": verification, "published_comparisons": evidence, "local_diff": local_diff,
-            "strict_full_c_checkpoint": {"count": 66, "source": "docs/BATTLE_CARD.md",
-                                         "meaning": "reviewed PR #312 checkpoint; not per-function linked or current live count"}}
+            "verification": verification, "published_comparisons": evidence, "local_diff": local_diff}
     write_json(STATE / "snapshot.json", data)
     payload = json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e")
     page = """<!doctype html><html lang="en"><meta charset="utf-8">
@@ -213,7 +211,7 @@ input,select{font:inherit;background:#203141;color:white;padding:.4rem;border:1p
 const d=JSON.parse(document.getElementById('data').textContent);const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 document.getElementById('meta').textContent=`Generated ${d.generated} | source commit ${d.commit.slice(0,12)}`;
 const card=(n,t)=>`<div class="card"><div class="num">${esc(n)}</div><div>${esc(t)}</div></div>`;
-document.getElementById('cards').innerHTML=card(d.summary.overlay_candidates,'overlay prologue candidates')+card(d.summary.resident_ledger_rows,'resident callable rows')+card(d.summary.overlay_verified_identities+d.summary.resident_verified_identities,'verified game identities')+card(d.strict_full_c_checkpoint.count,'strict full-C at reviewed checkpoint only')+card('unknown','whole-game function denominator');
+document.getElementById('cards').innerHTML=card(d.summary.overlay_candidates,'overlay prologue candidates')+card(d.summary.resident_ledger_rows,'resident callable rows')+card(d.summary.overlay_verified_identities+d.summary.resident_verified_identities,'verified game identities')+card('unknown','whole-game function denominator');
 const v=d.verification;document.getElementById('verification').innerHTML=v?`<b>${esc(v.status)}</b> at ${esc(v.time)} on ${esc(v.commit.slice(0,12))}<br>`+v.steps.map(s=>`${esc(s.name)}: exit ${s.exit}`+(s.tests_total!==null?`, ${s.tests_total-s.tests_failed}/${s.tests_total} CTests`:'')).join('<br>'):'Not run on this dashboard. Use <code>python3 tools/dashboard/dashboard.py verify</code>.';
 let evidence=d.published_comparisons.map(x=>`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched===null?'Source claim changed; re-review':`${x.matched}/${x.compared} matched`}<br><small>${esc(x.method)}</small><br><a href="${esc('state/reports/'+x.source.split('/').pop())}">source report</a></div>`);
 if(d.local_diff){let x=d.local_diff;evidence.push(`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched}/${x.compared} matched; ${x.mismatched} mismatched<br><small>${esc(x.method)} at ${esc(x.time)}</small></div>`)}

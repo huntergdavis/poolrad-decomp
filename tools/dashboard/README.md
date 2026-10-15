@@ -34,9 +34,11 @@ and provenance. Equal bytes alone are not a whole-game or strict full-C claim.
 
 The two published comparison cards come from explicit scoped reports in
 `docs/re/`; the dashboard does not rerun their private DOS traces. They cover
-different boundaries and must not be summed. The strict full-C figure is the
-reviewed checkpoint in `docs/BATTLE_CARD.md`; it is not tied to individual
-classifier rows. Queue priority is an exploratory sort, not a PM task list.
+different boundaries and must not be summed. Strict full-C credit is not
+derived from these classifier rows; consult the
+[generated accounting checkpoint](../../docs/re/function_accounting_checkpoint.json)
+and [battle card](../../docs/BATTLE_CARD.md) for that measure. Queue priority
+is an exploratory sort, not a PM task list.
 
 For a local follow-up marker, use `python3 tools/dashboard/dashboard.py mark --id
 0x17:0x0000 --status needs-evidence --note 'inspect caller'`. Marks are saved
