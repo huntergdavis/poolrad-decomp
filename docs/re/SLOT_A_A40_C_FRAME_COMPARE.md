@@ -7,8 +7,12 @@ completes all 900 units on the reached constant-byte/calibration inputs. Its
 instruction-derived return frame matches **all 11 CPU fields recorded at the
 native return**. After supplying the **observed** 17-tick external BIOS timer
 advance, the RAM comparison still differs in 17 lower-stack bytes whose
-first writer was not observed. SI, DI, and FLAGS were not recorded at the native return, so this is
-not full CPU or C/native route parity.
+first writer was not observed. SI, DI, and FLAGS were not recorded at the
+native return, so this is not full CPU or C/native route parity.
+
+Every byte of the captured physical `[0x00000,0xA0000)` RAM is compared.
+The native dump excludes `[0xA0000,0x100000)`; no comparison is claimed for
+that upper 384 KiB.
 
 Before this work, `deja "Poolrad A40 029C calibrated external BIOS timer
 callback native entry return frame full RAM CPU parity wrapper 0709 0DBE U1C
