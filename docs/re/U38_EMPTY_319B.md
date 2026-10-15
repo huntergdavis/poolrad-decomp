@@ -1,0 +1,17 @@
+# Unit 0x38 entry 116: seven-byte empty effect at +0x319B
+
+## Original extent and ownership
+
+The bounded preimplementation `deja "Poolrad U38 entry116 +319B stub 0041:0264 extent callers full C"` lookup timed out without a prior-session result. This work reuses the [U38 effect-table installer](U38_EFFECTS_INSTALL_31A2.md) and [dispatch entry mapping](OVERLAY_UNIT38_EFFECT_ENTRIES.md); the original entry bytes and installer immediates were checked independently.
+
+Ignored DOS v1.3 inputs are `GAME.OVR` (206,105 bytes, SHA-256 `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`) and `START.EXE` (65,231 bytes, SHA-256 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`). U38 public entry 116 is the last public entry, starts at +0x319B, and ends at the independently measured installer prologue +0x31A2. Its file span is `[0x11DF6,0x11DFD)`: exactly seven bytes/four contiguous instructions, SHA-256 `3d5d31028d8927cd81dffdf3a86f216fa4eb84d0874dc3daada06bd31188514d`. It has no loader fixups. The instructions are `PUSH BP; MOV BP,SP; POP BP; RETF 10`.
+
+The original public stub `0041:0264` is written by nine installer groups to effect-table items 5, 13, 19, 24, 27, 60, 63, 92, and 127. Their `MOV AX,0264` sites are +0x31D9, +0x3241, +0x328F, +0x32D0, +0x32F7, +0x34A4, +0x34CB, +0x3637, and +0x37FE. No existing source, test, or strict-credit row owns +0x319B. The existing ledger reports no fixup-confirmed direct far caller. Installation of nine table pointers does not prove a naturally reached dispatch frame; identity and count remain provisional.
+
+## C contract and measured parity
+
+`pr_u38_empty_319b` models the whole entry against 1 MiB RAM and the 14-field CPU frame. Even though it has no game-data effect, `PUSH BP` writes the saved BP word at `SS:SP-2`; the far return then consumes its IP and CS and ten argument bytes. All other registers and all FLAGS bits remain unchanged. Host null, short-RAM, and wrong-IP inputs return `ARGUMENT` before mutation.
+
+The original-byte checker pins both input hashes, the entry inventory, installer boundary, no-fixup span and four decoded instructions. In 192 cases it compares the complete 1 MiB RAM and all 14 CPU fields against Unicorn, varying six SS segments, eight stack pointers, four saved BP and flag values, including near-1 MiB stack addresses and `RETF 10` SP wrap. The selected frames keep the return words inside one 16-bit stack window and all physical accesses inside Unicorn's mapped 1 MiB. Single-step trap flags, A20-crossing writes, and far-return CS reads across `SP=FFFF` are outside this emulator comparison.
+
+Four DOSBox-X normal-core synthetic far-entry frames execute the seven pinned bytes with saved BP values `0000,0123,7777,FFFF`. They match original-byte Unicorn across all 14 CPU fields and 52 stack bytes. Ignored capture products stay under `resources/u38-319b-parity/native/`; capture SHA-256 `5d7adb413cb3398d33e7437a5a159551d6d8174572a394cbfd94cdbcd32ef885`. The focused CTest passes C11 `-Wall -Wextra -Wpedantic -Werror` with ASan/UBSan. No natural game entry frame has been captured, and no strict-function count is claimed.
