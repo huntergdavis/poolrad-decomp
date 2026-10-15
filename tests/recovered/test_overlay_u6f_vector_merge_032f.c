@@ -114,6 +114,22 @@ int main(void)
         assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
         assert(c.ax == 0xFFFFu && c.di == 0x02FFu && c.flags == 0x7246u);
     }
+    for (unsigned mode = 0; mode < 4u; ++mode) {
+        for (unsigned n = 0; n < 3u; ++n) {
+            pr_u6f_032f_cpu c = setup(ram, (uint8_t)mode);
+            uint16_t sp = (uint16_t)(0xfffdu + n);
+            c.sp = sp;
+            if (sp >= 0xfffeu)
+                put16(ram, (uint16_t)(c.ss + 0x1000u), (uint16_t)(sp + 2u), 0xa55au);
+            put16(ram, c.ss, sp, 0x5678u);
+            put16(ram, c.ss, (uint16_t)(sp + 2u), 0x1234u);
+            pointer(ram, c.ss, (uint16_t)(sp + 4u), 0x4000u, 0x0100u);
+            pointer(ram, c.ss, (uint16_t)(sp + 8u), 0x5000u, 0x0200u);
+            assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
+            assert(c.cs == 0x1234u && c.ip == 0x5678u && c.sp == (uint16_t)(sp + 12u));
+            assert(c.bp == 0x7777u);
+        }
+    }
     free(before);
     free(ram);
     return 0;

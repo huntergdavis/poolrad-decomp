@@ -161,7 +161,8 @@ def fixture(body, mode, count=5, global_count=20, *, sp=0x8000,
               0x7777, sp, 0xf000, ENTRY, ds, 0x1111, ss, 0x7202)
     at = physical(cpu.cs, ENTRY)
     memory[at:at + len(body)] = body
-    put_far(memory, ss, sp, (0xf000, 0x1234))
+    put_word(memory, ss, sp, 0x1234)
+    put_word(memory, ss, (sp + 2) & 0xffff, 0xf000)
     put_far(memory, ss, (sp + 4) & 0xffff, dest)
     put_far(memory, ss, (sp + 8) & 0xffff, source)
     memory[physical(ds, 0x4a1e)] = mode
@@ -207,7 +208,19 @@ def compare(label, memory, cpu, body, library, coverage=False):
     check(bytes(original_ram[start:start+len(body)]) == body,
           f"immutable code contract violated: {label}")
     original.hook_del(hook)
-    original.emu_start(ret, 0x110000, count=1)  # RETF only, even an aliased in-body return.
+    ss, sp = original.reg_read(UC_X86_REG_SS), original.reg_read(UC_X86_REG_SP)
+    if sp >= 0xfffe:
+        # Fifteen directed native frames establish wrapped stack word offsets.
+        # Unicorn wrongly reads the CS word linearly at these two offsets.
+        def stack_word(offset):
+            at = physical(ss, offset)
+            return original_ram[at] | (original_ram[(at + 1) & (RAM_SIZE - 1)] << 8)
+        ip, cs = stack_word(sp), stack_word((sp + 2) & 0xffff)
+        original.reg_write(UC_X86_REG_CS, cs)
+        original.reg_write(UC_X86_REG_IP, ip)
+        original.reg_write(UC_X86_REG_SP, (sp + 12) & 0xffff)
+    else:
+        original.emu_start(ret, 0x110000, count=1)  # Stop after the original RETF.
     actual_ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
     actual_cpu = Cpu.from_buffer_copy(cpu)
     check(library.pr_u6f_vector_merge_032f(actual_ram, RAM_SIZE,
