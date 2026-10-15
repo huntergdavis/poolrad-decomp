@@ -1310,6 +1310,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_overlay_u3bd_post_up_tile_loop_gate_tests
              COMMAND poolrad_overlay_u3bd_post_up_tile_loop_gate_tests)
+    add_executable(poolrad_slot_a_post_up_02fb_third_page_writer_tests
+                   tests/recovered/test_slot_a_post_up_02fb_third_page_writer.c)
+    target_link_libraries(poolrad_slot_a_post_up_02fb_third_page_writer_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_slot_a_post_up_02fb_third_page_writer_tests
+             COMMAND poolrad_slot_a_post_up_02fb_third_page_writer_tests)
     add_executable(poolrad_slot_a_post_up_02fb_two_tile_calls_tests
                    tests/recovered/test_slot_a_post_up_02fb_two_tile_calls.c)
     target_link_libraries(poolrad_slot_a_post_up_02fb_two_tile_calls_tests PRIVATE
