@@ -1297,6 +1297,12 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_resident_464_2632_post_up_43row_tests
              COMMAND poolrad_resident_464_2632_post_up_43row_tests)
+    add_executable(poolrad_resident_464_2632_post_up_01be_tests
+                   tests/recovered/test_resident_464_2632_post_up_01be.c)
+    target_link_libraries(poolrad_resident_464_2632_post_up_01be_tests PRIVATE
+                          poolrad_recovered)
+    add_test(NAME poolrad_resident_464_2632_post_up_01be_tests
+             COMMAND poolrad_resident_464_2632_post_up_01be_tests)
     add_executable(poolrad_resident_464_nibble_007b_tests
                    tests/recovered/test_resident_464_nibble_007b.c)
     target_link_libraries(poolrad_resident_464_nibble_007b_tests PRIVATE
