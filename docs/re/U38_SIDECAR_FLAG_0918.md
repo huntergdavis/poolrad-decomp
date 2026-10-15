@@ -47,12 +47,15 @@ restores the frame and returns with ten argument bytes removed.
 
 ## Verification
 
-The original-byte Unicorn checker runs all 47 source bytes in 48 cases:
+The original-byte Unicorn checker runs all 47 source bytes in 96 cases:
 empty sidecar head, first-node match, second-node match, and exhaustion;
-three DS/SS and stack layouts; and four initial `DS:6822` values. Its
-BA:2199 callback follows the documented list contract. It compares the
-entire 1 MiB RAM, all 14 CPU fields, and the exact callee-entry register
-and five-word argument frame. A focused strict C test invokes the merged
+six DS/SS and stack layouts including global/return-word aliases and
+16-bit stack wrap; and four initial `DS:6822` values. Unicorn executes the
+original LCALL, writing return IP and CS below its arguments before the
+BA:2199 hook; the model writes the same words. Both pop that frame as
+`RETF 10` does. It compares the
+entire 1 MiB RAM, all 14 CPU fields, and the exact seven-word callee-entry
+frame. A focused strict C test invokes the merged
 `pr_rec_res_00ba_2199` through a RAM adapter for those four list routes
 and tests call abort. It passes C11 `-Wall -Wextra -Wpedantic -Werror`
 with ASan/UBSan.
@@ -61,11 +64,12 @@ Eight DOSBox-X normal-core 386 cases execute an actual far call into the
 original U38 body, with only the loaded resident-call segment operand
 redirected to a synthetic stub at the same `+0x2199` offset. That stub
 writes a cursor and returns `AL=0/1`; its CPU/RAM effects are mirrored by
-the C callback. All 14 returned CPU words, 32 stack-frame bytes, the
+the C callback. All 14 returned CPU words, 46 stack-frame bytes including
+the far-call return IP and CS, the
 cursor, and both U38 globals match. The generated COM, copied body, logs,
 and capture stay under ignored `resources/u38-0918-parity/native/`.
 Result SHA-256:
-`0b4a6642c18a45490931813939a6b8a00a85e3f07880736e1e62eb65afd7807d`.
+`6e325bd412a771859f4cbb81ba361d6c2dc23720cd425ee1e3806d876005ab0e`.
 
 The native replay is a synthetic caller, not a reached game frame; it does
 not execute the original resident `BA:2199` body. The resident lookup's

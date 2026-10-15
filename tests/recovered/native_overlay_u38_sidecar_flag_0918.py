@@ -19,8 +19,8 @@ import check_overlay_u38_sidecar_flag_0918 as audit
 
 ROOT = Path(__file__).resolve().parents[2]
 AMOUNTS = (0, 3, 4, 0xFF, 0, 3, 4, 0xFF)
-RECORD_SIZE = 66
-FRAME = 0xEFEC
+RECORD_SIZE = 80
+FRAME = 0xEFDE
 
 
 def build(directory, body):
@@ -67,7 +67,7 @@ def build(directory, body):
             "mov word ptr [output+20],ds",
             "mov word ptr [output+22],es",
             "mov word ptr [output+24],ss"]
-    for i in range(16):
+    for i in range(23):
         asm += [f"mov ax,word ptr [{FRAME + 2*i}]",
                 f"mov word ptr [output+{34 + 2*i}],ax"]
     asm += ["pushf", "pop ax", "mov word ptr [output+26],ax",
@@ -162,7 +162,7 @@ def compare(data, com):
             for (name, _), word in zip(audit.Cpu._fields_, observed):
                 assert getattr(cpu, name) == word, (index, name,
                                                     hex(getattr(cpu, name)), hex(word))
-            assert memory[audit.physical(seg, FRAME):audit.physical(seg, FRAME)+32] == expected[34:66]
+            assert memory[audit.physical(seg, FRAME):audit.physical(seg, FRAME)+46] == expected[34:80]
             assert audit.get16(memory, seg, FRAME) == struct.unpack_from("<H", expected, 28)[0]
             assert audit.get16(memory, seg, FRAME + 2) == struct.unpack_from("<H", expected, 30)[0]
             assert memory[audit.physical(seg, 0x681E)] == expected[32]
@@ -180,7 +180,7 @@ def main():
                   native_cases=len(AMOUNTS), actual_far_call=True,
                   resident_target_relocated_to_synthetic_stub=True,
                   reached_game_caller=False, compared_cpu_words=14,
-                  compared_frame_bytes=32,
+                  compared_frame_bytes=46,
                   result_sha256=sha256(data).hexdigest())
     (directory / "report.json").write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")
     print(json.dumps(report, sort_keys=True))

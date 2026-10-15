@@ -112,10 +112,15 @@ pr_u38_0918_status pr_u38_sidecar_flag_0918(
     cpu->di = (uint16_t)(cpu->bp - 4u);
     push16(ram, cpu, cpu->ss);
     push16(ram, cpu, cpu->di);
-    cpu->ip = 0x092Eu;
+    /* LCALL BA:2199 pushes CS, then the return IP below the arguments. */
+    push16(ram, cpu, cpu->cs);
+    push16(ram, cpu, 0x0933u);
+    cpu->cs = 0x00BAu;
+    cpu->ip = 0x2199u;
     if (!lookup(context, ram, ram_size, cpu)) return PR_U38_0918_CALL_ABORT;
+    cpu->ip = pop16(ram, cpu);
+    cpu->cs = pop16(ram, cpu);
     cpu->sp = (uint16_t)(cpu->sp + 10u); /* BA:2199 RETF 10 */
-    cpu->ip = 0x0933u;
     or_al_al(cpu);
     if ((cpu->ax & 0xFFu) == 0u) write8(ram, cpu->ds, 0x681Eu, 1u);
     sub_byte(ram, cpu, 0x6822u, 4u);

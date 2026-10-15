@@ -63,14 +63,16 @@ static int lookup(void *context, uint8_t *ram, size_t size,
     uint16_t key;
     uint8_t found = 0xA5u;
     assert(size == RAM_SIZE && ram == f->ram);
-    assert(cpu->ip == 0x092Eu);
+    assert(cpu->cs == 0x00BAu && cpu->ip == 0x2199u);
+    assert(get16(ram, cpu->ss, cpu->sp) == 0x0933u);
+    assert(get16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u)) == 0xF000u);
     ++f->calls;
     if (f->abort) return 0;
-    cursor.offset = get16(ram, cpu->ss, cpu->sp);
-    cursor.segment = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
-    key = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 4u));
-    character.offset = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 6u));
-    character.segment = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 8u));
+    cursor.offset = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 4u));
+    cursor.segment = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 6u));
+    key = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 8u));
+    character.offset = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 10u));
+    character.segment = get16(ram, cpu->ss, (uint16_t)(cpu->sp + 12u));
     assert(cursor.offset == (uint16_t)(cpu->bp - 4u) &&
            cursor.segment == cpu->ss && (key & 255u) == 0x18u);
     assert(character.offset == 0x2300u && character.segment == 0x4000u);
@@ -111,7 +113,8 @@ static void run(int mode)
     status = pr_u38_sidecar_flag_0918(ram, RAM_SIZE, &cpu, lookup, &f);
     assert(f.calls == 1);
     if (mode == 4) {
-        assert(status == PR_U38_0918_CALL_ABORT && cpu.ip == 0x092Eu);
+        assert(status == PR_U38_0918_CALL_ABORT && cpu.cs == 0x00BAu &&
+               cpu.ip == 0x2199u && cpu.sp == 0x7FECu);
     } else {
         uint16_t expected_off = mode == 1 ? 0x2200u :
                                 mode == 2 ? 0x2300u : 0u;

@@ -10,9 +10,10 @@ typedef struct {
     uint16_t ax, bx, cx, dx, si, di, bp, sp, cs, ip, ds, es, ss, flags;
 } pr_u38_0918_cpu;
 
-/* Called at +092E with the original five argument words on SS:SP.
+/* Called at BA:2199 with the original far-call frame on SS:SP: return IP,
+ * return CS, then five argument words. Leave SP on that frame for RETF 10.
  * It supplies the effects of resident BA:2199, whose independent full-C
- * translation is pr_rec_res_00ba_2199. Return zero to abort at the call. */
+ * translation is pr_rec_res_00ba_2199. Return zero to abort at entry. */
 typedef int (*pr_u38_0918_lookup)(void *context, uint8_t *ram,
                                    size_t ram_size, pr_u38_0918_cpu *cpu);
 

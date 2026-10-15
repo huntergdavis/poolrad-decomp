@@ -102,7 +102,7 @@ def make_case(body, mode, ds, ss, sp, amount):
 
 
 def arguments(ram, cpu):
-    return tuple(get16(ram, cpu.ss, cpu.sp + 2 * i) for i in range(5))
+    return tuple(get16(ram, cpu.ss, cpu.sp + 4 + 2 * i) for i in range(5))
 
 
 def lookup(ram, cpu):
@@ -146,16 +146,21 @@ def compare(label, model, callback_type, body):
 
     def on_code(emu, address, size, user):
         del size, user
-        if address == physical(0xF000, 0x092E):
+        if address == physical(0x00BA, 0x2199):
             state = Cpu(*(emu.reg_read(reg) & 0xFFFF for reg in REGISTERS))
             snapshot = bytearray(emu.mem_read(0, RAM_SIZE))
+            assert (state.cs, state.ip) == (0x00BA, 0x2199)
+            assert get16(snapshot, state.ss, state.sp) == 0x0933
+            assert get16(snapshot, state.ss, state.sp + 2) == 0xF000
             expected_calls.append((snap(state), arguments(snapshot, state)))
             lookup(snapshot, state)
+            state.ip = get16(snapshot, state.ss, state.sp)
+            state.sp = (state.sp + 2) & 0xFFFF
+            state.cs = get16(snapshot, state.ss, state.sp)
+            state.sp = (state.sp + 12) & 0xFFFF
             emu.mem_write(0, bytes(snapshot))
             for (name, _), reg in zip(Cpu._fields_, REGISTERS):
                 emu.reg_write(reg, getattr(state, name))
-            emu.reg_write(UC_X86_REG_SP, (state.sp + 10) & 0xFFFF)
-            emu.reg_write(UC_X86_REG_IP, 0x0933)
         elif address == physical(0xD000, 0x1234):
             reached[0] = True
             emu.emu_stop()
@@ -207,7 +212,10 @@ def main():
                  for mode in range(4)
                  for ds, ss, sp in ((0x3000, 0xE000, 0x8000),
                                     (0x3000, 0x3000, 0x708A),
-                                    (0xF123, 0xE000, 0x0002))
+                                    (0xF123, 0xE000, 0x0002),
+                                    (0x3000, 0x3000, 0x6832),
+                                    (0x3000, 0x3000, 0x6836),
+                                    (0xE000, 0xE000, 0x0008))
                  for amount in (0, 4, 0x80, 0xFF)]
         for label in cases:
             compare(label, model, callback_type, body)
