@@ -187,6 +187,9 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_test(NAME poolrad_ctest_source_paths
+             COMMAND "${CMAKE_COMMAND}" -P
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/qa/test_ctest_source_paths.cmake")
     add_executable(poolrad_format_tests tests/formats/test_formats.c)
     target_link_libraries(poolrad_format_tests PRIVATE poolrad_formats)
     add_test(NAME poolrad_format_tests COMMAND poolrad_format_tests)
