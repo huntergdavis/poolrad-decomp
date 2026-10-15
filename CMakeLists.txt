@@ -1758,6 +1758,12 @@ if(BUILD_TESTING)
                                PRIVATE PR_PAGE_BASE=0 PR_PAGE_BYTES=8000)
     target_link_libraries(poolrad_slot_a_full_ega_printer_page_probe PRIVATE
                           poolrad_recovered)
+    add_executable(poolrad_slot_a_post_up_outer_ui_first_printer_tests
+                   tests/replay/test_slot_a_post_up_outer_ui_first_printer.c)
+    target_link_libraries(poolrad_slot_a_post_up_outer_ui_first_printer_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_slot_a_post_up_outer_ui_first_printer_tests
+             COMMAND poolrad_slot_a_post_up_outer_ui_first_printer_tests)
     add_executable(poolrad_slot_a_second_cycle_compose_probe
                    tools/replay/slot_a_second_cycle_compose_probe.c)
     target_link_libraries(poolrad_slot_a_second_cycle_compose_probe PRIVATE
