@@ -82,13 +82,29 @@ helper-entry checkpoints. This gives 131 ordered full-state rows, with
 | +0C26 before file-open | 33DE | 37A6 | 0000 | 7202 |
 
 At +0C26, CS=2A8E, DS=DX=14A0, ES=SS=1D16, FS=GS=0000,
-BX=33E0, CX=0000, SI=3624 and DI=3626. The five words at SS:33DE are
-3626, 1D16, 0000, 35EE, 1D16: a file-variable pointer, zero mode word
-and filename pointer. The native filename at SS:35EE has length 19 and
-SHA-256 f86f598eac842da88485f8bb38d7070ba1543692dc26bacdd5fab15c0bbb2e14
-including its Pascal length byte. A separate length-23 string exists at
-SS:34ED; it is not the pointer supplied to this first open call. No
-filename text, file-variable semantics or file success is inferred.
+BX=33E0, CX=0000, SI=3624 and DI=3626. The complete seven-word argument
+frame at SS:33DE is 3626, 1D16, 0000, 35EE, 1D16, 34ED, 1D16.
+The first five words come from the final explicit pushes. The last two
+are the retained destination pointer from the preceding string calls;
+they are also supplied to +025D, whose RETF 000E consumes fourteen bytes.
+
+The independently decoded +025D prologue establishes BP=33D8. It reads
+candidate-name pointer 1D16:34ED from [BP+10], extension/error-string
+pointer 1D16:35EE from [BP+0C], mode 0000 from [BP+0A], and file-variable
+pointer 1D16:3626 from [BP+06]. This corrects the earlier five-word
+interpretation: the retained length-23 candidate is part of the call,
+while the explicit length-19 string is the extension/error argument.
+The argument roles follow the original +025D instructions and the
+[existing bounded model](RESIDENT_DAX_NESTED_OPEN.md); the loader adapter
+itself stops before that callee and does not supply runtime file effects.
+
+The candidate at SS:34ED has length 23 and SHA-256
+74c0568877934bb1fdedebf542d12210bd5fa43a70d557a32ef1630daa6ea843.
+The extension/error argument at SS:35EE has length 19 and SHA-256
+f86f598eac842da88485f8bb38d7070ba1543692dc26bacdd5fab15c0bbb2e14.
+Both hashes include the Pascal length byte. No string text or file success
+is published or inferred. This documentation correction changes no C,
+input, native capture, comparison count or supported instruction boundary.
 There are 185 net changed RAM bytes from +19D7 to +0C26.
 
 ## C parity and negative gates
