@@ -77,8 +77,10 @@ hash-verified copy of the original media, a private X display, the heavy
 DOSBox-X debugger and Bubblewrap with networking disabled. It had an outer
 600-second bound. Initial CPU was `CS:IP=1796:0012`, `DS=ES=0814`,
 `SS:SP=193E:0080`; the PSP-derived load base was `0824`. Breakpoints were
-armed at the three relocated public stubs `0899:0025`, `0899:002A` and
-`0899:002F`, then execution resumed. The captured root image was black;
+armed at candidate addresses `0899:0025`, `0899:002A` and `0899:002F`,
+then execution resumed. The later [native-boundary audit](U6A_0824_NATIVE_REACH_BOUNDARY.md)
+confirms that the actual three slots are `+0020`, `+0025` and `+002A`;
+the `+002F` watch supplies no u6A public-entry evidence. The captured root image was black;
 no verified saved-game menu, public-stub stop, dynamically hash-verified
 unit body or leaf entry/return pair was obtained. The run expired with
 status 124. Queued autotype/UI keys do not establish a selected menu route.
