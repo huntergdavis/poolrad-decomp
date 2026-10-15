@@ -53,6 +53,10 @@ The exact next boundary is the caller continuation `3582:3151`. The
 merged natural-reach note observed byte-identical A40-return and U1C-return
 RAM in its separate run; unchanged RAM alone cannot rule out reads.
 
+The later [caller and replay-stability audit](SLOT_A_DELAY_RESIDUAL_CALLER_AND_REPLAY.md)
+extends this bounded read proof through `3582:3151` to `3582:31A8`; the
+first subsequent residual access is still unmeasured.
+
 ## Attempted extension and open gate
 
 Two fresh private, hash-pinned Search→one-Up replays with a confirmed
