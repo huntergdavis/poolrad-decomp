@@ -34,7 +34,8 @@ pr_u38_319b_status pr_u38_empty_319b(
     cpu->sp = (uint16_t)(cpu->sp + 2u);
     at = physical(cpu->ss, cpu->sp);
     cpu->ip = read16(ram, at);
-    cpu->cs = read16(ram, (at + 2u) & RAM_MASK);
+    cpu->cs = read16(ram, physical(cpu->ss,
+                                   (uint16_t)(cpu->sp + 2u)));
     cpu->sp = (uint16_t)(cpu->sp + 14u);
     return PR_U38_319B_OK;
 }
