@@ -66,7 +66,8 @@ def fixture(body,*,entry=0x14e,slot=0,first=0,second=0,sp=0x8000,ds=0x3000,ss=0x
     put_far(m,ds,table,((first>>16)&0xffff,first&0xffff))
     put_far(m,ds,table+4,((second>>16)&0xffff,second&0xffff))
     if entry==0x17f:put_word(m,ss,(sp-2)&0xffff,parent_bp)
-    put_far(m,ss,sp,(0x9000,0x200));put_word(m,ss,(sp+4)&0xffff,0xab00|slot)
+    put_word(m,ss,sp,0x200);put_word(m,ss,(sp+2)&0xffff,0x9000)
+    put_word(m,ss,(sp+4)&0xffff,0xab00|slot)
     if after_sp is not None:c.sp=after_sp
     return m,c
 
@@ -80,7 +81,18 @@ def compare(label,m,c,body,cfg,lib):
     check(stop[0] is not None,label+': original budget exhausted')
     uc.hook_del(handle)
     status=0 if stop[0]==0x1ad else 1
-    if status==0:uc.emu_start(ret,0x110000,count=1)
+    if status==0:
+        ss=uc.reg_read(REGISTERS[12]);sp=uc.reg_read(REGISTERS[7])
+        if sp>=0xfffe:
+            # Direct DOSBox original-byte gates establish two wrapped word pops.
+            # Unicorn instead fetches all four RETF bytes linearly at these SPs.
+            def stack_word(offset):
+                at=physical(ss,offset)
+                return back[at] | (back[(at+1)&0xfffff]<<8)
+            ip=stack_word(sp);cs=stack_word((sp+2)&0xffff)
+            uc.reg_write(REGISTERS[8],cs);uc.reg_write(REGISTERS[9],ip)
+            uc.reg_write(REGISTERS[7],(sp+6)&0xffff)
+        else:uc.emu_start(ret,0x110000,count=1)
     at=physical(c.cs,0x14e)
     check(bytes(back[at:at+98])==bytes(m[at:at+98]),label+': immutable code violated')
     actual=(ctypes.c_uint8*RAM_SIZE).from_buffer_copy(m);cpu=Cpu.from_buffer_copy(c)

@@ -69,13 +69,21 @@ calls: 581 stops at +017A and 591 at +01A5.
 
 All 40/40 source starts are visited: 38 instructions are executed across
 cases, and the two external CALL starts are stop sites, never retired.
-The oracle executes RETF separately, avoiding an unintended continuation.
+The oracle stops before RETF, avoiding an unintended continuation. A directed
+native DOSBox-X check found that Unicorn reads the CS word incorrectly when
+entry SP is FFFE or FFFF. At those offsets the audit applies the independently
+measured native rule: read IP at SS:SP and CS at SS:(uint16_t)(SP+2), with
+each individual word physically contiguous. Other returns execute the original
+RETF in Unicorn. Thus the sweep uses a native-established RETF correction,
+not an independent Unicorn result at the two divergent offsets. See
+[the six native wrap captures](U3CE_RETF_NATIVE_WRAP.md).
 Callback arithmetic flags are defined by ADD DI. Zero-return logical AF is
 architecturally undefined; C uses this Unicorn oracle's cleared-AF convention.
 Unmasked equality there records emulator behavior, not undefined hardware flags.
 
 Independent C tests check complete zero-return registers/flags/ABI, both
-pointer-to-pointer callback frames, partial-pointer guards, unchanged host
+pointer-to-pointer callback frames, partial-pointer guards, FFFD/FFFE/FFFF
+far-return stack offsets with distinct linear-CS canaries, unchanged host
 pending output on return, a changed slot on independent +017F entry, and
 atomic invalid-input failures. Strict C11 Werror and ASan/UBSan pass with
 sandbox leak detection disabled. The unique registered focused CTest passes 1/1.
@@ -83,7 +91,8 @@ sandbox leak detection disabled. The unique registered focused CTest passes 1/1.
 Parity report: target_function is this bounded +014E/+017F gate;
 source_candidates contains overlay_u3ce_gate_014e.c; verdict is match for
 the measured contract. Signals/score are the exact source/media pins,
-fixup-backed calls, 1,755 full-state cases and the stated instruction coverage.
+fixup-backed calls, 1,755 corrected full-state cases, six synthetic native
+wrap captures and the stated instruction coverage.
 Review notes: heap effects, first-call results, native reach and source
 ownership remain unresolved. Flat ordinary RAM, immutable modeled code and
 separate host CPU/output storage are required. This is not full cleanup parity.
@@ -99,5 +108,7 @@ still requires memory/free callbacks; the new gate does not replace it.
     cmake --build resources/build-u6f-prefix --target poolrad_overlay_u3ce_gate_014e_tests
     ctest --test-dir resources/build-u6f-prefix -R '^poolrad_overlay_u3ce_gate_014e_tests$'
 
-Original media, disassembly and emulator RAM remain ignored under resources/.
-Committed C tests use synthetic data. No new native display run is attempted.
+Original media, disassembly, generated COM programs, native captures and
+emulator RAM remain ignored under resources/. Committed C tests use synthetic
+data. The native wrap programs supply synthetic frames; no natural game route
+or display-driven run is established.

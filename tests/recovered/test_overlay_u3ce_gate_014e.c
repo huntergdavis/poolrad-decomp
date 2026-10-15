@@ -72,8 +72,21 @@ static void invalid(uint8_t *m,uint8_t *copy) {
     assert(memcmp(&c,&before,sizeof c)==0 && memcmp(&p,&old,sizeof p)==0);
     assert(memcmp(m,copy,PR_U3CE_014E_RAM_SIZE)==0);
 }
+static void wrap_returns(uint8_t *m) {
+    for(unsigned n=0;n<3u;++n) {
+        uint16_t sp=(uint16_t)(0xfffdu+n);
+        pr_u3ce_014e_cpu c;pr_u3ce_014e_call pending={1,2,3,4},before=pending;
+        setup(m,&c,0,0);c.sp=sp;
+        if(sp>=0xfffeu)word(m,(uint16_t)(c.ss+0x1000u),(uint16_t)(sp+2u),0xa55au);
+        word(m,c.ss,sp,0x200u);word(m,c.ss,(uint16_t)(sp+2u),0x9000u);
+        word(m,c.ss,(uint16_t)(sp+4u),0xab07u);
+        assert(pr_u3ce_gate_014e(m,PR_U3CE_014E_RAM_SIZE,&c,&pending)==PR_U3CE_014E_RETURNED);
+        assert(c.cs==0x9000u && c.ip==0x200u && c.sp==(uint16_t)(sp+6u));
+        assert(c.bp==0x9999u && memcmp(&pending,&before,sizeof pending)==0);
+    }
+}
 int main(void) {
     uint8_t *m=malloc(PR_U3CE_014E_RAM_SIZE),*copy=malloc(PR_U3CE_014E_RAM_SIZE);
-    assert(m && copy);zero(m);callbacks(m);continuation(m);invalid(m,copy);
+    assert(m && copy);zero(m);callbacks(m);continuation(m);wrap_returns(m);invalid(m,copy);
     free(copy);free(m);return 0;
 }

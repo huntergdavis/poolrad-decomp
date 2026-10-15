@@ -61,6 +61,8 @@ pr_u3ce_014e_status pr_u3ce_gate_014e(uint8_t *m,size_t size,
     }
     if(nonzero(m,c,0x5e5eu))return callback(m,c,p,0x5e5eu,0x1a5u);
     c->sp=c->bp;c->bp=rw(m,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
-    far_read(m,c->ss,c->sp,&ip,&cs);c->sp=(uint16_t)(c->sp+6u);c->cs=cs;c->ip=ip;
+    ip=rw(m,c->ss,c->sp);
+    cs=rw(m,c->ss,(uint16_t)(c->sp+2u));
+    c->sp=(uint16_t)(c->sp+6u);c->cs=cs;c->ip=ip;
     return PR_U3CE_014E_RETURNED;
 }

@@ -20,6 +20,8 @@ typedef enum {
  * CALLBACK stops before CALL 017A or 01A5, with its far pointer-to-pointer
  * argument on SS:SP; no return words are pushed and no external call is run.
  * RETURNED executes the both-zero/second-zero RETF 2 and leaves pending intact.
+ * RETF reads IP/CS with two word-pop offsets, wrapping SP+2 at 16 bits; each
+ * individual word is physically contiguous. Loaded far-call operands stay contiguous.
  * Flat A20-disabled RAM, immutable modeled code, loaded call operands in RAM,
  * separate host CPU/output storage. Undefined logical AF on zero returns uses
  * this oracle's cleared-AF convention; callback arithmetic flags are defined.
