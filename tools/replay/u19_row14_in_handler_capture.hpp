@@ -4,6 +4,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <string_view>
 
 namespace poolrad_u19_capture {
 
@@ -164,6 +165,108 @@ inline Stop finish(Capture& out, const Frame& stopped) {
     }
     out.stage = Stage::finished;
     return Stop::none;
+}
+
+// This source-only declaration is copied after finish sees the successor.
+// The caller supplies identity from an independently audited recorder packet;
+// this helper does not authenticate it or read backing memory again.
+struct SelectedEventInput {
+    std::string_view run_token, arm_token, stream_id, plane_event_id;
+    std::string_view raw_sha256;
+    uint32_t candidate_ordinal = 0;
+};
+
+struct SelectedEvent {
+    std::array<char, 65> run_token{}, arm_token{}, stream_id{}, plane_event_id{};
+    std::array<char, 65> raw_sha256{};
+    uint16_t candidate_ordinal = 0;
+    std::array<char, 10> pc{}, successor_pc{};
+};
+
+enum class EmitStatus : uint8_t {
+    emitted, disabled, capture_incomplete, invalid_identity, duplicate
+};
+
+struct EventEmitter {
+    bool enabled = false;
+    bool emitted = false;
+    SelectedEvent selected_event{};
+};
+
+inline bool copy_token(std::array<char, 65>& out, std::string_view text) {
+    if (text.empty() || text.size() > 64u) return false;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        const char ch = text[i];
+        if (!((ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') ||
+              (ch >= '0' && ch <= '9') || ch == '_' || ch == '-'))
+            return false;
+        out[i] = ch;
+    }
+    return true;
+}
+
+inline bool copy_digest(std::array<char, 65>& out, std::string_view text) {
+    if (text.size() != 64u) return false;
+    for (std::size_t i = 0; i < text.size(); ++i) {
+        const char ch = text[i];
+        if (!((ch >= '0' && ch <= '9') || (ch >= 'a' && ch <= 'f')))
+            return false;
+        out[i] = ch;
+    }
+    return true;
+}
+
+inline void format_pc(std::array<char, 10>& out, uint16_t cs, uint16_t ip) {
+    constexpr char hex[] = "0123456789ABCDEF";
+    for (unsigned digit = 0; digit < 4u; ++digit) {
+        const unsigned shift = (3u - digit) * 4u;
+        out[digit] = hex[(cs >> shift) & 0xFu];
+        out[5u + digit] = hex[(ip >> shift) & 0xFu];
+    }
+    out[4] = ':';
+}
+
+inline bool finished_capture(const Capture& capture) {
+    return capture.stage == Stage::finished && capture.stop == Stop::none &&
+           capture.write_count == 1u &&
+           (capture.handler == Handler::uvga ||
+            capture.handler == Handler::uvga_fast) &&
+           capture.armed_frame.cs == 0x0F2D &&
+           capture.armed_frame.ip == capture.site &&
+           capture.armed_frame.es == 0xA000 &&
+           capture.armed_frame.di == 0x118F &&
+           capture.successor != 0 &&
+           capture.successor == successor_for(capture.site) &&
+           same_state(capture.before.state_before_copy,
+                      capture.before.state_after_copy) &&
+           same_state(capture.after.state_before_copy,
+                      capture.after.state_after_copy) &&
+           frame_matches_armed_write(capture,
+                                     capture.before.state_before_copy.frame) &&
+           same_frame(capture.before.state_before_copy.frame,
+                      capture.after.state_before_copy.frame);
+}
+
+inline EmitStatus emit_selected_event(EventEmitter& out, const Capture& capture,
+                                      const SelectedEventInput& input) {
+    if (!out.enabled) return EmitStatus::disabled;
+    if (out.emitted) return EmitStatus::duplicate;
+    if (!finished_capture(capture)) return EmitStatus::capture_incomplete;
+    if (input.candidate_ordinal < 1u || input.candidate_ordinal > 2304u)
+        return EmitStatus::invalid_identity;
+    SelectedEvent next{};
+    if (!copy_token(next.run_token, input.run_token) ||
+        !copy_token(next.arm_token, input.arm_token) ||
+        !copy_token(next.stream_id, input.stream_id) ||
+        !copy_token(next.plane_event_id, input.plane_event_id) ||
+        !copy_digest(next.raw_sha256, input.raw_sha256))
+        return EmitStatus::invalid_identity;
+    next.candidate_ordinal = static_cast<uint16_t>(input.candidate_ordinal);
+    format_pc(next.pc, capture.armed_frame.cs, capture.site);
+    format_pc(next.successor_pc, capture.armed_frame.cs, capture.successor);
+    out.selected_event = next;
+    out.emitted = true;
+    return EmitStatus::emitted;
 }
 
 } // namespace poolrad_u19_capture

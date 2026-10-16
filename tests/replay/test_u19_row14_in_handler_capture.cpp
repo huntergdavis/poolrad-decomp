@@ -3,6 +3,8 @@
 #include <array>
 #include <cassert>
 #include <cstdint>
+#include <string>
+#include <string_view>
 
 using namespace poolrad_u19_capture;
 
@@ -124,6 +126,147 @@ static void wrong_successor_target_fails() {
     }
 }
 
+static SelectedEventInput selected_identity() {
+    return SelectedEventInput{
+        "run_1", "arm_1", "stream_1", "plane_1",
+        std::string_view(
+            "0123456789abcdef0123456789abcdef"
+            "0123456789abcdef0123456789abcdef"),
+        897u
+    };
+}
+
+static void selected_event_is_default_off_and_post_successor_only() {
+    Capture capture{};
+    assert(arm(capture, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) == Stop::none);
+    EventEmitter emitter{};
+    const SelectedEventInput input = selected_identity();
+    assert(emit_selected_event(emitter, capture, input) == EmitStatus::disabled);
+    assert(!emitter.emitted);
+    emitter.enabled = true;
+    assert(emit_selected_event(emitter, capture, input) ==
+           EmitStatus::capture_incomplete);
+    std::array<uint8_t, 8> backing{};
+    int writes = 0, reads = 0;
+    observe_write(capture, Handler::uvga, 0xA118F, 1, 0,
+                  backing.data(), backing.size(),
+                  [&] { ++writes; backing[0] = 0x20; },
+                  [&] { ++reads; return state(); });
+    assert(reads == 4 && writes == 1);
+    assert(emit_selected_event(emitter, capture, input) ==
+           EmitStatus::capture_incomplete);
+    assert(finish(capture, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) == Stop::none);
+    const auto before = capture.before.planes;
+    const auto after = capture.after.planes;
+    assert(emit_selected_event(emitter, capture, input) == EmitStatus::emitted);
+    assert(emitter.emitted && reads == 4 && writes == 1);
+    assert(capture.before.planes == before && capture.after.planes == after);
+    const SelectedEvent& event = emitter.selected_event;
+    assert(std::string_view(event.run_token.data()) == "run_1");
+    assert(std::string_view(event.arm_token.data()) == "arm_1");
+    assert(std::string_view(event.stream_id.data()) == "stream_1");
+    assert(std::string_view(event.plane_event_id.data()) == "plane_1");
+    assert(std::string_view(event.raw_sha256.data()) == input.raw_sha256);
+    assert(event.candidate_ordinal == 897u);
+    assert(std::string_view(event.pc.data()) == "0F2D:0445");
+    assert(std::string_view(event.successor_pc.data()) == "0F2D:0449");
+    assert(emit_selected_event(emitter, capture, input) == EmitStatus::duplicate);
+}
+
+static void selected_event_rejects_bad_identity_and_changed_sample() {
+    Capture capture{};
+    assert(arm(capture, Frame{0x0F2D, 0x0412, 0xA000, 0x118F}) == Stop::none);
+    std::array<uint8_t, 8> backing{};
+    observe_write(capture, Handler::uvga_fast, 0xA118F, 1, 0,
+                  backing.data(), backing.size(), [] {},
+                  [] { return state(Frame{0x0F2D, 0x0412, 0xA000, 0x118F}); });
+    assert(finish(capture, Frame{0x0F2D, 0x0415, 0xA000, 0x118F}) == Stop::none);
+    EventEmitter emitter{};
+    emitter.enabled = true;
+    SelectedEventInput input = selected_identity();
+    for (uint32_t ordinal : {0u, 2305u}) {
+        input.candidate_ordinal = ordinal;
+        assert(emit_selected_event(emitter, capture, input) ==
+               EmitStatus::invalid_identity);
+    }
+    input = selected_identity();
+    const std::string long_token(65, 'a');
+    input.run_token = long_token;
+    assert(emit_selected_event(emitter, capture, input) ==
+           EmitStatus::invalid_identity);
+    input = selected_identity();
+    input.arm_token = "bad token";
+    assert(emit_selected_event(emitter, capture, input) ==
+           EmitStatus::invalid_identity);
+    input = selected_identity();
+    input.raw_sha256 = "ABCDEF";
+    assert(emit_selected_event(emitter, capture, input) ==
+           EmitStatus::invalid_identity);
+    assert(!emitter.emitted);
+    capture.before.state_after_copy.latch ^= 1u;
+    assert(emit_selected_event(emitter, capture, selected_identity()) ==
+           EmitStatus::capture_incomplete);
+}
+
+static void selected_event_maps_each_site_and_keeps_write_boundary() {
+    struct Case {
+        uint16_t site, successor;
+        const char* pc;
+        const char* next_pc;
+    };
+    const Case cases[] = {
+        {0x0412, 0x0415, "0F2D:0412", "0F2D:0415"},
+        {0x0438, 0x043B, "0F2D:0438", "0F2D:043B"},
+        {0x0445, 0x0449, "0F2D:0445", "0F2D:0449"},
+        {0x0451, 0x0455, "0F2D:0451", "0F2D:0455"},
+    };
+    for (const Case& item : cases) {
+        const Frame armed{0x0F2D, item.site, 0xA000, 0x118F};
+        Capture capture{};
+        assert(arm(capture, armed) == Stop::none);
+        std::array<uint8_t, 8> backing{};
+        GuestState current = state(armed);
+        int reads = 0, writes = 0;
+        observe_write(capture, Handler::uvga, 0xA118F, 1, 0,
+                      backing.data(), backing.size(),
+                      [&] {
+                          ++writes;
+                          backing[0] = 0x20;
+                          current.latch ^= 1u;
+                      },
+                      [&] {
+                          ++reads;
+                          return current;
+                      });
+        assert(finish(capture, Frame{0x0F2D, item.successor, 0xA000, 0x118F}) ==
+               Stop::none);
+        assert(capture.before.state_before_copy.latch !=
+               capture.after.state_before_copy.latch);
+        EventEmitter emitter{};
+        emitter.enabled = true;
+        SelectedEventInput input = selected_identity();
+        input.candidate_ordinal = 2304u;
+        assert(emit_selected_event(emitter, capture, input) == EmitStatus::emitted);
+        assert(std::string_view(emitter.selected_event.pc.data()) == item.pc);
+        assert(std::string_view(emitter.selected_event.successor_pc.data()) ==
+               item.next_pc);
+        assert(emitter.selected_event.candidate_ordinal == 2304u);
+        assert(reads == 4 && writes == 1);
+        if (item.site == 0x0412) {
+            Capture forged = capture;
+            forged.site = forged.successor = forged.armed_frame.ip = 0;
+            forged.before.state_before_copy.frame.ip = 0;
+            forged.before.state_after_copy.frame.ip = 0;
+            forged.after.state_before_copy.frame.ip = 0;
+            forged.after.state_after_copy.frame.ip = 0;
+            EventEmitter invalid{};
+            invalid.enabled = true;
+            assert(emit_selected_event(invalid, forged, input) ==
+                   EmitStatus::capture_incomplete);
+        }
+    }
+}
+
 int main() {
     accepted_one_write();
     rejection_never_suppresses_write();
@@ -131,4 +274,7 @@ int main() {
     observation_mutation_fails_after_original_write();
     wrong_observed_frame_rejects_every_field();
     wrong_successor_target_fails();
+    selected_event_is_default_off_and_post_successor_only();
+    selected_event_rejects_bad_identity_and_changed_sample();
+    selected_event_maps_each_site_and_keeps_write_boundary();
 }
