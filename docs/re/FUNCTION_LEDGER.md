@@ -804,6 +804,14 @@ Throughput: 55 minutes for the route and format, 25 for the C and tests.
 
 Evidence, semantics, boundaries and tests: [U6F_01B8_WRITE_LIST.md](U6F_01B8_WRITE_LIST.md).
 Strict credit claimed: none.
+### 1.23 U6F +0010, the roster text-file reader, as a whole function (PM GO i8483)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 33 | `pr_u6f_0010_read_list` = GAME.OVR 0x1DFF6, unit 0x6F + 0x0010 (executable +0x0010..+0x0196; the 33 bytes +0x0197..+0x01B7 are the writer's literals), public entry 1, run-time stub `0x7C:0x25`; caller unit 0x6C + 0x306D (far, site +0x308A) | 391 bytes, 147 instructions, 18 calls | far Pascal: one far pointer argument (var list head), `retf 4`; `0x20C` bytes of locals | **whole-function path-complete model with explicit boundaries** (the +02AE call, the resident file probe, the allocator, six text-file runtime services; five string services inline) | all 147 starts and 11 branches **verified** against the bytes; not counted as a full translation |
+
+Evidence, semantics, boundaries and tests: [U6F_0010_READ_LIST.md](U6F_0010_READ_LIST.md).
+Strict credit claimed: none. (Section 1.22, function 32, is the +01B8 writer on PR #745.)
 
 ## 2. Examined, not translated
 
