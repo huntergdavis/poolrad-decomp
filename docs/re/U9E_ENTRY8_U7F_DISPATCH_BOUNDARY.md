@@ -24,7 +24,8 @@ pins these bytes and the loader-expanded image:
 | U9E entry-8 body | `GAME.OVR` file `[0x2BCCD,0x2BD18)`, 75 bytes / 29 instruction starts | `7df225682ebb94351984048ef7a4fdccc8de60f9ef2450751a696fde74c583ba` |
 
 U9E's descriptor stores public entry 8 at +0DE3, next entry 9 at
-+0E2E, and live stub paragraph `0xB0`. The existing entry-8 audit
++0E2E, and expanded-image stub paragraph `0xB0` **before DOS load
+relocation**. The existing entry-8 audit
 independently counts 122 fixup-confirmed far callers and pins the
 SYSTEM +11C0/+120F body. The new checker only proves that the expanded
 stub bytes match the packed descriptor and that this U7F call targets
@@ -35,8 +36,9 @@ asserted for this call.
 
 ## Composition seam
 
-The merged U7F +0FDE adapter stops at `B0:0048` with the actual
-far-call return frame. The merged U9E composition starts later at
+The merged U7F +0FDE adapter stops at source-image `B0:0048` with the
+modeled far-call return frame; native loaded calls use a relocated
+segment that must be measured in that run. The merged U9E composition starts later at
 **loaded U9E CS:+0DE3**, with that same frame and original loaded
 instruction bytes. The missing seam includes the actual `INT 3Fh`
 vector/handler or patched stub jump, resulting loaded CS, any RAM and
