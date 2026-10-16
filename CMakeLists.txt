@@ -302,6 +302,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_sign_entry1_0000
                                     src/recovered/overlay_u6f_party_string_chain.c
                                     src/recovered/overlay_u6f_party_filename.c
                                     src/recovered/overlay_u6f_postinsert_02ae.c
+                                    src/recovered/overlay_u6f_01b8_write_list.c
+                                    src/recovered/overlay_u6f_0010_read_list.c
                                     src/recovered/slot_a_directory_fullstate.c
                                     src/recovered/slot_a_u6f_02da_decision.c
                                     src/recovered/slot_a_u6f_031f_return.c
@@ -1781,6 +1783,16 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6f_postinsert_02ae_tests
              COMMAND poolrad_overlay_u6f_postinsert_02ae_tests)
+    add_executable(poolrad_overlay_u6f_01b8_write_list_tests
+                   tests/recovered/test_overlay_u6f_01b8_write_list.c)
+    target_link_libraries(poolrad_overlay_u6f_01b8_write_list_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6f_01b8_write_list_tests
+             COMMAND poolrad_overlay_u6f_01b8_write_list_tests)
+    add_executable(poolrad_overlay_u6f_0010_read_list_tests
+                   tests/recovered/test_overlay_u6f_0010_read_list.c)
+    target_link_libraries(poolrad_overlay_u6f_0010_read_list_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6f_0010_read_list_tests
+             COMMAND poolrad_overlay_u6f_0010_read_list_tests)
     add_executable(poolrad_slot_a_directory_fullstate_tests
                    tests/recovered/test_slot_a_directory_fullstate.c)
     target_link_libraries(poolrad_slot_a_directory_fullstate_tests
