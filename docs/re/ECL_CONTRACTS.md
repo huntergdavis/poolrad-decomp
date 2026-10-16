@@ -183,9 +183,12 @@ Evidence (`tools/overlay/ecl_walk.py`):
 - **0x33 PRINT RETURN:** `PC += 1`; `[0x5E24] = 1`; `[0x5E25] += 1`; clears `[0x84DF]` when it
   was set (ledger 1.8).
 - **0x20 NEWECL:** builds the `ECL<n>.DAX` file name from its byte operand, far-calls unit
-  `0x6f` entry 11 (run-time segment `0x7C` offset `0x57`; unit 0x6f is a resource-loading
-  unit) and unit `0x25` entries 1 to 4 (operand helpers), then sets
-  `[0x442E]` = 1 and `[0x442F]` = 1 and clears `[0x4431]`.
+  `0x6f` entry 11 (run-time segment `0x7C` offset `0x57`: the area-transition prompt of
+  [U6F_22D5_TRANSITION_PROMPT.md](U6F_22D5_TRANSITION_PROMPT.md), which probes that file
+  and, when it is absent, offers save-and-exit; it loads nothing) and unit `0x25` entries
+  1 to 4 (operand helpers; entry 4 at `+0x0341` is the block loader of
+  [ECL_BLOCK_LOAD.md](ECL_BLOCK_LOAD.md), called at `+0x0C50` after the prompt returns),
+  then sets `[0x442E]` = 1 and `[0x442F]` = 1 and clears `[0x4431]`.
 - **0x21 LOAD FILES:** the fifth entry of map 18 jumps directly to a `0x21` whose first byte
   operand is 18, the map's own id; the next instruction is `0x37` with the three wallset ids.
   The kit's reading of 0x21 as "set area encounter" is contradicted.
@@ -211,8 +214,11 @@ Evidence (`tools/overlay/ecl_walk.py`):
 1. Names for 0x0A to 0x0E, 0x0F to 0x12, 0x22 to 0x24, 0x27: the kit and the reference
    disagree; resolve by reading each handler (all addresses above) and by oracle traces.
 2. Operand counts for 0x03, 0x04, 0x34; the menu list termination; the out-of-block targets.
-3. The exact loader (unit `0x6f` entry 11, called as `0x7C:0x57`) contract: file name, block selection by map id,
-   where the block is placed relative to the 0x6700 fetch bias and the 0x9900 address base.
+3. Corrected: unit `0x6f` entry 11 (`0x7C:0x57`) is the area-transition prompt
+   ([U6F_22D5_TRANSITION_PROMPT.md](U6F_22D5_TRANSITION_PROMPT.md)), not a loader. The file
+   name is composed by the handler itself (`+0x0C1F..+0x0C42`) and the block loader is unit
+   `0x25` entry 4 ([ECL_BLOCK_LOAD.md](ECL_BLOCK_LOAD.md)); what remains open of the
+   placement relative to the 0x6700 fetch bias and the 0x9900 address base is tracked there.
 4. 1,061 fixup-confirmed far-call sites into resident (non-overlay, non-runtime) code have no file
    offset yet (the resident image's run-time layout differs from the file), and 28
    candidate 9A sites without a relocation are probably not calls. All call-site counts in

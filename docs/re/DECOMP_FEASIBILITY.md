@@ -63,8 +63,8 @@ Observations, per function:
   nodes) is not something the decompiler provides. The `push cs` idiom leaves `unaff_CS`
   artifacts and far pointers appear as two 16-bit halves.
 - **Opcode 0x20 handler.** With the stub labels, five of its ten far calls read as calls into
-  unit `0x25` entries 1 to 4 (operand helpers) and unit `0x6f` entry 11 (a resource-loading
-  unit). (Entry numbers corrected under the run-time stub model of issue #8; the spike
+  unit `0x25` entries 1 to 4 (operand helpers) and unit `0x6f` entry 11 (the area-transition
+  prompt, not a loader: [U6F_22D5_TRANSITION_PROMPT.md](U6F_22D5_TRANSITION_PROMPT.md)). (Entry numbers corrected under the run-time stub model of issue #8; the spike
   originally labeled them with the linear file model.) The other five are runtime string routines. Segment immediates such as `0xAF8` and
   `0x2B` show up as integer arguments because Turbo Pascal pushes far pointers to constants;
   patching the 94 non-call fixups to the unit's assigned segment would turn those into real

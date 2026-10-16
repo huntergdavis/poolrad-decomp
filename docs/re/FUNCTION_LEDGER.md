@@ -813,6 +813,17 @@ Strict credit claimed: none.
 Evidence, semantics, boundaries and tests: [U6F_0010_READ_LIST.md](U6F_0010_READ_LIST.md).
 Strict credit claimed: none. (Section 1.22, function 32, is the +01B8 writer on PR #745.)
 
+### 1.24 U6F +22D5, the area-transition prompt (not the ECL loader), as a whole function (PM GO i8541)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 34 | `pr_u6f_22d5_transition_prompt` = GAME.OVR 0x202BB, unit 0x6F + 0x22D5 (executable +0x22D5..+0x23DF, the last routine before the unit's 5-byte entry 0 stub), public entry 11, run-time stub `0x7C:0x57`; caller unit 0x1C + 0x0BD1 (the NEWECL handler, site +0x0C47) | 267 bytes, 107 instructions, 11 calls, 8 branches, no loop | far Pascal: one far string argument, `retf 4`; `0x156` bytes of locals | **whole-function path-complete model with explicit boundaries** (the resident file probe, the menu key input of unit 0x3B0 entry 2, the archive-number restore, the save entry 9, the exit routine; four string services and Str inline) | all 107 starts and 8 branches **verified** against the bytes; not counted as a full translation |
+
+Evidence, semantics, boundaries, tests and the documentation corrections (this entry had
+been called the ECL block loader in ECL_CONTRACTS.md, section 4 below and
+DECOMP_FEASIBILITY.md): [U6F_22D5_TRANSITION_PROMPT.md](U6F_22D5_TRANSITION_PROMPT.md).
+Strict credit claimed: none. (Section 1.23, function 33, is the +0010 reader on PR #749.)
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
@@ -860,8 +871,9 @@ Time spent on the addressing model that these functions depend on: about one hou
 also rewrote the call-graph resolution. Obstacles that remain for the next functions: the
 unnamed Turbo Pascal runtime (1,790 call sites), the resident game units' file mapping,
 and the absence of DOS oracle traces (issue #3) for dynamic confirmation. The NEWECL
-handler's loader call (`0x7C:0x57`) resolves to unit 0x6f entry 11 under the run-time model;
-PR #6 named it unit 0x7f entry 1.
+handler's call `0x7C:0x57` resolves to unit 0x6f entry 11 under the run-time model (PR #6
+named it unit 0x7f entry 1); that entry is the area-transition prompt (section 1.24), not
+the loader, which is unit 0x25 entry 4 (section 1.15).
 
 ## 5. Build and CMake targets (applied on main in 6d3b7da)
 
