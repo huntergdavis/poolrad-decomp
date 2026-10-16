@@ -28,6 +28,11 @@ MANIFEST_FIELDS = frozenset((
     "candidate_count", "frame_count", "terminal", "stop_reason",
     "overflow", "truncated", "selected_event", "native_coverage_proved",
 ))
+SELECTED_FIELDS = frozenset((
+    "run_token", "arm_token", "stream_id", "plane_event_id", "raw_sha256",
+    "candidate_ordinal", "pc", "successor_pc",
+))
+PC_WORDS = re.compile(r"[0-9A-F]{4}:[0-9A-F]{4}\Z")
 
 
 @dataclass(frozen=True)
@@ -80,6 +85,8 @@ class CandidateRecorder:
         if not isinstance(source_bytes, bytes) or not all(_word(word) for word in
                 (u19_segment, printer_segment, active_segment, draw_segment)):
             raise ValueError("source bytes and four bounded segments required")
+        if type(enabled) is not bool:
+            raise ValueError("enabled must be an exact bool")
         self.run_token = run_token
         self.arm_token = arm_token
         self.stream_id = stream_id
@@ -135,6 +142,8 @@ class CandidateRecorder:
             if self.candidate_count != ROUTE_CANDIDATES:
                 return self._stop("STOP_INCOMPLETE_ROUTE")
             self.frames.append(frame)
+            if self.selected_ordinal is None:
+                return self._stop("STOP_TARGET_PAGE_ABSENT")
             self.terminal = "full_return"
             return "FULL_RETURN"
         if frame.cs != self.printer or frame.ip not in SITES:
@@ -209,7 +218,8 @@ def audit_recording(raw_jsonl: bytes, manifest: object,
     if not isinstance(source_bytes, bytes) or manifest["source_domain"] != SOURCE_DOMAIN or (
             manifest["source_sha256"] != sha256(source_bytes).hexdigest()):
         raise ValueError("STOP_SOURCE_SHA")
-    if manifest["version"] != 1 or manifest["native_coverage_proved"] is not False or not all(
+    if type(manifest["version"]) is not int or manifest["version"] != 1 or (
+            manifest["native_coverage_proved"] is not False) or not all(
             _token(manifest[name]) for name in
             ("run_token", "arm_token", "stream_id", "plane_event_id")):
         raise ValueError("STOP_MANIFEST_VERSION_OR_TOKEN")
@@ -245,15 +255,39 @@ def audit_recording(raw_jsonl: bytes, manifest: object,
             type(manifest["candidate_count"]) is not int or
             manifest["candidate_count"] < 0):
         raise ValueError("STOP_FRAME_COUNT")
+    selected = manifest["selected_event"]
+    if selected is not None:
+        if (not isinstance(selected, dict) or set(selected) != SELECTED_FIELDS or
+                not all(_token(selected[name]) for name in
+                        ("run_token", "arm_token", "stream_id", "plane_event_id")) or
+                not isinstance(selected["raw_sha256"], str) or
+                HEX_SHA.fullmatch(selected["raw_sha256"]) is None or
+                type(selected["candidate_ordinal"]) is not int or
+                not 1 <= selected["candidate_ordinal"] <= ROUTE_CANDIDATES or
+                not all(isinstance(selected[name], str) and
+                        PC_WORDS.fullmatch(selected[name]) is not None
+                        for name in ("pc", "successor_pc"))):
+            raise ValueError("STOP_SELECTED_EVENT_SCHEMA")
     replay = CandidateRecorder(
         run_token=manifest["run_token"], arm_token=manifest["arm_token"],
         stream_id=manifest["stream_id"], plane_event_id=manifest["plane_event_id"],
         source_bytes=source_bytes, u19_segment=words[0], printer_segment=words[1],
         active_segment=words[2], draw_segment=words[3], enabled=True,
     )
-    for frame in frames:
-        if replay.push(frame).startswith("STOP_"):
+    for index, frame in enumerate(frames):
+        outcome = replay.push(frame)
+        if outcome == "STOP_TARGET_PAGE_ABSENT" and index == len(frames) - 1:
+            continue
+        if outcome.startswith("STOP_"):
             raise ValueError("STOP_RAW_SEQUENCE")
+    if manifest["stop_reason"] == "STOP_TARGET_PAGE_ABSENT":
+        if (manifest["terminal"] != "stopped" or manifest["overflow"] is not False or
+                manifest["truncated"] is not False or selected is not None or
+                replay.stop_reason != "STOP_TARGET_PAGE_ABSENT" or
+                replay.candidate_count != ROUTE_CANDIDATES or
+                replay.finish().manifest != manifest):
+            raise ValueError("STOP_NO_TARGET_MANIFEST")
+        return AuditResult("STOP_TARGET_PAGE_ABSENT", ROUTE_CANDIDATES, None)
     if manifest["overflow"] is True:
         if (manifest["terminal"] != "stopped" or
                 manifest["stop_reason"] != "STOP_CANDIDATE_OVERFLOW" or
@@ -282,6 +316,8 @@ def audit_recording(raw_jsonl: bytes, manifest: object,
     if manifest["overflow"] is not False or manifest["truncated"] is not False or (
             manifest["terminal"] not in ("full_return", "selected_prefix")):
         raise ValueError("STOP_TERMINAL")
+    if selected is None:
+        raise ValueError("STOP_SELECTED_EVENT_MISSING")
     rebuilt = replay.finish(selected_prefix=manifest["terminal"] == "selected_prefix")
     if rebuilt.raw_jsonl != raw_jsonl or rebuilt.manifest != manifest:
         raise ValueError("STOP_MANIFEST_MISMATCH")

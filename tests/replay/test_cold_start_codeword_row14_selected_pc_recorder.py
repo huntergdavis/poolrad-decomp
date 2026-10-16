@@ -54,6 +54,22 @@ class CandidateRecorderTests(unittest.TestCase):
             rec.finish()
         with self.assertRaisesRegex(ValueError, "1..128"):
             filter_frames([], max_candidate_hits=ROUTE_CANDIDATES)
+        for value in ("false", 1, [], None):
+            with self.subTest(enabled=value):
+                with self.assertRaisesRegex(ValueError, "exact bool"):
+                    recorder(enabled=value)
+
+    def test_no_a000_target_is_typed_stop(self):
+        rec = recorder(active=0xB000, draw=0xC000)
+        self.assertEqual(rec.push(CALLER), "CALLER")
+        for frame in candidate_frames(PRINTER, 0xB000, 0xC000):
+            self.assertEqual(rec.push(frame), "CANDIDATE")
+        self.assertEqual(rec.push(RETURN), "STOP_TARGET_PAGE_ABSENT")
+        recording = rec.finish()
+        self.assertEqual(recording.manifest["terminal"], "stopped")
+        self.assertIsNone(recording.manifest["selected_event"])
+        self.assertEqual(audit_recording(recording.raw_jsonl, recording.manifest,
+                                         SOURCE).status, "STOP_TARGET_PAGE_ABSENT")
 
     def test_full_first_page_target_897(self):
         recording = capture()
@@ -138,6 +154,26 @@ class CandidateRecorderTests(unittest.TestCase):
         tampered = copy.deepcopy(manifest)
         tampered["selected_event"]["candidate_ordinal"] = 2304
         with self.assertRaisesRegex(ValueError, "STOP_MANIFEST_MISMATCH"):
+            audit_recording(raw, tampered, SOURCE)
+        for value in (897.0, True):
+            tampered = copy.deepcopy(manifest)
+            tampered["selected_event"]["candidate_ordinal"] = value
+            with self.subTest(candidate_ordinal=value):
+                with self.assertRaisesRegex(ValueError, "STOP_SELECTED_EVENT_SCHEMA"):
+                    audit_recording(raw, tampered, SOURCE)
+        for value in (True, 1.0):
+            tampered = copy.deepcopy(manifest)
+            tampered["version"] = value
+            with self.subTest(version=value):
+                with self.assertRaisesRegex(ValueError, "STOP_MANIFEST_VERSION_OR_TOKEN"):
+                    audit_recording(raw, tampered, SOURCE)
+        tampered = copy.deepcopy(manifest)
+        tampered["selected_event"] = None
+        with self.assertRaisesRegex(ValueError, "STOP_SELECTED_EVENT_MISSING"):
+            audit_recording(raw, tampered, SOURCE)
+        tampered = copy.deepcopy(manifest)
+        tampered["selected_event"]["unreviewed"] = "value"
+        with self.assertRaisesRegex(ValueError, "STOP_SELECTED_EVENT_SCHEMA"):
             audit_recording(raw, tampered, SOURCE)
         with self.assertRaisesRegex(ValueError, "STOP_SOURCE_SHA"):
             audit_recording(raw, manifest, SOURCE + b"changed")

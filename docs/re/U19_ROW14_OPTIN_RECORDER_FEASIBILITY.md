@@ -101,7 +101,8 @@ implementation. The proposed versioned validation policy is:
 an explicitly enabled in-memory `CandidateRecorder` and an
 `audit_recording` parser. The default is disabled. Its input is a **supplied**
 sequence of relevant caller, candidate, selected successor, and return CPU
-frames; it has no emulator hook or file writer. The raw artifact is canonical
+frames; an opt-in argument must be an exact boolean. It has no emulator hook
+or file writer. The raw artifact is canonical
 four-WORD JSONL, at most 2,307 lines of at most 256 bytes each. The separate
 version-1 manifest is at most 4,096 bytes and identifies the SHA-256 of the
 exact raw `src/debug/debug.cpp` source-file bytes, as well as the SHA-256 of
@@ -110,7 +111,11 @@ event repeats the run, arm, stream, plane-event, raw hash, and first target
 ordinal. It is emitted only after its immediate successor was supplied.
 
 The parser checks canonical frames and recomputes the source hash, raw hash,
-counts, first target, successor, and terminal. A successful full route returns
+counts, first target, successor, and terminal. A route with no `A000:118F`
+target returns `STOP_TARGET_PAGE_ABSENT`, even after all 2,304 candidates
+and a return. Manifest version and selected-event fields require exact types;
+Python boolean or floating-point equality cannot stand in for an integer.
+A successful full route with a paired selected event returns
 `SOURCE_ONLY_FULL_RETURN_UNAUTHENTICATED`; a selected prefix returns
 `SOURCE_ONLY_SELECTED_PREFIX_UNAUTHENTICATED`. Overflow and truncation return
 typed stops. Even a matching full-route transcript remains unauthenticated
