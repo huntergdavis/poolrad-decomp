@@ -607,5 +607,45 @@ set_property(TEST OFF PROPERTY DEPENDS NOTFOUND)
 set_property(TEST NOTFOUND PROPERTY DEPENDS OFF)
 set_tests_properties(OFF PROPERTIES TIMEOUT 1 DEPENDS "")
 ]==] "")
+set(base [=[
+add_executable(target exists.c)
+add_test(NAME "first;part" COMMAND target)
+add_test(NAME first COMMAND target)
+add_test(NAME part COMMAND target)
+add_test(NAME missing COMMAND target)
+add_test(NAME consumer COMMAND target)
+]=])
+set(expected_count 5)
+check_case(retained_reference_property [=[
+set_property(TEST consumer PROPERTY DEPENDS first\\\;part)
+]=] "")
+check_case(retained_reference_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS first\\\;part)
+]=] "")
+check_case(retained_reference_self [=[
+set_property(TEST "first;part" PROPERTY DEPENDS first\\\;part)
+]=] "self CTest DEPENDS reference: first;part")
+check_case(retained_reference_properties_self [=[
+set_tests_properties("first;part" PROPERTIES DEPENDS first\\\;part)
+]=] "self CTest DEPENDS reference: first;part")
+check_case(retained_reference_cycle [=[
+set_property(TEST consumer PROPERTY DEPENDS first\\\;part)
+set_tests_properties("first;part" PROPERTIES DEPENDS consumer)
+]=] "CTest DEPENDS cycle leaves blocked tests:")
+check_case(retained_reference_append_clear [=[
+set_property(TEST consumer APPEND PROPERTY DEPENDS first\\\;part first\\\;part)
+set_tests_properties("first;part" PROPERTIES DEPENDS consumer)
+set_property(TEST consumer PROPERTY DEPENDS)
+]=] "")
+check_case(retained_reference_replaced_by_components [=[
+set_property(TEST "first;part" PROPERTY DEPENDS first\\\;part)
+set_tests_properties("first;part" PROPERTIES DEPENDS "first;part")
+]=] "")
+check_case(single_escape_component_references [=[
+set_property(TEST "first;part" PROPERTY DEPENDS first\;part)
+]=] "")
+check_case(retained_reference_dangling [=[
+set_property(TEST consumer PROPERTY DEPENDS missing\\\;part)
+]=] "DEPENDS reference: unregistered CTest name: missing;part")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Repeated/replaced/cleared edges accepted; self and cyclic graphs rejected")

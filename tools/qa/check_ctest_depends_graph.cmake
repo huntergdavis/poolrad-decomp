@@ -9,6 +9,7 @@ function(record_edges owners dependencies append)
         if(dependency STREQUAL "")
             continue()
         endif()
+        string(REPLACE ";" "${test_name_semicolon_marker}" dependency "${dependency}")
         string(REPLACE "${source_semicolon_marker}" "${test_name_semicolon_marker}"
                dependency "${dependency}")
         list(APPEND normalized_dependencies "${dependency}")

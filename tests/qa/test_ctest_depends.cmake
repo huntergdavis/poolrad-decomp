@@ -342,5 +342,39 @@ execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
 if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 0 literal CTest DEPENDS setters")
     message(FATAL_ERROR "valid non-DEPENDS property rejected or counted:\n${output}${error}")
 endif()
+set(retained_base [=[
+add_executable(target exists.c)
+add_test(NAME "first;part" COMMAND target)
+add_test(NAME first COMMAND target)
+add_test(NAME part COMMAND target)
+add_test(NAME missing COMMAND target)
+add_test(NAME consumer COMMAND target)
+]=])
+function(check_retained_reference name setter diagnostic)
+    file(WRITE "${fixture}/CMakeLists.txt" "${retained_base}${setter}\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(diagnostic STREQUAL "")
+        if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 5 CTest registrations and 5 source paths" OR
+           NOT output MATCHES "Checked 1 literal CTest DEPENDS setters")
+            message(FATAL_ERROR "${name} lost retained reference identity/count:\n${output}${error}")
+        endif()
+    elseif(result EQUAL 0 OR NOT error MATCHES "${diagnostic}")
+        message(FATAL_ERROR "${name} did not reject the full dangling name:\n${output}${error}")
+    endif()
+endfunction()
+check_retained_reference(retained_set_property [=[
+set_property(TEST consumer PROPERTY DEPENDS first\\\;part)
+]=] "")
+check_retained_reference(retained_set_tests_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS first\\\;part)
+]=] "")
+check_retained_reference(retained_dangling_property [=[
+set_property(TEST consumer PROPERTY DEPENDS missing\\\;part)
+]=] "DEPENDS reference: unregistered CTest name: missing;part")
+check_retained_reference(retained_dangling_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS missing\\\;part)
+]=] "DEPENDS reference: unregistered CTest name: missing;part")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Semicolon DEPENDS identities preserved; full-name dangling/unsupported diagnostics checked")

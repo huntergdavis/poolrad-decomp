@@ -16,8 +16,11 @@ function(require_test_names names description allow_empty)
         if(allow_empty AND name STREQUAL "")
             continue()
         endif()
+        # A retained list escape (including an unquoted triple-backslash
+        # spelling) yields one name containing a literal semicolon here.
+        string(REPLACE ";" "${test_name_semicolon_marker}" identity "${name}")
         string(REPLACE "${source_semicolon_marker}" "${test_name_semicolon_marker}"
-               identity "${name}")
+               identity "${identity}")
         if(NOT identity IN_LIST registered_test_names)
             string(REPLACE "${test_name_semicolon_marker}" ";" display_name "${identity}")
             message(FATAL_ERROR "${description}: unregistered CTest name: ${display_name}")
