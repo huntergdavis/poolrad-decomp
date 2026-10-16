@@ -165,8 +165,14 @@ def function_progress(repo: Path) -> dict:
     progress.update({
         "status": "reviewed", "ceiling": ceiling,
         "bound_kind": census["bound_kind"],
-        "strict_percent": round(100 * strict / ceiling, 1),
-        "identity_percent": round(100 * identities / ceiling, 1),
+        "strict_percent": (
+            (strict * 1000 // ceiling) / 10 if census["bound_kind"] == "upper_bound"
+            else round(100 * strict / ceiling, 1)
+        ),
+        "identity_percent": (
+            (identities * 1000 // ceiling) / 10 if census["bound_kind"] == "upper_bound"
+            else round(100 * identities / ceiling, 1)
+        ),
         "evidence_doc": evidence_doc,
     })
     return progress
@@ -245,31 +251,33 @@ def render(repo: Path) -> Path:
             "function_progress": progress,
             "verification": verification, "published_comparisons": evidence, "local_diff": local_diff}
     write_json(STATE / "snapshot.json", data)
-    payload = json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e")
+    owner_data = {key: data[key] for key in (
+        "generated", "commit", "function_progress", "verification",
+        "published_comparisons", "local_diff")}
+    payload = json.dumps(owner_data).replace("<", "\\u003c").replace(">", "\\u003e")
     page = """<!doctype html><html lang="en"><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Poolrad evidence queue</title>
-<style>body{font:17px/1.45 system-ui;margin:0 auto;padding:1.5rem;max-width:1100px;background:#101924;color:#f0f5f8}
-h1,h2{color:#faf2bb}.cards{display:flex;flex-wrap:wrap;gap:1rem}.card{background:#203141;border:1px solid #48617a;border-radius:8px;padding:1rem;min-width:210px;flex:1}
-.num{font-size:2rem;font-weight:750}small,.muted{color:#b9cbd8}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #405366}
-input,select{font:inherit;background:#203141;color:white;padding:.4rem;border:1px solid #7d9ab2}a{color:#92d5ff}.warning{color:#ffda86}code{word-break:break-all}</style>
-<h1>POOLRAD // evidence queue</h1><p id="meta"></p><p class="warning">Candidate priority is a sorting hint. No PM assignment or strict full-C credit is inferred per row.</p>
-<div class="cards" id="cards"></div><p id="ceiling_note"></p><h2>Compile and CTest</h2><div class="card" id="verification"></div>
-<h2>Original DOS versus portable C</h2><p>Comparisons below have separate runs and scopes. They are not additive frame coverage.</p><div class="cards" id="comparisons"></div>
-<h2>Function triage queue</h2><label>Search <input id="search" placeholder="unit, offset, class"></label> <label>Class <select id="filter"><option value="">All</option><option>game_verified</option><option>game_evidenced</option><option>helper_candidate</option><option>game_or_other_library_unresolved</option><option>unresolved</option><option>linked_crt_inferred</option></select></label>
-<p id="shown"></p><table><thead><tr><th>Function</th><th>Evidence class</th><th>Queue state</th><th>Local review tag</th><th>Grade</th><th>Hint</th><th>Calls to verified</th></tr></thead><tbody id="queue"></tbody></table>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Poolrad progress</title>
+<style>body{font:18px/1.5 system-ui;margin:0 auto;padding:1.5rem;max-width:980px;background:#101924;color:#f0f5f8}
+h1,h2{color:#faf2bb}h1{font-size:2.2rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}.card{background:#203141;border:1px solid #48617a;border-radius:8px;padding:1.2rem}
+.num{font-size:2.6rem;font-weight:750}.label{font-weight:700}small,.muted{color:#b9cbd8}.track{height:12px;background:#0d1721;border-radius:8px;overflow:hidden;margin:.8rem 0}.fill{height:100%;background:#a9db7d}
+a{color:#92d5ff}details{margin-top:1.4rem}summary{cursor:pointer;font-weight:700;color:#faf2bb}.warning{color:#ffda86}</style>
+<h1>POOLRAD // PORT PROGRESS</h1><p id="meta" class="muted"></p>
+<div class="cards" id="cards"></div><p id="ceiling_note" class="muted"></p>
+<h2>Playable game</h2><div class="card"><div class="label">First playable C demo: unverified</div><p>Next evidence gate: one reached game route with a same-state DOS/C full-frame comparison. Published row and crop comparisons do not establish that gate.</p></div>
+<details><summary>Evidence and limits</summary><h2>Build verification</h2><div class="card" id="verification"></div>
+<h2>DOS and C comparisons</h2><p>Each comparison has its own run and scope; they cannot be added into frame coverage.</p><div class="cards" id="comparisons"></div></details>
+<p class="muted">The long function candidate list is retained in the research snapshot. It is not the PM assignment queue and does not determine the percentages above.</p>
 <script id="data" type="application/json">""" + payload + """</script><script>
 const d=JSON.parse(document.getElementById('data').textContent);const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 document.getElementById('meta').textContent=`Generated ${d.generated} | source commit ${d.commit.slice(0,12)}`;
-const card=(n,t)=>`<div class="card"><div class="num">${esc(n)}</div><div>${esc(t)}</div></div>`;
-const p=d.function_progress,ready=p.status==='reviewed',kind='working denominator';
-document.getElementById('cards').innerHTML=card(p.strict_full_c,'reviewed strict full-C game functions'+(ready?' ('+p.strict_percent+'% of '+kind+')':''))+card(p.verified_identities,'verified game identities'+(ready?' ('+p.identity_percent+'% of '+kind+')':''))+card(ready?p.ceiling:'pending',ready?'working function total (current denominator)':'function total pending census')+card(d.summary.overlay_candidates+' / '+d.summary.resident_ledger_rows,'overlay prologue candidates / resident callable rows; not a denominator');
-document.getElementById('ceiling_note').textContent=ready?'The reviewed total is the current working denominator. Percentages use this total and will update if the census changes. Scope: '+p.scope+'. Evidence: '+p.evidence_doc+'.':'Completion percentages await a PM-reviewed function census covering the same original binaries and overlay/resident scope. Candidate rows are not a total.';
+const p=d.function_progress,ready=p.status==='reviewed';
+const card=(percent,count,label)=>`<div class="card"><div class="num">${ready?(p.bound_kind==='upper_bound'?'≥':'')+esc(percent)+'%':'Unknown'}</div><div class="label">${esc(label)}</div><div class="track"><div class="fill" style="width:${ready?Math.max(0,Math.min(100,percent)):0}%"></div></div><small>${esc(count)} reviewed original game functions${ready?' / '+esc(p.ceiling)+' possible non-library bodies':''}</small></div>`;
+document.getElementById('cards').innerHTML=card(p.strict_percent,p.strict_full_c,'Translated into strict full C')+card(p.identity_percent,p.verified_identities,'Game functions identified');
+document.getElementById('ceiling_note').textContent=ready?'These are minimum function-coverage percentages: the PM-reviewed '+p.ceiling+' is an upper bound that includes bodies whose game ownership is unresolved. It is not a whole-game completion percentage. Numerators: '+p.accounting_source+'. Bound: '+p.evidence_doc+'.':'Function-coverage percentages await a PM-reviewed census of the same original binaries. Whole-game completion is unknown.';
 const v=d.verification;document.getElementById('verification').innerHTML=v?`<b>${esc(v.status)}</b> at ${esc(v.time)} on ${esc(v.commit.slice(0,12))}<br>`+v.steps.map(s=>`${esc(s.name)}: exit ${s.exit}`+(s.tests_total!==null?`, ${s.tests_total-s.tests_failed}/${s.tests_total} CTests`:'')).join('<br>'):'Not run on this dashboard. Use <code>python3 tools/dashboard/dashboard.py verify</code>.';
 let evidence=d.published_comparisons.map(x=>`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched===null?'Source claim changed; re-review':`${x.matched}/${x.compared} matched`}<br><small>${esc(x.method)}</small><br><a href="${esc('state/reports/'+x.source.split('/').pop())}">source report</a></div>`);
 if(d.local_diff){let x=d.local_diff;evidence.push(`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched}/${x.compared} matched; ${x.mismatched} mismatched<br><small>${esc(x.method)} at ${esc(x.time)}</small></div>`)}
 document.getElementById('comparisons').innerHTML=evidence.join('');
-function update(){const s=document.getElementById('search').value.toLowerCase(),f=document.getElementById('filter').value;const selected=d.queue.filter(x=>(!f||x.classification===f)&&(x.id.toLowerCase().includes(s)||x.classification.includes(s)||x.domain.includes(s)));document.getElementById('shown').textContent=`Showing ${Math.min(selected.length,100)} of ${selected.length} matching rows; full C status is unlinked.`;document.getElementById('queue').innerHTML=selected.slice(0,100).map(x=>`<tr><td>${esc(x.id)}<br><small>${esc(x.domain)}</small></td><td>${esc(x.classification)}</td><td>${esc(x.queue_state)}</td><td>${x.local_review?esc(x.local_review.status+(x.local_review.source_commit!==d.commit?' (stale)':'')+(x.local_review.note?' — '+x.local_review.note:'')):'—'}</td><td>${esc(x.grade)}</td><td>${x.priority_hint}</td><td>${x.verified_calls}</td></tr>`).join('')}
-document.getElementById('search').addEventListener('input',update);document.getElementById('filter').addEventListener('change',update);update();
 </script></html>"""
     output = HERE / "dashboard.html"
     output.write_text(page, encoding="utf-8")

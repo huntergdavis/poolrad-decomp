@@ -49,6 +49,10 @@ class DashboardTest(unittest.TestCase):
             census["bound_kind"] = "exact"
             path.write_text(json.dumps(census), encoding="utf-8")
             self.assertEqual(dashboard.function_progress(repo)["bound_kind"], "exact")
+            census["bound_kind"] = "upper_bound"
+            census["count"] = 815
+            path.write_text(json.dumps(census), encoding="utf-8")
+            self.assertEqual(dashboard.function_progress(repo)["strict_percent"], 10.0)
             census["source_digests"] = {"game_ovr_sha256": "wrong"}
             path.write_text(json.dumps(census), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "different original binaries"):
@@ -90,6 +94,11 @@ class DashboardTest(unittest.TestCase):
     def test_published_evidence_links_resolve_from_dashboard(self):
         page = dashboard.render(dashboard.DEFAULT_REPO)
         body = page.read_text(encoding="utf-8")
+        self.assertIn("POOLRAD // PORT PROGRESS", body)
+        self.assertNotIn("<table", body)
+        self.assertNotIn('id="queue"', body)
+        snapshot = dashboard.read_json(dashboard.STATE / "snapshot.json")
+        self.assertTrue(snapshot["queue"])
         self.assertIn("'state/reports/'+x.source.split('/').pop()", body)
         for evidence in dashboard.cited_evidence(dashboard.DEFAULT_REPO):
             target = page.parent / "state/reports" / Path(evidence["source"]).name
