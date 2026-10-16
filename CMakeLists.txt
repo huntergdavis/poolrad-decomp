@@ -144,6 +144,7 @@ add_library(poolrad_recovered STATIC src/recovered/resident_font_loader_017c.c
                                     src/recovered/overlay_u25_move.c
                                     src/recovered/overlay_u25_tilde_caps_156d.c
                                     src/recovered/overlay_u25_entry14_1788.c
+                                    src/recovered/overlay_u25_entry20_1cc3.c
                                     src/recovered/overlay_u25_party_index_0756.c
                                     src/recovered/overlay_u25_load_word_0e0c.c
                                     src/recovered/overlay_u25_store_word_0c77.c
@@ -905,6 +906,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u25_entry14_1788_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u25_entry14_1788_tests
              COMMAND poolrad_overlay_u25_entry14_1788_tests)
+    add_executable(poolrad_overlay_u25_entry20_1cc3_tests
+                   tests/recovered/test_overlay_u25_entry20_1cc3.c)
+    target_link_libraries(poolrad_overlay_u25_entry20_1cc3_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u25_entry20_1cc3_tests
+             COMMAND poolrad_overlay_u25_entry20_1cc3_tests)
     add_executable(poolrad_overlay_u25_party_index_0756_tests
                    tests/recovered/test_overlay_u25_party_index_0756.c)
     target_link_libraries(poolrad_overlay_u25_party_index_0756_tests PRIVATE poolrad_recovered)
