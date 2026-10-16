@@ -217,6 +217,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_jne_decision_060
                                     src/recovered/overlay_u1c_script_store_al_3190.c
                                     src/recovered/overlay_u1c_script_load_ax_3193.c
                                     src/recovered/overlay_u1c_script_les_di_3196.c
+                                    src/recovered/overlay_u1c_script_call_frame_31a4.c
                                     src/recovered/overlay_u1c_and_or_0def.c
                                     src/recovered/overlay_u1c_picture_0856.c
                                     src/recovered/overlay_u1c_print_0a09.c
@@ -1256,6 +1257,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u1c_script_les_di_3196_tests
              COMMAND poolrad_overlay_u1c_script_les_di_3196_tests)
+    add_executable(poolrad_overlay_u1c_script_call_frame_31a4_tests
+                   tests/recovered/test_overlay_u1c_script_call_frame_31a4.c)
+    target_link_libraries(poolrad_overlay_u1c_script_call_frame_31a4_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u1c_script_call_frame_31a4_tests
+             COMMAND poolrad_overlay_u1c_script_call_frame_31a4_tests)
     add_executable(poolrad_overlay_u1c_and_or_0def_tests
                    tests/recovered/test_overlay_u1c_and_or_0def.c)
     target_link_libraries(poolrad_overlay_u1c_and_or_0def_tests PRIVATE poolrad_recovered)
