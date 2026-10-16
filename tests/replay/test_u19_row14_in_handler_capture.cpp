@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -267,6 +268,113 @@ static void selected_event_maps_each_site_and_keeps_write_boundary() {
     }
 }
 
+static void selected_effect_distinguishes_finished_noop_and_byte_change() {
+    for (unsigned changed = 0; changed < 3u; ++changed) {
+        Capture capture{};
+        const Frame selected{0x0F2D, 0x0445, 0xA000, 0x118F};
+        assert(arm(capture, selected) == Stop::none);
+        std::array<uint8_t, 8> backing{{0x20, 0x11, 0x60, 0x80}};
+        int reads = 0, writes = 0;
+        observe_write(capture, Handler::uvga_fast, 0xA118F, 1, 0,
+                      backing.data(), backing.size(),
+                      [&] {
+                          ++writes;
+                          if (changed == 1u) {
+                              backing[0] = 0x21;
+                              backing[2] = 0x61;
+                          } else if (changed == 2u) {
+                              backing[1] = 0x12;
+                              backing[3] = 0x81;
+                          }
+                      },
+                      [&] { ++reads; return state(selected); });
+        EventEmitter emitter{};
+        emitter.enabled = true;
+        assert(!emitter.emitted && emitter.selected_event.changed_planes_mask == 0);
+        assert(emit_selected_event(emitter, capture, selected_identity()) ==
+               EmitStatus::capture_incomplete);
+        assert(finish(capture, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) ==
+               Stop::none);
+        assert(emit_selected_event(emitter, capture, selected_identity()) ==
+               EmitStatus::emitted);
+        assert(emitter.emitted);
+        assert(emitter.selected_event.changed_planes_mask ==
+               (changed == 1u ? 0x05u : changed == 2u ? 0x0Au : 0u));
+        for (std::size_t plane = 0; plane < 4u; ++plane)
+            assert((capture.before.planes[plane] & 0x20u) ==
+                   (capture.after.planes[plane] & 0x20u));
+        assert(reads == 4 && writes == 1);
+    }
+}
+
+static void failed_receipts_never_become_zero_mask_effects() {
+    auto assert_absent = [](const Capture& capture) {
+        EventEmitter emitter{};
+        emitter.enabled = true;
+        assert(emit_selected_event(emitter, capture, selected_identity()) ==
+               EmitStatus::capture_incomplete);
+        assert(!emitter.emitted && emitter.selected_event.changed_planes_mask == 0);
+    };
+
+    Capture missing{};
+    assert(arm(missing, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) == Stop::none);
+    assert(finish(missing, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) ==
+           Stop::missing_write);
+    assert_absent(missing);
+
+    Capture duplicate{};
+    assert(arm(duplicate, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) == Stop::none);
+    std::array<uint8_t, 8> backing{};
+    int writes = 0;
+    auto run_write = [&] {
+        observe_write(duplicate, Handler::uvga, 0xA118F, 1, 0,
+                      backing.data(), backing.size(), [&] { ++writes; },
+                      default_state);
+    };
+    run_write();
+    run_write();
+    assert(finish(duplicate, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) ==
+           Stop::duplicate_write);
+    assert(writes == 2);
+    assert_absent(duplicate);
+
+    Capture unstable{};
+    assert(arm(unstable, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) == Stop::none);
+    int reads = 0;
+    observe_write(unstable, Handler::uvga, 0xA118F, 1, 0,
+                  backing.data(), backing.size(), [&] { ++writes; },
+                  [&] {
+                      GuestState current = default_state();
+                      current.latch += static_cast<uint32_t>(reads++);
+                      return current;
+                  });
+    assert(finish(unstable, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) ==
+           Stop::changed_observation_state);
+    assert(writes == 3);
+    assert_absent(unstable);
+
+    Capture wrong_target{};
+    assert(arm(wrong_target, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) ==
+           Stop::none);
+    observe_write(wrong_target, Handler::uvga, 0xA1190, 1, 0,
+                  backing.data(), backing.size(), [&] { ++writes; },
+                  default_state);
+    assert(finish(wrong_target, Frame{0x0F2D, 0x0449, 0xA000, 0x118F}) ==
+           Stop::wrong_target);
+    assert_absent(wrong_target);
+
+    Capture wrong_successor{};
+    assert(arm(wrong_successor, Frame{0x0F2D, 0x0445, 0xA000, 0x118F}) ==
+           Stop::none);
+    observe_write(wrong_successor, Handler::uvga, 0xA118F, 1, 0,
+                  backing.data(), backing.size(), [&] { ++writes; },
+                  default_state);
+    assert(finish(wrong_successor, Frame{0x0F2D, 0x0448, 0xA000, 0x118F}) ==
+           Stop::wrong_successor);
+    assert(writes == 5);
+    assert_absent(wrong_successor);
+}
+
 int main() {
     accepted_one_write();
     rejection_never_suppresses_write();
@@ -277,4 +385,6 @@ int main() {
     selected_event_is_default_off_and_post_successor_only();
     selected_event_rejects_bad_identity_and_changed_sample();
     selected_event_maps_each_site_and_keeps_write_boundary();
+    selected_effect_distinguishes_finished_noop_and_byte_change();
+    failed_receipts_never_become_zero_mask_effects();
 }
