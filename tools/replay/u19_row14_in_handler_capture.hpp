@@ -181,6 +181,10 @@ struct SelectedEvent {
     std::array<char, 65> raw_sha256{};
     uint16_t candidate_ordinal = 0;
     std::array<char, 10> pc{}, successor_pc{};
+    // Meaningful only while EventEmitter::emitted is true. This one finished
+    // receipt compares complete plane bytes; it does not identify a first
+    // value-changing store across the candidate stream.
+    uint8_t changed_planes_mask = 0;
 };
 
 enum class EmitStatus : uint8_t {
@@ -264,6 +268,11 @@ inline EmitStatus emit_selected_event(EventEmitter& out, const Capture& capture,
     next.candidate_ordinal = static_cast<uint16_t>(input.candidate_ordinal);
     format_pc(next.pc, capture.armed_frame.cs, capture.site);
     format_pc(next.successor_pc, capture.armed_frame.cs, capture.successor);
+    for (std::size_t plane = 0; plane < capture.before.planes.size(); ++plane) {
+        if (capture.before.planes[plane] != capture.after.planes[plane])
+            next.changed_planes_mask = static_cast<uint8_t>(
+                next.changed_planes_mask | (1u << plane));
+    }
     out.selected_event = next;
     out.emitted = true;
     return EmitStatus::emitted;
