@@ -1722,6 +1722,13 @@ if(BUILD_TESTING)
                           poolrad_formats)
     add_test(NAME poolrad_cold_start_credits_rgb_tests
              COMMAND poolrad_cold_start_credits_rgb_tests)
+    add_executable(poolrad_cold_start_credits_expected_cells_tests
+                   tests/replay/test_cold_start_credits_expected_cells.c
+                   src/replay/cold_start_credits_expected_cells.c)
+    target_include_directories(poolrad_cold_start_credits_expected_cells_tests
+                               PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME poolrad_cold_start_credits_expected_cells_tests
+             COMMAND poolrad_cold_start_credits_expected_cells_tests)
     add_executable(poolrad_cold_start_title_credits_fixture_tests
                    tests/replay/test_cold_start_title_credits_fixture.c
                    src/replay/cold_start_title_credits_fixture.c
