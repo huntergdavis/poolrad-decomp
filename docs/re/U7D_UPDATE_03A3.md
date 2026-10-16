@@ -67,7 +67,9 @@ The strict C11 CMake target and CTest pass; direct ASan+UBSan passes.
 The focused C test includes a shared array/stack frame that changes the
 callee's far return and verifies the explicit transfer status. It also
 places distinct wrapped CS and linear decoy words at outer RETF SP FFFE
-and FFFF. The original-byte differential runs **48** returning synthetic cases,
+and FFFF. A composed entry SP 0008 fixture makes the merged +02F2 callee
+pop its return IP at FFFE and CS at wrapped SS:0000, with a distinct
+linear decoy. The original-byte differential runs **48** returning synthetic cases,
 executing the exact 50-byte caller and exact 177-byte callee in Unicorn
 and comparing the composed C's entire 1 MiB RAM and all 14 CPU words.
 It visits **19/19** caller instruction starts and both outcomes of each

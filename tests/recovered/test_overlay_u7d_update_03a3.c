@@ -81,6 +81,17 @@ int main(void)
     assert(pr_u7d_update_03a3(ram,PR_U7D_03A3_RAM_SIZE,&cpu)==PR_U7D_03A3_OK);
     assert(cpu.sp==3u && cpu.ip==0xCAFEu && cpu.cs==0xBEEFu);
 
+    /* Entry SP 0008 makes the composed +02F2 RETF pop IP at FFFE and
+     * CS at wrapped SS:0000, rather than from the linear decoy. */
+    cpu=frame(ram,0x0008u);
+    {
+        size_t linear_cs=(at(cpu.ss,0xFFFEu)+2u)&(PR_U7D_03A3_RAM_SIZE-1u);
+        ram[linear_cs]=0xADu;
+        ram[(linear_cs+1u)&(PR_U7D_03A3_RAM_SIZE-1u)]=0xDEu;
+    }
+    assert(pr_u7d_update_03a3(ram,PR_U7D_03A3_RAM_SIZE,&cpu)==PR_U7D_03A3_OK);
+    assert(cpu.sp==0x000Cu && cpu.ip==0xCAFEu && cpu.cs==0xBEEFu);
+
     /* The carry callee can rewrite its return through a shared array/frame. */
     cpu=frame(ram,0x6DD4u);
     cpu.ss=cpu.ds;
