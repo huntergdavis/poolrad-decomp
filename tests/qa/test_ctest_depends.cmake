@@ -510,5 +510,28 @@ foreach(control IN ITEMS 11 12)
         check_quoted_escape("${setter}_escaped_control_${control}" "${declaration}" "")
     endforeach()
 endforeach()
+# Genuine quoted arguments end before adjacent unquoted data in CMake.
+set(escape_base [=[
+add_executable(target exists.c)
+add_test(NAME first COMMAND target)
+add_test(NAME second COMMAND target)
+add_test(NAME firstsecond COMMAND target)
+add_test(NAME consumer COMMAND target)
+]=])
+check_quoted_escape(quoted_adjacent_property [=[
+set_property(TEST consumer PROPERTY DEPENDS "first"second)
+]=] "")
+check_quoted_escape(quoted_adjacent_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS "first"second "")
+]=] "")
+check_quoted_escape(quoted_separated_property [=[
+set_property(TEST consumer PROPERTY DEPENDS "first" second)
+]=] "")
+check_quoted_escape(quoted_separated_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS "first" second "")
+]=] "")
+check_quoted_escape(quoted_single_value_control [=[
+set_property(TEST consumer PROPERTY DEPENDS "firstsecond")
+]=] "")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Semicolon DEPENDS identities preserved; full-name dangling/unsupported diagnostics checked")

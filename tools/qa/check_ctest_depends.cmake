@@ -73,6 +73,10 @@ function(tokenize_depends_arguments body output)
                     message(FATAL_ERROR "unsupported semicolon in legacy unquoted DEPENDS argument")
                 endif()
                 set(token "\\\"${token}\\\"")
+            else()
+                # CMake ends a genuine quoted argument before adjacent data;
+                # UNIX_COMMAND would concatenate that next argument.
+                string(APPEND token " ")
             endif()
         else()
             set(depends_unquoted_argument TRUE)
