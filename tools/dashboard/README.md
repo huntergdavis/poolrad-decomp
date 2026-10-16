@@ -36,6 +36,13 @@ evidence may revise the working total and percentages. The evidence document
 states inclusion rules and unresolved boundaries. The cards remain count-only
 while the census is pending.
 
+The owner page shows minimum function coverage when the count is an upper
+bound, rounded down to one decimal place. It does not claim a whole-game
+completion percentage. The full candidate list remains in ignored
+`state/snapshot.json` for research, but is omitted from the owner page.
+PM assignments use separate workstream and source-gate queues; the classifier
+list is not a task queue or the source of strict-C credit.
+
 To compare two private, same-state **indexed pixel byte streams**:
 
 ```sh
