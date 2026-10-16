@@ -55,7 +55,7 @@ def _state(state: object) -> None:
                 f"invalid {name} field")
 
 
-def _sample(sample: object, phase: str) -> bytes:
+def _sample(sample: object, phase: str) -> tuple[bytes, dict]:
     require(isinstance(sample, dict) and set(sample) ==
             {"planes", "state_before_copy", "state_after_copy"},
             f"{phase} sample fields incomplete")
@@ -66,7 +66,7 @@ def _sample(sample: object, phase: str) -> bytes:
     value = sample["planes"]
     require(isinstance(value, str) and HEX8.fullmatch(value) is not None,
             f"{phase} four-plane word invalid")
-    return bytes.fromhex(value)
+    return bytes.fromhex(value), before
 
 
 def _host_map(value: object) -> HostMap:
@@ -115,7 +115,15 @@ def validate_capture(record: object) -> SnapshotResult:
     require(type(record["handler_index"]) is int and
             record["handler_index"] == planar_index(mapping),
             "handler index disagrees with independent resolver")
-    before, after = _sample(record["before"], "before"), _sample(record["after"], "after")
+    before, before_state = _sample(record["before"], "before")
+    after, after_state = _sample(record["after"], "after")
+    frame = {name: before_state[name] for name in ("cs", "ip", "es", "di")}
+    require(frame == {name: after_state[name] for name in frame},
+            "observed write frame changed across samples")
+    require(frame["cs"] == "0F2D" and
+            frame["ip"] in {f"{site:04X}", f"{successor:04X}"} and
+            frame["es"] == "A000" and frame["di"] == "118F",
+            "observed write frame disagrees with selected store")
     changed = tuple(i for i, (old, new) in enumerate(zip(before, after)) if old != new)
     return SnapshotResult(record["run_token"], record["plane_event_id"],
                           record["arm_token"], record["store_ordinal"],

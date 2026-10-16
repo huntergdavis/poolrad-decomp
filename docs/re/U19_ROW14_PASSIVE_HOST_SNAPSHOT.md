@@ -106,10 +106,13 @@ without carrying EGA bytes or claiming RGB causation. Each sample has four
 `planes` bytes encoded as eight uppercase hex digits and
 `state_before_copy`/`state_after_copy` objects with four CPU WORDs, ten GC
 bytes, six Sequencer bytes, and one latch DWORD. It requires equality around
-each copy, resolves the index independently, and reports only changed-plane
-count. This is one backing word, one byte per plane; it cannot satisfy the
-older same-run event plan's four 320-byte windows per side. The record and its
-state fields are private under ignored `resources/`.
+each copy, equality of the observed CS/IP/ES/DI frame across the guest write,
+and a frame matching the declared `0F2D` site or successor and `A000:118F`.
+It resolves the index independently and reports only changed-plane count.
+The checker does not authenticate the self-reported arm token or prove which
+decoder was active. This is one backing word, one byte per plane; it cannot
+satisfy the older same-run event plan's four 320-byte windows per side. The
+record and its state fields are private under ignored `resources/`.
 
 The host packet's raw PIC ticks, CPU cycles, and frame-start value are from
 its `latch_enter` phase. A later guest packet must not compare them for
@@ -117,7 +120,7 @@ equality with arm, store, or successor samples without a phase-specific
 source proof. No emulated retrace port read is part of this probe.
 
 Synthetic tests exercise latch/controller mutation, bank-dependent index
-disagreement, route mismatch, and duplicate write rejection.
+disagreement, route and observed-frame mismatch, and duplicate write rejection.
 
 This validator cannot authenticate a self-reported private record or prove
 that the hook captured the first actual writer. The later authorized native

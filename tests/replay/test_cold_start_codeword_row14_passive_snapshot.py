@@ -89,6 +89,37 @@ class PassiveSnapshotTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "exactly one selected write"):
             validate_capture(candidate)
 
+    def test_observed_ip_must_match_declared_store(self) -> None:
+        candidate = record()
+        candidate["site"], candidate["successor"] = 0x0451, 0x0455
+        with self.assertRaisesRegex(ValueError, "observed write frame disagrees"):
+            validate_capture(candidate)
+
+    def test_stable_wrong_observed_frame_is_rejected(self) -> None:
+        for field, value in (("cs", "0F2E"), ("es", "A001"),
+                             ("di", "1190")):
+            with self.subTest(field=field):
+                candidate = record()
+                for sample in (candidate["before"], candidate["after"]):
+                    for key in ("state_before_copy", "state_after_copy"):
+                        sample[key][field] = value
+                with self.assertRaisesRegex(ValueError, "observed write frame disagrees"):
+                    validate_capture(candidate)
+
+    def test_observed_successor_ip_remains_allowed(self) -> None:
+        candidate = record()
+        for sample in (candidate["before"], candidate["after"]):
+            for key in ("state_before_copy", "state_after_copy"):
+                sample[key]["ip"] = "0449"
+        self.assertEqual(validate_capture(candidate).successor, 0x0449)
+
+    def test_observed_frame_must_stay_fixed_across_write(self) -> None:
+        candidate = record()
+        for key in ("state_before_copy", "state_after_copy"):
+            candidate["after"][key]["ip"] = "0449"
+        with self.assertRaisesRegex(ValueError, "observed write frame changed"):
+            validate_capture(candidate)
+
     def test_opaque_event_join_needs_bounded_ordinal(self) -> None:
         candidate = record()
         candidate["store_ordinal"] = 129
