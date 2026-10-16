@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "status": "SOURCE_ONLY_TEMPLATE_NO_NATIVE",
+  "purpose": "future single-run U19 row-14 selected-store capture",
+  "candidate_hit_cap": 128,
+  "witness": {"segment": "A000", "offset": "118F", "bit": "20"},
+  "launch": {
+    "program": "START",
+    "arguments": [],
+    "prior_credits_rgb_sha256": "624f69b5f7bce90ba859eee24aee2e4ac97daf66c405b145f20534123eb28698",
+    "prior_single_return_word": "1C0D",
+    "instruction": "Verify the credits frame, send one Return, derive loaded segments from the MZ base and patched U19 stub; never assume prior segment values."
+  },
+  "ordered_stops": [
+    {"id": "credits_return", "prior_pc": "0824:0122", "condition": "same-run verified credits RGB and one queued Return"},
+    {"id": "u19_stub", "prior_pc": "0840:0025", "condition": "resolve patched far jump to U19 entry"},
+    {"id": "u19_entry", "prior_pc": "38D3:00FD", "condition": "record caller return frame and loaded entry hash"},
+    {"id": "u19_pre_printer", "prior_pc": "38D3:02D8", "condition": "capture CPU/full RAM, source pointer and low-byte column=1 row=14 color=10, display mode and page words"},
+    {"id": "printer_entry", "prior_pc": "0F2D:0626", "condition": "verify return IP +02DD, U19 caller CS, live far string pointer, low-byte arguments and font route"},
+    {"id": "selected_witness_store", "prior_pc": "0F2D:0412|0438|0445|0451", "condition": "effective ES:DI=A000:118F; capture full RAM and four EGA planes with controller state before one instruction"},
+    {"id": "store_successor", "prior_pc": "0F2D:0415|043B|0449|0455", "condition": "immediate matching successor; repeat RAM/four planes and prove controller restoration"},
+    {"id": "u19_post_printer", "prior_pc": "38D3:02DD", "condition": "same-run return and frame; do not substitute the older retained post-call capture"}
+  ],
+  "missing_required": [
+    "same-run pre-02D8 CPU/full-RAM and printer-entry frame",
+    "complete bounded candidate-hit log through selected ES:DI and successor",
+    "immediate four-plane before/after samples and Graphics Controller restoration",
+    "same-run post-02DD frame paired to the new pre-call stop"
+  ]
+}
