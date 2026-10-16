@@ -15,6 +15,10 @@ add_executable(poolrad_cold_start_title_rgb
                tools/replay/cold_start_title_rgb.c
                src/replay/cold_start_title_rgb.c)
 target_link_libraries(poolrad_cold_start_title_rgb PRIVATE poolrad_formats)
+add_executable(poolrad_cold_start_publisher_rgb
+               tools/replay/cold_start_publisher_rgb.c
+               src/replay/cold_start_publisher_rgb.c)
+target_link_libraries(poolrad_cold_start_publisher_rgb PRIVATE poolrad_formats)
 add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_byte_store_05ed_fixture.c
                                     src/recovered/overlay_u3c2_add_ax_dx_05eb_fixture.c
                                     src/recovered/overlay_u3c2_cbw_05ea_fixture.c
@@ -1417,6 +1421,13 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_cold_start_title_connector_tests
              COMMAND poolrad_cold_start_title_connector_tests
                      "${CMAKE_CURRENT_BINARY_DIR}/cold_start_title_connector_test")
+    add_executable(poolrad_cold_start_publisher_rgb_tests
+                   tests/replay/test_cold_start_publisher_rgb.c
+                   src/replay/cold_start_publisher_rgb.c)
+    target_link_libraries(poolrad_cold_start_publisher_rgb_tests PRIVATE
+                          poolrad_formats)
+    add_test(NAME poolrad_cold_start_publisher_rgb_tests
+             COMMAND poolrad_cold_start_publisher_rgb_tests)
     add_executable(poolrad_overlay_u6f_postinsert_02ae_tests
                    tests/recovered/test_overlay_u6f_postinsert_02ae.c)
     target_link_libraries(poolrad_overlay_u6f_postinsert_02ae_tests
