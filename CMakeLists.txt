@@ -254,6 +254,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_je_decision_05fe
                                     src/recovered/overlay_u7d_entry1.c
                                     src/recovered/overlay_u7d_carry_02f2.c
                                     src/recovered/overlay_u7d_update_03a3.c
+                                    src/recovered/system_seed_fullstate_120f.c
                                     src/recovered/overlay_u7d_zero.c
                                     src/recovered/overlay_u9e_entry2.c
                                     src/recovered/overlay_u3c6_slot.c
@@ -1450,6 +1451,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7d_update_03a3_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7d_update_03a3_tests
              COMMAND poolrad_overlay_u7d_update_03a3_tests)
+
+    add_executable(poolrad_system_seed_fullstate_120f_tests
+                   tests/recovered/test_system_seed_fullstate_120f.c)
+    target_link_libraries(poolrad_system_seed_fullstate_120f_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_system_seed_fullstate_120f_tests
+             COMMAND poolrad_system_seed_fullstate_120f_tests)
     add_executable(poolrad_overlay_u7d_zero_tests
                    tests/recovered/test_overlay_u7d_zero.c)
     target_link_libraries(poolrad_overlay_u7d_zero_tests PRIVATE poolrad_recovered)
