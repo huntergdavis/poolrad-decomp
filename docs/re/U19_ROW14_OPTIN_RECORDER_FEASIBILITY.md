@@ -72,6 +72,29 @@ selection until a same-run four-plane packet and actual native stop are
 associated. Exact field types and packet paths remain under pC/pR/pN review;
 no shared schema or native source has been changed by this note.
 
+An independent pN synthetic policy review (private manifest SHA-256
+`91967e43b01a8a13869485191af9accde2ae7f80fd997cf9651edc9a770ae474`)
+confirmed the 2,304-candidate/2,307-frame source shape, 897/898 first target,
+and legacy stop at candidate 129. It did not supply native counts or approve
+implementation. The proposed versioned validation policy is:
+
+* `full_return` requires one caller, 2,304 ordered candidates, exactly one
+  immediate selected successor that does not increment the candidate count,
+  one first return, and no frame after that return. A `selected_prefix`
+  terminal can identify a selected CPU source but cannot claim full-route
+  coverage.
+* Candidate 2,305 is an overflow failure. Since the 2,307-frame cap has no
+  room for a 2,308th frame, record overflow in separately bounded metadata
+  and fail closed without appending that frame. Missing return, interrupted
+  capture, source write failure, and metadata truncation also fail closed.
+* Recompute raw artifact SHA-256, record count, and first target ordinal from
+  the bounded frame stream. The selected-event sidecar must bind the same
+  run, arm, event, stream, raw hash, and *selected* ordinal. A token or hash
+  alone does not establish native same-run provenance.
+* The new `candidate_ordinal` is not a relabeling of the old
+  `store_ordinal`. The existing cap-128 pC event join cannot consume ordinal
+  897/898; a distinct versioned join needs separate owner review.
+
 All raw logs, CPU/RAM/EGA packets, and pixels remain under ignored
 `resources/`. Public output is limited to addresses, hashes, counts, and
 synthetic records.
