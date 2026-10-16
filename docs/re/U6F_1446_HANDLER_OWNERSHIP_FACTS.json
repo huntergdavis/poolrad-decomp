@@ -1,0 +1,151 @@
+{
+  "spans": [
+    {
+      "label": "handler",
+      "original_segment": "0AA2",
+      "half_open": [
+        "02E6",
+        "0338"
+      ],
+      "bytes": 82,
+      "starts": 42,
+      "sha256": "6269d22ce3aa55966403db7c09fcad2c9b2a717b8d0c53986a3e9ad52121264c",
+      "call_return_pcs": [
+        "0303",
+        "0314",
+        "032A",
+        "0337"
+      ]
+    },
+    {
+      "label": "loader",
+      "original_segment": "0AA2",
+      "half_open": [
+        "0338",
+        "03E9"
+      ],
+      "bytes": 177,
+      "starts": 64,
+      "sha256": "58427ef2f283771df95d170aced18285dc01498739e76c8e6df64326f70a4991",
+      "call_return_pcs": [
+        "0352",
+        "0363",
+        "0369",
+        "037F",
+        "0389",
+        "0393",
+        "0396",
+        "03AA",
+        "03B3",
+        "03B6",
+        "03BA",
+        "03D8",
+        "03DB",
+        "03E5"
+      ]
+    },
+    {
+      "label": "post_loader",
+      "original_segment": "0AA2",
+      "half_open": [
+        "0317",
+        "032A"
+      ],
+      "bytes": 19,
+      "starts": 7,
+      "sha256": "4f97e9dc2717c9e67383bd9e0534083e22b4f8e2ec489b60555690f3add04d04",
+      "call_return_pcs": []
+    },
+    {
+      "label": "restore_iret",
+      "original_segment": "0AA2",
+      "half_open": [
+        "032E",
+        "0338"
+      ],
+      "bytes": 10,
+      "starts": 10,
+      "sha256": "706e20308868adfbde63c06a503cea90b60c32f1ae9a445905d264b79004e156",
+      "call_return_pcs": [
+        "0337"
+      ]
+    }
+  ],
+  "loaded_handler_sha256": "5c69a0e6a0a9141fae2d0381a4ebe4252981d54cbad01d335a3f5f73380fd6ef",
+  "source_snapshot": "26dda37133bde95bb9fc8a25125640d7a25c10b8",
+  "scope": "read-only map; no helper/API/launcher/preflight edits or native launch",
+  "credit": 0,
+  "relative_clearances": {
+    "native_peer": "i7809",
+    "p5": "i7810",
+    "census": "i7811"
+  },
+  "existing_dependencies": [
+    {
+      "path": "include/poolrad/replay/u6f_1446_fullstate.h",
+      "git_blob": "17028001e640be90394eb1caca0917376bb1e320",
+      "sha256": "a4e36d2df63372e4da4e6ecc0d75699bf577f163eb622c9989e17270f0266afb",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "src/replay/u6f_1446_fullstate.c",
+      "git_blob": "950cc61bafa18e38e13830997af369c789317fe2",
+      "sha256": "95bd833d2dd2270ab0d12fbffa5867f5976ac946fa9aab16dd625909696a684e",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "include/poolrad/recovered/resident_handler_prefix_02e6.h",
+      "git_blob": "97b0f976ed06102a0cf7aff04e2e505c793a3e77",
+      "sha256": "e878a12feaa3acf8ff8c03a7d4826bf6bbb116319e6fd69a2bd7fd14577aac8f",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "src/recovered/resident_handler_prefix_02e6.c",
+      "git_blob": "40ca12ca217a3b19eaa44859d931e4d48f9240a1",
+      "sha256": "16c30e17f8a2c100d222b267c1e4611e0a0a32f8bd96453bf0a79dcac66a67f8",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "include/poolrad/recovered/resident_loader_prefix_0338.h",
+      "git_blob": "eb59782966a3e3092c3a9249967a660d3b4b297b",
+      "sha256": "e5d5a3e431c2011c5a2a1a0e3faa87b341576ca628e3836afe44f4e9d8a70814",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "include/poolrad/recovered/resident_loader_composed_028f.h",
+      "git_blob": "2e7cd79bf48437ae01f3c6f7fb1b3392a4c6f528",
+      "sha256": "ded9b0eedc7ab5ad0904262f8eed5731bcb6a1084c887223953c592a9999cf79",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "include/poolrad/recovered/resident_loader_seek_028f.h",
+      "git_blob": "44f8e0d2fd3f0b3dfa35eb9dd4b89e205a53ed40",
+      "sha256": "040224946836c127f26333ac9c0fbe050975d5993aac59f9a7f1d0ff1afc6ce1",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "include/poolrad/recovered/resident_loader_dos_read_029f.h",
+      "git_blob": "6ae531f19e5b963e99a80619f8c24bbcd583d806",
+      "sha256": "0f1e60749034d1738783170bc5c04078cf5da88f2de44e53f011ed3c244c85ec",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "tools/replay/u6f_1446_cold_capture_preflight.py",
+      "git_blob": "4b35b3f5155ab565b0a7177100f997b06d23a5b5",
+      "sha256": "6af206d3f7a9dd65682b5623cd9c301d23a0fd1afd153d7019e6bd19de83c479",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "tools/oracle/prepare_run.sh",
+      "git_blob": "f5b1a401a2a4c96326b23f28aa2eb24f4275f7bf",
+      "sha256": "a8056d7f91a6ebfbea9de2312cd59dd0397fe2e36b111c2c6082c1adb66c41e0",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    },
+    {
+      "path": "tools/oracle/launch.sh",
+      "git_blob": "eef992cc0481ee66ae4dc3f39d96907c9a540795",
+      "sha256": "9bedc6ab1c0d1858d7f4255601a1b63c259e5cc6d60a5df4cd98910805965752",
+      "ownership": "existing owner unchanged; no implementation assignment inferred"
+    }
+  ]
+}
