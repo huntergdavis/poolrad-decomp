@@ -161,6 +161,45 @@ class PassiveSnapshotV2Tests(unittest.TestCase):
             candidate["host_map"][name] = 255
             self.assertEqual(validate_capture_v2(candidate).backing_index, 0x118F)
 
+    def test_supplied_host_map_uint32_domain_rejects_masked_aliases(self) -> None:
+        # Each value is oversized even though the old unbounded Python resolver
+        # can still produce the ordinary small 0x118F backing index.
+        for name, value in (
+            ("physical_address", (1 << 32) + 0xA118F),
+            ("page_mask", (1 << 32) + 0x1FFFF),
+            ("bank_read_full", 1 << 32),
+            ("memmask", (1 << 32) + 0x3FFFF),
+            ("memsize", (1 << 32) + 0x40000),
+        ):
+            with self.subTest(field=name):
+                candidate = record()
+                candidate["host_map"][name] = value
+                with self.assertRaisesRegex(ValueError, "uint32 domain"):
+                    parse_capture_v2(raw(candidate))
+
+        # Individual Bitu fields fit this portable subset, but their address
+        # sum would require a host-width conversion before resolving the word.
+        overflow = record()
+        overflow["host_map"]["page_mask"] = 0xFFFFFFFF
+        overflow["host_map"]["bank_read_full"] = 0xFFFF0000
+        with self.assertRaisesRegex(ValueError, "base outside portable uint32"):
+            parse_capture_v2(raw(overflow))
+
+        oversized_index = record()
+        oversized_index["handler_index"] = (1 << 32) + 0x118F
+        with self.assertRaisesRegex(ValueError, "handler index outside uint32"):
+            parse_capture_v2(raw(oversized_index))
+
+        short_backing = record()
+        short_backing["host_map"]["memsize"] = 0x4000
+        with self.assertRaisesRegex(ValueError, "outside backing memory"):
+            parse_capture_v2(raw(short_backing))
+
+        portable_max_mask = record()
+        portable_max_mask["host_map"]["page_mask"] = 0xFFFFFFFF
+        self.assertEqual(parse_capture_v2(raw(portable_max_mask)).backing_index,
+                         0x118F)
+
     def test_raw_byte_bound_duplicate_keys_and_single_json_object(self) -> None:
         value = record()
         encoded = raw(value)
