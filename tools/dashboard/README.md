@@ -21,18 +21,20 @@ and records commit, timestamp, exit codes, test totals, and logs in `state/`.
 The rendered status becomes **stale** if the repository commit changes.
 
 The function cards read reviewed numerators from
-`docs/re/function_accounting_checkpoint.json`. The whole-game function
-ceiling is pending in `docs/re/function_ceiling_census.json`; candidate
-prologues and resident callable rows cannot be added to obtain it. A census
+`docs/re/function_accounting_checkpoint.json`. The working function total
+comes from `docs/re/function_ceiling_census.json`; candidate prologues and
+resident callable rows cannot be added to obtain it. A census
 may change to `status: reviewed` only after PM review, with an integer
 `count`, `bound_kind` (`exact` or `upper_bound`),
 `scope: original-game-functions-overlay-and-resident`, `source_digests`
 matching the accounting checkpoint's `inputs`, `reviewed_by: PM`, and an
-`evidence_doc` under `docs/re/`. The dashboard then reports strict full-C
-and verified-identity percentages separately. For an upper bound, both
-percentages are **lower bounds** on completion; the actual denominator may
-be smaller. The evidence document must state inclusion rules and unresolved
-boundaries. The cards remain count-only while the census is pending.
+`evidence_doc` under `docs/re/`. The dashboard then uses the reviewed count
+as its current working denominator and reports strict full-C and
+verified-identity percentages separately. The `bound_kind` remains in the
+data and evidence: the current census is a static upper bound, so new
+evidence may revise the working total and percentages. The evidence document
+states inclusion rules and unresolved boundaries. The cards remain count-only
+while the census is pending.
 
 To compare two private, same-state **indexed pixel byte streams**:
 
