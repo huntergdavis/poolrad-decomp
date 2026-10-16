@@ -88,6 +88,15 @@ while(comment_input MATCHES "\\\\.|\"([^\"\\\\]|\\\\.)*\"|#[^\n]*|\\[=*\\[")
         endif()
         string(LENGTH "${comment_close}" comment_close_length)
         math(EXPR comment_length "${comment_open_length} + ${comment_close_start} + ${comment_close_length}")
+        math(EXPR comment_after "${comment_start} + ${comment_length}")
+        string(SUBSTRING "${comment_input}" ${comment_after} -1 comment_suffix)
+        # A bracket comment can touch the preceding argument, but CMake
+        # requires a separator before a following argument. Newlines inside
+        # the comment do not supply that separator.
+        if(NOT comment_suffix STREQUAL "" AND NOT comment_suffix MATCHES "^[ \t\r\n)#]")
+            message(FATAL_ERROR "missing argument separator after CMake bracket comment")
+        endif()
+        string(APPEND declarations " ")
     elseif(comment_token MATCHES "^\\[(=*)\\[")
         # Adapt the bounded delimiter matching from 6023a49, preserving NAME
         # semicolons and parentheses as data rather than rejecting them.
