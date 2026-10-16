@@ -95,6 +95,35 @@ implementation. The proposed versioned validation policy is:
   `store_ordinal`. The existing cap-128 pC event join cannot consume ordinal
   897/898; a distinct versioned join needs separate owner review.
 
+## Local source-only recorder model
+
+`tools/replay/cold_start_codeword_row14_selected_pc_recorder.py` now provides
+an explicitly enabled in-memory `CandidateRecorder` and an
+`audit_recording` parser. The default is disabled. Its input is a **supplied**
+sequence of relevant caller, candidate, selected successor, and return CPU
+frames; it has no emulator hook or file writer. The raw artifact is canonical
+four-WORD JSONL, at most 2,307 lines of at most 256 bytes each. The separate
+version-1 manifest is at most 4,096 bytes and identifies the SHA-256 of the
+exact raw `src/debug/debug.cpp` source-file bytes, as well as the SHA-256 of
+the complete raw JSONL byte string including final newlines. The selected
+event repeats the run, arm, stream, plane-event, raw hash, and first target
+ordinal. It is emitted only after its immediate successor was supplied.
+
+The parser checks canonical frames and recomputes the source hash, raw hash,
+counts, first target, successor, and terminal. A successful full route returns
+`SOURCE_ONLY_FULL_RETURN_UNAUTHENTICATED`; a selected prefix returns
+`SOURCE_ONLY_SELECTED_PREFIX_UNAUTHENTICATED`. Overflow and truncation return
+typed stops. Even a matching full-route transcript remains unauthenticated
+until a pinned native instruction hook proves it supplied every visit.
+Synthetic tests cover disabled mode, first target on either page, full and
+prefix terminals, candidate 2,305 without a 2,308th frame, truncation, wrong
+successor, after-end input, and manifest/source/raw tampering:
+
+```sh
+python3 -m unittest \
+  tests.replay.test_cold_start_codeword_row14_selected_pc_recorder
+```
+
 All raw logs, CPU/RAM/EGA packets, and pixels remain under ignored
 `resources/`. Public output is limited to addresses, hashes, counts, and
 synthetic records.
