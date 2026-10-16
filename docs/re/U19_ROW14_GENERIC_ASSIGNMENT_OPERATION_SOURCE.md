@@ -77,4 +77,14 @@ writer, displayed page, RGB frame, or strict/full-C credit.
 The sibling fast handler uses a different index and final assignment at
 647-648. p9 owns the common issuer; pC owns the versioned receipt consumer
 and eight-label audit; pR owns passive plane and RGB provenance. This file
-does not edit those APIs. Status: `LOCAL_GENERIC_ASSIGNMENT_SOURCE_MODEL`.
+does not edit those APIs.
+
+The focused synthetic
+`tests/replay/test_u19_row14_generic_assignment_operation.cpp` covers a
+changing sample, equal-byte source no-op, wrong frame/handler/guest target/
+width/mapping/bounds, callback-on-reject, missing and duplicate calls,
+disabled-mode toggles, and a reentrant duplicate. Its warning-strict C++17
+syntax check and one guarded `-DNDEBUG` focused executable run passed
+locally. The test uses always-evaluated `CHECK` calls, so Release mode cannot
+discard operation side effects. CTest and the native path remain unrun under
+the PM host gate. Status: `LOCAL_GENERIC_ASSIGNMENT_SOURCE_MODEL`.
