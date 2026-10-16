@@ -32,6 +32,7 @@ RAM_BYTES = 655360
 
 @dataclass(frozen=True)
 class RouteGate:
+    run_token: str
     event: EventGate
     selected_frame_index: int
 
@@ -170,7 +171,7 @@ def audit_route(root: Path, template: object, route_doc: object,
             far_target(before, (u19 << 4) + 0x02D8, 0x9A) ==
             (0x0626, printer),
             "pre-call RAM does not connect resident, stub, U19, and printer")
-    return RouteGate(gate, selected_index)
+    return RouteGate(token, gate, selected_index)
 
 
 def main() -> None:
