@@ -727,5 +727,25 @@ set(blob [=[add_executable(target "source\q.c")]=])
 add_executable(target exists.c)
 add_test(NAME real COMMAND target)
 ]==] "")
+# CMake ends a genuine quoted argument before an adjacent unquoted argument.
+# An existing shell-concatenated alias must not hide the actual missing script.
+file(WRITE "${fixture}/adjacent-first.cmaketail.cmake" "")
+check_registration_escape(quoted_adjacent_missing_actual [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-first.cmake"tail.cmake)
+]=] "missing registered test source:.*adjacent-first.cmake")
+file(WRITE "${fixture}/adjacent-first.cmake" "")
+check_registration_escape(quoted_adjacent_both_exist [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-first.cmake"tail.cmake)
+]=] "")
+file(WRITE "${fixture}/adjacent-only.cmake" "")
+check_registration_escape(quoted_adjacent_actual_only [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-only.cmake"tail.cmake)
+]=] "")
+check_registration_escape(quoted_separated_control [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-only.cmake" tail.cmake)
+]=] "")
+check_registration_escape(quoted_adjacent_escaped_tail [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-only.cmake"tail\@.cmake)
+]=] "")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Exact command boundaries enforced; real duplicate/missing-source checks preserved")
