@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -7,6 +8,42 @@ import dashboard
 
 
 class DashboardTest(unittest.TestCase):
+    def test_function_progress_waits_for_reviewed_census(self):
+        progress = dashboard.function_progress(dashboard.DEFAULT_REPO)
+        self.assertEqual(progress["status"], "pending")
+        self.assertIsNone(progress["strict_percent"])
+        self.assertIsNone(progress["identity_percent"])
+
+    def test_function_progress_distinguishes_exact_from_ceiling(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            evidence = repo / "docs/re/CEILING_EVIDENCE.md"
+            evidence.parent.mkdir(parents=True)
+            evidence.write_text("Test evidence", encoding="utf-8")
+            source = dashboard.read_json(dashboard.DEFAULT_REPO /
+                                         "docs/re/function_accounting_checkpoint.json")
+            (repo / "docs/re/function_accounting_checkpoint.json").write_text(
+                json.dumps(source), encoding="utf-8")
+            census = {
+                "status": "reviewed", "count": 1000, "bound_kind": "upper_bound",
+                "scope": "original-game-functions-overlay-and-resident",
+                "source_digests": source["inputs"], "reviewed_by": "PM",
+                "evidence_doc": "docs/re/CEILING_EVIDENCE.md",
+            }
+            path = repo / "docs/re/function_ceiling_census.json"
+            path.write_text(json.dumps(census), encoding="utf-8")
+            progress = dashboard.function_progress(repo)
+            self.assertEqual((progress["strict_percent"], progress["identity_percent"]),
+                             (8.2, 14.3))
+            self.assertEqual(progress["bound_kind"], "upper_bound")
+            census["bound_kind"] = "exact"
+            path.write_text(json.dumps(census), encoding="utf-8")
+            self.assertEqual(dashboard.function_progress(repo)["bound_kind"], "exact")
+            census["source_digests"] = {"game_ovr_sha256": "wrong"}
+            path.write_text(json.dumps(census), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "different original binaries"):
+                dashboard.function_progress(repo)
+
     def test_queue_keeps_identity_separate_from_full_c(self):
         entries, counts = dashboard.queue(dashboard.DEFAULT_REPO)
         self.assertEqual(len(entries), counts["overlay_candidates"] + counts["resident_ledger_rows"])

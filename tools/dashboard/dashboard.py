@@ -124,6 +124,54 @@ def write_json(path: Path, value: dict) -> None:
     path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def function_progress(repo: Path) -> dict:
+    """Use reviewed accounting and a separately reviewed, same-binary census."""
+    checkpoint = read_json(repo / "docs/re/function_accounting_checkpoint.json")
+    if not checkpoint or checkpoint.get("schema_version") != 1:
+        raise ValueError("reviewed function accounting checkpoint is missing or unsupported")
+    strict = checkpoint["strict_full_c_originals"]
+    identities = checkpoint["verified_game_identities"]
+    if not all(type(value) is int and value >= 0 for value in (strict, identities)):
+        raise ValueError("reviewed function counts must be nonnegative integers")
+    progress = {
+        "status": "pending", "strict_full_c": strict,
+        "verified_identities": identities, "ceiling": None,
+        "bound_kind": None, "strict_percent": None,
+        "identity_percent": None, "evidence_doc": None,
+        "accounting_source": "docs/re/function_accounting_checkpoint.json",
+        "scope": "original game functions in the overlay and resident program",
+    }
+    census = read_json(repo / "docs/re/function_ceiling_census.json")
+    if not census or census.get("status") == "pending":
+        return progress
+    if census.get("status") != "reviewed":
+        raise ValueError("function ceiling census has unsupported status")
+    ceiling = census.get("count")
+    if (type(ceiling) is not int or ceiling <= 0 or
+            ceiling < max(strict, identities)):
+        raise ValueError("reviewed function ceiling must cover the accounting counts")
+    if census.get("bound_kind") not in ("exact", "upper_bound"):
+        raise ValueError("reviewed census must say whether the count is exact or an upper bound")
+    if census.get("scope") != "original-game-functions-overlay-and-resident":
+        raise ValueError("census scope does not match the accounting checkpoint")
+    if census.get("source_digests") != checkpoint.get("inputs"):
+        raise ValueError("census and accounting checkpoint use different original binaries")
+    evidence_doc = census.get("evidence_doc")
+    if (not isinstance(evidence_doc, str) or
+            not evidence_doc.startswith("docs/re/") or
+            not (repo / evidence_doc).is_file() or
+            census.get("reviewed_by") != "PM"):
+        raise ValueError("reviewed census needs a PM-reviewed repository evidence document")
+    progress.update({
+        "status": "reviewed", "ceiling": ceiling,
+        "bound_kind": census["bound_kind"],
+        "strict_percent": round(100 * strict / ceiling, 1),
+        "identity_percent": round(100 * identities / ceiling, 1),
+        "evidence_doc": evidence_doc,
+    })
+    return progress
+
+
 def verify(repo: Path) -> dict:
     STATE.mkdir(exist_ok=True)
     build = Path("/tmp/poolrad-dashboard-build")
@@ -176,6 +224,7 @@ def compare(dos: Path, portable_c: Path, width: int, height: int, label: str) ->
 
 def render(repo: Path) -> Path:
     q, counts = queue(repo)
+    progress = function_progress(repo)
     rev = head(repo)
     marks = read_json(STATE / "queue_marks.json") or {}
     for item in q:
@@ -193,6 +242,7 @@ def render(repo: Path) -> Path:
         (reports_dir / source.name).write_bytes(source.read_bytes())
     local_diff = read_json(STATE / "local_diff.json")
     data = {"generated": timestamp(), "commit": rev, "summary": counts, "queue": q,
+            "function_progress": progress,
             "verification": verification, "published_comparisons": evidence, "local_diff": local_diff}
     write_json(STATE / "snapshot.json", data)
     payload = json.dumps(data).replace("<", "\\u003c").replace(">", "\\u003e")
@@ -203,7 +253,7 @@ h1,h2{color:#faf2bb}.cards{display:flex;flex-wrap:wrap;gap:1rem}.card{background
 .num{font-size:2rem;font-weight:750}small,.muted{color:#b9cbd8}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:.5rem;border-bottom:1px solid #405366}
 input,select{font:inherit;background:#203141;color:white;padding:.4rem;border:1px solid #7d9ab2}a{color:#92d5ff}.warning{color:#ffda86}code{word-break:break-all}</style>
 <h1>POOLRAD // evidence queue</h1><p id="meta"></p><p class="warning">Candidate priority is a sorting hint. No PM assignment or strict full-C credit is inferred per row.</p>
-<div class="cards" id="cards"></div><h2>Compile and CTest</h2><div class="card" id="verification"></div>
+<div class="cards" id="cards"></div><p id="ceiling_note"></p><h2>Compile and CTest</h2><div class="card" id="verification"></div>
 <h2>Original DOS versus portable C</h2><p>Comparisons below have separate runs and scopes. They are not additive frame coverage.</p><div class="cards" id="comparisons"></div>
 <h2>Function triage queue</h2><label>Search <input id="search" placeholder="unit, offset, class"></label> <label>Class <select id="filter"><option value="">All</option><option>game_verified</option><option>game_evidenced</option><option>helper_candidate</option><option>game_or_other_library_unresolved</option><option>unresolved</option><option>linked_crt_inferred</option></select></label>
 <p id="shown"></p><table><thead><tr><th>Function</th><th>Evidence class</th><th>Queue state</th><th>Local review tag</th><th>Grade</th><th>Hint</th><th>Calls to verified</th></tr></thead><tbody id="queue"></tbody></table>
@@ -211,7 +261,9 @@ input,select{font:inherit;background:#203141;color:white;padding:.4rem;border:1p
 const d=JSON.parse(document.getElementById('data').textContent);const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
 document.getElementById('meta').textContent=`Generated ${d.generated} | source commit ${d.commit.slice(0,12)}`;
 const card=(n,t)=>`<div class="card"><div class="num">${esc(n)}</div><div>${esc(t)}</div></div>`;
-document.getElementById('cards').innerHTML=card(d.summary.overlay_candidates,'overlay prologue candidates')+card(d.summary.resident_ledger_rows,'resident callable rows')+card(d.summary.overlay_verified_identities+d.summary.resident_verified_identities,'verified game identities')+card('unknown','whole-game function denominator');
+const p=d.function_progress,ready=p.status==='reviewed',prefix=p.bound_kind==='upper_bound'?'at least ':'',kind=p.bound_kind==='exact'?'exact denominator':'reviewed ceiling';
+document.getElementById('cards').innerHTML=card(p.strict_full_c,'reviewed strict full-C game functions'+(ready?' ('+prefix+p.strict_percent+'% of '+kind+')':''))+card(p.verified_identities,'verified game identities'+(ready?' ('+prefix+p.identity_percent+'% of '+kind+')':''))+card(ready?p.ceiling:'pending',ready?kind+' for original game functions':'whole-game function ceiling under census')+card(d.summary.overlay_candidates+' / '+d.summary.resident_ledger_rows,'overlay prologue candidates / resident callable rows; not a denominator');
+document.getElementById('ceiling_note').textContent=ready?(p.bound_kind==='upper_bound'?'Percentages are lower bounds because the reviewed count is a ceiling.':'Percentages use the reviewed exact denominator.')+' Scope: '+p.scope+'. Evidence: '+p.evidence_doc+'.':'Completion percentages await a PM-reviewed function census covering the same original binaries and overlay/resident scope. Candidate rows are not a total.';
 const v=d.verification;document.getElementById('verification').innerHTML=v?`<b>${esc(v.status)}</b> at ${esc(v.time)} on ${esc(v.commit.slice(0,12))}<br>`+v.steps.map(s=>`${esc(s.name)}: exit ${s.exit}`+(s.tests_total!==null?`, ${s.tests_total-s.tests_failed}/${s.tests_total} CTests`:'')).join('<br>'):'Not run on this dashboard. Use <code>python3 tools/dashboard/dashboard.py verify</code>.';
 let evidence=d.published_comparisons.map(x=>`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched===null?'Source claim changed; re-review':`${x.matched}/${x.compared} matched`}<br><small>${esc(x.method)}</small><br><a href="${esc('state/reports/'+x.source.split('/').pop())}">source report</a></div>`);
 if(d.local_diff){let x=d.local_diff;evidence.push(`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched}/${x.compared} matched; ${x.mismatched} mismatched<br><small>${esc(x.method)} at ${esc(x.time)}</small></div>`)}
