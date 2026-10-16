@@ -796,6 +796,15 @@ count paragraph changes.
 
 Throughput: 55 minutes for the route and format, 25 for the C and tests.
 
+### 1.22 U6F +01B8, the roster text-file writer, as a whole function (handoff i8328)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 32 | `pr_u6f_01b8_write_list` = GAME.OVR 0x1E19E, unit 0x6F + 0x01B8 (executable +0x01B8..+0x0299; 20 bytes of UI data follow before +0x02AE), public entry 2, run-time stub `0x7C:0x2A`; callers unit 0x6C + 0x306D (far) and unit 0x6F + 0x069E (near) | 226 bytes, 84 instructions, 14 calls | far Pascal: one far pointer argument (list head), `retf 4`; `0x306` bytes of locals | **whole-function path-complete model with explicit boundaries** (the +02AE call, six text-file runtime services, the resident prompt) | all 84 starts and 5 branches **verified** against the bytes and pN's packet; not counted as a full translation |
+
+Evidence, semantics, boundaries and tests: [U6F_01B8_WRITE_LIST.md](U6F_01B8_WRITE_LIST.md).
+Strict credit claimed: none.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
