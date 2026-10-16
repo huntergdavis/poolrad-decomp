@@ -1,0 +1,5 @@
+{
+  "status": "pending",
+  "scope": "original-game-functions-overlay-and-resident",
+  "method": "Deduplicate original game-function entries across overlay and resident code; separate linked library and system routines; review unresolved boundaries and indirect targets."
+}
