@@ -1,12 +1,17 @@
 # First-page +16A1 capture-state bridge
 
+Later evidence reached the native pre-byte stop with a 32-bit VRAM mask and
+`uvga` handlers; see the [exact-mode follow-on](RES464_16A1_UVGA_EXACT_BRIDGE.md).
+The 16-bit bridge below documents the earlier bounded fixture and remains
+unchanged. Native post-byte parity is still open.
+
 The [bounded C bridge](../../tools/replay/res464_16a1_capture_bridge.c)
 parses a **future** pre-loaded-SYSTEM:16A1 native state record and passes it to the
 [explicit one-byte model](../../tools/replay/res464_16a1_explicit_byte_model.h).
 The model was extracted unchanged from the earlier
 [one-byte fixture](RES464_16A1_EXPLICIT_BYTE_PROJECTION.md) so that the
-synthetic behavior checks and bridge use the same projection. There is
-still **no native +16A1 hardware/plane capture** and therefore no native
+synthetic behavior checks and bridge use the same projection. At that stage
+there was **no native +16A1 hardware/plane capture** and therefore no native
 first-byte, page, RGB, or full-frame parity claim.
 
 ## Required input and boundary
