@@ -747,5 +747,29 @@ add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-only.cmake" tail.cmak
 check_registration_escape(quoted_adjacent_escaped_tail [=[
 add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "adjacent-only.cmake"tail\@.cmake)
 ]=] "")
+# Legacy quotes inside an unquoted argument are literal filename bytes.
+# A quote-dropped alias must not hide a missing actual script.
+file(WRITE "${fixture}/first.cmake" "")
+check_registration_escape(legacy_quoted_missing_actual [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P fi"rst".cmake)
+]=] [=[missing registered test source:.*fi"rst".cmake]=])
+file(WRITE "${fixture}/fi\"rst\".cmake" "")
+check_registration_escape(legacy_quoted_both_exist [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P fi"rst".cmake)
+]=] "")
+file(REMOVE "${fixture}/first.cmake")
+check_registration_escape(legacy_quoted_actual_only [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P fi"rst".cmake)
+]=] "")
+check_registration_escape(legacy_escaped_quote_control [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P fi\"rst\".cmake)
+]=] "")
+check_registration_escape(legacy_genuine_quoted_control [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P "fi\"rst\".cmake")
+]=] "")
+file(WRITE "${fixture}/fi@rst.cmake" "")
+check_registration_escape(legacy_quoted_after_escape_missing [=[
+add_test(NAME real COMMAND "${CMAKE_COMMAND}" -P fi\@"rst".cmake)
+]=] [=[missing registered test source:.*fi@"rst".cmake]=])
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Exact command boundaries enforced; real duplicate/missing-source checks preserved")

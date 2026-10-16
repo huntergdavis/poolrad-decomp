@@ -227,7 +227,10 @@ function(tokenize_ctest_literal_arguments input output)
                 message(FATAL_ERROR "invalid quoted alphanumeric escape in literal CTest registration: ${CMAKE_MATCH_0}")
             endif()
             string(REPLACE "${quoted_backslash_pair_marker}" "\\\\" token "${token}")
-            if(ARGC GREATER 2 AND ARGV2 AND NOT registration_unquoted_argument)
+            if(ARGC GREATER 2 AND ARGV2 AND registration_unquoted_argument)
+                # Legacy unquoted arguments retain their embedded quote bytes.
+                set(token "\\\"${token}\\\"")
+            elseif(ARGC GREATER 2 AND ARGV2)
                 # CMake ends a quoted argument even without following space;
                 # UNIX_COMMAND would concatenate the next unquoted argument.
                 string(APPEND token " ")
