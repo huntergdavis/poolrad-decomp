@@ -12,6 +12,33 @@ static uint16_t word(const uint8_t *ram, size_t at)
 {
     return (uint16_t)(ram[at] | ((uint16_t)ram[at + 1u] << 8u));
 }
+static size_t physical(uint16_t segment, uint16_t offset)
+{
+    return (((size_t)segment << 4) + offset) & (PR_U7D_02F2_RAM_SIZE - 1u);
+}
+static void check_retf_wrap(uint8_t *ram, uint16_t sp)
+{
+    unsigned i;
+    pr_u7d_02f2_cpu cpu = {0x1234,0x3456,0x5678,0x789A,0x9ABC,
+        0xBCDE,0x7777,sp,0x3000,0x02F2,0x1000,0x1111,0x2000,0x7603};
+    size_t linear_cs = (physical(cpu.ss, sp) + 2u) & (PR_U7D_02F2_RAM_SIZE - 1u);
+    memset(ram, 0xA5, PR_U7D_02F2_RAM_SIZE);
+    for (i = 0; i < 7u; ++i) {
+        put(ram, physical(cpu.ds, (uint16_t)(0x363Au + 2u*i)), 0xFFFFu);
+        put(ram, physical(0x6000u, (uint16_t)(0x0100u + 2u*i)), 0u);
+    }
+    put(ram, physical(cpu.ss, sp), 0x7000u);
+    put(ram, physical(cpu.ss, (uint16_t)(sp + 2u)), 0x3000u);
+    put(ram, physical(cpu.ss, (uint16_t)(sp + 4u)), 0x0100u);
+    put(ram, physical(cpu.ss, (uint16_t)(sp + 6u)), 0x6000u);
+    put(ram, linear_cs, 0xD00Du);
+    CHECK(word(ram, physical(cpu.ss, (uint16_t)(sp + 2u))) == 0x3000u);
+    CHECK(word(ram, linear_cs) == 0xD00Du);
+    CHECK(pr_u7d_carry_02f2(ram, PR_U7D_02F2_RAM_SIZE, &cpu) == PR_U7D_02F2_OK);
+    CHECK(cpu.ip == 0x7000u && cpu.cs == 0x3000u);
+    CHECK(cpu.sp == (uint16_t)(sp + 8u) && cpu.bp == 0x7777u);
+    CHECK(cpu.flags == 0x7646u);
+}
 int main(void)
 {
     uint8_t *ram = malloc(PR_U7D_02F2_RAM_SIZE);
@@ -62,6 +89,8 @@ int main(void)
         CHECK(pr_u7d_carry_02f2(ram, PR_U7D_02F2_RAM_SIZE, NULL) == PR_U7D_02F2_ARGUMENT);
         CHECK(memcmp(&before, &cpu, sizeof cpu) == 0);
     }
+    check_retf_wrap(ram, 0xFFFEu);
+    check_retf_wrap(ram, 0xFFFFu);
     free(ram);
     printf("u7D +02F2: %u independent carry patterns and host guards passed\n", cases);
     return 0;

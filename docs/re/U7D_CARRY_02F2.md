@@ -69,9 +69,11 @@ member counter increment, it repeats LES before reading the member's
 next link: the counter can alias and change those pointer locals.
 The directed `party-local-reload-alias` case exercises that behavior.
 
-Effective offsets wrap at 16 bits. Word accesses, LES operands and
-the far return frame cross offset boundaries contiguously; physical
-addresses wrap at 1 MiB with A20 disabled. The memory primitives reuse
+Effective offsets wrap at 16 bits. Each word's bytes and LES operands
+cross offset boundaries contiguously, while RETF reads IP and CS as
+separate stack words: CS begins at the 16-bit wrapped offset `SP+2`.
+A linear physical `IP+2` address gives the wrong CS at SP FFFE/FFFF.
+Physical addresses wrap at 1 MiB with A20 disabled. The memory primitives reuse
 the reviewed [adjacent party model](U6A_PARTY_AFTER_1601.md).
 
 Every returning path ends with the defined arithmetic flags from
@@ -87,20 +89,29 @@ size other than exactly 1 MiB is rejected before mutation.
 
 ## Validation and parity review
 
-The independent focused C test checks **256 cases**: all 128 carry
+The independent focused C test checks **256 carry cases** plus two
+SP FFFE/FFFF wrapped-CS regressions with distinct linear decoy words:
+all 128 carry
 masks across two member segment layouts, empty through six-member
 parties, one-step subtraction and propagation, counter wrap from
 `0xFFFF`, unchanged seventh word, preserved state and invalid host
 arguments. Both the new test and the existing bounded caller's test
 pass with `-Wall -Wextra -Wpedantic -Werror`.
 
-The original-byte oracle passes **258 returning cases**, comparing
+The original-byte Unicorn oracle passes **256 returning cases**, comparing
 the complete 1 MiB RAM and all 14 CPU words. Returning cases cover all
 69 instruction starts and both outcomes of all four conditional
 branches. Cases include every carry mask, random thresholds/values,
 zero/max thresholds, stack and array boundaries, A20 wrapping,
 array/table and array/frame aliases, the party-local reload alias,
-DF and incoming arithmetic flags.
+DF and incoming arithmetic flags. Two SP FFFE/FFFF cases are excluded:
+Unicorn fetches RETF CS linearly in those fixtures, unlike the separately
+wrapped native stack pop. The focused C regressions check both offsets.
+The local U7F +0020 native DOSBox-X decoy audit (reviewed head `8064226`,
+result SHA-256 `4cf72ddaa8c972c24f0d46c523f0d39c280ebd631b113bc52f45705bce981924`)
+established the architecture's wrapped CS fetch at both offsets. That is
+prior RETF semantics evidence, not a native +02F2 wrap frame. No new
+heavy native run was launched under the host hold.
 
 Two additional malformed fixtures with entry SP `5` and `6` fail the
 original's 20,000-instruction return budget. The separately stored
@@ -151,7 +162,7 @@ cmake --build resources/build-u7d-02f2 --target \
 ctest --test-dir resources/build-u7d-02f2 \
   -R 'poolrad_overlay_u7d_(carry_02f2|entry1)_tests' --output-on-failure
 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn timeout 60s \
-  python3 tools/overlay/u7d_carry_02f2_audit.py --unicorn --native
+  python3 tools/overlay/u7d_carry_02f2_audit.py --unicorn
 ```
 
 | Parity report field | Finding |
