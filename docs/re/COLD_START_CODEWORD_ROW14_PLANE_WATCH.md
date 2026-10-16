@@ -33,8 +33,10 @@ route; line input starts at `38D3:02FD` to `0F2D:09E3`.
 The printer's drawer EGA path is original expanded-image
 `[0x7417,0x7501)`, 234 bytes, SHA-256
 `3c063aa6e79da0ba15b3561c9312750b18d8445c784ef1571ff3e990ce7b2ac4`.
-Its captured loaded `0F2D:+03DF..+04C9` window hashes
-`b94164519cdc15c2965d8c18a2ee8bc1ec649dfd9b5315b10ea0c8cadb7d2a4f`.
+Its captured loaded `0F2D:+0387..+0471` window is byte-for-byte identical
+and has the same hash. The earlier `+03DF..+04C9` label was offset by
+`0x58`; it identified a different loaded window. The audit now asserts
+original/loaded byte equality in addition to both hashes.
 The four candidate store PCs are live `0F2D:0412`, `:0438`, `:0445`,
 and `:0451` (original image `0x74A2`, `0x74C8`, `0x74D5`, `0x74E1`).
 They are candidate glyph/zero stores on the static drawer route, not a

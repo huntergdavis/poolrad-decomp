@@ -23,7 +23,6 @@ from slot_a_printer_page_audit import unpack
 U19_ORIGINAL_SHA = "518c6f63fa4c0ed6ff7dcf6b986fb4748ecf3e51a366f9005685d7f7e630a00c"
 U19_LOADED_SHA = "c5b6d514596572705787fe93b84b1ae74600ce8a59ce0ecf9fd6d589071c5a06"
 DRAWER_ORIGINAL_SHA = "3c063aa6e79da0ba15b3561c9312750b18d8445c784ef1571ff3e990ce7b2ac4"
-DRAWER_LOADED_SHA = "b94164519cdc15c2965d8c18a2ee8bc1ec649dfd9b5315b10ea0c8cadb7d2a4f"
 U19_LIVE_SEG = 0x38D3
 DRAWER_LIVE_SEG = 0x0F2D
 CALLS = (
@@ -75,15 +74,16 @@ def audit(exe, ovr, run):
     u19_loaded = ram[(U19_LIVE_SEG << 4) + 0x02D8:
                      (U19_LIVE_SEG << 4) + 0x0302]
     drawer_original = image[0x7417:0x7501]
-    drawer_loaded = ram[(DRAWER_LIVE_SEG << 4) + 0x03DF:
-                        (DRAWER_LIVE_SEG << 4) + 0x04C9]
+    drawer_loaded = ram[(DRAWER_LIVE_SEG << 4) + 0x0387:
+                        (DRAWER_LIVE_SEG << 4) + 0x0471]
     require(len(u19_original) == len(u19_loaded) == 42 and
             digest(u19_original) == U19_ORIGINAL_SHA and
             digest(u19_loaded) == U19_LOADED_SHA,
             "U19 original/loaded PC window differs")
     require(len(drawer_original) == len(drawer_loaded) == 234 and
             digest(drawer_original) == DRAWER_ORIGINAL_SHA and
-            digest(drawer_loaded) == DRAWER_LOADED_SHA,
+            digest(drawer_loaded) == DRAWER_ORIGINAL_SHA and
+            drawer_original == drawer_loaded,
             "drawer original/loaded EGA span differs")
     for site, offset, original_segment in CALLS:
         require(far_target(ovr, U19_BASE + site) ==
@@ -117,7 +117,7 @@ def main():
     args = parser.parse_args()
     witness = audit(args.exe.read_bytes(), args.ovr.read_bytes(), args.run)
     print("U19 original file +02D8..+0302 and loaded 38D3:+02D8..+0302 hash-locked")
-    print("drawer original image 0x7417..0x7501 and loaded 0F2D:+03DF..+04C9 hash-locked")
+    print("drawer original image 0x7417..0x7501 and loaded 0F2D:+0387..+0471 identical")
     print("four drawer candidate PCs: 0F2D:0412/0438/0445/0451")
     print(f"row-14 source/host witness: x={witness[0]} y={witness[1]} "
           f"A000:{witness[2]:04X} mask={witness[3]:02X}")
