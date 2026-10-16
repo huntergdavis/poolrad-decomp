@@ -32,6 +32,8 @@ function(tokenize_depends_arguments body output)
     protect_quoted_source_semicolons("${body}" input)
     set(normalized "")
     set(depends_unquoted_argument FALSE)
+    string(ASCII 11 literal_vertical_tab)
+    string(ASCII 12 literal_form_feed)
     # Literal unquoted lists expand before the setter sees its arguments.
     # Quoted tokens and escaped characters do not take part in that expansion.
     while(input MATCHES "\\\\.|\"([^\"\\\\]|\\\\.)*\"")
@@ -76,9 +78,16 @@ function(tokenize_depends_arguments body output)
             set(depends_unquoted_argument TRUE)
         endif()
         string(REPLACE ";" " " prefix "${prefix}")
+        # CMake keeps raw VT/FF within unquoted arguments; UNIX_COMMAND treats
+        # them as separators. Escape only raw chunks, preserving quoted and
+        # already escaped tokens consumed by the loop.
+        string(REPLACE "${literal_vertical_tab}" "\\${literal_vertical_tab}" prefix "${prefix}")
+        string(REPLACE "${literal_form_feed}" "\\${literal_form_feed}" prefix "${prefix}")
         string(APPEND normalized "${prefix}${token}")
     endwhile()
     string(REPLACE ";" " " input "${input}")
+    string(REPLACE "${literal_vertical_tab}" "\\${literal_vertical_tab}" input "${input}")
+    string(REPLACE "${literal_form_feed}" "\\${literal_form_feed}" input "${input}")
     string(APPEND normalized "${input}")
     tokenize_ctest_literal_arguments("${normalized}" arguments)
     set(${output} "${arguments}" PARENT_SCOPE)
