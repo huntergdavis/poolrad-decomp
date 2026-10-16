@@ -2225,6 +2225,13 @@ if(BUILD_TESTING)
                           poolrad_recovered)
     add_test(NAME poolrad_u19_row14_cpu_sources_tests
              COMMAND poolrad_u19_row14_cpu_sources_tests)
+    add_executable(poolrad_u19_row14_expected_rgb_tests
+                   tests/replay/test_u19_row14_expected_rgb.c
+                   src/replay/u19_row14_expected_rgb.c)
+    target_include_directories(poolrad_u19_row14_expected_rgb_tests PRIVATE
+                               ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME poolrad_u19_row14_expected_rgb_tests
+             COMMAND poolrad_u19_row14_expected_rgb_tests)
     add_executable(poolrad_slot_a_glyph_plane_probe
                    tools/replay/slot_a_glyph_plane_probe.c)
     target_link_libraries(poolrad_slot_a_glyph_plane_probe PRIVATE
