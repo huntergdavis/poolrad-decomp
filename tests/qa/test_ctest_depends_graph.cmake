@@ -783,5 +783,37 @@ foreach(control IN ITEMS 11 12)
         check_case("${setter}_escaped_control_${control}" "${declaration}" "")
     endforeach()
 endforeach()
+# The concatenated alias exists, but actual CTest uses separate first/second
+# arguments and rejects the resulting self/indirect dependency cycles.
+set(base [=[
+add_executable(target exists.c)
+add_test(NAME first COMMAND target)
+add_test(NAME second COMMAND target)
+add_test(NAME firstsecond COMMAND target)
+add_test(NAME consumer COMMAND target)
+]=])
+set(expected_count 4)
+check_case(quoted_adjacent_property [=[
+set_property(TEST consumer PROPERTY DEPENDS "first"second)
+]=] "")
+check_case(quoted_adjacent_self [=[
+set_property(TEST first PROPERTY DEPENDS "first"second)
+]=] "self CTest DEPENDS reference: first")
+check_case(quoted_adjacent_cycle [=[
+set_property(TEST first PROPERTY DEPENDS consumer)
+set_property(TEST consumer PROPERTY DEPENDS "first"second)
+]=] "CTest DEPENDS cycle leaves blocked tests:")
+check_case(quoted_adjacent_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS "first"second "")
+]=] "")
+check_case(quoted_separated_property [=[
+set_property(TEST consumer PROPERTY DEPENDS "first" second)
+]=] "")
+check_case(quoted_separated_properties [=[
+set_tests_properties(consumer PROPERTIES DEPENDS "first" second "")
+]=] "")
+check_case(quoted_single_value_control [=[
+set_property(TEST consumer PROPERTY DEPENDS "firstsecond")
+]=] "")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Repeated/replaced/cleared edges accepted; self and cyclic graphs rejected")
