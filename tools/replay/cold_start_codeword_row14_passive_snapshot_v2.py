@@ -21,6 +21,10 @@ from tools.replay.cold_start_codeword_row14_target_filter import NEXT_PC
 
 MAX_PACKET_BYTES = 4096
 MAX_CANDIDATE_ORDINAL = 2304
+MAX_HOST_UINT32 = 0xFFFFFFFF
+HOST_UINT32_FIELDS = (
+    "physical_address", "page_mask", "bank_read_full", "memmask", "memsize",
+)
 TOKEN = re.compile(r"[A-Za-z0-9_-]{1,64}\Z")
 HEX_SHA = re.compile(r"[0-9a-f]{64}\Z")
 PC_WORDS = re.compile(r"[0-9A-F]{4}:[0-9A-F]{4}\Z")
@@ -122,11 +126,29 @@ def validate_capture_v2(record: object) -> SnapshotResultV2:
     require(type(record["write_count"]) is int and record["write_count"] == 1,
             "probe did not capture exactly one selected write")
     mapping = _host_map(record["host_map"])
+    # PhysPt, memmask and memsize are uint32_t in the pinned host source.
+    # page_mask and bank_read_full are Bitu (uintptr_t); this v2 packet uses a
+    # conservative 32-bit subset rather than claiming a universal native ABI.
+    for name in HOST_UINT32_FIELDS:
+        require(0 <= getattr(mapping, name) <= MAX_HOST_UINT32,
+                f"host map {name} outside portable uint32 domain")
     require(0 <= mapping.seq_memory_mode <= 0xFF and
             0 <= mapping.gfx_miscellaneous <= 0xFF,
             "host VGA register byte out of range")
-    require(type(record["handler_index"]) is int and
-            record["handler_index"] == planar_index(mapping),
+    base = ((mapping.physical_address & mapping.page_mask) +
+            mapping.bank_read_full)
+    require(base <= MAX_HOST_UINT32,
+            "host map base outside portable uint32 domain")
+    handler_index = record["handler_index"]
+    require(type(handler_index) is int and
+            0 <= handler_index <= MAX_HOST_UINT32,
+            "handler index outside uint32 domain")
+    resolved_index = planar_index(mapping)
+    require(type(resolved_index) is int and
+            0 <= resolved_index <= MAX_HOST_UINT32 and
+            resolved_index < mapping.memsize // 4,
+            "resolved index outside uint32 backing domain")
+    require(handler_index == resolved_index,
             "handler index disagrees with independent resolver")
     before, before_state = _sample(record["before"], "before")
     after, after_state = _sample(record["after"], "after")
