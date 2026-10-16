@@ -189,6 +189,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_stack_load_0600_
                                     src/recovered/overlay_u7f_roll_call_0fde.c
                                     src/recovered/overlay_u7f_roll_prefix_0fd2.c
                                     src/recovered/overlay_u7f_roll_return_0fe3.c
+                                    src/recovered/overlay_u7f_roll_composed_0fd2.c
                                     src/recovered/overlay_u77_active_select_27df.c
                                     src/recovered/overlay_u33_byte_flags_08a4.c
                                     src/recovered/overlay_u86_procvars_3413.c
@@ -854,6 +855,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7f_roll_return_0fe3_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7f_roll_return_0fe3_tests
              COMMAND poolrad_overlay_u7f_roll_return_0fe3_tests)
+    add_executable(poolrad_overlay_u7f_roll_composed_0fd2_tests
+                   tests/recovered/test_overlay_u7f_roll_composed_0fd2.c)
+    target_link_libraries(poolrad_overlay_u7f_roll_composed_0fd2_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u7f_roll_composed_0fd2_tests
+             COMMAND poolrad_overlay_u7f_roll_composed_0fd2_tests)
     add_executable(poolrad_overlay_u33_byte_flags_08a4_tests
                    tests/recovered/test_overlay_u33_byte_flags_08a4.c)
     target_link_libraries(poolrad_overlay_u33_byte_flags_08a4_tests PRIVATE poolrad_recovered)
