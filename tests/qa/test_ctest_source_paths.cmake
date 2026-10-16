@@ -540,5 +540,69 @@ execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
 if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 2 source paths")
     message(FATAL_ERROR "restored option-named source lost count after empty entry:\n${output}${error}")
 endif()
+foreach(equals IN ITEMS "" "=" "==")
+    foreach(separator IN ITEMS hash space)
+        if(separator STREQUAL "hash")
+            set(literal_prefix "source#")
+            set(argument_prefix "source\\#")
+        else()
+            set(literal_prefix "source ")
+            set(argument_prefix "source\\ ")
+        endif()
+        set(literal_source "${literal_prefix}[${equals}[part.c")
+        file(WRITE "${fixture}/${literal_source}" "/* synthetic embedded bracket source */\n")
+        file(WRITE "${fixture}/CMakeLists.txt"
+             "add_executable(embedded_target ${argument_prefix}[${equals}[part.c)\n"
+             "add_test(NAME embedded_test COMMAND embedded_target)\n")
+        execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                                -P "${checker}"
+                        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+        if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 1 source paths")
+            message(FATAL_ERROR "escaped ${separator} created a false bracket argument:\n${output}${error}")
+        endif()
+        file(WRITE "${fixture}/CMakeLists.txt"
+             "add_executable(embedded_target \"${literal_source}\")\n"
+             "add_test(NAME embedded_test COMMAND embedded_target)\n")
+        execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                                -P "${checker}"
+                        RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+        if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 1 source paths")
+            message(FATAL_ERROR "quoted embedded bracket source lost literal identity:\n${output}${error}")
+        endif()
+    endforeach()
+endforeach()
+file(WRITE "${fixture}/source#[[[[part.c" "/* consecutive embedded bracket openers */\n")
+file(WRITE "${fixture}/CMakeLists.txt" [=[
+add_executable(embedded_target source\#[[[[part.c)
+add_test(NAME embedded_test COMMAND embedded_target)
+]=])
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+if(NOT result EQUAL 0 OR NOT output MATCHES "Checked 1 CTest registrations and 1 source paths")
+    message(FATAL_ERROR "consecutive embedded bracket chunks lost argument state:\n${output}${error}")
+endif()
+file(WRITE "${fixture}/CMakeLists.txt" [=[
+add_executable(embedded_target missing\#[[part.c)
+add_test(NAME embedded_test COMMAND embedded_target)
+]=])
+execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                        -P "${checker}"
+                RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+string(FIND "${error}" "missing#[[part.c" missing_position)
+if(result EQUAL 0 OR NOT error MATCHES "missing registered test source:" OR missing_position LESS 0)
+    message(FATAL_ERROR "embedded bracket missing-source diagnostic lost literal path:\n${output}${error}")
+endif()
+foreach(control IN ITEMS 22 23)
+    string(ASCII ${control} literal_control)
+    file(WRITE "${fixture}/CMakeLists.txt"
+         "add_executable(target exists.c)\nadd_test(NAME literal${literal_control} COMMAND target)\n")
+    execute_process(COMMAND "${CMAKE_COMMAND}" "-DPOOLRAD_SOURCE_ROOT=${fixture}"
+                            -P "${checker}"
+                    RESULT_VARIABLE result OUTPUT_VARIABLE output ERROR_VARIABLE error)
+    if(result EQUAL 0 OR NOT error MATCHES "unsupported reserved control character")
+        message(FATAL_ERROR "literal bracket marker collision was not rejected:\n${output}${error}")
+    endif()
+endforeach()
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Exact command boundaries enforced; real duplicate/missing-source checks preserved")
