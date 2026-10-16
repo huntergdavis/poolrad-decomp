@@ -95,6 +95,7 @@ class RouteJoinTests(unittest.TestCase):
 
     def test_complete_structural_join(self):
         gate = self.audit()
+        self.assertEqual(gate.run_token, "synthetic_join")
         self.assertEqual(gate.selected_frame_index, 6)
         self.assertEqual(gate.event.selected.candidate_hits, 2)
         self.assertEqual(gate.event.change.changed_witness_bits, (1,))
