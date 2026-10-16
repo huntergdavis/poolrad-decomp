@@ -824,6 +824,15 @@ been called the ECL block loader in ECL_CONTRACTS.md, section 4 below and
 DECOMP_FEASIBILITY.md): [U6F_22D5_TRANSITION_PROMPT.md](U6F_22D5_TRANSITION_PROMPT.md).
 Strict credit claimed: none. (Section 1.23, function 33, is the +0010 reader on PR #749.)
 
+### 1.25 U6F +0482, the character picture builder, as a whole function (PM GO i8682)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 35 | `pr_u6f_0482_picture_build` = GAME.OVR 0x1E468, unit 0x6F + 0x0482 (executable +0x0482..+0x0673; two 5-character constants precede it, entry 4's constants follow), public entry 3, run-time stub `0x7C:0x2F`; callers: nine far sites in unit 0x6C and unit 0x6F + 0x1262 (near) | 498 bytes, 183 instructions, 16 calls, 6 branches, two fixed-count loops | far Pascal: one word argument (recolor flag, low byte), `retf 2`; `0x22A` bytes of locals | **whole-function path-complete model with explicit boundaries** (the archive-number push and restore, the picture loader and slot release of unit 0x3CE, the +032F merge leaf, the resident palette remap, the keyboard flush; three string services inline) | all 183 starts and 6 branches **verified** against the bytes; not counted as a full translation |
+
+Evidence, semantics, boundaries and tests: [U6F_0482_PICTURE_BUILD.md](U6F_0482_PICTURE_BUILD.md).
+Strict credit claimed: none.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
