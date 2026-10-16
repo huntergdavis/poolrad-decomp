@@ -11,7 +11,8 @@ add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
                                    src/formats/dos_character.c
                                    src/formats/dos_savgam.c)
 target_include_directories(poolrad_formats PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_add_ax_dx_05eb_fixture.c
+add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_byte_store_05ed_fixture.c
+                                    src/recovered/overlay_u3c2_add_ax_dx_05eb_fixture.c
                                     src/recovered/overlay_u3c2_cbw_05ea_fixture.c
                                     src/recovered/overlay_u3c2_mov_sp_0903_fixture.c
                                     src/recovered/overlay_u3c2_stack_load_05e7_fixture.c
@@ -285,6 +286,12 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_overlay_u3c2_byte_store_05ed_fixture_tests
+                   tests/recovered/test_overlay_u3c2_byte_store_05ed_fixture.c)
+    target_link_libraries(poolrad_overlay_u3c2_byte_store_05ed_fixture_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_byte_store_05ed_fixture_tests
+             COMMAND poolrad_overlay_u3c2_byte_store_05ed_fixture_tests)
+
     add_executable(poolrad_overlay_u3c2_add_ax_dx_05eb_fixture_tests
                    tests/recovered/test_overlay_u3c2_add_ax_dx_05eb_fixture.c)
     target_link_libraries(poolrad_overlay_u3c2_add_ax_dx_05eb_fixture_tests PRIVATE poolrad_recovered)
