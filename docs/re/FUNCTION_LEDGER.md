@@ -833,6 +833,15 @@ Strict credit claimed: none. (Section 1.23, function 33, is the +0010 reader on 
 Evidence, semantics, boundaries and tests: [U6F_0482_PICTURE_BUILD.md](U6F_0482_PICTURE_BUILD.md).
 Strict credit claimed: none.
 
+### 1.26 U6F +1262, the ADD NPC party routine, as a whole function (PM GO i8787)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 36 | `pr_u6f_1262_add_npc` = GAME.OVR 0x1F248, unit 0x6F + 0x1262 (executable +0x1262..+0x1425; 32 data bytes follow before +0x1446), public entry 7, run-time stub `0x7C:0x43`; caller unit 0x1C + 0x2B7E (the ADD NPC handler, opcode 0x36, site +0x2B9B) | 452 bytes, 174 instructions, 11 calls, 12 branches, one fixed-count loop | far Pascal: one word argument (NPC id, low byte), `retf 2`; `0x12` bytes of locals | **whole-function path-complete model with explicit boundaries** (GetMem, entry 6, Random, the unit 0x9E roll x3, the +1446 insert, the +0482 picture builder); the class scan, selection and table reads inline | all 174 starts and 12 branches **verified** against the bytes; not counted as a full translation |
+
+Evidence, semantics, boundaries and tests: [U6F_1262_ADD_NPC.md](U6F_1262_ADD_NPC.md).
+Strict credit claimed: none.
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
