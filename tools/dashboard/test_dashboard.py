@@ -9,10 +9,20 @@ import dashboard
 
 class DashboardTest(unittest.TestCase):
     def test_function_progress_waits_for_reviewed_census(self):
-        progress = dashboard.function_progress(dashboard.DEFAULT_REPO)
-        self.assertEqual(progress["status"], "pending")
-        self.assertIsNone(progress["strict_percent"])
-        self.assertIsNone(progress["identity_percent"])
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            folder = repo / "docs/re"
+            folder.mkdir(parents=True)
+            checkpoint = dashboard.read_json(dashboard.DEFAULT_REPO /
+                                             "docs/re/function_accounting_checkpoint.json")
+            (folder / "function_accounting_checkpoint.json").write_text(
+                json.dumps(checkpoint), encoding="utf-8")
+            (folder / "function_ceiling_census.json").write_text(
+                json.dumps({"status": "pending"}), encoding="utf-8")
+            progress = dashboard.function_progress(repo)
+            self.assertEqual(progress["status"], "pending")
+            self.assertIsNone(progress["strict_percent"])
+            self.assertIsNone(progress["identity_percent"])
 
     def test_function_progress_distinguishes_exact_from_ceiling(self):
         with tempfile.TemporaryDirectory() as temp:

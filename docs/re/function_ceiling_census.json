@@ -1,5 +1,12 @@
 {
-  "status": "pending",
+  "status": "reviewed",
+  "count": 815,
+  "bound_kind": "upper_bound",
   "scope": "original-game-functions-overlay-and-resident",
-  "method": "Deduplicate original game-function entries across overlay and resident code; separate linked library and system routines; review unresolved boundaries and indirect targets."
+  "source_digests": {
+    "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
+    "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
+  },
+  "reviewed_by": "PM",
+  "evidence_doc": "docs/re/FUNCTION_CEILING_CENSUS.md"
 }
