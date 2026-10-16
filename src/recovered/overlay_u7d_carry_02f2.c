@@ -123,7 +123,7 @@ pr_u7d_02f2_status pr_u7d_carry_02f2(
     cpu->sp = (uint16_t)(cpu->sp + 2u);
     at = physical(cpu->ss, cpu->sp);
     cpu->ip = word_at(ram, at);
-    cpu->cs = word_at(ram, (at + 2u) & MASK);
+    cpu->cs = word(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
     cpu->sp = (uint16_t)(cpu->sp + 8u);
     return PR_U7D_02F2_OK;
 }
