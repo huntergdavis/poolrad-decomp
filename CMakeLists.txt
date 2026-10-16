@@ -15,6 +15,11 @@ add_executable(poolrad_cold_start_title_rgb
                tools/replay/cold_start_title_rgb.c
                src/replay/cold_start_title_rgb.c)
 target_link_libraries(poolrad_cold_start_title_rgb PRIVATE poolrad_formats)
+add_executable(poolrad_cold_start_credits_rgb
+               tools/replay/cold_start_credits_rgb.c
+               src/replay/cold_start_credits_rgb.c
+               src/recovered/font_8x8d_201.c)
+target_link_libraries(poolrad_cold_start_credits_rgb PRIVATE poolrad_formats)
 add_executable(poolrad_cold_start_publisher_rgb
                tools/replay/cold_start_publisher_rgb.c
                src/replay/cold_start_publisher_rgb.c)
@@ -1432,6 +1437,14 @@ if(BUILD_TESTING)
                           poolrad_formats)
     add_test(NAME poolrad_cold_start_title_rgb_tests
              COMMAND poolrad_cold_start_title_rgb_tests)
+    add_executable(poolrad_cold_start_credits_rgb_tests
+                   tests/replay/test_cold_start_credits_rgb.c
+                   src/replay/cold_start_credits_rgb.c
+                   src/recovered/font_8x8d_201.c)
+    target_link_libraries(poolrad_cold_start_credits_rgb_tests PRIVATE
+                          poolrad_formats)
+    add_test(NAME poolrad_cold_start_credits_rgb_tests
+             COMMAND poolrad_cold_start_credits_rgb_tests)
     add_executable(poolrad_cold_start_title_connector_tests
                    tests/replay/test_cold_start_title_connector.c
                    src/replay/cold_start_title_connector.c)
