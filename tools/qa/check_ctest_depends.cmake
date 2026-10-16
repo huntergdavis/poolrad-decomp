@@ -35,6 +35,16 @@ function(tokenize_depends_arguments body output)
     # Quoted tokens and escaped characters do not take part in that expansion.
     while(input MATCHES "\\\\.|\"([^\"\\\\]|\\\\.)*\"")
         set(token "${CMAKE_MATCH_0}")
+        if(token MATCHES "^\"")
+            # CMake accepts \t, \n and \r but rejects other alphanumeric
+            # escapes. UNIX_COMMAND would silently drop their backslash.
+            # Protect escaped backslash pairs before inspecting escapes.
+            string(REPLACE "\\\\" "${quoted_backslash_pair_marker}" escape_check "${token}")
+            string(REGEX REPLACE "\\\\[tnr]" "" escape_check "${escape_check}")
+            if(escape_check MATCHES "\\\\[A-Za-z0-9]")
+                message(FATAL_ERROR "invalid alphanumeric escape in literal CTest property setter: ${CMAKE_MATCH_0}")
+            endif()
+        endif()
         string(FIND "${input}" "${token}" token_start)
         string(SUBSTRING "${input}" 0 ${token_start} prefix)
         string(REPLACE ";" " " prefix "${prefix}")
