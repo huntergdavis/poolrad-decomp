@@ -38,11 +38,20 @@ in-handler index to avoid that extra lookup at the selected write.
 ## One-write capture mechanism for a future native slot
 
 The printer FAR call is U19 `38D3:02D8`; its return is `+02DD`. It is not an
-EGA store. Arm the private probe only at the first bounded drawer candidate
-whose pre-instruction frame is `0F2D:0412/0438/0445/0451` and whose effective
-`ES:DI` is `A000:118F`. Retain the existing 128-hit cap and all skipped
-candidate frames. Each site has one pinned successor:
+EGA store. Arm the private probe only after a separately authenticated drawer
+candidate whose pre-instruction frame is `0F2D:0412/0438/0445/0451` and whose effective
+`ES:DI` is `A000:118F`. Each site has one pinned successor:
 `0412→0415`, `0438→043B`, `0445→0449`, `0451→0455`.
+
+The current target filter's `candidate_hits` counts every **supplied** drawer
+PC frame after the call, including wrong `ES:DI`, and caps at 128. Under the
+conditional exhaustive accepted EGA path, 14 preceding cells × 4 planes ×
+8 rows × 2 pages give 896 earlier candidate-PC executions, so the first
+possible witness would be supplied-frame ordinal 897. This is a source bound,
+not a native count. The present 128-hit exhaustive recipe is therefore a
+typed capture blocker. A larger coordinated cap or authenticated sparse
+selection must be reviewed before a native run; `store_ordinal` must not be
+reinterpreted as target-only ordinal or total guest writes.
 
 Inside the actual `uvga` or `uvga_fast` write path, use the handler's already
 mapped backing index. Immediately before the backing-word write, copy the
@@ -81,8 +90,7 @@ typed failure. The before/after sample frames must match each other, and the
 stopped successor must retain the armed ES/DI. A live adapter still needs a
 source audit of when DOSBox-X advances `reg_eip` during the memory callback
 before narrowing that two-value IP allowance or claiming decoder-PC parity.
-The
-private adapter must pass the **actual final** plane index from the generic
+The private adapter must pass the **actual final** plane index from the generic
 unchained write after its odd/even remap or from the fast write's masked
 index. The generic helper is also used by chained handlers, which must not be
 silently labeled `uvga`.
@@ -93,16 +101,21 @@ accepts a supplied JSON record with `probe="host_backing_word"`,
 one selected site/successor, measured `host_map`, actual
 `handler_index`, `write_count=1`, opaque `plane_event_id`, bounded
 `store_ordinal`, shared `arm_token`, and `before`/`after` samples. These join
-fields allow p5's
-separate host event packet to refer to this plane event without carrying EGA
-bytes or claiming RGB causation. Each sample
-has four `planes` bytes encoded as eight uppercase hex digits and
+fields allow p5's separate host event packet to refer to this plane event
+without carrying EGA bytes or claiming RGB causation. Each sample has four
+`planes` bytes encoded as eight uppercase hex digits and
 `state_before_copy`/`state_after_copy` objects with four CPU WORDs, ten GC
 bytes, six Sequencer bytes, and one latch DWORD. It requires equality around
 each copy, resolves the index independently, and reports only changed-plane
 count. This is one backing word, one byte per plane; it cannot satisfy the
 older same-run event plan's four 320-byte windows per side. The record and its
 state fields are private under ignored `resources/`.
+
+The host packet's raw PIC ticks, CPU cycles, and frame-start value are from
+its `latch_enter` phase. A later guest packet must not compare them for
+equality with arm, store, or successor samples without a phase-specific
+source proof. No emulated retrace port read is part of this probe.
+
 Synthetic tests exercise latch/controller mutation, bank-dependent index
 disagreement, route mismatch, and duplicate write rejection.
 
