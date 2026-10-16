@@ -83,6 +83,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_cmp_al_one_0676_
                                     src/recovered/resident_464_second_postreturn_29cb.c
                                     src/recovered/resident_464_29d7_extent_branch.c
                                     src/recovered/resident_464_third_return_29cb.c
+                                    src/recovered/resident_464_29e6_extent_store.c
                                     src/recovered/resident_464_nibble_007b.c
                                     src/recovered/resident_464_mode2.c
                                     src/recovered/resident_464_mode1.c
@@ -1927,6 +1928,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_464_third_return_29cb_tests
              COMMAND poolrad_resident_464_third_return_29cb_tests)
+    add_executable(poolrad_resident_464_29e6_extent_store_tests
+                   tests/recovered/test_resident_464_29e6_extent_store.c)
+    target_link_libraries(poolrad_resident_464_29e6_extent_store_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_464_29e6_extent_store_tests
+             COMMAND poolrad_resident_464_29e6_extent_store_tests)
     add_executable(poolrad_resident_464_nibble_007b_tests
                    tests/recovered/test_resident_464_nibble_007b.c)
     target_link_libraries(poolrad_resident_464_nibble_007b_tests PRIVATE
