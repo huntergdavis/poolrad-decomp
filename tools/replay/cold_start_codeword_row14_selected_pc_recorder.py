@@ -68,6 +68,14 @@ def _segments(u19: int, printer: int, active: int, draw: int) -> dict:
             "active": f"{active:04X}", "draw": f"{draw:04X}"}
 
 
+def _manifest_size(manifest: dict) -> int:
+    try:
+        return len(json.dumps(manifest, separators=(",", ":"), allow_nan=False)
+                   .encode("utf-8"))
+    except (TypeError, ValueError, UnicodeError, RecursionError, OverflowError) as exc:
+        raise ValueError("STOP_MANIFEST_SHAPE") from exc
+
+
 class CandidateRecorder:
     """Consume one supplied caller/candidate/successor/return stream.
 
@@ -166,6 +174,8 @@ class CandidateRecorder:
     def finish(self, *, selected_prefix: bool = False) -> Recording:
         if not self.enabled:
             raise ValueError("recorder is disabled")
+        if type(selected_prefix) is not bool:
+            raise ValueError("selected_prefix must be an exact bool")
         if self.terminal is None:
             if selected_prefix and self.selected_ordinal is not None and not self.await_successor:
                 self.terminal = "selected_prefix"
@@ -202,7 +212,7 @@ class CandidateRecorder:
             "overflow": self.overflow, "truncated": self.truncated,
             "selected_event": selected, "native_coverage_proved": False,
         }
-        if len(json.dumps(manifest, separators=(",", ":")).encode("utf-8")) > MAX_MANIFEST_BYTES:
+        if _manifest_size(manifest) > MAX_MANIFEST_BYTES:
             raise AssertionError("recorder exceeded manifest bound")
         return Recording(raw, manifest)
 
@@ -212,10 +222,14 @@ def audit_recording(raw_jsonl: bytes, manifest: object,
     """Parse and recompute a supplied source-only private transcript."""
     if not isinstance(raw_jsonl, bytes) or len(raw_jsonl) > MAX_STREAM_RECORDS * MAX_JSONL_LINE:
         raise ValueError("STOP_RAW_SIZE_CAP")
-    if not isinstance(manifest, dict) or set(manifest) != MANIFEST_FIELDS or len(
-            json.dumps(manifest, separators=(",", ":")).encode("utf-8")) > MAX_MANIFEST_BYTES:
+    if (not isinstance(manifest, dict) or set(manifest) != MANIFEST_FIELDS or
+            _manifest_size(manifest) > MAX_MANIFEST_BYTES):
         raise ValueError("STOP_MANIFEST_SHAPE")
-    if not isinstance(source_bytes, bytes) or manifest["source_domain"] != SOURCE_DOMAIN or (
+    if (not isinstance(source_bytes, bytes) or
+            type(manifest["source_domain"]) is not str or
+            manifest["source_domain"] != SOURCE_DOMAIN or
+            type(manifest["source_sha256"]) is not str or
+            HEX_SHA.fullmatch(manifest["source_sha256"]) is None or
             manifest["source_sha256"] != sha256(source_bytes).hexdigest()):
         raise ValueError("STOP_SOURCE_SHA")
     if type(manifest["version"]) is not int or manifest["version"] != 1 or (

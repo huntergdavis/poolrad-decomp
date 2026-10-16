@@ -95,6 +95,44 @@ class CandidateRecorderTests(unittest.TestCase):
         self.assertEqual(result.status, "SOURCE_ONLY_SELECTED_PREFIX_UNAUTHENTICATED")
         self.assertEqual(result.selected_candidate_ordinal, 898)
 
+    def test_prefix_requires_exact_bool_without_sealing_valid_prefix(self):
+        rec = recorder()
+        self.assertEqual(rec.push(CALLER), "CALLER")
+        for frame in candidate_frames(PRINTER, 0xA000, 0xB000):
+            self.assertEqual(rec.push(frame), "CANDIDATE")
+            if rec.await_successor:
+                self.assertEqual(rec.push(Frame(PRINTER, SUCCESSOR[frame.ip],
+                                                frame.es, frame.di)), "SUCCESSOR")
+                break
+        for value in (1, 0, "false", None):
+            with self.subTest(selected_prefix=value):
+                with self.assertRaisesRegex(ValueError, "exact bool"):
+                    rec.finish(selected_prefix=value)
+                self.assertIsNone(rec.terminal)
+        recording = rec.finish(selected_prefix=True)
+        self.assertEqual(recording.manifest["terminal"], "selected_prefix")
+        self.assertEqual(recording.manifest["selected_event"]["candidate_ordinal"], 897)
+        self.assertEqual(audit_recording(recording.raw_jsonl, recording.manifest,
+                                         SOURCE).status,
+                         "SOURCE_ONLY_SELECTED_PREFIX_UNAUTHENTICATED")
+
+    def test_full_return_cannot_be_downgraded_to_prefix(self):
+        rec = recorder(active=0xB000, draw=0xA000)
+        self.assertEqual(rec.push(CALLER), "CALLER")
+        for frame in candidate_frames(PRINTER, 0xB000, 0xA000):
+            self.assertEqual(rec.push(frame), "CANDIDATE")
+            if rec.await_successor:
+                self.assertEqual(rec.push(Frame(PRINTER, SUCCESSOR[frame.ip],
+                                                frame.es, frame.di)), "SUCCESSOR")
+        self.assertEqual(rec.push(RETURN), "FULL_RETURN")
+        recording = rec.finish(selected_prefix=True)
+        self.assertEqual(recording.manifest["terminal"], "full_return")
+        self.assertEqual(recording.manifest["candidate_count"], ROUTE_CANDIDATES)
+        self.assertEqual(recording.manifest["selected_event"]["candidate_ordinal"], 898)
+        self.assertEqual(audit_recording(recording.raw_jsonl, recording.manifest,
+                                         SOURCE).status,
+                         "SOURCE_ONLY_FULL_RETURN_UNAUTHENTICATED")
+
     def test_candidate_2305_fails_closed_without_frame_2308(self):
         rec = recorder()
         self.assertEqual(rec.push(CALLER), "CALLER")
@@ -177,6 +215,14 @@ class CandidateRecorderTests(unittest.TestCase):
             audit_recording(raw, tampered, SOURCE)
         with self.assertRaisesRegex(ValueError, "STOP_SOURCE_SHA"):
             audit_recording(raw, manifest, SOURCE + b"changed")
+        tampered = copy.deepcopy(manifest)
+        tampered["source_sha256"] = 1
+        with self.assertRaisesRegex(ValueError, "STOP_SOURCE_SHA"):
+            audit_recording(raw, tampered, SOURCE)
+        tampered = copy.deepcopy(manifest)
+        tampered["segments"]["active"] = object()
+        with self.assertRaisesRegex(ValueError, "STOP_MANIFEST_SHAPE"):
+            audit_recording(raw, tampered, SOURCE)
         with self.assertRaisesRegex(ValueError, "STOP_RAW_SHA"):
             audit_recording(raw + b" ", manifest, SOURCE)
         tampered = copy.deepcopy(manifest)
