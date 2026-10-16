@@ -249,6 +249,7 @@ add_library(poolrad_recovered STATIC src/recovered/resident_font_loader_017c.c
                                     src/recovered/overlay_u9b_entry_zero_0000.c
                                     src/recovered/overlay_u5e_party_value_2879.c
                                     src/recovered/overlay_u5e_half_0e52.c
+                                    src/recovered/overlay_u5e_entry2_0123.c
                                     src/recovered/overlay_u1c_arith_01a3.c
                                     src/recovered/overlay_u1c_gettable_0e5e.c
                                     src/recovered/overlay_u1c_party_surprise_1629.c
@@ -1443,6 +1444,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u5e_half_0e52_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u5e_half_0e52_tests
              COMMAND poolrad_overlay_u5e_half_0e52_tests)
+    add_executable(poolrad_overlay_u5e_entry2_0123_tests
+                   tests/recovered/test_overlay_u5e_entry2_0123.c)
+    target_link_libraries(poolrad_overlay_u5e_entry2_0123_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u5e_entry2_0123_tests
+             COMMAND poolrad_overlay_u5e_entry2_0123_tests)
     add_executable(poolrad_overlay_u3c6_mov_sp_bp_0062_tests
                    tests/recovered/test_u3c6_mov_sp_bp_0062.c)
     target_link_libraries(poolrad_overlay_u3c6_mov_sp_bp_0062_tests PRIVATE poolrad_recovered)
