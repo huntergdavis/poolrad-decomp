@@ -760,5 +760,28 @@ foreach(reference IN ITEMS [=[fi"q;part"rst]=] [=[fi"q\;part"rst]=])
     check_case(legacy_semicolon_boundary "${declaration}"
         "unsupported semicolon in legacy unquoted DEPENDS argument")
 endforeach()
+# Actual CTest retains VT/FF in the full dependency identity and rejects its
+# self/indirect cycles even when the separate fi/rst aliases are registered.
+foreach(control IN ITEMS 11 12)
+    string(ASCII ${control} literal_control)
+    set(identity "fi${literal_control}rst")
+    set(quoted_identity "\"${identity}\"")
+    set(base "add_executable(target exists.c)\nadd_test(NAME ${quoted_identity} COMMAND target)\nadd_test(NAME fi COMMAND target)\nadd_test(NAME rst COMMAND target)\nadd_test(NAME consumer COMMAND target)\n")
+    set(expected_count 4)
+    foreach(setter IN ITEMS set_property set_tests_properties)
+        make_legacy_setter("${setter}" consumer "${identity}" valid)
+        check_case("${setter}_raw_control_${control}" "${valid}" "")
+        make_legacy_setter("${setter}" "${quoted_identity}" "${identity}" self)
+        check_case("${setter}_control_self_${control}" "${self}"
+                   "self CTest DEPENDS reference:")
+        make_legacy_setter("${setter}" "${quoted_identity}" consumer first_edge)
+        check_case("${setter}_control_cycle_${control}" "${first_edge}${valid}"
+                   "CTest DEPENDS cycle leaves blocked tests:")
+        make_legacy_setter("${setter}" consumer "${quoted_identity}" declaration)
+        check_case("${setter}_quoted_control_${control}" "${declaration}" "")
+        make_legacy_setter("${setter}" consumer "fi\\${literal_control}rst" declaration)
+        check_case("${setter}_escaped_control_${control}" "${declaration}" "")
+    endforeach()
+endforeach()
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Repeated/replaced/cleared edges accepted; self and cyclic graphs rejected")
