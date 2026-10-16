@@ -97,7 +97,7 @@ pr_u7d_03a3_status pr_u7d_update_03a3(
     cpu->sp = (uint16_t)(cpu->sp + 2u);
     at = physical(cpu->ss, cpu->sp);
     cpu->ip = word_at(ram, at);
-    cpu->cs = word_at(ram, at + 2u);
+    cpu->cs = word(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
     cpu->sp = (uint16_t)(cpu->sp + 4u);
     return PR_U7D_03A3_OK;
 }

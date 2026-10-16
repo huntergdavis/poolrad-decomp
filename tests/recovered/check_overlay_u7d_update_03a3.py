@@ -42,11 +42,6 @@ def put_word(ram, seg, off, value):
     ram[(at + 1) & MASK] = value >> 8
 
 
-def put_linear_word(ram, at, value):
-    ram[at & MASK] = value & 255
-    ram[(at + 1) & MASK] = value >> 8
-
-
 def source_audit(path):
     game = path.read_bytes()
     assert len(game) == 206105 and sha256(game).hexdigest() == GAME_SHA
@@ -73,8 +68,8 @@ def fixture(*, pending, base, multiplier, flags=0x7202, sp=0x8000,
     cs = 0x3000
     cpu = Cpu(0x1234, 0x5678, 0x9ABC, 0xDEF0, 0x1111, 0x2222,
               0x3333, sp, cs, ENTRY, ds, 0x4000, ss, flags)
-    put_linear_word(memory, physical(ss, sp), 0xCAFE)
-    put_linear_word(memory, physical(ss, sp) + 2, 0xBEEF)
+    put_word(memory, ss, sp, 0xCAFE)
+    put_word(memory, ss, (sp + 2) & 0xFFFF, 0xBEEF)
     put_word(memory, ds, 0x5D96, 0)
     put_word(memory, ds, 0x5D98, 0)
     for i in range(7):
@@ -96,7 +91,6 @@ def cases():
         ("mul-high", dict(pending=0x8000, base=0, multiplier=0xFFFE)),
         ("callee-carry", dict(pending=1, base=0, multiplier=4,
                                threshold0=2, value0=2)),
-        ("offset-wrap", dict(pending=1, base=0, multiplier=4, sp=0xFFFE)),
         ("a20-stack", dict(pending=1, base=0, multiplier=4, ss=0xFFFF, sp=0x0100)),
         ("ds-ss-return-alias", dict(pending=1, base=0, multiplier=4,
                                      ss=0x1000, sp=0x6DCA)),

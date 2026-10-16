@@ -48,8 +48,9 @@ DS:3642 by the live DS:6DCC word, adds the low product word to
 DS:6DCA, clears AX and DS:6DCC, and caps DS:6DCA at unsigned 99.
 The high product word remains in DX. It then restores BP from live
 SS RAM and executes `RETF`. RAM reads and writes, stack pushes, and
-return-word reads retain source order; effective SP wraps at 16 bits,
-while word and far-return bytes are physically contiguous with A20 off.
+return-word reads retain source order. Each word's bytes are physically
+contiguous with A20 off, but the CS word begins at the separately wrapped
+16-bit SS offset `SP+2`; a linear `IP+2` address is wrong at SP FFFE/FFFF.
 The last returned arithmetic FLAGS come from the zero comparison or
 the compare with 99. The intermediate MUL's undefined FLAGS do not
 cross an external call or survive the later arithmetic writers.
@@ -64,17 +65,20 @@ than inventing a destination instruction stream.
 
 The strict C11 CMake target and CTest pass; direct ASan+UBSan passes.
 The focused C test includes a shared array/stack frame that changes the
-callee's far return and verifies the explicit transfer status.
-The original-byte differential runs **49** returning synthetic cases,
+callee's far return and verifies the explicit transfer status. It also
+places distinct wrapped CS and linear decoy words at outer RETF SP FFFE
+and FFFF. The original-byte differential runs **48** returning synthetic cases,
 executing the exact 50-byte caller and exact 177-byte callee in Unicorn
 and comparing the composed C's entire 1 MiB RAM and all 14 CPU words.
 It visits **19/19** caller instruction starts and both outcomes of each
 conditional branch (**4/4**). Cases include zero pending count, uncapped
-and capped products, high-word MUL, a callee carry, stack offset wrap,
-A20 stack access, variable arithmetic FLAGS, 40 seeded inputs, and a
+and capped products, high-word MUL, a callee carry, A20 stack access,
+variable arithmetic FLAGS, 40 seeded inputs, and a
 DS/SS alias that overwrites live outer return words. Only returning
-source paths are compared. No fresh DOSBox-X or natural game call was
-launched under the host native hold.
+source paths are compared. Unicorn's RETF CS fetch differs at SP
+FFFE/FFFF, so those frames are gated by focused C tests and the existing
+U7F native decoy proof, not this Unicorn gate. No fresh DOSBox-X or
+natural game call was launched under the host native hold.
 
 ```sh
 cmake -S . -B resources/build-u7d-03a3 \

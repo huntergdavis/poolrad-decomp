@@ -28,10 +28,13 @@ static pr_u7d_03a3_cpu frame(uint8_t *ram, uint16_t sp)
     pr_u7d_03a3_cpu cpu = {0x1234u,0x5678u,0x9ABCu,0xDEF0u,0x1111u,
                            0x2222u,0x3333u,sp,0x3000u,0x03A3u,0x1000u,
                            0x4000u,0x2000u,0x7202u};
-    size_t return_at = at(cpu.ss,sp);
     put(ram,cpu.ss,sp,0xCAFEu);
-    ram[(return_at + 2u) & (PR_U7D_03A3_RAM_SIZE - 1u)] = 0xEFu;
-    ram[(return_at + 3u) & (PR_U7D_03A3_RAM_SIZE - 1u)] = 0xBEu;
+    put(ram,cpu.ss,(uint16_t)(sp+2u),0xBEEFu);
+    if (sp>=0xFFFEu) {
+        size_t linear_cs = (at(cpu.ss,sp)+2u) & (PR_U7D_03A3_RAM_SIZE-1u);
+        ram[linear_cs]=0xADu;
+        ram[(linear_cs+1u)&(PR_U7D_03A3_RAM_SIZE-1u)]=0xDEu;
+    }
     put(ram,cpu.ds,0x5D96u,0u);
     put(ram,cpu.ds,0x5D98u,0u);
     for (unsigned i=0;i<7u;++i) {
@@ -68,10 +71,15 @@ int main(void)
     assert(word(ram,cpu.ds,0x6DCAu)==99u && word(ram,cpu.ds,0x6DCCu)==0u);
     assert(cpu.ax==0u && cpu.dx==0u && cpu.sp==0x8104u);
 
-    /* The outer RETF reads the live word pair across SS offset FFFF. */
+    /* RETF reads CS at wrapped SS:0000, not the linear decoy. */
     cpu=frame(ram,0xFFFEu);
     assert(pr_u7d_update_03a3(ram,PR_U7D_03A3_RAM_SIZE,&cpu)==PR_U7D_03A3_OK);
     assert(cpu.sp==2u && cpu.ip==0xCAFEu && cpu.cs==0xBEEFu);
+
+    /* IP itself straddles FFFF; CS is separately read at SS:0001. */
+    cpu=frame(ram,0xFFFFu);
+    assert(pr_u7d_update_03a3(ram,PR_U7D_03A3_RAM_SIZE,&cpu)==PR_U7D_03A3_OK);
+    assert(cpu.sp==3u && cpu.ip==0xCAFEu && cpu.cs==0xBEEFu);
 
     /* The carry callee can rewrite its return through a shared array/frame. */
     cpu=frame(ram,0x6DD4u);
