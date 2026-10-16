@@ -1394,6 +1394,16 @@ if(BUILD_TESTING)
                           poolrad_formats)
     add_test(NAME poolrad_cold_start_title_rgb_tests
              COMMAND poolrad_cold_start_title_rgb_tests)
+    add_executable(poolrad_cold_start_title_connector_tests
+                   tests/replay/test_cold_start_title_connector.c
+                   src/replay/cold_start_title_connector.c)
+    target_include_directories(poolrad_cold_start_title_connector_tests PRIVATE
+                               ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    file(MAKE_DIRECTORY
+         "${CMAKE_CURRENT_BINARY_DIR}/cold_start_title_connector_test")
+    add_test(NAME poolrad_cold_start_title_connector_tests
+             COMMAND poolrad_cold_start_title_connector_tests
+                     "${CMAKE_CURRENT_BINARY_DIR}/cold_start_title_connector_test")
     add_executable(poolrad_overlay_u6f_postinsert_02ae_tests
                    tests/recovered/test_overlay_u6f_postinsert_02ae.c)
     target_link_libraries(poolrad_overlay_u6f_postinsert_02ae_tests
