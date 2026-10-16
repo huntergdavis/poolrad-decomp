@@ -2194,3 +2194,5 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_slot_a_res464_second_flush_tests
              COMMAND poolrad_slot_a_res464_second_flush_tests)
 endif()
+
+include(cmake/U6F01B8EntryAbi.cmake)
