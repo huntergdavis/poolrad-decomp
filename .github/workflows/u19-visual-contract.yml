@@ -1,0 +1,16 @@
+name: U19 visual witness contract
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  synthetic-u19-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check synthetic same-run visual witness contracts
+        run: python3 -m unittest tests.replay.test_u19_visual_witness tests.replay.test_cold_start_codeword_row14_event_plan tests.replay.test_cold_start_codeword_row14_host_snapshot_gate
