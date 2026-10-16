@@ -592,5 +592,20 @@ set_property(TEST [=[NO]=] PROPERTY DEPENDS OFF)
 check_case(false_bracket_unregistered_reference [==[
 set_property(TEST [=[NOTFOUND]=] PROPERTY DEPENDS [=[NO]=])
 ]==] "DEPENDS reference: unregistered CTest name: NO")
+check_case(zero_property_pairs_false_owner [==[
+set_tests_properties(OFF PROPERTIES)
+]==] "set_tests_properties requires property/value pairs")
+check_case(zero_property_pairs_multiple_owners [==[
+set_tests_properties(OFF NOTFOUND PROPERTIES)
+]==] "set_tests_properties requires property/value pairs")
+check_case(zero_property_pairs_after_valid_setter [==[
+set_property(TEST OFF PROPERTY DEPENDS NOTFOUND)
+set_tests_properties(NOTFOUND PROPERTIES)
+]==] "set_tests_properties requires property/value pairs")
+check_case(valid_empty_property_value_clears_cycle [==[
+set_property(TEST OFF PROPERTY DEPENDS NOTFOUND)
+set_property(TEST NOTFOUND PROPERTY DEPENDS OFF)
+set_tests_properties(OFF PROPERTIES TIMEOUT 1 DEPENDS "")
+]==] "")
 file(REMOVE_RECURSE "${fixture}")
 message(STATUS "Repeated/replaced/cleared edges accepted; self and cyclic graphs rejected")

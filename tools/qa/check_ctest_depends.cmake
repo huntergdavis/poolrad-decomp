@@ -128,7 +128,7 @@ while(remaining MATCHES "(^|[^A-Za-z0-9_])(set_tests_properties|set_property)[ \
         list(LENGTH arguments argument_count)
         math(EXPR property_count "${argument_count} - ${values_index}")
         math(EXPR odd_count "${property_count} % 2")
-        if(odd_count)
+        if(property_count LESS 2 OR odd_count)
             message(FATAL_ERROR "set_tests_properties requires property/value pairs")
         endif()
         # Keep indices into the original token list. Copying a sublist loses
