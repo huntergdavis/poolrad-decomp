@@ -32,7 +32,8 @@ add_executable(poolrad_cold_start_publisher_rgb
                tools/replay/cold_start_publisher_rgb.c
                src/replay/cold_start_publisher_rgb.c)
 target_link_libraries(poolrad_cold_start_publisher_rgb PRIVATE poolrad_formats)
-add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_stack_load_061e_fixture.c
+add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_cmp_al_one_0676_fixture.c
+                                    src/recovered/overlay_u3c2_stack_load_061e_fixture.c
                                     src/recovered/overlay_u3c2_jne_decision_061c_fixture.c
                                     src/recovered/overlay_u3c2_jne_decision_060e_fixture.c
                                     src/recovered/overlay_u3c2_cmp_al_zero_061a_fixture.c
@@ -353,6 +354,12 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_overlay_u3c2_cmp_al_one_0676_fixture_tests
+                   tests/recovered/test_overlay_u3c2_cmp_al_one_0676_fixture.c)
+    target_link_libraries(poolrad_overlay_u3c2_cmp_al_one_0676_fixture_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_cmp_al_one_0676_fixture_tests
+             COMMAND poolrad_overlay_u3c2_cmp_al_one_0676_fixture_tests)
+
     add_executable(poolrad_overlay_u3c2_stack_load_061e_fixture_tests
                    tests/recovered/test_overlay_u3c2_stack_load_061e_fixture.c)
     target_link_libraries(poolrad_overlay_u3c2_stack_load_061e_fixture_tests PRIVATE poolrad_recovered)
