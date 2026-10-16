@@ -1509,6 +1509,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7d_update_03a3_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7d_update_03a3_tests
              COMMAND poolrad_overlay_u7d_update_03a3_tests)
+    add_executable(poolrad_overlay_u7d_update_03a3_wrap_alias_tests
+                   tests/recovered/test_overlay_u7d_update_03a3_wrap_alias.c)
+    target_link_libraries(poolrad_overlay_u7d_update_03a3_wrap_alias_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u7d_update_03a3_wrap_alias_tests
+             COMMAND poolrad_overlay_u7d_update_03a3_wrap_alias_tests)
 
     add_executable(poolrad_system_seed_fullstate_120f_tests
                    tests/recovered/test_system_seed_fullstate_120f.c)
