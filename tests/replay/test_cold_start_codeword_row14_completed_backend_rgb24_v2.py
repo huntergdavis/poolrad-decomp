@@ -20,7 +20,7 @@ def fixture(stride: int = 1920) -> tuple[dict, bytes]:
             "run_token": "run_v2", "arm_token": "arm_v2",
             "stream_id": "stream_v2", "plane_event_id": "plane_v2",
             "raw_sha256": "a" * 64, "candidate_ordinal": 897,
-            "pc": "0F2D:0412", "successor_pc": "0F2D:0415",
+            "pc": "0F2D:0445", "successor_pc": "0F2D:0449",
         },
         "backend_event_id": "backend_v2", "backend": "surface",
         "completion_kind": "backend_complete",
@@ -49,7 +49,7 @@ class CompletedBackendRgb24V2Tests(unittest.TestCase):
                 self.assertEqual(result.rgb24, rgb24)
                 self.assertEqual((result.candidate_ordinal, result.pc,
                                   result.successor_pc),
-                                 (897, "0F2D:0412", "0F2D:0415"))
+                                 (897, "0F2D:0445", "0F2D:0449"))
 
     def test_selected_labels_and_completion_remain_declarations(self) -> None:
         manifest, rgb24 = fixture()
