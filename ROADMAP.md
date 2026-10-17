@@ -95,6 +95,14 @@ Native and full CPU/RAM parity remain open. The model adds nothing to the
 full-C count above; see
 [docs/re/U86_STATUS_1499_FULL.md](docs/re/U86_STATUS_1499_FULL.md).
 
+PR #837 adds a **source-only** CPU/RAM model of unit `0x3C6` entry 6
+(`+0x04BE`), a range-checked 50 × 25 cell lookup with no hooks. Its RETF follows
+a caller-declared policy whose two successful profiles are synthetic, and its
+stack-operand LES at offsets `FFFD`–`FFFF` fails closed. Its synthetic tests
+pass (focused CTest 1/1). Native and full CPU/RAM parity remain open. The model
+adds nothing to the full-C count above; see
+[docs/re/U3C6_04BE_CELL.md](docs/re/U3C6_04BE_CELL.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
