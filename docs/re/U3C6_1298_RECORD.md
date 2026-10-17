@@ -3,8 +3,10 @@
 This note covers GAME.OVR unit `0x3C6` + `0x1298`, public entry 19, as a
 whole function. The run-time stub is `0x3E0:0x7F`.
 
-- **Status.** The CPU/RAM model is source-only. It is uncompiled, uncommitted
-  draft and not counted.
+- **Status.** This is a local, source-only CPU/RAM model, not counted. Its
+  tests are synthetic C fixtures: they compile and pass (see Evidence), but
+  there is no native or oracle parity. Entry 10 (`+0996`) remains an opaque
+  hook.
 - **Ownership.** Separate relative CLEAR from all 18 queried lanes (PM i14419).
   Local source GO: PM i16649. ABI packet: i14315.
 
@@ -101,11 +103,14 @@ RETFs.
     write before the hook. Entry 10 therefore receives AF = 1, CF = SF = OF = 0,
     and ZF and PF from 4s.
 
-## Controls (source only, not yet run)
+## Controls (synthetic C tests)
 
 `tests/recovered/test_overlay_u3c6_1298_cpu.c` builds synthetic state with no
-game bytes. It is not wired into CMake and has not been compiled. A test stub
-stands in for entry 10.
+game bytes. A test stub stands in for entry 10. It is registered in CMake as
+`poolrad_overlay_u3c6_1298_cpu_tests`, linked against `poolrad_recovered`
+under `BUILD_TESTING`. The tests check selected CPU and RAM state against
+hand-derived expectations. They are not a full CPU/RAM oracle and not a
+comparison with the original program.
 
 - **Reference runs.** 120 seeds are run under both synthetic policies.
   - At the hook: SP is entry SP − 0xE; the frame is `12E5`:CS; the argument
@@ -141,6 +146,14 @@ stands in for entry 10.
   accesses are physically consecutive, which is a profile assumption. Both
   successful RETF policies are synthetic.
 - **Overlay dispatch.** The overlay stub dispatch and the caller side.
-- **Evidence.** No compile, test, native or oracle evidence.
+- **Evidence.** Synthetic C only, run once each by the PM:
+  - Direct build: `cc -std=c11 -O2 -Wall -Wextra -Werror` of model plus test
+    at model commit `7121644` passed 2455 checks.
+  - The focused CTest target at CMake commit `60e1e9c` passed (1/1).
+  - Independent bounded static review: PASS.
+
+  There is no native, emulator-oracle or Unicorn evidence, and no full
+  CPU/RAM equivalence. Entry 10's effects are untested beyond the stub
+  contract.
 - **Credit.** Callee credit stays with its owners: the merged U3C6 slot C for
   entries 12–15.
