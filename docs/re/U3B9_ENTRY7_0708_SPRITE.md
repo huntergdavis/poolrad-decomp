@@ -151,3 +151,37 @@ Following the merged U6F `+01B8` pattern:
 
 The README and `FUNCTION_LEDGER.md` rows are deferred to restack with the
 other U3B9 rows.
+
+## CPU model (strict lane, uncompiled)
+
+Files: `include/poolrad/recovered/overlay_u3b9_entry7_0708_cpu.h` and
+`src/recovered/overlay_u3b9_entry7_0708_cpu.c`, entry point
+`pr_u3b9_0708_cpu_run(ram, ram_size, cpu, hooks)`. It follows the
+full-state precedents: 1 MiB A20-off RAM and a 14-register CPU. The whole
+function runs on live state.
+
+- **Live RAM.** Every push, re-read of `[BP+0xA]`, slot word, temporary,
+  far word and `DS:[0x4A20]` goes through RAM. Indexes above 8 read whatever
+  the stack holds, so the abstract model's `UNMODELED_FRAME` stop does not
+  arise here.
+- **Folded copy.** SYSTEM `+0A3F` (the value-parameter copy) is folded
+  exactly from its decoded body at the live call segment. It writes no
+  arithmetic flags and sets DF = 0.
+- **External hooks.** Six callees are hooks, each receiving the full CPU and
+  RAM after the real pushes and return push: `0x464:+00FF` (it reaches the
+  DOS-unit Intr through `+00CF`), SYSTEM `+0919` Write, SYSTEM `+084A`
+  Writeln, `0x899:+0000` (it reaches SYSTEM `+00E9`), `0x464:+0D71` and
+  `0x464:+1B52`. Execution continues only at the pushed return CS:IP. A
+  non-zero hook result covers both a non-returning callee and a host
+  failure.
+- **Undefined flags.** OF after `SHL DI,3` is written as MSB(result) XOR CF.
+  AF after SHL/XOR/OR is written as 0. The third SHL's flags reach the
+  `0x0D71` hook.
+- **Safety.** These are the same as the entry-6 CPU model: up-front write
+  alias screen (`SS:[SP-0x5C,SP)`), folded-byte snapshot, and a
+  post-callee re-screen.
+- **Unresolved:**
+  - all effects of the six hooked callees;
+  - the undefined-flag conventions;
+  - the overlay stub dispatch;
+  - no compile, native or oracle evidence.
