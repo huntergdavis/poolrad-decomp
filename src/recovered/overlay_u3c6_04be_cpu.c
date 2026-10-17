@@ -94,15 +94,17 @@ static void mul16(cpu_t *c, uint16_t src)
     put_arith(c, f);
 }
 static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
-/* LES di,[seg:off] in the pinned DOSBox-X normal-core profile: the offset word
- * at linear EA, the segment word at linear EA+2, minus 0x10000 when the
- * offset is above 0xFFFC (only offset 0xFFFD differs from seg:(off+2)). */
 /* nonzero when a stack LES operand offset is in the unmeasured seam FFFD..FFFF */
 static int les_seam(uint16_t off) { return off > 0xFFFCu; }
+/* LES di,[seg:off] for offsets up to 0xFFFC: the offset word at linear EA and
+ * the segment word at linear EA+2 (= seg:off+2, no wrap). Seam offsets
+ * FFFD..FFFF never reach this: the stack operands stop before the LES
+ * (UNSUPPORTED_LES_SEAM) and DS:0x6716 is a fixed offset; no native profile
+ * receipt exists for the seam. */
 static void les(const uint8_t *ram, cpu_t *c, uint16_t seg, uint16_t off)
 {
     size_t ea = phys(seg, off);
-    size_t at = (ea + 2u - (off > 0xFFFCu ? 0x10000u : 0u)) & MASK;
+    size_t at = (ea + 2u) & MASK;
     c->di = rd16(ram, seg, off);
     c->es = (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
 }

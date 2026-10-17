@@ -139,9 +139,10 @@ counting, NDEBUG-safe checks.
   successful RETF profiles are synthetic.
 - **Overlay dispatch.** The overlay stub dispatch into the entry.
 
-- **Profile switches.** The LES/LDS rule above holds only for the DOSBox-X
-  normal core at revision `5a9c7c53481c2e933948039c33256776653f4faf`,
-  built with `CPU_OMIT_8086` absent and run with `do_lds_wraparound` = true
-  (the `lds wraparound` default) and `cpu.code.big` = false (16-bit code
-  segment). No build, configuration or native receipt has been recorded for
-  this profile (PM i13899, after pN i13852/i13860/i13866).
+- **Profile switches.** LES offsets `FFFD`–`FFFF` are not modelled.
+  - The stack operands stop before the LES with `UNSUPPORTED_LES_SEAM`.
+  - The `DS:0x6716` operand is a fixed offset.
+  - Every reachable LES reads its segment word at EA+2 with no wrap.
+  - What a CPU or emulator does at the seam depends on its profile (for
+    example DOSBox-X `do_lds_wraparound`). No build, configuration or native
+    receipt exists for it (PM i13899 and i16879).
