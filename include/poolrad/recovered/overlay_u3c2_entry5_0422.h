@@ -30,7 +30,9 @@ typedef struct {
 typedef enum {
     PR_U3C2_0422_OK = 0,
     PR_U3C2_0422_ARGUMENT,
-    PR_U3C2_0422_CALLEE
+    PR_U3C2_0422_CALLEE,
+    PR_U3C2_0422_LIMIT,
+    PR_U3C2_0422_CODE_ALIAS
 } pr_u3c2_0422_status;
 
 /* Candidate raw-RAM caller body [0422,057B), through RETF20.
@@ -48,5 +50,24 @@ typedef enum {
 pr_u3c2_0422_status pr_u3c2_entry5_0422(
     uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
     const pr_u3c2_0422_hooks *hooks);
+
+/* Complete entry5 with fixed full-state +01A0/+0000/+02CC implementations.
+ * Enter at IP=0422 with SP in [0054,FFE8], exactly 1 MiB synchronous RAM,
+ * distinct stable CPU/RAM objects and immutable modeled code. Output-pointer
+ * writes must not overlap modeled code. Reserved stack/code alias and invalid
+ * initial arguments reject atomically. All raw pointer reloads remain live,
+ * including output/frame and data/table aliases; actual outer RETF20 exposed.
+ * max_iterations counts visits to +04DD; LIMIT stops before that instruction,
+ * with its exact CPU/RAM state, and does not mean original termination.
+ * CALLEE retains reached dependency state or an unexpected nested return.
+ * Accepted stack bounds avoid wrapped far frames throughout the composition.
+ * Undefined logical/SHL AF is zero; other MUL status bits are overwritten
+ * before any observable boundary. No caller-supplied hooks are required.
+ * Original comparison evidence/profile: docs/re/U3C2_LINE_CHECK_0422.md.
+ * Native saved-route reachability and independent strict credit are separate.
+ */
+pr_u3c2_0422_status pr_u3c2_line_check_0422(
+    uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
+    size_t max_iterations);
 
 #endif
