@@ -192,3 +192,10 @@ function runs on live state.
   above 0xFFFC. Only offset 0xFFFD differs from seg:(off+2) (PM i13698,
   after reviews i13200 B1 and i13647/i13648 C6-1). A physical 8086 or other
   emulator profile may differ.
+
+- **Profile switches.** The LES/LDS rule above holds only for the DOSBox-X
+  normal core at revision `5a9c7c53481c2e933948039c33256776653f4faf`,
+  built with `CPU_OMIT_8086` absent and run with `do_lds_wraparound` = true
+  (the `lds wraparound` default) and `cpu.code.big` = false (16-bit code
+  segment). No build, configuration or native receipt has been recorded for
+  this profile (PM i13899, after pN i13852/i13860/i13866).
