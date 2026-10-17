@@ -227,6 +227,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_entry5_0422.c
                                     src/recovered/overlay_u77_active_select_27df.c
                                     src/recovered/overlay_u33_byte_flags_08a4.c
                                     src/recovered/overlay_u33_pair_writer_0b97.c
+                                    src/recovered/overlay_u33_clipped_writer_0221.c
                                     src/recovered/overlay_u86_procvars_3413.c
                                     src/recovered/overlay_u86_record_predicate_323d.c
                                     src/recovered/overlay_u86_status_1499_full.c
@@ -1089,6 +1090,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u33_pair_writer_0b97_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u33_pair_writer_0b97_tests
              COMMAND poolrad_overlay_u33_pair_writer_0b97_tests)
+    add_executable(poolrad_overlay_u33_clipped_writer_0221_tests
+                   tests/recovered/test_overlay_u33_clipped_writer_0221.c)
+    target_link_libraries(poolrad_overlay_u33_clipped_writer_0221_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u33_clipped_writer_0221_tests
+             COMMAND poolrad_overlay_u33_clipped_writer_0221_tests)
     add_executable(poolrad_overlay_u86_record_predicate_323d_tests
                    tests/recovered/test_overlay_u86_record_predicate_323d.c)
     target_link_libraries(poolrad_overlay_u86_record_predicate_323d_tests PRIVATE poolrad_recovered)
