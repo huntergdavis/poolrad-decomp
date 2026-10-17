@@ -157,17 +157,39 @@ class StrictCandidateQueueTest(unittest.TestCase):
                          {"resident_unmapped": 1})
         self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["counts"],
                          {"modeled_blocked": 1})
+        strict_resident = [dict(id="RES_00BA_2E8B",
+                                evidence_doc="docs/re/synthetic.md")]
         state2 = scq.load_queue(inventory, ledger, classifications,
-                                [dict(id="RES_00BA_2E8B",
-                                      evidence_doc="docs/re/synthetic.md")], None)
+                                strict_resident, None)
         result2: dict = scq.build_queue(state2, graph, inventory["units"], ledger,
                                         classifications, mentions, main_files, {}, {},
                                         dict(ovr=bytes(200)))
         rows2 = {row["id"]: row for row in result2["rows"]}
         self.assertEqual(rows2["OVL_0019_0020"]["callee_readiness"]["counts"],
+                         {"resident_unmapped": 1})
+        state3 = scq.load_queue(inventory, ledger, classifications, strict_resident,
+                                None, [dict(id="RES_00BA_2E8B", status="full",
+                                            evidence_doc="docs/re/synthetic.md")])
+        result3: dict = scq.build_queue(state3, graph, inventory["units"], ledger,
+                                        classifications, mentions, main_files, {}, {},
+                                        dict(ovr=bytes(200)))
+        rows3 = {row["id"]: row for row in result3["rows"]}
+        self.assertEqual(rows3["OVL_0019_0020"]["callee_readiness"]["counts"],
                          {"resident_covered": 1})
-        self.assertTrue(rows2["OVL_0019_0020"]["callee_readiness"]["composable"])
-        self.assertEqual(rows2["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
+        self.assertTrue(rows3["OVL_0019_0020"]["callee_readiness"]["composable"])
+        self.assertEqual(rows3["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
+        state4 = scq.load_queue(inventory, ledger, classifications, strict_resident,
+                                None, [dict(id="RES_00BA_2E8B", status="callback",
+                                            evidence_doc="docs/re/synthetic.md")])
+        result4: dict = scq.build_queue(state4, graph, inventory["units"], ledger,
+                                        classifications, mentions, main_files, {}, {},
+                                        dict(ovr=bytes(200)))
+        rows4 = {row["id"]: row for row in result4["rows"]}
+        self.assertEqual(rows4["OVL_0019_0020"]["callee_readiness"]["counts"],
+                         {"resident_callback": 1})
+        self.assertFalse(rows4["OVL_0019_0020"]["callee_readiness"]["composable"])
+        self.assertEqual(rows4["OVL_0019_0030"]["callee_readiness"]["counts"],
+                         {"modeled_blocked": 1})
 
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()

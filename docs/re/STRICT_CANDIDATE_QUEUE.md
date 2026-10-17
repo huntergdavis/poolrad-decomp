@@ -31,9 +31,15 @@ merged per-routine file in `src/recovered`, `include/poolrad/recovered` or
 `tests/recovered`, or a manifest `full` entry), `modeled_blocked` (a merged
 model whose transitive closure still contains an unready callee), `verified`
 (classification `game_verified` with no model) or `untranslated`. Resident
-targets are `resident_covered` when their `RES_<seg>_<off>` id is
-strict-credited, else `resident_unmapped`; runtime targets are
-`runtime_covered` only for reviewed endpoints, else `runtime_unmapped`.
+targets are `resident_covered` only when their `RES_<seg>_<off>` id is both
+strict-credited and listed `full` in the callee-model manifest (the
+callbacks only read and write the same RAM, as with `RES_00BA_2E8B`
+composed through `+101D`'s RAM-backed IO adapter), `resident_callback` when
+the manifest lists the credit as `callback` (true external effects such as
+release or presentation are left to a host callback), else
+`resident_unmapped` — an unlisted strict credit counts as unready so a
+future credit cannot slip through. Runtime targets are `runtime_covered`
+only for reviewed endpoints, else `runtime_unmapped`.
 **Only strict, closure-ready modeled, resident_covered and runtime_covered
 count as ready**: readiness reports `ready`, `unready` and `total`, and a
 body is `composable` only when every target is ready. Readiness is the
@@ -83,13 +89,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 
 **Determinism and pins.** Sorted inputs everywhere; two identical runs
 produce byte-identical JSON. The export records SHA-256 for every input file,
-the branch-tip table, and the raw `git log` scan. The schema-5 export (queue
-SHA-256 `08b1be5f7c308fed38e41a66654494b03deb750ad03d7fb7c8a0f686585963ef`,
-rebased onto main after #862–#874) was generated from `START.EXE`
+the branch-tip table, and the raw `git log` scan. The schema-6 export (queue
+SHA-256 `b8248c69818578b7ea1a63d3074d48806e767f79a04d0aa51cd8be8cc1eea2ef`,
+rebased onto main after #862–#876) was generated from `START.EXE`
 `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`,
-callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1,078 refs /
-892 tips / 510 unmerged tips (`tips_sha256` `b41730a9…c6d3`) and 2,023
-commits (`commits_sha256` `789f9e08…0103`). Git pins are point-in-time; other
+callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1,083 refs /
+893 tips / 510 unmerged tips (`tips_sha256` `7d3534f7…b59a`) and 2,023
+commits (`commits_sha256` `4414ac8b…d06d`). Git pins are point-in-time; other
 lanes keep pushing refs.
 
 ## First ranked list (top 25 of 600)
@@ -122,8 +128,8 @@ lanes keep pushing refs.
 | 24 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
 | 25 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/1/0/0 | 1/1 | no | 3 | 0 | source_mention | 61 |
 
-Queue summary (schema 5, rebased on main after #862–#874): 578 candidates,
-100 composable — classification game_evidenced 337, game_verified 55,
+Queue summary (schema 6, rebased on main after #862–#876): 578 candidates,
+97 composable — classification game_evidenced 337, game_verified 55,
 helper_candidate 70, unresolved 116; grades A 340, B 236, D 2; prior status
 main_model 93, inline_in_model 54, inline_in_strict 8, unmerged_branch 27,
 commit_mention 14, source_mention 382; 733 fixup-backed and 815
@@ -155,8 +161,12 @@ now that #862/#863 made its `+1153`/`+12FB` string cores full models.
 Schema 5 (the #848 review) closes resident and runtime edges too: the six
 U38 rows `+25BC`/`+264B`/`+2A87`/`+2B7D`/`+2D88`/`+2AE6` are composable
 because their `OVL_0038_101D` callee's resident selector `RES_00BA_2E8B` is
-strict-credited (`resident_covered`), not because the edge was ignored.
-Composable bodies carry a +6 score term.
+strict-credited and manifest-`full` (`resident_covered`), not because the
+edge was ignored. Schema 6 classifies all nine resident credits: the two
+sidecar models `RES_00BA_1509` (release/copy/presentation callbacks) and
+`RES_00BA_15F7` (allocation callback) are `callback`, so `OVL_0025_1DF0`
+reads `resident_callback` and drops out of composable. Composable bodies
+carry a +6 score term.
 
 ## Reproduce
 
@@ -207,18 +217,22 @@ for a fast overlay-only pass.
 * Commit-message detection requires an explicit ID or an offset with unit
   context; branch file names remain the primary unmerged-translation detector.
 * Resident targets are mapped to `RES_<seg>_<off>` ids from the callgraph's
-  runtime stub address and are ready only when that id is strict-credited;
-  runtime targets (the SYSTEM segment) have no per-target id and are ready
-  only for reviewed endpoints, so an uncovered runtime call blocks every
-  other modeled body.
+  runtime stub address and are ready only when that id is strict-credited
+  AND manifest-`full`; `callback` and unlisted credits are unready. Runtime
+  targets (the SYSTEM segment) have no per-target id and are ready only for
+  reviewed endpoints, so an uncovered runtime call blocks every other
+  modeled body.
 * Near call sites remain candidate-based: the decoded audit validates
   instruction boundaries under the prologue-seed assumption, not the seeds
   themselves.
 * [partial_callee_models.csv](partial_callee_models.csv) is the curated
-  callee-model manifest (`id,status,evidence_doc`; status `full` or
-  `partial`). It carries models whose shared file name cannot be mapped by
-  filename (the U25 string cores `OVL_0025_1153`/`OVL_0025_12FB` are `full`
-  since #862) and must be updated when a model's completeness changes.
+  callee-model manifest (`id,status,evidence_doc`; overlay statuses `full`
+  and `partial`, resident statuses `full` and `callback`). It carries models
+  whose shared file name cannot be mapped by filename (the U25 string cores
+  `OVL_0025_1153`/`OVL_0025_12FB` are `full` since #862) and classifies all
+  nine strict resident credits (schema 6; seven `full`, the sidecar
+  remove/append `callback`), and must be updated when a model's completeness
+  changes.
 * Ledger `bound`/`decoded` sizes can exceed the actual callable extent — for
   example `OVL_001C_0B52` is 127/126 bytes in the ledger but 118 bytes / 41
   instructions through its RETF; the queue reports the ledger values and

@@ -274,15 +274,28 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 "missing strict full-C provenance")
         strict_overlay.add(target["id"])
     full_models, partial_models = {}, set()
+    resident_full, resident_callback = set(), set()
     for entry in partial_rows or []:
-        target = aliases.get(entry["id"])
-        require(target is not None,
-                "callee model manifest address is absent from the overlay queue")
-        require(entry.get("status") in ("full", "partial"),
-                "callee model manifest status must be full or partial")
+        require(entry.get("status") in ("full", "partial", "callback"),
+                "callee model manifest status must be full, partial or callback")
         require(entry["evidence_doc"].startswith("docs/re/")
                 and ".." not in entry["evidence_doc"].split("/"),
                 "missing callee model manifest provenance")
+        target = aliases.get(entry["id"])
+        if target is None:
+            require(entry["id"].startswith("RES_")
+                    and entry["id"] in strict_resident_ids,
+                    "callee model manifest address is neither an overlay row nor a "
+                    "strict-credited resident id")
+            require(entry["status"] in ("full", "callback"),
+                    "resident manifest entries must be full or callback")
+            if entry["status"] == "full":
+                resident_full.add(entry["id"])
+            else:
+                resident_callback.add(entry["id"])
+            continue
+        require(entry["status"] in ("full", "partial"),
+                "overlay manifest entries must be full or partial")
         if entry["status"] == "full":
             full_models[target["id"]] = entry["evidence_doc"]
         else:
@@ -294,6 +307,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 strict_overlay=strict_overlay,
                 strict_resident_ids=strict_resident_ids,
                 full_models=full_models, partial_models=partial_models,
+                resident_full=resident_full, resident_callback=resident_callback,
                 near_validated=near_validated)
 
 
@@ -331,8 +345,8 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
 
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
-                    partial_models, transitively_unready, resident_strict_ids,
-                    endpoints):
+                    partial_models, transitively_unready, resident_full,
+                    resident_callback, endpoints):
     source_id = ovl_id(*key)
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
@@ -361,7 +375,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
         elif entry[0] == "resident":
             res_id = (f"RES_{entry[1]:04X}_{entry[2]:04X}"
                       if entry[1] is not None and entry[2] is not None else None)
-            readiness = ("resident_covered" if res_id in resident_strict_ids
+            readiness = ("resident_covered" if res_id in resident_full
+                         else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
             targets.append(dict(kind="resident", id=res_id, seg=entry[1],
                                 offset=entry[2], readiness=readiness))
@@ -374,8 +389,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
              + counts["runtime_covered"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
-               + counts["runtime_unmapped"] + counts["partial"]
-               + counts["modeled_blocked"] + counts["verified"])
+               + counts["resident_callback"] + counts["runtime_unmapped"]
+               + counts["partial"] + counts["modeled_blocked"] + counts["verified"])
     base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
                + 2 * counts["verified"] + counts["partial"]
                + counts["modeled_blocked"] + 2 * counts["resident_covered"]
@@ -477,7 +492,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             if any(not ready.get(target, False) for target in graph.get(node, ())):
                 ready[node] = False
                 changed = True
-            elif any(res_id not in state["strict_resident_ids"]
+            elif any(res_id not in state["resident_full"]
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
@@ -493,8 +508,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         classification = classes[row["original_address"]]
         callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
                                   main_files, class_by_id, state["partial_models"],
-                                  transitively_unready, state["strict_resident_ids"],
-                                  endpoints)
+                                  transitively_unready, state["resident_full"],
+                                  state["resident_callback"], endpoints)
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -538,7 +553,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=5, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=6, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 
