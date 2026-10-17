@@ -75,9 +75,17 @@ IP is neither read nor checked (IP is first written at the lcall).
 - live operands patched before the run (0x0BCD:0x1234, +2766) and by the lcall hook (+2766);
 - null RAM, short RAM, null hook (`ARGUMENT`).
 
-Build script `tests/recovered/build_u86_263d_full.sh`. **Not compiled or run** (host hold).
-No strict credit: the +08C3 and SYSTEM 0B0B bodies are hooks, and callee and native oracles
-are open.
+Build script `tests/recovered/build_u86_263d_full.sh`.
+
+Verification receipts (PM i16788, guarded host slot 2026-10-17): this branch's header,
+source and smoke test blobs, extracted alone, built with
+`cc -std=c11` and the executable exited 0 printing `overlay_u86_status_263d_full: ok`; a
+serial CMake build of d2942649c946fcd43a2f7c6724c4f7b48d65f612, target
+`poolrad_overlay_u86_status_263d_full_tests`, exited 0 and its focused CTest passed (1/1).
+Static review: pF and C4 bounded static PASS on that head (i16783/i16784, i16786/i16785).
+These cover the synthetic fixtures only. The +08C3 and SYSTEM 0B0B callees are opaque
+hooks; there has been no native, Unicorn, oracle or full CPU/RAM parity run, and no strict
+credit is claimed.
 
 Prior-session recall: `deja` (45 s CLI timeout) and the MCP recall (which returned only this
 session) gave nothing to reuse; the template is this lane's own `claude/c1r-u86-225d-full`
