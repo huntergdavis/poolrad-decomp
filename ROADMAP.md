@@ -67,6 +67,14 @@ hook's effects and the synthetic RETF profiles remain open. The model adds
 nothing to the full-C count above; see
 [docs/re/U3C6_1298_RECORD.md](docs/re/U3C6_1298_RECORD.md).
 
+PR #831 adds a **source-only** full-state model of unit `0x86` entry 47
+(`+0x263D`), a status-text wrapper. Its two callees, SYSTEM `0xAF8:0x0B0B`
+and unit-local `+0x08C3`, are opaque hooks checked only for their stack and
+return contracts. Stack windows that wrap or overlap the body fail closed.
+Its synthetic tests pass (direct C11 run; focused CTest 1/1). Native and full
+CPU/RAM parity remain open. The model adds nothing to the full-C count above;
+see [docs/re/U86_STATUS_263D_FULL.md](docs/re/U86_STATUS_263D_FULL.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
