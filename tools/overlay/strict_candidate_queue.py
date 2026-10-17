@@ -259,13 +259,13 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
         for alias in [row["id"], *row["aliases"]]:
             require(alias not in aliases, "alias maps to more than one original")
             aliases[alias] = row
-    strict_overlay, strict_resident = set(), 0
+    strict_overlay, strict_resident_ids = set(), set()
     for credit in strict_rows:
         target = aliases.get(credit["id"])
         if target is None:
             require(credit["id"].startswith("RES_"),
                     "strict full-C address is absent from the overlay queue")
-            strict_resident += 1
+            strict_resident_ids.add(credit["id"])
             continue
         require(target["game_or_library"] == "game_verified",
                 "strict full-C credit lacks verified game identity")
@@ -291,7 +291,8 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                   if row["id"] not in strict_overlay}
     return dict(rows=rows, aliases=aliases, candidates=candidates,
                 all_ids={row["id"] for row in rows},
-                strict_overlay=strict_overlay, strict_resident=strict_resident,
+                strict_overlay=strict_overlay,
+                strict_resident_ids=strict_resident_ids,
                 full_models=full_models, partial_models=partial_models,
                 near_validated=near_validated)
 
@@ -330,7 +331,9 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
 
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
-                    partial_models, transitively_unready):
+                    partial_models, transitively_unready, resident_strict_ids,
+                    endpoints):
+    source_id = ovl_id(*key)
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
         entry = None
@@ -347,25 +350,36 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
         if entry[0] == "overlay":
             target_id = ovl_id(entry[1], entry[2])
             readiness = ("strict" if target_id in strict_overlay
+                         else "partial" if target_id in partial_models
                          else "modeled" if target_id in main_files
                          and target_id not in transitively_unready
                          else "modeled_blocked" if target_id in main_files
-                         else "partial" if target_id in partial_models
                          else "verified" if class_by_id.get(target_id) == "game_verified"
                          else "untranslated")
             targets.append(dict(kind="overlay", id=target_id, unit=entry[1],
                                 offset=entry[2], readiness=readiness))
+        elif entry[0] == "resident":
+            res_id = (f"RES_{entry[1]:04X}_{entry[2]:04X}"
+                      if entry[1] is not None and entry[2] is not None else None)
+            readiness = ("resident_covered" if res_id in resident_strict_ids
+                         else "resident_unmapped")
+            targets.append(dict(kind="resident", id=res_id, seg=entry[1],
+                                offset=entry[2], readiness=readiness))
         else:
-            targets.append(dict(kind=entry[0], seg=entry[1], offset=entry[2],
-                                readiness=f"{entry[0]}_unmapped"))
+            readiness = ("runtime_covered" if source_id in endpoints
+                         else "runtime_unmapped")
+            targets.append(dict(kind="runtime", seg=entry[1], offset=entry[2],
+                                readiness=readiness))
     counts = Counter(target["readiness"] for target in targets)
-    ready = counts["strict"] + counts["modeled"]
+    ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
+             + counts["runtime_covered"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["runtime_unmapped"] + counts["partial"]
                + counts["modeled_blocked"] + counts["verified"])
     base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
-               + counts["verified"] + counts["partial"]
-               + counts["modeled_blocked"])
+               + 2 * counts["verified"] + counts["partial"]
+               + counts["modeled_blocked"] + 2 * counts["resident_covered"]
+               + counts["runtime_covered"])
     points = 12 if not targets else round(base * ready / len(targets))
     return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
                                                        t["offset"])),
@@ -416,6 +430,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         if edge["kind"] == "near_candidate" and edge.get("target") is not None:
             near_by_target[(edge["unit"], edge["target"])].append(edge)
     graph = defaultdict(set)
+    resident_edges, runtime_sources = defaultdict(set), set()
     for edge in callgraph["edges"]:
         source = edge.get("src_func")
         if source is None:
@@ -423,27 +438,33 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         source_id = ovl_id(edge["unit"], source)
         if edge["kind"] == "near_candidate" and edge.get("target_func") is not None:
             graph[source_id].add(ovl_id(edge["unit"], edge["target_func"]))
-        elif edge["kind"] == "far_fixup_confirmed" and edge.get("resolution") == "overlay" \
-                and edge.get("target_func") is not None:
-            graph[source_id].add(ovl_id(edge["target_unit"], edge["target_func"]))
-    nodes = set(graph)
+        elif edge["kind"] == "far_fixup_confirmed":
+            if edge.get("resolution") == "overlay" and edge.get("target_func") is not None:
+                graph[source_id].add(ovl_id(edge["target_unit"], edge["target_func"]))
+            elif edge.get("resolution") == "resident" \
+                    and edge.get("seg") is not None and edge.get("off") is not None:
+                resident_edges[source_id].add(f"RES_{edge['seg']:04X}_{edge['off']:04X}")
+            elif edge.get("resolution") == "runtime":
+                runtime_sources.add(source_id)
+    nodes = set(graph) | set(resident_edges) | set(runtime_sources)
     for targets in graph.values():
         nodes |= targets
 
     def base_category(node):
         if node in state["strict_overlay"]:
             return "strict"
-        if node in main_files:
-            return "modeled"
         if node in state["partial_models"]:
             return "partial"
+        if node in main_files:
+            return "modeled"
         if class_by_id.get(node) == "game_verified":
             return "verified"
         return "untranslated"
 
     # Transitive closure: strict bodies and manifest-full models are reviewed
-    # endpoints that handle their own runtime calls; other modeled bodies are
-    # composable only when every overlay callee in their closure is ready.
+    # endpoints that handle their own environment calls. Every other modeled
+    # body is composable only when each overlay callee is ready, each resident
+    # target is strict-credited, and no runtime call remains uncovered.
     endpoints = {node for node in nodes if node in state["full_models"]}
     ready = {node: base_category(node) in ("strict", "modeled") or node in endpoints
              for node in nodes}
@@ -451,8 +472,16 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     while changed:
         changed = False
         for node in sorted(nodes):
-            if ready[node] and node not in endpoints and base_category(node) != "strict" \
-                    and any(not ready.get(target, False) for target in graph.get(node, ())):
+            if not ready[node] or node in endpoints or base_category(node) == "strict":
+                continue
+            if any(not ready.get(target, False) for target in graph.get(node, ())):
+                ready[node] = False
+                changed = True
+            elif any(res_id not in state["strict_resident_ids"]
+                     for res_id in resident_edges.get(node, ())):
+                ready[node] = False
+                changed = True
+            elif node in runtime_sources:
                 ready[node] = False
                 changed = True
     transitively_unready = {node for node in nodes
@@ -464,7 +493,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         classification = classes[row["original_address"]]
         callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
                                   main_files, class_by_id, state["partial_models"],
-                                  transitively_unready)
+                                  transitively_unready, state["strict_resident_ids"],
+                                  endpoints)
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -495,7 +525,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     counts = lambda values: dict(sorted(Counter(values).items()))
     summary = dict(candidates=len(ranked),
                    strict_overlay_excluded=len(state["strict_overlay"]),
-                   strict_resident_ignored=state["strict_resident"],
+                   strict_resident_ignored=len(state["strict_resident_ids"]),
                    composable_bodies=sum(item["callee_readiness"]["composable"]
                                          for item in ranked),
                    near_call_evidence=("decoded_validated" if state["near_validated"]
@@ -508,7 +538,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=4, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=5, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 

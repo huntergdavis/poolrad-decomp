@@ -100,8 +100,6 @@ class StrictCandidateQueueTest(unittest.TestCase):
                                      evidence_doc="docs/re/synthetic.md")])
         mentions, main_files, branches = evidence()
         mentions = {**mentions, "OVL_0019_0010": {"source": [], "tooling": [], "docs": []}}
-        main_files = {key: value for key, value in main_files.items()
-                      if key != "OVL_0019_0010"}
         result: dict = scq.build_queue(state, callgraph(), inventory["units"], ledger,
                                        classifications, mentions, main_files, branches, {},
                                        dict(ovr=bytes(200)))
@@ -109,6 +107,78 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(row["callee_readiness"]["counts"], {"partial": 1})
         self.assertFalse(row["callee_readiness"]["composable"])
         self.assertEqual(row["callee_readiness"]["unready"], 1)
+
+    def test_closure_chain_and_cycle(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        result: dict = scq.build_queue(
+            state, callgraph(), inventory["units"], ledger, classifications, mentions,
+            {"OVL_0019_0020": ["src/recovered/overlay_u19_x_0020.c"]}, {}, {},
+            dict(ovr=bytes(200)))
+        rows = {row["id"]: row for row in result["rows"]}
+        self.assertEqual(rows["OVL_0019_0020"]["callee_readiness"]["counts"], {"verified": 1})
+        self.assertFalse(rows["OVL_0019_0020"]["callee_readiness"]["composable"])
+        self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["counts"],
+                         {"modeled_blocked": 1})
+        cycle = dict(edges=[
+            dict(kind="near_candidate", unit=0x19, site=0x1A, src_func=0x20, target=0x10,
+                 target_func=0x10, exact_prologue=True),
+            dict(kind="near_candidate", unit=0x19, site=0x35, src_func=0x30, target=0x20,
+                 target_func=0x20, exact_prologue=True),
+            dict(kind="near_candidate", unit=0x19, site=0x40, src_func=0x10, target=0x20,
+                 target_func=0x20, exact_prologue=True)])
+        result2: dict = scq.build_queue(
+            state, cycle, inventory["units"], ledger, classifications, mentions,
+            {"OVL_0019_0010": ["src/recovered/overlay_u19_x_0010.c"],
+             "OVL_0019_0020": ["src/recovered/overlay_u19_x_0020.c"]}, {}, {},
+            dict(ovr=bytes(200)))
+        rows2 = {row["id"]: row for row in result2["rows"]}
+        self.assertTrue(rows2["OVL_0019_0020"]["callee_readiness"]["composable"])
+        self.assertEqual(rows2["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
+
+    def test_resident_callee_requires_strict_credit(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        graph = dict(edges=[
+            dict(kind="near_candidate", unit=0x19, site=0x35, src_func=0x30, target=0x20,
+                 target_func=0x20, exact_prologue=True),
+            dict(kind="far_fixup_confirmed", unit=0x19, site=0x45, src_func=0x20, seg=0x00BA,
+                 off=0x2E8B, resolution="resident")])
+        main_files = {"OVL_0019_0020": ["src/recovered/overlay_u19_x_0020.c"]}
+        result: dict = scq.build_queue(state, graph, inventory["units"], ledger,
+                                       classifications, mentions, main_files, {}, {},
+                                       dict(ovr=bytes(200)))
+        rows = {row["id"]: row for row in result["rows"]}
+        self.assertEqual(rows["OVL_0019_0020"]["callee_readiness"]["counts"],
+                         {"resident_unmapped": 1})
+        self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["counts"],
+                         {"modeled_blocked": 1})
+        state2 = scq.load_queue(inventory, ledger, classifications,
+                                [dict(id="RES_00BA_2E8B",
+                                      evidence_doc="docs/re/synthetic.md")], None)
+        result2: dict = scq.build_queue(state2, graph, inventory["units"], ledger,
+                                        classifications, mentions, main_files, {}, {},
+                                        dict(ovr=bytes(200)))
+        rows2 = {row["id"]: row for row in result2["rows"]}
+        self.assertEqual(rows2["OVL_0019_0020"]["callee_readiness"]["counts"],
+                         {"resident_covered": 1})
+        self.assertTrue(rows2["OVL_0019_0020"]["callee_readiness"]["composable"])
+        self.assertEqual(rows2["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
+
+    def test_prior_status_none_when_no_evidence(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        empty = {cid: {"source": [], "tooling": [], "docs": []}
+                 for cid in state["candidates"].values()}
+        result: dict = scq.build_queue(state, callgraph(), inventory["units"], ledger,
+                                       classifications, empty, {}, {}, {},
+                                       dict(ovr=bytes(200)))
+        self.assertTrue(all(row["prior_translation"]["status"] == "none"
+                            for row in result["rows"]))
 
     def test_export_is_order_independent(self):
         original = queue()
