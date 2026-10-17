@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**99 strict full-C originals** (90 overlay, nine resident) and **155 verified
-game identities** (145 overlay, ten resident). The queue still contains 898
+**100 strict full-C originals** (91 overlay, nine resident) and **156 verified
+game identities** (146 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -25,6 +25,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006C_3F31` | PR #491, `df9d516cb6862e84a0f749e709f79913dfb042d3`; PM exact-head review | 130 bytes, SHA-256 `9f192cb8fe704324facbbec368d1e24602558b878aa3f7e0031f644862e09767` | [record/table byte sum](U6C_RECORD_TABLE_SUM_3F31.md) |
 | `OVL_007F_0F7E` | PR #492, `04d96904fd74bbb7586db3d992cf6fa959072e4c`; PM exact-head review | 84 bytes, SHA-256 `5db57d103e9038273938138f1980a39a0af093ac1b811d8e50fa178f5371c51b` | [state flags](U7F_STATE_FLAGS_0F7E.md) |
 | `OVL_002F_0131` … `OVL_005E_2574` (17 bodies) | Batch acceptance PR #870, `967f4277e707065d75ba7d0351a8bc8b7dd4f872`; VP inbox i17223 | pinned body SHA-256 and extents per body in [reviewed_function_identities.csv](reviewed_function_identities.csv) and each evidence note | [PR #870](https://github.com/huntergdavis/poolrad-decomp/pull/870) |
+| `OVL_03C2_01A0` | PR #872, `f44e528e894ddbb44f8cd22d8afd8059f0977390`; VP independent review | 300 bytes, SHA-256 `7fbacb8d9d298c72bd886321a58a8d842f2ec6dc350fc83fde6064fe78f27f40` | [line-record initializer](U3C2_LINE_INIT_01A0.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
