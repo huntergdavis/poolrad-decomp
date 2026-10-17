@@ -25,22 +25,25 @@ credits are counted and ignored (this tool is overlay-only).
 
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
 decoded-validated near calls and fixup-confirmed far calls. Each overlay
-target is `strict` (strict manifest), `modeled` (a merged per-routine file in
-`src/recovered`, `include/poolrad/recovered` or `tests/recovered`, or a
-manifest `full` entry), `modeled_blocked` (a merged model whose transitive
-closure still contains an unready callee), `partial` (manifest `partial`:
-bounded or provisional, not full CPU/RAM state), `verified` (classification
-`game_verified` with no model) or `untranslated`. Resident and runtime
-targets are recorded as unmapped (segment stubs only, no file/image offset).
-**Only strict and closure-ready modeled callees count as ready**: readiness
-reports `ready`, `unready` and `total`, and a body is `composable` only when
-every target is ready. Readiness is the transitive closure over the overlay
-call graph: strict bodies and manifest-`full` models are reviewed endpoints
-that handle their own runtime calls; any other modeled body is ready only
-when every overlay callee in its closure is ready. The schema-2/3/4
-corrections (2026-10-17, after Claude's, Astra's and Codex's callee reports)
-stop the queue proposing bodies whose callees are not yet full-state
-composable.
+target is `strict` (strict manifest), `partial` (manifest `partial`: bounded
+or provisional, and it takes precedence over a mapped file), `modeled` (a
+merged per-routine file in `src/recovered`, `include/poolrad/recovered` or
+`tests/recovered`, or a manifest `full` entry), `modeled_blocked` (a merged
+model whose transitive closure still contains an unready callee), `verified`
+(classification `game_verified` with no model) or `untranslated`. Resident
+targets are `resident_covered` when their `RES_<seg>_<off>` id is
+strict-credited, else `resident_unmapped`; runtime targets are
+`runtime_covered` only for reviewed endpoints, else `runtime_unmapped`.
+**Only strict, closure-ready modeled, resident_covered and runtime_covered
+count as ready**: readiness reports `ready`, `unready` and `total`, and a
+body is `composable` only when every target is ready. Readiness is the
+transitive closure over overlay, resident and runtime edges: strict bodies
+and manifest-`full` models are reviewed endpoints that handle their own
+environment calls; every other modeled body is ready only when each overlay
+callee in its closure is ready, each resident target is strict-credited and
+no runtime call is uncovered. The schema-2–5 corrections (2026-10-17, after
+Claude's, Astra's, Codex's and the #848 review) stop the queue proposing
+bodies whose callees are not yet full-state composable.
 
 **Caller evidence.** Fixup-confirmed far callers resolving to the candidate's
 exact start, and decoded near callers with an exact prologue target. An
@@ -67,9 +70,10 @@ call convention documented at sites such as `push cs; call +0x07BC`.
 **Scoring.** `score = ownership + grade + callee + callers + size + composable
 - penalty`: ownership 40/25/5/0 for game_verified/game_evidenced/
 helper_candidate/unresolved; grade 20/10/5/0 for A/B/C/D; callee
-`round(min(30, 6·strict + 4·modeled + 1·verified + 1·partial +
-1·modeled_blocked) · ready/total)` (12 for a leaf, `ready` = strict +
-modeled), so unready targets dilute the callee points; callers
+`round(min(30, 6·strict + 4·modeled + 2·verified + 1·partial +
+1·modeled_blocked + 2·resident_covered + 1·runtime_covered) · ready/total)`
+(12 for a leaf, `ready` = strict + modeled + resident_covered +
+runtime_covered), so unready targets dilute the callee points; callers
 `min(15, 5·fixup) + min(10, 2·aligned PUSH CS) + 2·(near)`; size 12/8/4/2/0
 for ≤48/≤128/≤256/≤512/larger bytes; `composable` +6 when every callee is
 ready; prior penalty 45 main_model, 40 inline_in_strict, 25 unmerged_branch,
@@ -79,13 +83,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 
 **Determinism and pins.** Sorted inputs everywhere; two identical runs
 produce byte-identical JSON. The export records SHA-256 for every input file,
-the branch-tip table, and the raw `git log` scan. The schema-4 export (queue
-SHA-256 `180252a86162b9c8a072726757e5814f070f87a860936434809f24a46f7c72af`,
-rebased onto main after #862–#866) was generated from `START.EXE`
+the branch-tip table, and the raw `git log` scan. The schema-5 export (queue
+SHA-256 `08b1be5f7c308fed38e41a66654494b03deb750ad03d7fb7c8a0f686585963ef`,
+rebased onto main after #862–#874) was generated from `START.EXE`
 `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`,
-callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1,048 refs /
-878 tips / 510 unmerged tips (`tips_sha256` `c42658bd…cd6e`) and 1,994
-commits (`commits_sha256` `84430e7d…43c1`). Git pins are point-in-time; other
+callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1,078 refs /
+892 tips / 510 unmerged tips (`tips_sha256` `b41730a9…c6d3`) and 2,023
+commits (`commits_sha256` `789f9e08…0103`). Git pins are point-in-time; other
 lanes keep pushing refs.
 
 ## First ranked list (top 25 of 600)
@@ -94,35 +98,35 @@ lanes keep pushing refs.
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
 | 1 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/1/0/1 | 2/1 | no | 3 | 6 | source_mention | 78 |
 | 2 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
-| 3 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
-| 4 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 3/0/0/4 | 3/5 | no | 9 | 0 | source_mention | 66 |
-| 5 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 4/1/1/2 | 5/5 | no | 0 | 1 | source_mention | 65 |
-| 6 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
-| 7 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 2/1/0/0 | 3/2 | no | 0 | 1 | source_mention | 63 |
-| 8 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 1/3 | no | 3 | 1 | source_mention | 63 |
-| 9 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
-| 10 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
-| 11 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 0/15 | no | 3 | 3 | source_mention | 63 |
-| 12 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 0/9 | no | 7 | 2 | source_mention | 63 |
-| 13 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/0/0/1 | 2/5 | no | 4 | 0 | source_mention | 63 |
-| 14 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 0/4 | no | 26 | 0 | source_mention | 63 |
-| 15 | `OVL_005E_1884` | `0x5e:0x1884` | 666 | 226 | A | game_evidenced | 0/1/0/4 | 1/12 | no | 2 | 6 | source_mention | 62 |
-| 16 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
-| 17 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 1/2/0/0 | 3/1 | no | 0 | 1 | commit_mention | 61 |
-| 18 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
-| 19 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/1/0/0 | 1/1 | no | 3 | 0 | source_mention | 61 |
-| 20 | `OVL_001C_0126` | `0x1c:0x0126` | 125 | 50 | B | game_verified | 2/2/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 60 |
-| 21 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 1/2/0/0 | 3/4 | no | 0 | 1 | source_mention | 60 |
-| 22 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 1/1/0/3 | 2/5 | no | 4 | 0 | source_mention | 60 |
-| 23 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 1/0/0/3 | 1/8 | no | 3 | 0 | source_mention | 60 |
-| 24 | `OVL_03B4_016D` | `0x3b4:0x016d` | 307 | 114 | A | game_evidenced | 2/0/0/6 | 2/6 | no | 10 | 0 | source_mention | 60 |
-| 25 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 1/3/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 59 |
+| 3 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 3/1 | no | 3 | 1 | source_mention | 69 |
+| 4 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
+| 5 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
+| 6 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/1/2 | 5/5 | no | 0 | 1 | source_mention | 66 |
+| 7 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 3/0/0/4 | 3/5 | no | 9 | 0 | source_mention | 66 |
+| 8 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/0/0/1 | 3/4 | no | 4 | 0 | source_mention | 65 |
+| 9 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
+| 10 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 3/0/0/0 | 3/2 | no | 0 | 1 | source_mention | 64 |
+| 11 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
+| 12 | `OVL_001C_0126` | `0x1c:0x0126` | 125 | 50 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 63 |
+| 13 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
+| 14 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
+| 15 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 0/15 | no | 3 | 3 | source_mention | 63 |
+| 16 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 1/8 | no | 7 | 2 | source_mention | 63 |
+| 17 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 0/4 | no | 26 | 0 | source_mention | 63 |
+| 18 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 3/4 | no | 0 | 1 | source_mention | 62 |
+| 19 | `OVL_006A_0214` | `0x6a:0x0214` | 72 | 27 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
+| 20 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 1/1/0/3 | 3/4 | no | 4 | 0 | source_mention | 62 |
+| 21 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
+| 22 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 3/2/0/1 | 5/7 | no | 0 | 1 | source_mention | 61 |
+| 23 | `OVL_001C_266A` | `0x1c:0x266a` | 181 | 61 | B | game_verified | 2/0/0/0 | 2/1 | no | 0 | 1 | source_mention | 61 |
+| 24 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
+| 25 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/1/0/0 | 1/1 | no | 3 | 0 | source_mention | 61 |
 
-Queue summary (schema 4, post-#866, rebased on main): 600 candidates, 104
-composable — classification game_evidenced 342, game_verified 60,
-helper_candidate 71, unresolved 127; grades A 348, B 250, D 2; prior status
-main_model 108, inline_in_model 57, inline_in_strict 4, unmerged_branch 31,
-commit_mention 13, source_mention 387; 842 fixup-backed and 871
+Queue summary (schema 5, rebased on main after #862–#874): 600 candidates,
+100 composable — classification game_evidenced 337, game_verified 55,
+helper_candidate 70, unresolved 116; grades A 340, B 236, D 2; prior status
+main_model 93, inline_in_model 54, inline_in_strict 8, unmerged_branch 27,
+commit_mention 14, source_mention 382; 733 fixup-backed and 815
 aligned-PUSH-CS caller sites across the queue. Near-call evidence is
 `decoded_validated` for this export.
 
@@ -142,13 +146,17 @@ aligned-PUSH-CS caller sites across the queue. Near-call evidence is
 The `+101D` helper itself appears as `main_model` (rank 598): its merged
 provisional full-C model is why the four callers above read as callee-ready.
 
-Readiness corrections (schemas 2–4, 2026-10-17): resident, runtime, partial,
+Readiness corrections (schemas 2–5, 2026-10-17): resident, runtime, partial,
 verified-without-model and closure-blocked callees all count as unready —
 e.g. `OVL_0033_1E31` (3/14), the U9E dice candidates, the U1C
 `+2C03`/`+2F2D`/`+3171`/`+0C77` cases whose verified or blocked callees
 previously slipped through, and `OVL_0025_0000`, which is composable again
-now that #862/#863 made its `+1153`/`+12FB` string cores full models;
-composable bodies carry a +6 score term.
+now that #862/#863 made its `+1153`/`+12FB` string cores full models.
+Schema 5 (the #848 review) closes resident and runtime edges too: the six
+U38 rows `+25BC`/`+264B`/`+2A87`/`+2B7D`/`+2D88`/`+2AE6` are composable
+because their `OVL_0038_101D` callee's resident selector `RES_00BA_2E8B` is
+strict-credited (`resident_covered`), not because the edge was ignored.
+Composable bodies carry a +6 score term.
 
 ## Reproduce
 
@@ -198,9 +206,11 @@ for a fast overlay-only pass.
   evidence.
 * Commit-message detection requires an explicit ID or an offset with unit
   context; branch file names remain the primary unmerged-translation detector.
-* Resident/runtime callees cannot be mapped to image offsets from the
-  callgraph; they count as `unready` (diluting callee points and clearing
-  `composable`) but carry no offset.
+* Resident targets are mapped to `RES_<seg>_<off>` ids from the callgraph's
+  runtime stub address and are ready only when that id is strict-credited;
+  runtime targets (the SYSTEM segment) have no per-target id and are ready
+  only for reviewed endpoints, so an uncovered runtime call blocks every
+  other modeled body.
 * Near call sites remain candidate-based: the decoded audit validates
   instruction boundaries under the prologue-seed assumption, not the seeds
   themselves.
