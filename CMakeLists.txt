@@ -275,6 +275,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u5e_party_value_2879.c
                                     src/recovered/overlay_u3c2_entry4_057b.c
                                     src/recovered/overlay_u5e_direction_263d.c
+                                    src/recovered/overlay_u5e_direction_gate_17f6.c
                                     src/recovered/overlay_u5e_half_0e52.c
                                     src/recovered/overlay_u5e_entry2_0123.c
                                     src/recovered/overlay_u1c_arith_01a3.c
@@ -1633,6 +1634,15 @@ if(BUILD_TESTING)
     target_include_directories(poolrad_overlay_u3c2_entry4_057b_tests PRIVATE include)
     add_test(NAME poolrad_overlay_u3c2_entry4_057b_tests
              COMMAND poolrad_overlay_u3c2_entry4_057b_tests)
+    add_executable(poolrad_overlay_u5e_direction_gate_17f6_tests
+                   tests/recovered/test_overlay_u5e_direction_gate_17f6.c
+                   src/recovered/overlay_u5e_direction_gate_17f6.c
+                   src/recovered/overlay_u5e_direction_263d.c
+                   src/recovered/overlay_u3c2_entry4_057b.c)
+    target_include_directories(poolrad_overlay_u5e_direction_gate_17f6_tests PRIVATE include)
+    add_test(NAME poolrad_overlay_u5e_direction_gate_17f6_tests
+             COMMAND poolrad_overlay_u5e_direction_gate_17f6_tests)
+
     add_executable(poolrad_overlay_u5e_direction_263d_tests
                    tests/recovered/test_overlay_u5e_direction_263d.c
                    src/recovered/overlay_u5e_direction_263d.c
