@@ -338,15 +338,16 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             targets.append(dict(kind=entry[0], seg=entry[1], offset=entry[2],
                                 readiness=f"{entry[0]}_unmapped"))
     counts = Counter(target["readiness"] for target in targets)
-    overlay_total = sum(counts[key] for key in ("strict", "modeled", "verified", "untranslated"))
-    points = (12 if not targets else
-              min(30, 6 * counts["strict"] + 4 * counts["modeled"] + 2 * counts["verified"])
-              if overlay_total else 4)
+    ready = counts["strict"] + counts["modeled"] + counts["verified"]
+    unready = (counts["untranslated"] + counts["resident_unmapped"]
+               + counts["runtime_unmapped"])
+    base = min(30, 6 * counts["strict"] + 4 * counts["modeled"] + 2 * counts["verified"])
+    points = 12 if not targets else round(base * ready / len(targets))
     return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
                                                        t["offset"])),
                 counts=dict(sorted(counts.items())),
-                overlay_ready=counts["strict"] + counts["modeled"] + counts["verified"],
-                overlay_total=overlay_total, points=points)
+                ready=ready, unready=unready, total=len(targets),
+                composable=not targets or unready == 0, points=points)
 
 
 def caller_evidence(key, far_edges_by_target, near_edges_by_target, ovr, unit_ovr):
@@ -407,6 +408,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         terms = dict(ownership=OWNERSHIP_POINTS[row["classification"]],
                      grade=GRADE_POINTS[row["grade"]], callee=callees["points"],
                      callers=callers["points"], size=size_points,
+                     composable=6 if callees["composable"] else 0,
                      prior_penalty=-prior["penalty"])
         ranked.append(dict(
             id=cid, original_address=row["original_address"], unit=key[0], offset=key[1],
@@ -427,6 +429,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     summary = dict(candidates=len(ranked),
                    strict_overlay_excluded=len(state["strict_overlay"]),
                    strict_resident_ignored=state["strict_resident"],
+                   composable_bodies=sum(item["callee_readiness"]["composable"]
+                                         for item in ranked),
                    near_call_evidence=("decoded_validated" if state["near_validated"]
                                        else "raw_unvalidated"),
                    prior_status=counts(item["prior_translation"]["status"] for item in ranked),
@@ -437,7 +441,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=1, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=2, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 

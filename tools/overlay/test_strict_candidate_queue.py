@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import strict_candidate_queue as scq
 
 
-def fixture():
+def fixture() -> tuple[dict, list, list]:
     inventory = dict(inputs=scq.DIGESTS.copy(), units=[dict(
         stub_para=0x19, memory_segment=0x1C, ovr_offset=100, code_size=0x200,
         entries=[0x10], functions=[dict(rel=0x10), dict(rel=0x20), dict(rel=0x30)])])
@@ -59,7 +59,7 @@ def callgraph():
              target_func=0x10, exact_prologue=True)])
 
 
-def queue(data=None, graph=None, prior=None):
+def queue(data=None, graph=None, prior=None) -> dict:
     inventory, ledger, classifications = data or fixture()
     state = scq.load_queue(inventory, ledger, classifications,
                            [dict(id="OVL_0019_0010", evidence_doc="docs/re/synthetic.md")], None)
@@ -82,11 +82,16 @@ class StrictCandidateQueueTest(unittest.TestCase):
         untranslated, prior = rows["OVL_0019_0020"], rows["OVL_0019_0030"]
         self.assertEqual(untranslated["prior_translation"]["status"], "unmerged_branch")
         self.assertEqual(untranslated["callee_readiness"]["counts"], {"strict": 1})
+        self.assertTrue(untranslated["callee_readiness"]["composable"])
+        self.assertEqual(untranslated["score_terms"]["composable"], 6)
         self.assertEqual(untranslated["callers_aligned_push_cs"], 1)
         self.assertGreater(untranslated["score"], prior["score"])
         self.assertEqual(prior["prior_translation"]["status"], "inline_in_strict")
         self.assertEqual(prior["prior_translation"]["inline"][0]["covered_by"], "OVL_0019_0010")
         self.assertEqual(prior["callee_readiness"]["counts"], {"untranslated": 1})
+        self.assertFalse(prior["callee_readiness"]["composable"])
+        self.assertEqual(prior["score_terms"]["composable"], 0)
+        self.assertEqual(result["summary"]["composable_bodies"], 1)
 
     def test_export_is_order_independent(self):
         original = queue()
