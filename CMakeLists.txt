@@ -268,6 +268,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u3c2_entry5_0422.c
                                     src/recovered/overlay_u9b_record_fields_0329.c
                                     src/recovered/overlay_u9b_entry_zero_0000.c
                                     src/recovered/overlay_u5e_party_value_2879.c
+                                    src/recovered/overlay_u3c2_entry4_057b.c
+                                    src/recovered/overlay_u5e_direction_263d.c
                                     src/recovered/overlay_u5e_half_0e52.c
                                     src/recovered/overlay_u5e_entry2_0123.c
                                     src/recovered/overlay_u1c_arith_01a3.c
@@ -1579,6 +1581,19 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u5e_party_value_2879_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u5e_party_value_2879_tests
              COMMAND poolrad_overlay_u5e_party_value_2879_tests)
+    add_executable(poolrad_overlay_u3c2_entry4_057b_tests
+                   tests/recovered/test_overlay_u3c2_entry4_057b.c
+                   src/recovered/overlay_u3c2_entry4_057b.c)
+    target_include_directories(poolrad_overlay_u3c2_entry4_057b_tests PRIVATE include)
+    add_test(NAME poolrad_overlay_u3c2_entry4_057b_tests
+             COMMAND poolrad_overlay_u3c2_entry4_057b_tests)
+    add_executable(poolrad_overlay_u5e_direction_263d_tests
+                   tests/recovered/test_overlay_u5e_direction_263d.c
+                   src/recovered/overlay_u5e_direction_263d.c
+                   src/recovered/overlay_u3c2_entry4_057b.c)
+    target_include_directories(poolrad_overlay_u5e_direction_263d_tests PRIVATE include)
+    add_test(NAME poolrad_overlay_u5e_direction_263d_tests
+             COMMAND poolrad_overlay_u5e_direction_263d_tests)
     add_executable(poolrad_overlay_u5e_half_0e52_tests
                    tests/recovered/test_overlay_u5e_half_0e52.c)
     target_link_libraries(poolrad_overlay_u5e_half_0e52_tests PRIVATE poolrad_recovered)
