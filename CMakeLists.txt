@@ -32,7 +32,8 @@ add_executable(poolrad_cold_start_publisher_rgb
                tools/replay/cold_start_publisher_rgb.c
                src/replay/cold_start_publisher_rgb.c)
 target_link_libraries(poolrad_cold_start_publisher_rgb PRIVATE poolrad_formats)
-add_library(poolrad_recovered STATIC src/recovered/overlay_u1c_if_0b52.c
+add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
+                                    src/recovered/overlay_u1c_if_0b52.c
                                     src/recovered/overlay_u25_skip_1ea6.c
                                     src/recovered/overlay_u25_loader_0000.c
                                     src/recovered/overlay_u25_string_cores.c
@@ -1596,6 +1597,15 @@ if(BUILD_TESTING)
     target_include_directories(poolrad_overlay_u1c_if_0b52_tests PRIVATE include)
     add_test(NAME poolrad_overlay_u1c_if_0b52_tests
              COMMAND poolrad_overlay_u1c_if_0b52_tests)
+    add_executable(poolrad_overlay_u25_slot_value_0136_tests
+                   tests/recovered/test_overlay_u25_slot_value_0136.c
+                   src/recovered/overlay_u25_slot_value_0136.c
+                   src/recovered/overlay_u25_entry1_0136.c
+                   src/recovered/overlay_u25_load_word_0e0c.c
+                   src/recovered/overlay_u25_party_index_0756.c)
+    target_include_directories(poolrad_overlay_u25_slot_value_0136_tests PRIVATE include)
+    add_test(NAME poolrad_overlay_u25_slot_value_0136_tests
+             COMMAND poolrad_overlay_u25_slot_value_0136_tests)
     add_executable(poolrad_overlay_u25_skip_1ea6_tests
                    tests/recovered/test_overlay_u25_skip_1ea6.c
                    src/recovered/overlay_u25_skip_1ea6.c

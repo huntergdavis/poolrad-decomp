@@ -37,7 +37,9 @@ typedef struct {
 
 /* Complete original GAME.OVR U25 entry 1, +0136..+01B5. The body
  * assumes immutable loaded U25 code; it does not infer external callee
- * effects. The unmatched type path deliberately returns live BP-local RAM. */
+ * effects. The unmatched type path deliberately returns live BP-local RAM.
+ * RETF uses the contiguous four-byte frame profile before SP wraps, matching
+ * the load-word composition/Unicorn audit; native boundary parity is separate. */
 pr_u25_0136_status pr_u25_entry1_0136(
     uint8_t *ram, size_t ram_size, pr_u25_0136_cpu *cpu,
     const pr_u25_0136_io *io, pr_u25_0136_call_kind *stopped_at);
