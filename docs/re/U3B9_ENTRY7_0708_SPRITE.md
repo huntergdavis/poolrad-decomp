@@ -174,9 +174,19 @@ function runs on live state.
   `0x464:+1B52`. Execution continues only at the pushed return CS:IP. A
   non-zero hook result covers both a non-returning callee and a host
   failure.
-- **Undefined flags.** OF after `SHL DI,3` is written as MSB(result) XOR CF.
-  AF after SHL/XOR/OR is written as 0. The third SHL's flags reach the
-  `0x0D71` hook.
+- **Undefined flags.** These follow the pinned core's lazy flags
+  (`src/cpu/flags.cpp` sha
+  `3ea36c4c56278ef14ec0f89ac93966197ed389ce4daaee7afa3d9de39e02d893`,
+  revision `5a9c7c53`):
+  - after `SHL DI,3`, AF = 1 (`get_AF` returns the masked count) and OF =
+    MSB(result) XOR MSB(operand) (`get_OF` for `t_SHLw`);
+  - after XOR/OR, AF = 0 (`get_AF` returns false for `t_OR*`/`t_XOR*`).
+
+  The SHLs at `+0757` and `+076A` are overwritten by OR and ADD before any
+  write, hook or return. The third SHL (`+079C`) reaches the `0x0D71` hook
+  entry unchanged. That is the one observable cutpoint, and it was wrong
+  before this correction (it had AF = 0 and OF = MSB XOR CF; self-finding
+  i14647).
 - **Safety.** These are the same as the entry-6 CPU model: up-front write
   alias screen (`SS:[SP-0x5C,SP)`), folded-byte snapshot, and a
   post-callee re-screen.

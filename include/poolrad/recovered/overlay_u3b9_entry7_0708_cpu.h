@@ -24,9 +24,10 @@
  * non-zero for a callee that does not return to this caller (for example
  * program termination) or a host failure.
  *
- * Architecturally undefined flags are written by convention: OF after
- * SHL DI,3 as MSB(result) XOR CF, AF after SHL and after XOR/OR as 0. The
- * flags of the third SHL reach the 0x464:+0D71 hook unchanged. */
+ * Architecturally undefined flags follow the pinned DOSBox-X lazy flags
+ * (flags.cpp, revision 5a9c7c53): after SHL DI,3, AF = 1 and OF =
+ * MSB(result) XOR MSB(operand); after XOR/OR, AF = 0. The flags of the third
+ * SHL (+079C) reach the 0x464:+0D71 hook unchanged. */
 
 #define PR_U3B9_0708_CPU_RAM_SIZE (1u << 20)
 

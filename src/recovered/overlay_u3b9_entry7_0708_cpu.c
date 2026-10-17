@@ -117,12 +117,14 @@ static void logic8(cpu_t *c, uint8_t r)          /* XOR/OR: CF = OF = 0, AF writ
     put_arith(c, f);
 }
 static void logic16(cpu_t *c, uint16_t r) { put_arith(c, szp16(r)); }
-/* SHL r16, CL with CL = 3: CF = last bit out; OF = MSB(result) ^ CF and AF = 0 by convention */
+/* SHL r16, CL with CL = 3, pinned DOSBox-X lazy flags (flags.cpp t_SHLw):
+ * CF = last bit out (bit 13); OF = MSB(result) XOR MSB(operand); AF = 1
+ * because the count is non-zero */
 static uint16_t shl16_3(cpu_t *c, uint16_t a)
 {
-    uint16_t r = (uint16_t)(a << 3), f = szp16(r);
+    uint16_t r = (uint16_t)(a << 3), f = (uint16_t)(szp16(r) | F_AF);
     if (a & 0x2000u) f |= F_CF;
-    if (((r & 0x8000u) != 0u) != ((a & 0x2000u) != 0u)) f |= F_OF;
+    if ((r ^ a) & 0x8000u) f |= F_OF;
     put_arith(c, f);
     return r;
 }
