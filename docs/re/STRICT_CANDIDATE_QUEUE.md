@@ -24,7 +24,10 @@ the 73 overlay addresses credited in the strict manifest; the nine resident
 credits are counted and ignored (this tool is overlay-only).
 
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
-decoded-validated near calls and fixup-confirmed far calls. Each overlay
+decoded-validated near calls with exact prologue targets and fixup-confirmed
+far calls. The callgraph's near scan is a raw byte scan, so phantom `E8`
+candidates inside instruction bytes (for example the byte inside a `SHR AL,1`
+encoding) are filtered by requiring the exact-prologue flag. Each overlay
 target is `strict` (strict manifest), `partial` (manifest `partial`: bounded
 or provisional, and it takes precedence over a mapped file), `modeled` (a
 merged per-routine file in `src/recovered`, `include/poolrad/recovered` or
@@ -90,13 +93,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 **Determinism and pins.** Sorted inputs everywhere; two identical runs
 produce byte-identical JSON. The export records SHA-256 for every input file,
 the branch-tip table, and the raw `git log` scan. The schema-6 export (queue
-SHA-256 `be26e064574eb7e0957f6cc210b136dbf073e57ec5292114ac967006ec33c119`,
-on main after #848/#876/#877/#878) was generated from `START.EXE`
-`d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`,
-callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1,091 refs /
-897 tips / 508 unmerged tips (`tips_sha256` `34cd758d…6422`) and 2,030
-commits (`commits_sha256` `9b8c10df…7a24`). Git pins are point-in-time; other
-lanes keep pushing refs.
+SHA-256 `6e5a8905777beaf85baf20930c71c4d06089857bc9b606c18d0bb41b4d59c28e`,
+on main after #848/#876-#881 plus the phantom-edge filter) was generated from
+`START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`, inventory
+`6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`,
+with 1,101 refs / 902 tips / 509 unmerged tips (`tips_sha256` `f7688a37…f91c`)
+and 2,037 commits (`commits_sha256` `b53642f9…7159`). Git pins are
+point-in-time; other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 600)
 
@@ -105,9 +108,9 @@ lanes keep pushing refs.
 | 1 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/1/0/1 | 2/1 | no | 3 | 6 | source_mention | 78 |
 | 2 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
 | 3 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 3/1 | no | 3 | 1 | source_mention | 69 |
-| 4 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
-| 5 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
-| 6 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/1/2 | 5/5 | no | 0 | 1 | source_mention | 66 |
+| 4 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/0/2 | 5/4 | no | 0 | 1 | source_mention | 68 |
+| 5 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
+| 6 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
 | 7 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 3/0/0/4 | 3/5 | no | 9 | 0 | source_mention | 66 |
 | 8 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/0/0/1 | 3/4 | no | 4 | 0 | source_mention | 65 |
 | 9 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
@@ -120,20 +123,20 @@ lanes keep pushing refs.
 | 16 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 1/8 | no | 7 | 2 | source_mention | 63 |
 | 17 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 0/4 | no | 26 | 0 | source_mention | 63 |
 | 18 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 3/4 | no | 0 | 1 | source_mention | 62 |
-| 19 | `OVL_006A_0214` | `0x6a:0x0214` | 72 | 27 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
-| 20 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 1/1/0/3 | 3/4 | no | 4 | 0 | source_mention | 62 |
-| 21 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
-| 22 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 3/2/0/1 | 5/7 | no | 0 | 1 | source_mention | 61 |
-| 23 | `OVL_001C_266A` | `0x1c:0x266a` | 181 | 61 | B | game_verified | 2/0/0/0 | 2/1 | no | 0 | 1 | source_mention | 61 |
-| 24 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
-| 25 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/1/0/0 | 1/1 | no | 3 | 0 | source_mention | 61 |
+| 19 | `OVL_005E_08B2` | `0x5e:0x08b2` | 952 | 344 | A | game_evidenced | 4/0/0/2 | 5/6 | no | 2 | 0 | source_mention | 62 |
+| 20 | `OVL_006A_0214` | `0x6a:0x0214` | 72 | 27 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
+| 21 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 1/1/0/3 | 3/4 | no | 4 | 0 | source_mention | 62 |
+| 22 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
+| 23 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 3/2/0/1 | 5/7 | no | 0 | 1 | source_mention | 61 |
+| 24 | `OVL_001C_266A` | `0x1c:0x266a` | 181 | 61 | B | game_verified | 2/0/0/0 | 2/1 | no | 0 | 1 | source_mention | 61 |
+| 25 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
 
-Queue summary (schema 6, on main after #848/#876/#877/#878): 576 candidates,
-95 composable — classification game_evidenced 335, game_verified 55,
-helper_candidate 70, unresolved 116; grades A 339, B 235, D 2; prior status
-main_model 92, inline_in_model 54, inline_in_strict 10, unmerged_branch 27,
-commit_mention 14, source_mention 379; 730 fixup-backed and 813
-aligned-PUSH-CS caller sites across the queue. Near-call evidence is
+Queue summary (schema 6, on main after #848/#876-#881 plus the phantom-edge
+filter): 576 candidates, 98 composable — classification game_evidenced 335,
+game_verified 55, helper_candidate 70, unresolved 116; grades A 339, B 235,
+D 2; prior status main_model 95, inline_in_model 54, inline_in_strict 10,
+unmerged_branch 27, commit_mention 14, source_mention 376; 730 fixup-backed
+and 813 aligned-PUSH-CS caller sites across the queue. Near-call evidence is
 `decoded_validated` for this export.
 
 ## Claude's traps, as detected
@@ -165,8 +168,11 @@ strict-credited and manifest-`full` (`resident_covered`), not because the
 edge was ignored. Schema 6 classifies all nine resident credits: the two
 sidecar models `RES_00BA_1509` (release/copy/presentation callbacks) and
 `RES_00BA_15F7` (allocation callback) are `callback`, so `OVL_0025_1DF0`
-reads `resident_callback` and drops out of composable. Composable bodies
-carry a +6 score term.
+reads `resident_callback` and drops out of composable. A follow-up filters
+phantom near-call candidates from the raw byte scan by requiring the
+exact-prologue flag, so rows such as `OVL_0033_08A4` no longer read unready
+because of an `E8` byte inside another instruction. Composable bodies carry
+a +6 score term.
 
 ## Reproduce
 

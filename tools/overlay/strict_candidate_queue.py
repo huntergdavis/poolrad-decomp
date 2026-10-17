@@ -351,7 +351,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
         entry = None
-        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None:
+        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None \
+                and edge.get("exact_prologue"):
             entry = ("overlay", edge["unit"], edge["target_func"])
         elif edge["kind"] == "far_fixup_confirmed":
             if edge.get("resolution") == "overlay" and edge.get("target_func") is not None:
@@ -451,7 +452,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         if source is None:
             continue
         source_id = ovl_id(edge["unit"], source)
-        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None:
+        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None \
+                and edge.get("exact_prologue"):
             graph[source_id].add(ovl_id(edge["unit"], edge["target_func"]))
         elif edge["kind"] == "far_fixup_confirmed":
             if edge.get("resolution") == "overlay" and edge.get("target_func") is not None:

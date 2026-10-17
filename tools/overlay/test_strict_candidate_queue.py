@@ -191,6 +191,20 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows4["OVL_0019_0030"]["callee_readiness"]["counts"],
                          {"modeled_blocked": 1})
 
+    def test_phantom_near_candidates_are_ignored(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        phantom = dict(edges=[dict(kind="near_candidate", unit=0x19, site=0x44, src_func=0x30,
+                                   target=0x11, target_func=0x10, exact_prologue=False)])
+        result: dict = scq.build_queue(state, phantom, inventory["units"], ledger,
+                                       classifications, mentions, {}, {}, {},
+                                       dict(ovr=bytes(200)))
+        row = next(r for r in result["rows"] if r["id"] == "OVL_0019_0030")
+        self.assertEqual(row["callee_readiness"]["counts"], {})
+        self.assertTrue(row["callee_readiness"]["composable"])
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
