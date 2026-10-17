@@ -84,6 +84,17 @@ Native and full CPU/RAM parity remain open. The model adds nothing to the
 full-C count above; see
 [docs/re/U3C6_0CB9_SCAN.md](docs/re/U3C6_0CB9_SCAN.md).
 
+PR #835 adds a **source-only** full-state model of unit `0x86` entry 24
+(`+0x1499`), a status-text wrapper and an exact twin of the PR #831 model: the
+same frame and callees, with only its entry-local body, pool and call-operand
+offsets shifted by `-0x11A4`. Its two callees, SYSTEM `0x0AF8:0x0B0B` and
+unit-local `+0x08C3`, are unchanged opaque hooks checked only for their stack
+and return contracts. Stack windows that wrap or overlap the body
+fail closed. Its synthetic tests pass (direct C11 run; focused CTest 1/1).
+Native and full CPU/RAM parity remain open. The model adds nothing to the
+full-C count above; see
+[docs/re/U86_STATUS_1499_FULL.md](docs/re/U86_STATUS_1499_FULL.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
