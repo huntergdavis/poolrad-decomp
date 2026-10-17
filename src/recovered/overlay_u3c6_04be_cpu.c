@@ -88,11 +88,15 @@ static void mul16(cpu_t *c, uint16_t src)
     if (c->dx != 0u) c->flags = (uint16_t)(c->flags | F_CF | F_OF);
 }
 static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
-/* LES di,[seg:off]: offset word, then segment word at off+2 (within the segment) */
+/* LES di,[seg:off] in the pinned DOSBox-X normal-core profile: the offset word
+ * at linear EA, the segment word at linear EA+2, minus 0x10000 when the
+ * offset is above 0xFFFC (only offset 0xFFFD differs from seg:(off+2)). */
 static void les(const uint8_t *ram, cpu_t *c, uint16_t seg, uint16_t off)
 {
+    size_t ea = phys(seg, off);
+    size_t at = (ea + 2u - (off > 0xFFFCu ? 0x10000u : 0u)) & MASK;
     c->di = rd16(ram, seg, off);
-    c->es = rd16(ram, seg, (uint16_t)(off + 2u));
+    c->es = (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
 }
 
 pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u3c6_04be_cpu *cpu)
@@ -129,8 +133,10 @@ pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u
     c->di = add16(c, c->di, c->cx);                                      /* +04EE add di,cx */
     set_al(c, rd8(ram, c->es, (uint16_t)(c->di + 7u)));                  /* +04F0 mov al,es:[di+7] */
     les(ram, c, c->ss, (uint16_t)(c->bp + 6u));                          /* +04F4 les di,[bp+6] */
-    if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0)            /* +04F7 mov es:[di],al */
+    if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0) {          /* +04F7 mov es:[di],al */
+        c->ip = 0x04F7u;
         return PR_U3C6_04BE_CPU_UNSCREENED_ALIAS;
+    }
     set_al(c, rd8(ram, c->ss, (uint16_t)(c->bp + 0x10u)));               /* +04FA mov al,[bp+0x10] */
     cbw(c);                                                              /* +04FD cbw */
     c->cx = c->ax;                                                       /* +04FE mov cx,ax */
@@ -142,17 +148,23 @@ pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u
     c->di = add16(c, c->di, c->cx);                                      /* +050B add di,cx */
     set_al(c, rd8(ram, c->ds, (uint16_t)(c->di + 0x60DBu)));             /* +050D mov al,[di+0x60DB] */
     les(ram, c, c->ss, (uint16_t)(c->bp + 0x0Au));                       /* +0511 les di,[bp+0xA] */
-    if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0)            /* +0514 mov es:[di],al */
+    if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0) {          /* +0514 mov es:[di],al */
+        c->ip = 0x0514u;
         return PR_U3C6_04BE_CPU_UNSCREENED_ALIAS;
+    }
     goto done;                                                           /* +0517 jmp +0527 */
 
 out_of_range:
     les(ram, c, c->ss, (uint16_t)(c->bp + 0x0Au));                       /* +0519 les di,[bp+0xA] */
-    if (put8(ram, c, cs0, c->es, c->di, 0u) != 0)                        /* +051C mov byte es:[di],0 */
+    if (put8(ram, c, cs0, c->es, c->di, 0u) != 0) {                      /* +051C mov byte es:[di],0 */
+        c->ip = 0x051Cu;
         return PR_U3C6_04BE_CPU_UNSCREENED_ALIAS;
+    }
     les(ram, c, c->ss, (uint16_t)(c->bp + 6u));                          /* +0520 les di,[bp+6] */
-    if (put8(ram, c, cs0, c->es, c->di, 0u) != 0)                        /* +0523 mov byte es:[di],0 */
+    if (put8(ram, c, cs0, c->es, c->di, 0u) != 0) {                      /* +0523 mov byte es:[di],0 */
+        c->ip = 0x0523u;
         return PR_U3C6_04BE_CPU_UNSCREENED_ALIAS;
+    }
 
 done:
     c->bp = rd16(ram, c->ss, c->sp);                                     /* +0527 pop bp */

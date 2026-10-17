@@ -20,9 +20,10 @@
  * stores and the BP push are alias-checked against the loaded body [04BE,052B);
  * an aliasing write stops before it. MUL's architecturally undefined SF, ZF,
  * AF and PF are left unchanged (CF = OF = DX != 0); both MULs are followed by
- * an ADD that rewrites all arithmetic flags before any observation. LES reads
- * its segment word at offset+2 within the segment (DOSBox default wraparound
- * profile). */
+ * an ADD that rewrites all arithmetic flags before any observation. LES follows
+ * the pinned DOSBox-X normal-core profile: the segment word is read at linear
+ * EA+2, minus 0x10000 when the offset is above 0xFFFC. An aliasing store stops
+ * with IP at that store's offset. */
 
 #define PR_U3C6_04BE_CPU_RAM_SIZE (1u << 20)
 

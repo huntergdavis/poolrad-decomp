@@ -38,8 +38,12 @@ function. The run-time stub is `0x3E0:0x3E`.
 
 **Exit state:**
 
-- In range: AX = (the high byte of `y * 0x32`, the `B` byte), DX = 0,
-  CX = `cbw(x)`, ES:DI = `B`, and the flags of `add di,cx` at `+050B`.
+- In range: AX = (the high byte of `y * 0x32`, the `B` byte), DX = the
+  high word of the second MUL, CX = `cbw(x)`, ES:DI = `B`, and the flags of
+  `add di,cx` at `+050B`. DX is 0 only with a stable frame. If the first
+  `*A` store aliases the `y` byte, the second CBW/MUL reads the new value;
+  for example `y` = 0x80 gives DX:AX = 0x0031:0xE700. The model reproduces
+  this, because every read is live (review i13648, C6-3).
 - Out of range: AX, CX and DX are unchanged, ES:DI = `A`, and the flags of
   the failing CMP.
 - BP is restored and SP = entry SP + 0x10.
@@ -58,8 +62,12 @@ in order on live state, with no hooks.
   loaded body; an aliasing write stops before it.
 - **MUL flags.** CF = OF = (DX ≠ 0). SF, ZF, AF and PF are left unchanged;
   they are architecturally undefined and are overwritten by the next ADD.
-- **LES.** It reads the segment word at offset+2 within the segment, which
-  is DOSBox's default wraparound profile.
+- **LES.** It follows the pinned DOSBox-X normal core (revision `5a9c7c53`):
+  the segment word is read at linear EA+2, minus 0x10000 when the offset is
+  above 0xFFFC. Only offset 0xFFFD differs from seg:(off+2) (review i13648,
+  C6-1). A physical 8086 or other emulator profile may differ.
+- **Alias stops.** An aliasing store stops with IP at that store's offset
+  (`+04F7`, `+0514`, `+051C` or `+0523`; review C6-2).
 
 ## Unresolved
 
