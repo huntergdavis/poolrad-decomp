@@ -75,3 +75,10 @@ in order on live state, with no hooks.
 - MUL's undefined flags (unobservable here) and the LES wrap profile
   conventions.
 - The overlay stub dispatch into the entry.
+
+- **Profile switches.** The LES/LDS rule above holds only for the DOSBox-X
+  normal core at revision `5a9c7c53481c2e933948039c33256776653f4faf`,
+  built with `CPU_OMIT_8086` absent and run with `do_lds_wraparound` = true
+  (the `lds wraparound` default) and `cpu.code.big` = false (16-bit code
+  segment). No build, configuration or native receipt has been recorded for
+  this profile (PM i13899, after pN i13852/i13860/i13866).
