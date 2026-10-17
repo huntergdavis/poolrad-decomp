@@ -27,8 +27,11 @@
  *
  * Profile: LES takes the segment word at linear EA+2, minus 0x10000 when the
  * offset is above 0xFFFC (pinned DOSBox-X normal core); word accesses are
- * physically consecutive (high byte at linear+1, A20 off). Undefined flags:
- * AF = 0 after XOR/OR/SHL; OF after SHL by 3 = MSB(result) XOR CF. */
+ * physically consecutive (high byte at linear+1, A20 off). Undefined flags
+ * follow the same core's lazy flags (flags.cpp, instructions.h at 5a9c7c53):
+ * AF = 0 after XOR/OR; after SHL by n != 0, AF = 1 and OF = MSB(result)
+ * XOR MSB(operand); MUL sets ZF = (AX == 0) and PF from all 32 product bits
+ * and keeps SF and AF. */
 
 #define PR_U3C6_0CB9_CPU_RAM_SIZE (1u << 20)
 

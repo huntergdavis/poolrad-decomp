@@ -156,16 +156,16 @@ static void logic8(cpu_t *c, uint8_t r)
     if (r & 0x80u) f |= F_SF;
     put_arith(c, f);
 }
-/* SHL r16 by n (1..15): CF = last bit out; OF = MSB(result) XOR CF (defined
- * for n = 1, convention otherwise); AF = 0 (undefined; convention) */
+/* SHL r16 by n (1..15), pinned DOSBox-X lazy flags (flags.cpp t_SHLw):
+ * CF = last bit out; OF = MSB(result) XOR MSB(operand), which equals
+ * MSB(result) XOR CF only for n = 1; AF = 1 because n & 0x1F is non-zero */
 static uint16_t shl16(cpu_t *c, uint16_t a, unsigned n)
 {
-    uint16_t r = (uint16_t)(a << n), f = parity((uint8_t)r);
-    unsigned out = (a >> (16u - n)) & 1u;
-    if (out) f |= F_CF;
+    uint16_t r = (uint16_t)(a << n), f = (uint16_t)(parity((uint8_t)r) | F_AF);
+    if ((a >> (16u - n)) & 1u) f |= F_CF;
     if (r == 0u) f |= F_ZF;
     if (r & 0x8000u) f |= F_SF;
-    if (((r >> 15) & 1u) ^ out) f |= F_OF;
+    if ((r ^ a) & 0x8000u) f |= F_OF;
     put_arith(c, f);
     return r;
 }
@@ -174,14 +174,20 @@ static int cf(const cpu_t *c) { return (c->flags & F_CF) != 0u; }
 static int jl(const cpu_t *c) { return ((c->flags & F_SF) != 0u) != ((c->flags & F_OF) != 0u); }
 static int jg(const cpu_t *c) { return !zf(c) && !jl(c); }
 static void cbw(cpu_t *c) { c->ax = (uint16_t)(int16_t)(int8_t)(uint8_t)c->ax; }
-/* MUL r16: DX:AX = AX * src; CF = OF = (DX != 0); SF/ZF/AF/PF left unchanged */
+/* MUL r16 on the pinned 386-type normal core (instructions.h MULW):
+ * DX:AX = AX * src; ZF = (AX == 0); PF from all 32 product bits;
+ * CF = OF = (DX != 0); SF and AF kept */
 static void mul16(cpu_t *c, uint16_t src)
 {
     uint32_t p = (uint32_t)c->ax * src;
+    uint16_t f;
     c->ax = (uint16_t)p;
     c->dx = (uint16_t)(p >> 16);
-    c->flags = (uint16_t)(c->flags & (uint16_t)~(F_CF | F_OF));
-    if (c->dx != 0u) c->flags = (uint16_t)(c->flags | F_CF | F_OF);
+    f = (uint16_t)(c->flags & (F_SF | F_AF));
+    f |= parity((uint8_t)(p ^ (p >> 8) ^ (p >> 16) ^ (p >> 24)));
+    if (c->ax == 0u) f |= F_ZF;
+    if (c->dx != 0u) f |= F_CF | F_OF;
+    put_arith(c, f);
 }
 static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
 static void xor_ah(cpu_t *c)

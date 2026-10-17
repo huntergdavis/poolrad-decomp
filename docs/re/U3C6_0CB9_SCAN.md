@@ -95,8 +95,18 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
     the counter), the original's behaviour follows.
   - This includes non-termination when a store rewrites the step counter
     `[BP-1]` on every step. The model, like the original, has no step bound.
-- **Undefined flags.** AF is written as 0 after XOR, OR and SHL. OF after
-  `shl di,cl` with CL = 3 is written as MSB(result) XOR CF.
+- **Undefined flags.** These follow the pinned core's lazy flags
+  (`src/cpu/flags.cpp` sha `3ea36c4c…d893`, `src/cpu/instructions.h` at
+  revision `5a9c7c53`):
+  - AF = 0 after XOR and OR (`get_AF` returns false for `t_OR*`/`t_XOR*`);
+  - after SHL by a non-zero count, AF = 1 (`get_AF` returns the masked
+    count) and OF = MSB(result) XOR MSB(operand);
+  - MUL on the 386-type normal core sets ZF = (AX = 0) and PF from all 32
+    product bits, keeps SF and AF, and sets CF = OF = (DX ≠ 0).
+
+  In this body these values are overwritten before any return. They become
+  visible only in an alias-stop state, at the write that follows `shl di,1`
+  at `+0CED`, `+0CFF`, `+0D1A` or `+0DF6`.
 
 ## Controls (source only, not yet run)
 
