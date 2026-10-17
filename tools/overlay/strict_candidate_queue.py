@@ -1,0 +1,507 @@
+#!/usr/bin/env python3
+"""Rank non-strict overlay originals as strict full-C candidates.
+
+Consumes the regenerated, hash-pinned overlay products (inventory, callgraph,
+decoded near-call audit) plus the checked-in function ledger, classification
+and strict full-C CSVs, and a read-only view of the git history. Emits one
+deterministic JSON queue in which every non-strict overlay original reports:
+
+  * identity, size (bounded/decoded bytes, instruction count) and class,
+  * callee readiness (strict-credited, modeled in main, verified or untranslated),
+  * caller evidence: fixup-backed far callers and near callers, with the
+    aligned PUSH CS call-site convention checked against the pinned GAME.OVR,
+  * prior-translation evidence found in the main tree (own files and mentions,
+    including bodies inlined/composed by other routines), in file names across
+    remote branches, and in commit messages.
+
+The queue ranks work candidates for strict full-C translation. It is not a
+game-function denominator and makes no completion claim. Addresses, file
+names, counts and short quoted repository lines only; no game bytes.
+"""
+
+import argparse
+from collections import Counter, defaultdict
+import csv
+from functools import lru_cache
+import hashlib
+import json
+from pathlib import Path
+import re
+import subprocess
+
+from function_queue import DIGESTS, check_inputs, number, overlay_rows
+
+ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_LEDGER = ROOT / "docs/re/overlay_function_ledger.csv"
+DEFAULT_CLASSIFICATION = ROOT / "docs/re/overlay_classification.csv"
+DEFAULT_STRICT = ROOT / "docs/re/strict_full_c_addresses.csv"
+SOURCE_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
+               "tools/overlay", "docs/re")
+BRANCH_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
+               "docs/re", "tools/overlay")
+MODEL_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered")
+MENTION_LIMIT = 8
+BRANCH_LIMIT = 10
+COMMIT_LIMIT = 6
+OWNERSHIP_POINTS = {"game_verified": 40, "game_evidenced": 25,
+                    "helper_candidate": 5, "game_or_other_library_unresolved": 0}
+GRADE_POINTS = {"A": 20, "B": 10, "C": 5, "D": 0, "U": 0}
+PRIOR_PENALTY = {"main_model": 45, "inline_in_strict": 40,
+                 "unmerged_branch": 25, "inline_in_model": 18,
+                 "commit_mention": 8, "source_mention": 5, "none": 0}
+PRIOR_ORDER = ("main_model", "inline_in_strict", "unmerged_branch",
+               "inline_in_model", "commit_mention", "source_mention", "none")
+
+TOKEN = re.compile(
+    r"ovl_([0-9a-f]{4})_([0-9a-f]{4})"
+    r"|0x([0-9a-f]{2,3}):0x([0-9a-f]{4})"
+    r"|(?<![0-9a-f])u([0-9a-f]{2,3})_([0-9a-f]{4})(?![0-9a-f])"
+    r"|\+0x([0-9a-f]{4})(?![0-9a-f])"
+    r"|\+([0-9a-f]{4})(?![0-9a-f])"
+    r"|(?<![0-9a-f])0x([0-9a-f]{4})(?![0-9a-f])")
+UNIT_TOKEN = re.compile(r"(?<![0-9a-f])u([0-9a-f]{2,3})(?![0-9a-f])")
+HEX4 = re.compile(r"(?<![0-9a-f])([0-9a-f]{4})(?![0-9a-f])")
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+@lru_cache(maxsize=None)
+def unit_ctx(unit):
+    return re.compile(rf"(?<![0-9a-f])(?:u|0x){unit:02x}(?![0-9a-f])")
+
+
+def ovl_id(unit, offset):
+    return f"OVL_{unit:04X}_{offset:04X}"
+
+
+def key_of_id(identifier):
+    unit, offset = identifier.split("_")[1:]
+    return int(unit, 16), int(offset, 16)
+
+
+def file_routine(path, known_ids):
+    """Overlay IDs a file name names, mixing the two repository conventions
+    (`u<unit>_<offset>_words` and `u<unit>_words_<offset>`)."""
+    name = Path(path).name.lower()
+    units = {int(match.group(1), 16) for match in UNIT_TOKEN.finditer(name)}
+    hits = {ovl_id(unit, int(match.group(1), 16))
+            for unit in units for match in HEX4.finditer(name)
+            if ovl_id(unit, int(match.group(1), 16)) in known_ids}
+    return hits
+
+
+def routine_of(path, known_ids):
+    hits = file_routine(path, known_ids)
+    return hits.pop() if len(hits) == 1 else None
+
+
+def candidate_key(row):
+    unit, offset = row["original_address"].split(":")
+    return int(unit, 16), int(offset, 16)
+
+
+def resolve_match(match, line_low, path_units, candidates, by_offset):
+    """Return (candidate id, kind) for a TOKEN match, or (None, None)."""
+    if match.group(1) is not None:
+        key = (int(match.group(1), 16), int(match.group(2), 16))
+    elif match.group(3) is not None:
+        key = (int(match.group(3), 16), int(match.group(4), 16))
+    elif match.group(5) is not None:
+        key = (int(match.group(5), 16), int(match.group(6), 16))
+    else:
+        offset = int(match.group(7) or match.group(8) or match.group(9), 16)
+        for unit in by_offset.get(offset, ()):
+            if unit in path_units or unit_ctx(unit).search(line_low):
+                return candidates[(unit, offset)], "offset"
+        return None, None
+    return candidates.get(key), "id"
+
+
+def offset_index(candidates):
+    index = defaultdict(list)
+    for unit, offset in candidates:
+        index[offset].append(unit)
+    for offset in index:
+        index[offset].sort()
+    return index
+
+
+def scan_main_files(root, known_ids):
+    """Map overlay IDs to their merged per-routine files under model directories."""
+    result = defaultdict(list)
+    for base in MODEL_DIRS:
+        for path in sorted((root / base).rglob("*")):
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root).as_posix()
+            for identifier in file_routine(rel, known_ids):
+                result[identifier].append(rel)
+    return {key: sorted(set(value)) for key, value in result.items()}
+
+
+def scan_mentions(root, candidates):
+    """Find address mentions in the main tree, bucketed source/tooling/docs."""
+    by_offset = offset_index(candidates)
+    result = {cid: {"source": [], "tooling": [], "docs": []} for cid in candidates.values()}
+    for base in SOURCE_DIRS:
+        bucket = ("source" if base.startswith(("src/", "include/", "tests/"))
+                  else "tooling" if base == "tools/overlay" else "docs")
+        for path in sorted((root / base).rglob("*")):
+            if not path.is_file() or path.stat().st_size > 2_000_000:
+                continue
+            try:
+                text = path.read_text(errors="replace")
+            except OSError:
+                continue
+            rel = path.relative_to(root).as_posix()
+            low_path = rel.lower()
+            path_units = {unit for unit in {u for u, _ in candidates}
+                          if unit_ctx(unit).search(low_path)}
+            seen = set()
+            for lineno, line in enumerate(text.splitlines(), 1):
+                low = line.lower()
+                for match in TOKEN.finditer(low):
+                    cid, kind = resolve_match(match, low, path_units, candidates, by_offset)
+                    if cid is None or (cid, lineno, kind) in seen:
+                        continue
+                    seen.add((cid, lineno, kind))
+                    result[cid][bucket].append(dict(file=rel, line=lineno, kind=kind,
+                                                    text=line.strip()[:160]))
+    for cid in result:
+        for bucket in result[cid]:
+            result[cid][bucket] = result[cid][bucket][:MENTION_LIMIT]
+    return result
+
+
+def git(repo, *arguments):
+    result = subprocess.run(["git", "-C", str(repo), *arguments],
+                            capture_output=True, text=True, check=True)
+    return result.stdout
+
+
+def scan_branches(repo, candidates, main_commits, known_ids):
+    """File names per unmerged branch tip; merged tips are main-tree state."""
+    refs = {}
+    for line in git(repo, "for-each-ref", "--format=%(refname)%09%(objectname)",
+                    "refs/remotes/origin", "refs/heads").splitlines():
+        name, _, sha = line.partition("\t")
+        if name.endswith("/HEAD"):
+            continue
+        refs[name] = sha
+    tips = defaultdict(list)
+    for name in sorted(refs):
+        tips[refs[name]].append(name)
+    unmerged = [sha for sha in sorted(tips) if sha not in main_commits]
+    hits = {cid: [] for cid in candidates.values()}
+    for sha in unmerged:
+        files = git(repo, "ls-tree", "-r", "--name-only", sha, "--", *BRANCH_DIRS).splitlines()
+        for path in files:
+            for identifier in file_routine(path, known_ids):
+                key = key_of_id(identifier)
+                if key in candidates:
+                    hits[candidates[key]].append(dict(sha=sha, refs=sorted(tips[sha]), path=path))
+    for cid in hits:
+        hits[cid] = sorted(hits[cid], key=lambda hit: (hit["path"], hit["sha"]))[:BRANCH_LIMIT]
+    pins = dict(branch_refs=len(refs), branch_tips=len(tips), unmerged_tips=len(unmerged),
+                tips_sha256=hashlib.sha256("\n".join(
+                    f"{name} {refs[name]}" for name in sorted(refs)).encode()).hexdigest())
+    return hits, pins
+
+
+def scan_commits(repo, candidates):
+    raw = git(repo, "log", "--all", "--date=short",
+              "--pretty=format:%H%x1f%ad%x1f%s%x1f%b%x1e")
+    by_offset = offset_index(candidates)
+    hits = {cid: [] for cid in candidates.values()}
+    for record in raw.split("\x1e"):
+        record = record.strip("\n")
+        fields = record.split("\x1f")
+        if len(fields) < 4:
+            continue
+        sha, date, subject, body = fields[0], fields[1], fields[2], fields[3]
+        seen = set()
+        for line in [subject, *body.splitlines()]:
+            low = line.lower()
+            for match in TOKEN.finditer(low):
+                cid, _ = resolve_match(match, low, frozenset(), candidates, by_offset)
+                if cid is not None and cid not in seen:
+                    seen.add(cid)
+                    hits[cid].append(dict(sha=sha, date=date, subject=subject[:100]))
+    for cid in hits:
+        hits[cid] = sorted(hits[cid], key=lambda hit: (hit["sha"],))[:COMMIT_LIMIT]
+    pins = dict(commits_sha256=hashlib.sha256(raw.encode()).hexdigest(),
+                commits_scanned=raw.count("\x1e"))
+    return hits, pins
+
+
+def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near):
+    """Validated join: reuse function_queue's overlay row construction."""
+    near_validated = False
+    if near is not None:
+        check_inputs(near)
+        require(all(near.get(key) == 0 for key in
+                    ("invalid_seed_paths", "truncated_seed_paths",
+                     "raw_exact_not_decoded", "decoded_exact_not_raw")),
+                "near-call validation failed")
+        total = sum(number(row["near_called"]) for row in ledger_rows)
+        require(near.get("decoded_near_calls_to_prologues") ==
+                near.get("raw_near_call_candidates_to_prologues") == total,
+                "near-call validation site count differs from the ledger")
+        near_validated = True
+    rows, _ = overlay_rows(inventory, ledger_rows, classification_rows, near_validated)
+    aliases = {}
+    for row in rows:
+        for alias in [row["id"], *row["aliases"]]:
+            require(alias not in aliases, "alias maps to more than one original")
+            aliases[alias] = row
+    strict_overlay, strict_resident = set(), 0
+    for credit in strict_rows:
+        target = aliases.get(credit["id"])
+        if target is None:
+            require(credit["id"].startswith("RES_"),
+                    "strict full-C address is absent from the overlay queue")
+            strict_resident += 1
+            continue
+        require(target["game_or_library"] == "game_verified",
+                "strict full-C credit lacks verified game identity")
+        require(credit["evidence_doc"].startswith("docs/re/")
+                and ".." not in credit["evidence_doc"].split("/"),
+                "missing strict full-C provenance")
+        strict_overlay.add(target["id"])
+    candidates = {candidate_key(row): row["id"] for row in rows
+                  if row["id"] not in strict_overlay}
+    return dict(rows=rows, aliases=aliases, candidates=candidates,
+                all_ids={row["id"] for row in rows},
+                strict_overlay=strict_overlay, strict_resident=strict_resident,
+                near_validated=near_validated)
+
+
+def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
+    own = main_files.get(cid, [])
+    flags, inline = set(), []
+    if own:
+        flags.add("main_model")
+    for mention in mentions["source"]:
+        covered_by = routine_of(mention["file"], known_ids)
+        if covered_by is None or covered_by == cid:
+            continue
+        if covered_by in strict_overlay:
+            inline.append(dict(mention, covered_by=covered_by))
+            flags.add("inline_in_strict")
+        elif covered_by in main_files:
+            inline.append(dict(mention, covered_by=covered_by))
+            flags.add("inline_in_model")
+    if branches:
+        flags.add("unmerged_branch")
+    if commits:
+        flags.add("commit_mention")
+    if mentions["source"] or mentions["tooling"] or mentions["docs"]:
+        flags.add("source_mention")
+    status = next(state for state in PRIOR_ORDER if state in flags)
+    strong = [state for state in PRIOR_ORDER[:4] if state in flags]
+    penalty = 0
+    if strong:
+        penalty = max(PRIOR_PENALTY[state] for state in strong) + 5 * (len(strong) - 1)
+    else:
+        penalty = PRIOR_PENALTY[status]
+    return dict(status=status, penalty=min(penalty, 60), main_files=own,
+                inline=inline[:MENTION_LIMIT], branches=branches, commits=commits,
+                mentions=mentions)
+
+
+def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id):
+    targets, seen = [], set()
+    for edge in edges_by_source.get(key, []):
+        entry = None
+        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None:
+            entry = ("overlay", edge["unit"], edge["target_func"])
+        elif edge["kind"] == "far_fixup_confirmed":
+            if edge.get("resolution") == "overlay" and edge.get("target_func") is not None:
+                entry = ("overlay", edge["target_unit"], edge["target_func"])
+            elif edge.get("resolution") in ("resident", "runtime"):
+                entry = (edge["resolution"], edge.get("seg"), edge.get("off"))
+        if entry is None or entry in seen:
+            continue
+        seen.add(entry)
+        if entry[0] == "overlay":
+            target_id = ovl_id(entry[1], entry[2])
+            readiness = ("strict" if target_id in strict_overlay
+                         else "modeled" if target_id in main_files
+                         else "verified" if class_by_id.get(target_id) == "game_verified"
+                         else "untranslated")
+            targets.append(dict(kind="overlay", id=target_id, unit=entry[1],
+                                offset=entry[2], readiness=readiness))
+        else:
+            targets.append(dict(kind=entry[0], seg=entry[1], offset=entry[2],
+                                readiness=f"{entry[0]}_unmapped"))
+    counts = Counter(target["readiness"] for target in targets)
+    overlay_total = sum(counts[key] for key in ("strict", "modeled", "verified", "untranslated"))
+    points = (12 if not targets else
+              min(30, 6 * counts["strict"] + 4 * counts["modeled"] + 2 * counts["verified"])
+              if overlay_total else 4)
+    return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
+                                                       t["offset"])),
+                counts=dict(sorted(counts.items())),
+                overlay_ready=counts["strict"] + counts["modeled"] + counts["verified"],
+                overlay_total=overlay_total, points=points)
+
+
+def caller_evidence(key, far_edges_by_target, near_edges_by_target, ovr, unit_ovr):
+    def site(edge):
+        return dict(src_unit=edge["unit"], src_func=edge["src_func"], site=edge["site"],
+                    exact_prologue=edge.get("exact_prologue"))
+
+    fixup = sorted({tuple(sorted(site(edge).items())) for edge in far_edges_by_target.get(key, [])})
+    fixup = [dict(item) for item in fixup]
+    near = sorted({tuple(sorted(site(edge).items())) for edge in near_edges_by_target.get(key, [])})
+    near = [dict(item) for item in near]
+    aligned = []
+    if ovr is not None:
+        for caller in fixup + near:
+            base = unit_ovr.get(caller["src_unit"])
+            if base is None or caller["site"] < 1:
+                continue
+            position = base + caller["site"] - 1
+            if position < len(ovr) and ovr[position] == 0x0E:
+                aligned.append(caller)
+    points = (min(15, 5 * len(fixup)) + min(10, 2 * len(aligned)) +
+              (2 if near else 0))
+    return dict(fixup_backed=fixup, near_exact=near,
+                aligned_push_cs=None if ovr is None else aligned, points=points)
+
+
+def build_queue(state, callgraph, units, ledger_rows, classification_rows, mentions,
+                main_files, branch_hits, commit_hits, media=None, git_view=None):
+    ledger = {row["id"]: row for row in ledger_rows}
+    classes = {row["id"]: row for row in classification_rows}
+    class_by_id = {row["id"]: classes[row["original_address"]]["classification"]
+                   for row in state["rows"]}
+    unit_ovr = {unit["stub_para"]: unit["ovr_offset"] for unit in units}
+    ovr = media.get("ovr") if media else None
+    edges_by_source, far_by_target, near_by_target = defaultdict(list), defaultdict(list), defaultdict(list)
+    for edge in callgraph["edges"]:
+        if edge.get("src_func") is not None:
+            edges_by_source[(edge["unit"], edge["src_func"])].append(edge)
+        if edge["kind"] == "far_fixup_confirmed" and edge.get("resolution") == "overlay" \
+                and edge.get("target_func") is not None:
+            far_by_target[(edge["target_unit"], edge["target_func"])].append(edge)
+        if edge["kind"] == "near_candidate" and edge.get("target") is not None:
+            near_by_target[(edge["unit"], edge["target"])].append(edge)
+    ranked = []
+    for key, cid in state["candidates"].items():
+        row = state["aliases"][cid]
+        entry = ledger[row["original_address"]]
+        classification = classes[row["original_address"]]
+        callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
+                                  main_files, class_by_id)
+        callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
+        prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
+                               commit_hits.get(cid, []), state["strict_overlay"],
+                               state["all_ids"])
+        size_bytes = number(entry["bound"])
+        size_points = (12 if size_bytes <= 48 else 8 if size_bytes <= 128 else
+                       4 if size_bytes <= 256 else 2 if size_bytes <= 512 else 0)
+        terms = dict(ownership=OWNERSHIP_POINTS[row["classification"]],
+                     grade=GRADE_POINTS[row["grade"]], callee=callees["points"],
+                     callers=callers["points"], size=size_points,
+                     prior_penalty=-prior["penalty"])
+        ranked.append(dict(
+            id=cid, original_address=row["original_address"], unit=key[0], offset=key[1],
+            ovr_offset=number(entry["ovr_offset"]), aliases=row["aliases"],
+            entry_slots=[slot["slot"] for slot in row["entry_slots"]],
+            bytes=size_bytes, decoded_bytes=number(entry["decoded"]),
+            instructions=number(entry["insns"]), grade=row["grade"],
+            classification=row["classification"], confidence=classification["confidence"],
+            behaviour=entry["cls"], callers_fixup_backed=len(callers["fixup_backed"]),
+            callers_aligned_push_cs=None if callers["aligned_push_cs"] is None
+            else len(callers["aligned_push_cs"]),
+            callee_readiness=callees, callers=callers, prior_translation=prior,
+            score=sum(terms.values()), score_terms=terms))
+    ranked.sort(key=lambda item: (-item["score"], item["id"]))
+    for index, item in enumerate(ranked, 1):
+        item["rank"] = index
+    counts = lambda values: dict(sorted(Counter(values).items()))
+    summary = dict(candidates=len(ranked),
+                   strict_overlay_excluded=len(state["strict_overlay"]),
+                   strict_resident_ignored=state["strict_resident"],
+                   near_call_evidence=("decoded_validated" if state["near_validated"]
+                                       else "raw_unvalidated"),
+                   prior_status=counts(item["prior_translation"]["status"] for item in ranked),
+                   classification=counts(item["classification"] for item in ranked),
+                   grade=counts(item["grade"] for item in ranked),
+                   behaviour=counts(item["behaviour"] for item in ranked),
+                   fixup_backed_callers=sum(item["callers_fixup_backed"] for item in ranked),
+                   aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
+                                               for item in ranked),
+                   top_score=ranked[0]["score"] if ranked else None)
+    return dict(schema_version=1, inputs=DIGESTS.copy(), git=git_view,
+                summary=summary, rows=ranked)
+
+
+def csv_rows(blob):
+    return list(csv.DictReader(blob.decode().splitlines()))
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--inventory", required=True)
+    parser.add_argument("--callgraph", required=True)
+    parser.add_argument("--near-calls")
+    parser.add_argument("--ledger", default=str(DEFAULT_LEDGER))
+    parser.add_argument("--classification", default=str(DEFAULT_CLASSIFICATION))
+    parser.add_argument("--strict-map", default=str(DEFAULT_STRICT))
+    parser.add_argument("--ovr", help="hash-pinned GAME.OVR for PUSH CS call-site checks")
+    parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
+    parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
+    parser.add_argument("--json", required=True)
+    args = parser.parse_args()
+    paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
+             "ledger": Path(args.ledger), "classification": Path(args.classification),
+             "strict_map": Path(args.strict_map)}
+    if args.near_calls:
+        paths["near_calls"] = Path(args.near_calls)
+    if args.ovr:
+        paths["ovr"] = Path(args.ovr)
+    blobs = {name: path.read_bytes() for name, path in paths.items()}
+    repo = Path(args.repo).resolve()
+    try:
+        inventory = json.loads(blobs["inventory"])
+        callgraph = json.loads(blobs["callgraph"])
+        check_inputs(inventory)
+        require(callgraph["inputs"]["start_exe_sha256"] == inventory["inputs"]["start_exe_sha256"]
+                and callgraph["inputs"]["game_ovr_sha256"] == inventory["inputs"]["game_ovr_sha256"],
+                "callgraph build differs from the inventory")
+        if "ovr" in blobs:
+            require(hashlib.sha256(blobs["ovr"]).hexdigest() == DIGESTS["game_ovr_sha256"],
+                    "GAME.OVR hash differs from the audited build")
+        near = json.loads(blobs["near_calls"]) if "near_calls" in blobs else None
+        state = load_queue(inventory, csv_rows(blobs["ledger"]),
+                           csv_rows(blobs["classification"]),
+                           csv_rows(blobs["strict_map"]), near)
+        main_files = scan_main_files(repo, state["all_ids"])
+        mentions = scan_mentions(repo, state["candidates"])
+        if args.no_git:
+            branch_hits, commit_hits, git_view = {}, {}, None
+        else:
+            main_commits = set(git(repo, "rev-list", "origin/main").split())
+            branch_hits, branch_pins = scan_branches(repo, state["candidates"],
+                                                     main_commits, state["all_ids"])
+            commit_hits, commit_pins = scan_commits(repo, state["candidates"])
+            git_view = dict(main_commits=len(main_commits), **branch_pins, **commit_pins)
+        result = build_queue(state, callgraph, inventory["units"],
+                             csv_rows(blobs["ledger"]), csv_rows(blobs["classification"]),
+                             mentions, main_files, branch_hits, commit_hits,
+                             dict(ovr=blobs["ovr"]) if "ovr" in blobs else None, git_view)
+    except (ValueError, KeyError, TypeError) as error:
+        parser.exit(2, f"strict candidate queue refused: {error}\n")
+    result["artifacts_sha256"] = {name: hashlib.sha256(blob).hexdigest()
+                                  for name, blob in sorted(blobs.items())}
+    Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    print(json.dumps(result["summary"], sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
