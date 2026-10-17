@@ -114,6 +114,23 @@ positive run, native and full CPU/RAM parity, and strict credit remain open,
 and the next demo gate is unchanged. The model adds nothing to the full-C count
 above; see [docs/re/U3C6_0105_PALETTE.md](docs/re/U3C6_0105_PALETTE.md).
 
+PR #843 adds **source-only** models of unit `0x3B9` entry 7 (`+0x0708`), the
+record-slot sprite draw. It has two parts:
+- **Abstract model.** A standalone strict test and an original-`GAME.OVR`
+  checker cover it; the checker passes 32/32.
+- **CPU/RAM model.** It has a focused CTest target.
+  - Its stack-operand LES/LDS sites at `FFFD`–`FFFF` fail closed.
+  - Its RETFs follow the caller-declared policy.
+  - By default it stops before each external call. A declared contract
+    mode, read from each original callee, is a modelled subset of unknown
+    provenance.
+  - Code identity is pinned by default.
+
+Its strict C11 test passes 326 checks (focused CTest 1/1). Native parity and
+strict full-C credit remain open, and the next playable demo gate is unchanged,
+with no evidence-backed ETA. The models add nothing to the full-C count above;
+see [docs/re/U3B9_ENTRY7_0708_SPRITE.md](docs/re/U3B9_ENTRY7_0708_SPRITE.md).
+
 PR #839 adds the complete 327-byte unit `0x6F:+0x032F` picture-merge leaf over
 mapped memory. The corrected head passed strict C11, ASan/UBSan, GCC analyzer,
 and archive-linked focused CTest (1/1). Native differential and full CPU/RAM
