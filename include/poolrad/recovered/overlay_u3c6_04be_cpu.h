@@ -18,9 +18,10 @@
  *
  * Every frame/DS read and both stores go through RAM in original order. The
  * stores and the BP push are alias-checked against the loaded body [04BE,052B);
- * an aliasing write stops before it. MUL's architecturally undefined SF, ZF,
- * AF and PF are left unchanged (CF = OF = DX != 0); both MULs are followed by
- * an ADD that rewrites all arithmetic flags before any observation. LES follows
+ * an aliasing write stops before it. MUL follows the pinned 386-type normal
+ * core (instructions.h MULW): ZF = (AX == 0), PF from all 32 product bits,
+ * CF = OF = DX != 0, SF and AF kept; both MULs are followed by an ADD that
+ * rewrites all arithmetic flags before any write or return. LES follows
  * the pinned DOSBox-X normal-core profile: the segment word is read at linear
  * EA+2, minus 0x10000 when the offset is above 0xFFFC. An aliasing store stops
  * with IP at that store's offset. */

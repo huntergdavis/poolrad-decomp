@@ -78,14 +78,20 @@ static uint16_t add16(cpu_t *c, uint16_t a, uint16_t b)
 static int jl(const cpu_t *c) { return ((c->flags & F_SF) != 0u) != ((c->flags & F_OF) != 0u); }
 static int jg(const cpu_t *c) { return (c->flags & F_ZF) == 0u && !jl(c); }
 static void cbw(cpu_t *c) { c->ax = (uint16_t)(int16_t)(int8_t)(uint8_t)c->ax; }
-/* MUL r16: DX:AX = AX * src; CF = OF = (DX != 0); SF/ZF/AF/PF left unchanged */
+/* MUL r16 on the pinned 386-type normal core (instructions.h MULW):
+ * DX:AX = AX * src; ZF = (AX == 0); PF from all 32 product bits;
+ * CF = OF = (DX != 0); SF and AF kept */
 static void mul16(cpu_t *c, uint16_t src)
 {
     uint32_t p = (uint32_t)c->ax * src;
+    uint16_t f;
     c->ax = (uint16_t)p;
     c->dx = (uint16_t)(p >> 16);
-    c->flags = (uint16_t)(c->flags & (uint16_t)~(F_CF | F_OF));
-    if (c->dx != 0u) c->flags = (uint16_t)(c->flags | F_CF | F_OF);
+    f = (uint16_t)(c->flags & (F_SF | F_AF));
+    f |= parity((uint8_t)(p ^ (p >> 8) ^ (p >> 16) ^ (p >> 24)));
+    if (c->ax == 0u) f |= F_ZF;
+    if (c->dx != 0u) f |= F_CF | F_OF;
+    put_arith(c, f);
 }
 static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
 /* LES di,[seg:off] in the pinned DOSBox-X normal-core profile: the offset word

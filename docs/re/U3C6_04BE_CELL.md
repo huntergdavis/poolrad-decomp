@@ -48,7 +48,18 @@ function. The run-time stub is `0x3E0:0x3E`.
   the failing CMP.
 - BP is restored and SP = entry SP + 0x10.
 
-MUL's undefined flags never reach the exit or any test.
+MUL's flags never reach the exit, a store or any test: each MUL (`+04E6`,
+`+0507`) is followed by an ADD (`+04EC`, `+050B`) before the next write.
+The model still follows the pinned 386-type normal core (`MULW` in
+`src/cpu/instructions.h` sha
+`7cbc4bea7e47678f0a3734a4c16c2110ef8125b09d0aa7f7a8457aab7b3f747e`;
+`CPU_CORE` = 386 in `core_normal.cpp`, revision `5a9c7c53`):
+- ZF = (AX = 0);
+- PF from all 32 product bits;
+- CF = OF = (DX ≠ 0);
+- SF and AF kept.
+
+Before self-finding i14647 the model kept ZF and PF.
 
 ## CPU model
 
