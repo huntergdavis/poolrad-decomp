@@ -18,7 +18,7 @@ static size_t dice_physical(uint16_t segment, uint16_t offset)
     return (((size_t)segment << 4) + offset) & (DICE_RAM - 1u);
 }
 
-static void dice_put16(uint8_t *ram, uint16_t segment, uint16_t offset, uint16_t value)
+static inline void dice_put16(uint8_t *ram, uint16_t segment, uint16_t offset, uint16_t value)
 {
     size_t at = dice_physical(segment, offset);
     ram[at] = (uint8_t)value;
@@ -27,7 +27,7 @@ static void dice_put16(uint8_t *ram, uint16_t segment, uint16_t offset, uint16_t
 
 /* A far-call site `9A stub_off 00 B0 00` at cs:site and the loaded stub
  * `EA entry 00 40` at 00B0:stub_off. */
-static void dice_site(uint8_t *ram, uint16_t cs, uint16_t site, uint8_t stub_off, uint16_t entry)
+static inline void dice_site(uint8_t *ram, uint16_t cs, uint16_t site, uint8_t stub_off, uint16_t entry)
 {
     ram[dice_physical(cs, site)] = 0x9Au;
     dice_put16(ram, cs, (uint16_t)(site + 1u), stub_off);
@@ -37,14 +37,14 @@ static void dice_site(uint8_t *ram, uint16_t cs, uint16_t site, uint8_t stub_off
     dice_put16(ram, DICE_STUB_PARAGRAPH, (uint16_t)(stub_off + 3u), DICE_CS);
 }
 
-static void dice_system(uint8_t *ram, uint16_t ds, uint32_t seed)
+static inline void dice_system(uint8_t *ram, uint16_t ds, uint32_t seed)
 {
     dice_put16(ram, 0x0AF8u, 0x1245u, 0x8405u);
     dice_put16(ram, ds, 0x4428u, (uint16_t)seed);
     dice_put16(ram, ds, 0x442Au, (uint16_t)(seed >> 16));
 }
 
-static uint32_t dice_seed(const uint8_t *ram, uint16_t ds)
+static inline uint32_t dice_seed(const uint8_t *ram, uint16_t ds)
 {
     size_t at = dice_physical(ds, 0x4428u);
     return (uint32_t)ram[at] | ((uint32_t)ram[at + 1u] << 8) | ((uint32_t)ram[at + 2u] << 16) | ((uint32_t)ram[at + 3u] << 24);
@@ -52,7 +52,7 @@ static uint32_t dice_seed(const uint8_t *ram, uint16_t ds)
 
 /* The generator: seed := seed * 08088405h + 1; a (count, range) roll sums
  * count values of (high word mod range) + 1 into an 8-bit total. */
-static uint8_t dice_roll(uint32_t *seed, unsigned count, unsigned range)
+static inline uint8_t dice_roll(uint32_t *seed, unsigned count, unsigned range)
 {
     uint8_t total = 0u;
     unsigned i;
