@@ -445,7 +445,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     # endpoints that handle their own runtime calls; other modeled bodies are
     # composable only when every overlay callee in their closure is ready.
     endpoints = {node for node in nodes if node in state["full_models"]}
-    ready = {node: base_category(node) == "strict" or node in endpoints
+    ready = {node: base_category(node) in ("strict", "modeled") or node in endpoints
              for node in nodes}
     changed = True
     while changed:
