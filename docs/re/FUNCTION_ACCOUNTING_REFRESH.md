@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**104 strict full-C originals** (95 overlay, nine resident) and **160 verified
-game identities** (150 overlay, ten resident). The queue still contains 898
+**105 strict full-C originals** (96 overlay, nine resident) and **161 verified
+game identities** (151 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -27,6 +27,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_002F_0131` … `OVL_005E_2574` (17 bodies) | Batch acceptance PR #870, `967f4277e707065d75ba7d0351a8bc8b7dd4f872`; VP inbox i17223 | pinned body SHA-256 and extents per body in [reviewed_function_identities.csv](reviewed_function_identities.csv) and each evidence note | [PR #870](https://github.com/huntergdavis/poolrad-decomp/pull/870) |
 | `OVL_03C2_01A0` | PR #872, `f44e528e894ddbb44f8cd22d8afd8059f0977390`; VP independent review | 300 bytes, SHA-256 `7fbacb8d9d298c72bd886321a58a8d842f2ec6dc350fc83fde6064fe78f27f40` | [line-record initializer](U3C2_LINE_INIT_01A0.md) |
 | `OVL_006A_0000`, `OVL_006A_019C`, `OVL_0033_012B`, `OVL_0033_01AD` | PRs #845 (`dc3c4717d7ec121bf51eba65ad0642e1ba189cd9`) and #846 (`eeba7425649b377ce64dfced230e378c77eae927`); independently verified by the ds4 lane | pinned per body in [reviewed_function_identities.csv](reviewed_function_identities.csv) and each evidence note | [record weight](U6A_RECORD_WEIGHT_0000.md), [link clear](U6A_LINK_HIGH_CLEAR_019C.md), [cell lookup](U33_CELL_LOOKUP_012B.md), [cell pair](U33_CELL_PAIR_01AD.md) |
+| `OVL_03C2_0422` | PR #875, `d1398522367d3dc4de69b706edb86b008c927e52`; independently verified by the ds4 lane (1,430 cases, 368/368 coverage) | 345 bytes, SHA-256 `f075c6dba0b31e12aea19318958a72f4caee6fe7954c53f3583dd5dd9fa8114d` | [line check](U3C2_LINE_CHECK_0422.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
