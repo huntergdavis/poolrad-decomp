@@ -103,6 +103,17 @@ pass (focused CTest 1/1). Native and full CPU/RAM parity remain open. The model
 adds nothing to the full-C count above; see
 [docs/re/U3C6_04BE_CELL.md](docs/re/U3C6_04BE_CELL.md).
 
+PR #841 adds a **source-only** CPU/RAM model of unit `0x3C6` entry 3
+(`+0x0105`), the gated palette-register pair, with the resident `0x2A0D` setter
+folded. Code identity is pinned by default, and a synthetic mode exists for
+tests. By default the model stops before the DOS-unit `Intr` call; a declared,
+bounded hook path is a modelled subset of unknown provenance. Its RETFs follow
+the caller-declared policy. Its synthetic test passes 245 checks (strict C11,
+focused CTest 1/1), and an independent bounded static review passed. A pinned
+positive run, native and full CPU/RAM parity, and strict credit remain open,
+and the next demo gate is unchanged. The model adds nothing to the full-C count
+above; see [docs/re/U3C6_0105_PALETTE.md](docs/re/U3C6_0105_PALETTE.md).
+
 PR #839 adds the complete 327-byte unit `0x6F:+0x032F` picture-merge leaf over
 mapped memory. The corrected head passed strict C11, ASan/UBSan, GCC analyzer,
 and archive-linked focused CTest (1/1). Native differential and full CPU/RAM
