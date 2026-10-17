@@ -59,6 +59,14 @@ neither ceiling is a whole-game upper bound or a completion denominator. Work co
 alongside [DOS gameplay replay](https://github.com/huntergdavis/poolrad-decomp/issues/3)
 and further overlay and resident translations.
 
+PR #829 adds a **source-only** CPU/RAM model of unit `0x3C6` entry 19
+(`+0x1298`). It folds entries 15, 12 and 13 from their original bytes and
+leaves entry 10 (`+0x0996`) as an opaque full-state hook. Its synthetic C test
+passes (direct C11 build, 2455 checks; focused CTest 1/1). Native parity, the
+hook's effects and the synthetic RETF profiles remain open. The model adds
+nothing to the full-C count above; see
+[docs/re/U3C6_1298_RECORD.md](docs/re/U3C6_1298_RECORD.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
