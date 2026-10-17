@@ -96,7 +96,8 @@ class StrictCandidateQueueTest(unittest.TestCase):
     def test_partial_callees_are_unready(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None,
-                               [dict(id="OVL_0019_0010", evidence_doc="docs/re/synthetic.md")])
+                               [dict(id="OVL_0019_0010", status="partial",
+                                     evidence_doc="docs/re/synthetic.md")])
         mentions, main_files, branches = evidence()
         mentions = {**mentions, "OVL_0019_0010": {"source": [], "tooling": [], "docs": []}}
         main_files = {key: value for key, value in main_files.items()

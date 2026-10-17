@@ -26,18 +26,21 @@ credits are counted and ignored (this tool is overlay-only).
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
 decoded-validated near calls and fixup-confirmed far calls. Each overlay
 target is `strict` (strict manifest), `modeled` (a merged per-routine file in
-`src/recovered`, `include/poolrad/recovered` or `tests/recovered`), `partial`
-(listed in [partial_callee_models.csv](partial_callee_models.csv): a merged
-model exists but is bounded or provisional, not full CPU/RAM state),
-`verified` (classification `game_verified` with no model) or `untranslated`.
-Resident and runtime targets are recorded as unmapped (the callgraph resolves
-their segment stubs but no file/image offset is claimed). Everything that is
-not strict, modeled or verified **counts as unready**: readiness reports
-`ready`, `unready` and `total` over every target, and a body is `composable`
-only when no target is untranslated, partial, resident or runtime. The
-schema-2/3 corrections (2026-10-17, VP-directed, after Claude's and Astra's
-callee reports) stop the queue proposing bodies whose callees are not yet
-full-state composable.
+`src/recovered`, `include/poolrad/recovered` or `tests/recovered`, or a
+manifest `full` entry), `modeled_blocked` (a merged model whose transitive
+closure still contains an unready callee), `partial` (manifest `partial`:
+bounded or provisional, not full CPU/RAM state), `verified` (classification
+`game_verified` with no model) or `untranslated`. Resident and runtime
+targets are recorded as unmapped (segment stubs only, no file/image offset).
+**Only strict and closure-ready modeled callees count as ready**: readiness
+reports `ready`, `unready` and `total`, and a body is `composable` only when
+every target is ready. Readiness is the transitive closure over the overlay
+call graph: strict bodies and manifest-`full` models are reviewed endpoints
+that handle their own runtime calls; any other modeled body is ready only
+when every overlay callee in its closure is ready. The schema-2/3/4
+corrections (2026-10-17, after Claude's, Astra's and Codex's callee reports)
+stop the queue proposing bodies whose callees are not yet full-state
+composable.
 
 **Caller evidence.** Fixup-confirmed far callers resolving to the candidate's
 exact start, and decoded near callers with an exact prologue target. An
@@ -64,8 +67,9 @@ call convention documented at sites such as `push cs; call +0x07BC`.
 **Scoring.** `score = ownership + grade + callee + callers + size + composable
 - penalty`: ownership 40/25/5/0 for game_verified/game_evidenced/
 helper_candidate/unresolved; grade 20/10/5/0 for A/B/C/D; callee
-`round(min(30, 6·strict + 4·modeled + 2·verified + 1·partial) · ready/total)`
-(12 for a leaf), so unready targets dilute the callee points; callers
+`round(min(30, 6·strict + 4·modeled + 1·verified + 1·partial +
+1·modeled_blocked) · ready/total)` (12 for a leaf, `ready` = strict +
+modeled), so unready targets dilute the callee points; callers
 `min(15, 5·fixup) + min(10, 2·aligned PUSH CS) + 2·(near)`; size 12/8/4/2/0
 for ≤48/≤128/≤256/≤512/larger bytes; `composable` +6 when every callee is
 ready; prior penalty 45 main_model, 40 inline_in_strict, 25 unmerged_branch,
@@ -75,49 +79,49 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 
 **Determinism and pins.** Sorted inputs everywhere; two identical runs
 produce byte-identical JSON. The export records SHA-256 for every input file,
-the branch-tip table, and the raw `git log` scan. The schema-3 export (queue
-SHA-256 `e460b69f4a0274151105f4a7706ff1fdcb2c7eade23c947de2b23a150ef71e11`)
+the branch-tip table, and the raw `git log` scan. The schema-4 export (queue
+SHA-256 `158e487ab48e3806e30c781231614f0642db2f2afe6e4fc7fc7d6f7d92d96b77`)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR`
 `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`,
-near audit `a40ba4f2…cbd2c`, with 1,031 refs / 866 tips / 518 unmerged tips
-(`tips_sha256` `c193d78b…af0a`) and 1,960 commits (`commits_sha256`
-`d039f82d…125a6`). Git pins are point-in-time; other lanes keep pushing refs.
+near audit `a40ba4f2…cbd2c`, with 1,046 refs / 875 tips / 513 unmerged tips
+(`tips_sha256` `32791274…d26d1`) and 1,983 commits (`commits_sha256`
+`8affd543…4dc1`). Git pins are point-in-time; other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 600)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
-| 1 | `OVL_005E_263D` | `0x5e:0x263d` | 115 | 41 | A | game_evidenced | 2/0/0/1 | 2/1 | no | 2 | 7 | source_mention | 78 |
-| 2 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/1/0/1 | 2/1 | no | 3 | 6 | source_mention | 78 |
-| 3 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 1/2/1/0 | 4/0 | yes | 0 | 1 | source_mention | 75 |
-| 4 | `OVL_0025_0000` | `0x25:0x0000` | 310 | 119 | A | game_verified | 1/0/0/0 | 1/2 | no | 42 | 13 | inline_in_model | 74 |
-| 5 | `OVL_001C_2F2D` | `0x1c:0x2f2d` | 580 | 273 | B | game_verified | 1/27/21/0 | 49/0 | yes | 0 | 1 | inline_in_model | 72 |
-| 6 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 1/3/1/0 | 5/0 | yes | 0 | 1 | inline_in_model | 70 |
-| 7 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
-| 8 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 4/0/2/2 | 6/4 | no | 0 | 1 | source_mention | 68 |
-| 9 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 1/3/1/0 | 5/2 | no | 0 | 1 | source_mention | 67 |
-| 10 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
-| 11 | `OVL_001C_0EBC` | `0x1c:0x0ebc` | 76 | 29 | B | game_verified | 1/2/1/0 | 4/0 | yes | 0 | 1 | inline_in_model | 66 |
-| 12 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/1/0/1 | 3/4 | no | 4 | 0 | source_mention | 66 |
-| 13 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 3/0/0/4 | 3/5 | no | 9 | 0 | source_mention | 66 |
-| 14 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 1/5/1/1 | 7/5 | no | 0 | 1 | source_mention | 65 |
-| 15 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
-| 16 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 1/3 | no | 3 | 1 | source_mention | 63 |
-| 17 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
-| 18 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
-| 19 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 0/15 | no | 3 | 3 | source_mention | 63 |
-| 20 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 0/9 | no | 7 | 2 | source_mention | 63 |
-| 21 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 0/4 | no | 26 | 0 | source_mention | 63 |
-| 22 | `OVL_005E_1884` | `0x5e:0x1884` | 666 | 226 | A | game_evidenced | 0/0/0/5 | 0/13 | no | 2 | 6 | source_mention | 62 |
-| 23 | `OVL_03BD_05FD` | `0x3bd:0x05fd` | 2059 | 874 | A | game_evidenced | 1/2/0/3 | 3/3 | no | 5 | 0 | source_mention | 62 |
-| 24 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
-| 25 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 2/0/1/0 | 3/2 | no | 0 | 1 | source_mention | 61 |
+| 1 | `OVL_0025_0000` | `0x25:0x0000` | 310 | 119 | A | game_verified | 1/2/0/0 | 3/0 | yes | 42 | 13 | unmerged_branch | 79 |
+| 2 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 6 | source_mention | 73 |
+| 3 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
+| 4 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 0/13 | no | 8 | 0 | commit_mention | 67 |
+| 5 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 3/0/0/4 | 3/5 | no | 9 | 0 | source_mention | 66 |
+| 6 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
+| 7 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 1/3 | no | 3 | 1 | source_mention | 63 |
+| 8 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
+| 9 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
+| 10 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 0/15 | no | 3 | 3 | source_mention | 63 |
+| 11 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 0/9 | no | 7 | 2 | source_mention | 63 |
+| 12 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/0/0/1 | 2/5 | no | 4 | 0 | source_mention | 63 |
+| 13 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 0/4 | no | 26 | 0 | source_mention | 63 |
+| 14 | `OVL_005E_1884` | `0x5e:0x1884` | 666 | 226 | A | game_evidenced | 0/0/0/5 | 0/13 | no | 2 | 6 | source_mention | 62 |
+| 15 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 4/0/2/2 | 4/6 | no | 0 | 1 | source_mention | 61 |
+| 16 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 1/0/0/3 | 1/8 | no | 3 | 0 | source_mention | 60 |
+| 17 | `OVL_03B4_016D` | `0x3b4:0x016d` | 307 | 114 | A | game_evidenced | 2/0/0/6 | 2/6 | no | 10 | 0 | source_mention | 60 |
+| 18 | `OVL_0077_050D` | `0x77:0x050d` | 251 | 115 | A | game_evidenced | 0/0/0/0 | 0/4 | no | 1 | 4 | source_mention | 59 |
+| 19 | `OVL_0077_14D0` | `0x77:0x14d0` | 612 | 220 | A | game_evidenced | 0/0/0/1 | 0/5 | no | 6 | 1 | source_mention | 59 |
+| 20 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/0/0/0 | 0/2 | no | 3 | 0 | source_mention | 59 |
+| 21 | `OVL_009E_0000` | `0x9e:0x0000` | 38 | 16 | A | game_or_other_library_unresolved | 0/0/0/0 | 0/0 | yes | 11 | 5 | inline_in_model | 59 |
+| 22 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/0/0/1 | 1/3 | no | 3 | 0 | source_mention | 59 |
+| 23 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 2/0/1/0 | 2/3 | no | 0 | 1 | source_mention | 58 |
+| 24 | `OVL_005E_263D` | `0x5e:0x263d` | 115 | 41 | A | game_evidenced | 2/0/0/1 | 2/1 | no | 2 | 7 | unmerged_branch | 58 |
+| 25 | `OVL_0086_331A` | `0x86:0x331a` | 249 | 113 | A | game_evidenced | 0/0/0/0 | 0/9 | no | 2 | 1 | source_mention | 58 |
 
-Queue summary (schema 3): 600 candidates, 114 composable — classification
+Queue summary (schema 4): 600 candidates, 86 composable — classification
 game_evidenced 342, game_verified 60, helper_candidate 71, unresolved 127;
-grades A 348, B 250, D 2; prior status main_model 84, inline_in_model 56,
-inline_in_strict 4, unmerged_branch 46, commit_mention 14, source_mention
-396; 842 fixup-backed and 871 aligned-PUSH-CS caller sites across the queue.
+grades A 348, B 250, D 2; prior status main_model 86, inline_in_model 54,
+inline_in_strict 4, unmerged_branch 52, commit_mention 13, source_mention
+391; 842 fixup-backed and 871 aligned-PUSH-CS caller sites across the queue.
 Near-call evidence is `decoded_validated` for this export.
 
 ## Claude's traps, as detected
@@ -136,11 +140,13 @@ Near-call evidence is `decoded_validated` for this export.
 The `+101D` helper itself appears as `main_model` (rank 598): its merged
 provisional full-C model is why the four callers above read as callee-ready.
 
-Readiness corrections (schemas 2–3, 2026-10-17): resident, runtime and
-partial-model callees count as unready — e.g. `OVL_0033_1E31` (3/14), the U9E
-dice candidates `OVL_009E_1344/1656/0AE7`, and `OVL_0025_0000` (partial
-`+1153`/`+12FB` string cores) are `composable: false` and no longer rank as
-composition-ready; composable bodies carry a +6 score term.
+Readiness corrections (schemas 2–4, 2026-10-17): resident, runtime, partial,
+verified-without-model and closure-blocked callees all count as unready —
+e.g. `OVL_0033_1E31` (3/14), the U9E dice candidates, the U1C
+`+2C03`/`+2F2D`/`+3171`/`+0C77` cases whose verified or blocked callees
+previously slipped through, and `OVL_0025_0000`, which is composable again
+now that #862/#863 made its `+1153`/`+12FB` string cores full models;
+composable bodies carry a +6 score term.
 
 ## Reproduce
 
@@ -196,7 +202,12 @@ for a fast overlay-only pass.
 * Near call sites remain candidate-based: the decoded audit validates
   instruction boundaries under the prologue-seed assumption, not the seeds
   themselves.
-* [partial_callee_models.csv](partial_callee_models.csv) is curated from
-  review reports (the ECL string cores `OVL_0025_1153`/`OVL_0025_12FB` seed
-  it); bounded models must be added there when identified, since boundedness
-  is not machine-readable from the CSVs.
+* [partial_callee_models.csv](partial_callee_models.csv) is the curated
+  callee-model manifest (`id,status,evidence_doc`; status `full` or
+  `partial`). It carries models whose shared file name cannot be mapped by
+  filename (the U25 string cores `OVL_0025_1153`/`OVL_0025_12FB` are `full`
+  since #862) and must be updated when a model's completeness changes.
+* Ledger `bound`/`decoded` sizes can exceed the actual callable extent — for
+  example `OVL_001C_0B52` is 127/126 bytes in the ledger but 118 bytes / 41
+  instructions through its RETF; the queue reports the ledger values and
+  `instructions` as bounded-decode metadata, not the reviewed callable body.

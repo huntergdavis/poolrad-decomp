@@ -273,21 +273,27 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 and ".." not in credit["evidence_doc"].split("/"),
                 "missing strict full-C provenance")
         strict_overlay.add(target["id"])
-    partial_models = set()
+    full_models, partial_models = {}, set()
     for entry in partial_rows or []:
         target = aliases.get(entry["id"])
         require(target is not None,
-                "partial callee model address is absent from the overlay queue")
+                "callee model manifest address is absent from the overlay queue")
+        require(entry.get("status") in ("full", "partial"),
+                "callee model manifest status must be full or partial")
         require(entry["evidence_doc"].startswith("docs/re/")
                 and ".." not in entry["evidence_doc"].split("/"),
-                "missing partial callee model provenance")
-        partial_models.add(target["id"])
+                "missing callee model manifest provenance")
+        if entry["status"] == "full":
+            full_models[target["id"]] = entry["evidence_doc"]
+        else:
+            partial_models.add(target["id"])
     candidates = {candidate_key(row): row["id"] for row in rows
                   if row["id"] not in strict_overlay}
     return dict(rows=rows, aliases=aliases, candidates=candidates,
                 all_ids={row["id"] for row in rows},
                 strict_overlay=strict_overlay, strict_resident=strict_resident,
-                partial_models=partial_models, near_validated=near_validated)
+                full_models=full_models, partial_models=partial_models,
+                near_validated=near_validated)
 
 
 def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
@@ -324,7 +330,7 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
 
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
-                    partial_models):
+                    partial_models, transitively_unready):
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
         entry = None
@@ -342,6 +348,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             target_id = ovl_id(entry[1], entry[2])
             readiness = ("strict" if target_id in strict_overlay
                          else "modeled" if target_id in main_files
+                         and target_id not in transitively_unready
+                         else "modeled_blocked" if target_id in main_files
                          else "partial" if target_id in partial_models
                          else "verified" if class_by_id.get(target_id) == "game_verified"
                          else "untranslated")
@@ -351,11 +359,13 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             targets.append(dict(kind=entry[0], seg=entry[1], offset=entry[2],
                                 readiness=f"{entry[0]}_unmapped"))
     counts = Counter(target["readiness"] for target in targets)
-    ready = counts["strict"] + counts["modeled"] + counts["verified"]
+    ready = counts["strict"] + counts["modeled"]
     unready = (counts["untranslated"] + counts["resident_unmapped"]
-               + counts["runtime_unmapped"] + counts["partial"])
+               + counts["runtime_unmapped"] + counts["partial"]
+               + counts["modeled_blocked"] + counts["verified"])
     base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
-               + 2 * counts["verified"] + counts["partial"])
+               + counts["verified"] + counts["partial"]
+               + counts["modeled_blocked"])
     points = 12 if not targets else round(base * ready / len(targets))
     return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
                                                        t["offset"])),
@@ -405,13 +415,56 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             far_by_target[(edge["target_unit"], edge["target_func"])].append(edge)
         if edge["kind"] == "near_candidate" and edge.get("target") is not None:
             near_by_target[(edge["unit"], edge["target"])].append(edge)
+    graph = defaultdict(set)
+    for edge in callgraph["edges"]:
+        source = edge.get("src_func")
+        if source is None:
+            continue
+        source_id = ovl_id(edge["unit"], source)
+        if edge["kind"] == "near_candidate" and edge.get("target_func") is not None:
+            graph[source_id].add(ovl_id(edge["unit"], edge["target_func"]))
+        elif edge["kind"] == "far_fixup_confirmed" and edge.get("resolution") == "overlay" \
+                and edge.get("target_func") is not None:
+            graph[source_id].add(ovl_id(edge["target_unit"], edge["target_func"]))
+    nodes = set(graph)
+    for targets in graph.values():
+        nodes |= targets
+
+    def base_category(node):
+        if node in state["strict_overlay"]:
+            return "strict"
+        if node in main_files:
+            return "modeled"
+        if node in state["partial_models"]:
+            return "partial"
+        if class_by_id.get(node) == "game_verified":
+            return "verified"
+        return "untranslated"
+
+    # Transitive closure: strict bodies and manifest-full models are reviewed
+    # endpoints that handle their own runtime calls; other modeled bodies are
+    # composable only when every overlay callee in their closure is ready.
+    endpoints = {node for node in nodes if node in state["full_models"]}
+    ready = {node: base_category(node) == "strict" or node in endpoints
+             for node in nodes}
+    changed = True
+    while changed:
+        changed = False
+        for node in sorted(nodes):
+            if ready[node] and node not in endpoints and base_category(node) != "strict" \
+                    and any(not ready.get(target, False) for target in graph.get(node, ())):
+                ready[node] = False
+                changed = True
+    transitively_unready = {node for node in nodes
+                            if not ready[node] and base_category(node) == "modeled"}
     ranked = []
     for key, cid in state["candidates"].items():
         row = state["aliases"][cid]
         entry = ledger[row["original_address"]]
         classification = classes[row["original_address"]]
         callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
-                                  main_files, class_by_id, state["partial_models"])
+                                  main_files, class_by_id, state["partial_models"],
+                                  transitively_unready)
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -455,7 +508,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=3, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=4, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 
@@ -503,6 +556,8 @@ def main():
                            csv_rows(blobs["strict_map"]), near,
                            csv_rows(blobs["partial_models"]))
         main_files = scan_main_files(repo, state["all_ids"])
+        for identifier, evidence in sorted(state["full_models"].items()):
+            main_files.setdefault(identifier, []).append(evidence)
         mentions = scan_mentions(repo, state["candidates"])
         if args.no_git:
             branch_hits, commit_hits, git_view = {}, {}, None
