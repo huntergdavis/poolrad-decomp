@@ -346,6 +346,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u33_grid_bands_0e9e.c
                                     src/recovered/overlay_u33_grid_diagonal_0bde.c
                                     src/recovered/overlay_u33_grid_driver_11b4.c
+                                    src/recovered/overlay_u33_cell_claim_1434.c
+                                    src/recovered/overlay_u33_place_search_1577.c
                                     src/recovered/overlay_u9e_entry_1081.c
                                     src/recovered/resident_route_290b.c
                                     src/recovered/resident_field_08ef.c
@@ -2030,6 +2032,18 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u33_grid_driver_11b4_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u33_grid_driver_11b4_tests
              COMMAND poolrad_overlay_u33_grid_driver_11b4_tests)
+    add_executable(poolrad_overlay_u33_cell_claim_1434_tests
+                   tests/recovered/test_overlay_u33_cell_claim_1434.c)
+    target_include_directories(poolrad_overlay_u33_cell_claim_1434_tests PRIVATE tests/recovered)
+    target_link_libraries(poolrad_overlay_u33_cell_claim_1434_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u33_cell_claim_1434_tests
+             COMMAND poolrad_overlay_u33_cell_claim_1434_tests)
+    add_executable(poolrad_overlay_u33_place_search_1577_tests
+                   tests/recovered/test_overlay_u33_place_search_1577.c)
+    target_include_directories(poolrad_overlay_u33_place_search_1577_tests PRIVATE tests/recovered)
+    target_link_libraries(poolrad_overlay_u33_place_search_1577_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u33_place_search_1577_tests
+             COMMAND poolrad_overlay_u33_place_search_1577_tests)
     add_executable(poolrad_overlay_u9e_entry_1081_tests
                    tests/recovered/test_overlay_u9e_entry_1081.c)
     target_link_libraries(poolrad_overlay_u9e_entry_1081_tests PRIVATE poolrad_recovered)
