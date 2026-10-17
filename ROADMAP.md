@@ -75,6 +75,15 @@ Its synthetic tests pass (direct C11 run; focused CTest 1/1). Native and full
 CPU/RAM parity remain open. The model adds nothing to the full-C count above;
 see [docs/re/U86_STATUS_263D_FULL.md](docs/re/U86_STATUS_263D_FULL.md).
 
+PR #833 adds a **source-only** CPU/RAM model of unit `0x3C6` entry 16
+(`+0x0CB9`). It folds entries 15, 1 and 6 from their original bytes and has
+no hooks. Every RETF follows a caller-declared policy; the two successful
+profiles are synthetic, and the public `+0x0000` LES seam fails closed. Its
+synthetic tests pass (direct C11 build, 6367 checks; focused CTest 1/1).
+Native and full CPU/RAM parity remain open. The model adds nothing to the
+full-C count above; see
+[docs/re/U3C6_0CB9_SCAN.md](docs/re/U3C6_0CB9_SCAN.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
