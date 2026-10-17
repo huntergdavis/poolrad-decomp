@@ -3,6 +3,9 @@
 Status: reconnaissance only, paused before implementation on 2026-10-17.
 No C body, executable parity result, strict credit, or denominator change.
 
+This historical checkpoint is superseded by the resumed
+[composition work](U5E_DIRECTION_263D.md); its original observations remain below.
+
 ## Verified identity
 
 | Artifact | SHA-256 |
