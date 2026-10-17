@@ -229,8 +229,15 @@ epilogue:
     cpu->sp = cpu->bp;
     cpu->bp = read16(ram, cpu->ss, cpu->sp);
     cpu->sp = (uint16_t)(cpu->sp + 2u);
-    cpu->ip = read16(ram, cpu->ss, cpu->sp);
-    cpu->cs = read16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
-    cpu->sp = (uint16_t)(cpu->sp + 6u);
+    {
+        /* Contiguous-frame profile: read four bytes before wrapping SP.
+         * At SP=FFFE/FFFF, CS is above the segment's offset boundary. */
+        size_t frame = physical(cpu->ss, cpu->sp);
+        cpu->ip = (uint16_t)(ram[frame] |
+                            ((uint16_t)ram[(frame + 1u) & MASK] << 8));
+        cpu->cs = (uint16_t)(ram[(frame + 2u) & MASK] |
+                            ((uint16_t)ram[(frame + 3u) & MASK] << 8));
+        cpu->sp = (uint16_t)(cpu->sp + 6u);
+    }
     return PR_U25_0136_RETURNED;
 }
