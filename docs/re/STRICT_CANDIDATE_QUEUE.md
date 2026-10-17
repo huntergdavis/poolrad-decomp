@@ -26,14 +26,18 @@ credits are counted and ignored (this tool is overlay-only).
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
 decoded-validated near calls and fixup-confirmed far calls. Each overlay
 target is `strict` (strict manifest), `modeled` (a merged per-routine file in
-`src/recovered`, `include/poolrad/recovered` or `tests/recovered`),
-`verified` (classification `game_verified`) or `untranslated`. Resident and
-runtime targets are recorded as unmapped (the callgraph resolves their segment
-stubs but no file/image offset is claimed) and **count as unready**: readiness
-reports `ready`, `unready` and `total` over every target, and a body is
-`composable` only when no target is untranslated, resident or runtime. This
-schema-2 correction (2026-10-17) stops the queue proposing bodies whose
-resident/runtime far calls are not yet composable.
+`src/recovered`, `include/poolrad/recovered` or `tests/recovered`), `partial`
+(listed in [partial_callee_models.csv](partial_callee_models.csv): a merged
+model exists but is bounded or provisional, not full CPU/RAM state),
+`verified` (classification `game_verified` with no model) or `untranslated`.
+Resident and runtime targets are recorded as unmapped (the callgraph resolves
+their segment stubs but no file/image offset is claimed). Everything that is
+not strict, modeled or verified **counts as unready**: readiness reports
+`ready`, `unready` and `total` over every target, and a body is `composable`
+only when no target is untranslated, partial, resident or runtime. The
+schema-2/3 corrections (2026-10-17, VP-directed, after Claude's and Astra's
+callee reports) stop the queue proposing bodies whose callees are not yet
+full-state composable.
 
 **Caller evidence.** Fixup-confirmed far callers resolving to the candidate's
 exact start, and decoded near callers with an exact prologue target. An
@@ -60,8 +64,8 @@ call convention documented at sites such as `push cs; call +0x07BC`.
 **Scoring.** `score = ownership + grade + callee + callers + size + composable
 - penalty`: ownership 40/25/5/0 for game_verified/game_evidenced/
 helper_candidate/unresolved; grade 20/10/5/0 for A/B/C/D; callee
-`round(min(30, 6·strict + 4·modeled + 2·verified) · ready/total)` (12 for a
-leaf), so unready targets dilute the callee points; callers
+`round(min(30, 6·strict + 4·modeled + 2·verified + 1·partial) · ready/total)`
+(12 for a leaf), so unready targets dilute the callee points; callers
 `min(15, 5·fixup) + min(10, 2·aligned PUSH CS) + 2·(near)`; size 12/8/4/2/0
 for ≤48/≤128/≤256/≤512/larger bytes; `composable` +6 when every callee is
 ready; prior penalty 45 main_model, 40 inline_in_strict, 25 unmerged_branch,
@@ -71,22 +75,22 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 
 **Determinism and pins.** Sorted inputs everywhere; two identical runs
 produce byte-identical JSON. The export records SHA-256 for every input file,
-the branch-tip table, and the raw `git log` scan. The schema-2 export (queue
-SHA-256 `6eaa652d5192a6b5394342bb91f8941f02dc8cf66e7e6610de3b9c70daa625f1`)
+the branch-tip table, and the raw `git log` scan. The schema-3 export (queue
+SHA-256 `e460b69f4a0274151105f4a7706ff1fdcb2c7eade23c947de2b23a150ef71e11`)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR`
 `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`,
 near audit `a40ba4f2…cbd2c`, with 1,031 refs / 866 tips / 518 unmerged tips
-(`tips_sha256` `3a2574f9…452999`) and 1,959 commits (`commits_sha256`
-`89f7a145…75031`).
+(`tips_sha256` `c193d78b…af0a`) and 1,960 commits (`commits_sha256`
+`d039f82d…125a6`). Git pins are point-in-time; other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 600)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
-| 1 | `OVL_0025_0000` | `0x25:0x0000` | 310 | 119 | A | game_verified | 1/0/2/0 | 3/0 | yes | 42 | 13 | inline_in_model | 87 |
-| 2 | `OVL_005E_263D` | `0x5e:0x263d` | 115 | 41 | A | game_evidenced | 2/0/0/1 | 2/1 | no | 2 | 7 | source_mention | 78 |
-| 3 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/1/0/1 | 2/1 | no | 3 | 6 | source_mention | 78 |
-| 4 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 1/2/1/0 | 4/0 | yes | 0 | 1 | source_mention | 75 |
+| 1 | `OVL_005E_263D` | `0x5e:0x263d` | 115 | 41 | A | game_evidenced | 2/0/0/1 | 2/1 | no | 2 | 7 | source_mention | 78 |
+| 2 | `OVL_03C6_071A` | `0x3c6:0x071a` | 186 | 79 | A | game_evidenced | 1/1/0/1 | 2/1 | no | 3 | 6 | source_mention | 78 |
+| 3 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 1/2/1/0 | 4/0 | yes | 0 | 1 | source_mention | 75 |
+| 4 | `OVL_0025_0000` | `0x25:0x0000` | 310 | 119 | A | game_verified | 1/0/0/0 | 1/2 | no | 42 | 13 | inline_in_model | 74 |
 | 5 | `OVL_001C_2F2D` | `0x1c:0x2f2d` | 580 | 273 | B | game_verified | 1/27/21/0 | 49/0 | yes | 0 | 1 | inline_in_model | 72 |
 | 6 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 1/3/1/0 | 5/0 | yes | 0 | 1 | inline_in_model | 70 |
 | 7 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
@@ -109,11 +113,11 @@ near audit `a40ba4f2…cbd2c`, with 1,031 refs / 866 tips / 518 unmerged tips
 | 24 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
 | 25 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 2/0/1/0 | 3/2 | no | 0 | 1 | source_mention | 61 |
 
-Queue summary (schema 2): 600 candidates, 115 composable — classification
+Queue summary (schema 3): 600 candidates, 114 composable — classification
 game_evidenced 342, game_verified 60, helper_candidate 71, unresolved 127;
 grades A 348, B 250, D 2; prior status main_model 84, inline_in_model 56,
-inline_in_strict 4, unmerged_branch 46, commit_mention 13, source_mention
-397; 842 fixup-backed and 871 aligned-PUSH-CS caller sites across the queue.
+inline_in_strict 4, unmerged_branch 46, commit_mention 14, source_mention
+396; 842 fixup-backed and 871 aligned-PUSH-CS caller sites across the queue.
 Near-call evidence is `decoded_validated` for this export.
 
 ## Claude's traps, as detected
@@ -132,10 +136,11 @@ Near-call evidence is `decoded_validated` for this export.
 The `+101D` helper itself appears as `main_model` (rank 598): its merged
 provisional full-C model is why the four callers above read as callee-ready.
 
-Readiness correction (schema 2, 2026-10-17): resident and runtime far calls
-count as unready — e.g. `OVL_0033_1E31` (ready/unready 3/14) and the U9E dice
-candidates `OVL_009E_1344/1656/0AE7` are `composable: false` and no longer
-rank as composition-ready; composable bodies carry a +6 score term.
+Readiness corrections (schemas 2–3, 2026-10-17): resident, runtime and
+partial-model callees count as unready — e.g. `OVL_0033_1E31` (3/14), the U9E
+dice candidates `OVL_009E_1344/1656/0AE7`, and `OVL_0025_0000` (partial
+`+1153`/`+12FB` string cores) are `composable: false` and no longer rank as
+composition-ready; composable bodies carry a +6 score term.
 
 ## Reproduce
 
@@ -191,3 +196,7 @@ for a fast overlay-only pass.
 * Near call sites remain candidate-based: the decoded audit validates
   instruction boundaries under the prologue-seed assumption, not the seeds
   themselves.
+* [partial_callee_models.csv](partial_callee_models.csv) is curated from
+  review reports (the ECL string cores `OVL_0025_1153`/`OVL_0025_12FB` seed
+  it); bounded models must be added there when identified, since boundedness
+  is not machine-readable from the CSVs.

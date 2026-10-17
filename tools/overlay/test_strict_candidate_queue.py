@@ -93,6 +93,22 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(prior["score_terms"]["composable"], 0)
         self.assertEqual(result["summary"]["composable_bodies"], 1)
 
+    def test_partial_callees_are_unready(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None,
+                               [dict(id="OVL_0019_0010", evidence_doc="docs/re/synthetic.md")])
+        mentions, main_files, branches = evidence()
+        mentions = {**mentions, "OVL_0019_0010": {"source": [], "tooling": [], "docs": []}}
+        main_files = {key: value for key, value in main_files.items()
+                      if key != "OVL_0019_0010"}
+        result: dict = scq.build_queue(state, callgraph(), inventory["units"], ledger,
+                                       classifications, mentions, main_files, branches, {},
+                                       dict(ovr=bytes(200)))
+        row = next(r for r in result["rows"] if r["id"] == "OVL_0019_0020")
+        self.assertEqual(row["callee_readiness"]["counts"], {"partial": 1})
+        self.assertFalse(row["callee_readiness"]["composable"])
+        self.assertEqual(row["callee_readiness"]["unready"], 1)
+
     def test_export_is_order_independent(self):
         original = queue()
         data, graph = copy.deepcopy(fixture()), copy.deepcopy(callgraph())

@@ -35,6 +35,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_LEDGER = ROOT / "docs/re/overlay_function_ledger.csv"
 DEFAULT_CLASSIFICATION = ROOT / "docs/re/overlay_classification.csv"
 DEFAULT_STRICT = ROOT / "docs/re/strict_full_c_addresses.csv"
+DEFAULT_PARTIAL = ROOT / "docs/re/partial_callee_models.csv"
 SOURCE_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
                "tools/overlay", "docs/re")
 BRANCH_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
@@ -237,7 +238,8 @@ def scan_commits(repo, candidates):
     return hits, pins
 
 
-def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near):
+def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
+               partial_rows=None):
     """Validated join: reuse function_queue's overlay row construction."""
     near_validated = False
     if near is not None:
@@ -271,12 +273,21 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near):
                 and ".." not in credit["evidence_doc"].split("/"),
                 "missing strict full-C provenance")
         strict_overlay.add(target["id"])
+    partial_models = set()
+    for entry in partial_rows or []:
+        target = aliases.get(entry["id"])
+        require(target is not None,
+                "partial callee model address is absent from the overlay queue")
+        require(entry["evidence_doc"].startswith("docs/re/")
+                and ".." not in entry["evidence_doc"].split("/"),
+                "missing partial callee model provenance")
+        partial_models.add(target["id"])
     candidates = {candidate_key(row): row["id"] for row in rows
                   if row["id"] not in strict_overlay}
     return dict(rows=rows, aliases=aliases, candidates=candidates,
                 all_ids={row["id"] for row in rows},
                 strict_overlay=strict_overlay, strict_resident=strict_resident,
-                near_validated=near_validated)
+                partial_models=partial_models, near_validated=near_validated)
 
 
 def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
@@ -300,7 +311,7 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
         flags.add("commit_mention")
     if mentions["source"] or mentions["tooling"] or mentions["docs"]:
         flags.add("source_mention")
-    status = next(state for state in PRIOR_ORDER if state in flags)
+    status = next((state for state in PRIOR_ORDER if state in flags), "none")
     strong = [state for state in PRIOR_ORDER[:4] if state in flags]
     penalty = 0
     if strong:
@@ -312,7 +323,8 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
                 mentions=mentions)
 
 
-def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id):
+def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
+                    partial_models):
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
         entry = None
@@ -330,6 +342,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             target_id = ovl_id(entry[1], entry[2])
             readiness = ("strict" if target_id in strict_overlay
                          else "modeled" if target_id in main_files
+                         else "partial" if target_id in partial_models
                          else "verified" if class_by_id.get(target_id) == "game_verified"
                          else "untranslated")
             targets.append(dict(kind="overlay", id=target_id, unit=entry[1],
@@ -340,8 +353,9 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     counts = Counter(target["readiness"] for target in targets)
     ready = counts["strict"] + counts["modeled"] + counts["verified"]
     unready = (counts["untranslated"] + counts["resident_unmapped"]
-               + counts["runtime_unmapped"])
-    base = min(30, 6 * counts["strict"] + 4 * counts["modeled"] + 2 * counts["verified"])
+               + counts["runtime_unmapped"] + counts["partial"])
+    base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
+               + 2 * counts["verified"] + counts["partial"])
     points = 12 if not targets else round(base * ready / len(targets))
     return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
                                                        t["offset"])),
@@ -397,7 +411,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         entry = ledger[row["original_address"]]
         classification = classes[row["original_address"]]
         callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
-                                  main_files, class_by_id)
+                                  main_files, class_by_id, state["partial_models"])
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -441,7 +455,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=2, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=3, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 
@@ -457,6 +471,8 @@ def main():
     parser.add_argument("--ledger", default=str(DEFAULT_LEDGER))
     parser.add_argument("--classification", default=str(DEFAULT_CLASSIFICATION))
     parser.add_argument("--strict-map", default=str(DEFAULT_STRICT))
+    parser.add_argument("--partial-models", default=str(DEFAULT_PARTIAL),
+                        help="checked-in bounded-model manifest for callee readiness")
     parser.add_argument("--ovr", help="hash-pinned GAME.OVR for PUSH CS call-site checks")
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
@@ -464,7 +480,7 @@ def main():
     args = parser.parse_args()
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
-             "strict_map": Path(args.strict_map)}
+             "strict_map": Path(args.strict_map), "partial_models": Path(args.partial_models)}
     if args.near_calls:
         paths["near_calls"] = Path(args.near_calls)
     if args.ovr:
@@ -484,7 +500,8 @@ def main():
         near = json.loads(blobs["near_calls"]) if "near_calls" in blobs else None
         state = load_queue(inventory, csv_rows(blobs["ledger"]),
                            csv_rows(blobs["classification"]),
-                           csv_rows(blobs["strict_map"]), near)
+                           csv_rows(blobs["strict_map"]), near,
+                           csv_rows(blobs["partial_models"]))
         main_files = scan_main_files(repo, state["all_ids"])
         mentions = scan_mentions(repo, state["candidates"])
         if args.no_git:
