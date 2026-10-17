@@ -30,12 +30,17 @@
  *   +07BA  mov sp,bp; pop bp; retf 6.
  * The locals are modelled as one 0x46-byte frame image that the callbacks can
  * see, and every original re-read of [BP+0xA] and of the locals is a re-read
- * of that image, so an aliasing callback changes the model as it would the
- * original. The index range 0..8 stays inside the modelled locals; a larger
- * index only reaches +074E when 0x899:0x0000 returns, and then reads the
- * saved BP, return address and arguments, which this model does not carry
- * (UNMODELED_FRAME). The parameter orders of 0x464:0x0D71 / 0x1B52 follow
- * other agents' unmerged source-only contracts, not verified parity. */
+ * of that represented image, so a callback that aliases the represented frame
+ * changes the model as it would the original. The index range 0..8 stays
+ * inside the modelled locals. Index i > 8 selects the words at BP+(8i-0x44)
+ * and BP+(8i-0x42): index 9 reads the return CS at BP+4 and the record-offset
+ * argument at BP+6; index 10 and above read stack beyond the explicit
+ * arguments. No index selects the saved BP (BP+0) or the return IP (BP+2).
+ * This model does not carry that upper-stack image and stops with
+ * UNMODELED_FRAME whenever a re-read index exceeds 8 (after 0x899:0x0000
+ * returns, or after a callback changed the live index). The parameter orders
+ * of 0x464:0x0D71 / 0x1B52 follow other agents' unmerged source-only
+ * contracts, not verified parity. */
 
 #define PR_U3B9_0708_RECORD_SIZE 0x42u                   /* mov ax,0x42 at +0718 */
 #define PR_U3B9_0708_LOCALS_SIZE 0x46u                   /* sub sp,0x46 */
@@ -96,8 +101,10 @@ typedef enum {
     PR_U3B9_0708_ARGUMENT,         /* null frame/state/hooks/out, or a message literal that is not 30 characters */
     PR_U3B9_0708_NEED_HOOK,        /* a reached boundary has no callback */
     PR_U3B9_0708_HOST_FAILURE,     /* a callback returned non-zero */
-    PR_U3B9_0708_UNMODELED_FRAME   /* index > 8 after 0x899:0x0000 returned: the original reads
-                                      the saved BP, return address and arguments */
+    PR_U3B9_0708_UNMODELED_FRAME   /* a re-read index > 8 (after 0x899:0x0000 returned or a callback
+                                      changed it): the original reads upper-stack words at
+                                      BP+(8i-0x44)/BP+(8i-0x42), e.g. return CS and the record-offset
+                                      argument for index 9, which this model does not carry */
 } pr_u3b9_0708_status;
 
 /* message: the CS:0x06E9 Pascal string (length byte first, 31-byte span),

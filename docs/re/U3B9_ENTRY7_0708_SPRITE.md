@@ -63,15 +63,30 @@ asserts that `mov di,0x06E9` occurs exactly once in the unit.
   mutable structure passed to every callback. Each original re-read of
   `[BP+0xA]`, of the slot words and of the temporary is a re-read of that
   structure: `+0721`, `+0727`, `+074E`, `+0761`, `+0775`, `+0781` and
-  `+0793`. A callback that aliases the caller's frame therefore changes the
-  model the way it would change the original. The tests exercise this for
+  `+0793`. A callback that aliases the represented frame therefore changes
+  the model the way it would change the original. This is bounded to the
+  represented arguments, locals and DS state; physical DS/SS aliases, CPU
+  flags, the full AX and DF are not represented. The tests exercise this for
   the copy and for `0x899:0x0000`. This is the live-frame point raised in the
   independent entry-6 review (pN, i12651).
 - **Out-of-range index.** Index 0..8 is modelled from the locals image. Index
   0 reads the temporary's segment word, which the host supplies as the
-  uninitialized-stack content. A larger index can only reach `+074E` when
-  `0x899:0x0000` returns, and then the original reads the saved BP, return
-  address and arguments. The model stops there with `UNMODELED_FRAME`.
+  uninitialized-stack content. Index i > 8 selects the words at
+  `BP+(8i-0x44)` and `BP+(8i-0x42)`:
+  - index 9 reads the return CS (`BP+4`) and the record-offset argument
+    (`BP+6`);
+  - index 10 and above read stack beyond the explicit arguments;
+  - no index selects the saved BP (`BP+0`) or the return IP (`BP+2`).
+
+  The model carries no upper-stack image. It stops with `UNMODELED_FRAME`
+  whenever a re-read index exceeds 8: either after `0x899:0x0000` returns,
+  or after a callback (including a far-word read before `+0793`) changed the
+  live index. This stop is a host boundary, not an original branch
+  (independent review pN i12741, finding F1).
+- **Untested overlap.** Index 0 with a non-nil slot overlaps the temporary
+  written at `+076F`/`+0772` with the slot words re-read at `+079E`. The code
+  keeps that overlap, but no test covers it. The read-hook mutation and the
+  non-returning `0x899:0x0000` path are also not exercised.
 - **Callbacks.** These are explicit callbacks: the copy, `0x464:0x00FF`,
   Write, Writeln, `0x899:0x0000`, the two far word reads, `0x464:0x0D71` and
   `0x464:0x1B52`. The `0x0D71` words are passed in push order
