@@ -152,11 +152,12 @@ Following the merged U6F `+01B8` pattern:
 The README and `FUNCTION_LEDGER.md` rows are deferred to restack with the
 other U3B9 rows.
 
-## CPU model (strict lane, uncompiled)
+## CPU model (strict lane, source-only, not yet built)
 
 Files: `include/poolrad/recovered/overlay_u3b9_entry7_0708_cpu.h` and
-`src/recovered/overlay_u3b9_entry7_0708_cpu.c`, entry point
-`pr_u3b9_0708_cpu_run(ram, ram_size, cpu, hooks)`. It follows the
+`src/recovered/overlay_u3b9_entry7_0708_cpu.c`, with the focused test
+`tests/recovered/test_overlay_u3b9_entry7_0708_cpu.c`. The entry point is
+`pr_u3b9_0708_cpu_run(ram, ram_size, cpu, retf_policy, code_policy, hooks)`. It follows the
 full-state precedents: 1 MiB A20-off RAM and a 14-register CPU. The whole
 function runs on live state.
 
@@ -167,13 +168,57 @@ function runs on live state.
 - **Folded copy.** SYSTEM `+0A3F` (the value-parameter copy) is folded
   exactly from its decoded body at the live call segment. It writes no
   arithmetic flags and sets DF = 0.
-- **External hooks.** Six callees are hooks, each receiving the full CPU and
-  RAM after the real pushes and return push: `0x464:+00FF` (it reaches the
-  DOS-unit Intr through `+00CF`), SYSTEM `+0919` Write, SYSTEM `+084A`
-  Writeln, `0x899:+0000` (it reaches SYSTEM `+00E9`), `0x464:+0D71` and
-  `0x464:+1B52`. Execution continues only at the pushed return CS:IP. A
-  non-zero hook result covers both a non-returning callee and a host
-  failure.
+- **Hook policy.** Six callees are hooks: `0x464:+00FF`, SYSTEM `+0919`
+  Write, SYSTEM `+084A` Writeln, `0x899:+0000`, `0x464:+0D71` and
+  `0x464:+1B52`.
+  - `HOOK_UNMEASURED` is the default, and also applies with no hooks. It
+    stops at the first hook lcall reached, with the caller's pushes done
+    (`HOOK_PENDING`).
+  - `HOOK_CONTRACT` (synthetic) hands the full CPU and RAM to the hook after
+    the return push. It continues only on each callee's contract, read from
+    its original body:
+    - every callee must return to the pushed CS:IP with SS kept, SP = its
+      entry SP + 4 + n, and BP kept (each ends `pop bp` before its RETF);
+
+    | Callee | n | Also kept | Original exit |
+    | --- | --- | --- | --- |
+    | `0x464:+00FF` | 0 | DS (through SetVideoMode and Intr) | `retf` at `+010B` |
+    | SYSTEM `+0919` | 6 | DS, plus the Text variable pointer left on the stack for `+084A` | `pop ds; pop bp; retf 6` at `+0952..+0954` |
+    | SYSTEM `+084A` | 4 | | `pop bp; retf 4` at `+086A..+086B` |
+    | `0x464:+0D71` | 0x10 | | `mov sp,bp; pop bp; retf 0x10` at `+147E..+1481` |
+    | `0x464:+1B52` | 0 | | `mov sp,bp; pop bp; retf` at `+1E58..+1E5B` |
+
+    - `0x899:+0000` reaches SYSTEM `+00E9` (Halt) before its own
+      `pop bp; retf`. Halt runs the ExitProc chain, restores the interrupt
+      vectors and terminates through DOS, so a hook that returns 0 gives
+      `CALLEE_NONRETURNING`.
+    - A broken contract gives `CALLEE_FRAME` (SS, SP, BP, DS or the kept
+      Text pointer) or `CALLEE_TRANSFER` (CS:IP).
+
+    With these contracts, SP = BP − 0x46 at `+07BA` on every path:
+    - on the bad path, 5 words are pushed, and Write pops 6 bytes and
+      Writeln 4;
+    - on the good path, 8 words are pushed and `+0D71` pops 0x10.
+  - A run through a hook is a modelled subset with unknown provenance. The
+    model makes no claim about RAM below the hook's SP, DOS, video or
+    hardware effects, or register effects beyond the contract.
+- **Code policy.**
+  - `CODE_PINNED` (default) checks every byte of `[06E9,07C0)` (the literal
+    pool and the body) and the folded SYSTEM `[0A3F,0A57)` against 64-bit
+    FNV-1a pins: `7e471acd5701b1da` and `69a8d2d7aafec682`. Only the seven
+    lcall segment words are skipped: `071F 0730 0742 0747 074C 07AF 07B8`.
+    These are exactly the GAME.OVR fixup-table entries for unit `0x3B9` in
+    that range, read through `tools/overlay/overlay_inventory.py`
+    `find_units`.
+  - The fixup words must name one SYSTEM, one `0x464` and one `0x899`
+    segment, with differences `0x0694` and `0x0435` (one load base).
+    Otherwise the result is `CODE_NOT_ORIGINAL` with nothing changed.
+  - The folded bytes come from `tools/overlay/resident_loader_map.py`
+    `unpack()` image offset `0xB9BF` (SHA-256 `5bf8af52…61aa`). They occur
+    unchanged in the native RAM images at segment `0x131C`, so they contain
+    no fixup.
+  - `CODE_SYNTHETIC` is for synthetic tests only. It checks just the seven
+    call sites and has no parity meaning.
 - **Undefined flags.** These follow the pinned core's lazy flags
   (`src/cpu/flags.cpp` sha
   `3ea36c4c56278ef14ec0f89ac93966197ed389ce4daaee7afa3d9de39e02d893`,
@@ -181,6 +226,15 @@ function runs on live state.
   - after `SHL DI,3`, AF = 1 (`get_AF` returns the masked count) and OF =
     MSB(result) XOR MSB(operand) (`get_OF` for `t_SHLw`);
   - after XOR/OR, AF = 0 (`get_AF` returns false for `t_OR*`/`t_XOR*`).
+
+  The line references in that pinned `flags.cpp` are:
+  - `get_AF` (line 130), `t_SHLw` case: `return lf_var2w & 0x1f` (lines
+    175–178). This is non-zero for a count of 3.
+  - `get_OF` (line 345), `t_SHLw` case: `(lf_resw ^ lf_var1w) & 0x8000`
+    (lines 392–395).
+  - `get_CF`, `t_SHLw` case: bit `16 - count` of the operand (lines 75–77).
+
+  The claim holds only for that pinned core.
 
   The SHLs at `+0757` and `+076A` are overwritten by OR and ADD before any
   write, hook or return. The third SHL (`+079C`) reaches the `0x0D71` hook
@@ -196,16 +250,24 @@ function runs on live state.
   - the overlay stub dispatch;
   - no compile, native or oracle evidence.
 
-- **LES/LDS profile.** Every LES/LDS (entry body and folded SYSTEM
-  bodies) follows the pinned DOSBox-X normal core (revision `5a9c7c53`):
-  the segment word is read at linear EA+2, minus 0x10000 when the offset is
-  above 0xFFFC. Only offset 0xFFFD differs from seg:(off+2) (PM i13698,
-  after reviews i13200 B1 and i13647/i13648 C6-1). A physical 8086 or other
-  emulator profile may differ.
+- **LES/LDS seam.** There are six sites, all with SS operands:
+  - body `+070E` `[bp+6]`, `+076C` `[bp+di-0x44]`, `+0775` and `+0781`
+    `[bp-0x46]`;
+  - folded SYSTEM `+0A43` LDS `ss:[bx+0xA]` and `+0A47` LES `ss:[bx+6]`.
 
-- **Profile switches.** The LES/LDS rule above holds only for the DOSBox-X
-  normal core at revision `5a9c7c53481c2e933948039c33256776653f4faf`,
-  built with `CPU_OMIT_8086` absent and run with `do_lds_wraparound` = true
-  (the `lds wraparound` default) and `cpu.code.big` = false (16-bit code
-  segment). No build, configuration or native receipt has been recorded for
-  this profile (PM i13899, after pN i13852/i13860/i13866).
+  An operand offset in `FFFD`–`FFFF` is the unmeasured profile seam. The
+  model stops before that instruction, with IP at its offset and every
+  earlier effect kept (`UNSUPPORTED_LES_SEAM`), as in the merged U3C6
+  `+0000` and `+04BE` models. Elsewhere the segment word is `SS:(offset+2)`.
+  `+0781` re-reads the `+0775` operand with BP unchanged, so that seam stops
+  at `+0775`. This replaces the earlier pinned-profile reading at `FFFD`.
+- **RETF policy.** Both RETFs follow one caller-declared policy with the
+  values of the public U3C6 `+0000` model: the folded `retf 0xA` at SYSTEM
+  `+0A54`, always reached first, and the body's `retf 6` at `+07BD`.
+  - `UNMEASURED` stops before `+0A54` (`RETURN_PENDING`).
+  - `WRAPPED_SS` and `CONTIGUOUS_PHYSICAL` are synthetic CS-word profiles.
+
+  Every push, pop and stack word, including the return-IP word, is
+  declared physically contiguous.
+- **Still open:** a pinned positive run (CTest has no original bytes);
+  native or full CPU/RAM parity; and the real effects of the six callees.
