@@ -103,6 +103,15 @@ pass (focused CTest 1/1). Native and full CPU/RAM parity remain open. The model
 adds nothing to the full-C count above; see
 [docs/re/U3C6_04BE_CELL.md](docs/re/U3C6_04BE_CELL.md).
 
+PR #839 adds the complete 327-byte unit `0x6F:+0x032F` picture-merge leaf over
+mapped memory. The corrected head passed strict C11, ASan/UBSan, GCC analyzer,
+and archive-linked focused CTest (1/1). Native differential and full CPU/RAM
+parity remain unverified, so this adds no strict full-C credit. The next
+playable demo gate is an authenticated same-run selected write joined to a
+display/RGB readback and DOS/C parity result. There is no evidence-backed
+calendar ETA for that gate yet; see
+[docs/re/U6F_032F_PICTURE_MERGE.md](docs/re/U6F_032F_PICTURE_MERGE.md).
+
 The target is a faithful, source-level reconstruction of observable game
 behavior. The original Turbo Pascal source cannot be recovered verbatim from
 machine code. A build that merely emulates `START.EXE` and `GAME.OVR`, or a
