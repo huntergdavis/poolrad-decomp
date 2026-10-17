@@ -3,8 +3,9 @@
 This note covers GAME.OVR unit `0x3C6` + `0x0CB9`, public entry 16, as a
 whole function. The run-time stub is `0x3E0:0x70`.
 
-- **Status.** The CPU/RAM model is source-only. It is uncompiled under the
-  host hold and not counted.
+- **Status.** This is a local, source-only CPU/RAM model, not counted. Its
+  tests are synthetic C fixtures: they compile and pass (see Evidence), but
+  there is no native or oracle parity.
 - **Ownership.** Separate relative CLEAR from all 18 queried lanes (PM i14419).
   Local source GO: PM i14426.
 
@@ -138,10 +139,14 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
   visible only in an alias-stop state, at the write that follows `shl di,1`
   at `+0CED`, `+0CFF`, `+0D1A` or `+0DF6`.
 
-## Controls (source only, not yet run)
+## Controls (synthetic C tests)
 
 `tests/recovered/test_overlay_u3c6_0cb9_cpu.c` builds synthetic state with no
-game bytes. It is not wired into CMake and has not been compiled:
+game bytes. It is registered in CMake as `poolrad_overlay_u3c6_0cb9_cpu_tests`,
+linked against `poolrad_recovered` under `BUILD_TESTING`. The tests check
+selected CPU and RAM state against an independent high-level reference and
+hand-derived expectations. They are not a full CPU/RAM oracle and not a
+comparison with the original program.
 
 - **Seeded runs.** 240 seeded table sets are run under both synthetic RETF
   policies (480 runs) and compared with an independent high-level reference:
@@ -202,8 +207,12 @@ game bytes. It is not wired into CMake and has not been compiled:
   The public `+0000` LES seam is unsupported (fail closed), not resolved.
 - **Conventions.** The undefined-flag conventions above.
 - **Overlay dispatch.** The overlay stub dispatch and the caller side.
-- **Evidence.** No compile, test, native or oracle evidence yet. The read-only
-  trace gate attempted on 2026-10-16 was interrupted with no output, and it
-  is neither PASS nor FAIL.
+- **Evidence.** Synthetic C only:
+  - Direct build by the PM at model commit `a47db54`: `cc -std=c11 -O2 -Wall
+    -Wextra -Werror` of model plus test passed 6367 checks.
+  - Independent bounded static reviews: PASS.
+
+  There is no native, emulator-oracle or Unicorn evidence, and no full CPU/RAM
+  equivalence.
 - **Credit.** Callee credit stays with its owners: main's U3C6 `+0000` model,
   the U3C6 slot C for entries 12–15, and the separate `+04BE` head.
