@@ -3,7 +3,8 @@
 This note covers GAME.OVR unit `0x3C6` + `0x04BE`, public entry 6, as a whole
 function. The run-time stub is `0x3E0:0x3E`.
 
-- **Status.** Source-only, uncompiled under the host hold, not counted.
+- **Status.** Local source-only CPU/RAM model, not counted. Its synthetic C
+  test is written but has not been compiled or run at this head.
 - **Ownership.** Relative CLEAR from pF, pN, pP, p5, p9, pV, p6, pC, pG,
   pD, pR and pH (i13226..i13553). PM source-only GO: i13565.
 
@@ -65,27 +66,78 @@ Before self-finding i14647 the model kept ZF and PF.
 
 Files: `include/poolrad/recovered/overlay_u3c6_04be_cpu.h` and
 `src/recovered/overlay_u3c6_04be_cpu.c`, entry point
-`pr_u3c6_04be_cpu_run(ram, ram_size, cpu)`. It uses the full-state precedent
-conventions: 1 MiB A20-off RAM and a 14-register CPU. All 42 instructions run
-in order on live state, with no hooks.
+`pr_u3c6_04be_cpu_run(ram, ram_size, cpu, retf_policy)`. It uses the
+full-state precedent conventions: 1 MiB A20-off RAM and a 14-register CPU. All
+42 instructions run in order on live state, with no hooks.
 
 - **Writes.** The BP push and both stores are alias-checked against the
   loaded body; an aliasing write stops before it.
-- **MUL flags.** CF = OF = (DX ≠ 0). SF, ZF, AF and PF are left unchanged;
-  they are architecturally undefined and are overwritten by the next ADD.
-- **LES.** It follows the pinned DOSBox-X normal core (revision `5a9c7c53`):
-  the segment word is read at linear EA+2, minus 0x10000 when the offset is
-  above 0xFFFC. Only offset 0xFFFD differs from seg:(off+2) (review i13648,
-  C6-1). A physical 8086 or other emulator profile may differ.
+- **MUL flags.** The pinned 386-type normal core (`MULW`) sets ZF = (AX = 0),
+  PF from all 32 product bits and CF = OF = (DX ≠ 0), and keeps SF and AF.
+  This agrees with the section above. Both MULs are followed by an ADD, so
+  none of this can be observed.
+- **LES.** It reads the offset word at EA and the segment word at EA+2.
+  - The `DS:0x6716` operand has a fixed offset and never reaches the seam.
+  - The stack operands `[BP+6]` and `[BP+0xA]` (`+04F4`, `+0511`, `+0519`,
+    `+0520`) at offsets above 0xFFFC fall in an unmeasured profile seam. The
+    pinned DOSBox-X source would read EA+2−0x10000 there, but no receipt
+    exists. The model stops **before** that LES with status
+    `UNSUPPORTED_LES_SEAM`, IP at the LES offset and earlier effects kept
+    (PM i16879, after pV i16876 F3).
+- **Stack words.** PUSH BP, POP BP and the return-IP word are read and written
+  physically contiguous (high byte at linear+1), even across SS:`FFFF`. This
+  is a declared synthetic profile assumption (pV F2).
+- **RETF policy.** The `RETF 0xC` at `+0528` follows one caller-declared
+  policy with the values and meaning of the public U3C6 `+0000` model
+  (PR #629), as in `+0CB9` (PR #833).
+  - `UNMEASURED` stops at `+0528` after `POP BP`, with `RETURN_PENDING` and
+    both stores kept.
+  - `WRAPPED_SS` reads CS at SS:(SP+2) with the offset wrapped.
+  - `CONTIGUOUS_PHYSICAL` reads CS two linear bytes above the IP word.
+  - The last two are synthetic. They differ only when the return IP word sits
+    at SS:`FFFE`/`FFFF`.
 - **Alias stops.** An aliasing store stops with IP at that store's offset
-  (`+04F7`, `+0514`, `+051C` or `+0523`; review C6-2).
+  (`+04F7`, `+0514`, `+051C` or `+0523`; review C6-2). An aliasing BP push
+  stops at `+04BE` with nothing changed.
+
+## Controls (synthetic C test, not yet compiled)
+
+`tests/recovered/test_overlay_u3c6_04be_cpu.c` is registered in CMake as
+`poolrad_overlay_u3c6_04be_cpu_tests`. It uses synthetic state only and
+counting, NDEBUG-safe checks.
+
+- **In range.** Corner and middle cells under both synthetic profiles. The
+  test checks both stores, the full exit registers, and the flags of the
+  final ADD against an independent formula.
+- **Out of range.** Five cases, including x = 0x80. Both stores are 0, in
+  order; AX, CX and DX are unchanged; the flags are those of the failing CMP.
+- **Live re-reads.**
+  - The `*A` store aliasing the row byte gives DX = 0x0031 and a 16-bit
+    wrapped B index.
+  - The `*A` store aliasing B's offset word gives B at the rewritten offset.
+- **LES seam stops.**
+  - In range: at `+04F4` with nothing stored, and at `+0511` after `*A`.
+  - Out of range: at `+0519` with nothing stored, and at `+0520` after
+    `*B := 0`.
+  - The `FFFC` neighbour runs.
+- **Stack edge.** Entry SP 1 puts the BP word at SS:`FFFF` plus linear
+  +0x10000, and BP is restored.
+- **Code-alias stops** at each store, at the BP push (including a word that
+  straddles into the body), and at the neighbours.
+- **`UNMEASURED`** gives `RETURN_PENDING` at `+0528`.
+- **Return frames** at SS:`FFFD`/`FFFE`/`FFFF`, using decoys.
+- **Arguments.** NULL pointers, a wrong size, a wrong IP or an undeclared
+  policy give `ARGUMENT`, with the CPU and RAM unchanged.
 
 ## Unresolved
 
-- No compile, test, checker, native or oracle evidence yet.
-- MUL's undefined flags (unobservable here) and the LES wrap profile
-  conventions.
-- The overlay stub dispatch into the entry.
+- **Evidence.** No compile, test, native or oracle evidence at this head.
+  This body is also folded inside the merged `+0CB9` model (PR #833), whose
+  synthetic test passed.
+- **Profile assumptions.** The stack-operand LES seam is unsupported (fails
+  closed), not resolved. The contiguous stack-word rule and the two
+  successful RETF profiles are synthetic.
+- **Overlay dispatch.** The overlay stub dispatch into the entry.
 
 - **Profile switches.** The LES/LDS rule above holds only for the DOSBox-X
   normal core at revision `5a9c7c53481c2e933948039c33256776653f4faf`,

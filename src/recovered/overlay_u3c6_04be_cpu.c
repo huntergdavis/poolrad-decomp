@@ -97,6 +97,8 @@ static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) |
 /* LES di,[seg:off] in the pinned DOSBox-X normal-core profile: the offset word
  * at linear EA, the segment word at linear EA+2, minus 0x10000 when the
  * offset is above 0xFFFC (only offset 0xFFFD differs from seg:(off+2)). */
+/* nonzero when a stack LES operand offset is in the unmeasured seam FFFD..FFFF */
+static int les_seam(uint16_t off) { return off > 0xFFFCu; }
 static void les(const uint8_t *ram, cpu_t *c, uint16_t seg, uint16_t off)
 {
     size_t ea = phys(seg, off);
@@ -105,11 +107,15 @@ static void les(const uint8_t *ram, cpu_t *c, uint16_t seg, uint16_t off)
     c->es = (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
 }
 
-pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u3c6_04be_cpu *cpu)
+pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u3c6_04be_cpu *cpu,
+                                             pr_u3c6_04be_retf_policy retf_policy)
 {
     cpu_t *c = cpu;
     uint16_t cs0;
-    if (ram == NULL || c == NULL || ram_size != PR_U3C6_04BE_CPU_RAM_SIZE || c->ip != BODY_START)
+    size_t at, cs_at;
+    if (ram == NULL || c == NULL || ram_size != PR_U3C6_04BE_CPU_RAM_SIZE || c->ip != BODY_START ||
+        (retf_policy != PR_U3C6_04BE_RETF_UNMEASURED && retf_policy != PR_U3C6_04BE_RETF_WRAPPED_SS &&
+         retf_policy != PR_U3C6_04BE_RETF_CONTIGUOUS_PHYSICAL))
         return PR_U3C6_04BE_CPU_ARGUMENT;
     cs0 = c->cs;
 
@@ -138,6 +144,7 @@ pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u
     c->di = add16(c, c->di, c->ax);                                      /* +04EC add di,ax */
     c->di = add16(c, c->di, c->cx);                                      /* +04EE add di,cx */
     set_al(c, rd8(ram, c->es, (uint16_t)(c->di + 7u)));                  /* +04F0 mov al,es:[di+7] */
+    if (les_seam((uint16_t)(c->bp + 6u))) goto seam_04f4;
     les(ram, c, c->ss, (uint16_t)(c->bp + 6u));                          /* +04F4 les di,[bp+6] */
     if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0) {          /* +04F7 mov es:[di],al */
         c->ip = 0x04F7u;
@@ -153,6 +160,7 @@ pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u
     c->di = c->ax;                                                       /* +0509 mov di,ax */
     c->di = add16(c, c->di, c->cx);                                      /* +050B add di,cx */
     set_al(c, rd8(ram, c->ds, (uint16_t)(c->di + 0x60DBu)));             /* +050D mov al,[di+0x60DB] */
+    if (les_seam((uint16_t)(c->bp + 0x0Au))) { c->ip = 0x0511u; return PR_U3C6_04BE_CPU_UNSUPPORTED_LES_SEAM; }
     les(ram, c, c->ss, (uint16_t)(c->bp + 0x0Au));                       /* +0511 les di,[bp+0xA] */
     if (put8(ram, c, cs0, c->es, c->di, (uint8_t)c->ax) != 0) {          /* +0514 mov es:[di],al */
         c->ip = 0x0514u;
@@ -161,11 +169,13 @@ pr_u3c6_04be_cpu_status pr_u3c6_04be_cpu_run(uint8_t *ram, size_t ram_size, pr_u
     goto done;                                                           /* +0517 jmp +0527 */
 
 out_of_range:
+    if (les_seam((uint16_t)(c->bp + 0x0Au))) { c->ip = 0x0519u; return PR_U3C6_04BE_CPU_UNSUPPORTED_LES_SEAM; }
     les(ram, c, c->ss, (uint16_t)(c->bp + 0x0Au));                       /* +0519 les di,[bp+0xA] */
     if (put8(ram, c, cs0, c->es, c->di, 0u) != 0) {                      /* +051C mov byte es:[di],0 */
         c->ip = 0x051Cu;
         return PR_U3C6_04BE_CPU_UNSCREENED_ALIAS;
     }
+    if (les_seam((uint16_t)(c->bp + 6u))) { c->ip = 0x0520u; return PR_U3C6_04BE_CPU_UNSUPPORTED_LES_SEAM; }
     les(ram, c, c->ss, (uint16_t)(c->bp + 6u));                          /* +0520 les di,[bp+6] */
     if (put8(ram, c, cs0, c->es, c->di, 0u) != 0) {                      /* +0523 mov byte es:[di],0 */
         c->ip = 0x0523u;
@@ -175,8 +185,17 @@ out_of_range:
 done:
     c->bp = rd16(ram, c->ss, c->sp);                                     /* +0527 pop bp */
     c->sp = (uint16_t)(c->sp + 2u);
-    c->ip = rd16(ram, c->ss, c->sp);                                     /* +0528 retf 0xC */
-    c->cs = rd16(ram, c->ss, (uint16_t)(c->sp + 2u));
+    c->ip = 0x0528u;                                                     /* +0528 retf 0xC, by policy */
+    if (retf_policy == PR_U3C6_04BE_RETF_UNMEASURED) return PR_U3C6_04BE_CPU_RETURN_PENDING;
+    at = phys(c->ss, c->sp);
+    cs_at = retf_policy == PR_U3C6_04BE_RETF_WRAPPED_SS ? phys(c->ss, (uint16_t)(c->sp + 2u))
+                                                        : (at + 2u) & MASK;
+    c->ip = (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
+    c->cs = (uint16_t)(ram[cs_at] | ((uint16_t)ram[(cs_at + 1u) & MASK] << 8));
     c->sp = (uint16_t)(c->sp + 4u + 0x0Cu);
     return PR_U3C6_04BE_CPU_RETURNED;
+
+seam_04f4:
+    c->ip = 0x04F4u;
+    return PR_U3C6_04BE_CPU_UNSUPPORTED_LES_SEAM;
 }
