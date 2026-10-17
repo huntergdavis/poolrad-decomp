@@ -13,4 +13,4 @@ jobs:
         with:
           python-version: '3.11'
       - name: Check synthetic same-run visual witness contracts
-        run: python3 -m unittest tests.replay.test_u19_visual_witness tests.replay.test_cold_start_codeword_row14_event_plan tests.replay.test_cold_start_codeword_row14_host_snapshot_gate
+        run: python3 -m unittest tests.replay.test_u19_visual_witness tests.replay.test_cold_start_codeword_row14_event_plan tests.replay.test_cold_start_codeword_row14_host_snapshot_gate tests.replay.test_cold_start_codeword_row14_supplied_rgb_projection_v2
