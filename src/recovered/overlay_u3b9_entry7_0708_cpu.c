@@ -43,6 +43,14 @@ static uint16_t pop16(const uint8_t *ram, cpu_t *c)
 }
 static void set_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
 static void set_cl(cpu_t *c, uint8_t v) { c->cx = (uint16_t)((c->cx & 0xFF00u) | v); }
+/* LES/LDS segment word in the pinned DOSBox-X normal-core profile: linear
+ * EA+2, minus 0x10000 when the pointer's offset is above 0xFFFC (only offset
+ * 0xFFFD differs from seg:(off+2)). */
+static uint16_t les_seg(const uint8_t *ram, uint16_t seg, uint16_t ea_off)
+{
+    size_t at = (phys(seg, ea_off) + 2u - (ea_off > 0xFFFCu ? 0x10000u : 0u)) & MASK;
+    return (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
+}
 
 /* ---- flags ---- */
 static uint16_t parity(uint8_t v)
@@ -130,9 +138,9 @@ static pr_u3b9_0708_cpu_status fold_copy(uint8_t *ram, cpu_t *c, uint16_t seg, u
     c->bx = c->sp;                                           /* +0A3F mov bx,sp */
     c->dx = c->ds;                                           /* +0A41 mov dx,ds */
     c->si = rd16(ram, c->ss, (uint16_t)(c->bx + 0x0Au));     /* +0A43 lds si,ss:[bx+0xA] */
-    c->ds = rd16(ram, c->ss, (uint16_t)(c->bx + 0x0Cu));
+    c->ds = les_seg(ram, c->ss, (uint16_t)(c->bx + 0x0Au));
     c->di = rd16(ram, c->ss, (uint16_t)(c->bx + 6u));        /* +0A47 les di,ss:[bx+6] */
-    c->es = rd16(ram, c->ss, (uint16_t)(c->bx + 8u));
+    c->es = les_seg(ram, c->ss, (uint16_t)(c->bx + 6u));
     c->cx = rd16(ram, c->ss, (uint16_t)(c->bx + 4u));        /* +0A4B mov cx,ss:[bx+4] */
     c->flags = (uint16_t)(c->flags & (uint16_t)~F_DF);       /* +0A4F cld */
     while (c->cx != 0u) {                                    /* +0A50 rep movsb */
@@ -252,7 +260,7 @@ pr_u3b9_0708_cpu_status pr_u3b9_0708_cpu_run(
     c->bp = c->sp;                                           /* +0709 mov bp,sp */
     c->sp = sub16(c, c->sp, 0x46u);                          /* +070B sub sp,0x46 */
     c->di = rd16(ram, c->ss, (uint16_t)(c->bp + 6u));        /* +070E les di,[bp+6] */
-    c->es = rd16(ram, c->ss, (uint16_t)(c->bp + 8u));
+    c->es = les_seg(ram, c->ss, (uint16_t)(c->bp + 6u));
     push16(ram, c, c->es);                                   /* +0711 push es */
     push16(ram, c, c->di);                                   /* +0712 push di */
     c->di = (uint16_t)(c->bp - 0x42u);                       /* +0713 lea di,[bp-0x42] */
@@ -301,18 +309,18 @@ pr_u3b9_0708_cpu_status pr_u3b9_0708_cpu_run(
         {
             uint16_t at = (uint16_t)(c->bp + c->di - 0x44u);
             c->di = rd16(ram, c->ss, at);                    /* +076C les di,[bp+di-0x44] */
-            c->es = rd16(ram, c->ss, (uint16_t)(at + 2u));
+            c->es = les_seg(ram, c->ss, at);
         }
         wr16(ram, c->ss, (uint16_t)(c->bp - 0x46u), c->di);  /* +076F mov [bp-0x46],di */
         wr16(ram, c->ss, (uint16_t)(c->bp - 0x44u), c->es);  /* +0772 mov [bp-0x44],es */
         c->di = rd16(ram, c->ss, (uint16_t)(c->bp - 0x46u)); /* +0775 les di,[bp-0x46] */
-        c->es = rd16(ram, c->ss, (uint16_t)(c->bp - 0x44u));
+        c->es = les_seg(ram, c->ss, (uint16_t)(c->bp - 0x46u));
         c->ax = rd16(ram, c->es, (uint16_t)(c->di + 4u));    /* +0778 mov ax,es:[di+4] */
         c->ax = add16(c, c->ax, 3u);                         /* +077C add ax,3 */
         c->ax = dec16(c, c->ax);                             /* +077F dec ax */
         push16(ram, c, c->ax);                               /* +0780 push ax (x) */
         c->di = rd16(ram, c->ss, (uint16_t)(c->bp - 0x46u)); /* +0781 les di,[bp-0x46] */
-        c->es = rd16(ram, c->ss, (uint16_t)(c->bp - 0x44u));
+        c->es = les_seg(ram, c->ss, (uint16_t)(c->bp - 0x46u));
         c->ax = rd16(ram, c->es, (uint16_t)(c->di + 6u));    /* +0784 mov ax,es:[di+6] */
         c->ax = add16(c, c->ax, 3u);                         /* +0788 add ax,3 */
         c->ax = dec16(c, c->ax);                             /* +078B dec ax */

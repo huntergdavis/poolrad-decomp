@@ -185,3 +185,10 @@ function runs on live state.
   - the undefined-flag conventions;
   - the overlay stub dispatch;
   - no compile, native or oracle evidence.
+
+- **LES/LDS profile.** Every LES/LDS (entry body and folded SYSTEM
+  bodies) follows the pinned DOSBox-X normal core (revision `5a9c7c53`):
+  the segment word is read at linear EA+2, minus 0x10000 when the offset is
+  above 0xFFFC. Only offset 0xFFFD differs from seg:(off+2) (PM i13698,
+  after reviews i13200 B1 and i13647/i13648 C6-1). A physical 8086 or other
+  emulator profile may differ.
