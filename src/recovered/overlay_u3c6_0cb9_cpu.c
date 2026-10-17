@@ -24,6 +24,7 @@ typedef struct {
     uint8_t *ram;
     cpu_t *c;
     uint16_t cs; /* the loaded code segment of the unit (entry CS) */
+    pr_u3c6_0cb9_retf_policy policy; /* entry 1's +0065 RETF 0xC */
 } ctx_t;
 
 static size_t phys(uint16_t seg, uint16_t off) { return (((size_t)seg << 4) + off) & MASK; }
@@ -76,12 +77,22 @@ static uint16_t pop16(ctx_t *x)
     x->c->sp = (uint16_t)(x->c->sp + 2u);
     return v;
 }
-static void retf(ctx_t *x, uint16_t n)
+/* RETF n at retf_ip under the declared policy (public +0000 contract):
+ * UNMEASURED stops before it (IP = retf_ip, RETURN_PENDING); WRAPPED_SS reads
+ * CS at SS:(SP+2) with the offset wrapped; CONTIGUOUS_PHYSICAL reads CS two
+ * linear bytes above the IP word. The IP word is byte-contiguous in both. */
+static status_t retf(ctx_t *x, uint16_t n, uint16_t retf_ip)
 {
     cpu_t *c = x->c;
-    c->ip = rd16(x, c->ss, c->sp);
-    c->cs = rd16(x, c->ss, (uint16_t)(c->sp + 2u));
+    size_t at = phys(c->ss, c->sp), cs_at;
+    c->ip = retf_ip;
+    if (x->policy == PR_U3C6_0CB9_RETF_UNMEASURED) return PR_U3C6_0CB9_CPU_RETURN_PENDING;
+    cs_at = x->policy == PR_U3C6_0CB9_RETF_WRAPPED_SS ? phys(c->ss, (uint16_t)(c->sp + 2u))
+                                                      : (at + 2u) & MASK;
+    c->ip = (uint16_t)(x->ram[at] | ((uint16_t)x->ram[(at + 1u) & MASK] << 8));
+    c->cs = (uint16_t)(x->ram[cs_at] | ((uint16_t)x->ram[(cs_at + 1u) & MASK] << 8));
     c->sp = (uint16_t)(c->sp + 4u + n);
+    return PR_U3C6_0CB9_CPU_RETURNED;
 }
 /* PUSH CS at push_ip, then CALL near at call_ip (pushes ret); IP := target */
 static int call_near(ctx_t *x, uint16_t push_ip, uint16_t call_ip, uint16_t ret, uint16_t target)
@@ -250,8 +261,7 @@ leave:
     set_al(c, rd8(x, c->ss, BP(-1)));                                    /* +0CB0 mov al,[bp-1] */
     c->sp = c->bp;                                                       /* +0CB3 mov sp,bp */
     c->bp = pop16(x);                                                    /* +0CB5 pop bp */
-    retf(x, 4u);                                                         /* +0CB6 retf 4 */
-    return PR_U3C6_0CB9_CPU_RETURNED;
+    return retf(x, 4u, 0x0CB6u);                                         /* +0CB6 retf 4 */
 }
 
 /* entry 1, +0000: the offset pair for direction [bp+0xE] of class [bp+0x10] */
@@ -298,8 +308,7 @@ leave:
     set_al(c, rd8(x, c->ss, BP(-1)));                                    /* +005F mov al,[bp-1] */
     c->sp = c->bp;                                                       /* +0062 mov sp,bp */
     c->bp = pop16(x);                                                    /* +0064 pop bp */
-    retf(x, 0x0Cu);                                                      /* +0065 retf 0xC */
-    return PR_U3C6_0CB9_CPU_RETURNED;
+    return retf(x, 0x0Cu, 0x0065u);                                      /* +0065 retf 0xC */
 }
 
 /* entry 6, +04BE: the two cell bytes at column [bp+0x10], row [bp+0xE] */
@@ -349,8 +358,7 @@ out_of_range:
     TRY(put8(x, c->es, c->di, 0u, 0x0523u));                             /* +0523 mov byte es:[di],0 */
 leave:
     c->bp = pop16(x);                                                    /* +0527 pop bp */
-    retf(x, 0x0Cu);                                                      /* +0528 retf 0xC */
-    return PR_U3C6_0CB9_CPU_RETURNED;
+    return retf(x, 0x0Cu, 0x0528u);                                      /* +0528 retf 0xC */
 }
 
 /* SHL DI,1 twice after MOV DI,AX: DI = 4 * AX with the flags of the second shift */
@@ -361,16 +369,20 @@ static void di_times4(cpu_t *c)
     c->di = shl16(c, c->di, 1u);
 }
 
-pr_u3c6_0cb9_cpu_status pr_u3c6_0cb9_cpu_run(uint8_t *ram, size_t ram_size, pr_u3c6_0cb9_cpu *cpu)
+pr_u3c6_0cb9_cpu_status pr_u3c6_0cb9_cpu_run(uint8_t *ram, size_t ram_size, pr_u3c6_0cb9_cpu *cpu,
+                                             pr_u3c6_0cb9_retf_policy retf_policy)
 {
     ctx_t ctx, *x = &ctx;
     cpu_t *c = cpu;
     status_t st;
-    if (ram == NULL || c == NULL || ram_size != PR_U3C6_0CB9_CPU_RAM_SIZE || c->ip != 0x0CB9u)
+    if (ram == NULL || c == NULL || ram_size != PR_U3C6_0CB9_CPU_RAM_SIZE || c->ip != 0x0CB9u ||
+        (retf_policy != PR_U3C6_0CB9_RETF_UNMEASURED && retf_policy != PR_U3C6_0CB9_RETF_WRAPPED_SS &&
+         retf_policy != PR_U3C6_0CB9_RETF_CONTIGUOUS_PHYSICAL))
         return PR_U3C6_0CB9_CPU_ARGUMENT;
     x->ram = ram;
     x->c = c;
     x->cs = c->cs;
+    x->policy = retf_policy;
 
     TRY(push16(x, c->bp, 0x0CB9u));                                      /* +0CB9 push bp */
     c->bp = c->sp;                                                       /* +0CBA mov bp,sp */
@@ -419,6 +431,14 @@ body:
     c->di = BP(-0x0B);                                                   /* +0D24 lea di,[bp-0xB] */
     TRY(push16(x, c->ss, 0x0D27u));                                      /* +0D27 push ss */
     TRY(push16(x, c->di, 0x0D28u));                                      /* +0D28 push di */
+    /* Entry 1 will LES its [bp+6] / [bp+0xA] operands at SS:SP / SS:(SP+4) of
+     * this point. The public +0000 model reads their segment words at linear
+     * EA+2 where the pinned profile reads EA+2-0x10000 (offsets FFFD..FFFF):
+     * fail closed before the transfer rather than silently differ. */
+    if (c->sp > 0xFFFCu || (uint16_t)(c->sp + 4u) > 0xFFFCu) {
+        c->ip = 0x0D29u;
+        return PR_U3C6_0CB9_CPU_UNSUPPORTED_LES_SEAM;
+    }
     TRY(call_near(x, 0x0D29u, 0x0D2Au, 0x0D2Du, 0x0000u));               /* +0D29 push cs; +0D2A call +0000 */
     if ((st = entry1_0000(x)) != PR_U3C6_0CB9_CPU_RETURNED) return st;
     if (!back_at(x, 0x0D2Du)) return PR_U3C6_0CB9_CPU_RETURN_CHANGED;
@@ -518,6 +538,5 @@ test_i:
 
     c->sp = c->bp;                                                       /* +0E0B mov sp,bp */
     c->bp = pop16(x);                                                    /* +0E0D pop bp */
-    retf(x, 0x0Eu);                                                      /* +0E0E retf 0xE */
-    return PR_U3C6_0CB9_CPU_RETURNED;
+    return retf(x, 0x0Eu, 0x0E0Eu);                                      /* +0E0E retf 0xE */
 }

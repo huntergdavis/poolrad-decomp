@@ -74,7 +74,7 @@ whole function. The run-time stub is `0x3E0:0x70`.
 Files:
 - `include/poolrad/recovered/overlay_u3c6_0cb9_cpu.h`;
 - `src/recovered/overlay_u3c6_0cb9_cpu.c`, entry point
-  `pr_u3c6_0cb9_cpu_run(ram, ram_size, cpu)`.
+  `pr_u3c6_0cb9_cpu_run(ram, ram_size, cpu, retf_policy)`.
 
 The model uses the full-state precedent conventions: 1 MiB A20-off RAM and a
 14-register CPU. All instructions of the body and of the three folded callees
@@ -85,6 +85,36 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
 - **Returns.** After each folded RETF the model checks that CS:IP is the pushed
   return. Otherwise the status is `RETURN_CHANGED`, with the popped values in
   CS:IP.
+- **RETF policy** (PM i16589, i16601). Every RETF the model executes follows
+  one caller-declared policy:
+  - entry 15 `+0CB6`;
+  - entry 1 `+0065`;
+  - entry 6 `+0528`;
+  - the body's own `+0E0E`.
+
+  The policy has the values and meaning of the merged public `+0000` model
+  (`overlay_u3c6_table_pair_0000.h` blob `9a7287ed…`, `.c` blob
+  `6174a4a6…`, PR #629, lines 92–100). It is mirrored as
+  `pr_u3c6_0cb9_retf_policy`, without including that header.
+  - `UNMEASURED` fails closed. The model stops before the first RETF it
+    reaches (entry 15's `+0CB6` on every run), after the preceding `POP BP`,
+    with status `RETURN_PENDING`, IP = that RETF, and every earlier effect
+    kept.
+  - `WRAPPED_SS` reads the return IP word at SS:SP and the CS word at
+    SS:(SP+2) with the offset wrapped.
+  - `CONTIGUOUS_PHYSICAL` reads the CS word two linear bytes above the IP
+    word.
+
+  The last two are declared synthetic candidates, not native facts. They
+  differ only when a return IP word sits at SS:`FFFE` or SS:`FFFF`; at
+  SS:`FFFD` both read CS at SS:`FFFF`. Nothing is read the `WRAPPED_SS` way
+  silently any more.
+- **Public `+0000` LES seam: fail closed.** The public model's `les` reads
+  its segment word at linear EA+2 for every offset. The pinned profile reads
+  EA+2−0x10000 for offsets `FFFD`–`FFFF`. Entry 1's `[bp+6]` and `[bp+0xA]`
+  sit at SS:SP and SS:(SP+4) of the body's `+0D29`. When either would fall
+  at `FFFD`–`FFFF`, the model stops before the transfer, with IP = `0D29`
+  and status `UNSUPPORTED_LES_SEAM`, instead of choosing one reading.
 - **Alias stops.** Every write, including pushes, is checked per byte against
   `[0000,0068)`, `[04BE,052B)` and `[0C5F,0E11)` at the entry CS. The model
   stops before an aliasing byte, with IP naming the instruction.
@@ -113,10 +143,36 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
 `tests/recovered/test_overlay_u3c6_0cb9_cpu.c` builds synthetic state with no
 game bytes. It is not wired into CMake and has not been compiled:
 
-- **Seeded runs.** 240 seeded table sets are compared with an independent
-  high-level reference: `*P6`, `*P10`, slot, best rank and step counter. Each
-  run also checks the frame: CS:IP is the return, SP is the entry SP + 4 +
-  0xE, BP and the saved BP are intact, and the flags are `0x0046`.
+- **Seeded runs.** 240 seeded table sets are run under both synthetic RETF
+  policies (480 runs) and compared with an independent high-level reference:
+  `*P6`, `*P10`, slot, best rank and step counter. Each run also checks the
+  frame: CS:IP is the return, SP is the entry SP + 4 + 0xE, BP and the saved
+  BP are intact, and the flags are `0x0046`.
+- **Early `UNMEASURED` stop.** The run returns `RETURN_PENDING` at
+  CS:`0CB6` (entry 15), with:
+  - SP on the pushed IP `0CDB` (SS:`7FD8`), CS above it, and the body's BP
+    restored;
+  - AL = slot;
+  - `*P6` = 0x17, `*P10` = 0, and best rank still 1.
+- **Folded-RETF wrap discriminator.** With entry SP = `0x001C`, entry 1's
+  return IP sits at SS:`FFFE` and its pushed CS at SS:`0000`. A decoy
+  `0xBEEF` is placed at linear SS·16 + 0x10000. `WRAPPED_SS` completes with
+  the reference outputs. `CONTIGUOUS_PHYSICAL` stops with `RETURN_CHANGED`,
+  CS = `0xBEEF`, IP = `0D2D` and SP = `0x000E`.
+- **Body RETF at SS:`FFFD`/`FFFE`/`FFFF`.** Entry SP is `FFFD`, `FFFE` or
+  `FFFF`, with the caller frame pushed word by word. A decoy is placed at
+  linear SS·16 + 0x10000 (for `FFFE`) or + 0x10001 (for `FFFF`).
+  - Both profiles return to the caller at `FFFD`.
+  - At `FFFE` and `FFFF`, `WRAPPED_SS` returns to the caller's CS and
+    `CONTIGUOUS_PHYSICAL` returns to CS `0xBEEF`.
+  - IP and SP = entry SP + 18 are the same in all cases, and the outputs
+    match the reference.
+- **LES seam sweep.** Entry SP runs `0x0012`–`0x0019`. The six cases that put
+  entry 1's `[bp+6]` or `[bp+0xA]` at `FFFD`–`FFFF` stop with
+  `UNSUPPORTED_LES_SEAM` at `0D29`, with SP = entry SP − 0x1A, `*P6` = 0x17,
+  `*P10` = 0 and step counter 0. The neighbours `0x0012` and `0x0016`
+  (operands at `FFF8`/`FFFC` and `FFFC`/`0000`) complete with the reference
+  outputs.
 - **Write set.** Every changed byte must be inside `SS:[0x7FC0,0x7FEE)` (the
   frame and callee scratch) or be `*P6`/`*P10`.
 - **Code-alias boundaries.** P6 or P10 is placed on the first and last byte
@@ -127,8 +183,8 @@ game bytes. It is not wired into CMake and has not been compiled:
   `+0CC9` store rewrites the pointer, and the later `+0DB5` store must land at
   the new address. A cached-pointer model would write back over the frame
   instead.
-- **Arguments.** NULL pointers, a wrong size or a wrong IP give `ARGUMENT`
-  with the CPU unchanged.
+- **Arguments.** NULL pointers, a wrong size, a wrong IP or an undeclared
+  policy value give `ARGUMENT`, with the CPU and RAM unchanged.
 
 ## Unresolved
 
@@ -139,9 +195,11 @@ game bytes. It is not wired into CMake and has not been compiled:
   - `do_lds_wraparound` = true;
   - `cpu.code.big` = false.
 
-  Word accesses are physically consecutive (high byte at linear+1). Main's
-  U3C6 `+0000` model leaves its RETF stack-wrap policy unmeasured; here
-  physically consecutive access is a profile assumption, not a native finding.
+  Word accesses are physically consecutive (high byte at linear+1); this is a
+  profile assumption, not a native finding. All RETFs are caller-selected:
+  `UNMEASURED` fails closed, and the two synthetic profiles stay unmeasured
+  candidates until configuration or native evidence decides between them.
+  The public `+0000` LES seam is unsupported (fail closed), not resolved.
 - **Conventions.** The undefined-flag conventions above.
 - **Overlay dispatch.** The overlay stub dispatch and the caller side.
 - **Evidence.** No compile, test, native or oracle evidence yet. The read-only

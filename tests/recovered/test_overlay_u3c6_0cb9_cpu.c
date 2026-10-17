@@ -47,11 +47,13 @@ typedef struct {
     uint8_t k;
 } args_t;
 
-static void enter(pr_u3c6_0cb9_cpu *c, const args_t *a)
+/* caller frame pushed word by word (byte-contiguous words, as PUSH does) so
+ * that SS:SP = entry_sp on the return IP */
+static void enter_at(pr_u3c6_0cb9_cpu *c, const args_t *a, uint16_t entry_sp)
 {
     const uint16_t words[9] = {a->q_seg, a->q_off, a->k, a->p10_seg, a->p10_off,
                                a->p6_seg, a->p6_off, RET_CS, RET_IP};
-    uint16_t sp = SP0;
+    uint16_t sp = (uint16_t)(entry_sp + 18u);
     unsigned i;
     for (i = 0; i < 9; i++) {
         sp = (uint16_t)(sp - 2u);
@@ -63,6 +65,7 @@ static void enter(pr_u3c6_0cb9_cpu *c, const args_t *a)
     c->cs = CSEG; c->ip = 0x0CB9u; c->ds = DSEG; c->es = 0x9999u; c->ss = SSEG;
     c->flags = 0x0002u;
 }
+static void enter(pr_u3c6_0cb9_cpu *c, const args_t *a) { enter_at(c, a, ENTRY_SP); }
 
 /* entry 15 */
 static uint8_t ref_slot(const args_t *a)
@@ -170,10 +173,14 @@ static int write_set_ok(void)
     return 1;
 }
 
+/* away from the SS wrap both declared synthetic RETF profiles must agree */
 static void reference_runs(void)
 {
-    unsigned seed;
-    for (seed = 1; seed <= 240u; seed++) {
+    static const pr_u3c6_0cb9_retf_policy policies[2] = {
+        PR_U3C6_0CB9_RETF_WRAPPED_SS, PR_U3C6_0CB9_RETF_CONTIGUOUS_PHYSICAL};
+    unsigned n;
+    for (n = 0; n < 2u * 240u; n++) {
+        unsigned seed = 1u + n % 240u;
         pr_u3c6_0cb9_cpu c;
         args_t a;
         uint8_t e6, e10, ebest, eslot;
@@ -182,7 +189,7 @@ static void reference_runs(void)
         reference(&a, &e6, &e10, &ebest, &eslot);
         enter(&c, &a);
         memcpy(before, ram, sizeof ram);
-        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c);
+        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, policies[n / 240u]);
         CHECK(seed, st == PR_U3C6_0CB9_CPU_RETURNED);
         CHECK(seed, c.cs == RET_CS && c.ip == RET_IP);           /* retf 0xE frame */
         CHECK(seed, c.sp == SP0);
@@ -218,7 +225,7 @@ static void code_alias_controls(void)
         else { a.p6_seg = CSEG; a.p6_off = cases[n].off; }
         w8(CSEG, cases[n].off, 0xCCu);
         enter(&c, &a);
-        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c);
+        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS);
         if (cases[n].stop_ip == 0) {
             CHECK(tag, st == PR_U3C6_0CB9_CPU_RETURNED);
             continue;
@@ -247,7 +254,7 @@ static void self_alias_control(void)
     w8(DSEG, 0x5F2Eu, 1u);                                       /* class of slot 1 */
     w8(SSEG, 0x7F17u, 0x55u);
     enter(&c, &a);
-    st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c);
+    st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS);
     CHECK(2000u, st == PR_U3C6_0CB9_CPU_RETURNED && c.sp == SP0);
     CHECK(2000u, r8(SSEG, (uint16_t)(FRAME_BP + 6u)) == 0x17u);    /* the +0CC9 store */
     CHECK(2000u, r8(SSEG, (uint16_t)(FRAME_BP + 7u)) == 0x7Fu);
@@ -261,13 +268,135 @@ static void argument_controls(void)
     tables(3u, &a);
     enter(&c, &a);
     keep = c;
-    CHECK(3000u, pr_u3c6_0cb9_cpu_run(NULL, sizeof ram, &c) == PR_U3C6_0CB9_CPU_ARGUMENT);
-    CHECK(3001u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram - 1u, &c) == PR_U3C6_0CB9_CPU_ARGUMENT);
-    CHECK(3002u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, NULL) == PR_U3C6_0CB9_CPU_ARGUMENT);
+    memcpy(before, ram, sizeof ram);
+    CHECK(3000u, pr_u3c6_0cb9_cpu_run(NULL, sizeof ram, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS) ==
+                     PR_U3C6_0CB9_CPU_ARGUMENT);
+    CHECK(3001u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram - 1u, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS) ==
+                     PR_U3C6_0CB9_CPU_ARGUMENT);
+    CHECK(3002u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, NULL, PR_U3C6_0CB9_RETF_WRAPPED_SS) ==
+                     PR_U3C6_0CB9_CPU_ARGUMENT);
+    CHECK(3003u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, (pr_u3c6_0cb9_retf_policy)3) ==
+                     PR_U3C6_0CB9_CPU_ARGUMENT);                     /* undeclared policy */
     c.ip = 0x0CBAu;
-    CHECK(3003u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c) == PR_U3C6_0CB9_CPU_ARGUMENT);
+    CHECK(3004u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS) ==
+                     PR_U3C6_0CB9_CPU_ARGUMENT);
     c.ip = keep.ip;
-    CHECK(3004u, memcmp(&c, &keep, sizeof c) == 0);
+    CHECK(3005u, memcmp(&c, &keep, sizeof c) == 0);
+    CHECK(3005u, memcmp(ram, before, sizeof ram) == 0);
+}
+
+/* UNMEASURED fails closed at the first RETF reached, entry 15's RETF 4
+ * (+0CB6): after its POP BP, before the return; earlier effects are kept */
+static void unmeasured_control(void)
+{
+    pr_u3c6_0cb9_cpu c;
+    args_t a;
+    uint8_t e6, e10, ebest, eslot;
+    tables(5u, &a);
+    reference(&a, &e6, &e10, &ebest, &eslot);
+    enter(&c, &a);
+    CHECK(4000u, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, PR_U3C6_0CB9_RETF_UNMEASURED) ==
+                     PR_U3C6_0CB9_CPU_RETURN_PENDING);
+    CHECK(4000u, c.cs == CSEG && c.ip == 0x0CB6u);               /* entry 15's RETF 4, first reached */
+    CHECK(4000u, c.bp == FRAME_BP && c.sp == 0x7FD8u);           /* SP on the pushed IP 0x0CDB */
+    CHECK(4000u, r16(SSEG, 0x7FD8u) == 0x0CDBu && r16(SSEG, 0x7FDAu) == CSEG);
+    CHECK(4000u, (uint8_t)c.ax == eslot);                        /* +0CB0 mov al,[bp-1] */
+    CHECK(4000u, r8(OSEG, 0x0010u) == 0x17u && r8(OSEG, 0x0020u) == 0x00u); /* +0CC9 / +0CC2 */
+    CHECK(4000u, r8(SSEG, FRAME_BP - 5u) == 1u);                 /* +0CCD done, +0CDB not reached */
+}
+
+/* WRAPPED_SS vs CONTIGUOUS_PHYSICAL at a folded RETF: entry SP 0x001C puts
+ * entry 1's pushed return IP at SS:FFFE and its pushed CS at SS:0000.
+ * WRAPPED_SS reads CS at SS:0000 and completes; CONTIGUOUS_PHYSICAL reads the
+ * decoy at linear SS*16 + 0x10000 and stops with RETURN_CHANGED. */
+static void wrap_policy_control(void)
+{
+    unsigned pol;
+    for (pol = 0; pol < 2u; pol++) {
+        pr_u3c6_0cb9_cpu c;
+        args_t a;
+        uint8_t e6, e10, ebest, eslot;
+        unsigned tag = 5000u + pol;
+        pr_u3c6_0cb9_cpu_status st;
+        tables(9u, &a);
+        reference(&a, &e6, &e10, &ebest, &eslot);
+        enter_at(&c, &a, 0x001Cu);
+        w16((uint16_t)(SSEG + 0x1000u), 0x0000u, 0xBEEFu);         /* linear SS*16 + 0x10000 */
+        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c,
+                                  pol == 0u ? PR_U3C6_0CB9_RETF_WRAPPED_SS : PR_U3C6_0CB9_RETF_CONTIGUOUS_PHYSICAL);
+        if (pol == 0u) {
+            CHECK(tag, st == PR_U3C6_0CB9_CPU_RETURNED);
+            CHECK(tag, c.cs == RET_CS && c.ip == RET_IP && c.sp == 0x002Eu && c.bp == 0x7777u);
+            CHECK(tag, r8(OSEG, 0x0010u) == e6 && r8(OSEG, 0x0020u) == e10);
+        } else {
+            CHECK(tag, st == PR_U3C6_0CB9_CPU_RETURN_CHANGED);
+            CHECK(tag, c.cs == 0xBEEFu && c.ip == 0x0D2Du && c.sp == 0x000Eu);
+        }
+    }
+}
+
+/* the body's own RETF 0xE with its return IP word at SS:FFFD, FFFE, FFFF.
+ * A decoy sits at linear SS*16 + 0x10000 (FFFE) or + 0x10001 (FFFF), clear
+ * of the contiguous IP byte. At FFFD both profiles read CS at SS:FFFF. */
+static void body_retf_wrap_control(void)
+{
+    static const uint16_t entry_sps[3] = {0xFFFDu, 0xFFFEu, 0xFFFFu};
+    unsigned k, pol;
+    for (k = 0; k < 3u; k++) {
+        for (pol = 0; pol < 2u; pol++) {
+            pr_u3c6_0cb9_cpu c;
+            args_t a;
+            uint8_t e6, e10, ebest, eslot;
+            unsigned tag = 6000u + 10u * k + pol;
+            uint16_t want_cs = RET_CS;
+            tables(11u, &a);
+            reference(&a, &e6, &e10, &ebest, &eslot);
+            enter_at(&c, &a, entry_sps[k]);
+            if (k == 1u) w16((uint16_t)(SSEG + 0x1000u), 0x0000u, 0xBEEFu);
+            if (k == 2u) w16((uint16_t)(SSEG + 0x1000u), 0x0001u, 0xBEEFu);
+            if (pol == 1u && k != 0u) want_cs = 0xBEEFu;
+            CHECK(tag, pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c,
+                           pol == 0u ? PR_U3C6_0CB9_RETF_WRAPPED_SS : PR_U3C6_0CB9_RETF_CONTIGUOUS_PHYSICAL) ==
+                           PR_U3C6_0CB9_CPU_RETURNED);
+            CHECK(tag, c.cs == want_cs && c.ip == RET_IP);
+            CHECK(tag, c.sp == (uint16_t)(entry_sps[k] + 18u) && c.bp == 0x7777u);
+            CHECK(tag, r8(OSEG, 0x0010u) == e6 && r8(OSEG, 0x0020u) == e10);
+        }
+    }
+}
+
+/* public +0000 LES seam: entry 1's [bp+6] / [bp+0xA] land at SS:SP / SS:(SP+4)
+ * of +0D29, i.e. entry SP - 0x1A and entry SP - 0x16. Any of them at
+ * FFFD..FFFF stops before the transfer; neighbours run on. */
+static void les_seam_control(void)
+{
+    static const struct { uint16_t entry_sp; int seam; } cases[] = {
+        {0x0012u, 0}, {0x0013u, 1}, {0x0014u, 1}, {0x0015u, 1},
+        {0x0016u, 0}, {0x0017u, 1}, {0x0018u, 1}, {0x0019u, 1},
+    };
+    unsigned n;
+    for (n = 0; n < sizeof cases / sizeof cases[0]; n++) {
+        pr_u3c6_0cb9_cpu c;
+        args_t a;
+        uint8_t e6, e10, ebest, eslot;
+        unsigned tag = 7000u + n;
+        pr_u3c6_0cb9_cpu_status st;
+        tables(13u, &a);
+        reference(&a, &e6, &e10, &ebest, &eslot);
+        enter_at(&c, &a, cases[n].entry_sp);
+        st = pr_u3c6_0cb9_cpu_run(ram, sizeof ram, &c, PR_U3C6_0CB9_RETF_WRAPPED_SS);
+        if (cases[n].seam) {
+            CHECK(tag, st == PR_U3C6_0CB9_CPU_UNSUPPORTED_LES_SEAM);
+            CHECK(tag, c.cs == CSEG && c.ip == 0x0D29u);
+            CHECK(tag, c.sp == (uint16_t)(cases[n].entry_sp - 0x1Au));
+            CHECK(tag, r8(OSEG, 0x0010u) == 0x17u && r8(OSEG, 0x0020u) == 0x00u);
+            CHECK(tag, r8(SSEG, (uint16_t)(cases[n].entry_sp - 3u)) == 0u);   /* step counter [bp-1] */
+        } else {
+            CHECK(tag, st == PR_U3C6_0CB9_CPU_RETURNED);
+            CHECK(tag, c.cs == RET_CS && c.ip == RET_IP && c.sp == (uint16_t)(cases[n].entry_sp + 18u));
+            CHECK(tag, r8(OSEG, 0x0010u) == e6 && r8(OSEG, 0x0020u) == e10);
+        }
+    }
 }
 
 int main(void)
@@ -276,6 +405,10 @@ int main(void)
     code_alias_controls();
     self_alias_control();
     argument_controls();
+    unmeasured_control();
+    wrap_policy_control();
+    body_retf_wrap_control();
+    les_seam_control();
     if (failures != 0u) {
         fprintf(stderr, "%u of %u checks failed\n", failures, checks);
         return 1;
