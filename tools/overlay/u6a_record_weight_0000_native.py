@@ -136,7 +136,9 @@ def assembly(directory, cases):
     for i, reg in enumerate("ax bx cx dx si di bp sp cs".split()):
         text.append(f"    mov word ptr [{OUTPUT + 2 * i:#x}],{reg}")
     text += [f"    mov word ptr [{OUTPUT + 20:#x}],ds", f"    mov word ptr [{OUTPUT + 22:#x}],es",
-             f"    mov word ptr [{OUTPUT + 24:#x}],ss", "    pushf", "    pop ax", f"    mov word ptr [{OUTPUT + 26:#x}],ax",
+             f"    mov word ptr [{OUTPUT + 24:#x}],ss",
+             # SP is captured; park the stack above the frame window before the harness pushes anything
+             f"    mov sp,{STACK_TOP + 0x800:#x}", "    pushf", "    pop ax", f"    mov word ptr [{OUTPUT + 26:#x}],ax",
              "    cld", "    push cs", "    pop ds", "    push cs", "    pop es",
              f"    mov si,{FRAME_LOW:#x}", f"    mov di,{OUTPUT + 28:#x}", f"    mov cx,{FRAME_SIZE}", "    rep movsb",
              f"    mov si,{RECORD:#x}", f"    mov cx,{RECORD_SIZE}", "    rep movsb",
