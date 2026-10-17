@@ -122,7 +122,7 @@ lanes keep pushing refs.
 | 24 | `OVL_005E_1BF8` | `0x5e:0x1bf8` | 542 | 193 | A | game_evidenced | 2/1/0/0 | 3/1 | no | 1 | 1 | source_mention | 61 |
 | 25 | `OVL_007F_0508` | `0x7f:0x0508` | 216 | 79 | A | game_evidenced | 0/1/0/0 | 1/1 | no | 3 | 0 | source_mention | 61 |
 
-Queue summary (schema 5, rebased on main after #862–#874): 600 candidates,
+Queue summary (schema 5, rebased on main after #862–#874): 578 candidates,
 100 composable — classification game_evidenced 337, game_verified 55,
 helper_candidate 70, unresolved 116; grades A 340, B 236, D 2; prior status
 main_model 93, inline_in_model 54, inline_in_strict 8, unmerged_branch 27,
