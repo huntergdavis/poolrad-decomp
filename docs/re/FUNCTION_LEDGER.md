@@ -842,6 +842,15 @@ Strict credit claimed: none.
 Evidence, semantics, boundaries and tests: [U6F_1262_ADD_NPC.md](U6F_1262_ADD_NPC.md).
 Strict credit claimed: none.
 
+### 1.27 U6F +032F, the picture merge leaf, over mapped memory (PM GO i8916)
+
+| # | identity | size | convention | kind | status |
+| --- | --- | ---: | --- | --- | --- |
+| 37 | `pr_u6f_032f_picture_merge` = GAME.OVR 0x1E315, unit 0x6F + 0x032F (executable +0x032F..+0x0475), not a public entry; callers unit 0x6F + 0x0546 and + 0x056A (inside entry 3, the picture builder) | 327 bytes, 121 instructions, 0 calls, 15 branches, three loops | near Pascal: two far pointer arguments (source object pushed first, destination second), `retf 8`; 6 bytes of locals | **complete translation of the leaf over host memory views** (no callback): mode 0/2 OR+AND per offset over the source span, mode 1 OR over the source span then AND over a quarter of the slot-0x0B span, other modes nothing; 16-bit wrap and header rereads preserved | all 121 starts and 15 branches **verified** against the bytes; no native differential, so no strict credit claimed |
+
+Evidence, semantics, memory model and tests: [U6F_032F_PICTURE_MERGE.md](U6F_032F_PICTURE_MERGE.md).
+Strict credit claimed: none (pending the PM's differential decision).
+
 ## 2. Examined, not translated
 
 | identity | what was learned | why not translated |
