@@ -1,21 +1,21 @@
 {
   "artifacts_sha256": {
-    "classification": "47fe87377af3c1f48142351a4b335d615481738bcb1fb63d3fae6e9b6f75d99d",
-    "full_c_map": "4f26260ccf8c733a67e7ddd6f6244d716bab6c1a9983244946532fe16934d31c",
+    "classification": "3d8a1dc45ec34bf372683151999856bab3fd9bf16cacba7734332c651c096832",
+    "full_c_map": "08d8b50c301f249e2251d3a0db2395847c38cbfcc49c4b9b871e41dded7cb89c",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "433dd019bdacb7f652590ca6c190405514611bdce04e15a880ae7929e378f316"
+    "reviewed_identities": "9a47177ac46d3d11b18517df81ec4c6bd1606190299d3ff3b27f26ad8c0ad84f"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "f200eefa2af51d5004b8ba860394d52a2357060c4560f5feb98b0497dd64a6e7",
+  "queue_sha256": "f0c731e80d9588cf39baeb6234947eca423db5c630f3401b122d7163d99235f1",
   "reviewed_change": {
-    "approval_reference": "Batch acceptance (owner directive: the verifying lane records credit) for 24 bodies across PRs #847, #859-#868, #872, #845, #846, #875 and #877; each independently re-verified with original-vs-C full-state differentials (507 to 5,581 cases per body; all 14 CPU words and 1 MiB RAM equal)",
+    "approval_reference": "Batch acceptance (owner directive: the verifying lane records credit) for 27 bodies across PRs #847, #859-#868, #872, #845, #846, #875, #877, #880 and #881; each independently re-verified with original-vs-C full-state differentials (213 to 5,581 cases per body; all 14 CPU words and 1 MiB RAM equal)",
     "approved_by": "PM",
     "batch_ids": [
       "OVL_002F_0131",
@@ -41,30 +41,33 @@
       "OVL_0033_012B",
       "OVL_0033_01AD",
       "OVL_03C2_0422",
-      "OVL_0033_0615"
+      "OVL_0033_0615",
+      "OVL_0033_040F",
+      "OVL_0033_1434",
+      "OVL_0033_1577"
     ],
-    "batch_size": 24,
+    "batch_size": 27,
     "body_bytes": 197,
     "body_sha256": "00c3b715a709a62689da381a7e80a04ae6b5e3acf6c8edd48a2d7b1fa0c9a489",
     "evidence_doc": "docs/re/U2F_PARTY_PICK_0131.md",
     "game_identity": true,
     "original_id": "OVL_002F_0131",
-    "review_pr": 877,
-    "reviewed_commit": "51eddc9a633b6b86c2caae5cf3e6b3046719055f",
+    "review_pr": 881,
+    "reviewed_commit": "de5f7fc4e277d98d75f2adf4c0f7ac4870e48a25",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 97,
+    "overlay": 100,
     "resident": 9
   },
-  "strict_full_c_originals": 106,
-  "unknown_ownership": 647,
+  "strict_full_c_originals": 109,
+  "unknown_ownership": 644,
   "verified_game_by_domain": {
-    "overlay": 152,
+    "overlay": 155,
     "resident": 10
   },
-  "verified_game_identities": 162,
+  "verified_game_identities": 165,
   "whole_game_denominator": "unknown"
 }

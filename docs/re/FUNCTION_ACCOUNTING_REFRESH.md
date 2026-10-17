@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**106 strict full-C originals** (97 overlay, nine resident) and **162 verified
-game identities** (152 overlay, ten resident). The queue still contains 898
+**109 strict full-C originals** (100 overlay, nine resident) and **165 verified
+game identities** (155 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -29,6 +29,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006A_0000`, `OVL_006A_019C`, `OVL_0033_012B`, `OVL_0033_01AD` | PRs #845 (`dc3c4717d7ec121bf51eba65ad0642e1ba189cd9`) and #846 (`eeba7425649b377ce64dfced230e378c77eae927`); independently verified by the ds4 lane | pinned per body in [reviewed_function_identities.csv](reviewed_function_identities.csv) and each evidence note | [record weight](U6A_RECORD_WEIGHT_0000.md), [link clear](U6A_LINK_HIGH_CLEAR_019C.md), [cell lookup](U33_CELL_LOOKUP_012B.md), [cell pair](U33_CELL_PAIR_01AD.md) |
 | `OVL_03C2_0422` | PR #875, `d1398522367d3dc4de69b706edb86b008c927e52`; independently verified by the ds4 lane (1,430 cases, 368/368 coverage) | 345 bytes, SHA-256 `f075c6dba0b31e12aea19318958a72f4caee6fe7954c53f3583dd5dd9fa8114d` | [line check](U3C2_LINE_CHECK_0422.md) |
 | `OVL_0033_0615` | PR #877, `51eddc9a633b6b86c2caae5cf3e6b3046719055f`; independently verified by the ds4 lane (956 cases, 196/196 caller coverage) | 507 bytes, SHA-256 `c973402de9f97dbf004ece46254273f351e9a0a8600bc1f442dbbd9b1b4371e9` | [grid pattern](U33_GRID_PATTERN_0615.md) |
+| `OVL_0033_040F` | PR #880, `74dbfe77ec4fe4e39a8ea8ed75e4c1210bc8e428`; independently verified by the ds4 lane (1,046 cases, 209/209 caller coverage) | 518 bytes, SHA-256 `880652652d8a0222747e0f99b090418fc29d674e547b9809e0d5855a0f4bcc04` | [grid pattern](U33_GRID_PATTERN_040F.md) |
+| `OVL_0033_1434`, `OVL_0033_1577` | PR #881, `de5f7fc4e277d98d75f2adf4c0f7ac4870e48a25`; independently verified by the ds4 lane (213 + 170 cases; 138/138 and 469/470 starts with the declared infeasible edges) | 323 B `b01749df…`, 1,150 B `c9418332…` | [cell claim](U33_CELL_CLAIM_1434.md), [place search](U33_PLACE_SEARCH_1577.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
