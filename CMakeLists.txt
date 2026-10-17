@@ -416,6 +416,12 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_overlay_u3c2_line_check_0422_tests
+                   tests/recovered/test_overlay_u3c2_line_check_0422.c)
+    target_link_libraries(poolrad_overlay_u3c2_line_check_0422_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_line_check_0422_tests
+             COMMAND poolrad_overlay_u3c2_line_check_0422_tests)
+
     add_executable(poolrad_overlay_u3c2_entry5_0422_tests
                    tests/recovered/test_overlay_u3c2_entry5_0422.c)
     target_link_libraries(poolrad_overlay_u3c2_entry5_0422_tests PRIVATE poolrad_recovered)

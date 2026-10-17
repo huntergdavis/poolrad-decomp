@@ -1,5 +1,7 @@
-/* GAME.OVR U3C2 entry5 [0422,057B), 345 bytes; callee/parity gates open. */
+/* GAME.OVR U3C2 entry5 [0422,057B), 345 bytes. */
 #include "poolrad/recovered/overlay_u3c2_entry5_0422.h"
+#include "poolrad/recovered/overlay_u3c2_line_init_01a0.h"
+#include "poolrad/recovered/overlay_u3c2_entry3_02cc.h"
 
 #define RAM_MASK (PR_U3C2_0422_RAM_SIZE - 1u)
 #define ARITH_FLAGS 0x08D5u
@@ -167,9 +169,9 @@ static int near_call(uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
 }
 
 
-pr_u3c2_0422_status pr_u3c2_entry5_0422(
+static pr_u3c2_0422_status execute(
     uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
-    const pr_u3c2_0422_hooks *hooks)
+    const pr_u3c2_0422_hooks *hooks, size_t *remaining)
 {
     if (ram == NULL || cpu == NULL || ram_size < PR_U3C2_0422_RAM_SIZE ||
         cpu->ip != 0x0422u)
@@ -264,6 +266,11 @@ L04A5:
         return PR_U3C2_0422_CALLEE;
     write8(ram, cpu->ss, (uint16_t)(cpu->bp - 0x36u), 0x0u); /* +04D9 */
 L04DD:
+    if (remaining != NULL) {
+        cpu->ip = 0x04DDu;
+        if (*remaining == 0u) return PR_U3C2_0422_LIMIT;
+        --*remaining;
+    }
     les(ram, cpu, (uint16_t)(cpu->bp + 0x6u)); /* +04DD */
     cmp8(cpu, read8(ram, cpu->es, (uint16_t)(cpu->di + 0x6u)), 0x0u); /* +04E0 */
     if (!equal(cpu)) goto L050E; /* +04E5 */
@@ -342,4 +349,69 @@ L0572:
     cpu->cs = pop16(ram, cpu);
     cpu->sp = (uint16_t)(cpu->sp + 20u);
     return PR_U3C2_0422_OK;
+}
+
+/* Copy named fields between distinct public CPU types; no aliasing cast. */
+#define COPY_CPU(dst, src) do { \
+    (dst)->ax = (src)->ax; \
+    (dst)->bx = (src)->bx; \
+    (dst)->cx = (src)->cx; \
+    (dst)->dx = (src)->dx; \
+    (dst)->si = (src)->si; \
+    (dst)->di = (src)->di; \
+    (dst)->bp = (src)->bp; \
+    (dst)->sp = (src)->sp; \
+    (dst)->cs = (src)->cs; \
+    (dst)->ip = (src)->ip; \
+    (dst)->ds = (src)->ds; \
+    (dst)->es = (src)->es; \
+    (dst)->ss = (src)->ss; \
+    (dst)->flags = (src)->flags; \
+} while (0)
+
+static pr_u3c2_0422_callee_status complete_callee(
+    void *user, uint8_t *ram, size_t size, pr_u3c2_0422_cpu *cpu)
+{
+    int ok;
+    (void)user;
+    if (cpu->ip == 0x01A0u) {
+        pr_u3c2_01a0_cpu inner;
+        COPY_CPU(&inner, cpu);
+        ok = pr_u3c2_line_init_01a0(ram, size, &inner) == PR_U3C2_01A0_OK;
+        COPY_CPU(cpu, &inner);
+    } else {
+        pr_u3c2_02cc_cpu inner;
+        COPY_CPU(&inner, cpu);
+        ok = pr_u3c2_entry3_02cc(ram, size, &inner) == PR_U3C2_02CC_OK;
+        COPY_CPU(cpu, &inner);
+    }
+    return ok ? PR_U3C2_0422_CALLEE_RETURNED : PR_U3C2_0422_CALLEE_UNRESOLVED;
+}
+
+pr_u3c2_0422_status pr_u3c2_entry5_0422(
+    uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
+    const pr_u3c2_0422_hooks *hooks)
+{
+    return execute(ram, ram_size, cpu, hooks, NULL);
+}
+
+pr_u3c2_0422_status pr_u3c2_line_check_0422(
+    uint8_t *ram, size_t ram_size, pr_u3c2_0422_cpu *cpu,
+    size_t max_iterations)
+{
+    static const pr_u3c2_0422_hooks callees = {
+        complete_callee, complete_callee, NULL
+    };
+    unsigned i;
+    if (ram == NULL || cpu == NULL || ram_size != PR_U3C2_0422_RAM_SIZE ||
+        cpu->ip != 0x0422u || cpu->sp < 0x0054u || cpu->sp > 0xFFE8u)
+        return PR_U3C2_0422_ARGUMENT;
+    /* 60 caller bytes, 8 call-frame bytes, 16 deepest initializer bytes. */
+    for (i = 1u; i <= 84u; ++i) {
+        size_t p = physical(cpu->ss, (uint16_t)(cpu->sp - i));
+        size_t relative = (p - physical(cpu->cs, 0u)) & RAM_MASK;
+        if (relative < 0x2Eu || (relative >= 0x1A0u && relative < 0x57Bu))
+            return PR_U3C2_0422_CODE_ALIAS;
+    }
+    return execute(ram, ram_size, cpu, &callees, &max_iterations);
 }
