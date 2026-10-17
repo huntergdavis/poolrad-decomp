@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**109 strict full-C originals** (100 overlay, nine resident) and **165 verified
-game identities** (155 overlay, ten resident). The queue still contains 898
+**112 strict full-C originals** (103 overlay, nine resident) and **168 verified
+game identities** (158 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -31,6 +31,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0033_0615` | PR #877, `51eddc9a633b6b86c2caae5cf3e6b3046719055f`; independently verified by the ds4 lane (956 cases, 196/196 caller coverage) | 507 bytes, SHA-256 `c973402de9f97dbf004ece46254273f351e9a0a8600bc1f442dbbd9b1b4371e9` | [grid pattern](U33_GRID_PATTERN_0615.md) |
 | `OVL_0033_040F` | PR #880, `74dbfe77ec4fe4e39a8ea8ed75e4c1210bc8e428`; independently verified by the ds4 lane (1,046 cases, 209/209 caller coverage) | 518 bytes, SHA-256 `880652652d8a0222747e0f99b090418fc29d674e547b9809e0d5855a0f4bcc04` | [grid pattern](U33_GRID_PATTERN_040F.md) |
 | `OVL_0033_1434`, `OVL_0033_1577` | PR #881, `de5f7fc4e277d98d75f2adf4c0f7ac4870e48a25`; independently verified by the ds4 lane (213 + 170 cases; 138/138 and 469/470 starts with the declared infeasible edges) | 323 B `b01749df…`, 1,150 B `c9418332…` | [cell claim](U33_CELL_CLAIM_1434.md), [place search](U33_PLACE_SEARCH_1577.md) |
+| `OVL_0033_02BA`, `OVL_0033_0377` | PR #883, `5ca69bc0759b4ea62956927ea42b83daac5ac391`; independently verified by the ds4 lane (158 cases each; 86/86 and 82/82 starts) | 189 B `a1e4f0b3…`, 152 B `aa813423…` | [stamp block](U33_STAMP_BLOCK_02BA.md), [stamp square](U33_STAMP_SQUARE_0377.md) |
+| `OVL_0033_0221` | PR #850, `e518c1314968e775dab77fc04bade7e4b6ee4c05`; dependency credited on its own audit re-run by the ds4 lane (821 cases, 64/64 instructions, 67 CFG edges) | 153 bytes, SHA-256 `9a97dca1163b4aabd6193cea3a81427143709390e7b4aa2dec1a2a727236cd06` | [clipped writer](U33_CLIPPED_WRITER_0221.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
