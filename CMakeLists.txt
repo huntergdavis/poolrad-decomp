@@ -151,6 +151,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/slot_a_u3b0_prompt_row.c
                                     src/recovered/slot_a_second_cycle_zero_row.c
                                     src/recovered/resident_0709_rect_fill_00b7.c
+                                    src/recovered/resident_0709_rect_fill_00b7_cpu.c
                                     src/recovered/slot_a_glyph_plane_byte.c
                                     src/recovered/u19_row14_cpu_sources.c
                                     src/recovered/overlay_u3bd_cell.c
@@ -517,6 +518,12 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_resident_0709_rect_fill_00b7_cpu_tests
+                   tests/recovered/test_resident_0709_rect_fill_00b7_cpu.c)
+    target_link_libraries(poolrad_resident_0709_rect_fill_00b7_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_rect_fill_00b7_cpu_tests
+             COMMAND poolrad_resident_0709_rect_fill_00b7_cpu_tests)
+
     add_executable(poolrad_overlay_u33_grid_pattern_040f_tests
                    tests/recovered/test_overlay_u33_grid_pattern_040f.c)
     target_link_libraries(poolrad_overlay_u33_grid_pattern_040f_tests PRIVATE poolrad_recovered)
