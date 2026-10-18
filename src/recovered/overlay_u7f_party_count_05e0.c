@@ -2,7 +2,7 @@
 #include "poolrad/recovered/overlay_u7f_party_count_05e0.h"
 
 #define RAM_MASK (PR_U7F_05E0_RAM_SIZE - 1u)
-#define DEFINED_OR_FLAGS 0x08C5u /* OF SF ZF PF CF; AF is undefined */
+#define DEFINED_OR_FLAGS 0x08D5u /* OF SF ZF AF PF CF; OR leaves AF clear in both oracles (Unicorn, DOSBox-X) */
 
 static size_t physical(uint16_t segment, uint16_t offset)
 {

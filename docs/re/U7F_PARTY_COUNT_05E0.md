@@ -47,7 +47,10 @@ On the null-link exit, `OR AX,[BP-3]` leaves `AX=0` before the count is
 copied through scratch byte `[BP-1]` to `AL`. `AH=0`; `DX` is the last
 loaded next-link segment. `ES:DI` remains the last visited node, or its
 incoming value for an empty list. The return flags come from the final
-`OR`: CF/OF=0, ZF/PF=1, SF=0; AF is undefined. The frame writes saved
+`OR`: CF/OF=0, ZF/PF=1, SF=0, and AF=0, as both Unicorn and DOSBox-X leave
+it after `OR`. Until 2026-10-18 the model kept the incoming AF instead; the
+designed sweep below caught this (flags `0656h` against the original's
+`0646h` when the entry flags had AF set), and the model now clears AF. The frame writes saved
 `BP`, the two pointer words, count, and scratch byte; `RETF` consumes only
 the far return address. A null head returns `AL=0` without changing
 `ES:DI`. A node pointer with one zero word is still non-null because the
@@ -71,6 +74,47 @@ returned CPU fields agree, masking only the undefined AF bit of the final
 `0b50157ab03676d796b60f6ccda0b73fa17556a5775f49c91154f81faf0b8705`;
 the audit supplies a synthetic call frame and overlays the pinned code.
 This is captured-state emulation, not a reached native frame.
+
+## Full-state sweep and native oracle (2026-10-18)
+
+The reviewer asked for two missing pieces of evidence: a designed
+full-state original-byte sweep, and DOSBox-X entry/return parity. This
+section supplies both. There is no AF masking anywhere.
+
+- `test_overlay_u7f_party_count_05e0_sweep.c` (CTest
+  `poolrad_overlay_u7f_party_count_05e0_sweep_tests`) passes 14,001
+  checks under ASan/UBSan, compiled with `-Wconversion -Wsign-conversion
+  -Werror`. It covers 2,000 random lists of 0–13 nodes with status bytes
+  around 0 and B3h, and entry flags with AF set and clear. An independent
+  count predicts AL, the count and scratch bytes, the nil pointer and the
+  exact final flags, and every byte outside the stack window is checked.
+- `tools/overlay/u7f_party_count_05e0_audit.py --unicorn` passes **256
+  original-byte cases**, comparing the entire 1 MiB RAM and all 14 CPU
+  words with no mask. Coverage is 30/30 instruction starts and 6/6
+  conditional outcomes. The cases cover:
+  - 240 random lists over six flag words, four with AF set;
+  - a nil head with AF set, all members counted, none counted, and 12 of
+    12 counted;
+  - a node whose status byte is the routine's own count byte `[BP-6]`, in
+    three variants;
+  - stacks near both segment ends, SS across A20 and the party across A20;
+  - a party at a segment end, a random background and a relocated entry.
+
+  Counts from 0 to 12 occur. Against the pre-fix model, the same sweep
+  fails at its third case on the AF bit alone.
+- `tools/overlay/u7f_party_count_05e0_audit.py --native` passes **120
+  DOSBox-X normal-core/386 synthetic cases** with no mask.
+  - The COM copies unit `0x7F` to paragraph `8800`. For each case it
+    builds a 0–12-node list at `2000:0100+200h·k` with the head at
+    `1900:5D96`, then far-calls `+05E0` with IRQs masked.
+  - Each case compares all 14 CPU words and a 64-byte stack window.
+  - 100 of the cases enter with AF set, and all return with AF clear.
+  - The result SHA-256 is
+    `21c1e9d0b27b2f61951ceb310f0c44908987d813921b6585c9843472a9fb78b5`,
+    with COM segment `0814`.
+
+  This is synthetic native entry/return parity, not a reached saved-game
+  frame.
 
 ## Bounded native route attempt
 
@@ -101,10 +145,10 @@ captures, and the local Python environment stay under ignored `resources/`.
 | --- | --- |
 | `target_function` | `GAME.OVR` unit `0x7F:+0x05E0` complete routine |
 | `source_candidates` | `src/recovered/overlay_u7f_party_count_05e0.c`; no competing same-address implementation found |
-| `signals` | exact byte span and extent; 30-instruction control flow; party head/link/status offsets; incoming entry-3 call; full-RAM original-byte parity; captured party state |
+| `signals` | exact byte span and extent; 30-instruction control flow; party head/link/status offsets; incoming entry-3 call; full-RAM original-byte parity with no mask (designed 256-case sweep plus the captured party state); DOSBox-X synthetic entry/return parity (120 cases); independent C sweep |
 | `score` | code parity strong; game identity supported by caller chain but still provisional |
 | `verdict` | `match` for the pinned code behavior; `likely_match` for game ownership pending a reached native frame or independent reviewer judgment |
-| `review_notes` | no reached native `+05E0` entry/return yet; no natural route or strict count credit inferred from captured-state emulation; PM decides identity and accounting after independent review |
+| `review_notes` | synthetic native entry/return parity now exists, but natural saved-route reach is still unmeasured; the AF fix of 2026-10-18 removed the only mask; the verifying lane decides identity and strict credit |
 
 The caller paths in units `0x1E`, `0x20`, and `0x23` are not translated by
 this change. A native trace at `+05E0` would close the remaining identity
