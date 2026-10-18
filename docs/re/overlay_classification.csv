@@ -592,8 +592,8 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x3b0:0x0a08,0x3b0,0x0a08,185047,B,0,game_evidenced,provisional,0,,2,1,7,2,0,2,3,0,0,251,251
 0x3b0:0x0b03,0x3b0,0x0b03,185298,B,0,game_verified,verified,0,,0,1,2,0,0,0,2,0,1,304,304
 0x3b0:0x0c33,0x3b0,0x0c33,185602,B,0,game_evidenced,provisional,0,,1,1,2,0,0,0,2,0,0,146,146
-0x3b0:0x0cc5,0x3b0,0x0cc5,185748,B,0,game_evidenced,provisional,0,,1,1,1,0,0,0,1,0,0,211,213
-0x3b0:0x0d9a,0x3b0,0x0d9a,185961,A,15,game_evidenced,provisional,3,,1,2,25,12,0,0,13,0,0,822,823
+0x3b0:0x0cc5,0x3b0,0x0cc5,185748,B,0,game_verified,verified,0,,1,1,1,0,0,0,1,0,1,211,213
+0x3b0:0x0d9a,0x3b0,0x0d9a,185961,A,15,game_evidenced,provisional,3,,4,2,25,12,0,0,13,0,0,822,823
 0x3b0:0x10d1,0x3b0,0x10d1,186784,A,26,game_evidenced,provisional,1,,0,1,4,3,0,0,1,0,0,111,111
 0x3b0:0x1140,0x3b0,0x1140,186895,A,6,helper_candidate,provisional,0,,0,0,2,2,0,0,0,0,0,179,179
 0x3b0:0x11f3,0x3b0,0x11f3,187074,A,13,helper_candidate,provisional,0,,0,0,1,1,0,0,0,0,0,82,82
