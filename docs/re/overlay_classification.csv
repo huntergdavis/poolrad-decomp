@@ -369,8 +369,8 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x6a:0x0824,0x6a,0x0824,98389,B,0,game_evidenced,provisional,0,active_char,0,1,0,0,0,0,0,0,0,229,230
 0x6a:0x090a,0x6a,0x090a,98619,B,0,game_evidenced,provisional,3,active_char,3,2,16,3,5,2,6,0,0,592,593
 0x6a:0x0b5b,0x6a,0x0b5b,99212,B,0,game_evidenced,provisional,6,active_char,3,2,20,6,6,5,3,0,0,732,732
-0x6a:0x0e37,0x6a,0x0e37,99944,B,0,helper_candidate,provisional,0,,0,0,3,3,0,0,0,0,0,389,389
-0x6a:0x0fbc,0x6a,0x0fbc,100333,B,0,game_evidenced,provisional,18,party,0,2,36,27,2,3,4,0,0,1077,1077
+0x6a:0x0e37,0x6a,0x0e37,99944,B,0,game_verified,verified,0,,0,0,3,3,0,0,0,0,1,389,389
+0x6a:0x0fbc,0x6a,0x0fbc,100333,B,0,game_evidenced,provisional,18,party,4,2,36,27,2,3,4,0,0,1077,1077
 0x6a:0x13f1,0x6a,0x13f1,101410,B,0,game_evidenced,provisional,0,active_char,1,2,10,2,2,1,5,0,0,184,184
 0x6a:0x14a9,0x6a,0x14a9,101594,B,0,game_verified,verified,0,active_char;party,0,4,0,0,0,0,0,0,1,344,344
 0x6a:0x1601,0x6a,0x1601,101938,B,0,game_verified,verified,0,active_char;party,0,4,0,0,0,0,0,0,1,382,383

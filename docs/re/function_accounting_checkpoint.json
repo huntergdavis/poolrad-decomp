@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "773b8725fb4180b0d9b1f9b3ec7a2d428a24e168a1f8756132d72dee8c5a2797",
-    "full_c_map": "9875f209bbb81dd06788480e02158909cc875b50d34911dccd09b52d0210715c",
+    "classification": "04a46b97f348c99b1a8f9eac286808c8664822fe07e8d4dfd14883c39d3752db",
+    "full_c_map": "268d72def6141e6414272b13522111825ceb894001892a349d506235f8e060ac",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "748ec82c88e403e04ca0bc41e1cfe2eed8ec98e7de9acbd436f650dcbb76f503"
+    "reviewed_identities": "3f0289b65c4cddbef9d7895798807f805dc78986b0964960a8f1628388bde290"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "db3e68cd09a9e96184cee7630be066d12a698cdb98f5708529d2c342d902a889",
+  "queue_sha256": "b0c8a59d47f34b62cfc8a88c9191bbbb1740b411f70140ab8135ef8d863c22fd",
   "reviewed_change": {
-    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_2DE4 PR #982 merge 983b4e8b: 413 cases, 19/19, 2/2; 120 native, SHA 132d8dcb; body 36 B. (2) SYSTEM GetMem #983 merge 9a648ab1: no-credit runtime enabler (263 no-mask cases, 64 native), added as 0AF8:023F to RUNTIME_COVERED_ENDPOINTS. (3) OVL_0025_1951 PR #984 merge 31d24ae5, head 980b2b10: 174 cases (166 return, 2 CODE, 6 CALLEE), 47/47 starts, 2/2 outcomes, no mask; 64 native (9 GetMem RunError trapped at 00E2), no mask, SHA 10715d2a; body 138 B/47 insns, SHA f7f3ac99; pushes a 6-byte GetMem node composing #983 and pr_u25_word_06af. Focused CTests pass. Limits: synthetic frames; initial SP contract for +2DE4; GetMem walk cap; natural game route unmeasured.",
+    "approval_reference": "Verifying-lane acceptance for OVL_006A_0E37 PR #986 merge ffb20a75, head 5a5a05bc: 282 original-chain cases (247 returns; stops 29+2+2+2), full 1 MiB RAM and all 14 CPU words equal, caller 48/48 starts, chain 163/171 sites and 18/26 outcomes; 64 native DOSBox-X cases (8 RunError203 at 7000:00E2), no mask, SHA ab11f0d3. Extent correction: the executable body is [0E37,0EBE) = 135 bytes / 48 instructions, SHA 5f63f182; the queue's 389-byte span includes 254 trailing data bytes, which are not claimed as code. Composes GetMem #983 and SYSTEM StrStore 0B25. Credited as a game identity. Limits: synthetic frames; heap-arena native window; uncovered chain edges/sites are documented and not claimed; natural game route unmeasured. Also verifies SYSTEM string leaves 0B0B/0B98 (#987, merge <merged>) as a no-credit runtime enabler (414 cases, no mask; 128 native, SHA c8f47a7e): 0AF8:0B0B and 0AF8:0B98 were added to RUNTIME_COVERED_ENDPOINTS, which makes U86 +028D composable while leaving the U38 +2556/+070F/+0C4B and +0B1B/+2610 rows gated on their remaining dependencies (RES 00BA:16EC and U38 +0058 respectively).",
     "approved_by": "PM",
-    "body_bytes": 138,
-    "body_sha256": "f7f3ac99c3229d1d1e86c7ee4668164f201b40c9853431e442d6ad4fd4593008",
-    "evidence_doc": "docs/re/U25_ALLOC_1951_CPU.md",
+    "body_bytes": 135,
+    "body_sha256": "5f63f1823287894ede57fcef122307f3e296293a633e530a1836f2f36d389234",
+    "evidence_doc": "docs/re/U6A_STRING_NODE_0E37.md",
     "game_identity": true,
-    "original_id": "OVL_0025_1951",
-    "review_pr": 984,
-    "reviewed_commit": "31d24ae58d1476929a212854d7da1a4145c5eaa4",
+    "original_id": "OVL_006A_0E37",
+    "review_pr": 986,
+    "reviewed_commit": "ffb20a757ad6857638389ae76f8ce067683c79af",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 173,
+    "overlay": 174,
     "resident": 10
   },
-  "strict_full_c_originals": 183,
-  "unknown_ownership": 574,
+  "strict_full_c_originals": 184,
+  "unknown_ownership": 573,
   "verified_game_by_domain": {
-    "overlay": 224,
+    "overlay": 225,
     "resident": 11
   },
-  "verified_game_identities": 235,
+  "verified_game_identities": 236,
   "whole_game_denominator": "unknown"
 }
