@@ -170,8 +170,81 @@ static void test_abort_and_arguments(void)
     free(ram);
 }
 
+
+static void loaded_lookup(uint8_t *ram)
+{
+    ram[physical(0xF000u, 0x04C9u)] = 0x9Au;
+    put16(ram, 0xF000u, 0x04CAu, 0x002Au);
+    put16(ram, 0xF000u, 0x04CCu, 0x03D5u);
+    ram[physical(0x03D5u, 0x002Au)] = 0xEAu;
+    put16(ram, 0x03D5u, 0x002Bu, 0x047Bu);
+    put16(ram, 0x03D5u, 0x002Du, 0xC000u);
+    put16(ram, DS, 0x6A5Cu, 0x0100u);
+    put16(ram, DS, 0x6A5Eu, 0x6000u);
+    ram[physical(DS, 0x84DCu)] = 5u;
+}
+
+static void test_composed(void)
+{
+    const uint8_t directions[] = {0,2,4,6,1,255};
+    const uint8_t ys[] = {3,5,7,5,5,5}, xs[] = {7,9,7,5,7,7};
+    pr_u25_0482_cpu cpu, before;
+    uint8_t *ram, *copy = malloc(PR_U25_0482_RAM_SIZE);
+    assert(copy);
+    for (unsigned i = 0; i < sizeof directions; ++i) {
+        ram = prepare(&cpu, 1u, directions[i], 5u, 7u);
+        loaded_lookup(ram);
+        assert(pr_u25_step_probe_0482_fullstate(ram, PR_U25_0482_RAM_SIZE, &cpu) == PR_U25_0482_OK);
+        assert((uint8_t)cpu.ax == 2u && cpu.sp == SP+10u && cpu.bp == 0x7777u);
+        assert(cpu.cs == 0xD000u && cpu.ip == 0x03FAu);
+        assert(get16(ram,SS,SP+6u) == (uint16_t)(0x2200u | ys[i]));
+        assert(get16(ram,SS,SP+8u) == (uint16_t)(0x3300u | xs[i]));
+        free(ram);
+    }
+    for (unsigned second = 0; second < 2u; ++second) {
+        ram = prepare(&cpu, 1u, 2u, 5u, 7u);
+        loaded_lookup(ram);
+        ram[physical(0x6000u, (uint16_t)(0x157u + second))] = 0x0Fu;
+        assert(pr_u25_step_probe_0482_fullstate(ram, PR_U25_0482_RAM_SIZE, &cpu) == PR_U25_0482_OK);
+        assert((uint8_t)cpu.ax == second);
+        assert(get16(ram,SS,SP+8u) == 0x3307u + second);
+        free(ram);
+    }
+    /* Zero-window path never needs loaded callee metadata. Its real word
+     * store can replace the caller return IP without being suppressed. */
+    ram = prepare(&cpu, 0u, 2u, 5u, 7u);
+    put16(ram,DS,0x49D6u,SP-0x582u); put16(ram,DS,0x49D8u,SS);
+    assert(pr_u25_step_probe_0482_fullstate(ram,PR_U25_0482_RAM_SIZE,&cpu) == PR_U25_0482_OK);
+    assert(cpu.ip == 2u && cpu.cs == 0xD000u && (uint8_t)cpu.ax == 2u);
+    free(ram);
+    ram = prepare(&cpu,1u,2u,5u,7u); loaded_lookup(ram);
+    ram[physical(0x03D5u,0x002Au)] = 0u;
+    assert(pr_u25_step_probe_0482_fullstate(ram,PR_U25_0482_RAM_SIZE,&cpu) == PR_U25_0482_CODE);
+    assert(cpu.ip == 0x04C9u && cpu.cs == 0xF000u && cpu.sp == SP-12u);
+    free(ram);
+    for (unsigned i = 0; i < 7u; ++i) {
+        size_t size = PR_U25_0482_RAM_SIZE;
+        ram = prepare(&cpu,1u,2u,5u,7u); loaded_lookup(ram);
+        if (i == 0u) size--;
+        if (i == 1u) size++;
+        if (i == 2u) cpu.ip++;
+        if (i == 3u) cpu.sp = 0x7Fu;
+        if (i == 4u) cpu.sp = 0xFFFBu;
+        if (i >= 5u) { cpu.cs = cpu.ss; cpu.sp = i == 5u ? 0x483u : 0x590u; }
+        before = cpu; memcpy(copy,ram,PR_U25_0482_RAM_SIZE);
+        assert(pr_u25_step_probe_0482_fullstate(ram,size,&cpu) ==
+               (i >= 5u ? PR_U25_0482_CODE_ALIAS : PR_U25_0482_ARGUMENT));
+        assert(memcmp(&cpu,&before,sizeof cpu) == 0 && memcmp(ram,copy,PR_U25_0482_RAM_SIZE) == 0);
+        free(ram);
+    }
+    assert(pr_u25_step_probe_0482_fullstate(NULL,PR_U25_0482_RAM_SIZE,&cpu) == PR_U25_0482_ARGUMENT);
+    assert(pr_u25_step_probe_0482_fullstate(copy,PR_U25_0482_RAM_SIZE,NULL) == PR_U25_0482_ARGUMENT);
+    free(copy);
+}
+
 int main(void)
 {
+    test_composed();
     test_zero_window();
     test_steps();
     test_stop();
