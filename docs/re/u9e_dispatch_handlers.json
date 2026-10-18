@@ -291,7 +291,7 @@
   "dispatch_address_range": "DS:6828..6C27 (256 possible slots)",
   "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
   "initialized_address_range": "DS:682C..6A57 (slots1..139)",
-  "interface_review_base": "2225bc54",
+  "interface_review_base": "a2acd135 + U38 dispatch leaf cluster",
   "limitations": [
     "Only disjoint U86-then-U38 initialization is inventoried; later writes and invalid types require live-target validation. Types215..255 alias initialized U86 procedure pointers outside the intended effect table. A type1..139 invariant must be proven before treating 118 handlers as the complete closure.",
     "raw_cpu describes a published interface, not verified composition through U9E. scalar_or_callback combines scalar models and raw shells with unresolved hooks.",
@@ -347,8 +347,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 5,
@@ -435,8 +435,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 13,
@@ -468,8 +468,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_0647",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:006B",
       "public_entry": 15,
       "slot": 16,
@@ -501,8 +501,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 19,
@@ -556,8 +556,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 24,
@@ -589,8 +589,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 27,
@@ -886,8 +886,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_1355",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:00FC",
       "public_entry": 44,
       "slot": 54,
@@ -897,8 +897,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_135C",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0101",
       "public_entry": 45,
       "slot": 55,
@@ -952,8 +952,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 60,
@@ -985,8 +985,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 63,
@@ -1304,8 +1304,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 92,
@@ -1689,8 +1689,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_319B",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h",
       "original_stub": "0041:0264",
       "public_entry": 116,
       "slot": 127,
@@ -1838,8 +1838,8 @@
     "canonical_strict_handlers": 43,
     "distinct_handlers": 118,
     "interfaces": {
-      "missing": 65,
-      "raw_cpu": 16,
+      "missing": 61,
+      "raw_cpu": 20,
       "scalar_or_callback": 37
     },
     "without_canonical_strict": 75
