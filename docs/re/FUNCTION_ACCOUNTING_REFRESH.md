@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**169 strict full-C originals** (159 overlay, ten resident) and **221 verified
-game identities** (210 overlay, eleven resident). The queue still contains 898
+**172 strict full-C originals** (162 overlay, ten resident) and **224 verified
+game identities** (213 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -77,6 +77,9 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0077_28BE` | PR #959, `3776b20224433f5316b0fd2a7b85b70ae5d15011`; ds4/pi re-verified at head ef60d86b (231 cases, 44/44, 2/2; 120 native) | 123 bytes, SHA-256 `39dbab268eac0658980e3ef072352603eefac1cfb2b532412376cf2e970081c4` | [weighted 28BE](U77_WEIGHTED_28BE_CPU.md) |
 | `OVL_001C_0AED` | PR #961, `b3526b721fba161711927ae31101f6c536af4e2a`; ds4/pi re-verified at head 7c2cef00 (184 cases, 40/40, 6/6; 64 native). **BASE_VERIFIED identity already**, so strict-credit upgrade only | 101 bytes, SHA-256 `c45465b78fc299d0f7e52d7bab18c58568e7c5c87759ae9f231561c35c24161f` | [COMPARE AND](U1C_COMPARE_AND_0AED_CPU.md) |
 | `OVL_001C_00F4` | PR #963, `1f65906b`; ds4/pi re-verified at head d82214a5 (179 cases, 13/13; 64 native). **BASE_VERIFIED identity already**, strict-credit upgrade only; also adds public raw-CPU U25 +06AF | 29 bytes, SHA-256 `da02d8926de5945de103e7c90ee1ba9856c645e82f531193ba40eb0f28a2779b` | [GOTO 00F4](U1C_GOTO_00F4_CPU.md) |
+| `OVL_03C2_0909` | PR #964, `3bcbf8c5262b5de3d61a2d84aea024f3229785d6`; ds4/pi re-verified at head 24ec31e3 (439 cases, caller 297/297, chain 1281/1283; 24 native) | 720 bytes, SHA-256 `38a673986257d14dbe4da3ede438a98c0b516884c6fc92c79228088a68dba9ed` | [caller 0909](U3C2_CALLER_0909.md) |
+| `OVL_007F_0FD2` | PR #965, `b4f7ac50a52ee3351d14eeac601c51ae4c3dec43`; ds4/pi re-verified at head be0bddf3 (311 cases, 27/27, 6/6; 160 native) | 62 bytes, SHA-256 `9205417006da7a4c928b547d116107e3f4d269d3d267d17b2f7cad2f3e63fe27` | [roll class](U7F_ROLL_CLASS_0FD2_CPU.md) |
+| `OVL_007F_05E0` | PR #966, `bd6f4d5c`; ds4/pi re-verified at head ef9ff0ac (256 unmasked cases, 30/30, 6/6; 120 native). Model fix clears AF on OR | 90 bytes, SHA-256 `d4e73837529d5f4bb1ac788885f216ba39ccf5f67778a8278862f846c752a969` | [party count](U7F_PARTY_COUNT_05E0.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
