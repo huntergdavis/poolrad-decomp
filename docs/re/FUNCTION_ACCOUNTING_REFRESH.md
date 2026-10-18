@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**176 strict full-C originals** (166 overlay, ten resident) and **228 verified
-game identities** (217 overlay, eleven resident). The queue still contains 898
+**178 strict full-C originals** (168 overlay, ten resident) and **230 verified
+game identities** (219 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -84,6 +84,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0033_1403` | PR #970 (evidence-only), `93cb14f4`; ds4/pi re-verified at head de4664ac (4,084 cases, 18/18 sites, zero masks; 1,024 + 2 wrap native). Six Unicorn boundary cases excluded; native wrap proof supplied | 49 bytes, SHA-256 `a749aec8ac16739928c52f412b1bd4447e3bb668500b56bd76b1a5140288d62b` | [evidence refresh](U33_1403_EVIDENCE_REFRESH.md) |
 | `OVL_006C_3FB3` | PR #971 (evidence-only), `e8d9ee92`; ds4/pi re-verified at head 080f7d6c (3,088 cases, 132/132 sites; 1,538 native). **Declared IDIV mask**: SF/ZF/AF/PF/CF/OF (0x08D5) masked only after IDIV; 3 native fault-frame words normalized | 217 bytes, SHA-256 `bf1e24f3fbf0660c08259b756b918b0685b1488c3c530599e55e80778ebd397f` | [3FB3 evidence](U6C_3FB3_EVIDENCE_REFRESH.md) |
 | `OVL_006C_408C` | PR #972 (evidence-only), `b13c6a79`; ds4/pi re-verified at head 898fac84 (3,265 cases, 220/220 sites; 1,029 native). **Declared IDIV mask** as above; 3 native fault-frame words normalized | 425 bytes, SHA-256 `a6f888761ea4f984f7562342143d2a366885d4248d4c047b5f0b42cdf26ff97e` | [408C evidence](U6C_408C_EVIDENCE_REFRESH.md) |
+| `OVL_005E_32E6` | PR #974, `8b8c711297874b74a517058e09505df8c402507d`; ds4/pi re-verified at head e2dfd628 (440 cases, caller 62/62, chain 1387/1428; 27 native). Caveat: its U3C6 getters are semantic-only and now caveated | 163 bytes, SHA-256 `456ced130d112bf573dafb528d31b76604c455891fa25622da2d4cfba1568772` | [caller 32E6](U5E_CALLER_32E6.md) |
+| `OVL_006F_1446` | PR #975, `8e690bd711f27620a9ddcb8e663ae46084c72359`; ds4/pi re-verified at head 65d9ad1f (333 cases, 99/99, 12/12; 160 native) | 313 bytes, SHA-256 `370b29767e075c947ae418f44cb57f92e50127c1d519ba029cd7eacb882aa245` | [party insert CPU](U6F_PARTY_INSERT_1446_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,

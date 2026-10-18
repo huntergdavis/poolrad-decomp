@@ -69,6 +69,12 @@ RAW_CPU_INTERFACE_CAVEATS = {
                      "0AF8:0C10",
     "OVL_0025_18EB": "ecl_helpers.h exposes the word compare as a semantic API, "
                      "not a CPU-state callee",
+    "OVL_03C6_0BE7": "U3C6 slot/word getters expose a semantic API, not a "
+                     "CPU-state callee",
+    "OVL_03C6_0C0F": "U3C6 slot/word getters expose a semantic API, not a "
+                     "CPU-state callee",
+    "OVL_03C6_0C37": "U3C6 slot/word getters expose a semantic API, not a "
+                     "CPU-state callee",
 }
 
 # SYSTEM/runtime endpoints with merged raw-CPU full-state models. A runtime
