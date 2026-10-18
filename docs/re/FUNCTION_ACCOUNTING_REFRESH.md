@@ -1,7 +1,7 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**167 strict full-C originals** (157 overlay, ten resident) and **221 verified
+**169 strict full-C originals** (159 overlay, ten resident) and **221 verified
 game identities** (210 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
@@ -75,6 +75,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_007F_00A8` | PR #957, `911f5e13b5c0135c1c208abf0f33f63facbef3b6`; ds4/pi re-verified at head 98acba43 (231 cases, 51/51, 2/2; 120 native) | 136 bytes, SHA-256 `5e0a9a9ed7fed15b6f13500048537d395828dd67c3600c3b2e3534fc6eda00ea` | [weighted 00A8](U7F_WEIGHTED_00A8.md) |
 | `OVL_007F_0508` | PR #958, `452b5dd39e03a6d7a73d5014fde54799c079a928`; ds4/pi re-verified at head 8fc4f4df (596 cases, caller 79/79, chain 95/95; 23 native) | 216 bytes, SHA-256 `a9f79cf66963228814271af27cb8b03f11fd48cab64f778db4f2a2a35efb7efd` | [clear 0508](U7F_CLEAR_0508.md) |
 | `OVL_0077_28BE` | PR #959, `3776b20224433f5316b0fd2a7b85b70ae5d15011`; ds4/pi re-verified at head ef60d86b (231 cases, 44/44, 2/2; 120 native) | 123 bytes, SHA-256 `39dbab268eac0658980e3ef072352603eefac1cfb2b532412376cf2e970081c4` | [weighted 28BE](U77_WEIGHTED_28BE_CPU.md) |
+| `OVL_001C_0AED` | PR #961, `b3526b721fba161711927ae31101f6c536af4e2a`; ds4/pi re-verified at head 7c2cef00 (184 cases, 40/40, 6/6; 64 native). **BASE_VERIFIED identity already**, so strict-credit upgrade only | 101 bytes, SHA-256 `c45465b78fc299d0f7e52d7bab18c58568e7c5c87759ae9f231561c35c24161f` | [COMPARE AND](U1C_COMPARE_AND_0AED_CPU.md) |
+| `OVL_001C_00F4` | PR #963, `1f65906b`; ds4/pi re-verified at head d82214a5 (179 cases, 13/13; 64 native). **BASE_VERIFIED identity already**, strict-credit upgrade only; also adds public raw-CPU U25 +06AF | 29 bytes, SHA-256 `da02d8926de5945de103e7c90ee1ba9856c645e82f531193ba40eb0f28a2779b` | [GOTO 00F4](U1C_GOTO_00F4_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,

@@ -1,7 +1,7 @@
 {
   "artifacts_sha256": {
     "classification": "04371464a00c4bb728d3e7021f2703d729b70ec1d582e9adc71396dcb04da0d2",
-    "full_c_map": "a7c4cff19a57fc905196ba2bce6608f3de3712961d3d2c58dd067a9239116554",
+    "full_c_map": "c72da15fa145dad12c603d8c80d02b8cd46f9ee05e096f32d1baff3e3d4b5fda",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
@@ -13,26 +13,26 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "e060b1a7d89467011bf9258bbe9b08a4a64e013cb9818513c2a6a7cbd164832e",
+  "queue_sha256": "7b6ef5c06292f0b55f6e23261d8c68d1b45d9e55218ceb82eadc4f1434b72a1c",
   "reviewed_change": {
-    "approval_reference": "Batch verifying-lane acceptance of four bodies. (1) OVL_0025_01B6 PR #956 merge 93de82d7, head 881a0a7e: 800 whole-1MiB/CPU14 comparisons (748 returns, 5 caller loop limits, 45 nested string limits, 2 retained transfers), caller 135/135 sites and 6/6 outcomes, chain 767/771 sites and 78/82 outcomes, zero substitutions/masks; 30 native (29 full returns, 1 partial). Four helper sites (SYSTEM 0B3B and U25 0017/001F/0129) are not exercised and are documented. (2) OVL_007F_00A8 PR #957 merge 911f5e13, head 98acba43: 231 cases (222 returns, 5 CODE, 3 CALLEE divide-by-zero, 1 TRANSFER), 51/51 starts, 2/2 outcomes, Move/multiply/divide fully covered; 120 native, SHA fed6d328. (3) OVL_007F_0508 PR #958 merge 452b5dd3, head 8fc4f4df: 596 cases (571 returns, 12 caller limits, 11 nested limits, 2 transfers), caller 79/79, chain 95/95, 8/8 outcomes, zero substitutions/masks; 23 native full returns. (4) OVL_0077_28BE PR #959 merge 3776b202, head ef60d86b: 231 cases (223 returns, 4 CODE, 3 CALLEE, 1 TRANSFER), 44/44 starts, 2/2 outcomes, multiply/divide full; 120 native, SHA a71958e2. Focused CTests pass for all four. Limits: synthetic frames; transfers/limits preserve partial state; native captures are selected-memory and not natural replay; LES seams and wrapped frames unmeasured where stated.",
+    "approval_reference": "Consolidated verifying-lane acceptance of two strict-credit upgrades, both already BASE_VERIFIED ECL handlers. (1) OVL_001C_0AED PR #961 merge b3526b72, head 7c2cef00: 184 cases (175 returns, 5 CODE, 3 CALLEE, 1 TRANSFER), 40/40 starts, 6/6 outcomes; 64 native, SHA c89368ac. (2) OVL_001C_00F4 PR #963 merge 1f65906b, head d82214a5: 179 cases (174 returns, 4 CODE, 1 TRANSFER), 13/13 starts; 64 native, SHA 62bd638d; also adds a public raw-CPU U25 +06AF entry (no standalone credit). Both compose U25 +0000/+0136 and either FillChar or the raw-CPU +06AF entry. Focused CTests pass. Limits: synthetic frames; CODE/CALLEE/TRANSFER preserve reached state; natural game route unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 364,
-    "body_sha256": "b1bf2753d995d35feb5b4586b09a6dd9c6231183220062f790ef5ff4501b4eb0",
-    "evidence_doc": "docs/re/U25_INIT_01B6.md",
+    "body_bytes": 29,
+    "body_sha256": "da02d8926de5945de103e7c90ee1ba9856c645e82f531193ba40eb0f28a2779b",
+    "evidence_doc": "docs/re/U1C_GOTO_00F4_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_0025_01B6",
-    "review_pr": 956,
-    "reviewed_commit": "93de82d71e47451846d344e49157cf084f554024",
+    "original_id": "OVL_001C_00F4",
+    "review_pr": 963,
+    "reviewed_commit": "1f65906ba1e49bbe85c5ec7a8bc503fcd1dfd1cd",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 157,
+    "overlay": 159,
     "resident": 10
   },
-  "strict_full_c_originals": 167,
+  "strict_full_c_originals": 169,
   "unknown_ownership": 588,
   "verified_game_by_domain": {
     "overlay": 210,
