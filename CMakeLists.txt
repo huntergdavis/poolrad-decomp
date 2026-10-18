@@ -364,6 +364,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u33_cell_claim_1434.c
                                     src/recovered/overlay_u33_place_search_1577.c
                                     src/recovered/overlay_u9e_entry_1081.c
+                                    src/recovered/overlay_u9e_entry17_110d.c
                                     src/recovered/resident_route_290b.c
                                     src/recovered/resident_field_08ef.c
                                     src/recovered/resident_field_0973.c
@@ -2148,6 +2149,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u9e_entry_1081_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u9e_entry_1081_tests
              COMMAND poolrad_overlay_u9e_entry_1081_tests)
+    add_executable(poolrad_overlay_u9e_entry17_110d_tests
+                   tests/recovered/test_overlay_u9e_entry17_110d.c)
+    target_link_libraries(poolrad_overlay_u9e_entry17_110d_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u9e_entry17_110d_tests
+             COMMAND poolrad_overlay_u9e_entry17_110d_tests)
     add_executable(poolrad_resident_route_290b_tests
                    tests/recovered/test_resident_route_290b.c)
     target_link_libraries(poolrad_resident_route_290b_tests PRIVATE
