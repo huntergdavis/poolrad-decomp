@@ -20,7 +20,7 @@ the near-call audit is only accepted when its failure counts are zero and its
 site totals match the ledger.
 
 **Candidate set.** Every overlay original in the inventory join (673) minus
-the 107 overlay addresses credited in the strict manifest; the nine resident
+the 109 overlay addresses credited in the strict manifest; the nine resident
 credits are counted and ignored (this tool is overlay-only).
 
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
@@ -105,15 +105,15 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-7 export (queue SHA-256
-`bec5904895b141d7a6e1835cc84bce10085c26f5d731d0a44587e6e722cfa3d9`,
-on main after #885–#892 plus the phantom-edge filter and the raw-CPU interface
+`c09f32e8a5956b98e1f951608ed9d6a5b22e4f2da95a5cb513df1a38bfcd8b66`,
+on main after #885–#896 plus the phantom-edge filter and the raw-CPU interface
 caveats) was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR`
 `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`,
-near audit `a40ba4f2…cbd2c`, with 1134 refs / 923 tips / 513 unmerged tips
-(`tips_sha256` `e2f57145…`) and 2072 commits (`commits_sha256` `185914a7…`). Git pins are
+near audit `a40ba4f2…cbd2c`, with 1138 refs / 924 tips / 511 unmerged tips
+(`tips_sha256` `3bf4c5be…`) and 2078 commits (`commits_sha256` `92fc545e…`). Git pins are
 point-in-time; other lanes keep pushing refs.
 
-## First ranked list (top 25 of 566)
+## First ranked list (top 25 of 564)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
@@ -143,15 +143,15 @@ point-in-time; other lanes keep pushing refs.
 | 24 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 1/1/0/3 | 2/5 | no | 4 | 0 | source_mention | 60 |
 | 25 | `OVL_03B4_016D` | `0x3b4:0x016d` | 307 | 114 | A | game_evidenced | 2/0/0/6 | 2/6 | no | 10 | 0 | source_mention | 60 |
 
-Queue summary (schema 7, on main after #885–#892 and the phantom-edge
-filter plus the raw-CPU interface caveats): 566 candidates, 89 would be
-composable without the caveats and 84 are composable — 35 bodies carry an
+Queue summary (schema 7, on main after #885–#896 and the phantom-edge
+filter plus the raw-CPU interface caveats): 564 candidates, 87 would be
+composable without the caveats and 82 are composable — 35 bodies carry an
 interface caveat and 5 of them (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`, `OVL_0031_0675`, `OVL_0025_1FB1`) were otherwise composable;
-classification game_evidenced 329, game_verified 55, helper_candidate 70,
-unresolved 112; grades A 338, B 226, D 2; prior status main_model 90,
-inline_in_model 52, inline_in_strict 9, unmerged_branch 27, commit_mention 16,
-source_mention 372; 727 fixup-backed and 781 aligned-PUSH-CS caller sites across
+classification game_evidenced 330, game_verified 55, helper_candidate 69,
+unresolved 110; grades A 338, B 224, D 2; prior status main_model 90,
+inline_in_model 52, inline_in_strict 11, unmerged_branch 25, commit_mention 16,
+source_mention 370; 727 fixup-backed and 776 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 ## Claude's traps, as detected
@@ -196,8 +196,9 @@ callbacks). RES_00BA_2199
 U31 `+0675` and U25 `+1FB1`. Thirty-five bodies carry an interface caveat and
 five (`OVL_0068_04DF`, `OVL_0068_0294`, `OVL_0038_0400`, `OVL_0031_0675`,
 `OVL_0025_1FB1`) drop out of composable; the other thirty were already
-unready for other reasons. After #892/#895 credited `OVL_006A_0214` on current
-main the candidate set is 566 and 84 bodies are composable.
+unready for other reasons. After #892/#895 and #894/#896 credited `OVL_006A_0214`, `OVL_03C6_0068` and
+`OVL_0038_2002` on current main the candidate set is 564 and 82 bodies are
+composable.
 
 ## Reproduce
 
