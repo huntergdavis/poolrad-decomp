@@ -29,20 +29,23 @@
  * offset and every earlier effect kept (UNSUPPORTED_LES_SEAM). An aliasing
  * store stops with IP at that store's offset.
  *
- * Declared synthetic word rule: the PUSH BP, POP BP and return-IP words are
+ * Word rule: the PUSH BP, POP BP and return-IP words are
  * read and written physically contiguous (high byte at linear+1, A20 off),
- * also across SS:FFFF; this is a profile assumption, not a measured fact.
+ * also across SS:FFFF. Selected ordinary/wrapped frames, including a BP word
+ * at SS:FFFF, now have native evidence in docs/re/U3C6_04BE_PARITY.md.
  *
  * The RETF 0xC at +0528 follows one caller-declared policy with the values and
  * meaning of the merged public U3C6 +0000 model (PR #629), as in U3C6 +0CB9
  * (PR #833), mirrored without including that header:
  *   UNMEASURED  - fail closed: stop at +0528 after POP BP, before the RETF,
  *                 with both stores kept (status RETURN_PENDING);
- *   WRAPPED_SS  - synthetic: IP word at SS:SP, CS word at SS:(SP+2) with the
+ *   WRAPPED_SS  - IP word at SS:SP, CS word at SS:(SP+2) with the
  *                 16-bit offset wrapped;
  *   CONTIGUOUS_PHYSICAL - synthetic: CS word two linear bytes above the IP word.
- * The two synthetic profiles differ only when the return IP word sits at
- * SS:FFFE or SS:FFFF (at SS:FFFD both read CS at SS:FFFF). */
+ * WRAPPED_SS matches the measured native return frames; CONTIGUOUS_PHYSICAL
+ * remains the explicit Unicorn alternative. They differ only when the return
+ * IP word sits at SS:FFFE or SS:FFFF (at SS:FFFD both read CS at SS:FFFF).
+ * These observations do not resolve all profiles or execute a LES seam. */
 
 #define PR_U3C6_04BE_CPU_RAM_SIZE (1u << 20)
 
