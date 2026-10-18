@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "f2826ae0b0ad157c6d5bbebe907b854b12ec1ef31d89ec19bacc538a114608b6",
-    "full_c_map": "0d832bfee1cd4b88c88379dd001807deca467f69d14c9899fde8552fde318bfb",
+    "classification": "718f2b2cc21a970022b9b4b0e3aa1e49d190a0c36269401fa841e9545212f303",
+    "full_c_map": "092cfc1a98a0372910853c5be1c3116f210347ecf6dfb0ecacc255141f4c43b4",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "2581c267189a478424f765c9d83cc5103542d700e4439a5ee22a384b3a31a8ab"
+    "reviewed_identities": "a75ab423db55834b360cf761af5435984150bce0f344b49bf07cb6ea2f54d712"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "dbc33269487601aa113efe84be12b7d7b1441760003ce2c59fa961895a6665ce",
+  "queue_sha256": "6c40a86cef443d9f57b40fa17069354bdd81a95ad740451edc025c8db4974232",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_007F_1010 PR #967 merge 575ee1c7, head 29dec846: 2,337 whole-1MiB/CPU14 cases, caller 823/826 sites and 248/262 edges, chain 917/921 sites and 258/278 edges, zero substitutions and zero FLAGS masks; 37 native full returns; four unvisited sites (dice:0E05, u7f:1600, u7f:175D, u7f:1761) and 20 uncovered edges are documented. Body is 2,256 bytes / 826 starts [25C99,26569); the queue's 2,466-byte span includes trailing data after the RETF. Composes the U9E entry-8 strict dice chain. Focused CTest passes. Limits: synthetic frames; uncovered edges/sites are documented and not claimed; natural game route unmeasured.",
+    "approval_reference": "Consolidated verifying-lane acceptance of three evidence-only PRs. OVL_0033_1403 PR #970 merge 93cb14f4 (4,084 cases, 18/18 sites, zero masks; 1,024 + 2 wrap native; body 49 B). OVL_006C_3FB3 PR #971 merge e8d9ee92 (3,088 cases, 132/132 sites, 24 edges; 1,538 native with native faults normalize THREE overwritten exception-frame words to the pre-vector C boundary; successful-IDIV arithmetic FLAGS 0x08D5 declared architecturally UNDEFINED and excluded (reference compare 0xF72A); body 217 B). OVL_006C_408C PR #972 merge b13c6a79 (3,265 cases, 220/220 sites, 35 edges; 1,029 native with native faults normalize THREE overwritten exception-frame words to the pre-vector C boundary; undefined IDIV arithmetic FLAGS masked; body 425 B). The two U6C bodies are credited under the explicit declared IDIV flag profile, not as fully unmasked CPU14. Limits: selected-memory native windows and normalized fault-frame words are documented; natural game route unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 2256,
-    "body_sha256": "2509b684aaa48da83c6d04bcc270cf3e4b731cd521f08b70ef9fc9f45a2bacd9",
-    "evidence_doc": "docs/re/U7F_CALLER_1010.md",
+    "body_bytes": 425,
+    "body_sha256": "a6f888761ea4f984f7562342143d2a366885d4248d4c047b5f0b42cdf26ff97e",
+    "evidence_doc": "docs/re/U6C_408C_EVIDENCE_REFRESH.md",
     "game_identity": true,
-    "original_id": "OVL_007F_1010",
-    "review_pr": 967,
-    "reviewed_commit": "575ee1c7fe283538dd7ba438ec04a22805616d8e",
+    "original_id": "OVL_006C_408C",
+    "review_pr": 972,
+    "reviewed_commit": "b13c6a79757d50447d274aadf28df37ee3adf990",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 163,
+    "overlay": 166,
     "resident": 10
   },
-  "strict_full_c_originals": 173,
-  "unknown_ownership": 584,
+  "strict_full_c_originals": 176,
+  "unknown_ownership": 581,
   "verified_game_by_domain": {
-    "overlay": 214,
+    "overlay": 217,
     "resident": 11
   },
-  "verified_game_identities": 225,
+  "verified_game_identities": 228,
   "whole_game_denominator": "unknown"
 }
