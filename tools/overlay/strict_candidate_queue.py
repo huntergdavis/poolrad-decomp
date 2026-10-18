@@ -81,7 +81,14 @@ RAW_CPU_INTERFACE_CAVEATS = {
 # edge to one of these is covered, so a body whose only unready callees were
 # those calls can compose. Each names the merged model that proves it.
 RUNTIME_COVERED_ENDPOINTS = {
+    (0x0AF8, 0x0254): "system FreeMem (system_freemem_0254_cpu)",
     (0x0AF8, 0x0A3F): "system Move (system_runtime_leaves_cpu)",
+    (0x0AF8, 0x04F7): "system Text Assign (system_textassign_insert_cpu)",
+    (0x0AF8, 0x0C68): "system Insert (system_textassign_insert_cpu)",
+    (0x0AF8, 0x0A5B): "system LongMul (system_longmul_0a5b_cpu)",
+    (0x0AF8, 0x0A76): "system LongDiv (system_longdiv_0a76_cpu)",
+    (0x0AF8, 0x04A2): "system IOResult (system_ioresult_assign_cpu)",
+    (0x0AF8, 0x13E2): "system Assign (system_ioresult_assign_cpu)",
     (0x0AF8, 0x0B0B): "system string load (system_string_leaves_cpu)",
     (0x0AF8, 0x0B57): "system string copy (system_string_move_leaves_cpu)",
     (0x0AF8, 0x0B25): "system StrStore (system_strstore_fullstate_0b25)",
@@ -92,6 +99,8 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x0DC0): "system set IN (system_runtime_leaves_cpu)",
     (0x0AF8, 0x023F): "system GetMem (system_getmem_023f_cpu)",
     (0x0AF8, 0x11C0): "system RANDOM (system_random_fullstate_11c0)",
+    (0x0AF8, 0x1254): "system decimal core (system_str_res1037_cpu)",
+    (0x0AF8, 0x1366): "system Str longint (system_str_res1037_cpu)",
     (0x0AF8, 0x11D6): "system random bit (system_random_bit_fullstate_11d6)",
     (0x0AF8, 0x120F): "system seed step (system_seed_fullstate_120f)",
     (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
