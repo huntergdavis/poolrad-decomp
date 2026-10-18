@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**118 strict full-C originals** (109 overlay, nine resident) and **174 verified
-game identities** (164 overlay, ten resident). The queue still contains 898
+**122 strict full-C originals** (113 overlay, nine resident) and **178 verified
+game identities** (168 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -39,6 +39,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006A_0214` | PR #892, `e88dde1fa37da739ba9dbd4322c59a6a3098cd1b`; independently re-verified by the ds4/pi lane at head 99ed89ca (125 returning original-byte cases, full 1 MiB RAM and all 14 CPU words, 27/27 starts, 2/2 outcomes, 2 cyclic originals capped by the host LIMIT guard; 30 native DOSBox-X normal-core/386 cases, no flag mask) | 72 bytes, SHA-256 `35ee0bd09567048899c218e1874c5884fa7eaad1c08ccdc2198b2b85eb2fe939` | [record walk](U6A_RECORD_WALK_0214.md) |
 | `OVL_03C6_0068` | PR #894, `ce519c85cc8cbc7e6a91902ced4b4996ba996adb`; independently re-verified by the ds4/pi lane at head 47b0034 (188 returning original-byte cases, full 1 MiB RAM and all 14 CPU words, 51/51 starts, 4/4 outcomes, 5 host-cap stops equal to the original at +0080; 36 native DOSBox-X normal-core/386 cases, no flag mask) | 123 bytes, SHA-256 `c429a91a0c99d1b512cbf00f5ab9b7423070f03114a0f8d3de89fbd1784a3acb` | [slot offsets](U3C6_SLOT_OFFSETS_0068.md) |
 | `OVL_0038_2002` | PR #896, `194fb33d5a6be55f9607813afab0e0c2573bc04d`; independently re-verified by the ds4/pi lane at head 2c6fde3c (2,651 returning original-byte cases, exact full 1 MiB RAM and 14 CPU words, 75/75 instructions, 16/16 outcomes; 8 named alias fixtures excluded at the 20,000-instruction budget; 4 native cases, selected RAM) | 221 bytes, SHA-256 `cdf3d522f6de4b8f37ccc47e3267e244f26cab4866883306b9dcfe1525dd2af4` | [leaf selector](U38_LEAF_2002.md) |
+| `OVL_03B0_0711` | PR #898, `71a06443b43979bd8dd8dbf6330114ea4814532c`; independently re-verified by the ds4/pi lane at head 9a7917f4 (1,596 returning original-byte cases, exact full 1 MiB RAM + 14 CPU words, no exclusions, 52/52 starts, 10/10 outcomes; 12 native normal-core/386 cases, selected RAM) | 147 bytes, SHA-256 `a3510458227e9373193717033475fa31fe5d1bf0ef01a33da6582726d6650092` | [list selector](U3B0_LEAF_0711.md) |
+| `OVL_03B4_00C7`, `OVL_03B4_00FB`, `OVL_03B4_012F` | PR #899, `38badec275b5070c0c70e562547236a137e70eab`; independently re-verified by the ds4/pi lane at head f08e138 (320 whole-RAM/14-word cases each; 768 native function/argument pairs, no mask). Credited as game identities on their one aligned caller in game routine +016D (helper_candidate classification) | 52 B `40e4906a…`, 52 B `1c653336…`, 62 B `c10ba3f5…` | [case maps](U3B4_CASE_MAPS.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
