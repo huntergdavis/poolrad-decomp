@@ -291,7 +291,7 @@
   "dispatch_address_range": "DS:6828..6C27 (256 possible slots)",
   "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
   "initialized_address_range": "DS:682C..6A57 (slots1..139)",
-  "interface_review_base": "3b62678a + U38 1363 raw chain",
+  "interface_review_base": "2f945f1e + U38 1363 raw chain",
   "limitations": [
     "Only disjoint U86-then-U38 initialization is inventoried; later writes and invalid types require live-target validation. Types215..255 alias initialized U86 procedure pointers outside the intended effect table. A type1..139 invariant must be proven before treating 118 handlers as the complete closure.",
     "raw_cpu describes a published interface, not verified composition through U9E. scalar_or_callback combines scalar models and raw shells with unresolved hooks.",
@@ -490,8 +490,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_0679",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_string_match_cpu.h",
       "original_stub": "0041:0075",
       "public_entry": 17,
       "slot": 18,
@@ -1838,8 +1838,8 @@
     "canonical_strict_handlers": 48,
     "distinct_handlers": 118,
     "interfaces": {
-      "missing": 59,
-      "raw_cpu": 22,
+      "missing": 58,
+      "raw_cpu": 23,
       "scalar_or_callback": 37
     },
     "without_canonical_strict": 70

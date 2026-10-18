@@ -2,17 +2,17 @@
 
 Tracked assignments and prerequisites: [issue #1019](https://github.com/huntergdavis/poolrad-decomp/issues/1019).
 
-Interface snapshot: main 3b62678a plus the U38 +1363 raw chain. This is a work inventory, not a strict-credit update.
+Interface snapshot: main 2f945f1e plus the U38 +1363 raw chain. This is a work inventory, not a strict-credit update.
 The reproducible [JSON inventory](u9e_dispatch_handlers.json) maps139 primary
 slots to118 distinct handlers, canonical strict-map membership, and a
 source-backed interface class. Its script reads the original installer stores:
 U38 installs138 slots; U86 supplies the skipped type88 slot.
 
 48 handlers have canonical strict-map rows after independent acceptance #1026
-of U38+133F. This inventory adds no credit. Interface review finds22 raw CPU
-APIs,37 scalar/callback models, and59 with no located model.
-The70 identities without canonical rows comprise59 missing models, nine
-callback models, and two raw models (U38+12B2 and +1363). A raw interface does
+of U38+133F. This inventory adds no credit. Interface review finds23 raw CPU
+APIs,37 scalar/callback models, and58 with no located model.
+The70 identities without canonical rows comprise58 missing models, nine
+callback models, and three raw models (U38+0679,+12B2,+1363). A raw interface does
 not itself prove complete dispatcher composition. Reviewers decide credit.
 
 ## Prerequisites separate from handler work
@@ -26,7 +26,7 @@ not itself prove complete dispatcher composition. Reviewers decide credit.
 - [ ] Resolve high-type aliases215..255 if the type invariant cannot be established:
   they reach41 initialized pointers in U86's adjacent procedure table. The JSON
   records these addresses separately from the118 effect handlers.
-- [ ] Upgrade37 scalar/callback interfaces and verify22 existing raw interfaces
+- [ ] Upgrade37 scalar/callback interfaces and verify23 existing raw interfaces
   through the exact U9E frame. Canonical credit does not prove raw CPU parity.
 - [ ] Complete U9E+0000's indirect call/return, then compose +0026 and replace
   U7D+0000's #1015 PENDING boundary with fresh chain evidence.
@@ -45,7 +45,6 @@ not itself prove complete dispatcher composition. Reviewers decide credit.
    The [explicit boundary audit](U38_DISPATCH_BOUNDARY_2EDA.md) confirms both
    the eight incoming slots and an unrestricted outgoing record-byte dispatch.
    It remains a dynamic closure dependency; recursion support alone is insufficient.
-
 5. U38+1363 now has a raw U9E+0E52 append chain; see
    [U38_APPEND_1363_CPU.md](U38_APPEND_1363_CPU.md). Public entry46 serves type56.
    It awaits independent review; no credit is inferred from the raw interface.
@@ -63,7 +62,7 @@ issue #1019 completion is left to the reviewer.
 - [ ] OVL_0038_0233 — slots 7; missing
 - [ ] OVL_0038_0400 — slots 11; missing
 - [ ] OVL_0038_05EB — slots 15; missing
-- [ ] OVL_0038_0679 — slots 18; missing
+- [ ] OVL_0038_0679 — slots 18; raw_cpu; [overlay_u38_string_match_cpu.h](../../include/poolrad/recovered/overlay_u38_string_match_cpu.h)
 - [ ] OVL_0038_070F — slots 21; missing
 - [ ] OVL_0038_0775 — slots 22; missing
 - [ ] OVL_0038_07E0 — slots 23; missing

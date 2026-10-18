@@ -109,7 +109,8 @@ Sanitizers use the same SOURCES list plus the focused test with
 
 The handler inventory maps type56 to this raw interface. It reads canonical
 membership from the accepted strict CSV, including independent #1026 for
-+133F. Counts become22 raw/37 scalar-or-callback/59 missing interfaces;
++133F. The refresh also maps the merged +0679 API from #1031.
+Counts become23 raw/37 scalar-or-callback/58 missing interfaces;
 48 accepted canonical handlers remain48. This PR does not credit +1363,
 change canonical accounting, or mark issue #1019 complete.
 
