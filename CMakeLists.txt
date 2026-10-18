@@ -353,6 +353,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u7d_entry1.c
                                     src/recovered/overlay_u7d_carry_02f2.c
                                     src/recovered/overlay_u7d_update_03a3.c
+                                    src/recovered/overlay_u7d_list_timer_0000_cpu.c
                                     src/recovered/system_seed_fullstate_120f.c
                                     src/recovered/system_random_fullstate_11c0.c
                                     src/recovered/system_strstore_fullstate_0b25.c
@@ -2188,6 +2189,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7d_update_03a3_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7d_update_03a3_tests
              COMMAND poolrad_overlay_u7d_update_03a3_tests)
+    add_executable(poolrad_overlay_u7d_list_timer_0000_cpu_tests
+                   tests/recovered/test_overlay_u7d_list_timer_0000_cpu.c)
+    target_link_libraries(poolrad_overlay_u7d_list_timer_0000_cpu_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u7d_list_timer_0000_cpu_tests
+             COMMAND poolrad_overlay_u7d_list_timer_0000_cpu_tests)
     add_executable(poolrad_overlay_u7d_update_03a3_wrap_alias_tests
                    tests/recovered/test_overlay_u7d_update_03a3_wrap_alias.c)
     target_link_libraries(poolrad_overlay_u7d_update_03a3_wrap_alias_tests PRIVATE poolrad_recovered)
