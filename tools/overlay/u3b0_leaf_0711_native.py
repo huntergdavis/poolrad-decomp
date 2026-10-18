@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """DOSBox-X synthetic far-frame parity for original U3B0 +0711 bytes."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 import json
@@ -37,8 +38,8 @@ def put16_at(ram, at, value):
     ram[(at + 1) & MASK] = value >> 8
 
 
-def original_body():
-    ovr = (ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def original_body(ovr_path=None):
+    ovr = (ovr_path or ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     if len(ovr) != 206105 or sha256(ovr).hexdigest() != OVR_SHA:
         raise ValueError("original GAME.OVR identity differs")
     body = ovr[0x2CFE0:0x2D073]
@@ -231,7 +232,10 @@ def compare_case(result, sp, bound, first_flag, second_flag, method):
 
 
 def main():
-    body = original_body()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ovr", type=Path)
+    args = parser.parse_args()
+    body = original_body(args.ovr)
     OUT.mkdir(parents=True, exist_ok=True)
     shared = OUT / "u3b0_0711.so"
     subprocess.run([
@@ -244,22 +248,24 @@ def main():
                       ctypes.POINTER(Cpu))
     method.restype = ctypes.c_int
     cases = []
-    for sp, bound, first_flag, second_flag in (
-        (0xFFFE, 0, 1, 0),
-        (0xFFFF, 1, 0, 1),
-        (0xFFFB, 2, 0, 1),
-    ):
+    fixtures = [(0xFFFE, 0, 1, 0), (0xFFFF, 1, 0, 1), (0xFFFB, 2, 0, 1)]
+    fixtures += [(sp, bound, first, second)
+                 for sp in (0xFFFB, 0xFFFE, 0xFFFF)
+                 for bound, first, second in ((0, 0, 0), (0x8000, 0x80, 0),
+                                              (0x7FFF, 0, 0xFF))]
+    for sp, bound, first_flag, second_flag in fixtures:
         result, com_sha = native_case(body, sp, bound, first_flag,
                                       second_flag)
         compare_case(result, sp, bound, first_flag, second_flag, method)
         cases.append({"sp": f"{sp:04X}", "bound": bound,
                       "first_flag": first_flag, "second_flag": second_flag,
+                      "result_sha256": sha256(result).hexdigest(),
                       "com_sha256": com_sha,
                       "native_cpu_ram_parity": "PASS"})
     report = {"original_body_sha256": BODY_SHA, "core": "normal",
               "cpu": "386", "cases": cases}
     (OUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-    print("U3B0 +0711 DOSBox-X synthetic native/C parity: 3 cases PASS")
+    print(f"U3B0 +0711 DOSBox-X synthetic native/C parity: {len(cases)} cases PASS")
 
 
 if __name__ == "__main__":
