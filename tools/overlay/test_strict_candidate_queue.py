@@ -108,6 +108,45 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertFalse(row["callee_readiness"]["composable"])
         self.assertEqual(row["callee_readiness"]["unready"], 1)
 
+    def test_raw_cpu_interface_caveats_are_unready(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications,
+                               [dict(id="OVL_0019_0010", evidence_doc="docs/re/synthetic.md")], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        mentions["OVL_0019_0010"] = {"source": [], "tooling": [], "docs": []}
+        saved = dict(scq.RAW_CPU_INTERFACE_CAVEATS)
+        try:
+            scq.RAW_CPU_INTERFACE_CAVEATS["OVL_0019_0010"] = "synthetic scalar-only endpoint"
+            result: dict = scq.build_queue(state, callgraph(), inventory["units"], ledger,
+                                           classifications, mentions, {}, {}, {},
+                                           dict(ovr=bytes(200)))
+            row = next(r for r in result["rows"] if r["id"] == "OVL_0019_0020")
+            self.assertEqual(row["callee_readiness"]["counts"], {"interface_caveat": 1})
+            self.assertFalse(row["callee_readiness"]["composable"])
+            self.assertEqual(row["score_terms"]["composable"], 0)
+            self.assertEqual(row["callee_readiness"]["raw_cpu_caveats"],
+                             [{"id": "OVL_0019_0010", "note": "synthetic scalar-only endpoint"}])
+            self.assertEqual(result["summary"]["interface_caveat_bodies"], 1)
+            graph = dict(edges=[
+                dict(kind="far_fixup_confirmed", unit=0x19, site=0x45, src_func=0x20,
+                     seg=0x00BA, off=0x2E8B, resolution="resident")])
+            strict_resident = [dict(id="RES_00BA_2E8B", evidence_doc="docs/re/synthetic.md")]
+            state2 = scq.load_queue(inventory, ledger, classifications, strict_resident,
+                                    None, [dict(id="RES_00BA_2E8B", status="full",
+                                                evidence_doc="docs/re/synthetic.md")])
+            scq.RAW_CPU_INTERFACE_CAVEATS["RES_00BA_2E8B"] = "synthetic callback endpoint"
+            result2: dict = scq.build_queue(state2, graph, inventory["units"], ledger,
+                                            classifications, mentions, {}, {}, {},
+                                            dict(ovr=bytes(200)))
+            row2 = next(r for r in result2["rows"] if r["id"] == "OVL_0019_0020")
+            self.assertEqual(row2["callee_readiness"]["counts"],
+                             {"resident_interface_caveat": 1})
+            self.assertFalse(row2["callee_readiness"]["composable"])
+        finally:
+            scq.RAW_CPU_INTERFACE_CAVEATS.clear()
+            scq.RAW_CPU_INTERFACE_CAVEATS.update(saved)
+
     def test_closure_chain_and_cycle(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
