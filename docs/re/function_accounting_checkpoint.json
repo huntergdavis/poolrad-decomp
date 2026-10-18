@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "e6015990d8ee428e4ece431691471802968df4849310b8ebb8419192e8bda7f2",
-    "full_c_map": "5630161b91aa9ab9738857ed6a5468ff4ae1ac8d1ee9b92c2d9889dc7950fd69",
+    "classification": "71b786f868bb1b7edc3e1e6b7a9e706ebefdf1fb86f58aae4204b0eb88cb753b",
+    "full_c_map": "3873b0aec60d1573cc1f268b93719215acc4c6a33ad2dd606e8b6a27d1ac860f",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "5f702de0360b30b738918e42607c5d1634383e93200169baa18b23d5ea8da1b6"
+    "reviewed_identities": "4c34faaa194a54d9da8c4ca2b9f435ee0d6387ce495b16f5ebe7d2996210e17d"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "9cde59015dff9a822013aadc198ce065fe225c8ed8452c3d9a43b7db74f67ff9",
+  "queue_sha256": "f64138a2abe785aee5186bdd82828af196b4475b3e09006de65a2bd117bc185a",
   "reviewed_change": {
-    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_1730 PR #1003 merge 4c55824d, head 39044720: 426 cases, caller 22, chain 240/25, 120 native sha 2c0b88ad; body [1730,175E) 46 B (queue 63 B includes 17 trailing data bytes); composes U9E +0E52 and GetMem 023F. (2) RES_00BA_1037 PR #1004 merge bab448a2, head f0f0d71b: raw-CPU byte-to-string (60 B / 28 insns, SHA b448dc38) verified 584 cases (413 resident, 171 Str) with 104 starts and 22 outcomes, no mask; 128 native, SHA 0069c9fd. Credited as a game resident identity via GAME_SPECIFIC_TARGETS and the full manifest, regenerating the resident ledger. Its SYSTEM companions 0AF8:1366 Str (75 B) and 0AF8:1254 decimal core (82 B) were added to RUNTIME_COVERED_ENDPOINTS as no-credit runtime coverage, making U7D +0565 composable. Limits retained: observed chains not exhaustive; synthetic native frames; dice/list/HeapError and RunError treated as explicit stops.",
+    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_1730 PR #1003 merge 4c55824d: 426 cases, caller 22, chain 240/25, 120 native; body [1730,175E) 46 B. (2) RES_00BA_1037 PR #1004 merge bab448a2: 584 cases, 104 starts, 22 outcomes, 128 native; body 60 B; resident credit through GAME_SPECIFIC_TARGETS + full manifest, ledger regenerated (game_verified 11 -> 12); SYSTEM companions 0AF8:1366 and 0AF8:1254 added to RUNTIME_COVERED_ENDPOINTS. (3) OVL_0038_1472 PR #1005 merge ebaa6c3e, head 299d8ace: 281 cases, caller 15, chain 172/20, 120 native SHA 850beff2; body 30 B / 15 insns SHA 80480d29. (4) OVL_007D_0565 PR #1007 merge 12b59b9f, head 682f7a7b: 269 cases, 54/54 starts, 2/2 outcomes, every byte value; 128 native SHA 862d35b9; body 126 B / 54 insns SHA 5674e431. Limits retained: observed chains not exhaustive; synthetic native frames; RunError/HeapError/dice/list treated as explicit stops.",
     "approved_by": "PM",
-    "body_bytes": 60,
-    "body_sha256": "b448dc38524a2573729f1c9a7cb69e667407ca95f02c826a2f65557bcee76b44",
-    "evidence_doc": "docs/re/SYSTEM_STR_1366_RES_1037.md",
+    "body_bytes": 126,
+    "body_sha256": "5674e43157a56215d0d0afca75e179c3f8653d86e39560eb176aec46ec261260",
+    "evidence_doc": "docs/re/U7D_TWO_DIGITS_0565_CPU.md",
     "game_identity": true,
-    "original_id": "RES_00BA_1037",
-    "review_pr": 1004,
-    "reviewed_commit": "bab448a2e1aed12b6616cb64f67166ddcb6cc8f5",
+    "original_id": "OVL_007D_0565",
+    "review_pr": 1007,
+    "reviewed_commit": "12b59b9fe07a80189ee92de027a30074b672b762",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 180,
+    "overlay": 182,
     "resident": 11
   },
-  "strict_full_c_originals": 191,
-  "unknown_ownership": 568,
+  "strict_full_c_originals": 193,
+  "unknown_ownership": 566,
   "verified_game_by_domain": {
-    "overlay": 229,
+    "overlay": 231,
     "resident": 12
   },
-  "verified_game_identities": 241,
+  "verified_game_identities": 243,
   "whole_game_denominator": "unknown"
 }
