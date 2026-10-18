@@ -4,17 +4,17 @@ Inputs: GAME.OVR `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee79286
 
 | classification | confidence | count |
 | --- | --- | ---: |
-| game_verified | verified | 159 |
-| game_evidenced | provisional | 332 |
+| game_verified | verified | 160 |
+| game_evidenced | provisional | 331 |
 | helper_candidate | provisional | 70 |
 | game_or_other_library_unresolved | unresolved | 112 |
 
-Signals (not mutually exclusive): string constants 216 routines (664 references), documented engine globals 249, calls into verified routines 229, leaves 70, runtime-only 16.
+Signals (not mutually exclusive): string constants 216 routines (664 references), documented engine globals 249, calls into verified routines 230, leaves 70, runtime-only 16.
 
 | class | grade A | grade B | grade D |
 | --- | ---: | ---: | ---: |
-| game_verified | 67 | 91 | 1 |
-| game_evidenced | 209 | 122 | 1 |
+| game_verified | 68 | 91 | 1 |
+| game_evidenced | 208 | 122 | 1 |
 | helper_candidate | 52 | 18 | 0 |
 | game_or_other_library_unresolved | 74 | 38 | 0 |
 
