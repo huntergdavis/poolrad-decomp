@@ -82,6 +82,10 @@ RAW_CPU_INTERFACE_CAVEATS = {
 # those calls can compose. Each names the merged model that proves it.
 RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x0A3F): "system Move (system_runtime_leaves_cpu)",
+    (0x0AF8, 0x0A5B): "system LongMul (system_longmul_0a5b_cpu)",
+    (0x0AF8, 0x0A76): "system LongDiv (system_longdiv_0a76_cpu)",
+    (0x0AF8, 0x04A2): "system IOResult (system_ioresult_assign_cpu)",
+    (0x0AF8, 0x13E2): "system Assign (system_ioresult_assign_cpu)",
     (0x0AF8, 0x0B0B): "system string load (system_string_leaves_cpu)",
     (0x0AF8, 0x0B57): "system string copy (system_string_move_leaves_cpu)",
     (0x0AF8, 0x0B25): "system StrStore (system_strstore_fullstate_0b25)",

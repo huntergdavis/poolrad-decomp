@@ -113,7 +113,7 @@ identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
 `f1c513b2338210f781a20c5653006acbeac46d65fe143bf9e6ee3c0b6d8d626e`,
-on the 194/244 main after #885–#1008 plus the phantom-edge filter, the
+on the 195/245 main after #885–#1010 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
@@ -151,7 +151,7 @@ other lanes keep pushing refs.
 | 24 | `OVL_0038_2814` | `0x38:0x2814` | 82 | 37 | A | game_evidenced | 1/0/0/0 | 2/0 | yes | 0 | 0 | source_mention | 62 |
 | 25 | `OVL_0086_051C` | `0x86:0x051c` | 128 | 44 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
 
-Queue summary (schema 8, on the 194/244 main after #885–#1008 and the
+Queue summary (schema 8, on the 195/245 main after #885–#1010 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
 system-runtime coverage): 490 candidates, 75 would be composable without the
 caveats and 71 are composable — 35 bodies carry an interface caveat;
@@ -160,6 +160,7 @@ unresolved 73; grades A 300, B 188, D 2; prior status main_model 72,
 inline_in_model 35, inline_in_strict 34, unmerged_branch 14, commit_mention 17,
 source_mention 318; 610 fixup-backed and 647 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
+
 
 ## Highest-leverage next recoveries
 
@@ -187,8 +188,7 @@ candidate's bounded-decode size, so they are a lower bound on recovery effort.
 
 Read it as: a large fan-out with a deep, expensive closure must not be read as a
 cheap multi-row unlock; prefer blockers whose transitive cost and depth are
-small. Crediting `OVL_009E_0E52` and the SYSTEM leaves II took composable bodies
-from 65 to 74.
+small.
 
 `OVL_0025_1815` is additionally gated on the unmodeled runtime string compare
 `0AF8:0C10` (not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
@@ -238,7 +238,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 194/244 main (183 overlay credits) the schema-8 candidate set is 490 and 71 bodies are composable.
+reasons. On the 195/245 main (183 overlay credits) the schema-8 candidate set is 490 and 71 bodies are composable.
 
 ## Reproduce
 
