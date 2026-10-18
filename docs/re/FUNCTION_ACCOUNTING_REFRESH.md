@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**153 strict full-C originals** (143 overlay, ten resident) and **208 verified
-game identities** (197 overlay, eleven resident). The queue still contains 898
+**157 strict full-C originals** (147 overlay, ten resident) and **212 verified
+game identities** (201 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -61,6 +61,10 @@ merge. Passing tests alone never promotes an original.
 | `OVL_03B0_08D7`, `OVL_03B0_0923` | PR #928 (restacked by #930), `817397fee9ecd3b529c3c42845eb138ba56cb1b2`; ds4/pi re-verified at head 712acc0e (330 + 3 CODE-stop cases each, 31/31 and 29/29 starts, 4/4 outcomes; 122 native). Credited as game identities (helper_candidate class) on the +0969/+0A08 callers | 76 B `74358249…`, 70 B `f296aa6e…` | [space scans](U3B0_SPACE_SCAN_CPU.md) |
 | `OVL_03C6_0CB9` | PR #933, `dd651b1d2aaf7afa0fd3fbee9552087ce71ca7dd`; ds4/pi re-verified at head 30da745c (1,102 original-chain cases, 254/254 sites, 40/40 outcomes; 27 native). LES seam at +0D29 fail-closed, FFFD..FFFF LES not claimed measured | 344 bytes, SHA-256 `63f0434e2d8cadf426464601eed98ae42fa5d13b708303f45ac5440faf95d43b` | [0CB9 parity](U3C6_0CB9_PARITY.md) |
 | `OVL_0025_0F53` | PR #932 (restacked by #934), `e8b3a1657457ebb5b39b49748895cb491be08f51`; ds4/pi re-verified at head dc6d515 (283 composed cases, full RAM/CPU; 100 native). **BASE_VERIFIED identity already**, so strict-credit upgrade only | 512 bytes, SHA-256 `fb04baf47e5abfffab480e8494d662d5c49762e67ca4269b12128cc9e9fd3815` | [store string](U25_STORE_STRING_0F53.md) |
+| `OVL_03C6_04BE` | PR #937, `a7fd266a80ce92414bae67a4e0aab1610d703624`; ds4/pi re-verified at head 24cf508e (1,869 cases, 42/42 sites, 8/8 outcomes; 39 native). LES sites fail-closed | 109 bytes, SHA-256 `bf1db9df7666fe7c5615d826c14442fd10e08f768289f65ebfd3ac10daf2027e` | [04BE parity](U3C6_04BE_PARITY.md) |
+| `OVL_0031_128D` | PR #939, `025676a560bc5dee2c07b2068764f797e2f06c28`; ds4/pi re-verified at head ff22afcd (413+3 cases, 115/115, 24/24; 160 native). Composes SYSTEM Move 0A3F | 317 bytes, SHA-256 `6b08714fe62e86051b329de8992053d1da8d01acda98843279b10218a000f68a` | [table value](U31_TABLE_VALUE_128D.md) |
+| `OVL_03C2_002E` | PR #940, `da7ce91eee71651fa8adf79f38e89a60de31306a`; ds4/pi re-verified at head a9fc7192 (136 cases, 157/157 starts, 17/17 outcomes; 40 native). Pairwise record sort over three SYSTEM Move calls | 370 bytes, SHA-256 `81e890a18c92bd83b78b50a33c1295975183a2706ec5b03b52e7cf550544ca3f` | [record sort](U3C2_RECORD_SORT_002E.md) |
+| `OVL_007F_0B93` | PR #941, `1ca9d67a59a83fdae1d9bf604e56faeb5d9d41c3`; ds4/pi re-verified at head 1bebeedb (119 cases, body 125/125 + 16/16, store/UpCase full; 60 native) | 295 bytes, SHA-256 `cd1bbb38be9d177c33de492a357365a8729eee8d5c3fac3cf9ebe980db77030b` | [coin type](U7F_COIN_TYPE_0B93.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
