@@ -1,7 +1,7 @@
 {
   "artifacts_sha256": {
     "classification": "04a46b97f348c99b1a8f9eac286808c8664822fe07e8d4dfd14883c39d3752db",
-    "full_c_map": "268d72def6141e6414272b13522111825ceb894001892a349d506235f8e060ac",
+    "full_c_map": "d9645b416b4c18f35a4041fb0a5fb4bf99ef0501eecd3bdd698b3d0d0568215c",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
@@ -13,26 +13,26 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "b0c8a59d47f34b62cfc8a88c9191bbbb1740b411f70140ab8135ef8d863c22fd",
+  "queue_sha256": "28a1abe1e4f801c9eaa1c54f71b060232fe0edae7b269e2a1fa79e61f348a2fb",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_006A_0E37 PR #986 merge ffb20a75, head 5a5a05bc: 282 original-chain cases (247 returns; stops 29+2+2+2), full 1 MiB RAM and all 14 CPU words equal, caller 48/48 starts, chain 163/171 sites and 18/26 outcomes; 64 native DOSBox-X cases (8 RunError203 at 7000:00E2), no mask, SHA ab11f0d3. Extent correction: the executable body is [0E37,0EBE) = 135 bytes / 48 instructions, SHA 5f63f182; the queue's 389-byte span includes 254 trailing data bytes, which are not claimed as code. Composes GetMem #983 and SYSTEM StrStore 0B25. Credited as a game identity. Limits: synthetic frames; heap-arena native window; uncovered chain edges/sites are documented and not claimed; natural game route unmeasured. Also verifies SYSTEM string leaves 0B0B/0B98 (#987, merge <merged>) as a no-credit runtime enabler (414 cases, no mask; 128 native, SHA c8f47a7e): 0AF8:0B0B and 0AF8:0B98 were added to RUNTIME_COVERED_ENDPOINTS, which makes U86 +028D composable while leaving the U38 +2556/+070F/+0C4B and +0B1B/+2610 rows gated on their remaining dependencies (RES 00BA:16EC and U38 +0058 respectively).",
+    "approval_reference": "Consolidated verifying-lane acceptance. U6A +0E37 (#986, merge ffb20a75) credited (282 cases, caller 48/48, chain 163/171; 64 native sha ab11f0d3; body [0E37,0EBE) 135 B). SYSTEM string leaves 0B0B/0B98 (#987) verified as no-credit runtime enabler (414 cases no-mask; 128 native sha c8f47a7e), endpoints added; U86 +028D becomes composable while U38 +2556/+070F/+0C4B and +0B1B/+2610 stay gated and non-composable. U1C +18F8 ON GOTO/GOSUB (#989, merge a0c54331, head 09316778): 333 cases (311 return, 6 CALLEE, 2 TRANSFER, 12 CODE), caller 57/57, chain 566/75 sites, full 1 MiB + 14 words no mask; 58 native (4 RunError203), no mask, SHA a29534d3; body [18F8,198D) 149 B (queue 184 B includes 35 trailing data bytes). +18F8 is a strict-credit upgrade (already BASE_VERIFIED via ECL_HANDLERS), so identity count is unchanged and only strict full-C advances. Limits: +0136 party lists must terminate (no list budget); synthetic native frames.",
     "approved_by": "PM",
-    "body_bytes": 135,
-    "body_sha256": "5f63f1823287894ede57fcef122307f3e296293a633e530a1836f2f36d389234",
-    "evidence_doc": "docs/re/U6A_STRING_NODE_0E37.md",
-    "game_identity": true,
-    "original_id": "OVL_006A_0E37",
-    "review_pr": 986,
-    "reviewed_commit": "ffb20a757ad6857638389ae76f8ce067683c79af",
+    "body_bytes": 149,
+    "body_sha256": "c51ab20d9189f38a22d05ad50624117f0ff0dc3251b3921fd319e53454f2c8ba",
+    "evidence_doc": "docs/re/U1C_ON_GOTO_18F8_CPU.md",
+    "game_identity": false,
+    "original_id": "OVL_001C_18F8",
+    "review_pr": 989,
+    "reviewed_commit": "a0c5433182c4fb9bef701c8ce834baad54b080c7",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 174,
+    "overlay": 175,
     "resident": 10
   },
-  "strict_full_c_originals": 184,
+  "strict_full_c_originals": 185,
   "unknown_ownership": 573,
   "verified_game_by_domain": {
     "overlay": 225,
