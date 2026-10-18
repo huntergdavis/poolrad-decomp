@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "04a46b97f348c99b1a8f9eac286808c8664822fe07e8d4dfd14883c39d3752db",
-    "full_c_map": "d9645b416b4c18f35a4041fb0a5fb4bf99ef0501eecd3bdd698b3d0d0568215c",
+    "classification": "87ab417a4eed36c475460251fd9f202d0c2382396bec1fdf8ed38de9aa498689",
+    "full_c_map": "a0c7470f52317f70c87af0f0e80969649960fb038173b8057ea392091405a628",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "3f0289b65c4cddbef9d7895798807f805dc78986b0964960a8f1628388bde290"
+    "reviewed_identities": "44ba334e91630770479f7c8cb9678c740ca96f12c6bf090a35706ed88eab3141"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "28a1abe1e4f801c9eaa1c54f71b060232fe0edae7b269e2a1fa79e61f348a2fb",
+  "queue_sha256": "597b4db3b0d5a6d7c0c78c208e37b063c8372571b7ca6006fb8ee45963f6f48d",
   "reviewed_change": {
-    "approval_reference": "Consolidated verifying-lane acceptance. U6A +0E37 (#986, merge ffb20a75) credited (282 cases, caller 48/48, chain 163/171; 64 native sha ab11f0d3; body [0E37,0EBE) 135 B). SYSTEM string leaves 0B0B/0B98 (#987) verified as no-credit runtime enabler (414 cases no-mask; 128 native sha c8f47a7e), endpoints added; U86 +028D becomes composable while U38 +2556/+070F/+0C4B and +0B1B/+2610 stay gated and non-composable. U1C +18F8 ON GOTO/GOSUB (#989, merge a0c54331, head 09316778): 333 cases (311 return, 6 CALLEE, 2 TRANSFER, 12 CODE), caller 57/57, chain 566/75 sites, full 1 MiB + 14 words no mask; 58 native (4 RunError203), no mask, SHA a29534d3; body [18F8,198D) 149 B (queue 184 B includes 35 trailing data bytes). +18F8 is a strict-credit upgrade (already BASE_VERIFIED via ECL_HANDLERS), so identity count is unchanged and only strict full-C advances. Limits: +0136 party lists must terminate (no list budget); synthetic native frames.",
+    "approval_reference": "Verifying-lane acceptance for OVL_0086_028D PR #992 merge 4b18db31, head b3f99286: 303 original-chain cases, full 1 MiB RAM and all 14 CPU words equal, no mask; caller 165/165 starts and 10/10 outcomes; chain 313/319 sites and 32/38 outcomes; 79 native DOSBox-X cases (10 RunError203), no mask, SHA dcd97962. Body 449 bytes / 165 instructions, SHA 5f82bdbc; composes SYSTEM GetMem 023F and the string leaves 0B0B/0B25/0B98 (all runtime-covered). Limits retained verbatim: synthetic native frames; conservative initial SP [0140,FFFA]; RunError/HeapError treated as explicit boundaries; six runtime starts remain unexercised.",
     "approved_by": "PM",
-    "body_bytes": 149,
-    "body_sha256": "c51ab20d9189f38a22d05ad50624117f0ff0dc3251b3921fd319e53454f2c8ba",
-    "evidence_doc": "docs/re/U1C_ON_GOTO_18F8_CPU.md",
-    "game_identity": false,
-    "original_id": "OVL_001C_18F8",
-    "review_pr": 989,
-    "reviewed_commit": "a0c5433182c4fb9bef701c8ce834baad54b080c7",
+    "body_bytes": 449,
+    "body_sha256": "5f82bdbca3270a4d7dcf6a93f41fa14debd04f8f4a21d8860a9b4a64d2cd5038",
+    "evidence_doc": "docs/re/U86_STRING_NODE_028D.md",
+    "game_identity": true,
+    "original_id": "OVL_0086_028D",
+    "review_pr": 992,
+    "reviewed_commit": "4b18db31c778af7def9b4b973e412e2d51a7c852",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 175,
+    "overlay": 176,
     "resident": 10
   },
-  "strict_full_c_originals": 185,
-  "unknown_ownership": 573,
+  "strict_full_c_originals": 186,
+  "unknown_ownership": 572,
   "verified_game_by_domain": {
-    "overlay": 225,
+    "overlay": 226,
     "resident": 11
   },
-  "verified_game_identities": 236,
+  "verified_game_identities": 237,
   "whole_game_denominator": "unknown"
 }
