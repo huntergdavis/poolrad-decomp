@@ -17,7 +17,7 @@ from u3c2_line_init_01a0_audit import Cpu,NAMES,REGS,physical,put16
 ROOT=Path(__file__).resolve().parents[2]
 SIZE=1<<20
 ENTRY=0x32E6
-SOURCES=('overlay_u5e_caller_32e6',)+prior.SOURCES
+SOURCES=('overlay_u5e_caller_32e6','overlay_u3c6_slot_getters_cpu')+prior.SOURCES
 class Layout(ctypes.Structure):
     _fields_=[(n,ctypes.c_uint16) for n in ('slots_cs','chain_cs','system_cs')]
 class Limits(ctypes.Structure):

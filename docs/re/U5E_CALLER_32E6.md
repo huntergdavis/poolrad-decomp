@@ -21,6 +21,11 @@ Before implementation, local recall query deja "32E6" surfaced the old
 i17741 confirmed Claude had no active/unpublished branch, stash, scratch,
 or PR for this body. No old unpublished implementation was imported.
 
+Current interface update: the raw slot engine described below is now shared
+through [the U3C6 getter CPU API](U3C6_SLOT_GETTERS_CPU.md). The +32E6 caller
+uses that API with the same per-call budget and status behavior. This
+extraction adds no identity credit.
+
 ## Implementation and observable contract
 
 The public function pr_u5e_caller_32e6 takes CPU14, exact 1 MiB A20-off
