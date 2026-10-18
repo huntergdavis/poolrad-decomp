@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "40ed30a6caea6ead913a244d59d280b03652b2d2f000d76a798e9f72e5e30925",
-    "full_c_map": "ae10b26f5dda5a91a32158de95bd98d983ca68de07ea27312131f97b71c9da31",
+    "classification": "380497f7de6b69d725634655f116e999a4f50b94c882472c34094983fd904d0c",
+    "full_c_map": "247f97e8ea19e75dada71615948c2a3029feb7e897006ea93d91d11cde4cb541",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "ed06717503baaafdbf716125592060c6f581e11956f8e26420a954c4a43b51c0"
+    "reviewed_identities": "c7cb363b79a2119c9b6e938656669eead7262b348260a849c8dfccfa13fcab60"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "e456e92b242eff7ebb29c21b644a8a7642932d9746b50757fcaac9ee12fdd774",
+  "queue_sha256": "75344ffd3f933796e06d58f553921f4b3f26c891225a41a723b8f18b5d8830bd",
   "reviewed_change": {
-    "approval_reference": "Batch verifying-lane acceptance of two bodies: (1) OVL_03C6_0068 PR #894 merge ce519c85, ds4/pi re-run at head 47b0034 (188 returning original-byte cases, full 1 MiB RAM + all 14 CPU words, 51/51 starts, 4/4 outcomes; 5 host-cap stops equal to the original at +0080; 36 native DOSBox-X normal-core/386 cases, no mask, result SHA-256 a772acb40cd4110822ddfe2f7bafd302d49c03097671a12b27ab92b499e4cc75, COM segment 0814); (2) OVL_0038_2002 PR #896 merge 194fb33d, ds4/pi re-run at head 2c6fde3c (2,651 returning original-byte cases, exact full 1 MiB RAM + 14 CPU words, 75/75 instructions, 16/16 outcomes; 8 named alias fixtures excluded at the 20,000-instruction budget with no C loop cap; 4 native cases, report SHA-256 0fc647486e445c5a22351b25d51cf046b81bfe7470519ceb9f77cc459adfb59b, selected RAM not whole RAM; LES operands at FFFD..FFFF Unicorn-only; no gameplay-reached frame). Focused CTest passes for both. Natural saved-game reach, arbitrary alias termination and self-modifying code remain unmeasured.",
+    "approval_reference": "Batch verifying-lane acceptance of four bodies. (1) OVL_03B0_0711 PR #898 merge 71a06443, ds4/pi re-run at head 9a7917f4: 1,596 returning original-byte cases, exact full 1 MiB RAM + 14 CPU words, no exclusions, 52/52 starts, 10/10 outcomes, max signed-bound cycle asserts 32,767 original node visits; 12 native DOSBox-X normal-core/386 cases, CPU14 + 80 selected RAM bytes with wrapped FFFE/FFFF frames. (2)-(4) OVL_03B4_00C7/_00FB/_012F PR #899 merge 38badec2, ds4/pi re-run at head f08e138: 320 whole-RAM/14-word cases each (21/21+6/6, 21/21+6/6, 25/25+8/8), 768 native function/argument pairs with CPU14 + 16 frame bytes, result SHA-256 f44a17101fd8ff2ef3cd82c35ebcbc63e068fe368baf0536f357d22c608d5e36. Identity decision: the U3B4 case maps classify as helper_candidate; credited as game identities on their single aligned caller in game routine +016D and full-state original parity. Limits: synthetic frames, no gameplay-reached frame; LES FFFD..FFFF Unicorn-only with native behavior unmeasured; native snapshots are selected RAM, not whole RAM; undefined logical AF follows the oracle profile; hardware exceptions and executing-code aliases excluded.",
     "approved_by": "PM",
-    "body_bytes": 123,
-    "body_sha256": "c429a91a0c99d1b512cbf00f5ab9b7423070f03114a0f8d3de89fbd1784a3acb",
-    "evidence_doc": "docs/re/U3C6_SLOT_OFFSETS_0068.md",
+    "body_bytes": 147,
+    "body_sha256": "a3510458227e9373193717033475fa31fe5d1bf0ef01a33da6582726d6650092",
+    "evidence_doc": "docs/re/U3B0_LEAF_0711.md",
     "game_identity": true,
-    "original_id": "OVL_03C6_0068",
-    "review_pr": 894,
-    "reviewed_commit": "ce519c85cc8cbc7e6a91902ced4b4996ba996adb",
+    "original_id": "OVL_03B0_0711",
+    "review_pr": 898,
+    "reviewed_commit": "71a06443b43979bd8dd8dbf6330114ea4814532c",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 109,
+    "overlay": 113,
     "resident": 9
   },
-  "strict_full_c_originals": 118,
-  "unknown_ownership": 635,
+  "strict_full_c_originals": 122,
+  "unknown_ownership": 631,
   "verified_game_by_domain": {
-    "overlay": 164,
+    "overlay": 168,
     "resident": 10
   },
-  "verified_game_identities": 174,
+  "verified_game_identities": 178,
   "whole_game_denominator": "unknown"
 }
