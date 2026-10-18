@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**157 strict full-C originals** (147 overlay, ten resident) and **212 verified
-game identities** (201 overlay, eleven resident). The queue still contains 898
+**158 strict full-C originals** (148 overlay, ten resident) and **213 verified
+game identities** (202 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -65,6 +65,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0031_128D` | PR #939, `025676a560bc5dee2c07b2068764f797e2f06c28`; ds4/pi re-verified at head ff22afcd (413+3 cases, 115/115, 24/24; 160 native). Composes SYSTEM Move 0A3F | 317 bytes, SHA-256 `6b08714fe62e86051b329de8992053d1da8d01acda98843279b10218a000f68a` | [table value](U31_TABLE_VALUE_128D.md) |
 | `OVL_03C2_002E` | PR #940, `da7ce91eee71651fa8adf79f38e89a60de31306a`; ds4/pi re-verified at head a9fc7192 (136 cases, 157/157 starts, 17/17 outcomes; 40 native). Pairwise record sort over three SYSTEM Move calls | 370 bytes, SHA-256 `81e890a18c92bd83b78b50a33c1295975183a2706ec5b03b52e7cf550544ca3f` | [record sort](U3C2_RECORD_SORT_002E.md) |
 | `OVL_007F_0B93` | PR #941, `1ca9d67a59a83fdae1d9bf604e56faeb5d9d41c3`; ds4/pi re-verified at head 1bebeedb (119 cases, body 125/125 + 16/16, store/UpCase full; 60 native) | 295 bytes, SHA-256 `cd1bbb38be9d177c33de492a357365a8729eee8d5c3fac3cf9ebe980db77030b` | [coin type](U7F_COIN_TYPE_0B93.md) |
+| `OVL_03B0_0B03` | PR #943, `cff08e1d27f1792882d7b7ff4bbd81c664ecc3c2`; ds4/pi re-verified at head 8e4d68f (190 cases, 103/103 starts, 18/18 outcomes; 80 native). Composes strict U3B0 +0000 | 304 bytes, SHA-256 `6f797c1ec66c90e89812e7154faa6417e1d895ed1311754ed8b9c0895b4120f2` | [step scan](U3B0_STEP_SCAN_0B03.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
