@@ -64,7 +64,21 @@ or the dice chain's for `+0000`.
 
 Every operand is reread from RAM in source order. Offsets wrap at 16 bits,
 physical addresses at 1 MiB, and the RETF frame is read physically
-contiguous. The loop `CMP`s, the `INC`s and `SUB SP,0Ah` write only flags
+contiguous.
+
+The callee contracts are inherited unchanged:
+
+- The loaded unit 0x33, 0x3BD and 0x9E code, the stubs and the SYSTEM
+  generator must be the originals and stay immutable. Data writes must not
+  alias code.
+- The SP that `+040F` and `+0615` see (entry SP − 12h) must lie in
+  [`0080`, `FFFA`].
+- Entry 8 must sit at offset `0DE3` of its segment and SYSTEM at paragraph
+  `0AF8`.
+- The dice chain inside `+0000` runs under a host guard of 256 call slices
+  per roll. Unaliased byte counts stay far below it. Alias-mutated loop
+  bounds can reach it, and then `+0810` reports `CALLEE` instead of success.
+- Arbitrary-alias termination is not claimed. The loop `CMP`s, the `INC`s and `SUB SP,0Ah` write only flags
 that the next callee overwrites. Null RAM/CPU or RAM that is not exactly
 1 MiB is rejected before mutation.
 

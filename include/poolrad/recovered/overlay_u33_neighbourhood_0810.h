@@ -40,8 +40,18 @@ typedef struct {
  * offsets 040F and 0615, which they require. Every model runs on the same
  * RAM and CPU words; every operand is reread from RAM; offsets wrap at 16
  * bits, physical addresses at 1 MiB; the RETF frame is read physically
- * contiguous. The dice chain inside +0000 is capped at 256 call slices per
- * roll, which a byte count can never reach. */
+ * contiguous.
+ *
+ * Inherited profile: the callee contracts apply unchanged. The loaded unit
+ * 0x33, 0x3BD and 0x9E code, the stubs and the SYSTEM generator must be the
+ * originals and stay immutable; data writes must not alias code; the SP that
+ * +040F and +0615 see (entry SP - 12h) must lie in [0080, FFFA]; entry 8
+ * must sit at offset 0DE3 of its segment and SYSTEM at paragraph 0AF8; and a
+ * grid laid over this routine's own frame can rewrite its loop counters, for
+ * which the original need not return. The dice chain inside +0000 runs under
+ * a host guard of 256 call slices per roll: unaliased byte counts stay far
+ * below it, while alias-mutated loop bounds can reach it and then stop with
+ * CALLEE instead of reporting success. */
 pr_u33_0810_status pr_u33_neighbourhood_0810(
     uint8_t *ram, size_t ram_size, pr_u33_0810_cpu *cpu, pr_u33_0810_callee *callee);
 
