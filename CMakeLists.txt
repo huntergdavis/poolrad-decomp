@@ -170,6 +170,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u6a_record_clear_high_0159.c
                                     src/recovered/overlay_u6a_record_weight_0000.c
                                     src/recovered/overlay_u6a_link_high_clear_019c.c
+                                    src/recovered/overlay_u6a_record_walk_0214.c
                                     src/recovered/overlay_u2f_record_link_clear_122b.c
                                     src/recovered/overlay_u3b9_entry7_0708_cpu.c
                                     src/recovered/overlay_u3c6_0105_cpu.c
@@ -1066,6 +1067,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u6a_link_high_clear_019c_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6a_link_high_clear_019c_tests
              COMMAND poolrad_overlay_u6a_link_high_clear_019c_tests)
+    add_executable(poolrad_overlay_u6a_record_walk_0214_tests
+                   tests/recovered/test_overlay_u6a_record_walk_0214.c)
+    target_link_libraries(poolrad_overlay_u6a_record_walk_0214_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6a_record_walk_0214_tests
+             COMMAND poolrad_overlay_u6a_record_walk_0214_tests)
     add_executable(poolrad_overlay_u2f_record_link_clear_122b_tests
                    tests/recovered/test_overlay_u2f_record_link_clear_122b.c)
     target_link_libraries(poolrad_overlay_u2f_record_link_clear_122b_tests PRIVATE poolrad_recovered)
