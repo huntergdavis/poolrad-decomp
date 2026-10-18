@@ -193,7 +193,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x04ba,0x38,0x04ba,61717,A,0,game_verified,verified,0,,3,0,3,0,3,0,0,0,1,284,284
 0x38:0x05d6,0x38,0x05d6,62001,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,21,21
 0x38:0x05eb,0x38,0x05eb,62022,A,0,game_evidenced,provisional,0,active_char,1,4,3,0,1,1,1,0,0,92,92
-0x38:0x0647,0x38,0x0647,62114,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,7,7
+0x38:0x0647,0x38,0x0647,62114,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
 0x38:0x064e,0x38,0x064e,62121,A,0,game_verified,verified,0,,0,3,0,0,0,0,0,0,1,43,43
 0x38:0x0679,0x38,0x0679,62164,A,0,game_or_other_library_unresolved,unresolved,0,,0,3,1,1,0,0,0,0,0,107,107
 0x38:0x06e4,0x38,0x06e4,62271,A,0,game_verified,verified,0,,0,3,0,0,0,0,0,0,1,43,43
@@ -224,8 +224,8 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x12b2,0x38,0x12b2,65293,A,0,game_evidenced,provisional,0,,1,2,1,0,0,0,1,0,0,73,73
 0x38:0x12fb,0x38,0x12fb,65366,A,0,game_evidenced,provisional,0,,1,0,3,0,1,1,1,0,0,68,68
 0x38:0x133f,0x38,0x133f,65434,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,0,1,0,0,0,22,22
-0x38:0x1355,0x38,0x1355,65456,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,7,7
-0x38:0x135c,0x38,0x135c,65463,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,7,7
+0x38:0x1355,0x38,0x1355,65456,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
+0x38:0x135c,0x38,0x135c,65463,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
 0x38:0x1363,0x38,0x1363,65470,A,0,game_evidenced,provisional,0,,1,0,1,0,1,0,0,0,0,53,54
 0x38:0x1399,0x38,0x1399,65524,A,0,game_evidenced,provisional,2,,1,1,5,2,0,1,2,0,0,185,185
 0x38:0x1452,0x38,0x1452,65709,A,0,game_verified,verified,0,,0,2,0,0,0,0,0,0,1,32,32
@@ -301,7 +301,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x30a5,0x38,0x30a5,72960,A,0,game_or_other_library_unresolved,unresolved,0,,0,3,2,0,1,1,0,0,0,143,143
 0x38:0x3134,0x38,0x3134,73103,A,0,game_evidenced,provisional,1,,0,0,2,1,0,1,0,0,0,70,70
 0x38:0x317a,0x38,0x317a,73173,A,0,game_or_other_library_unresolved,unresolved,0,,0,0,1,0,1,0,0,0,0,33,33
-0x38:0x319b,0x38,0x319b,73206,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,7,7
+0x38:0x319b,0x38,0x319b,73206,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
 0x38:0x31a2,0x38,0x31a2,73213,A,1,game_verified,verified,0,,0,276,0,0,0,0,0,0,1,1799,1799
 0x38:0x38a9,0x38,0x38a9,75012,A,0,helper_candidate,provisional,0,,0,0,0,0,0,0,0,0,0,5,5
 0x5e:0x0000,0x5e,0x0000,75771,A,1,game_evidenced,provisional,0,win1,2,3,6,0,2,1,3,0,0,291,291

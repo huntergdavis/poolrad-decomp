@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**196 strict full-C originals** (185 overlay, eleven resident) and **246 verified
-game identities** (234 overlay, twelve resident). The queue still contains 898
+**200 strict full-C originals** (189 overlay, eleven resident) and **250 verified
+game identities** (238 overlay, twelve resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
