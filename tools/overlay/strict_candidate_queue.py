@@ -53,6 +53,19 @@ PRIOR_PENALTY = {"main_model": 45, "inline_in_strict": 40,
 PRIOR_ORDER = ("main_model", "inline_in_strict", "unmerged_branch",
                "inline_in_model", "commit_mention", "source_mention", "none")
 
+# Reviewed overlay originals and strict-credited resident targets whose only
+# published C entry point is not a raw-CPU callee: a caller cannot be composed
+# by handing it the live CPU and RAM image. Such a target keeps its strict
+# credit, but a body whose direct or transitive closure reaches one is not
+# claimed composable until a CPU-state interface exists. Keep this list small
+# and evidence-backed; each entry names the exposing header.
+RAW_CPU_INTERFACE_CAVEATS = {
+    "OVL_0068_0109": "overlay_u68_map_update.h exposes scalar arguments and a "
+                     "segment view, not CPU/stack effects",
+    "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
+                     "CPU-state callee",
+}
+
 TOKEN = re.compile(
     r"ovl_([0-9a-f]{4})_([0-9a-f]{4})"
     r"|0x([0-9a-f]{2,3}):0x([0-9a-f]{4})"
@@ -364,7 +377,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
         seen.add(entry)
         if entry[0] == "overlay":
             target_id = ovl_id(entry[1], entry[2])
-            readiness = ("strict" if target_id in strict_overlay
+            readiness = ("interface_caveat" if target_id in RAW_CPU_INTERFACE_CAVEATS
+                         else "strict" if target_id in strict_overlay
                          else "partial" if target_id in partial_models
                          else "modeled" if target_id in main_files
                          and target_id not in transitively_unready
@@ -376,7 +390,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
         elif entry[0] == "resident":
             res_id = (f"RES_{entry[1]:04X}_{entry[2]:04X}"
                       if entry[1] is not None and entry[2] is not None else None)
-            readiness = ("resident_covered" if res_id in resident_full
+            readiness = ("resident_interface_caveat" if res_id in RAW_CPU_INTERFACE_CAVEATS
+                         else "resident_covered" if res_id in resident_full
                          else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
             targets.append(dict(kind="resident", id=res_id, seg=entry[1],
@@ -387,11 +402,15 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             targets.append(dict(kind="runtime", seg=entry[1], offset=entry[2],
                                 readiness=readiness))
     counts = Counter(target["readiness"] for target in targets)
+    caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
+                      for target in targets if target["id"] in RAW_CPU_INTERFACE_CAVEATS),
+                     key=lambda item: item["id"])
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
              + counts["runtime_covered"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
-               + counts["partial"] + counts["modeled_blocked"] + counts["verified"])
+               + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
+               + counts["interface_caveat"] + counts["resident_interface_caveat"])
     base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
                + 2 * counts["verified"] + counts["partial"]
                + counts["modeled_blocked"] + 2 * counts["resident_covered"]
@@ -399,7 +418,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     points = 12 if not targets else round(base * ready / len(targets))
     return dict(targets=sorted(targets, key=lambda t: (t["kind"], t.get("unit", t.get("seg")),
                                                        t["offset"])),
-                counts=dict(sorted(counts.items())),
+                counts=dict(sorted(counts.items())), raw_cpu_caveats=caveats,
                 ready=ready, unready=unready, total=len(targets),
                 composable=not targets or unready == 0, points=points)
 
@@ -483,7 +502,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     # body is composable only when each overlay callee is ready, each resident
     # target is strict-credited, and no runtime call remains uncovered.
     endpoints = {node for node in nodes if node in state["full_models"]}
-    ready = {node: base_category(node) in ("strict", "modeled") or node in endpoints
+    ready = {node: (node not in RAW_CPU_INTERFACE_CAVEATS)
+                    and (base_category(node) in ("strict", "modeled") or node in endpoints)
              for node in nodes}
     changed = True
     while changed:
@@ -495,6 +515,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                 ready[node] = False
                 changed = True
             elif any(res_id not in state["resident_full"]
+                     or res_id in RAW_CPU_INTERFACE_CAVEATS
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
@@ -545,6 +566,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    strict_resident_ignored=len(state["strict_resident_ids"]),
                    composable_bodies=sum(item["callee_readiness"]["composable"]
                                          for item in ranked),
+                   interface_caveat_bodies=sum(1 for item in ranked
+                                               if item["callee_readiness"]["raw_cpu_caveats"]),
                    near_call_evidence=("decoded_validated" if state["near_validated"]
                                        else "raw_unvalidated"),
                    prior_status=counts(item["prior_translation"]["status"] for item in ranked),
@@ -555,7 +578,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=6, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=7, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 
