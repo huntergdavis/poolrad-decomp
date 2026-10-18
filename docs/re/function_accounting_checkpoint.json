@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "aa1c9913f759e83ed7dfcc1b0d268be98b1b799366169bedb2e76c364b7eae75",
-    "full_c_map": "be269ba8a0cb654dbc1f3a5ddca49fcba0d2cb8e51f81b8178859a1ebca2032b",
+    "classification": "50ea3b41d602a0aa2f3226d0d6d009602efd8b97f4dd3c1f2e20a7986a0e6424",
+    "full_c_map": "3db2810757e9c2c6c5480d00962c045866a75b00b2262de56bafaabf85e7ef2c",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "bb92144dc1645dc41802b90309ba3cfbaa47d8db3e4c5f5bb8f9c51766759efb"
+    "reviewed_identities": "82c0f7051a9ec942486b6e9f70ded841f8bf5d4d0d586882acf9172a5f1685b5"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "20324dc7c7a388de78ea2f450b0076d0ae31394d411d8a555447149a7ba28f52",
+  "queue_sha256": "831b606e7273007779d15a6ecdb7892c2145c6a1e285fdcb122be9f34cb1c1c6",
   "reviewed_change": {
-    "approval_reference": "Owner directive (VP i17213): the verifying lane records credit; Claude lane independent verification of PR #888 at dab22ea4 (requested i17326, finished per owner note): 2,083 composed full-RAM/all-CPU cases with no masks, 173/173 chain instructions, 16/16 caller outcomes, 157 legacy callback cases",
+    "approval_reference": "Owner/VP directive (verifying lane records credit; i17330 coordination; VP rebase request after #891). ds4/pi independent re-run of PR #887 at head 22a774b7: 68 returning original-byte cases, whole 1 MiB RAM and all 14 CPU words equal, 71/71 instruction starts, 4/4 conditional outcomes; 24 native DOSBox-X normal-core/386 cases, result SHA-256 30c4e92a87221f2b3d6f40b5494d2edb9d0664b948a5c98b33858de242203636, COM segment 0814, no flag mask. Profile limits: synthetic harness relocates the five far-call segment words to one stub paragraph and copies the unit 0x33/0x3BD/0x9E spans plus the SYSTEM generator to absolute 0AF8:11C0; native comparison covers 14 CPU words, a 256-byte frame window, the 1,264-byte grid and the seed (not all RAM); natural saved-game reach unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 143,
-    "body_sha256": "bcfe56989d4733d260e0f85a7146d4cb56de3041cbf20b7de27851f0f513df2b",
-    "evidence_doc": "docs/re/U25_STEP_PROBE_0482_COMPOSED.md",
+    "body_bytes": 148,
+    "body_sha256": "73d7b42bd2b006650d6856afd73118648ac17bd55a7c7eceafe2bf539e5569ac",
+    "evidence_doc": "docs/re/U33_NEIGHBOURHOOD_0810.md",
     "game_identity": true,
-    "original_id": "OVL_0025_0482",
-    "review_pr": 888,
-    "reviewed_commit": "674a1f6590ad01919491a6108c2f1fcbb52d431d",
+    "original_id": "OVL_0033_0810",
+    "review_pr": 887,
+    "reviewed_commit": "8f456eaa3e8c4682737c56265fe9a8ecfc636c7b",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 105,
+    "overlay": 106,
     "resident": 9
   },
-  "strict_full_c_originals": 114,
-  "unknown_ownership": 639,
+  "strict_full_c_originals": 115,
+  "unknown_ownership": 638,
   "verified_game_by_domain": {
-    "overlay": 160,
+    "overlay": 161,
     "resident": 10
   },
-  "verified_game_identities": 170,
+  "verified_game_identities": 171,
   "whole_game_denominator": "unknown"
 }
