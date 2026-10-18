@@ -195,7 +195,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x05eb,0x38,0x05eb,62022,A,0,game_evidenced,provisional,0,active_char,1,4,3,0,1,1,1,0,0,92,92
 0x38:0x0647,0x38,0x0647,62114,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
 0x38:0x064e,0x38,0x064e,62121,A,0,game_verified,verified,0,,0,3,0,0,0,0,0,0,1,43,43
-0x38:0x0679,0x38,0x0679,62164,A,0,game_or_other_library_unresolved,unresolved,0,,0,3,1,1,0,0,0,0,0,107,107
+0x38:0x0679,0x38,0x0679,62164,A,0,game_verified,verified,0,,0,3,1,1,0,0,0,0,1,107,107
 0x38:0x06e4,0x38,0x06e4,62271,A,0,game_verified,verified,0,,0,3,0,0,0,0,0,0,1,43,43
 0x38:0x070f,0x38,0x070f,62314,A,0,game_evidenced,provisional,1,,0,0,2,1,0,1,0,0,0,98,102
 0x38:0x0775,0x38,0x0775,62416,A,0,game_evidenced,provisional,1,,0,1,4,1,1,1,1,0,0,107,107
