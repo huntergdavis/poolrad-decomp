@@ -147,6 +147,30 @@ class StrictCandidateQueueTest(unittest.TestCase):
             scq.RAW_CPU_INTERFACE_CAVEATS.clear()
             scq.RAW_CPU_INTERFACE_CAVEATS.update(saved)
 
+    def test_covered_runtime_leaves_are_ready(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        covered = dict(edges=[dict(kind="far_fixup_confirmed", unit=0x19, site=0x45,
+                                   src_func=0x20, seg=0x0AF8, off=0x16A8,
+                                   resolution="runtime")])
+        result: dict = scq.build_queue(state, covered, inventory["units"], ledger,
+                                       classifications, mentions, {}, {}, {},
+                                       dict(ovr=bytes(200)))
+        row = next(r for r in result["rows"] if r["id"] == "OVL_0019_0020")
+        self.assertEqual(row["callee_readiness"]["counts"], {"runtime_covered": 1})
+        self.assertTrue(row["callee_readiness"]["composable"])
+        uncovered = dict(edges=[dict(kind="far_fixup_confirmed", unit=0x19, site=0x45,
+                                     src_func=0x20, seg=0x0AF8, off=0x0999,
+                                     resolution="runtime")])
+        result2: dict = scq.build_queue(state, uncovered, inventory["units"], ledger,
+                                        classifications, mentions, {}, {}, {},
+                                        dict(ovr=bytes(200)))
+        row2 = next(r for r in result2["rows"] if r["id"] == "OVL_0019_0020")
+        self.assertEqual(row2["callee_readiness"]["counts"], {"runtime_unmapped": 1})
+        self.assertFalse(row2["callee_readiness"]["composable"])
+
     def test_closure_chain_and_cycle(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)

@@ -66,6 +66,20 @@ RAW_CPU_INTERFACE_CAVEATS = {
                      "CPU-state callee",
 }
 
+# SYSTEM/runtime endpoints with merged raw-CPU full-state models. A runtime
+# edge to one of these is covered, so a body whose only unready callees were
+# those calls can compose. Each names the merged model that proves it.
+RUNTIME_COVERED_ENDPOINTS = {
+    (0x0AF8, 0x0A3F): "system Move (system_runtime_leaves_cpu)",
+    (0x0AF8, 0x0B25): "system StrStore (system_strstore_fullstate_0b25)",
+    (0x0AF8, 0x0DC0): "system set IN (system_runtime_leaves_cpu)",
+    (0x0AF8, 0x11C0): "system RANDOM (system_random_fullstate_11c0)",
+    (0x0AF8, 0x11D6): "system random bit (system_random_bit_fullstate_11d6)",
+    (0x0AF8, 0x120F): "system seed step (system_seed_fullstate_120f)",
+    (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
+    (0x0AF8, 0x182A): "system UpCase (system_runtime_leaves_cpu)",
+}
+
 TOKEN = re.compile(
     r"ovl_([0-9a-f]{4})_([0-9a-f]{4})"
     r"|0x([0-9a-f]{2,3}):0x([0-9a-f]{4})"
@@ -397,7 +411,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             targets.append(dict(kind="resident", id=res_id, seg=entry[1],
                                 offset=entry[2], readiness=readiness))
         else:
-            readiness = ("runtime_covered" if source_id in endpoints
+            readiness = ("runtime_covered"
+                         if (entry[1], entry[2]) in RUNTIME_COVERED_ENDPOINTS
                          else "runtime_unmapped")
             targets.append(dict(kind="runtime", seg=entry[1], offset=entry[2],
                                 readiness=readiness))
@@ -465,7 +480,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         if edge["kind"] == "near_candidate" and edge.get("target") is not None:
             near_by_target[(edge["unit"], edge["target"])].append(edge)
     graph = defaultdict(set)
-    resident_edges, runtime_sources = defaultdict(set), set()
+    resident_edges, runtime_edges = defaultdict(set), defaultdict(set)
     for edge in callgraph["edges"]:
         source = edge.get("src_func")
         if source is None:
@@ -480,9 +495,10 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             elif edge.get("resolution") == "resident" \
                     and edge.get("seg") is not None and edge.get("off") is not None:
                 resident_edges[source_id].add(f"RES_{edge['seg']:04X}_{edge['off']:04X}")
-            elif edge.get("resolution") == "runtime":
-                runtime_sources.add(source_id)
-    nodes = set(graph) | set(resident_edges) | set(runtime_sources)
+            elif edge.get("resolution") == "runtime" and edge.get("seg") is not None \
+                    and edge.get("off") is not None:
+                runtime_edges[source_id].add((edge["seg"], edge["off"]))
+    nodes = set(graph) | set(resident_edges) | set(runtime_edges)
     for targets in graph.values():
         nodes |= targets
 
@@ -519,7 +535,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
-            elif node in runtime_sources:
+            elif any((seg, off) not in RUNTIME_COVERED_ENDPOINTS
+                     for seg, off in runtime_edges.get(node, ())):
                 ready[node] = False
                 changed = True
     transitively_unready = {node for node in nodes
@@ -578,7 +595,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=7, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=8, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 
