@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "0cd6b3d596097706abbc771c2798fb3434e590aa61bef79a4a71dd1600cf36eb",
-    "full_c_map": "04d78f1282026bde33b43e788af58bb2239548bd572b07ee0b36678bd30d6090",
+    "classification": "825c95a487658ce6ea52fb436c2c193d9652d5b14ca0812b6c422d56e1fb1052",
+    "full_c_map": "d82eee0421111a513f9334ccc256ecdc5d0384e9267f17d7dc1a4b003a354100",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "d1ed2f0290fd131b39437fd7305ec3c96ce474fe3b0fe1d3fed3096aa0386587"
+    "reviewed_identities": "d07e08120f2d1ef7e62b2291bff89924b0a2108ba1270d077b7f9c4bea609839"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "a164edb1d558707f48ab54e22f4dd9659a570e42080e6d39258ab6f9dcb04663",
+  "queue_sha256": "215fab19c070dc789011b585abd266ed80c38cd0e4cdc51a44070928aeb9b89d",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_001C_266A PR #945 merge 6aa8192c, ds4/pi re-run at head 37cf453: 170 original-byte cases (164 returns, 3 CODE, 0 TRANSFER, 3 LIMIT), whole 1 MiB RAM + 14 CPU words, 61/61 starts, 10/10 outcomes; 48 native DOSBox-X cases (11 found the operand), no mask, result SHA bcb0850f. Composes U25 +0000/+0136 through the loaded overlay stub and SYSTEM FillChar 16A8. +266A is already a BASE_VERIFIED ECL handler, so this is a strict-credit upgrade only (no new identity row). Limits: synthetic frames; LIMIT preserves partial state; natural game route/loader dispatch unmeasured. Also folds in the #946 raw-CPU interface caveat for OVL_0025_1815/+18EB (semantic ecl_helpers APIs; +1815 needs the unmodeled runtime string compare 0AF8:0C10), demoting U1C +0126.",
+    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_001C_266A PR #945 merge 6aa8192c, head 37cf453: 170 cases (164 returns, 3 CODE, 3 LIMIT), 61/61 starts, 10/10 outcomes; 48 native, SHA bcb0850f. +266A is already a BASE_VERIFIED ECL handler, so strict-credit upgrade only. (2) OVL_0020_0355 PR #948 merge a0f61943, head c4d79a2e: 227 cases (223 returns, 2 CODE, 2 LIMIT), 126/126 starts, 34/34 outcomes, six real LongInt-divide calls; 120 native, no mask, SHA 189da364. (3) OVL_005E_1BF8 PR #949 merge 11c22a09, head 82c4ea3d: 587 whole-1MiB/CPU14 comparisons (560 returns, 14 protected-word stops, 13 budget stops), 314/314 sites, 54/54 outcomes, zero substitutions and zero FLAGS masks; 34 native captures (30 full returns, 4 explicit partials), no mask. Also folds in the #946 raw-CPU interface caveat for OVL_0025_1815/+18EB (semantic ecl_helpers APIs; +1815 needs the unmodeled runtime string compare 0AF8:0C10), demoting U1C +0126. Focused CTests pass for all three. Caveats retained: LIMIT preserves partial state and is not success; native partial captures are pre-seam; LES/LDS seams measured per doc; natural game route/loader dispatch unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 181,
-    "body_sha256": "cc815a5eab06818bf60d80ee6d8aaaeec77760d1b33c93c1e8c703759301117c",
-    "evidence_doc": "docs/re/U1C_PARTY_ITEM_SCAN_266A.md",
+    "body_bytes": 542,
+    "body_sha256": "e4d40ee52d77251769257793d73634d80def7043b5264c6e050ea98902c11e1a",
+    "evidence_doc": "docs/re/U5E_NEIGHBOR_1BF8.md",
     "game_identity": true,
-    "original_id": "OVL_001C_266A",
-    "review_pr": 945,
-    "reviewed_commit": "6aa8192cac2370975de8d7d8a76ce4bd1b579164",
+    "original_id": "OVL_005E_1BF8",
+    "review_pr": 949,
+    "reviewed_commit": "11c22a096f01240ab7b5e872599f724aa47b626d",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 149,
+    "overlay": 151,
     "resident": 10
   },
-  "strict_full_c_originals": 159,
-  "unknown_ownership": 596,
+  "strict_full_c_originals": 161,
+  "unknown_ownership": 594,
   "verified_game_by_domain": {
-    "overlay": 202,
+    "overlay": 204,
     "resident": 11
   },
-  "verified_game_identities": 213,
+  "verified_game_identities": 215,
   "whole_game_denominator": "unknown"
 }
