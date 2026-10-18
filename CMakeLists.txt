@@ -111,6 +111,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_unit38_effects_next.c
                                     src/recovered/resident_character_target_select.c
                                     src/recovered/overlay_unit38_helper.c
+                                    src/recovered/overlay_u38_helper_cluster_cpu.c
                                     src/recovered/resident_ecl_dax_block.c
                                     src/recovered/resident_dax_rle.c
                                     src/recovered/overlay_unit38_walk.c
@@ -790,6 +791,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_unit38_helper_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_unit38_helper_tests
              COMMAND poolrad_overlay_unit38_helper_tests)
+    add_executable(poolrad_overlay_u38_helper_cluster_cpu_tests
+                   tests/recovered/test_overlay_u38_helper_cluster_cpu.c)
+    target_link_libraries(poolrad_overlay_u38_helper_cluster_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_helper_cluster_cpu_tests
+             COMMAND poolrad_overlay_u38_helper_cluster_cpu_tests)
     add_executable(poolrad_resident_ecl_dax_block_tests
                    tests/recovered/test_resident_ecl_dax_block.c)
     target_link_libraries(poolrad_resident_ecl_dax_block_tests PRIVATE poolrad_recovered)
