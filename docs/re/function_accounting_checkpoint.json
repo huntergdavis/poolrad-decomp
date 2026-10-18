@@ -1,7 +1,7 @@
 {
   "artifacts_sha256": {
     "classification": "e6015990d8ee428e4ece431691471802968df4849310b8ebb8419192e8bda7f2",
-    "full_c_map": "cc63ade152fa56f53e06711e1c8ae31b2d5ec3e42b9ec2feea5b8929615dc794",
+    "full_c_map": "5630161b91aa9ab9738857ed6a5468ff4ae1ac8d1ee9b92c2d9889dc7950fd69",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
@@ -13,31 +13,31 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "772d38eb476a6a0b68f15ed910d68fda510eea7cb347c7c93acc7d73ed649a85",
+  "queue_sha256": "9cde59015dff9a822013aadc198ce065fe225c8ed8452c3d9a43b7db74f67ff9",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_0038_1730 PR #1003 merge 4c55824d, head 39044720: 426 original-chain cases (413 return; stops 7+4+2), full 1 MiB RAM and all 14 CPU words equal, no mask; caller 22 starts / 2 outcomes; chain 240 sites / 25 outcomes; roll values 1-36 and 56-100 exercised through the dice core. 120 native DOSBox-X cases (107 return, 13 RunError203), no mask, SHA 2c0b88ad. Body is [1730,175E) = 46 bytes / 22 instructions, SHA 402e83b7; the queue's 63-byte span includes 17 trailing data bytes, not claimed. Composes U9E +0E52 and SYSTEM GetMem 023F. Limits: observed chain not exhaustive; synthetic native frames; dice/list/HeapError treated as explicit stops.",
+    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_1730 PR #1003 merge 4c55824d, head 39044720: 426 cases, caller 22, chain 240/25, 120 native sha 2c0b88ad; body [1730,175E) 46 B (queue 63 B includes 17 trailing data bytes); composes U9E +0E52 and GetMem 023F. (2) RES_00BA_1037 PR #1004 merge bab448a2, head f0f0d71b: raw-CPU byte-to-string (60 B / 28 insns, SHA b448dc38) verified 584 cases (413 resident, 171 Str) with 104 starts and 22 outcomes, no mask; 128 native, SHA 0069c9fd. Credited as a game resident identity via GAME_SPECIFIC_TARGETS and the full manifest, regenerating the resident ledger. Its SYSTEM companions 0AF8:1366 Str (75 B) and 0AF8:1254 decimal core (82 B) were added to RUNTIME_COVERED_ENDPOINTS as no-credit runtime coverage, making U7D +0565 composable. Limits retained: observed chains not exhaustive; synthetic native frames; dice/list/HeapError and RunError treated as explicit stops.",
     "approved_by": "PM",
-    "body_bytes": 46,
-    "body_sha256": "402e83b7c5036596f9af8cb3da21ea77519e58cca195e5385fc88d593e0e2f25",
-    "evidence_doc": "docs/re/U38_ROLL_APPEND_1730_CPU.md",
+    "body_bytes": 60,
+    "body_sha256": "b448dc38524a2573729f1c9a7cb69e667407ca95f02c826a2f65557bcee76b44",
+    "evidence_doc": "docs/re/SYSTEM_STR_1366_RES_1037.md",
     "game_identity": true,
-    "original_id": "OVL_0038_1730",
-    "review_pr": 1003,
-    "reviewed_commit": "4c55824d311c125d96c6c81053f9cc4a28bc0aaa",
+    "original_id": "RES_00BA_1037",
+    "review_pr": 1004,
+    "reviewed_commit": "bab448a2e1aed12b6616cb64f67166ddcb6cc8f5",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
     "overlay": 180,
-    "resident": 10
-  },
-  "strict_full_c_originals": 190,
-  "unknown_ownership": 569,
-  "verified_game_by_domain": {
-    "overlay": 229,
     "resident": 11
   },
-  "verified_game_identities": 240,
+  "strict_full_c_originals": 191,
+  "unknown_ownership": 568,
+  "verified_game_by_domain": {
+    "overlay": 229,
+    "resident": 12
+  },
+  "verified_game_identities": 241,
   "whole_game_denominator": "unknown"
 }

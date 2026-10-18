@@ -92,6 +92,8 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x0DC0): "system set IN (system_runtime_leaves_cpu)",
     (0x0AF8, 0x023F): "system GetMem (system_getmem_023f_cpu)",
     (0x0AF8, 0x11C0): "system RANDOM (system_random_fullstate_11c0)",
+    (0x0AF8, 0x1254): "system decimal core (system_str_res1037_cpu)",
+    (0x0AF8, 0x1366): "system Str longint (system_str_res1037_cpu)",
     (0x0AF8, 0x11D6): "system random bit (system_random_bit_fullstate_11d6)",
     (0x0AF8, 0x120F): "system seed step (system_seed_fullstate_120f)",
     (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
