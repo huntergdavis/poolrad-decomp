@@ -339,6 +339,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_a40_delay_029c.c
                                     src/recovered/resident_a40_delay_029c_cpu.c
                                     src/recovered/ega_hw.c
+                                    src/recovered/memory_bus.c
+                                    src/recovered/system_fillchar_bus_16a8_cpu.c
                                     src/recovered/resident_0709_delay_wrapper_0dbe_cpu.c
                                     src/recovered/resident_0899_idle_0104_cpu.c
                                     src/recovered/system_set_expand_0d12_cpu.c
@@ -2156,6 +2158,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_ega_hw_tests tests/recovered/test_ega_hw.c)
     target_link_libraries(poolrad_ega_hw_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_ega_hw_tests COMMAND poolrad_ega_hw_tests)
+    add_executable(poolrad_memory_bus_tests tests/recovered/test_memory_bus.c)
+    target_link_libraries(poolrad_memory_bus_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_memory_bus_tests COMMAND poolrad_memory_bus_tests)
     add_executable(poolrad_overlay_u1c_horizontal_menu_10d1_tests
                    tests/recovered/test_overlay_u1c_horizontal_menu_10d1.c)
     target_link_libraries(poolrad_overlay_u1c_horizontal_menu_10d1_tests PRIVATE poolrad_recovered)
