@@ -64,6 +64,8 @@ RAW_CPU_INTERFACE_CAVEATS = {
                      "segment view, not CPU/stack effects",
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
+    "RES_00BA_2199": "resident_sidecar_lookup.h exposes callback memory I/O, "
+                     "not a CPU/stack frame API",
 }
 
 TOKEN = re.compile(
