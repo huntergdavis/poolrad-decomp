@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**115 strict full-C originals** (106 overlay, nine resident) and **171 verified
-game identities** (161 overlay, ten resident). The queue still contains 898
+**116 strict full-C originals** (107 overlay, nine resident) and **172 verified
+game identities** (162 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -36,6 +36,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006C_4235` | PR #886, `5d7ff51b1f263d07c73d1bdcd899257ee4365ee2`; independently verified by the Claude lane (1,609 cases with 16 declared transfers, 134/134 sites, 17 feasible edges; 620 native cases) | 184 bytes, SHA-256 `fdb467838a6d2067178154c2b0bf3d60f0acff37060f337977e3d66d24391d60` | [record roll sum](U6C_RECORD_ROLL_SUM_4235.md) |
 | `OVL_0025_0482` | PR #888, `674a1f6590ad01919491a6108c2f1fcbb52d431d`; independently verified by the Claude lane (2,083 composed cases without masks, 173/173 chain instructions, 16/16 caller outcomes; 157 legacy callback cases) | 143 bytes, SHA-256 `bcfe56989d4733d260e0f85a7146d4cb56de3041cbf20b7de27851f0f513df2b` | [composed step probe](U25_STEP_PROBE_0482_COMPOSED.md) |
 | `OVL_0033_0810` | PR #887, `8f456eaa3e8c4682737c56265fe9a8ecfc636c7b`; independently re-verified by the ds4/pi lane at head 22a774b7 (68 original-byte cases, full 1 MiB RAM and all 14 CPU words, 71/71 instruction starts, 4/4 outcomes; 24 native DOSBox-X normal-core/386 cases, no flag mask) | 148 bytes, SHA-256 `73d7b42bd2b006650d6856afd73118648ac17bd55a7c7eceafe2bf539e5569ac` | [neighbourhood sweep](U33_NEIGHBOURHOOD_0810.md) |
+| `OVL_006A_0214` | PR #892, `e88dde1fa37da739ba9dbd4322c59a6a3098cd1b`; independently re-verified by the ds4/pi lane at head 99ed89ca (125 returning original-byte cases, full 1 MiB RAM and all 14 CPU words, 27/27 starts, 2/2 outcomes, 2 cyclic originals capped by the host LIMIT guard; 30 native DOSBox-X normal-core/386 cases, no flag mask) | 72 bytes, SHA-256 `35ee0bd09567048899c218e1874c5884fa7eaad1c08ccdc2198b2b85eb2fe939` | [record walk](U6A_RECORD_WALK_0214.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
