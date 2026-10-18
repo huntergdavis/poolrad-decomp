@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "50ea3b41d602a0aa2f3226d0d6d009602efd8b97f4dd3c1f2e20a7986a0e6424",
-    "full_c_map": "3db2810757e9c2c6c5480d00962c045866a75b00b2262de56bafaabf85e7ef2c",
+    "classification": "6678ca9dad07d3ce2fe47d88a28129f8a6eb858572f0ae9c26eaa357dd053f11",
+    "full_c_map": "2e75c3ad07818b3051f22aef0509f46403c67851ae18c68a091f1fdff1eb9b42",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "82c0f7051a9ec942486b6e9f70ded841f8bf5d4d0d586882acf9172a5f1685b5"
+    "reviewed_identities": "c1a51dfe5addecb23c1b97eab8d5b920ba4066a197fecd7582fa21e43568853c"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "831b606e7273007779d15a6ecdb7892c2145c6a1e285fdcb122be9f34cb1c1c6",
+  "queue_sha256": "2cf98c638207f0687a79081c89c2b82a54f33cdbc6f8ef1290ae0e90802a4e08",
   "reviewed_change": {
-    "approval_reference": "Owner/VP directive (verifying lane records credit; i17330 coordination; VP rebase request after #891). ds4/pi independent re-run of PR #887 at head 22a774b7: 68 returning original-byte cases, whole 1 MiB RAM and all 14 CPU words equal, 71/71 instruction starts, 4/4 conditional outcomes; 24 native DOSBox-X normal-core/386 cases, result SHA-256 30c4e92a87221f2b3d6f40b5494d2edb9d0664b948a5c98b33858de242203636, COM segment 0814, no flag mask. Profile limits: synthetic harness relocates the five far-call segment words to one stub paragraph and copies the unit 0x33/0x3BD/0x9E spans plus the SYSTEM generator to absolute 0AF8:11C0; native comparison covers 14 CPU words, a 256-byte frame window, the 1,264-byte grid and the seed (not all RAM); natural saved-game reach unmeasured.",
+    "approval_reference": "Verifying-lane acceptance (i17337 request; VP directs verification and credit to ds4/pi). Independent re-run of PR #892 at head 99ed89ca: 125 returning original-byte cases with whole 1 MiB RAM and all 14 CPU words equal, 27/27 instruction starts, 2/2 conditional outcomes; two non-returning cyclic originals stop at the host LIMIT cap and are not compared (the cap is a host guard for cyclic record lists only; a cyclic node list inside +019C follows +019C's own contract). Native DOSBox-X normal-core/386, 30 cases over 6 worlds, no flag mask, 14 CPU words + 128 frame bytes + record and node areas, combined result SHA-256 4066d6355c008bde9f845a31e71e2a0aab566e074a5bd4bab02f55677f895e12. Focused CTest passes. Natural saved-game reach and arbitrary alias termination remain unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 148,
-    "body_sha256": "73d7b42bd2b006650d6856afd73118648ac17bd55a7c7eceafe2bf539e5569ac",
-    "evidence_doc": "docs/re/U33_NEIGHBOURHOOD_0810.md",
+    "body_bytes": 72,
+    "body_sha256": "35ee0bd09567048899c218e1874c5884fa7eaad1c08ccdc2198b2b85eb2fe939",
+    "evidence_doc": "docs/re/U6A_RECORD_WALK_0214.md",
     "game_identity": true,
-    "original_id": "OVL_0033_0810",
-    "review_pr": 887,
-    "reviewed_commit": "8f456eaa3e8c4682737c56265fe9a8ecfc636c7b",
+    "original_id": "OVL_006A_0214",
+    "review_pr": 892,
+    "reviewed_commit": "e88dde1fa37da739ba9dbd4322c59a6a3098cd1b",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 106,
+    "overlay": 107,
     "resident": 9
   },
-  "strict_full_c_originals": 115,
-  "unknown_ownership": 638,
+  "strict_full_c_originals": 116,
+  "unknown_ownership": 637,
   "verified_game_by_domain": {
-    "overlay": 161,
+    "overlay": 162,
     "resident": 10
   },
-  "verified_game_identities": 171,
+  "verified_game_identities": 172,
   "whole_game_denominator": "unknown"
 }
