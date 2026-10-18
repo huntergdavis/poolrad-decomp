@@ -422,6 +422,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u6f_party_insert_1446_dos.c
                                     src/recovered/overlay_u6f_insert_ss_probe.c
                                     src/recovered/overlay_u6f_party_insert_1446_ss.c
+                                    src/recovered/overlay_u6f_party_insert_1446_cpu.c
                                     src/recovered/resident_handler_prefix_02e6.c
                                     src/recovered/resident_loader_prefix_0338.c
                                     src/recovered/resident_loader_0553.c
@@ -2564,6 +2565,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6f_party_insert_1446_ss_tests
              COMMAND poolrad_overlay_u6f_party_insert_1446_ss_tests)
+    add_executable(poolrad_overlay_u6f_party_insert_1446_cpu_tests
+                   tests/recovered/test_overlay_u6f_party_insert_1446_cpu.c)
+    target_link_libraries(poolrad_overlay_u6f_party_insert_1446_cpu_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6f_party_insert_1446_cpu_tests
+             COMMAND poolrad_overlay_u6f_party_insert_1446_cpu_tests)
     add_executable(poolrad_resident_8ae_dispatch_tests
                    tests/recovered/test_resident_8ae_dispatch.c)
     target_link_libraries(poolrad_resident_8ae_dispatch_tests PRIVATE
