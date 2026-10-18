@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**193 strict full-C originals** (182 overlay, eleven resident) and **243 verified
-game identities** (231 overlay, twelve resident). The queue still contains 898
+**194 strict full-C originals** (183 overlay, eleven resident) and **244 verified
+game identities** (232 overlay, twelve resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -101,6 +101,7 @@ merge. Passing tests alone never promotes an original.
 | `RES_00BA_1037` | PR #1004, `bab448a2`; ds4/pi re-verified at head f0f0d71b (584 cases, 104 starts, 22 outcomes; 128 native). Resident byte-to-string; composes SYSTEM Str 1366 and StrStore | 60 bytes, SHA-256 `b448dc38524a2573729f1c9a7cb69e667407ca95f02c826a2f65557bcee76b44` | [Str/1037](SYSTEM_STR_1366_RES_1037.md) |
 | `OVL_0038_1472` | PR #1005, `ebaa6c3e`; ds4/pi re-verified at head 299d8ace (281 cases, caller 15, chain 172/20; 120 native). Fixed sidecar append | 30 bytes, SHA-256 `80480d29f87a095087d3bfe3485de2a659702f7214c758e797a03beffdaff680` | [sidecar 1472](U38_SIDECAR_1472_CPU.md) |
 | `OVL_007D_0565` | PR #1007, `12b59b9f`; ds4/pi re-verified at head 682f7a7b (269 cases, 54/54, 2/2; 128 native). Two-digit string composing 00BA:1037 and the SYSTEM string leaves | 126 bytes, SHA-256 `5674e43157a56215d0d0afca75e179c3f8653d86e39560eb176aec46ec261260` | [two digits](U7D_TWO_DIGITS_0565_CPU.md) |
+| `OVL_007D_03A3` | PR #1008, `cd0ec8d4`; ds4/pi re-verified at head cc2f01e9 (existing 48-case Unicorn 19/19 + new 128-case native oracle). No new C body | 50 bytes, SHA-256 `3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad` | [native oracle](U7D_UPDATE_03A3_NATIVE_ORACLE.md) |
 | 150 bytes, SHA-256 `908b407691e90b37e132380ee3ad17d42209a64ecbbb2d29ce0fca2333abf552` | [candidate check](U31_CANDIDATE_CHECK_0255_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest

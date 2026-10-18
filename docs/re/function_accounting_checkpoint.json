@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "71b786f868bb1b7edc3e1e6b7a9e706ebefdf1fb86f58aae4204b0eb88cb753b",
-    "full_c_map": "3873b0aec60d1573cc1f268b93719215acc4c6a33ad2dd606e8b6a27d1ac860f",
+    "classification": "724c949d3a3a6cc4f0c020b24cfb4e70b13fa9fcca13aa1b6ff53b13b468ce94",
+    "full_c_map": "d97f8e940abd667638f875bb7628ca001a486cd7ffee242cb9619e1a3683a746",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "4c34faaa194a54d9da8c4ca2b9f435ee0d6387ce495b16f5ebe7d2996210e17d"
+    "reviewed_identities": "52fb0f4eb97f93a1c0755634675bccf8edc1672f7e6a3053f916430e19de7326"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "f64138a2abe785aee5186bdd82828af196b4475b3e09006de65a2bd117bc185a",
+  "queue_sha256": "069f5243d6dc78a135a193248e5bc02850a384f16b035f35592d1241bfc5f372",
   "reviewed_change": {
-    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_1730 PR #1003 merge 4c55824d: 426 cases, caller 22, chain 240/25, 120 native; body [1730,175E) 46 B. (2) RES_00BA_1037 PR #1004 merge bab448a2: 584 cases, 104 starts, 22 outcomes, 128 native; body 60 B; resident credit through GAME_SPECIFIC_TARGETS + full manifest, ledger regenerated (game_verified 11 -> 12); SYSTEM companions 0AF8:1366 and 0AF8:1254 added to RUNTIME_COVERED_ENDPOINTS. (3) OVL_0038_1472 PR #1005 merge ebaa6c3e, head 299d8ace: 281 cases, caller 15, chain 172/20, 120 native SHA 850beff2; body 30 B / 15 insns SHA 80480d29. (4) OVL_007D_0565 PR #1007 merge 12b59b9f, head 682f7a7b: 269 cases, 54/54 starts, 2/2 outcomes, every byte value; 128 native SHA 862d35b9; body 126 B / 54 insns SHA 5674e431. Limits retained: observed chains not exhaustive; synthetic native frames; RunError/HeapError/dice/list treated as explicit stops.",
+    "approval_reference": "Consolidated verifying-lane acceptance. (1) OVL_0038_1730 PR #1003 merge 4c55824d: 426 cases, caller 22, chain 240/25, 120 native; body [1730,175E) 46 B. (2) RES_00BA_1037 PR #1004 merge bab448a2: 584 cases, 104 starts, 22 outcomes, 128 native; body 60 B; resident credit through GAME_SPECIFIC_TARGETS + full manifest, ledger regenerated (game_verified 11 -> 12); SYSTEM companions 0AF8:1366 and 0AF8:1254 added to RUNTIME_COVERED_ENDPOINTS. (3) OVL_0038_1472 PR #1005 merge ebaa6c3e, head 299d8ace: 281 cases, caller 15, chain 172/20, 120 native SHA 850beff2; body 30 B / 15 insns SHA 80480d29. (4) OVL_007D_0565 PR #1007 merge 12b59b9f, head 682f7a7b: 269 cases, 54/54 starts, 2/2 outcomes, every byte value; 128 native SHA 862d35b9; body 126 B / 54 insns SHA 5674e431. Limits retained: observed chains not exhaustive; synthetic native frames; RunError/HeapError/dice/list treated as explicit stops. (5) OVL_007D_03A3 PR #1008 merge cd0ec8d4, head cc2f01e9: the pre-existing composed model pr_u7d_update_03a3 had a 48-case original-byte Unicorn differential (19/19 starts, 4/4 outcomes) re-confirmed by this lane, and this PR adds the previously missing DOSBox-X synthetic oracle: 128 cases (64 carry-mask, 64 random; party lists of 0..6 nodes; 64 at the 63h cap), no mask, SHA 743f223b. No new C body. Credited as a game identity: body [147823,147873) 50 bytes / 19 instructions, SHA 3cef292a. Limit retained: cyclic party lists excluded because the +02F2 callee has no cap.",
     "approved_by": "PM",
-    "body_bytes": 126,
-    "body_sha256": "5674e43157a56215d0d0afca75e179c3f8653d86e39560eb176aec46ec261260",
-    "evidence_doc": "docs/re/U7D_TWO_DIGITS_0565_CPU.md",
+    "body_bytes": 50,
+    "body_sha256": "3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad",
+    "evidence_doc": "docs/re/U7D_UPDATE_03A3_NATIVE_ORACLE.md",
     "game_identity": true,
-    "original_id": "OVL_007D_0565",
-    "review_pr": 1007,
-    "reviewed_commit": "12b59b9fe07a80189ee92de027a30074b672b762",
+    "original_id": "OVL_007D_03A3",
+    "review_pr": 1008,
+    "reviewed_commit": "cd0ec8d4",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 182,
+    "overlay": 183,
     "resident": 11
   },
-  "strict_full_c_originals": 193,
-  "unknown_ownership": 566,
+  "strict_full_c_originals": 194,
+  "unknown_ownership": 565,
   "verified_game_by_domain": {
-    "overlay": 231,
+    "overlay": 232,
     "resident": 12
   },
-  "verified_game_identities": 243,
+  "verified_game_identities": 244,
   "whole_game_denominator": "unknown"
 }
