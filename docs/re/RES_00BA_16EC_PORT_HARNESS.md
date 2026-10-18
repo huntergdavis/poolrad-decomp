@@ -230,7 +230,9 @@ focused-test evidence, as now.
 
 1. **Tracer prototype.** Add `INT 1` stepping and the two-run scheme to the
    synthetic COM. Prove it on `0709:0000`, 113 bytes of EGA register
-   writes, with the port log only.
+   writes, with the port log only. **Done:** see
+   [RES_0709_EGA_RESET_0000_CPU.md](RES_0709_EGA_RESET_0000_CPU.md), where
+   576 traced OUT events equal the C model's port environment.
 2. **Shared environment and EGA.**
    - Add the C `out`/`in`/`interrupt` environment and a C EGA model.
    - Model `0709:00A0` (pure, 23 B) and `0709:0000`.
