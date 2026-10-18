@@ -291,7 +291,7 @@
   "dispatch_address_range": "DS:6828..6C27 (256 possible slots)",
   "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
   "initialized_address_range": "DS:682C..6A57 (slots1..139)",
-  "interface_review_base": "d8ebbf6c + U38 133F raw chain",
+  "interface_review_base": "2f945f1e + U38 1363 raw chain",
   "limitations": [
     "Only disjoint U86-then-U38 initialization is inventoried; later writes and invalid types require live-target validation. Types215..255 alias initialized U86 procedure pointers outside the intended effect table. A type1..139 invariant must be proven before treating 118 handlers as the complete closure.",
     "raw_cpu describes a published interface, not verified composition through U9E. scalar_or_callback combines scalar models and raw shells with unresolved hooks.",
@@ -490,8 +490,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_0679",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_string_match_cpu.h",
       "original_stub": "0041:0075",
       "public_entry": 17,
       "slot": 18,
@@ -631,14 +631,14 @@
       "table_address": "68A0"
     },
     {
-      "canonical_strict_row": false,
+      "canonical_strict_row": true,
       "handler_id": "OVL_0038_133F",
       "interface": "raw_cpu",
       "interface_header": "include/poolrad/recovered/overlay_u38_target_reset_133f_cpu.h",
       "original_stub": "0041:00F7",
       "public_entry": 43,
       "slot": 31,
-      "strict_evidence": "",
+      "strict_evidence": "docs/re/U38_TARGET_RESET_133F_CPU.md",
       "table_address": "68A4"
     },
     {
@@ -851,36 +851,36 @@
       "table_address": "68F0"
     },
     {
-      "canonical_strict_row": false,
+      "canonical_strict_row": true,
       "handler_id": "OVL_0038_133F",
       "interface": "raw_cpu",
       "interface_header": "include/poolrad/recovered/overlay_u38_target_reset_133f_cpu.h",
       "original_stub": "0041:00F7",
       "public_entry": 43,
       "slot": 51,
-      "strict_evidence": "",
+      "strict_evidence": "docs/re/U38_TARGET_RESET_133F_CPU.md",
       "table_address": "68F4"
     },
     {
-      "canonical_strict_row": false,
+      "canonical_strict_row": true,
       "handler_id": "OVL_0038_133F",
       "interface": "raw_cpu",
       "interface_header": "include/poolrad/recovered/overlay_u38_target_reset_133f_cpu.h",
       "original_stub": "0041:00F7",
       "public_entry": 43,
       "slot": 52,
-      "strict_evidence": "",
+      "strict_evidence": "docs/re/U38_TARGET_RESET_133F_CPU.md",
       "table_address": "68F8"
     },
     {
-      "canonical_strict_row": false,
+      "canonical_strict_row": true,
       "handler_id": "OVL_0038_133F",
       "interface": "raw_cpu",
       "interface_header": "include/poolrad/recovered/overlay_u38_target_reset_133f_cpu.h",
       "original_stub": "0041:00F7",
       "public_entry": 43,
       "slot": 53,
-      "strict_evidence": "",
+      "strict_evidence": "docs/re/U38_TARGET_RESET_133F_CPU.md",
       "table_address": "68FC"
     },
     {
@@ -908,8 +908,8 @@
     {
       "canonical_strict_row": false,
       "handler_id": "OVL_0038_1363",
-      "interface": "missing",
-      "interface_header": "",
+      "interface": "raw_cpu",
+      "interface_header": "include/poolrad/recovered/overlay_u38_append_1363_cpu.h",
       "original_stub": "0041:0106",
       "public_entry": 46,
       "slot": 56,
@@ -1831,18 +1831,18 @@
     }
   ],
   "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd",
-  "strict_map_sha256": "af1595e69fa3a2dd83395485496f5178ab9b7f2792e805250e42caeda866d4df",
+  "strict_map_sha256": "b60befa0cf061dda666235e08bfc7bb28cc2bb3e97db8d96910d33c0e368e3f9",
   "summary": {
     "adjacent_alias_slots": 41,
     "bound_slots": 139,
-    "canonical_strict_handlers": 47,
+    "canonical_strict_handlers": 48,
     "distinct_handlers": 118,
     "interfaces": {
-      "missing": 60,
-      "raw_cpu": 21,
+      "missing": 58,
+      "raw_cpu": 23,
       "scalar_or_callback": 37
     },
-    "without_canonical_strict": 71
+    "without_canonical_strict": 70
   },
   "unbound_slots": [
     0,
@@ -1945,7 +1945,6 @@
     "OVL_0038_1276",
     "OVL_0038_12B2",
     "OVL_0038_12FB",
-    "OVL_0038_133F",
     "OVL_0038_1363",
     "OVL_0038_1399",
     "OVL_0038_14EB",
