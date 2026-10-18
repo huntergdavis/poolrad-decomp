@@ -371,6 +371,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/system_getmem_023f_cpu.c
                                     src/recovered/system_string_leaves_cpu.c
                                     src/recovered/overlay_u25_alloc_1951_cpu.c
+                                    src/recovered/overlay_u9e_list_append_0e52_cpu.c
                                     src/recovered/overlay_u1c_on_goto_18f8_cpu.c
                                     src/recovered/overlay_u86_string_node_028d.c
                                     src/recovered/overlay_u86_sidecar_list_044e.c
@@ -2305,6 +2306,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u25_alloc_1951_cpu_tests
              COMMAND poolrad_overlay_u25_alloc_1951_cpu_tests)
+    add_executable(poolrad_overlay_u9e_list_append_0e52_cpu_tests
+                   tests/recovered/test_overlay_u9e_list_append_0e52_cpu.c)
+    target_link_libraries(poolrad_overlay_u9e_list_append_0e52_cpu_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u9e_list_append_0e52_cpu_tests
+             COMMAND poolrad_overlay_u9e_list_append_0e52_cpu_tests)
     add_executable(poolrad_overlay_u20_party_award_0355_cpu_tests
                    tests/recovered/test_overlay_u20_party_award_0355_cpu.c)
     target_link_libraries(poolrad_overlay_u20_party_award_0355_cpu_tests PRIVATE poolrad_recovered)
