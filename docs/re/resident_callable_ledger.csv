@@ -68,7 +68,7 @@ RES_0709_0BF5,overlay_called,0x07C85,0x07CBE,exact_pascal_prologue,10,2,1,0,unre
 RES_0709_0C3F,overlay_called,0x07CCF,0x07D08,exact_pascal_prologue,11,0,0,0,unresolved,unresolved
 RES_0709_0CAB,overlay_called,0x07D3B,0x07D74,exact_pascal_prologue,2,0,0,0,unresolved,unresolved
 RES_0709_0D68,overlay_called,0x07DF8,0x07E31,exact_pascal_prologue,8,0,0,0,unresolved,unresolved
-RES_0709_0DBE,overlay_called,0x07E4E,0x07E87,exact_pascal_prologue,24,3,1,0,unresolved,unresolved
+RES_0709_0DBE,overlay_called,0x07E4E,0x07E87,exact_pascal_prologue,24,3,1,0,game_verified,verified
 RES_0709_0DD3,overlay_called,0x07E63,0x07E9C,exact_pascal_prologue,19,0,2,0,unresolved,unresolved
 RES_0802_025D,overlay_called,0x0827D,0x082B4,exact_pascal_prologue,5,0,1,0,unresolved,unresolved
 RES_0802_02EB,overlay_called,0x0830B,0x08342,exact_pascal_prologue,15,0,2,0,unresolved,unresolved
