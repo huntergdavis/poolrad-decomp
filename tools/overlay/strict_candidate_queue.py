@@ -83,7 +83,11 @@ RAW_CPU_INTERFACE_CAVEATS = {
 RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x0A3F): "system Move (system_runtime_leaves_cpu)",
     (0x0AF8, 0x0B0B): "system string load (system_string_leaves_cpu)",
+    (0x0AF8, 0x0B57): "system string copy (system_string_move_leaves_cpu)",
     (0x0AF8, 0x0B25): "system StrStore (system_strstore_fullstate_0b25)",
+    (0x0AF8, 0x0C10): "system string compare (system_string_move_leaves_cpu)",
+    (0x0AF8, 0x0C3B): "system char to string (system_string_move_leaves_cpu)",
+    (0x0AF8, 0x1685): "system Move backward (system_string_move_leaves_cpu)",
     (0x0AF8, 0x0B98): "system string concat (system_string_leaves_cpu)",
     (0x0AF8, 0x0DC0): "system set IN (system_runtime_leaves_cpu)",
     (0x0AF8, 0x023F): "system GetMem (system_getmem_023f_cpu)",
