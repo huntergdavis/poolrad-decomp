@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**112 strict full-C originals** (103 overlay, nine resident) and **168 verified
-game identities** (158 overlay, ten resident). The queue still contains 898
+**113 strict full-C originals** (104 overlay, nine resident) and **169 verified
+game identities** (159 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -33,6 +33,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0033_1434`, `OVL_0033_1577` | PR #881, `de5f7fc4e277d98d75f2adf4c0f7ac4870e48a25`; independently verified by the ds4 lane (213 + 170 cases; 138/138 and 469/470 starts with the declared infeasible edges) | 323 B `b01749df…`, 1,150 B `c9418332…` | [cell claim](U33_CELL_CLAIM_1434.md), [place search](U33_PLACE_SEARCH_1577.md) |
 | `OVL_0033_02BA`, `OVL_0033_0377` | PR #883, `5ca69bc0759b4ea62956927ea42b83daac5ac391`; independently verified by the ds4 lane (158 cases each; 86/86 and 82/82 starts) | 189 B `a1e4f0b3…`, 152 B `aa813423…` | [stamp block](U33_STAMP_BLOCK_02BA.md), [stamp square](U33_STAMP_SQUARE_0377.md) |
 | `OVL_0033_0221` | PR #850, `e518c1314968e775dab77fc04bade7e4b6ee4c05`; dependency credited on its own audit re-run by the ds4 lane (821 cases, 64/64 instructions, 67 CFG edges) | 153 bytes, SHA-256 `9a97dca1163b4aabd6193cea3a81427143709390e7b4aa2dec1a2a727236cd06` | [clipped writer](U33_CLIPPED_WRITER_0221.md) |
+| `OVL_006C_4235` | PR #886, `5d7ff51b1f263d07c73d1bdcd899257ee4365ee2`; independently verified by the Claude lane (1,609 cases with 16 declared transfers, 134/134 sites, 17 feasible edges; 620 native cases) | 184 bytes, SHA-256 `fdb467838a6d2067178154c2b0bf3d60f0acff37060f337977e3d66d24391d60` | [record roll sum](U6C_RECORD_ROLL_SUM_4235.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
