@@ -20,7 +20,7 @@ the near-call audit is only accepted when its failure counts are zero and its
 site totals match the ledger.
 
 **Candidate set.** Every overlay original in the inventory join (673) minus
-the 139 overlay addresses credited in the strict manifest; the ten resident
+the 141 overlay addresses credited in the strict manifest; the ten resident
 credits are counted and ignored (this tool is overlay-only).
 
 **Callee readiness.** From callgraph edges whose `src_func` is the candidate:
@@ -105,16 +105,16 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-7 export (queue SHA-256
-`54185b73c573f4e57df9457277a9a66be5d797fb779420e65f15d1f6cc67a76f`,
-on the 149/205 main after #885–#927 plus the phantom-edge filter and the
+`f051e02aa178ff53bb0238076103db7d1f805e5c09291584ecfd6f3889d16541`,
+on the 151/207 main after #885–#930 plus the phantom-edge filter and the
 remaining raw-CPU interface caveats) was generated from `START.EXE`
 `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`,
-callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1209 refs /
-957 tips / 512 unmerged tips (`tips_sha256` `265aa3df…`) and 2144 commits
-(`commits_sha256` `1ca46356…`). Git pins are point-in-time; other lanes keep
+callgraph `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1216 refs /
+961 tips / 514 unmerged tips (`tips_sha256` `94a5666c…`) and 2150 commits
+(`commits_sha256` `4608a679…`). Git pins are point-in-time; other lanes keep
 pushing refs.
 
-## First ranked list (top 25 of 534)
+## First ranked list (top 25 of 532)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
@@ -144,14 +144,14 @@ pushing refs.
 | 24 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 1/1/0/1 | 2/2 | no | 3 | 0 | source_mention | 62 |
 | 25 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 5/0/0/1 | 5/7 | no | 0 | 1 | source_mention | 61 |
 
-Queue summary (schema 7, on the 149/205 main after #885–#927 and the
-phantom-edge filter plus the remaining raw-CPU interface caveats): 534
+Queue summary (schema 7, on the 151/207 main after #885–#930 and the
+phantom-edge filter plus the remaining raw-CPU interface caveats): 532
 candidates, 74 would be composable without the caveats and 71 are composable
 — 9 bodies carry an interface caveat and 3 (`OVL_0038_0400`, `OVL_0068_0294`, `OVL_0068_04DF`) were otherwise composable;
-classification game_evidenced 331, game_verified 55, helper_candidate 59,
-unresolved 89; grades A 319, B 213, D 2; prior status main_model 87,
-inline_in_model 50, inline_in_strict 15, unmerged_branch 17, commit_mention 16,
-source_mention 349; 693 fixup-backed and 711 aligned-PUSH-CS caller sites across
+classification game_evidenced 333, game_verified 55, helper_candidate 57,
+unresolved 87; grades A 319, B 211, D 2; prior status main_model 87,
+inline_in_model 50, inline_in_strict 15, unmerged_branch 17, commit_mention 14,
+source_mention 349; 693 fixup-backed and 707 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 ## Claude's traps, as detected
@@ -196,7 +196,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 149/205 main (139 overlay credits) the candidate set is 534 and 71 bodies are composable.
+reasons. On the 151/207 main (141 overlay credits) the candidate set is 532 and 71 bodies are composable.
 
 ## Reproduce
 
