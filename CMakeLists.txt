@@ -77,6 +77,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_sidecar_append.c
                                     src/recovered/resident_sidecar_lookup.c
                                     src/recovered/resident_00ba_sidecar_lookup_2199_cpu.c
+                                    src/recovered/resident_00ba_class_value_26c2_cpu.c
+                                    src/recovered/overlay_u86_entry3_0729.c
                                     src/recovered/resident_party_count.c
                                     src/recovered/resident_character_field_zero.c
                                     src/recovered/resident_character_link_check.c
@@ -736,6 +738,9 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_00ba_sidecar_lookup_2199_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_00ba_sidecar_lookup_2199_cpu_tests
              COMMAND poolrad_resident_00ba_sidecar_lookup_2199_cpu_tests)
+    add_executable(poolrad_res26c2_u86_0729_tests tests/recovered/test_res26c2_u86_0729.c)
+    target_link_libraries(poolrad_res26c2_u86_0729_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_res26c2_u86_0729_tests COMMAND poolrad_res26c2_u86_0729_tests)
     add_executable(poolrad_resident_party_count_tests tests/recovered/test_resident_party_count.c)
     target_link_libraries(poolrad_resident_party_count_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_party_count_tests COMMAND poolrad_resident_party_count_tests)
