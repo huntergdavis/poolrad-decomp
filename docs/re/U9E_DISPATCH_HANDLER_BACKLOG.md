@@ -42,7 +42,9 @@ not itself prove complete dispatcher composition. Reviewers decide credit.
 3. U38+12B2: existing raw API with no canonical row; route existing evidence
    to independent review rather than author a duplicate or self-credit it.
 4. U38+2EDA: eight slots,113 bytes/47 instructions; calls U9E+0026,+0E52,+0000.
-   This is a recursive closure problem, not an immediately composable leaf.
+   The [explicit boundary audit](U38_DISPATCH_BOUNDARY_2EDA.md) confirms both
+   the eight incoming slots and an unrestricted outgoing record-byte dispatch.
+   It remains a dynamic closure dependency; recursion support alone is insufficient.
 
 ## 71 handlers without canonical strict-map rows
 
