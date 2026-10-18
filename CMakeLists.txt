@@ -123,6 +123,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u38_roll_clear_2de4_cpu.c
                                     src/recovered/overlay_u38_roll_append_1730_cpu.c
                                     src/recovered/overlay_u38_sidecar_1472_cpu.c
+                                    src/recovered/overlay_u38_gated_append_001f_cpu.c
                                     src/recovered/resident_ecl_dax_block.c
                                     src/recovered/resident_dax_rle.c
                                     src/recovered/overlay_unit38_walk.c
@@ -372,11 +373,13 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/system_longmul_0a5b_cpu.c
                                     src/recovered/system_getmem_023f_cpu.c
                                     src/recovered/system_textassign_insert_cpu.c
+                                    src/recovered/system_freemem_0254_cpu.c
                                     src/recovered/system_string_leaves_cpu.c
                                     src/recovered/system_string_move_leaves_cpu.c
                                     src/recovered/system_str_1366_cpu.c
                                     src/recovered/resident_00ba_byte_string_1037_cpu.c
                                     src/recovered/overlay_u7d_two_digits_0565_cpu.c
+                                    src/recovered/system_ioresult_assign_cpu.c
                                     src/recovered/overlay_u25_alloc_1951_cpu.c
                                     src/recovered/overlay_u9e_list_append_0e52_cpu.c
                                     src/recovered/overlay_u1c_on_goto_18f8_cpu.c
@@ -877,6 +880,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u38_helper_cluster_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u38_helper_cluster_cpu_tests
              COMMAND poolrad_overlay_u38_helper_cluster_cpu_tests)
+    add_executable(poolrad_overlay_u38_gated_append_001f_cpu_tests
+                   tests/recovered/test_overlay_u38_gated_append_001f_cpu.c)
+    target_link_libraries(poolrad_overlay_u38_gated_append_001f_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_gated_append_001f_cpu_tests
+             COMMAND poolrad_overlay_u38_gated_append_001f_cpu_tests)
     add_executable(poolrad_overlay_u38_roll_append_1730_cpu_tests
                    tests/recovered/test_overlay_u38_roll_append_1730_cpu.c)
     target_link_libraries(poolrad_overlay_u38_roll_append_1730_cpu_tests PRIVATE poolrad_recovered)
@@ -2306,6 +2314,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u6a_string_node_0e37_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6a_string_node_0e37_tests
              COMMAND poolrad_overlay_u6a_string_node_0e37_tests)
+    add_executable(poolrad_system_freemem_0254_cpu_tests
+                   tests/recovered/test_system_freemem_0254_cpu.c)
+    target_link_libraries(poolrad_system_freemem_0254_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_system_freemem_0254_cpu_tests
+             COMMAND poolrad_system_freemem_0254_cpu_tests)
     add_executable(poolrad_system_getmem_023f_cpu_tests
                    tests/recovered/test_system_getmem_023f_cpu.c)
     target_link_libraries(poolrad_system_getmem_023f_cpu_tests
@@ -2342,6 +2355,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7d_two_digits_0565_cpu_tests
              COMMAND poolrad_overlay_u7d_two_digits_0565_cpu_tests)
+    add_executable(poolrad_system_ioresult_assign_cpu_tests
+                   tests/recovered/test_system_ioresult_assign_cpu.c)
+    target_link_libraries(poolrad_system_ioresult_assign_cpu_tests
+                          PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_system_ioresult_assign_cpu_tests
+             COMMAND poolrad_system_ioresult_assign_cpu_tests)
     add_executable(poolrad_overlay_u25_alloc_1951_cpu_tests
                    tests/recovered/test_overlay_u25_alloc_1951_cpu.c)
     target_link_libraries(poolrad_overlay_u25_alloc_1951_cpu_tests
