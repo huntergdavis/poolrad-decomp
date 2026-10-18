@@ -8,6 +8,17 @@ seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
 from these counts. The [battle card](../BATTLE_CARD.md) uses this checkpoint.
 
+## U9E dispatcher closure (tracker issue #1019)
+
+[u9e_dispatch_handlers.json](u9e_dispatch_handlers.json) is the machine-readable
+inventory of the U9E dispatch table at `682C`: **139 bound slots**, **118
+distinct handlers**, of which **43** have a canonical strict row. Interface
+states are **16 raw_cpu**, **37 scalar_or_callback** and **65 missing**, leaving
+**75 handlers without canonical strict credit**. The backlog and per-handler
+work items live in [U9E_DISPATCH_HANDLER_BACKLOG.md](U9E_DISPATCH_HANDLER_BACKLOG.md)
+and issue #1019. **None of the 75 is credited here**: each must be modelled
+individually, and the inventory is provenance only.
+
 ## Approved changes
 
 The PM explicitly approved each listed +1 identity/+1 strict-C change after
