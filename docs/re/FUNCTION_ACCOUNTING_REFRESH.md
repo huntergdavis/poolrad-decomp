@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**142 strict full-C originals** (132 overlay, ten resident) and **198 verified
-game identities** (187 overlay, eleven resident). The queue still contains 898
+**143 strict full-C originals** (133 overlay, ten resident) and **199 verified
+game identities** (188 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -54,6 +54,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_007F_003A` | PR #918, `07556270053724765f230535efcc5f1dac886c45`; ds4/pi re-verified (2,212 cases, 544 native). Contiguous-RETF caveat: FFFE/FFFF wrapped-SS native behavior not established | 26 bytes, SHA-256 `ef4d49e3fef030f2acc13a9d5f78563d091bb60ce167bb986143671b6e14059f` | [record word add](U7F_RECORD_WORD_ADD_003A.md) |
 | `OVL_03C6_06E9` | PR #919, `ab89dd79efa6a361f5f0b94d813bb6cf072627a9`; ds4/pi re-verified (4,083 cases, 1,024 + 16 wrap native) | 49 bytes, SHA-256 `1495986874fc88753b5419d14380e9f7846b537a2b7015c57f7e24a1a761a7b9` | [in-range](U3C6_IN_RANGE_06E9.md) |
 | `OVL_0086_0729`, `RES_00BA_26C2` | PR #920, `cee2ad27115b0a71457ea0472715afc11688de88`; ds4/pi re-verified (403 + 363 cases, 160 native). RES_00BA_26C2 is a new resident credit (GAME_SPECIFIC_TARGETS, manifest-full) | 173 B `30853c27…`, 103 B `5e191d39…` | [RES 26C2 / U86 0729](RES_26C2_U86_0729.md) |
+| `OVL_0086_07D6` | PR #921, `683f1c9c3e6e82463460728d7f6e8fb62d74cc83`; ds4/pi re-verified at head d4389220 (480 whole-RAM/14-word cases, 99/99 starts, 14/14 outcomes; 77 MUL-final cases mask only undefined SF/PF/AF; 120 native, no mask) | 237 bytes, SHA-256 `db359b4e8066b0eb0d830a85866d8f402cba123c74ada2951ba21ddcc52db656` | [roll value](U86_ROLL_VALUE_07D6.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
