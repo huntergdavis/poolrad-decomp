@@ -37,10 +37,11 @@ model whose transitive closure still contains an unready callee), `verified`
 overlay credit is `interface_caveat` instead of `strict` when its published
 C endpoint is not a raw-CPU callee (for example `OVL_0068_0109` exposes
 `overlay_u68_map_update.h` scalar arguments and a segment view without
-CPU/stack effects, and `OVL_0025_1815`/`+18EB` expose `ecl_helpers.h`
-semantic compare APIs, with `+1815` also needing the unmodeled runtime string
-compare `0AF8:0C10`), so a caller cannot be composed by handing it the live
-CPU and RAM image. Resident
+CPU/stack effects, `OVL_0025_1815`/`+18EB` expose `ecl_helpers.h` semantic
+compare APIs with `+1815` also needing the unmodeled runtime string compare
+`0AF8:0C10`, and `OVL_03C6_0BE7`/`+0C0F`/`+0C37` expose semantic slot/word
+getters), so a caller cannot be composed by handing it the live CPU and RAM
+image. Resident
 targets are `resident_covered` only when their `RES_<seg>_<off>` id is both
 strict-credited and listed `full` in the callee-model manifest (the
 callbacks only read and write the same RAM, as with `RES_00BA_2E8B`
@@ -111,55 +112,55 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`a350160a9ffd79742897474402eb6c1f41fc8b2a11ff1e096374294f746a1706`,
-on the 176/228 main after #885–#972 plus the phantom-edge filter, the
+`cb8e3c4ae824e9bd62304c10206fb21b6e5831332bd756ccbe9a1a774ccdb32a`,
+on the 178/230 main after #885–#975 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1285 refs / 1007 tips / 520 unmerged tips (`tips_sha256`
-`4e02cc50…`) and 2242 commits (`commits_sha256` `f3d14f3d…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1289 refs / 1009 tips / 520 unmerged tips (`tips_sha256`
+`65450dc3…`) and 2248 commits (`commits_sha256` `549e95f5…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
-## First ranked list (top 25 of 507)
+## First ranked list (top 25 of 505)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
 | 1 | `OVL_03B4_016D` | `0x3b4:0x016d` | 307 | 114 | A | game_evidenced | 5/0/0/3 | 5/3 | no | 10 | 0 | source_mention | 76 |
-| 2 | `OVL_005E_32E6` | `0x5e:0x32e6` | 163 | 62 | B | game_evidenced | 4/0/0/0 | 5/0 | yes | 0 | 3 | source_mention | 73 |
-| 3 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 4/0/0/3 | 4/4 | no | 9 | 0 | source_mention | 71 |
-| 4 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
-| 5 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 3/1 | no | 3 | 1 | source_mention | 69 |
-| 6 | `OVL_03C6_02D5` | `0x3c6:0x02d5` | 203 | 87 | A | game_evidenced | 2/0/0/2 | 2/2 | no | 6 | 1 | source_mention | 69 |
-| 7 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/0/2 | 5/4 | no | 0 | 1 | source_mention | 68 |
-| 8 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 3/0/0/0 | 4/1 | no | 0 | 1 | source_mention | 68 |
-| 9 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
-| 10 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 1/12 | no | 8 | 0 | commit_mention | 67 |
-| 11 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 2/0/0/1 | 3/1 | no | 3 | 0 | source_mention | 67 |
-| 12 | `OVL_005E_08B2` | `0x5e:0x08b2` | 952 | 344 | A | game_evidenced | 4/0/0/2 | 6/5 | no | 2 | 0 | source_mention | 65 |
-| 13 | `OVL_009E_115C` | `0x9e:0x115c` | 488 | 189 | A | game_evidenced | 2/0/0/0 | 2/1 | no | 4 | 0 | source_mention | 65 |
-| 14 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 2/0/0/1 | 3/4 | no | 4 | 0 | source_mention | 65 |
-| 15 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
-| 16 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 5/0/0/1 | 6/6 | no | 0 | 1 | source_mention | 64 |
-| 17 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
-| 18 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 2/7 | no | 7 | 2 | source_mention | 64 |
-| 19 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 2/2 | no | 26 | 0 | source_mention | 64 |
-| 20 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
-| 21 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
-| 22 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
-| 23 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 1/14 | no | 3 | 3 | source_mention | 63 |
-| 24 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/3 | 3/4 | no | 4 | 0 | source_mention | 63 |
-| 25 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 3/4 | no | 0 | 1 | source_mention | 62 |
+| 2 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 14 | 1 | source_mention | 70 |
+| 3 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/1 | 3/1 | no | 3 | 1 | source_mention | 69 |
+| 4 | `OVL_03C6_02D5` | `0x3c6:0x02d5` | 203 | 87 | A | game_evidenced | 2/0/0/2 | 2/2 | no | 6 | 1 | source_mention | 69 |
+| 5 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/0/2 | 5/4 | no | 0 | 1 | source_mention | 68 |
+| 6 | `OVL_001C_2E7D` | `0x1c:0x2e7d` | 176 | 64 | B | game_verified | 3/0/0/0 | 4/1 | no | 0 | 1 | source_mention | 68 |
+| 7 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
+| 8 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 1/12 | no | 8 | 0 | commit_mention | 67 |
+| 9 | `OVL_03C6_10A7` | `0x3c6:0x10a7` | 497 | 191 | A | game_evidenced | 2/0/0/1 | 3/1 | no | 3 | 0 | source_mention | 67 |
+| 10 | `OVL_009E_115C` | `0x9e:0x115c` | 488 | 189 | A | game_evidenced | 2/0/0/0 | 2/1 | no | 4 | 0 | source_mention | 65 |
+| 11 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
+| 12 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 5/0/0/1 | 6/6 | no | 0 | 1 | source_mention | 64 |
+| 13 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
+| 14 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 0/0/0/3 | 2/7 | no | 7 | 2 | source_mention | 64 |
+| 15 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 2/2 | no | 26 | 0 | source_mention | 64 |
+| 16 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 0/11 | no | 2 | 0 | commit_mention | 64 |
+| 17 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
+| 18 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
+| 19 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 1/14 | no | 3 | 3 | source_mention | 63 |
+| 20 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/3 | 3/4 | no | 4 | 0 | source_mention | 63 |
+| 21 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 3/4 | no | 0 | 1 | source_mention | 62 |
+| 22 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 1/0/0/3 | 3/6 | no | 3 | 0 | source_mention | 62 |
+| 23 | `OVL_03C6_0AF8` | `0x3c6:0x0af8` | 239 | 98 | A | game_evidenced | 2/0/0/3 | 2/6 | no | 9 | 0 | source_mention | 62 |
+| 24 | `OVL_001C_02E0` | `0x1c:0x02e0` | 212 | 70 | B | game_verified | 2/0/0/1 | 2/2 | no | 0 | 1 | source_mention | 59 |
+| 25 | `OVL_0077_050D` | `0x77:0x050d` | 251 | 115 | A | game_evidenced | 0/0/0/0 | 1/3 | no | 1 | 4 | source_mention | 59 |
 
-Queue summary (schema 8, on the 176/228 main after #885–#972 and the
+Queue summary (schema 8, on the 178/230 main after #885–#975 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
-system-runtime coverage): 507 candidates, 71 would be composable without the
-caveats and 67 are composable — 11 bodies carry an interface caveat and 4
-(`OVL_001C_0126`, `OVL_0038_0400`, `OVL_0068_0294`, `OVL_0068_04DF`) were otherwise composable; classification game_evidenced 324,
-game_verified 51, helper_candidate 52, unresolved 80; grades A 308, B 197,
-D 2; prior status main_model 76, inline_in_model 46, inline_in_strict 22,
-unmerged_branch 16, commit_mention 14, source_mention 333; 659 fixup-backed
-and 674 aligned-PUSH-CS caller sites across the queue. Near-call evidence is
-`decoded_validated` for this export.
+system-runtime coverage): 505 candidates, 69 would be composable without the
+caveats and 65 are composable — 35 bodies carry an interface caveat and 4
+were otherwise composable; classification game_evidenced 322, game_verified 51,
+helper_candidate 52, unresolved 80; grades A 307, B 196, D 2; prior status
+main_model 75, inline_in_model 46, inline_in_strict 23, unmerged_branch 16,
+commit_mention 14, source_mention 331; 657 fixup-backed and 669 aligned-PUSH-CS
+caller sites across the queue. Near-call evidence is `decoded_validated` for
+this export.
 
 ## Claude's traps, as detected
 
@@ -203,7 +204,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 176/228 main (166 overlay credits) the schema-8 candidate set is 507 and 67 bodies are composable.
+reasons. On the 178/230 main (168 overlay credits) the schema-8 candidate set is 505 and 65 bodies are composable.
 
 ## Reproduce
 
