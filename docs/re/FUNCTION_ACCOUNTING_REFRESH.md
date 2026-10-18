@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**127 strict full-C originals** (118 overlay, nine resident) and **183 verified
-game identities** (173 overlay, ten resident). The queue still contains 898
+**134 strict full-C originals** (125 overlay, nine resident) and **190 verified
+game identities** (180 overlay, ten resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -46,6 +46,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0025_1FB1` | PR #908, `bf00dab69989758a26f9a13ae2b487ee9b4b713e`; independently re-verified by the ds4/pi lane at head ebf27812 (298 returning cases, full 1 MiB RAM + 14 CPU words, 74/74 starts, 10/10 outcomes, 9 cap stops matched; 46 native cases). Composes raw-CPU RES_00BA_2199; game identity asserted here | 205 bytes, SHA-256 `8d6da69d20a93bea32da791cf65623426c7cd35910e9c9118158c564110882b3` | [entry 23](U25_ENTRY23_1FB1.md) |
 | `OVL_006F_032F` | PR #909, `fdcd83cbda8d3f4004aa572132ac60cd5b7b0885`; independently re-verified by the ds4/pi lane at head 6639338b (473 cases = 471 exact + 2 native RETF substitutions, full 1 MiB RAM + 14 CPU words, 121/121 starts, 15/18 outcomes; 384 native body cases + 15 wrap frames) | 327 bytes, SHA-256 `2df5a5980843eb72e7ed5382d4d4d452d541c22ebfe0d43ee065947b016c2dde` | [vector merge](U6F_VECTOR_MERGE_032F.md) |
 | `OVL_0077_27DF` | PR #910, `b42ce3b5efdfe57a1dc9f0297ea615d6b3b99fcb`; independently re-verified by the ds4/pi lane at head bf2a1a1c (975 fixtures x 2 profiles = 1,950 whole-RAM/CPU14 comparisons, 71/71 starts, 20/20 outcomes; 39 native frames, wrapped profile zero mismatches) | 223 bytes, SHA-256 `461b9a087f9daa616a7bb52320c801cb4e7608f279f0b1105dca3c08746a9b1c` | [native RETF profile](U77_27DF_RETF_NATIVE_PROFILE.md) |
+| `OVL_0038_0000`, `OVL_0038_1490`, `OVL_0038_29B6`, `OVL_0038_29CB`, `OVL_0038_29D9`, `OVL_0038_29F0`, `OVL_0038_2A11` | PR #912, `c29a7029fffa02cefcc70faa13e919f4421eaebd`; independently re-verified by the ds4/pi lane at head 2a42b1c (1,646 returning cases total: 428 + 243 + 195x5, full 1 MiB RAM + 14 CPU words; 176 native cases). Credited as game identities (game_or_other_library_unresolved class) through the real +0000 frames | 31 B `f62ad6b7…`, 91 B `f4a9c7af…`, 21 B `4fb3a9c9…`, 14 B `43c37b0e…`, 23 B `4428de57…`, 33 B `5aced601…`, 23 B `0782a647…` | [helper cluster](U38_HELPER_CLUSTER_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
