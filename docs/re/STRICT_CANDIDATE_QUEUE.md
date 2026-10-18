@@ -161,29 +161,40 @@ inline_in_model 45, inline_in_strict 26, unmerged_branch 14, commit_mention 17,
 source_mention 321; 648 fixup-backed and 656 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
+
 ## Highest-leverage next recoveries
 
 A callee that is the *only* untranslated dependency of a candidate row gates that
-row outright. Ranked by how many rows a single recovered callee would unblock
-(computed from the same export; this is triage guidance, not credit):
+row outright. The **fan-out** (rows gated) is not the **cost**: several top rows
+have deep dependency trees, so they are not cheap wins. `transitive cost` sums
+every transitive untranslated dependency's own size (the blocker plus its
+closure); `leaves` and `depth` describe that closure. Costs use each
+candidate's bounded-decode size, so they are a lower bound on recovery effort.
 
-| single untranslated callee | rows it alone unblocks | of those game_evidenced | appears in N rows |
-| --- | ---: | ---: | ---: |
-| `OVL_0086_08C3` | 28 | 26 | 33 |
-| `OVL_009E_0026` | 9 | 4 | 25 |
-| `OVL_009E_0E52` | 9 | 5 | 25 |
-| `OVL_03B0_03BD` | 8 | 8 | 32 |
-| `OVL_009E_02FA` | 6 | 5 | 21 |
-| `OVL_009E_0000` | 5 | 2 | 13 |
-| `OVL_03B0_10D1` | 5 | 5 | 20 |
-| `OVL_0038_1545` | 4 | 0 | 4 |
-| `OVL_0025_054E` | 3 | 0 | 3 |
-| `OVL_006C_3291` | 3 | 2 | 7 |
-| `OVL_0038_15EB` | 3 | 2 | 3 |
-| `OVL_03CE_00F1` | 3 | 3 | 4 |
+| single untranslated callee | rows it alone gates | of those game_evidenced | blocker own B / insns | transitive cost B / insns | transitive leaves | depth |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `OVL_0086_08C3` | 28 | 26 | 462 / 177 | 17638 / 7528 | 16 | 7 |
+| `OVL_009E_0026` | 9 | 4 | 314 / 109 | 352 / 125 | 1 | 2 |
+| `OVL_009E_0E52` | 9 | 5 | 180 / 57 | 180 / 57 | 1 | 1 |
+| `OVL_03B0_03BD` | 8 | 8 | 830 / 298 | 1393 / 505 | 2 | 2 |
+| `OVL_009E_02FA` | 6 | 5 | 2029 / 911 | 2029 / 911 | 1 | 1 |
+| `OVL_009E_0000` | 5 | 2 | 38 / 16 | 38 / 16 | 1 | 1 |
+| `OVL_03B0_10D1` | 5 | 5 | 111 / 52 | 1504 / 557 | 2 | 3 |
+| `OVL_0038_1545` | 4 | 0 | 166 / 67 | 9455 / 3997 | 11 | 7 |
+| `OVL_0025_054E` | 3 | 0 | 353 / 124 | 5899 / 2393 | 8 | 5 |
+| `OVL_006C_3291` | 3 | 2 | 342 / 100 | 817 / 296 | 2 | 2 |
+| `OVL_0038_15EB` | 3 | 2 | 114 / 43 | 2451 / 1064 | 2 | 3 |
+| `OVL_03CE_00F1` | 3 | 3 | 93 / 38 | 93 / 38 | 1 | 1 |
+
+Read it as: `OVL_0086_08C3` has the largest fan-out (28 rows) but is the most
+expensive entry — 17.6 kB / 7.5 k instructions across 16 leaves at depth 7, so it
+is infeasible and must not be read as a cheap 28-row unlock. Conversely
+`OVL_009E_0E52` gates 9 rows for a single 180-byte / 57-instruction callee at
+depth 1, and `OVL_009E_0026` gates 9 rows for 352 B / 125 insns at depth 2 — those
+are the shallow wins.
 
 `OVL_0025_1815` is additionally gated on the unmodeled runtime string compare
-`0AF8:0C10` (it is not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
+`0AF8:0C10` (not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
 `+2556/+070F/+0C4B` and `+0B1B/+2610` remain gated on `RES_00BA_16EC` and
 `OVL_0038_0058` respectively even after the SYSTEM string leaves `0B0B/0B98`
 became covered.
