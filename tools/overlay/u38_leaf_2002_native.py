@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """DOSBox-X wrapped synthetic far-frame parity for U38 +2002."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 import json
@@ -15,11 +16,16 @@ RAM_SIZE = 1 << 20
 MASK = RAM_SIZE - 1
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
 BODY_SHA = "cdf3d522f6de4b8f37ccc47e3267e244f26cab4866883306b9dcfe1525dd2af4"
-STACK_OFFSETS = tuple(range(0xFFE0, 0x10000)) + tuple(range(0x20))
-CROSS_OFFSETS = (0,)
-BASE_OFFSETS = tuple(range(0x9000 - 0x31, 0x9000 - 0x29))
+# The capture uses SS:7FFE/7FFF for PUSHF after recording CPU state.
+STACK_OFFSETS = (tuple(range(0xFFE0, 0x10000)) + tuple(range(0x20)) +
+                 tuple(range(0x7FE0, 0x7FFE)) + tuple(range(0x8000, 0x8020)))
+CROSS_OFFSETS = (0, 1, 2)
 CELL_OFFSETS = tuple(range(0x2096, 0x209E))
-RESULT_SIZE = 28 + len(STACK_OFFSETS) + len(CROSS_OFFSETS) + len(BASE_OFFSETS) + len(CELL_OFFSETS)
+RESULT_SIZE = 28 + len(STACK_OFFSETS) + len(CROSS_OFFSETS) + 8 + len(CELL_OFFSETS)
+
+
+def base_offsets(base):
+    return tuple((base + i) & 0xFFFF for i in range(-0x31, -0x29))
 
 
 class Cpu(ctypes.Structure):
@@ -37,8 +43,8 @@ def put16(ram, seg, off, value):
     ram[(at + 1) & MASK] = (value >> 8) & 255
 
 
-def original_body():
-    ovr = (ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def original_body(ovr_path=None):
+    ovr = (ovr_path or ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     if len(ovr) != 206105 or sha256(ovr).hexdigest() != OVR_SHA:
         raise ValueError("original GAME.OVR identity differs")
     body = ovr[0x10C5D:0x10D3A]
@@ -47,8 +53,8 @@ def original_body():
     return body
 
 
-def assembly(body_path, sp, mode):
-    assert sp in (0xFFFB, 0xFFFE, 0xFFFF)
+def assembly(body_path, sp, mode, base):
+    assert sp in (0x8000, 0xFFFB, 0xFFFE, 0xFFFF)
     assert mode in (0, 1)
     wrapped_cs = (sp + 2) & 0xFFFF
     lines = [
@@ -66,14 +72,15 @@ def assembly(body_path, sp, mode):
         "mov ax,cs", "add ax,0x2000", "mov ss,ax", "mov es,ax",
         "mov sp,0x8000", "mov di,0xffe0", "mov cx,0x20",
         "mov al,0xa5", "rep stosb", "xor di,di", "mov cx,0x20",
-        "rep stosb", "mov ax,ss", "add ax,0x1000", "mov es,ax",
-        "xor di,di", "mov cx,1", "mov al,0xa5", "rep stosb",
+        "rep stosb", "mov di,0x7fe0", "mov cx,0x40", "rep stosb",
+        "mov ax,ss", "add ax,0x1000", "mov es,ax",
+        "xor di,di", "mov cx,3", "mov al,0xa5", "rep stosb",
         f"mov di,0x{sp:04x}",
         "mov word ptr ss:[di],offset returned",
         "mov ax,cs", f"mov word ptr ss:[0x{wrapped_cs:04x}],ax",
-        "mov word ptr ss:[di+4],0x9000",
-        "mov word ptr ss:[0x9008],0x2000",
-        "mov word ptr ss:[0x900a],ax",
+        f"mov word ptr ss:[di+4],0x{base:04x}",
+        f"mov word ptr ss:[0x{(base+8)&0xFFFF:04x}],0x2000",
+        f"mov word ptr ss:[0x{(base+10)&0xFFFF:04x}],ax",
     ]
     for i in range(8):
         value = i + 2 if mode == 0 else 2
@@ -110,10 +117,10 @@ def assembly(body_path, sp, mode):
         lines += [f"mov al,byte ptr es:[0x{off:04x}]",
                   f"mov byte ptr cs:[output+{pos+i}],al"]
     pos += len(CROSS_OFFSETS)
-    for i, off in enumerate(BASE_OFFSETS):
+    for i, off in enumerate(base_offsets(base)):
         lines += [f"mov al,byte ptr ss:[0x{off:04x}]",
                   f"mov byte ptr cs:[output+{pos+i}],al"]
-    pos += len(BASE_OFFSETS)
+    pos += 8
     for i, off in enumerate(CELL_OFFSETS):
         lines += [f"mov al,byte ptr cs:[0x{off:04x}]",
                   f"mov byte ptr cs:[output+{pos+i}],al"]
@@ -131,15 +138,15 @@ def assembly(body_path, sp, mode):
     return "\n".join(lines) + "\n"
 
 
-def native_case(body, sp, mode):
-    directory = OUT / f"sp{sp:04x}-m{mode}"
+def native_case(body, sp, mode, base):
+    directory = OUT / f"sp{sp:04x}-m{mode}-base{base:04x}"
     directory.mkdir(parents=True, exist_ok=True)
     body_path = directory / "body.bin"
     body_path.write_bytes(body)
     source = directory / "oracle.S"
     obj = directory / "oracle.o"
     com = directory / "ORACLE.COM"
-    source.write_text(assembly(body_path, sp, mode))
+    source.write_text(assembly(body_path, sp, mode, base))
     subprocess.run(["as", "--32", str(source), "-o", str(obj)],
                    check=True, capture_output=True, text=True)
     subprocess.run(["ld", "-m", "elf_i386", "-Ttext", "0x100",
@@ -169,7 +176,7 @@ def native_case(body, sp, mode):
     return result, sha256(com.read_bytes()).hexdigest()
 
 
-def compare_case(result, sp, mode, method):
+def compare_case(result, sp, mode, base, method):
     observed = struct.unpack_from("<14H", result)
     cs, returned, ss = observed[8], observed[9], observed[12]
     code_seg = (cs + 0x1000) & 0xFFFF
@@ -182,9 +189,9 @@ def compare_case(result, sp, mode, method):
         ram[physical((ss + 0x1000) & 0xFFFF, off)] = 0xA5
     put16(ram, ss, sp, returned)
     put16(ram, ss, sp + 2, cs)
-    put16(ram, ss, sp + 4, 0x9000)
-    put16(ram, ss, 0x9008, 0x2000)
-    put16(ram, ss, 0x900A, cs)
+    put16(ram, ss, sp + 4, base)
+    put16(ram, ss, base + 8, 0x2000)
+    put16(ram, ss, base + 10, cs)
     for i in range(8):
         value = i + 2 if mode == 0 else 2
         score = i + 1 if mode == 0 else 8 - i
@@ -204,7 +211,7 @@ def compare_case(result, sp, mode, method):
                              f"C={getattr(cpu,name):04X} native={value:04X}")
     positions = ((STACK_OFFSETS, ss),
                  (CROSS_OFFSETS, (ss + 0x1000) & 0xFFFF),
-                 (BASE_OFFSETS, ss), (CELL_OFFSETS, cs))
+                 (base_offsets(base), ss), (CELL_OFFSETS, cs))
     pos = 28
     for offsets, segment in positions:
         expected = bytes(ram[physical(segment, off)] for off in offsets)
@@ -217,7 +224,10 @@ def compare_case(result, sp, mode, method):
 
 
 def main():
-    body = original_body()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--ovr", type=Path)
+    args = parser.parse_args()
+    body = original_body(args.ovr)
     OUT.mkdir(parents=True, exist_ok=True)
     shared = OUT / "u38_2002.so"
     subprocess.run([
@@ -230,16 +240,18 @@ def main():
                        ctypes.POINTER(Cpu))
     method.restype = ctypes.c_int
     cases = []
-    for sp, mode in ((0xFFFE, 0), (0xFFFF, 1), (0xFFFB, 0)):
-        result, com_sha = native_case(body, sp, mode)
-        compare_case(result, sp, mode, method)
-        cases.append({"sp": f"{sp:04X}", "mode": mode,
+    for sp, mode, base in ((0xFFFE, 0, 0x9000), (0xFFFF, 1, 0x9000),
+                           (0xFFFB, 0, 0x9000), (0x8000, 0, 0xFFF4)):
+        result, com_sha = native_case(body, sp, mode, base)
+        compare_case(result, sp, mode, base, method)
+        cases.append({"sp": f"{sp:04X}", "mode": mode, "base": f"{base:04X}",
+                      "result_sha256": sha256(result).hexdigest(),
                       "com_sha256": com_sha,
                       "native_cpu_ram_parity": "PASS"})
     report = {"original_body_sha256": BODY_SHA, "core": "normal",
               "cpu": "386", "cases": cases}
     (OUT / "report.json").write_text(json.dumps(report, indent=2) + "\n")
-    print("U38 +2002 DOSBox-X synthetic native/C parity: 3 cases PASS")
+    print(f"U38 +2002 DOSBox-X synthetic native/C parity: {len(cases)} cases PASS")
 
 
 if __name__ == "__main__":

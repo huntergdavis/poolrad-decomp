@@ -55,6 +55,7 @@ pr_u38_2002_status pr_u38_leaf_2002(
     uint8_t *ram, size_t ram_size, pr_u38_2002_cpu *cpu)
 {
     uint16_t base, best, index, product;
+    size_t pointer;
     uint8_t value, previous;
     int replace;
     if (ram == NULL || cpu == NULL || ram_size < PR_U38_2002_RAM_SIZE ||
@@ -79,8 +80,13 @@ pr_u38_2002_status pr_u38_leaf_2002(
         set_al(cpu, (uint8_t)index);
         cpu->ax = sign_extend((uint8_t)cpu->ax);
         cpu->di = read16(ram, cpu->ss, (uint16_t)(cpu->bp + 6u));
-        cpu->es = read16(ram, cpu->ss, (uint16_t)(cpu->di + 10u));
-        cpu->di = read16(ram, cpu->ss, (uint16_t)(cpu->di + 8u));
+        /* LES consumes four physically contiguous bytes after forming its
+         * 16-bit effective offset; only the 20-bit bus address wraps. */
+        pointer = physical(cpu->ss, (uint16_t)(cpu->di + 8u));
+        cpu->es = (uint16_t)(ram[(pointer + 2u) & MASK] |
+                            ((uint16_t)ram[(pointer + 3u) & MASK] << 8));
+        cpu->di = (uint16_t)(ram[pointer] |
+                            ((uint16_t)ram[(pointer + 1u) & MASK] << 8));
         cpu->di = (uint16_t)(cpu->di + cpu->ax);
         value = read8(ram, cpu->es, (uint16_t)(cpu->di + 0x96u));
         set_al(cpu, value);

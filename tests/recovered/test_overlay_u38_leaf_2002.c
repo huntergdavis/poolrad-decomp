@@ -23,13 +23,13 @@ static uint16_t get16(const uint8_t *ram, uint16_t seg, uint16_t off)
                                       (PR_U38_2002_RAM_SIZE - 1u)] << 8));
 }
 
-static void run(uint16_t sp, unsigned mode)
+static void run(uint16_t sp, unsigned mode, uint16_t base)
 {
     uint8_t *ram = calloc(PR_U38_2002_RAM_SIZE, 1u);
     pr_u38_2002_cpu cpu = {0};
-    const uint16_t base = 0x9000u;
     const uint16_t cells = 0x2000u;
     unsigned i;
+    size_t pointer;
     assert(ram != NULL);
     cpu.ax = 0xABCDu;
     cpu.bp = 0x2468u;
@@ -45,9 +45,15 @@ static void run(uint16_t sp, unsigned mode)
     put16(ram, cpu.ss, (uint16_t)(sp + 4u), base);
     put16(ram, cpu.ss, (uint16_t)(sp + 6u), 0xE55Eu);
     put16(ram, cpu.ss, (uint16_t)(base + 8u), cells);
-    put16(ram, cpu.ss, (uint16_t)(base + 10u), 0x5000u);
+    pointer = at(cpu.ss, (uint16_t)(base + 8u));
+    ram[(pointer + 2u) & (PR_U38_2002_RAM_SIZE - 1u)] = 0u;
+    ram[(pointer + 3u) & (PR_U38_2002_RAM_SIZE - 1u)] = 0x50u;
+    if (base == 0xFFF6u)
+        put16(ram, cpu.ss, 0u, 0x6100u); /* Distinct wrapped segment. */
+    ram[at(cpu.ss, (uint16_t)(sp - 3u))] = 0xD3u;
     for (i = 0; i < 8u; ++i) {
-        uint8_t value = mode == 0u ? (uint8_t)(i + 2u) : 2u;
+        uint8_t value = mode == 3u ? 0x80u :
+                        mode == 0u ? (uint8_t)(i + 2u) : 2u;
         uint16_t score = mode == 0u ? (uint16_t)(i + 1u) :
                          mode == 1u ? (uint16_t)(8u - i) :
                          (i == 5u ? 0xFFFFu : (uint16_t)i);
@@ -60,9 +66,9 @@ static void run(uint16_t sp, unsigned mode)
     }
     assert(pr_u38_leaf_2002(ram, PR_U38_2002_RAM_SIZE, &cpu) ==
            PR_U38_2002_OK);
-    assert((cpu.ax & 0xFFu) == (mode == 1u ? 0u : 7u));
+    assert((cpu.ax & 0xFFu) == (mode == 3u ? 0xD3u : mode == 1u ? 0u : 7u));
     assert(get16(ram, cpu.ss, (uint16_t)(base - 0x31u)) ==
-           (mode == 1u ? 8u : mode == 0u ? 8u : 7u));
+           (mode == 3u ? 0u : mode == 1u ? 8u : mode == 0u ? 8u : 7u));
     assert(cpu.bp == 0x2468u && cpu.sp == (uint16_t)(sp + 6u));
     assert(cpu.ip == 0x1234u && cpu.cs == 0xD000u);
     assert((cpu.flags & 0x08D5u) == 0x0044u);
@@ -83,10 +89,12 @@ int main(void)
     assert(pr_u38_leaf_2002(ram, PR_U38_2002_RAM_SIZE, &cpu) ==
            PR_U38_2002_ARGUMENT);
     free(ram);
-    run(0x8000u, 0u);
-    run(0x8000u, 1u);
-    run(0x8000u, 2u);
-    run(0xFFFEu, 0u);
-    run(0xFFFFu, 1u);
+    run(0x8000u, 0u, 0x9000u);
+    run(0x8000u, 1u, 0x9000u);
+    run(0x8000u, 2u, 0x9000u);
+    run(0xFFFEu, 0u, 0x9000u);
+    run(0xFFFFu, 1u, 0x9000u);
+    run(0x8000u, 0u, 0xFFF6u);
+    run(0x8000u, 3u, 0x9000u);
     return 0;
 }
