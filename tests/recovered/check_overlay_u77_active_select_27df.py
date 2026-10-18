@@ -68,8 +68,8 @@ def put_far(memory, segment, offset, target):
     put_word(memory, segment, (offset + 2) & 0xFFFF, target_segment)
 
 
-def load_source():
-    data = OVR.read_bytes()
+def load_source(ovr_path=None):
+    data = (ovr_path or OVR).read_bytes()
     check(len(data) == 206105 and sha256(data).hexdigest() == OVR_SHA,
           "GAME.OVR provenance mismatch")
     source = data[145433:145656]
@@ -102,10 +102,14 @@ def build_library(directory):
     result.pr_u77_active_select_27df.argtypes = [
         ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu)]
     result.pr_u77_active_select_27df.restype = ctypes.c_int
+    result.pr_u77_active_select_27df_run.argtypes = [
+        ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu),
+        ctypes.c_int]
+    result.pr_u77_active_select_27df_run.restype = ctypes.c_int
     return result
 
 
-def compare_case(label, memory, cpu, source, library):
+def compare_case(label, memory, cpu, source, library, statistics=None):
     code_start = physical(cpu.cs, 0x27DF)
     code_end = code_start + len(source)
     check(memory[code_start:code_end] == source, f"code changed: {label}")
@@ -118,6 +122,7 @@ def compare_case(label, memory, cpu, source, library):
     returned = [False]
     visited = set()
     last_flags = [None]
+    previous = [None]
     decoded = {i.address: i for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(source, 0x27DF)}
 
     def on_instruction(emulator, address, size, user):
@@ -126,6 +131,9 @@ def compare_case(label, memory, cpu, source, library):
         check(code_start <= address < code_end and ip in decoded,
               f"unexpected control transfer: {label}")
         visited.add(ip)
+        if statistics is not None and previous[0] is not None:
+            statistics["edges"].add((previous[0], ip))
+        previous[0] = ip
         if decoded[ip].mnemonic in ("sub", "cmp", "or"):
             last_flags[0] = decoded[ip].mnemonic
         if ip == 0x28BB:
@@ -136,6 +144,10 @@ def compare_case(label, memory, cpu, source, library):
     original.emu_start(code_start, RAM_SIZE, count=40000)
     check(returned[0], f"original did not return: {label}")
     original.hook_del(hook)
+    return_ss = original.reg_read(UC_X86_REG_SS)
+    return_sp = original.reg_read(UC_X86_REG_SP)
+    wrapped_cs = word(backing, return_ss, (return_sp + 2) & 0xffff)
+    initial_cpu = Cpu.from_buffer_copy(cpu)
     original.emu_start(physical(original.reg_read(UC_X86_REG_CS), 0x28BB),
                        2 * RAM_SIZE, count=1)
     check(bytes(backing[code_start:code_end]) == source,
@@ -155,6 +167,21 @@ def compare_case(label, memory, cpu, source, library):
         mask = 0xFFEF if name == "flags" and last_flags[0] == "or" else 0xFFFF
         check(((candidate ^ observed) & mask) == 0,
               f"{name} mismatch {label}: C={candidate:04x} DOS={observed:04x}")
+    wrapped_ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
+    wrapped_cpu = Cpu.from_buffer_copy(initial_cpu)
+    check(library.pr_u77_active_select_27df_run(wrapped_ram, RAM_SIZE,
+          ctypes.byref(wrapped_cpu), 1) == 0, f"wrapped profile rejected {label}")
+    check(bytes(wrapped_ram) == expected, f"wrapped full RAM mismatch {label}")
+    for (name, _), register in zip(Cpu._fields_, REGISTERS):
+        observed = wrapped_cs if name == "cs" else original.reg_read(register) & 0xffff
+        mask = 0xffef if name == "flags" and last_flags[0] == "or" else 0xffff
+        check(((getattr(wrapped_cpu, name) ^ observed) & mask) == 0,
+              f"wrapped {name} mismatch {label}")
+    if statistics is not None:
+        if return_sp >= 0xfffe:
+            statistics["native_retf_substitutions"].append(label)
+        if last_flags[0] == "or":
+            statistics["undefined_af_cases"].append(label)
     return visited
 
 
@@ -199,8 +226,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--include-capture", action="store_true")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--ovr", type=Path, default=OVR)
     args = parser.parse_args()
-    source = load_source()
+    source = load_source(args.ovr)
+    statistics = dict(edges=set(), native_retf_substitutions=[],
+                      undefined_af_cases=[])
+    def compare(*args):
+        return compare_case(*args, statistics=statistics)
     with tempfile.TemporaryDirectory(prefix="poolrad-u77-27df-") as tmp:
         library = build_library(Path(tmp))
         cases = [
@@ -236,7 +268,7 @@ def main():
         visited = set()
         for label, key, nodes, active, options in cases:
             memory, cpu = make_case(source, key, nodes, active, **options)
-            visited |= compare_case(label, memory, cpu, source, library)
+            visited |= compare(label, memory, cpu, source, library)
             case_count += 1
         for label, target in (("segment-only-head", (0x4000, 0)),
                               ("offset-only-head", (0, 0x0100))):
@@ -245,20 +277,20 @@ def main():
             put_far(memory, cpu.ds, 0x5D92, target)
             put_far(memory, target[0], (target[1] + 0x104) & 0xFFFF,
                     (0, 0))
-            visited |= compare_case(label, memory, cpu, source, library)
+            visited |= compare(label, memory, cpu, source, library)
             case_count += 1
         # An active record whose next link is the DS active-pointer table.
         memory, cpu = make_case(source, ord("O"), 0)
         target = (cpu.ds, 0x5C8E)
         put_far(memory, cpu.ds, 0x5D96, target)
         put_far(memory, cpu.ds, 0x5D92, target)
-        visited |= compare_case("link-overlaps-active-global", memory, cpu,
+        visited |= compare("link-overlaps-active-global", memory, cpu,
                                 source, library)
         case_count += 1
         for key in range(256):
             for active in (0, 1, 2):
                 memory, cpu = make_case(source, 0xA500 | key, 3, active)
-                visited |= compare_case(f"key-{key:02x}-active-{active}",
+                visited |= compare(f"key-{key:02x}-active-{active}",
                                         memory, cpu, source, library)
                 case_count += 1
         for sp in (0, 1, 2, 3, 4, 5, 0x5D90, 0x5D92, 0x5D94,
@@ -271,7 +303,7 @@ def main():
                 memory[(at + 2) & (RAM_SIZE - 1)] = cpu.cs & 255
                 memory[(at + 3) & (RAM_SIZE - 1)] = cpu.cs >> 8
                 put_word(memory, cpu.ss, (sp + 4) & 0xFFFF, key)
-                visited |= compare_case(f"stack-table-{sp:04x}-{key:02x}",
+                visited |= compare(f"stack-table-{sp:04x}-{key:02x}",
                                         memory, cpu, source, library)
                 case_count += 1
         rng = random.Random(0x7727DF)
@@ -281,7 +313,7 @@ def main():
                                     nodes, rng.randrange(nodes),
                                     first_offset=rng.randrange(0x10000))
             cpu.flags = rng.choice((0x0202, 0x0247, 0x0A93, 0x0602))
-            visited |= compare_case(f"seeded-{index}", memory, cpu, source, library)
+            visited |= compare(f"seeded-{index}", memory, cpu, source, library)
             case_count += 1
         for off in (0, 0xF, 0x10, 0xFFFE, 0xFFFF):
             for key in (0x47, 0x4F):
@@ -290,10 +322,20 @@ def main():
                 put_far(memory, cpu.ds, 0x5D96, target)
                 put_far(memory, cpu.ds, 0x5D92, target)
                 put_far(memory, target[0], (off + 0x104) & 0xFFFF, (0, 0))
-                visited |= compare_case(f"a20-{off:04x}-{key:02x}",
+                visited |= compare(f"a20-{off:04x}-{key:02x}",
                                         memory, cpu, source, library)
                 case_count += 1
-    report = dict(target="OVL_0077_27DF", source_sha256=SPAN_SHA,
+    decoded = list(Cs(CS_ARCH_X86, CS_MODE_16).disasm(source, 0x27df))
+    conditional = {(i.address, target) for i in decoded
+                   if i.mnemonic.startswith("j") and i.mnemonic != "jmp"
+                   for target in (int(i.op_str, 16), i.address + i.size)}
+    missing = conditional - statistics["edges"]
+    check(not missing, f"conditional coverage missing: {sorted(missing)}")
+    report = dict(profile_comparisons=case_count*2,
+                  conditional_outcomes=len(conditional),
+                  undefined_af_cases=statistics["undefined_af_cases"],
+                  native_retf_substitutions=statistics["native_retf_substitutions"],
+                  target="OVL_0077_27DF", source_sha256=SPAN_SHA,
                   cases=case_count, covered_sites=len(visited), source_sites=71,
                   unvisited_sites=sorted(set(i.address for i in
                       Cs(CS_ARCH_X86, CS_MODE_16).disasm(source, 0x27DF)) - visited),
