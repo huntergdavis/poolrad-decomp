@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**178 strict full-C originals** (168 overlay, ten resident) and **230 verified
-game identities** (219 overlay, eleven resident). The queue still contains 898
+**180 strict full-C originals** (170 overlay, ten resident) and **232 verified
+game identities** (221 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -86,6 +86,9 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006C_408C` | PR #972 (evidence-only), `b13c6a79`; ds4/pi re-verified at head 898fac84 (3,265 cases, 220/220 sites; 1,029 native). **Declared IDIV mask** as above; 3 native fault-frame words normalized | 425 bytes, SHA-256 `a6f888761ea4f984f7562342143d2a366885d4248d4c047b5f0b42cdf26ff97e` | [408C evidence](U6C_408C_EVIDENCE_REFRESH.md) |
 | `OVL_005E_32E6` | PR #974, `8b8c711297874b74a517058e09505df8c402507d`; ds4/pi re-verified at head e2dfd628 (440 cases, caller 62/62, chain 1387/1428; 27 native). Caveat: its U3C6 getters are semantic-only and now caveated | 163 bytes, SHA-256 `456ced130d112bf573dafb528d31b76604c455891fa25622da2d4cfba1568772` | [caller 32E6](U5E_CALLER_32E6.md) |
 | `OVL_006F_1446` | PR #975, `8e690bd711f27620a9ddcb8e663ae46084c72359`; ds4/pi re-verified at head 65d9ad1f (333 cases, 99/99, 12/12; 160 native) | 313 bytes, SHA-256 `370b29767e075c947ae418f44cb57f92e50127c1d519ba029cd7eacb882aa245` | [party insert CPU](U6F_PARTY_INSERT_1446_CPU.md) |
+| `OVL_03C6_03A0` | PR #977, `ab326776`; ds4/pi re-verified at head 5f980394 (440 cases, caller 122/122, chain 170/170, zero masks; 35 native). Composes raw U3C6 +0000; supplies +0A7's dependency | 286 bytes, SHA-256 `50c688892105995b01a842c1e26412f1b4c221e58a1be29ea1fa41bb7abfe400` | [rebuild 03A0](U3C6_REBUILD_03A0.md) |
+| `OVL_0031_0255` | PR #978, `cbbbedfc`; ds4/pi re-verified at head 9d3772bd (174 cases, 58/58, 6/6; 48 native over the whole 64 KiB DS)
+| 150 bytes, SHA-256 `908b407691e90b37e132380ee3ad17d42209a64ecbbb2d29ce0fca2333abf552` | [candidate check](U31_CANDIDATE_CHECK_0255_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
