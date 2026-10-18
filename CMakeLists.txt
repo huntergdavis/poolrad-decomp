@@ -120,6 +120,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_unit38_helper.c
                                     src/recovered/overlay_u38_helper_cluster_cpu.c
                                     src/recovered/overlay_u38_dispatch_nop_cpu.c
+                                    src/recovered/overlay_u38_target_reset_133f_cpu.c
+                                    src/recovered/resident_00ba_target_reset_2637_cpu.c
                                     src/recovered/overlay_u38_roll_gate_2915_cpu.c
                                     src/recovered/overlay_u38_roll_clear_2de4_cpu.c
                                     src/recovered/overlay_u38_roll_append_1730_cpu.c
@@ -885,6 +887,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u38_dispatch_nop_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u38_dispatch_nop_cpu_tests
              COMMAND poolrad_overlay_u38_dispatch_nop_cpu_tests)
+    add_executable(poolrad_overlay_u38_target_reset_133f_cpu_tests
+                   tests/recovered/test_overlay_u38_target_reset_133f_cpu.c)
+    target_link_libraries(poolrad_overlay_u38_target_reset_133f_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_target_reset_133f_cpu_tests
+             COMMAND poolrad_overlay_u38_target_reset_133f_cpu_tests)
 
     add_executable(poolrad_overlay_u38_helper_cluster_cpu_tests
                    tests/recovered/test_overlay_u38_helper_cluster_cpu.c)

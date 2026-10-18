@@ -8,9 +8,10 @@ from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from overlay_inventory import find_units,parse_mz
 from u86_procvars_3413_audit import ROOT,EXE_SHA,OVR_SHA
 
-# Explicit, unit-scoped interface inventory, audited at main a2acd135 plus the four-leaf implementation.
+# Explicit, unit-scoped interface inventory, audited at main d8ebbf6c plus the U38 +133F raw chain.
 # A raw API is not a new independent verification or strict-credit decision.
 GROUPS=[
+ ('raw_cpu','overlay_u38_target_reset_133f_cpu.h','133F'),
  ('raw_cpu','overlay_u38_dispatch_nop_cpu.h','0647 1355 135C 319B'),
  ('scalar_or_callback','overlay_unit38_effects.h','010D 011D 013B 05D6 064E 06E4 0A3D 0BAC 0C26 10C1 1452 171F 2490 25A2 2A6D 2B63'),
  ('scalar_or_callback','overlay_unit38_effects_next.h','01C3 24D9 2700 2A28'),
@@ -97,7 +98,7 @@ def inventory():
     unique={r['handler_id']:r for r in rows};missing=sorted(id for id,r in unique.items() if not r['canonical_strict_row'])
     check(len(rows)==139 and len(unique)==118,'inventory cardinality')
     summary=dict(bound_slots=139,distinct_handlers=118,canonical_strict_handlers=sum(r['canonical_strict_row'] for r in unique.values()),without_canonical_strict=len(missing),adjacent_alias_slots=len(adjacent),interfaces=dict(Counter(r['interface'] for r in unique.values())))
-    return dict(schema_version=1,interface_review_base='a2acd135 + U38 dispatch leaf cluster',start_exe_sha256=EXE_SHA,game_ovr_sha256=OVR_SHA,strict_map_sha256=sha256(strict_path.read_bytes()).hexdigest(),dispatch_address_range='DS:6828..6C27 (256 possible slots)',initialized_address_range='DS:682C..6A57 (slots1..139)',unbound_slots=[0,*range(140,215)],adjacent_procvar_aliases=adjacent,summary=summary,slots=rows,without_canonical_strict=missing,limitations=['Only disjoint U86-then-U38 initialization is inventoried; later writes and invalid types require live-target validation. Types215..255 alias initialized U86 procedure pointers outside the intended effect table. A type1..139 invariant must be proven before treating 118 handlers as the complete closure.','raw_cpu describes a published interface, not verified composition through U9E. scalar_or_callback combines scalar models and raw shells with unresolved hooks.','missing means no model located by the explicit audited mapping at interface_review_base, not a global-history absence proof.','No accounting or strict-credit files are written.'])
+    return dict(schema_version=1,interface_review_base='d8ebbf6c + U38 133F raw chain',start_exe_sha256=EXE_SHA,game_ovr_sha256=OVR_SHA,strict_map_sha256=sha256(strict_path.read_bytes()).hexdigest(),dispatch_address_range='DS:6828..6C27 (256 possible slots)',initialized_address_range='DS:682C..6A57 (slots1..139)',unbound_slots=[0,*range(140,215)],adjacent_procvar_aliases=adjacent,summary=summary,slots=rows,without_canonical_strict=missing,limitations=['Only disjoint U86-then-U38 initialization is inventoried; later writes and invalid types require live-target validation. Types215..255 alias initialized U86 procedure pointers outside the intended effect table. A type1..139 invariant must be proven before treating 118 handlers as the complete closure.','raw_cpu describes a published interface, not verified composition through U9E. scalar_or_callback combines scalar models and raw shells with unresolved hooks.','missing means no model located by the explicit audited mapping at interface_review_base, not a global-history absence proof.','No accounting or strict-credit files are written.'])
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--output',type=Path,required=True);a=p.parse_args()

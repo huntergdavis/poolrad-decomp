@@ -2,17 +2,18 @@
 
 Tracked assignments and prerequisites: [issue #1019](https://github.com/huntergdavis/poolrad-decomp/issues/1019).
 
-Interface snapshot: main a2acd135 plus the four-leaf U38 implementation. This is a work inventory, not a strict-credit update.
+Interface snapshot: main d8ebbf6c plus the U38 +133F raw chain. This is a work inventory, not a strict-credit update.
 The reproducible [JSON inventory](u9e_dispatch_handlers.json) maps139 primary
 slots to118 distinct handlers, canonical strict-map membership, and a
 source-backed interface class. Its script reads the original installer stores:
 U38 installs138 slots; U86 supplies the skipped type88 slot.
 
-43 handlers have canonical strict-map rows. Interface review found20 raw CPU
-APIs,37 scalar/callback models, and61 with no located model. The75 without
-canonical rows comprise61 missing models, nine callback models, and five raw
-models (U38+12B2 and the four dispatch leaves). A missing row is not proof that no model exists. A raw API
-is not proof of complete composition. Reviewers decide verification and credit.
+47 handlers have canonical strict-map rows after independent acceptance #1023
+of the four leaves in #1022. This inventory adds no credit. Interface review
+finds21 raw CPU APIs,37 scalar/callback models, and60 with no located model.
+The71 identities without canonical rows comprise60 missing models, nine
+callback models, and two raw models (U38+12B2 and +133F). A raw interface does
+not itself prove complete dispatcher composition. Reviewers decide credit.
 
 ## Prerequisites separate from handler work
 
@@ -25,7 +26,7 @@ is not proof of complete composition. Reviewers decide verification and credit.
 - [ ] Resolve high-type aliases215..255 if the type invariant cannot be established:
   they reach41 initialized pointers in U86's adjacent procedure table. The JSON
   records these addresses separately from the118 effect handlers.
-- [ ] Upgrade37 scalar/callback interfaces and verify20 existing raw interfaces
+- [ ] Upgrade37 scalar/callback interfaces and verify21 existing raw interfaces
   through the exact U9E frame. Canonical credit does not prove raw CPU parity.
 - [ ] Complete U9E+0000's indirect call/return, then compose +0026 and replace
   U7D+0000's #1015 PENDING boundary with fresh chain evidence.
@@ -34,26 +35,28 @@ is not proof of complete composition. Reviewers decide verification and credit.
 
 1. U38+319B/+0647/+1355/+135C now have a shared raw CPU implementation and
    separate per-identity evidence in [U38_DISPATCH_NOP_CPU.md](U38_DISPATCH_NOP_CPU.md).
-   Their four unchecked items await independent review; do not duplicate them.
-2. U38+133F:22 bytes/9 instructions, four slots, calls resident00BA:2637.
-   Check the resident's raw ABI before claiming readiness.
+   Their four identities were independently accepted in #1023; do not duplicate them.
+2. U38+133F now composes a raw resident00BA:2637 API; see
+   [U38_TARGET_RESET_133F_CPU.md](U38_TARGET_RESET_133F_CPU.md). Its unchecked item
+   awaits independent review; the old scalar API remains available unchanged.
 3. U38+12B2: existing raw API with no canonical row; route existing evidence
    to independent review rather than author a duplicate or self-credit it.
 4. U38+2EDA: eight slots,113 bytes/47 instructions; calls U9E+0026,+0E52,+0000.
    This is a recursive closure problem, not an immediately composable leaf.
 
-## 75 handlers without canonical strict-map rows
+## 71 handlers without canonical strict-map rows
 
-Each checkbox is a separately assignable identity. Slot counts are static
-installer multiplicity, not gameplay frequency. Missing means no standalone
-or grouped model located in the reviewed base, not absence on every historical
-or unpublished branch. Coordinate ownership. All boxes remain unchecked.
+Each checkbox is a separately assignable identity. This list is derived from
+the current canonical CSV; four entries accepted by the reviewer in #1023 are
+no longer missing a canonical row. No other completion is inferred. Missing
+means no located standalone/grouped model at the reviewed snapshot, not proof
+of absence from all branches. Coordinate ownership before work. All remaining
+boxes are unchecked; issue #1019 completion is left to the reviewer.
 
 - [ ] OVL_0038_017F — slots 4; missing
 - [ ] OVL_0038_0233 — slots 7; missing
 - [ ] OVL_0038_0400 — slots 11; missing
 - [ ] OVL_0038_05EB — slots 15; missing
-- [ ] OVL_0038_0647 — slots 16; raw_cpu; [overlay_u38_dispatch_nop_cpu.h](../../include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h)
 - [ ] OVL_0038_0679 — slots 18; missing
 - [ ] OVL_0038_070F — slots 21; missing
 - [ ] OVL_0038_0775 — slots 22; missing
@@ -72,9 +75,7 @@ or unpublished branch. Coordinate ownership. All boxes remain unchecked.
 - [ ] OVL_0038_1276 — slots 48; missing
 - [ ] OVL_0038_12B2 — slots 49; raw_cpu; [overlay_u38_effect_match_12b2.h](../../include/poolrad/recovered/overlay_u38_effect_match_12b2.h)
 - [ ] OVL_0038_12FB — slots 50; missing
-- [ ] OVL_0038_133F — slots 31,51,52,53; missing
-- [ ] OVL_0038_1355 — slots 54; raw_cpu; [overlay_u38_dispatch_nop_cpu.h](../../include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h)
-- [ ] OVL_0038_135C — slots 55; raw_cpu; [overlay_u38_dispatch_nop_cpu.h](../../include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h)
+- [ ] OVL_0038_133F — slots 31,51,52,53; raw_cpu; [overlay_u38_target_reset_133f_cpu.h](../../include/poolrad/recovered/overlay_u38_target_reset_133f_cpu.h)
 - [ ] OVL_0038_1363 — slots 56; missing
 - [ ] OVL_0038_1399 — slots 57; missing
 - [ ] OVL_0038_14EB — slots 62; missing
@@ -120,7 +121,6 @@ or unpublished branch. Coordinate ownership. All boxes remain unchecked.
 - [ ] OVL_0038_30A5 — slots 132; missing
 - [ ] OVL_0038_3134 — slots 135; missing
 - [ ] OVL_0038_317A — slots 137; missing
-- [ ] OVL_0038_319B — slots 5,13,19,24,27,60,63,92,127; raw_cpu; [overlay_u38_dispatch_nop_cpu.h](../../include/poolrad/recovered/overlay_u38_dispatch_nop_cpu.h)
 - [ ] OVL_005E_39D2 — slots 73; missing
 - [ ] OVL_005E_3A86 — slots 74; missing
 - [ ] OVL_0086_30D9 — slots 88; missing
