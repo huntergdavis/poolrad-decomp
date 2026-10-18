@@ -4,6 +4,8 @@
 #include "poolrad/recovered/overlay_u5e_caller_32e6.h"
 #include "poolrad/recovered/overlay_u3c2_caller_0909.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
+#include "poolrad/recovered/overlay_u3c6_slot_getters_cpu.h"
+#include <string.h>
 #define MASK (PR_U5E_32E6_RAM_SIZE - 1u)
 static size_t physical(uint16_t seg, uint16_t off)
 {
@@ -96,100 +98,15 @@ static int move(uint8_t *ram,size_t size,pr_u5e_32e6_cpu *c)
 #undef COPY_CPU
 static pr_u5e_32e6_status slots(uint8_t *ram,pr_u5e_32e6_cpu *c,size_t remaining)
 {
-    uint16_t code_segment=c->cs,return_ip=0u;
-    for (;;) {
-        if(c->cs!=code_segment)return PR_U5E_32E6_TRANSFER;
-        if(c->ip==0x0C71u) {
-            if(remaining==0u)return PR_U5E_32E6_SLOT_LIMIT;
-            --remaining;
-        }
-        switch(c->ip) {
-        case 0x0BE7: push(ram,c,c->bp);c->ip=0x0BE8u;break;
-        case 0x0BE8: c->bp=c->sp;c->ip=0x0BEAu;break;
-        case 0x0BEA: c->sp=arithmetic(c,c->sp,0x0002u,0u,16u,1u);c->ip=0x0BEDu;break;
-        case 0x0BED: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+8)));c->ip=0x0BF0u;break;
-        case 0x0BF0: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+6)));c->ip=0x0BF3u;break;
-        case 0x0BF3: push(ram,c,c->cs);c->ip=0x0BF4u;break;
-        case 0x0BF4: push(ram,c,0x0BF7u);return_ip=0x0BF7u;c->ip=0x0C5Fu;break;
-        case 0x0BF7: ah(c,(uint8_t)(logic(c,(uint16_t)((uint8_t)(c->ax>>8u)^(uint8_t)(c->ax>>8u)),8u)));c->ip=0x0BF9u;break;
-        case 0x0BF9: c->di=c->ax;c->ip=0x0BFBu;break;
-        case 0x0BFB: c->di=shl(c,c->di);c->ip=0x0BFDu;break;
-        case 0x0BFD: c->di=shl(c,c->di);c->ip=0x0BFFu;break;
-        case 0x0BFF: al(c,(uint8_t)(ram[physical(c->ds,(uint16_t)(c->di+24359))]));c->ip=0x0C03u;break;
-        case 0x0C03: ram[physical(c->ss,(uint16_t)(c->bp+-1))]=(uint8_t)((uint8_t)c->ax);c->ip=0x0C06u;break;
-        case 0x0C06: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-1))]));c->ip=0x0C09u;break;
-        case 0x0C09: c->sp=c->bp;c->ip=0x0C0Bu;break;
-        case 0x0C0B: c->bp=pop(ram,c);c->ip=0x0C0Cu;break;
-        case 0x0C0C: retf(ram,c,4u);return PR_U5E_32E6_OK;
-        case 0x0C0F: push(ram,c,c->bp);c->ip=0x0C10u;break;
-        case 0x0C10: c->bp=c->sp;c->ip=0x0C12u;break;
-        case 0x0C12: c->sp=arithmetic(c,c->sp,0x0002u,0u,16u,1u);c->ip=0x0C15u;break;
-        case 0x0C15: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+8)));c->ip=0x0C18u;break;
-        case 0x0C18: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+6)));c->ip=0x0C1Bu;break;
-        case 0x0C1B: push(ram,c,c->cs);c->ip=0x0C1Cu;break;
-        case 0x0C1C: push(ram,c,0x0C1Fu);return_ip=0x0C1Fu;c->ip=0x0C5Fu;break;
-        case 0x0C1F: ah(c,(uint8_t)(logic(c,(uint16_t)((uint8_t)(c->ax>>8u)^(uint8_t)(c->ax>>8u)),8u)));c->ip=0x0C21u;break;
-        case 0x0C21: c->di=c->ax;c->ip=0x0C23u;break;
-        case 0x0C23: c->di=shl(c,c->di);c->ip=0x0C25u;break;
-        case 0x0C25: c->di=shl(c,c->di);c->ip=0x0C27u;break;
-        case 0x0C27: al(c,(uint8_t)(ram[physical(c->ds,(uint16_t)(c->di+24360))]));c->ip=0x0C2Bu;break;
-        case 0x0C2B: ram[physical(c->ss,(uint16_t)(c->bp+-1))]=(uint8_t)((uint8_t)c->ax);c->ip=0x0C2Eu;break;
-        case 0x0C2E: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-1))]));c->ip=0x0C31u;break;
-        case 0x0C31: c->sp=c->bp;c->ip=0x0C33u;break;
-        case 0x0C33: c->bp=pop(ram,c);c->ip=0x0C34u;break;
-        case 0x0C34: retf(ram,c,4u);return PR_U5E_32E6_OK;
-        case 0x0C37: push(ram,c,c->bp);c->ip=0x0C38u;break;
-        case 0x0C38: c->bp=c->sp;c->ip=0x0C3Au;break;
-        case 0x0C3A: c->sp=arithmetic(c,c->sp,0x0002u,0u,16u,1u);c->ip=0x0C3Du;break;
-        case 0x0C3D: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+8)));c->ip=0x0C40u;break;
-        case 0x0C40: push(ram,c,read_word(ram,c->ss,(uint16_t)(c->bp+6)));c->ip=0x0C43u;break;
-        case 0x0C43: push(ram,c,c->cs);c->ip=0x0C44u;break;
-        case 0x0C44: push(ram,c,0x0C47u);return_ip=0x0C47u;c->ip=0x0C5Fu;break;
-        case 0x0C47: ah(c,(uint8_t)(logic(c,(uint16_t)((uint8_t)(c->ax>>8u)^(uint8_t)(c->ax>>8u)),8u)));c->ip=0x0C49u;break;
-        case 0x0C49: c->di=c->ax;c->ip=0x0C4Bu;break;
-        case 0x0C4B: c->di=shl(c,c->di);c->ip=0x0C4Du;break;
-        case 0x0C4D: c->di=shl(c,c->di);c->ip=0x0C4Fu;break;
-        case 0x0C4F: al(c,(uint8_t)(ram[physical(c->ds,(uint16_t)(c->di+24362))]));c->ip=0x0C53u;break;
-        case 0x0C53: ram[physical(c->ss,(uint16_t)(c->bp+-1))]=(uint8_t)((uint8_t)c->ax);c->ip=0x0C56u;break;
-        case 0x0C56: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-1))]));c->ip=0x0C59u;break;
-        case 0x0C59: c->sp=c->bp;c->ip=0x0C5Bu;break;
-        case 0x0C5B: c->bp=pop(ram,c);c->ip=0x0C5Cu;break;
-        case 0x0C5C: retf(ram,c,4u);return PR_U5E_32E6_OK;
-        case 0x0C5F: push(ram,c,c->bp);c->ip=0x0C60u;break;
-        case 0x0C60: c->bp=c->sp;c->ip=0x0C62u;break;
-        case 0x0C62: c->sp=arithmetic(c,c->sp,0x0004u,0u,16u,1u);c->ip=0x0C65u;break;
-        case 0x0C65: ram[physical(c->ss,(uint16_t)(c->bp+-2))]=(uint8_t)(0x0000u);c->ip=0x0C69u;break;
-        case 0x0C69: ram[physical(c->ss,(uint16_t)(c->bp+-1))]=(uint8_t)(0x0000u);c->ip=0x0C6Du;break;
-        case 0x0C6D: ram[physical(c->ss,(uint16_t)(c->bp+-3))]=(uint8_t)(0x0000u);c->ip=0x0C71u;break;
-        case 0x0C71: ram[physical(c->ss,(uint16_t)(c->bp+-3))]=(uint8_t)(increment(c,ram[physical(c->ss,(uint16_t)(c->bp+-3))]));c->ip=0x0C74u;break;
-        case 0x0C74: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-3))]));c->ip=0x0C77u;break;
-        case 0x0C77: ah(c,(uint8_t)(logic(c,(uint16_t)((uint8_t)(c->ax>>8u)^(uint8_t)(c->ax>>8u)),8u)));c->ip=0x0C79u;break;
-        case 0x0C79: c->di=c->ax;c->ip=0x0C7Bu;break;
-        case 0x0C7B: c->di=shl(c,c->di);c->ip=0x0C7Du;break;
-        case 0x0C7D: c->di=shl(c,c->di);c->ip=0x0C7Fu;break;
-        case 0x0C7F: c->ax=read_word(ram,c->ds,(uint16_t)(c->di+26041));c->ip=0x0C83u;break;
-        case 0x0C83: c->dx=read_word(ram,c->ds,(uint16_t)(c->di+26043));c->ip=0x0C87u;break;
-        case 0x0C87: (void)arithmetic(c,c->dx,read_word(ram,c->ss,(uint16_t)(c->bp+8)),0u,16u,1u);c->ip=0x0C8Au;break;
-        case 0x0C8A: c->ip=((c->flags&0x40u)==0u)?0x0C95u:0x0C8Cu;break;
-        case 0x0C8C: (void)arithmetic(c,c->ax,read_word(ram,c->ss,(uint16_t)(c->bp+6)),0u,16u,1u);c->ip=0x0C8Fu;break;
-        case 0x0C8F: c->ip=((c->flags&0x40u)==0u)?0x0C95u:0x0C91u;break;
-        case 0x0C91: ram[physical(c->ss,(uint16_t)(c->bp+-2))]=(uint8_t)(0x0001u);c->ip=0x0C95u;break;
-        case 0x0C95: (void)arithmetic(c,ram[physical(c->ss,(uint16_t)(c->bp+-2))],0x0000u,0u,8u,1u);c->ip=0x0C99u;break;
-        case 0x0C99: c->ip=((c->flags&0x40u)==0u)?0x0CA4u:0x0C9Bu;break;
-        case 0x0C9B: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-3))]));c->ip=0x0C9Eu;break;
-        case 0x0C9E: (void)arithmetic(c,(uint8_t)c->ax,ram[physical(c->ds,(uint16_t)(24362))],0u,8u,1u);c->ip=0x0CA2u;break;
-        case 0x0CA2: c->ip=((c->flags&0x40u)==0u)?0x0C71u:0x0CA4u;break;
-        case 0x0CA4: (void)arithmetic(c,ram[physical(c->ss,(uint16_t)(c->bp+-2))],0x0000u,0u,8u,1u);c->ip=0x0CA8u;break;
-        case 0x0CA8: c->ip=((c->flags&0x40u)!=0u)?0x0CB0u:0x0CAAu;break;
-        case 0x0CAA: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-3))]));c->ip=0x0CADu;break;
-        case 0x0CAD: ram[physical(c->ss,(uint16_t)(c->bp+-1))]=(uint8_t)((uint8_t)c->ax);c->ip=0x0CB0u;break;
-        case 0x0CB0: al(c,(uint8_t)(ram[physical(c->ss,(uint16_t)(c->bp+-1))]));c->ip=0x0CB3u;break;
-        case 0x0CB3: c->sp=c->bp;c->ip=0x0CB5u;break;
-        case 0x0CB5: c->bp=pop(ram,c);c->ip=0x0CB6u;break;
-        case 0x0CB6: retf(ram,c,4u);if(c->cs!=code_segment || c->ip!=return_ip)return PR_U5E_32E6_TRANSFER;break;
-        default:return PR_U5E_32E6_TRANSFER;
-        }
-    }
+    pr_u3c6_getter_cpu inner;pr_u3c6_getter_status status;
+    _Static_assert(sizeof inner==sizeof *c,"getter CPU layout");
+    memcpy(&inner,c,sizeof inner);
+    status=pr_u3c6_slot_getter_cpu(ram,PR_U5E_32E6_RAM_SIZE,&inner,remaining);
+    memcpy(c,&inner,sizeof inner);
+    if(status==PR_U3C6_GETTER_OK)return PR_U5E_32E6_OK;
+    if(status==PR_U3C6_GETTER_LIMIT)return PR_U5E_32E6_SLOT_LIMIT;
+    if(status==PR_U3C6_GETTER_TRANSFER)return PR_U5E_32E6_TRANSFER;
+    return PR_U5E_32E6_CALLEE;
 }
 pr_u5e_32e6_status pr_u5e_caller_32e6(
     uint8_t *ram,size_t size,pr_u5e_32e6_cpu *c,
