@@ -403,7 +403,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
                                 readiness=readiness))
     counts = Counter(target["readiness"] for target in targets)
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
-                      for target in targets if target["id"] in RAW_CPU_INTERFACE_CAVEATS),
+                      for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
                      key=lambda item: item["id"])
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
              + counts["runtime_covered"])
