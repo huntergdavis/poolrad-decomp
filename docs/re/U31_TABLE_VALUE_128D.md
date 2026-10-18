@@ -5,8 +5,8 @@ GAME.OVR unit `0x31` routine `+128D`. The VP assigned it to this lane on
 2026-10-17. In the census-2115 queue its only callee is SYSTEM Move
 (`runtime:2623`), with no inline coverage, model, branch or main file. The
 routine calls Move as a real far call into the raw-CPU
-[`pr_system_move_0a3f`](SYSTEM_RUNTIME_LEAVES.md) from #936, which this PR is
-stacked on. The timeboxed `deja` recall for the runtime leaves reached its
+[`pr_system_move_0a3f`](SYSTEM_RUNTIME_LEAVES.md) from #936, now merged. The
+timeboxed `deja` recall for the runtime leaves reached its
 cap, so nothing is reused. The classifier lists the routine as
 `helper_candidate`, grade B. Identity and strict credit are the verifying
 lane's decision.
