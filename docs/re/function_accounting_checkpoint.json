@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "dd808cf60d846837b66899e76bf39ad5276431768ca6e93df48de5deb3841aa2",
-    "full_c_map": "b1f53e8462f79c1688683b416ba3d6813b74ab72d3352b5239dbeca1319d3aed",
+    "classification": "e6015990d8ee428e4ece431691471802968df4849310b8ebb8419192e8bda7f2",
+    "full_c_map": "cc63ade152fa56f53e06711e1c8ae31b2d5ec3e42b9ec2feea5b8929615dc794",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "fc8e52796db317a1ac31ab74f2e997c575b2d2dc078ea5521deaeff370d1915c"
+    "reviewed_identities": "5f702de0360b30b738918e42607c5d1634383e93200169baa18b23d5ea8da1b6"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "8e343a695a7599fb19bfb3ca64542b5561b2b43dcb3f4a07bb65a0598a8f6d09",
+  "queue_sha256": "772d38eb476a6a0b68f15ed910d68fda510eea7cb347c7c93acc7d73ed649a85",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_009E_0E52 PR #999 merge 4e454c9c, head 0ebd2076: 185 original-byte cases (171 return, 3 CODE, 8 CALLEE, 3 LIMIT, 0 TRANSFER), full 1 MiB RAM and all 14 CPU words equal, no mask; 57/57 instruction starts and 4/4 conditional outcomes; 64 native DOSBox-X cases (46 return, 18 GetMem RunError), no mask, SHA 710447bd. Body 180 bytes / 57 instructions, SHA cfde5096; allocates GetMem(9) and appends it to the far list at record +7Fh, composing the merged SYSTEM GetMem 023F. Limits retained verbatim: TRANSFER is an unexercised guard; LIMIT is a host cap on the original's unbounded tail walk; synthetic native frames. Also verifies SYSTEM leaves II (#1001, merge 2d28ab38) as a no-credit runtime enabler (511 cases no-mask; 128 native, SHA adadc6a7): 0AF8:0B57 Copy, 0AF8:0C10 string compare, 0AF8:0C3B char-to-string and 0AF8:1685 Move were added to RUNTIME_COVERED_ENDPOINTS, lifting composable 70 -> 74 and making U38 +11F9/+1276 ready.",
+    "approval_reference": "Verifying-lane acceptance for OVL_0038_1730 PR #1003 merge 4c55824d, head 39044720: 426 original-chain cases (413 return; stops 7+4+2), full 1 MiB RAM and all 14 CPU words equal, no mask; caller 22 starts / 2 outcomes; chain 240 sites / 25 outcomes; roll values 1-36 and 56-100 exercised through the dice core. 120 native DOSBox-X cases (107 return, 13 RunError203), no mask, SHA 2c0b88ad. Body is [1730,175E) = 46 bytes / 22 instructions, SHA 402e83b7; the queue's 63-byte span includes 17 trailing data bytes, not claimed. Composes U9E +0E52 and SYSTEM GetMem 023F. Limits: observed chain not exhaustive; synthetic native frames; dice/list/HeapError treated as explicit stops.",
     "approved_by": "PM",
-    "body_bytes": 180,
-    "body_sha256": "cfde5096f098f1f0c4aa15f805eb6a02c3540f56a2f0df8632b99501a6366b20",
-    "evidence_doc": "docs/re/U9E_LIST_APPEND_0E52_CPU.md",
+    "body_bytes": 46,
+    "body_sha256": "402e83b7c5036596f9af8cb3da21ea77519e58cca195e5385fc88d593e0e2f25",
+    "evidence_doc": "docs/re/U38_ROLL_APPEND_1730_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_009E_0E52",
-    "review_pr": 999,
-    "reviewed_commit": "4e454c9c168174c63dc0b1ff03bfe07655c9ff0f",
+    "original_id": "OVL_0038_1730",
+    "review_pr": 1003,
+    "reviewed_commit": "4c55824d311c125d96c6c81053f9cc4a28bc0aaa",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 179,
+    "overlay": 180,
     "resident": 10
   },
-  "strict_full_c_originals": 189,
-  "unknown_ownership": 570,
+  "strict_full_c_originals": 190,
+  "unknown_ownership": 569,
   "verified_game_by_domain": {
-    "overlay": 228,
+    "overlay": 229,
     "resident": 11
   },
-  "verified_game_identities": 239,
+  "verified_game_identities": 240,
   "whole_game_denominator": "unknown"
 }
