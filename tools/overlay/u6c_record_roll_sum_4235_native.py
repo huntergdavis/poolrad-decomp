@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Native original caller prefix, raw dice and raw SYSTEM seed/frame evidence."""
 
+import argparse
+from pathlib import Path
 import ctypes
 from hashlib import sha256
 import json
@@ -28,9 +30,13 @@ def case_data(case):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--exe", type=Path, help="owner-provided START.EXE")
+    parser.add_argument("--ovr", type=Path, help="owner-provided GAME.OVR")
+    args = parser.parse_args()
     directory = ROOT / "resources/u6c-4235-parity/native"
     directory.mkdir(parents=True,exist_ok=True)
-    bodies,_,meta = source()
+    bodies,_,meta = source(args.exe, args.ovr)
     code6,code9,codes = bytearray(0x5000),bytearray(0x1000),bytearray(0x1400)
     code6[0x4235:0x42ED]=bodies["caller"]
     code6[0x2FA4:0x2FB4]=meta["caller_prefix"]

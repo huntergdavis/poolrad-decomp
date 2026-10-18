@@ -5,6 +5,28 @@ U9E entry-8 / SYSTEM random / SYSTEM seed bodies. It accepts a 1 MiB RAM
 image, fourteen CPU words, and two loaded dependency code segments. There
 are no result callbacks. Overlay loading and natural game reach are unmeasured.
 
+## Current selection and provenance
+
+The refreshed schema-6 successor to the requested schema-4 queue, evaluated
+against main 00038c00, ranks this caller 358 with score 32 and 73 instructions.
+It is the highest available composable hard target: the only higher hard
+caller, U33 +0810, is actively owned by Claude. Full git history correctly
+reports +4235 as an unpublished branch rather than a new implementation.
+The read-only operations ledger had no +4235 body event, and no PR existed
+for that branch. The reuse claim was sent to ds4 before submission.
+
+This PR brings forward commit 7f200207f6f3c488d64d5d8d1aeac7e0a600e795,
+including its complete C implementation, regression and original/native
+oracles. The implementation is unchanged. Integration preserves current
+CMake targets, and both audit entry points now accept explicit --exe and
+--ovr paths instead of requiring the historical media directory. This is
+newly submitted work, not a claim to have newly authored the reused body.
+A fresh targeted deja query yielded no reusable session text; the concrete
+reuse source is the cited commit and the dependency documents below.
+
+Independent verification and credit remain with the reviewer. This branch
+changes no acceptance event, strict manifest, credit count or denominator.
+
 ## Source pins and identity signals
 
 | Body | Extent (exclusive end) | Bytes / instructions | SHA256 |
@@ -73,9 +95,13 @@ termination and self-modifying code are outside the verified evidence.
 ```sh
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
   python3 tools/overlay/u6c_record_roll_sum_4235_audit.py \
+  --exe /path/to/ignored/resources/START.EXE \
+  --ovr /path/to/ignored/resources/GAME.OVR \
   --output resources/u6c-4235-parity/audit.json
 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
-  python3 tools/overlay/u6c_record_roll_sum_4235_native.py
+  python3 tools/overlay/u6c_record_roll_sum_4235_native.py \
+  --exe /path/to/ignored/resources/START.EXE \
+  --ovr /path/to/ignored/resources/GAME.OVR
 ```
 
 The oracle executes all four pinned bodies with verified segment relocations
@@ -96,27 +122,33 @@ record/frame and record/seed aliases. Native captures do not compare all RAM.
 All copied media, generated COM files, output and logs stay ignored under
 resources/u6c-4235-parity/.
 
-Measured result: 1,609 complete RAM/CPU comparisons (1,593 normal returns,
+Fresh measured result: 1,609 complete RAM/CPU comparisons (1,593 normal returns,
 16 internal transfers), all 134 instruction sites and 17 feasible edges;
-39,175 SYSTEM calls and 9,178 threshold DIVs. Eight original-only cases
+39,175 SYSTEM calls and 9,178 threshold DIVs. All normal returns and
+12 changed returns compare exact FLAGS. Four changed SYSTEM returns
+(seed-frame 443F, 4440, 4441, 4442) mask only the architecturally undefined
+arithmetic bits, mask 08D5h. Eight original-only cases
 exhausted the 50,000-instruction budget: SS=DS=1000h, entry SP=442Eh,
 442Fh, 4430h, 4431h, 443Ah, 443Ch, 443Dh, 443Eh. They are excluded from
 those 1,609 parity cases. No C parity or termination assertion is made for
-them. The quick matrix passes 735 cases (728 returns and seven internal
-transfers), with five separately excluded budget cases.
+them. The historical quick matrix measured 735 cases (728 returns and
+seven internal transfers), with five separately excluded budget cases;
+only the complete matrix is rerun for this submission.
 
-Native: 620/620 returns, exact flags, result SHA256
+Fresh native run: 620/620 returns, exact flags, result SHA256
 `a35c1eeea02b43dddbf34e8d9e8a915d523edfa57822b08dacc7067a0450cede`.
-All 246 strict CTests pass with -Wall/-Wextra/-Wpedantic/-Werror, including
-the new synthetic test. The expanded transfer test also passes. Shell syntax,
-research checksums, staged whitespace and public-media scans pass.
+Fresh validation on current main: strict C11 -Wall/-Wextra/-Wpedantic/
+-Werror and ASan/UBSan pass for the synthetic regression, including the
+changed-return case. The recovered library builds and the focused +4235
+CTest passes. These are the checks rerun for this submission; the earlier
+246-test result belongs to the reused commit and is not claimed as current.
 
 - `target_function`: U6C:+4235 and reached U9E:+0DE3, SYSTEM:+11C0/+120F.
 - `source_candidates`: the new caller source and its private raw RNG helpers.
 - `signals`: pinned spans, two aligned callers, three tables, +96h gates,
   RNG constants, real frames/seed writes, original-byte and native oracles.
 - `score`: bounded parity evidence; no whole-game percentage.
-- `verdict`: match within the stated loaded-code and bounded evidence contract.
+- `verdict`: author evidence submitted for independent acceptance.
 - `review_notes`: loader, natural invocation, arbitrary alias termination,
   and strict-accounting eligibility require separate evidence.
 

@@ -39,9 +39,9 @@ class Layout(ctypes.Structure):
     _fields_ = [("dice_cs",ctypes.c_uint16),("system_cs",ctypes.c_uint16)]
 
 
-def source():
-    exe = (ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
-    ovr = (ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def source(exe_path=None, ovr_path=None):
+    exe = (exe_path or ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
+    ovr = (ovr_path or ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     if len(exe) != 65231 or sha256(exe).hexdigest() != EXE_SHA or len(ovr) != 206105 or sha256(ovr).hexdigest() != OVR_SHA:
         raise ValueError("input provenance differs")
     dice_source_audit(exe,ovr) # Reuse the merged byte ABI/seed and file-origin pins.
@@ -210,8 +210,10 @@ def main():
     parser.add_argument("--quick",action="store_true")
     parser.add_argument("--output",type=Path)
     parser.add_argument("--progress",action="store_true")
+    parser.add_argument("--exe", type=Path, help="owner-provided START.EXE")
+    parser.add_argument("--ovr", type=Path, help="owner-provided GAME.OVR")
     args = parser.parse_args()
-    bodies,decoded,meta = source()
+    bodies,decoded,meta = source(args.exe, args.ovr)
     visited,edges,count,transfers,rng_calls,thresholds = set(),set(),0,0,0,0
     bounded_original_cases = []
     transfer_cases = []
