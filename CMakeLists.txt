@@ -372,6 +372,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/system_string_leaves_cpu.c
                                     src/recovered/overlay_u25_alloc_1951_cpu.c
                                     src/recovered/overlay_u1c_on_goto_18f8_cpu.c
+                                    src/recovered/overlay_u86_string_node_028d.c
                                     src/recovered/overlay_u6a_string_node_0e37.c
                                     src/recovered/overlay_u20_party_award_0355_cpu.c
                                     src/recovered/overlay_u3b0_cursor_step_0cc5_cpu.c
@@ -2256,6 +2257,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_system_longmul_0a5b_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_system_longmul_0a5b_cpu_tests
              COMMAND poolrad_system_longmul_0a5b_cpu_tests)
+    add_executable(poolrad_overlay_u86_string_node_028d_tests
+                   tests/recovered/test_overlay_u86_string_node_028d.c)
+    target_link_libraries(poolrad_overlay_u86_string_node_028d_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u86_string_node_028d_tests
+             COMMAND poolrad_overlay_u86_string_node_028d_tests)
+
     add_executable(poolrad_overlay_u1c_on_goto_18f8_cpu_tests
                    tests/recovered/test_overlay_u1c_on_goto_18f8_cpu.c)
     target_link_libraries(poolrad_overlay_u1c_on_goto_18f8_cpu_tests PRIVATE poolrad_recovered)
