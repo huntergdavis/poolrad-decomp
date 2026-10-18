@@ -340,6 +340,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_a40_delay_029c_cpu.c
                                     src/recovered/resident_0709_delay_wrapper_0dbe_cpu.c
                                     src/recovered/resident_0709_skip_spaces_0714_cpu.c
+                                    src/recovered/resident_0709_ega_reset_0000_cpu.c
                                     src/recovered/overlay_u1c_horizontal_menu_10d1.c
                                     src/recovered/overlay_u1c_clearmonsters_125d.c
                                     src/recovered/overlay_u25_entry5_0411.c
@@ -2133,6 +2134,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_0709_skip_spaces_0714_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_0709_skip_spaces_0714_cpu_tests
              COMMAND poolrad_resident_0709_skip_spaces_0714_cpu_tests)
+    add_executable(poolrad_resident_0709_ega_reset_0000_cpu_tests
+                   tests/recovered/test_resident_0709_ega_reset_0000_cpu.c)
+    target_link_libraries(poolrad_resident_0709_ega_reset_0000_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_ega_reset_0000_cpu_tests
+             COMMAND poolrad_resident_0709_ega_reset_0000_cpu_tests)
     add_executable(poolrad_overlay_u1c_horizontal_menu_10d1_tests
                    tests/recovered/test_overlay_u1c_horizontal_menu_10d1.c)
     target_link_libraries(poolrad_overlay_u1c_horizontal_menu_10d1_tests PRIVATE poolrad_recovered)
