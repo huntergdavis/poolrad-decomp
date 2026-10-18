@@ -161,6 +161,34 @@ inline_in_model 45, inline_in_strict 26, unmerged_branch 14, commit_mention 18,
 source_mention 321; 648 fixup-backed and 661 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
+
+## Highest-leverage next recoveries
+
+A callee that is the *only* untranslated dependency of a candidate row gates that
+row outright. Ranked by how many rows a single recovered callee would unblock
+(computed from the same export; this is triage guidance, not credit):
+
+| single untranslated callee | rows it alone unblocks | of those game_evidenced | appears in N rows |
+| --- | ---: | ---: | ---: |
+| `OVL_0086_08C3` | 28 | 26 | 33 |
+| `OVL_009E_0026` | 9 | 4 | 25 |
+| `OVL_009E_0E52` | 9 | 5 | 25 |
+| `OVL_03B0_03BD` | 8 | 8 | 32 |
+| `OVL_009E_02FA` | 6 | 5 | 21 |
+| `OVL_009E_0000` | 5 | 2 | 13 |
+| `OVL_03B0_10D1` | 5 | 5 | 20 |
+| `OVL_0038_1545` | 4 | 0 | 4 |
+| `OVL_0025_054E` | 3 | 0 | 3 |
+| `OVL_006C_3291` | 3 | 2 | 7 |
+| `OVL_0038_15EB` | 3 | 2 | 3 |
+| `OVL_03CE_00F1` | 3 | 3 | 4 |
+
+`OVL_0025_1815` is additionally gated on the unmodeled runtime string compare
+`0AF8:0C10` (it is not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
+`+2556/+070F/+0C4B` and `+0B1B/+2610` remain gated on `RES_00BA_16EC` and
+`OVL_0038_0058` respectively even after the SYSTEM string leaves `0B0B/0B98`
+became covered.
+
 ## Claude's traps, as detected
 
 | trap | queue evidence |
@@ -259,6 +287,11 @@ for a fast overlay-only pass.
   targets (the SYSTEM segment) have no per-target id and are ready only for
   reviewed endpoints, so an uncovered runtime call blocks every other
   modeled body.
+* The frozen queue SHA-256 is point-in-time: it hashes the branch-tip table
+  and raw `git log` scan, so re-running at a later ref changes the digest even
+  when nothing else does. The stable invariants are the counts (candidates,
+  composable, interface-caveat bodies) and the classification/grade tables;
+  compare those, not the digest, when re-deriving at a new ref.
 * Near call sites remain candidate-based: the decoded audit validates
   instruction boundaries under the prologue-seed assumption, not the seeds
   themselves.
