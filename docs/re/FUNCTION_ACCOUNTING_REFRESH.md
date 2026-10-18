@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**187 strict full-C originals** (177 overlay, ten resident) and **237 verified
-game identities** (226 overlay, eleven resident). The queue still contains 898
+**188 strict full-C originals** (178 overlay, ten resident) and **238 verified
+game identities** (227 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -95,6 +95,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_001C_18F8` | PR #989, `a0c54331`; ds4/pi re-verified at head 09316778 (333 cases, caller 57/57, chain 566/75; 58 native). Strict-credit upgrade (already BASE_VERIFIED via ECL_HANDLERS). Body 149 B; queue 184 B includes 35 trailing data bytes | 149 bytes, SHA-256 `c51ab20d9189f38a22d05ad50624117f0ff0dc3251b3921fd319e53454f2c8ba` | [ON GOTO](U1C_ON_GOTO_18F8_CPU.md) |
 | `OVL_0086_028D` | PR #992, `4b18db31`; ds4/pi re-verified at head b3f99286 (303 cases, caller 165/165, chain 313/319; 79 native). Composes GetMem and the string leaves | 449 bytes, SHA-256 `5f82bdbca3270a4d7dcf6a93f41fa14debd04f8f4a21d8860a9b4a64d2cd5038` | [string node](U86_STRING_NODE_028D.md) |
 | `OVL_001C_0111` | PR #994, `a71e63d7`; ds4/pi re-verified at head 87f65daf (283 cases, chain 567/62; 72 native). Strict-only upgrade (already BASE_VERIFIED via ECL_HANDLERS) | 21 bytes, SHA-256 `7917b6be7b4ae2f3d53de4c2a9d80ec430fba207ca34e689e88ac2186c4b0edc` | [GOSUB 0111](U1C_GOSUB_0111_CPU.md) |
+| `OVL_0086_044E` | PR #997, `3aee6596`; ds4/pi re-verified at head 8fdcaa4e (298 cases, caller 71/71, chain 418/55; 72 native). Composes the RES_2199 lookup and +028D append | 206 bytes, SHA-256 `a6b87b8c682cc8664e5ada6c55e970983f20987a9780bb65b5bda61770c04606` | [sidecar list](U86_SIDECAR_LIST_044E.md) |
 | 150 bytes, SHA-256 `908b407691e90b37e132380ee3ad17d42209a64ecbbb2d29ce0fca2333abf552` | [candidate check](U31_CANDIDATE_CHECK_0255_CPU.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest

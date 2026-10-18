@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "87ab417a4eed36c475460251fd9f202d0c2382396bec1fdf8ed38de9aa498689",
-    "full_c_map": "26468d4954d518b415cf4bafff2864d67540848ca919f6839f890067373f7f54",
+    "classification": "a48f697ce425f4ed29d35eb38f44fb9728cac5fc46e9b39fcef196d62087f4e7",
+    "full_c_map": "a679daf5464e10595d3357292fef660244daf65b07d802126c6160ee7bbd8150",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "44ba334e91630770479f7c8cb9678c740ca96f12c6bf090a35706ed88eab3141"
+    "reviewed_identities": "70877e3c84c5c022dbcbb20ecfb8da4a61d909d37dce675dec09750c02088544"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "b61ce5e7350c4fcaecf193e058be5dd8439a22f032d43bc6485937bdcb3a97ce",
+  "queue_sha256": "79d3e022fe9c8cbb052673394b3c465df608857588c4abf951d10a948ead5102",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_001C_0111 PR #994 merge a71e63d7, head 87f65daf: 283 original-chain cases, full 1 MiB RAM and all 14 CPU words equal, no mask; chain 567 starts / 62 outcomes; 72 native DOSBox-X cases (18 RunError203), no mask, SHA 94ae076d. Body 21 bytes / 10 instructions, SHA 7917b6be, no trailing data; replaces a callback boundary with the raw GOSUB/heap chain. Strict-credit upgrade only: +0111 was already BASE_VERIFIED via ECL_HANDLERS, so the identity count is unchanged. Limits retained verbatim: the observed chain is not exhaustive on dependency coverage; synthetic native frames; RunError/HeapError treated as explicit stops.",
+    "approval_reference": "Verifying-lane acceptance for OVL_0086_044E PR #997 merge 3aee6596, head 8fdcaa4e: 298 original-chain cases, full 1 MiB RAM and all 14 CPU words equal, no mask; caller 71/71 starts and 18/18 outcomes; chain 418 sites / 55 outcomes; 72 native DOSBox-X cases (8 RunError203), no mask, SHA 99df5026. Body 206 bytes / 71 instructions, SHA a6b87b8c; composes the raw RES_2199 lookup (721e8662) and U86 +028D append (5f82bdbc). Limits retained verbatim: the observed chain is not exhaustive; the 49-byte counter overlaps its pointer table (covered); synthetic native frames; RunError/HeapError treated as explicit stops.",
     "approved_by": "PM",
-    "body_bytes": 21,
-    "body_sha256": "7917b6be7b4ae2f3d53de4c2a9d80ec430fba207ca34e689e88ac2186c4b0edc",
-    "evidence_doc": "docs/re/U1C_GOSUB_0111_CPU.md",
-    "game_identity": false,
-    "original_id": "OVL_001C_0111",
-    "review_pr": 994,
-    "reviewed_commit": "a71e63d78a3d5038dbdeacf145242e7b60109ae8",
+    "body_bytes": 206,
+    "body_sha256": "a6b87b8c682cc8664e5ada6c55e970983f20987a9780bb65b5bda61770c04606",
+    "evidence_doc": "docs/re/U86_SIDECAR_LIST_044E.md",
+    "game_identity": true,
+    "original_id": "OVL_0086_044E",
+    "review_pr": 997,
+    "reviewed_commit": "3aee6596bdea363bd8454e9c1729591a98540e03",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 177,
+    "overlay": 178,
     "resident": 10
   },
-  "strict_full_c_originals": 187,
-  "unknown_ownership": 572,
+  "strict_full_c_originals": 188,
+  "unknown_ownership": 571,
   "verified_game_by_domain": {
-    "overlay": 226,
+    "overlay": 227,
     "resident": 11
   },
-  "verified_game_identities": 237,
+  "verified_game_identities": 238,
   "whole_game_denominator": "unknown"
 }
