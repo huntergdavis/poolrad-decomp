@@ -1,6 +1,10 @@
 # RES_0709:00B7 bounded planar rectangle fill on slot-A PRINTCLEAR
 
-**Classification:** bounded C model of the complete 186-byte, 51-instruction
+A newer [raw CPU/EGA composition](RES_0709_RECT_FILL_00B7_CPU.md) preserves
+CPU state, live memory, port events and planar writes. Its original-byte
+audit corrects the instruction count to 89; the bounded model below remains.
+
+**Classification:** bounded C model of the complete 186-byte, 89-instruction
 `RES_0709:+00B7..+0171` routine. It covers inclusive rectangles inside the
 40×25 display and EGA page spans supplied by the caller. The enclosing
 `U1C_PRINT_0A09` → `RES_0709:+0768` → `+0DD3` route remains outside this
