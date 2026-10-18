@@ -32,11 +32,11 @@ the `INT 3Fh` stub `0428:002A` is in GAME.OVR and is not counted.
 
 | Share | Bytes | % |
 | --- | ---: | ---: |
-| Direct port, BIOS or DOS code | 1,936 | 30.7 |
+| Direct port, BIOS or DOS code | 1,994 | 31.6 |
 | Transitively port-bound (calls such code) | 3,548 | 56.2 |
-| Pure (no I/O anywhere below) | 828 | 13.1 |
+| Pure (no I/O anywhere below) | 770 | 12.2 |
 
-About **87%** of the closure is port-bound. Direct I/O by class (a routine
+About **88%** of the closure is port-bound. Direct I/O by class (a routine
 can be in two classes):
 
 | Class | Bytes | Routines |
@@ -46,6 +46,7 @@ can be in two classes):
 | BIOS `INT 10h`/`16h` | 138 | CRT `0A40:0143`, `02FD`, `030F`, `04F8`, `04FF`, `060B` |
 | PIT, speaker and sound ports (`40h`, `43h`, `61h`, `C0h`) | 110 | `08AE:137C`, `08AE:13B1` |
 | Ctrl-Break `INT 23h` | 61 | `0A40:0143` |
+| DOS-unit `Intr` dispatch (`RETF` into an IVT vector) | 58 | `0A32:000B` |
 | `INT 3Fh` overlay trap | 2 | `0428:002A` |
 
 16EC has seven direct callees:
@@ -60,12 +61,33 @@ can be in two classes):
 | `0709:0768` | port-bound: EGA, plus keyboard, PIT, speaker and DOS through `0709:0BF5` and `0899:0059` |
 | `03F1:0000` | overlay trap through `0428:002A` |
 
-The pure 13% is mostly modelled already: the SYSTEM string leaves, LongMul,
-the `08AE` table writers and the delay path. What remains pure is about six
-small SYSTEM leaves (`05C1`, `0D12`, `0DC0`, `16A8`, `1712`, `182A`) and
-three tiny `0709`/`0899` leaves. SYSTEM `05FD` ends in an indirect `LCALL
-ES:[BX+DI]`, the text-file driver dispatch, so its "pure" label is
-provisional.
+**Correction (2026-10-18).** The first count put `0A32:000B` among the pure
+routines, because it executes no `INT`, `IN` or `OUT`. It is the DOS unit's
+`Intr(IntNo, Regs)`, which does three things:
+
+1. it pushes FLAGS and the return address `0A32:0045`;
+2. it pushes the vector read from `0000:IntNo*4`;
+3. it loads the Regs record, then runs `CLI; RETF`, which "returns" into
+   the BIOS or DOS handler.
+
+So it is interrupt-bound. The direct share above includes it, and the
+testable share is unchanged.
+
+**The pure 12% (770 B).** Most of it is now modelled:
+
+- **Resident and CRT:** `0709:0DBE` with CRT `0A40:029C`/`02BD` (#1035),
+  `0709:00A0` (#1039), `0709:0714` (#1040), and `0899:0104` with SYSTEM
+  `0D12` (#1041).
+- **Covered SYSTEM runtime:** `0A5B`, `0B0B`, `0B25`, `0C10`, `0DC0`,
+  `16A8` and `182A`.
+- **Existing models:** the `08AE` table helpers `1742`, `17AE` and `181A`.
+
+Three SYSTEM routines remain:
+
+- `05C1` and `1712`, which are reached only through the `INT 21h`
+  routines `00E9` and `16BC`;
+- `05FD`, which ends in an indirect `LCALL ES:[BX+DI]`, the text-file driver
+  dispatch, so its "pure" label is provisional.
 
 ## Licence boundary
 
@@ -139,6 +161,11 @@ out-of-repository build described above.
        on its own stack. `INT 23h` and `24h` point at harness stubs.
      - **Passthrough.** The hook is transparent when no case is running, so
        the harness's own file writes are untouched.
+   - **`Intr`.** The DOS unit's `Intr` (`0A32:000B`) reaches a handler
+     without an `INT` opcode: its `RETF` at `0A32:0044` lands on the IVT
+     vector. The tracer records an INT-enter event when a step leaves
+     `0A32:0044` for the pushed vector. It records the INT-leave event when
+     the handler's `IRET` reaches `0A32:0045`.
 4. **EGA capture.**
    - The DOSBox-X default VGA machine keeps the EGA modes, and its
      registers can be read back.
