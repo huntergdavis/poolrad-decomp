@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "e3bb6114fac5bf0b0283bf46aca4d3fc0a118812d27e54f35a25150b775e9633",
-    "full_c_map": "81fdfe2f7d8ad39c3d06511e71715476cf47612964461d621f79ae008c7b4bf8",
+    "classification": "aa1c9913f759e83ed7dfcc1b0d268be98b1b799366169bedb2e76c364b7eae75",
+    "full_c_map": "be269ba8a0cb654dbc1f3a5ddca49fcba0d2cb8e51f81b8178859a1ebca2032b",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "4739c0c37cecaa7709de017c92d46d33aaebc46648e61a70df2e5501623e3f15"
+    "reviewed_identities": "bb92144dc1645dc41802b90309ba3cfbaa47d8db3e4c5f5bb8f9c51766759efb"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "ea95a0f01974fa579c7fb49ce5ef4e979f3d9584028e409d10b420c9a6f9b12c",
+  "queue_sha256": "20324dc7c7a388de78ea2f450b0076d0ae31394d411d8a555447149a7ba28f52",
   "reviewed_change": {
-    "approval_reference": "Owner directive (VP i17213): the verifying lane records credit; Claude lane independent verification of PR #886 at 8a7f2eb3 (VP i17316): 1,609 original-byte full-RAM/all-CPU cases, 134/134 sites, 620 native cases",
+    "approval_reference": "Owner directive (VP i17213): the verifying lane records credit; Claude lane independent verification of PR #888 at dab22ea4 (requested i17326, finished per owner note): 2,083 composed full-RAM/all-CPU cases with no masks, 173/173 chain instructions, 16/16 caller outcomes, 157 legacy callback cases",
     "approved_by": "PM",
-    "body_bytes": 184,
-    "body_sha256": "fdb467838a6d2067178154c2b0bf3d60f0acff37060f337977e3d66d24391d60",
-    "evidence_doc": "docs/re/U6C_RECORD_ROLL_SUM_4235.md",
+    "body_bytes": 143,
+    "body_sha256": "bcfe56989d4733d260e0f85a7146d4cb56de3041cbf20b7de27851f0f513df2b",
+    "evidence_doc": "docs/re/U25_STEP_PROBE_0482_COMPOSED.md",
     "game_identity": true,
-    "original_id": "OVL_006C_4235",
-    "review_pr": 886,
-    "reviewed_commit": "5d7ff51b1f263d07c73d1bdcd899257ee4365ee2",
+    "original_id": "OVL_0025_0482",
+    "review_pr": 888,
+    "reviewed_commit": "674a1f6590ad01919491a6108c2f1fcbb52d431d",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 104,
+    "overlay": 105,
     "resident": 9
   },
-  "strict_full_c_originals": 113,
-  "unknown_ownership": 640,
+  "strict_full_c_originals": 114,
+  "unknown_ownership": 639,
   "verified_game_by_domain": {
-    "overlay": 159,
+    "overlay": 160,
     "resident": 10
   },
-  "verified_game_identities": 169,
+  "verified_game_identities": 170,
   "whole_game_denominator": "unknown"
 }
