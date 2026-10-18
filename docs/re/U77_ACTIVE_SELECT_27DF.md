@@ -1,5 +1,10 @@
 # GAME.OVR unit 0x77:+27DF complete C translation
 
+The explicit native wrapped-stack return policy is documented in
+[U77 +27DF native return profile](U77_27DF_RETF_NATIVE_PROFILE.md).
+The historical API and contiguous-return evidence below remain valid for
+that declared profile; they do not establish native FFFE/FFFF return behavior.
+
 ## Original source and callers
 
 The owner-supplied `resources/DOS/POOLRAD/GAME.OVR` is 206105 bytes, SHA-256

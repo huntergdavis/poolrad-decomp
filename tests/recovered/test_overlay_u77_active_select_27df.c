@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 static size_t address(uint16_t segment, uint16_t offset)
 {
@@ -87,6 +88,35 @@ int main(void)
     assert(pr_u77_active_select_27df(ram, PR_U77_27DF_RAM_SIZE, &cpu) ==
            PR_U77_27DF_OK);
     assert(cpu.cs == 0xF000u && cpu.ip == 0x0712u && cpu.sp == 5u);
+    /* Native profile consumes the wrapped CS word at both divergence
+     * offsets; FFFD remains the same in both profiles. */
+    for (unsigned n = 0; n < 3; ++n) {
+        uint16_t sp = (uint16_t)(0xfffdu + n);
+        memset(ram, 0, PR_U77_27DF_RAM_SIZE);
+        cpu = (pr_u77_27df_cpu){
+            0, 0, 0, 0, 0, 0, 0x7777u, sp, 0xf000u, 0x27dfu,
+            0x1000u, 0, 0x2000u, 0x0202u
+        };
+        if (sp >= 0xfffeu)
+            put16(ram, 0x3000u, (uint16_t)(sp + 2u), 0xa55au);
+        put16(ram, cpu.ss, sp, 0x0712u);
+        put16(ram, cpu.ss, (uint16_t)(sp + 2u), 0xbeefu);
+        assert(pr_u77_active_select_27df_run(ram, PR_U77_27DF_RAM_SIZE,
+            &cpu, PR_U77_27DF_RETF_WRAPPED_SS) == PR_U77_27DF_OK);
+        assert(cpu.cs == 0xbeefu && cpu.ip == 0x0712u);
+        assert(cpu.sp == (uint16_t)(sp + 6u) && cpu.bp == 0x7777u);
+    }
+    {
+        pr_u77_27df_cpu saved = cpu;
+        uint8_t *before = malloc(PR_U77_27DF_RAM_SIZE);
+        assert(before != NULL);
+        memcpy(before, ram, PR_U77_27DF_RAM_SIZE);
+        assert(pr_u77_active_select_27df_run(ram, PR_U77_27DF_RAM_SIZE,
+            &cpu, (pr_u77_27df_retf_policy)0) == PR_U77_27DF_ARGUMENT);
+        assert(memcmp(&saved, &cpu, sizeof cpu) == 0);
+        assert(memcmp(before, ram, PR_U77_27DF_RAM_SIZE) == 0);
+        free(before);
+    }
     free(ram);
     return 0;
 }

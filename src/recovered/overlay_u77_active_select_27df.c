@@ -115,10 +115,13 @@ static void cmp8(pr_u77_27df_cpu *cpu, uint8_t left, uint8_t right)
         cpu->flags |= 0x0800u;
 }
 
-pr_u77_27df_status pr_u77_active_select_27df(
-    uint8_t *ram, size_t ram_size, pr_u77_27df_cpu *cpu)
+pr_u77_27df_status pr_u77_active_select_27df_run(
+    uint8_t *ram, size_t ram_size, pr_u77_27df_cpu *cpu,
+    pr_u77_27df_retf_policy retf_policy)
 {
-    if (ram == NULL || cpu == NULL || ram_size < PR_U77_27DF_RAM_SIZE)
+    if (ram == NULL || cpu == NULL || ram_size < PR_U77_27DF_RAM_SIZE ||
+        (retf_policy != PR_U77_27DF_RETF_WRAPPED_SS &&
+         retf_policy != PR_U77_27DF_RETF_CONTIGUOUS_PHYSICAL))
         return PR_U77_27DF_ARGUMENT;
 
     cpu->sp = (uint16_t)(cpu->sp - 2u);
@@ -219,8 +222,17 @@ store_active:
     {
         size_t address = physical(cpu->ss, cpu->sp);
         cpu->ip = read16_at(ram, address);
-        cpu->cs = read16_at(ram, (address + 2u) & RAM_MASK);
+        cpu->cs = retf_policy == PR_U77_27DF_RETF_WRAPPED_SS
+            ? read16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u))
+            : read16_at(ram, (address + 2u) & RAM_MASK);
     }
     cpu->sp = (uint16_t)(cpu->sp + 6u);
     return PR_U77_27DF_OK;
+}
+
+pr_u77_27df_status pr_u77_active_select_27df(
+    uint8_t *ram, size_t ram_size, pr_u77_27df_cpu *cpu)
+{
+    return pr_u77_active_select_27df_run(ram, ram_size, cpu,
+                                       PR_U77_27DF_RETF_CONTIGUOUS_PHYSICAL);
 }
