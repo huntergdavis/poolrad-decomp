@@ -16,6 +16,11 @@ Owner GAME.OVR SHA-256:
 872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614.
 
 U38[2EDA,2F4B), file[72501,72614), is113 bytes/47 instructions.
+The schema-8 queue reports125 bytes/51 decoded instructions using the next
+function's upper bound. This audit ends after RETF10 at+2F48 and excludes the
+12 following bytes[2F4B,2F57). Its readiness flag is already false: +0026 is
+partial and +0000 untranslated. The queue extent is not a function-end proof.
+
 Body SHA-256:
 e75c9f7ebfcd4235a1a5a11b6d77ae544c0bd64a3c3f8ade8c5fac454757ecd3.
 It is public entry111, stub0041:024B, installed at types
