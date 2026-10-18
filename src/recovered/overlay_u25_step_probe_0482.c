@@ -1,5 +1,6 @@
 /* GAME.OVR unit 0x25:+0482..+0510, complete 143-byte public entry 6. */
 #include "poolrad/recovered/overlay_u25_step_probe_0482.h"
+#include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
 
 #define RAM_MASK (PR_U25_0482_RAM_SIZE - 1u)
 #define ARITH_FLAGS 0x08D5u /* OF SF ZF AF PF CF */
@@ -100,12 +101,56 @@ static void step_arg(machine *m, uint16_t disp, int delta)
     set_frame8(m, disp, (uint8_t)(frame8(m, disp) + delta));
 }
 
-pr_u25_0482_status pr_u25_step_probe_0482(
+#define COPY_CPU(dst, src) do { \
+    (dst)->ax = (src)->ax; \
+    (dst)->bx = (src)->bx; \
+    (dst)->cx = (src)->cx; \
+    (dst)->dx = (src)->dx; \
+    (dst)->si = (src)->si; \
+    (dst)->di = (src)->di; \
+    (dst)->bp = (src)->bp; \
+    (dst)->sp = (src)->sp; \
+    (dst)->cs = (src)->cs; \
+    (dst)->ip = (src)->ip; \
+    (dst)->ds = (src)->ds; \
+    (dst)->es = (src)->es; \
+    (dst)->ss = (src)->ss; \
+    (dst)->flags = (src)->flags; \
+} while (0)
+
+static pr_u25_0482_status composed_call(machine *m, size_t size)
+{
+    pr_u25_0482_cpu *cpu = m->cpu;
+    pr_u3bd_lookup_cpu inner;
+    pr_u3bd_lookup_status status;
+    uint16_t caller_cs = cpu->cs, stub_segment, target_cs;
+    if (read8(m, caller_cs, 0x04C9u) != 0x9Au ||
+        read16(m, caller_cs, 0x04CAu) != 0x002Au)
+        return PR_U25_0482_CODE;
+    stub_segment = read16(m, caller_cs, 0x04CCu);
+    if (read8(m, stub_segment, 0x002Au) != 0xEAu ||
+        read16(m, stub_segment, 0x002Bu) != 0x047Bu)
+        return PR_U25_0482_CODE;
+    target_cs = read16(m, stub_segment, 0x002Du);
+    push16(m, caller_cs);
+    push16(m, 0x04CEu);
+    cpu->cs = target_cs;
+    cpu->ip = 0x047Bu;
+    COPY_CPU(&inner, cpu);
+    status = pr_u3bd_nibble_047b_fullstate(m->ram, size, &inner);
+    COPY_CPU(cpu, &inner);
+    if (status == PR_U3BD_LOOKUP_ARGUMENT) return PR_U25_0482_CALLEE;
+    if (status == PR_U3BD_LOOKUP_TRANSFER || cpu->cs != caller_cs ||
+        cpu->ip != 0x04CEu) return PR_U25_0482_TRANSFER;
+    return PR_U25_0482_OK;
+}
+
+static pr_u25_0482_status run(
     uint8_t *ram, size_t ram_size, pr_u25_0482_cpu *cpu,
-    pr_u25_0482_external external, void *context)
+    pr_u25_0482_external external, void *context, int composed)
 {
     machine m;
-    if (ram == NULL || cpu == NULL || external == NULL ||
+    if (ram == NULL || cpu == NULL || (!composed && external == NULL) ||
         ram_size < PR_U25_0482_RAM_SIZE)
         return PR_U25_0482_ARGUMENT;
     m.ram = ram; m.cpu = cpu;
@@ -138,10 +183,15 @@ pr_u25_0482_status pr_u25_step_probe_0482(
             set_al(cpu, frame8(&m, 6u));
             push16(&m, cpu->ax);
             cpu->ip = 0x04C9u;
-            if (!external(context, ram, ram_size, cpu, PR_U25_0482_U3BD_2))
-                return PR_U25_0482_CALL_ABORT;
-            cpu->sp = (uint16_t)(cpu->sp + 6u);
-            cpu->ip = 0x04CEu;
+            if (composed) {
+                pr_u25_0482_status status = composed_call(&m, ram_size);
+                if (status != PR_U25_0482_OK) return status;
+            } else {
+                if (!external(context, ram, ram_size, cpu, PR_U25_0482_U3BD_2))
+                    return PR_U25_0482_CALL_ABORT;
+                cpu->sp = (uint16_t)(cpu->sp + 6u);
+                cpu->ip = 0x04CEu;
+            }
             /* OR AL,AL: CF OF clear, SZP from AL; AF undefined, taken as
              * the reference emulator's cleared AF. */
             cpu->flags &= (uint16_t)~ARITH_FLAGS;
@@ -171,8 +221,39 @@ pr_u25_0482_status pr_u25_step_probe_0482(
     set_al(cpu, frame8(&m, 0xFFFFu));                      /* +0508 */
     cpu->sp = cpu->bp;
     cpu->bp = pop16(&m);
-    cpu->ip = pop16(&m);
-    cpu->cs = pop16(&m);
-    cpu->sp = (uint16_t)(cpu->sp + 6u);
+    if (composed) {
+        size_t at = physical(cpu->ss, cpu->sp);
+        cpu->ip = read16(&m, cpu->ss, cpu->sp);
+        cpu->cs = (uint16_t)(ram[(at + 2u) & RAM_MASK] |
+                            ((uint16_t)ram[(at + 3u) & RAM_MASK] << 8));
+        cpu->sp = (uint16_t)(cpu->sp + 10u);
+    } else {
+        cpu->ip = pop16(&m);
+        cpu->cs = pop16(&m);
+        cpu->sp = (uint16_t)(cpu->sp + 6u);
+    }
     return PR_U25_0482_OK;
+}
+
+pr_u25_0482_status pr_u25_step_probe_0482(
+    uint8_t *ram, size_t ram_size, pr_u25_0482_cpu *cpu,
+    pr_u25_0482_external external, void *context)
+{
+    return run(ram, ram_size, cpu, external, context, 0);
+}
+
+pr_u25_0482_status pr_u25_step_probe_0482_fullstate(
+    uint8_t *ram, size_t ram_size, pr_u25_0482_cpu *cpu)
+{
+    unsigned i;
+    if (ram == NULL || cpu == NULL || ram_size != PR_U25_0482_RAM_SIZE ||
+        cpu->ip != 0x0482u || cpu->sp < 0x0080u || cpu->sp > 0xFFFAu)
+        return PR_U25_0482_ARGUMENT;
+    for (i = 1u; i <= 128u; ++i) {
+        size_t at = physical(cpu->ss, (uint16_t)(cpu->sp - i));
+        size_t relative = (at - physical(cpu->cs, 0u)) & RAM_MASK;
+        if (relative >= 0x0482u && relative < 0x0511u)
+            return PR_U25_0482_CODE_ALIAS;
+    }
+    return run(ram, ram_size, cpu, NULL, NULL, 1);
 }

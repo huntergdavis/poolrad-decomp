@@ -1,5 +1,9 @@
 # Unit 0x25 +0x0482: provisional full-state public entry 6
 
+The complete no-hook composition is now documented in
+[U25_STEP_PROBE_0482_COMPOSED.md](U25_STEP_PROBE_0482_COMPOSED.md).
+This note records the preserved callback API and its original evidence.
+
 `pr_u25_step_probe_0482` translates the complete U25 public entry 6 (far
 stub `2B:003E`) over caller-owned A20-off 1 MiB RAM and a fourteen-word CPU
 frame. Its single callee, unit 3BD entry 2 (`3D5:002A`), is an explicit
