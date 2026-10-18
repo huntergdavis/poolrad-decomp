@@ -365,3 +365,10 @@ pr_u25_0000_status pr_u25_load_operands_0000(
         return PR_U25_0000_ARGUMENT;
     return body_0000(ram, cpu, system_cs, &max_operands, max_string_iterations);
 }
+
+pr_u25_0000_status pr_u25_word_06af(uint8_t *ram, size_t ram_size, pr_u25_0000_cpu *cpu)
+{
+    if (ram == NULL || cpu == NULL || ram_size != PR_U25_0000_RAM_SIZE || cpu->ip != 0x06AFu)
+        return PR_U25_0000_ARGUMENT;
+    return body_06af(ram, cpu, 0u, NULL, 0u);
+}

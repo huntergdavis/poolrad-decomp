@@ -40,4 +40,17 @@ pr_u25_0000_status pr_u25_load_operands_0000(
     uint8_t *ram, size_t ram_size, pr_u25_0000_cpu *cpu,
     uint16_t system_cs, size_t max_operands, size_t max_string_iterations);
 
+/* U25 public entry 9, [06AF,06D3) (overlay stub 002B:004D): the same
+ * raw-CPU body the loader runs for tag 81h, exposed for far callers such as
+ * U1C +00F4. Enter IP=06AF after a far CALL with SS:SP holding return
+ * IP/CS, then two argument words. PUSH BP; MOV BP,SP; SUB SP,2;
+ * AX := (low byte of the word at entry SP+4) << 8 plus the low byte of the
+ * word at entry SP+6; [BP-2] := AX and reload; MOV SP,BP; POP BP; RETF 4.
+ * The final flags are ADD AX,DX's (logical/shift AF zero, as above). RETF
+ * pops IP and CS as separate words, each wrapping SP, like the loader's
+ * nested calls. RAM must be exactly 1 MiB and IP must be 06AF; otherwise
+ * ARGUMENT, with nothing changed. This adds no strict credit: +06AF's
+ * identity is already strict. */
+pr_u25_0000_status pr_u25_word_06af(uint8_t *ram, size_t ram_size, pr_u25_0000_cpu *cpu);
+
 #endif
