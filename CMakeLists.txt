@@ -348,6 +348,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/system_runtime_leaves_cpu.c
                                     src/recovered/overlay_u31_table_value_128d_cpu.c
                                     src/recovered/overlay_u3b0_space_scan_cpu.c
+                                    src/recovered/overlay_u3c2_record_sort_002e_cpu.c
                                     src/recovered/system_random_bit_fullstate_11d6.c
                                     src/recovered/overlay_u7d_zero.c
                                     src/recovered/overlay_u9e_entry2.c
@@ -2105,6 +2106,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u3b0_space_scan_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u3b0_space_scan_cpu_tests
              COMMAND poolrad_overlay_u3b0_space_scan_cpu_tests)
+    add_executable(poolrad_overlay_u3c2_record_sort_002e_cpu_tests
+                   tests/recovered/test_overlay_u3c2_record_sort_002e_cpu.c)
+    target_link_libraries(poolrad_overlay_u3c2_record_sort_002e_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u3c2_record_sort_002e_cpu_tests
+             COMMAND poolrad_overlay_u3c2_record_sort_002e_cpu_tests)
     add_executable(poolrad_system_random_bit_fullstate_11d6_tests
                    tests/recovered/test_system_random_bit_fullstate_11d6.c)
     target_link_libraries(poolrad_system_random_bit_fullstate_11d6_tests PRIVATE poolrad_recovered)
