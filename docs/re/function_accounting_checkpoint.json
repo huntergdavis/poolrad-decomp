@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "a48f697ce425f4ed29d35eb38f44fb9728cac5fc46e9b39fcef196d62087f4e7",
-    "full_c_map": "a679daf5464e10595d3357292fef660244daf65b07d802126c6160ee7bbd8150",
+    "classification": "dd808cf60d846837b66899e76bf39ad5276431768ca6e93df48de5deb3841aa2",
+    "full_c_map": "b1f53e8462f79c1688683b416ba3d6813b74ab72d3352b5239dbeca1319d3aed",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "70877e3c84c5c022dbcbb20ecfb8da4a61d909d37dce675dec09750c02088544"
+    "reviewed_identities": "fc8e52796db317a1ac31ab74f2e997c575b2d2dc078ea5521deaeff370d1915c"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "79d3e022fe9c8cbb052673394b3c465df608857588c4abf951d10a948ead5102",
+  "queue_sha256": "8e343a695a7599fb19bfb3ca64542b5561b2b43dcb3f4a07bb65a0598a8f6d09",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_0086_044E PR #997 merge 3aee6596, head 8fdcaa4e: 298 original-chain cases, full 1 MiB RAM and all 14 CPU words equal, no mask; caller 71/71 starts and 18/18 outcomes; chain 418 sites / 55 outcomes; 72 native DOSBox-X cases (8 RunError203), no mask, SHA 99df5026. Body 206 bytes / 71 instructions, SHA a6b87b8c; composes the raw RES_2199 lookup (721e8662) and U86 +028D append (5f82bdbc). Limits retained verbatim: the observed chain is not exhaustive; the 49-byte counter overlaps its pointer table (covered); synthetic native frames; RunError/HeapError treated as explicit stops.",
+    "approval_reference": "Verifying-lane acceptance for OVL_009E_0E52 PR #999 merge 4e454c9c, head 0ebd2076: 185 original-byte cases (171 return, 3 CODE, 8 CALLEE, 3 LIMIT, 0 TRANSFER), full 1 MiB RAM and all 14 CPU words equal, no mask; 57/57 instruction starts and 4/4 conditional outcomes; 64 native DOSBox-X cases (46 return, 18 GetMem RunError), no mask, SHA 710447bd. Body 180 bytes / 57 instructions, SHA cfde5096; allocates GetMem(9) and appends it to the far list at record +7Fh, composing the merged SYSTEM GetMem 023F. Limits retained verbatim: TRANSFER is an unexercised guard; LIMIT is a host cap on the original's unbounded tail walk; synthetic native frames.",
     "approved_by": "PM",
-    "body_bytes": 206,
-    "body_sha256": "a6b87b8c682cc8664e5ada6c55e970983f20987a9780bb65b5bda61770c04606",
-    "evidence_doc": "docs/re/U86_SIDECAR_LIST_044E.md",
+    "body_bytes": 180,
+    "body_sha256": "cfde5096f098f1f0c4aa15f805eb6a02c3540f56a2f0df8632b99501a6366b20",
+    "evidence_doc": "docs/re/U9E_LIST_APPEND_0E52_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_0086_044E",
-    "review_pr": 997,
-    "reviewed_commit": "3aee6596bdea363bd8454e9c1729591a98540e03",
+    "original_id": "OVL_009E_0E52",
+    "review_pr": 999,
+    "reviewed_commit": "4e454c9c168174c63dc0b1ff03bfe07655c9ff0f",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 178,
+    "overlay": 179,
     "resident": 10
   },
-  "strict_full_c_originals": 188,
-  "unknown_ownership": 571,
+  "strict_full_c_originals": 189,
+  "unknown_ownership": 570,
   "verified_game_by_domain": {
-    "overlay": 227,
+    "overlay": 228,
     "resident": 11
   },
-  "verified_game_identities": 238,
+  "verified_game_identities": 239,
   "whole_game_denominator": "unknown"
 }
