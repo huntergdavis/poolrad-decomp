@@ -60,8 +60,6 @@ PRIOR_ORDER = ("main_model", "inline_in_strict", "unmerged_branch",
 # claimed composable until a CPU-state interface exists. Keep this list small
 # and evidence-backed; each entry names the exposing header.
 RAW_CPU_INTERFACE_CAVEATS = {
-    "OVL_0068_0109": "overlay_u68_map_update.h exposes scalar arguments and a "
-                     "segment view, not CPU/stack effects",
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
     "OVL_0025_1815": "ecl_helpers.h exposes the string compare as a semantic "
