@@ -112,16 +112,16 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`12ca9717242aad417a666b0ffec92bf133dce1a1ca2a4c87309d4ab1c7b26ecf`,
-on the 195/245 main after #885–#1012 plus the phantom-edge filter, the
+`7fb1f9971c621b9840c7187948c2b0fb5f865bc3270bdfd8fe333b06c6dc0510`,
+on the 196/246 main after #885–#1013 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1350 refs / 1047 tips / 522 unmerged tips (`tips_sha256`
-`1c78c072…`) and 2325 commits (`commits_sha256` `c7714695…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1355 refs / 1049 tips / 521 unmerged tips (`tips_sha256`
+`7f71b429…`) and 2332 commits (`commits_sha256` `0af34dd3…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
-## First ranked list (top 25 of 489)
+## First ranked list (top 25 of 488)
 
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
@@ -147,18 +147,18 @@ other lanes keep pushing refs.
 | 20 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 0/0/0/4 | 4/11 | no | 3 | 3 | source_mention | 64 |
 | 21 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
 | 22 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 0/0/0/2 | 0/2 | no | 7 | 2 | source_mention | 63 |
-| 23 | `OVL_0038_2814` | `0x38:0x2814` | 82 | 37 | A | game_evidenced | 1/0/0/0 | 2/0 | yes | 0 | 0 | source_mention | 62 |
-| 24 | `OVL_0086_051C` | `0x86:0x051c` | 128 | 44 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
-| 25 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/0/0/4 | 6/5 | no | 4 | 0 | source_mention | 61 |
+| 23 | `OVL_0086_051C` | `0x86:0x051c` | 128 | 44 | B | game_evidenced | 2/0/0/0 | 2/0 | yes | 0 | 2 | source_mention | 62 |
+| 24 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/0/0/4 | 6/5 | no | 4 | 0 | source_mention | 61 |
+| 25 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 1/0/0/0 | 2/5 | no | 4 | 0 | source_mention | 61 |
 
-Queue summary (schema 8, on the 195/245 main after #885–#1012 and the
+Queue summary (schema 8, on the 196/246 main after #885–#1013 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
-system-runtime coverage): 489 candidates, 78 would be composable without the
-caveats and 74 are composable — 35 bodies carry an interface caveat;
-classification game_evidenced 321, game_verified 49, helper_candidate 50,
-unresolved 69; grades A 300, B 187, D 2; prior status main_model 72,
+system-runtime coverage): 488 candidates, 77 would be composable without the
+caveats and 73 are composable — 35 bodies carry an interface caveat;
+classification game_evidenced 320, game_verified 49, helper_candidate 50,
+unresolved 69; grades A 299, B 187, D 2; prior status main_model 72,
 inline_in_model 35, inline_in_strict 34, unmerged_branch 14, commit_mention 17,
-source_mention 317; 610 fixup-backed and 639 aligned-PUSH-CS caller sites across
+source_mention 316; 610 fixup-backed and 639 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
@@ -238,7 +238,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 195/245 main (184 overlay credits) the schema-8 candidate set is 489 and 74 bodies are composable.
+reasons. On the 196/246 main (185 overlay credits) the schema-8 candidate set is 488 and 73 bodies are composable.
 
 ## Reproduce
 
