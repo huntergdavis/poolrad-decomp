@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Original-byte full-state parity for raw-CPU U38 +0679, composing the SYSTEM string compare 0AF8:0C10.
+"""Original-byte full-state parity for raw-CPU U38 +0679 or its twin +0947 (--routine), composing the SYSTEM string
+compare 0AF8:0C10.
 
 The differential loads unit 0x38 at its original offsets and the original START.EXE SYSTEM bytes 0AF8:0C10..0C3A into
 one 1 MiB image, and compares the entire RAM and all 14 CPU words between the original under Unicorn and the C model,
-with no mask. The original decides each stop: the fetch after its RETF 0Ah (return), the +06CD LCALL fetched with other
-bytes (CODE), or a fetch of +06B3 after more taken JNE loop-backs than the host cap (LIMIT). Any fetch outside the two
+with no mask. The original decides each stop: the fetch after its RETF 0Ah (return), the LCALL fetched with other bytes
+(CODE), or a fetch of the loop-back INC after more taken JNE loop-backs than the host cap (LIMIT). Any fetch outside the two
 spans is an error. The argument, link and string records sit in separate 64 KiB segments, apart from the code, the data
 segment and the stack. Media stays private.
 """
@@ -26,8 +27,7 @@ from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS
 CALLER_CS, DS, SS = 0x3000, 0x1000, 0x2000
 A_SEG, B_SEG, P_SEG = 0x4000, 0x5000, 0x6000
 SYSTEM_CS, STRCMP, STRCMP_END = 0x0AF8, 0x0C10, 0x0C3B
-ENTRY, END, BODY_RETF, SITE, LOOP_JNE, LOOP_HEAD = 0x0679, 0x06E4, 0x06E1, 0x06CD, 0x06DC, 0x06B3
-TABLE, LAST = 0x0332, 4
+ROUTINES = {"0679": (0x0679, 0x0332, 4), "0947": (0x0947, 0x0372, 8)}
 RET_CS, RET_IP = 0x9001, 0x7000
 ARGS = (0x1111, 0x2222, 0x3333)
 OK, CODE, CALLEE, TRANSFER, LIMIT = 0, 2, 3, 4, 5
@@ -40,6 +40,17 @@ def check(condition, message):
         raise ValueError(message)
 
 
+def select(name):
+    """Point the routine constants at one twin; +0947 is +0679's code shifted by 2CEh."""
+    global ROUTINE, ENTRY, END, BODY_RETF, SITE, LOOP_JNE, LOOP_HEAD, TABLE, LAST
+    ROUTINE = name
+    ENTRY, TABLE, LAST = ROUTINES[name]
+    END, BODY_RETF, SITE, LOOP_JNE, LOOP_HEAD = ENTRY + 0x6B, ENTRY + 0x68, ENTRY + 0x54, ENTRY + 0x63, ENTRY + 0x3A
+
+
+select("0679")
+
+
 def source():
     exe = (ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
     ovr = (ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
@@ -50,7 +61,7 @@ def source():
     calls = [(i.address, i.op_str) for i in insns if "call" in i.mnemonic]
     check(len(insns) == 37 and sum(i.size for i in insns) == END - ENTRY and insns[-1].address == BODY_RETF
           and (insns[-1].mnemonic, insns[-1].op_str) == ("retf", "0xa") and calls == [(SITE, "0xaf8, 0xc10")]
-          and SITE + 3 in set(u["fixups"]), f"U38 +0679 differs: {calls}")
+          and SITE + 3 in set(u["fixups"]), f"U38 +{ROUTINE} differs: {calls}")
     expanded = bytes(unpack(exe)[0])
     system = expanded[physical(SYSTEM_CS, STRCMP):physical(SYSTEM_CS, STRCMP_END)]
     leaf = list(Cs(CS_ARCH_X86, CS_MODE_16).disasm(system, STRCMP))
@@ -58,18 +69,18 @@ def source():
           "SYSTEM string compare differs")
     conditional = {i.address: (i.address + i.size, int(i.op_str, 16)) for i in insns if i.mnemonic.startswith("j") and i.mnemonic != "jmp"}
     sha = sha256(code[ENTRY:END]).hexdigest()
-    print(f"U38 +0679 (107/37, LCALL 0AF8:0C10, RETF 0Ah) GAME file {u['ovr_offset'] + ENTRY:#x} sha {sha}; "
+    print(f"U38 +{ROUTINE} (107/37, LCALL 0AF8:0C10, RETF 0Ah) GAME file {u['ovr_offset'] + ENTRY:#x} sha {sha}; "
           f"SYSTEM 0C10..0C3A sha {sha256(system).hexdigest()[:16]}...")
     return dict(conditional=conditional, starts=[i.address for i in insns], sha=sha, file_offset=u["ovr_offset"] + ENTRY), code, system
 
 
 def library(directory):
-    path = directory / "u380679.so"
+    path = directory / "u38match.so"
     sources = ["overlay_u38_string_match_cpu.c", "system_string_move_leaves_cpu.c"]
     built = subprocess.run(["cc", "-std=c11", "-O2", "-fPIC", "-shared", "-I", str(ROOT / "include"),
                             *[str(ROOT / "src/recovered" / s) for s in sources], "-o", str(path)], capture_output=True, text=True)
     check(built.returncode == 0, built.stderr[-2000:])
-    function = ctypes.CDLL(str(path)).pr_u38_string_match_0679_cpu
+    function = getattr(ctypes.CDLL(str(path)), f"pr_u38_string_match_{ROUTINE}_cpu")
     function.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.c_uint, ctypes.POINTER(ctypes.c_int)]
     function.restype = ctypes.c_int
     return function
@@ -198,34 +209,35 @@ def cases(rng):
                                          count=rng.choice((0, 0x7F, 0xFF, rng.randrange(256))),
                                          flags=FLAGS[i % len(FLAGS)], sp=rng.randrange(0x0800, 0xF000) & ~1)))
     same = pstring(rng, 6)
-    spec.append(("gate-9f", dict(f9f=0, name=same, table=[same] * 4)))
-    spec.append(("gate-6c", dict(f6c=2, name=same, table=[same] * 4)))
-    spec.append(("all-match", dict(name=same, table=[same] * 4, count=0xFE)))
-    spec.append(("no-match", dict(name=same, table=[pstring(rng, 5) for _ in range(4)])))
-    spec.append(("empty-names", dict(name=b"\x00", table=[b"\x00", b"\x01A", b"\x00", b"\x02AB"])))
-    spec.append(("cap-zero", dict(name=same, table=[same] * 4, cap=0)))
-    spec.append(("cap-two", dict(name=same, table=[same] * 4, cap=2)))
-    spec.append(("code-site", dict(name=same, table=[same] * 4, patch=((SITE + 1, 0x11),))))
-    spec.append(("ss-a20", dict(name=same, table=[same, b"\x00", same, b"\x01Z"], sp=0x0800, ss=0xFFFF)))
-    spec.append(("df-set", dict(name=same, table=[same] * 4, flags=0x0603)))
-    spec.append(("random-background", dict(name=same, table=[same, b"\x01A", same, b"\x00"], background=bytes(random.Random(0x380679).randbytes(SIZE)))))
+    spec.append(("gate-9f", dict(f9f=0, name=same, table=[same] * LAST)))
+    spec.append(("gate-6c", dict(f6c=2, name=same, table=[same] * LAST)))
+    spec.append(("all-match", dict(name=same, table=[same] * LAST, count=0xFE)))
+    spec.append(("no-match", dict(name=same, table=[pstring(rng, 5) for _ in range(LAST)])))
+    spec.append(("empty-names", dict(name=b"\x00", table=[b"\x00", b"\x01A", b"\x00", b"\x02AB"] * (LAST // 4))))
+    spec.append(("cap-zero", dict(name=same, table=[same] * LAST, cap=0)))
+    spec.append(("cap-two", dict(name=same, table=[same] * LAST, cap=2)))
+    spec.append(("code-site", dict(name=same, table=[same] * LAST, patch=((SITE + 1, 0x11),))))
+    spec.append(("ss-a20", dict(name=same, table=[same, b"\x00", same, b"\x01Z"] * (LAST // 4), sp=0x0800, ss=0xFFFF)))
+    spec.append(("df-set", dict(name=same, table=[same] * LAST, flags=0x0603)))
+    spec.append(("random-background", dict(name=same, table=[same, b"\x01A", same, b"\x00"] * (LAST // 4),
+                                               background=bytes(random.Random(int("38" + ROUTINE, 16)).randbytes(SIZE)))))
     return spec
 
 
 def differential(target, code, system, function):
-    rng = random.Random(0x380679)
+    rng = random.Random(int("38" + ROUTINE, 16))
     visited, edges, stops = set(), set(), {k: 0 for k in NAMES}
     for label, options in cases(rng):
         cap = options.pop("cap", 64)
         memory, cpu, high = build(code, system, rng, **options)
-        stop, v, e = compare(f"+0679 {label}", memory, cpu, high, target, function, cap)
+        stop, v, e = compare(f"+{ROUTINE} {label}", memory, cpu, high, target, function, cap)
         if not label.startswith("random"):
             print(f"  {label}: {NAMES[stop]}")
         stops[stop] += 1
         visited |= v; edges |= e
     reachable = {(s, o) for s, outs in target["conditional"].items() for o in outs}
     missing = sorted(hex(x) for x in target["starts"] if x not in visited)
-    print(f"U38 +0679: {sum(stops.values())} original-byte cases ({', '.join(f'{v} {NAMES[k]}' for k, v in stops.items())}); full 1 MiB RAM "
+    print(f"U38 +{ROUTINE}: {sum(stops.values())} original-byte cases ({', '.join(f'{v} {NAMES[k]}' for k, v in stops.items())}); full 1 MiB RAM "
           f"and all 14 CPU words equal, no mask; {len(visited)}/{len(target['starts'])} instruction starts, {len(edges & reachable)}/{len(reachable)} "
           f"conditional outcomes")
     check(not missing and reachable <= edges, f"coverage incomplete: {missing} {sorted(reachable - edges)}")
@@ -279,11 +291,11 @@ def native_frame(memory, segment, returned, a):
 
 def native_audit(code, system, function):
     import os
-    directory = ROOT / "resources/oracle-runs/u38-0679-synthetic"
+    directory = ROOT / f"resources/oracle-runs/u38-{ROUTINE}-synthetic"
     directory.mkdir(parents=True, exist_ok=True)
     span = bytes(code[ENTRY:END])
     check(physical(0x0814, SYSTEM_AT) == physical(SYSTEM_CS, STRCMP), "the SYSTEM hole is not at 0AF8:0C10")
-    rng = random.Random(0x380679D)
+    rng = random.Random(int("38" + ROUTINE + "D", 16))
     cases = []
     while len(cases) < NATIVE_CASES:
         (data, a), flags = native_world(rng), len(cases) % len(NATIVE_FLAGS)
@@ -382,11 +394,13 @@ def main():
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--routine", choices=sorted(ROUTINES), default="0679")
     args = parser.parse_args()
+    select(args.routine)
     target, code, system = source()
-    report = dict(target=dict(sha256=target["sha"], bytes=END - ENTRY, instructions=len(target["starts"]), file_offset=target["file_offset"]))
+    report = dict(routine=ROUTINE, target=dict(sha256=target["sha"], bytes=END - ENTRY, instructions=len(target["starts"]), file_offset=target["file_offset"]))
     if args.unicorn or args.native:
-        with tempfile.TemporaryDirectory(prefix="poolrad-u380679-") as temp:
+        with tempfile.TemporaryDirectory(prefix="poolrad-u38match-") as temp:
             function = library(Path(temp))
             if args.unicorn:
                 report["unicorn"] = differential(target, code, system, function)
