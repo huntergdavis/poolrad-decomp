@@ -73,6 +73,7 @@ RAW_CPU_INTERFACE_CAVEATS = {
 # edge to one of these is covered, so a body whose only unready callees were
 # those calls can compose. Each names the merged model that proves it.
 RUNTIME_COVERED_ENDPOINTS = {
+    (0x0AF8, 0x0D12): "system set expand (system_set_expand_0d12_cpu)",
     (0x0A40, 0x029C): "CRT Delay (resident_a40_delay_029c_cpu)",
     (0x0AF8, 0x0254): "system FreeMem (system_freemem_0254_cpu)",
     (0x0AF8, 0x0A3F): "system Move (system_runtime_leaves_cpu)",
