@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**173 strict full-C originals** (163 overlay, ten resident) and **225 verified
-game identities** (214 overlay, eleven resident). The queue still contains 898
+**176 strict full-C originals** (166 overlay, ten resident) and **228 verified
+game identities** (217 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -81,6 +81,9 @@ merge. Passing tests alone never promotes an original.
 | `OVL_007F_0FD2` | PR #965, `b4f7ac50a52ee3351d14eeac601c51ae4c3dec43`; ds4/pi re-verified at head be0bddf3 (311 cases, 27/27, 6/6; 160 native) | 62 bytes, SHA-256 `9205417006da7a4c928b547d116107e3f4d269d3d267d17b2f7cad2f3e63fe27` | [roll class](U7F_ROLL_CLASS_0FD2_CPU.md) |
 | `OVL_007F_05E0` | PR #966, `bd6f4d5c`; ds4/pi re-verified at head ef9ff0ac (256 unmasked cases, 30/30, 6/6; 120 native). Model fix clears AF on OR | 90 bytes, SHA-256 `d4e73837529d5f4bb1ac788885f216ba39ccf5f67778a8278862f846c752a969` | [party count](U7F_PARTY_COUNT_05E0.md) |
 | `OVL_007F_1010` | PR #967, `575ee1c7`; ds4/pi re-verified at head 29dec846 (2,337 cases, caller 823/826, chain 917/921; 37 native). Four sites/twenty edges documented uncovered | 2,256 bytes, SHA-256 `2509b684aaa48da83c6d04bcc270cf3e4b731cd521f08b70ef9fc9f45a2bacd9` | [caller 1010](U7F_CALLER_1010.md) |
+| `OVL_0033_1403` | PR #970 (evidence-only), `93cb14f4`; ds4/pi re-verified at head de4664ac (4,084 cases, 18/18 sites, zero masks; 1,024 + 2 wrap native). Six Unicorn boundary cases excluded; native wrap proof supplied | 49 bytes, SHA-256 `a749aec8ac16739928c52f412b1bd4447e3bb668500b56bd76b1a5140288d62b` | [evidence refresh](U33_1403_EVIDENCE_REFRESH.md) |
+| `OVL_006C_3FB3` | PR #971 (evidence-only), `e8d9ee92`; ds4/pi re-verified at head 080f7d6c (3,088 cases, 132/132 sites; 1,538 native). **Declared IDIV mask**: SF/ZF/AF/PF/CF/OF (0x08D5) masked only after IDIV; 3 native fault-frame words normalized | 217 bytes, SHA-256 `bf1e24f3fbf0660c08259b756b918b0685b1488c3c530599e55e80778ebd397f` | [3FB3 evidence](U6C_3FB3_EVIDENCE_REFRESH.md) |
+| `OVL_006C_408C` | PR #972 (evidence-only), `b13c6a79`; ds4/pi re-verified at head 898fac84 (3,265 cases, 220/220 sites; 1,029 native). **Declared IDIV mask** as above; 3 native fault-frame words normalized | 425 bytes, SHA-256 `a6f888761ea4f984f7562342143d2a366885d4248d4c047b5f0b42cdf26ff97e` | [408C evidence](U6C_408C_EVIDENCE_REFRESH.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
