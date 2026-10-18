@@ -1071,6 +1071,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u25_store_string_0f53_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u25_store_string_0f53_tests
              COMMAND poolrad_overlay_u25_store_string_0f53_tests)
+    add_executable(poolrad_overlay_u25_store_string_0f53_composed_tests
+                   tests/recovered/test_overlay_u25_store_string_0f53_composed.c)
+    target_link_libraries(poolrad_overlay_u25_store_string_0f53_composed_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u25_store_string_0f53_composed_tests
+             COMMAND poolrad_overlay_u25_store_string_0f53_composed_tests)
     add_executable(poolrad_overlay_u25_load_word_0e0c_tests
                    tests/recovered/test_overlay_u25_load_word_0e0c.c)
     target_link_libraries(poolrad_overlay_u25_load_word_0e0c_tests PRIVATE poolrad_recovered)
