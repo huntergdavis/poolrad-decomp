@@ -478,8 +478,8 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x86:0x008a,0x86,0x008a,159906,A,1,game_evidenced,provisional,4,,0,4,12,9,2,1,0,0,0,515,515
 0x86:0x028d,0x86,0x028d,160421,B,0,game_verified,verified,2,,0,2,9,9,0,0,0,0,1,449,449
 0x86:0x044e,0x86,0x044e,160870,B,0,game_verified,verified,0,active_char,1,5,2,0,0,1,1,0,1,206,206
-0x86:0x051c,0x86,0x051c,161076,B,0,game_evidenced,provisional,0,active_char,2,4,2,0,0,0,2,0,0,128,128
-0x86:0x059c,0x86,0x059c,161204,A,1,game_evidenced,provisional,0,active_char,5,3,7,0,0,0,7,0,0,397,397
+0x86:0x051c,0x86,0x051c,161076,B,0,game_verified,verified,0,active_char,2,4,2,0,0,0,2,0,1,128,128
+0x86:0x059c,0x86,0x059c,161204,A,1,game_evidenced,provisional,0,active_char,7,3,7,0,0,0,7,0,0,397,397
 0x86:0x0729,0x86,0x0729,161601,A,3,game_verified,verified,0,,0,1,1,0,0,1,0,0,1,173,173
 0x86:0x07d6,0x86,0x07d6,161774,B,0,game_verified,verified,0,,5,1,6,0,5,1,0,0,1,237,237
 0x86:0x08c3,0x86,0x08c3,162011,B,0,game_evidenced,provisional,0,active_char,1,5,9,1,5,2,1,0,0,462,462
