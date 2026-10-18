@@ -177,6 +177,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u33_both_outside_1403.c
                                     src/recovered/overlay_u6c_record_tier_3fb3.c
                                     src/recovered/overlay_u6c_record_weighted_408c.c
+                                    src/recovered/overlay_u6c_record_roll_sum_4235.c
                                     src/recovered/overlay_u6a_party_before_14a9.c
                                     src/recovered/overlay_u6a_party_after_1601.c
                                     src/recovered/overlay_u77_weighted_28be.c
@@ -1099,6 +1100,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u6c_record_weighted_408c_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u6c_record_weighted_408c_tests
              COMMAND poolrad_overlay_u6c_record_weighted_408c_tests)
+    add_executable(poolrad_overlay_u6c_record_roll_sum_4235_tests
+                   tests/recovered/test_overlay_u6c_record_roll_sum_4235.c)
+    target_link_libraries(poolrad_overlay_u6c_record_roll_sum_4235_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u6c_record_roll_sum_4235_tests
+             COMMAND poolrad_overlay_u6c_record_roll_sum_4235_tests)
     add_executable(poolrad_overlay_u6a_party_before_14a9_tests
                    tests/recovered/test_overlay_u6a_party_before_14a9.c)
     target_link_libraries(poolrad_overlay_u6a_party_before_14a9_tests PRIVATE poolrad_recovered)
