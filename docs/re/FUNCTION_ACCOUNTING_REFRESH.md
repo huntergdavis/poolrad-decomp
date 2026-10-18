@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**134 strict full-C originals** (125 overlay, nine resident) and **190 verified
-game identities** (180 overlay, ten resident). The queue still contains 898
+**142 strict full-C originals** (132 overlay, ten resident) and **198 verified
+game identities** (187 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -47,6 +47,13 @@ merge. Passing tests alone never promotes an original.
 | `OVL_006F_032F` | PR #909, `fdcd83cbda8d3f4004aa572132ac60cd5b7b0885`; independently re-verified by the ds4/pi lane at head 6639338b (473 cases = 471 exact + 2 native RETF substitutions, full 1 MiB RAM + 14 CPU words, 121/121 starts, 15/18 outcomes; 384 native body cases + 15 wrap frames) | 327 bytes, SHA-256 `2df5a5980843eb72e7ed5382d4d4d452d541c22ebfe0d43ee065947b016c2dde` | [vector merge](U6F_VECTOR_MERGE_032F.md) |
 | `OVL_0077_27DF` | PR #910, `b42ce3b5efdfe57a1dc9f0297ea615d6b3b99fcb`; independently re-verified by the ds4/pi lane at head bf2a1a1c (975 fixtures x 2 profiles = 1,950 whole-RAM/CPU14 comparisons, 71/71 starts, 20/20 outcomes; 39 native frames, wrapped profile zero mismatches) | 223 bytes, SHA-256 `461b9a087f9daa616a7bb52320c801cb4e7608f279f0b1105dca3c08746a9b1c` | [native RETF profile](U77_27DF_RETF_NATIVE_PROFILE.md) |
 | `OVL_0038_0000`, `OVL_0038_1490`, `OVL_0038_29B6`, `OVL_0038_29CB`, `OVL_0038_29D9`, `OVL_0038_29F0`, `OVL_0038_2A11` | PR #912, `c29a7029fffa02cefcc70faa13e919f4421eaebd`; independently re-verified by the ds4/pi lane at head 2a42b1c (1,646 returning cases total: 428 + 243 + 195x5, full 1 MiB RAM + 14 CPU words; 176 native cases). Credited as game identities (game_or_other_library_unresolved class) through the real +0000 frames | 31 B `f62ad6b7…`, 91 B `f4a9c7af…`, 21 B `4fb3a9c9…`, 14 B `43c37b0e…`, 23 B `4428de57…`, 33 B `5aced601…`, 23 B `0782a647…` | [helper cluster](U38_HELPER_CLUSTER_CPU.md) |
+| `OVL_03B0_0000` | PR #913, `426299365625fa3a8325023846ab8fbdf9943aab`; ds4/pi re-verified (72 original-byte cases, 4 native) | 103 bytes, SHA-256 `a7d25485edf131a638e320475f22544c82fe81967478369e17556db2509b2a3c` | [entry 1](U3B0_ENTRY1_0000.md) |
+| `OVL_03B0_0067` | PR #914, `840269df1e085896aebb5e6a1744d5396b0bdc5d`; ds4/pi re-verified (32 cases, 3 native) | 68 bytes, SHA-256 `965144eab404415b7ce5d3f6e22d1c6991af4725dac559160302d89305468693` | [leaf](U3B0_LEAF_0067.md) |
+| `OVL_009E_110D` | PR #916, `643a417a12a731eacc77460290930d279ec42226`; ds4/pi re-verified (110 cases, 4 native) | 79 bytes, SHA-256 `63aaf31a1bb13ac3a652db1b1fef79afa6ddf2aee869fe426bc4bda7e5395830` | [entry 17](U9E_ENTRY17_110D.md) |
+| `OVL_009E_10E4` | PR #917, `bf21e99116931041078167250e9a99991e09d9ea`; ds4/pi re-verified (72 cases, 4 native) | 41 bytes, SHA-256 `12ce30806a561605b7f7be238444a28a0d22f7cc53bda4872d6e0800330f41db` | [entry 16](U9E_ENTRY16_10E4.md) |
+| `OVL_007F_003A` | PR #918, `07556270053724765f230535efcc5f1dac886c45`; ds4/pi re-verified (2,212 cases, 544 native). Contiguous-RETF caveat: FFFE/FFFF wrapped-SS native behavior not established | 26 bytes, SHA-256 `ef4d49e3fef030f2acc13a9d5f78563d091bb60ce167bb986143671b6e14059f` | [record word add](U7F_RECORD_WORD_ADD_003A.md) |
+| `OVL_03C6_06E9` | PR #919, `ab89dd79efa6a361f5f0b94d813bb6cf072627a9`; ds4/pi re-verified (4,083 cases, 1,024 + 16 wrap native) | 49 bytes, SHA-256 `1495986874fc88753b5419d14380e9f7846b537a2b7015c57f7e24a1a761a7b9` | [in-range](U3C6_IN_RANGE_06E9.md) |
+| `OVL_0086_0729`, `RES_00BA_26C2` | PR #920, `cee2ad27115b0a71457ea0472715afc11688de88`; ds4/pi re-verified (403 + 363 cases, 160 native). RES_00BA_26C2 is a new resident credit (GAME_SPECIFIC_TARGETS, manifest-full) | 173 B `30853c27…`, 103 B `5e191d39…` | [RES 26C2 / U86 0729](RES_26C2_U86_0729.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
