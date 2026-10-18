@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**172 strict full-C originals** (162 overlay, ten resident) and **224 verified
-game identities** (213 overlay, eleven resident). The queue still contains 898
+**173 strict full-C originals** (163 overlay, ten resident) and **225 verified
+game identities** (214 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -80,6 +80,7 @@ merge. Passing tests alone never promotes an original.
 | `OVL_03C2_0909` | PR #964, `3bcbf8c5262b5de3d61a2d84aea024f3229785d6`; ds4/pi re-verified at head 24ec31e3 (439 cases, caller 297/297, chain 1281/1283; 24 native) | 720 bytes, SHA-256 `38a673986257d14dbe4da3ede438a98c0b516884c6fc92c79228088a68dba9ed` | [caller 0909](U3C2_CALLER_0909.md) |
 | `OVL_007F_0FD2` | PR #965, `b4f7ac50a52ee3351d14eeac601c51ae4c3dec43`; ds4/pi re-verified at head be0bddf3 (311 cases, 27/27, 6/6; 160 native) | 62 bytes, SHA-256 `9205417006da7a4c928b547d116107e3f4d269d3d267d17b2f7cad2f3e63fe27` | [roll class](U7F_ROLL_CLASS_0FD2_CPU.md) |
 | `OVL_007F_05E0` | PR #966, `bd6f4d5c`; ds4/pi re-verified at head ef9ff0ac (256 unmasked cases, 30/30, 6/6; 120 native). Model fix clears AF on OR | 90 bytes, SHA-256 `d4e73837529d5f4bb1ac788885f216ba39ccf5f67778a8278862f846c752a969` | [party count](U7F_PARTY_COUNT_05E0.md) |
+| `OVL_007F_1010` | PR #967, `575ee1c7`; ds4/pi re-verified at head 29dec846 (2,337 cases, caller 823/826, chain 917/921; 37 native). Four sites/twenty edges documented uncovered | 2,256 bytes, SHA-256 `2509b684aaa48da83c6d04bcc270cf3e4b731cd521f08b70ef9fc9f45a2bacd9` | [caller 1010](U7F_CALLER_1010.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
