@@ -3,9 +3,10 @@
 This note covers GAME.OVR unit `0x3C6` + `0x0CB9`, public entry 16, as a
 whole function. The run-time stub is `0x3E0:0x70`.
 
-- **Status.** This is a local, source-only CPU/RAM model, not counted. Its
-  tests are synthetic C fixtures: they compile and pass (see Evidence), but
-  there is no native or oracle parity.
+- **Status.** The existing CPU/RAM model now has author-run original-byte and
+  DOSBox-X parity evidence; see [the parity report](U3C6_0CB9_PARITY.md).
+  Independent verification and any credit remain with the reviewer. The
+  explicit return policies and unsupported LES seam are unchanged.
 - **Ownership.** Separate relative CLEAR from all 18 queried lanes (PM i14419).
   Local source GO: PM i14426.
 
@@ -106,9 +107,10 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
   - `CONTIGUOUS_PHYSICAL` reads the CS word two linear bytes above the IP
     word.
 
-  The last two are declared synthetic candidates, not native facts. They
-  differ only when a return IP word sits at SS:`FFFE` or SS:`FFFF`; at
-  SS:`FFFD` both read CS at SS:`FFFF`. Nothing is read the `WRAPPED_SS` way
+  WRAPPED_SS now matches the native frames measured in the parity report;
+  CONTIGUOUS_PHYSICAL remains an explicit alternative, tested against
+  Unicorn. They differ only when a return IP word sits at SS:`FFFE` or
+  SS:`FFFF`; at SS:`FFFD` both read CS at SS:`FFFF`. Nothing is read the `WRAPPED_SS` way
   silently any more.
 - **Public `+0000` LES seam: fail closed.** The public model's `les` reads
   its segment word at linear EA+2 for every offset. The pinned profile reads
@@ -136,7 +138,8 @@ the CALL return pushes, the callee frames, the flags and the RETFs.
     product bits, keeps SF and AF, and sets CF = OF = (DX ≠ 0).
 
   In this body these values are overwritten before any return. They become
-  visible only in an alias-stop state, at the write that follows `shl di,1`
+  visible in the unsupported-LES stop at +0D29 (native AF=1 measured),
+  or in an alias-stop state, at the write that follows `shl di,1`
   at `+0CED`, `+0CFF`, `+0D1A` or `+0DF6`.
 
 ## Controls (synthetic C tests)
@@ -200,19 +203,17 @@ comparison with the original program.
   - `do_lds_wraparound` = true;
   - `cpu.code.big` = false.
 
-  Word accesses are physically consecutive (high byte at linear+1); this is a
-  profile assumption, not a native finding. All RETFs are caller-selected:
-  `UNMEASURED` fails closed, and the two synthetic profiles stay unmeasured
-  candidates until configuration or native evidence decides between them.
-  The public `+0000` LES seam is unsupported (fail closed), not resolved.
+  Word accesses are physically consecutive (high byte at linear+1).
+  The parity report measures WRAPPED_SS on selected ordinary and wrapped
+  native frames. CONTIGUOUS_PHYSICAL remains the Unicorn alternative;
+  UNMEASURED still fails closed. These observations do not establish every
+  processor configuration. The public +0000 LES seam remains unsupported,
+  and no executed LES operand at FFFD..FFFF is claimed as native evidence.
 - **Conventions.** The undefined-flag conventions above.
 - **Overlay dispatch.** The overlay stub dispatch and the caller side.
-- **Evidence.** Synthetic C only:
-  - Direct build by the PM at model commit `a47db54`: `cc -std=c11 -O2 -Wall
-    -Wextra -Werror` of model plus test passed 6367 checks.
-  - Independent bounded static reviews: PASS.
-
-  There is no native, emulator-oracle or Unicorn evidence, and no full CPU/RAM
-  equivalence.
+- **Evidence.** The original source-only baseline had 6367 synthetic checks
+  and independent bounded static reviews. The new
+  [parity report](U3C6_0CB9_PARITY.md) adds original-byte CPU/RAM comparisons
+  and native captures without changing the C implementation.
 - **Credit.** Callee credit stays with its owners: main's U3C6 `+0000` model,
   the U3C6 slot C for entries 12–15, and the separate `+04BE` head.

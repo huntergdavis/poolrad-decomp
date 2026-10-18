@@ -41,13 +41,15 @@
  *   UNMEASURED  - fail closed: stop before the first RETF reached (entry 15's
  *                 +0CB6 on every run), after the preceding POP BP, with every
  *                 earlier effect kept (status RETURN_PENDING, IP = that RETF).
- *   WRAPPED_SS  - synthetic: return IP word at SS:SP, CS word at SS:(SP+2) with
+ *   WRAPPED_SS  - return IP word at SS:SP, CS word at SS:(SP+2) with
  *                 the 16-bit offset wrapped.
  *   CONTIGUOUS_PHYSICAL - synthetic: CS word at the linear address two bytes
  *                 above the IP word, without the offset wrap.
- * Both synthetic profiles are declared candidates, not native facts; they
- * differ only when a return IP word sits at SS:FFFE or SS:FFFF (at SS:FFFD
- * both read CS at SS:FFFF).
+ * WRAPPED_SS matches the selected native ordinary/wrapped frames recorded
+ * in docs/re/U3C6_0CB9_PARITY.md. CONTIGUOUS_PHYSICAL remains the explicit
+ * Unicorn alternative. They differ only when a return IP word sits at
+ * SS:FFFE or SS:FFFF (at SS:FFFD both read CS at SS:FFFF). No policy is
+ * selected implicitly; native observations do not resolve all profiles.
  *
  * Folded public +0000 LES seam: that model reads the segment word of its
  * LES [bp+6] / [bp+0xA] at linear EA+2, where the pinned profile above reads
