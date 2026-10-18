@@ -355,6 +355,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u68_movement_flag.c
                                     src/recovered/overlay_u68_map_update.c
                                     src/recovered/overlay_u68_map_update_0109_cpu.c
+                                    src/recovered/overlay_u68_movement_flag_04df_cpu.c
                                     src/recovered/overlay_u68_entry2_up.c
                                     src/recovered/overlay_u7d_entry1.c
                                     src/recovered/overlay_u7d_carry_02f2.c
@@ -2204,6 +2205,12 @@ if(BUILD_TESTING)
                           PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u68_map_update_0109_cpu_tests
              COMMAND poolrad_overlay_u68_map_update_0109_cpu_tests)
+    add_executable(poolrad_overlay_u68_movement_flag_04df_cpu_tests
+                   tests/recovered/test_overlay_u68_movement_flag_04df_cpu.c)
+    target_include_directories(poolrad_overlay_u68_movement_flag_04df_cpu_tests PRIVATE tests/recovered)
+    target_link_libraries(poolrad_overlay_u68_movement_flag_04df_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u68_movement_flag_04df_cpu_tests
+             COMMAND poolrad_overlay_u68_movement_flag_04df_cpu_tests)
     add_executable(poolrad_overlay_u68_entry2_up_tests
                    tests/recovered/test_overlay_u68_entry2_up.c)
     target_link_libraries(poolrad_overlay_u68_entry2_up_tests PRIVATE poolrad_recovered)
