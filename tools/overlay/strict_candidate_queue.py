@@ -64,6 +64,11 @@ RAW_CPU_INTERFACE_CAVEATS = {
                      "segment view, not CPU/stack effects",
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
+    "OVL_0025_1815": "ecl_helpers.h exposes the string compare as a semantic "
+                     "API; it also needs the unmodeled runtime string compare "
+                     "0AF8:0C10",
+    "OVL_0025_18EB": "ecl_helpers.h exposes the word compare as a semantic API, "
+                     "not a CPU-state callee",
 }
 
 # SYSTEM/runtime endpoints with merged raw-CPU full-state models. A runtime
