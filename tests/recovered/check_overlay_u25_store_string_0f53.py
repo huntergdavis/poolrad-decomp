@@ -323,6 +323,7 @@ def main():
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
                         "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
                         str(ROOT / "src/recovered/overlay_u25_store_string_0f53.c"),
+                        str(ROOT / "src/recovered/system_strstore_fullstate_0b25.c"),
                         "-o", str(library)], check=True)
         model = ctypes.CDLL(str(library)).pr_u25_store_string_0f53
         model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
