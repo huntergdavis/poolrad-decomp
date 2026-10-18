@@ -8,6 +8,7 @@ import subprocess
 import tempfile
 import gc
 import argparse
+import json
 
 from capstone import (Cs, CS_ARCH_X86, CS_MODE_16, CS_GRP_RET,
                       CS_GRP_INT, CS_GRP_JUMP)
@@ -59,8 +60,14 @@ def put_far(memory, segment, offset, target):
         memory[(at + i) & (RAM_SIZE - 1)] = value
 
 
-def source_audit():
-    ovr = (ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def add_media_arguments(parser):
+    parser.add_argument("--exe", type=Path, default=ROOT / "resources/DOS/POOLRAD/START.EXE")
+    parser.add_argument("--ovr", type=Path, default=ROOT / "resources/DOS/POOLRAD/GAME.OVR")
+    parser.add_argument("--report", type=Path)
+
+
+def source_audit(exe_path=None, ovr_path=None):
+    ovr = (ovr_path or ROOT / "resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     check(len(ovr) == 206105 and sha256(ovr).hexdigest() == OVR_SHA,
           "original GAME.OVR identity mismatch")
     body = ovr[0x1e315:0x1e45c]
@@ -77,7 +84,7 @@ def source_audit():
               "leaf gained a call/interrupt")
         if ins.mnemonic.startswith("j"):
             check(int(ins.op_str, 16) in starts, "branch leaves original body")
-    exe = (ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
+    exe = (exe_path or ROOT / "resources/DOS/POOLRAD/START.EXE").read_bytes()
     check(sha256(exe).hexdigest() ==
           "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd",
           "original START.EXE identity mismatch")
@@ -154,11 +161,11 @@ def build_c(directory):
 
 
 def fixture(body, mode, count=5, global_count=20, *, sp=0x8000,
-            ds=0x1000, ss=0xe000, dest=(0x4000, 0x0100),
+            ds=0x1000, ss=0xe000, cs=0xf000, dest=(0x4000, 0x0100),
             source=(0x5000, 0x0200), fill=0xa5):
     memory = bytearray([fill]) * RAM_SIZE
     cpu = Cpu(0x1234, 0x3456, 0x5678, 0x789a, 0x9abc, 0xbcde,
-              0x7777, sp, 0xf000, ENTRY, ds, 0x1111, ss, 0x7202)
+              0x7777, sp, cs, ENTRY, ds, 0x1111, ss, 0x7202)
     at = physical(cpu.cs, ENTRY)
     memory[at:at + len(body)] = body
     put_word(memory, ss, sp, 0x1234)
@@ -232,11 +239,12 @@ def compare(label, memory, cpu, body, library, coverage=False):
         value = original.reg_read(register) & 0xffff
         check(getattr(actual_cpu, name) == value,
               f"{name} mismatch {label}: C={getattr(actual_cpu,name):04x} original={value:04x}")
-    return visited, edges
+    return visited, edges, sp >= 0xfffe
 
 
 def differential(body, instructions, library):
     visited, edges = set(), set()
+    hybrid_cases = []
     cases = []
     for mode in (0, 1, 2, 3, 0xff):
         for count in (1, 2, 7, 21):
@@ -266,6 +274,21 @@ def differential(body, instructions, library):
         ("DS-A20-wrap", dict(ds=0xffff)),
     ):
         cases.append((label, fixture(body, 0, **options), False))
+    # LES operands use contiguous physical bytes after effective-address
+    # formation. These seams are Unicorn evidence, not a native CPU claim.
+    for mode in (0, 1, 2):
+        for offset in (0xffea, 0xffeb, 0xffec):
+            for field, segment in (("source", 0x5000), ("dest", 0x4000)):
+                cases.append((f"{field}-LES-seam-{mode}-{offset:04x}",
+                    fixture(body, mode, count=2, global_count=8,
+                            **{field: (segment, offset)}), False))
+        for sp in (0xfff5, 0xfff6, 0xfff7, 0xfff9, 0xfffa, 0xfffb):
+            cases.append((f"argument-LES-seam-{mode}-{sp:04x}",
+                fixture(body, mode, count=2, global_count=8, sp=sp), False))
+    for cs in (0x9000, 0xa000, 0xb000):
+        for mode in (0, 1, 2, 3):
+            cases.append((f"relocated-CS-{cs:04x}-mode-{mode}",
+                fixture(body, mode, cs=cs), False))
     # AND writes the live source nested-pointer word, so later LES must reload.
     memory, cpu = fixture(body, 0, count=5)
     put_far(memory, 0x4000, 0x0113, (0x5000, 0x0213))
@@ -304,7 +327,9 @@ def differential(body, instructions, library):
             memory[physical(segment, (0x0117 if segment == 0x4000 else 0x0217)+j)] = 0
     cases.append(("source-zero-underflow", (memory, cpu), False))
     for label, (memory, cpu), coverage in cases:
-        sites, transitions = compare(label, memory, cpu, body, library, coverage)
+        sites, transitions, hybrid = compare(label, memory, cpu, body, library, coverage)
+        if hybrid:
+            hybrid_cases.append(label)
         visited.update(sites)
         edges.update(transitions)
         gc.collect()
@@ -316,20 +341,30 @@ def differential(body, instructions, library):
                                 (ins.address, ins.address + ins.size)))
     impossible = {(0x0353, 0x03be), (0x03d8, 0x0412), (0x042d, 0x0470)}
     check(conditional - impossible <= edges, "feasible branch coverage incomplete")
+    print(f"{len(hybrid_cases)} cases use the native-established RETF rule; others execute original RETF")
     print(f"{len(cases)} original/C cases: full 1 MiB RAM and all 14 CPU words equal; no flag mask")
     print(f"coverage {len(visited)}/121 starts; {len(conditional & edges)}/{len(conditional)} "
           "conditional outcomes; three unsigned-zero JA outcomes impossible")
+    return dict(target="OVL_006F_032F", body_sha256=BODY_SHA,
+                cases=len(cases), exact_unicorn_cases=len(cases)-len(hybrid_cases),
+                native_retf_rule_cases=hybrid_cases, ram_bytes_per_case=RAM_SIZE,
+                cpu_words=14, flags_mask=0, instruction_starts=len(visited),
+                conditional_outcomes=len(conditional & edges),
+                impossible_outcomes=sorted(impossible), exclusions=[])
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-only", action="store_true")
+    add_media_arguments(parser)
     args = parser.parse_args()
-    body, instructions = source_audit()
+    body, instructions = source_audit(args.exe, args.ovr)
     if args.source_only:
         return
     with tempfile.TemporaryDirectory(prefix="poolrad-u6f-032f-") as tmp:
-        differential(body, instructions, build_c(Path(tmp)))
+        report = differential(body, instructions, build_c(Path(tmp)))
+    if args.report:
+        args.report.write_text(json.dumps(report, indent=2) + "\n")
 
 
 if __name__ == "__main__":

@@ -127,8 +127,8 @@ def original_states(m,c,code):
     return native,unicorn,bytes(back)
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--prepare-only',action='store_true');parser.add_argument('--diagnose',action='store_true');args=parser.parse_args()
-    body,_=base.source_audit()
+    parser=argparse.ArgumentParser();parser.add_argument('--prepare-only',action='store_true');parser.add_argument('--diagnose',action='store_true');base.add_media_arguments(parser);args=parser.parse_args()
+    body,_=base.source_audit(args.exe,args.ovr)
     directory=base.ROOT/'resources/oracle-runs/u6f-032f-retf-wrap-native'
     directory.mkdir(parents=True,exist_ok=True);config,entries=prepare(directory,body)
     if args.prepare_only:
@@ -179,6 +179,11 @@ def main():
     for name,digest in results:print(name,digest)
     print('DOSBox SHA256',sha256(Path('/usr/bin/dosbox-x').read_bytes()).hexdigest())
     if not args.diagnose:base.check(not problems,'C/native wrap regression')
+    if args.report:
+        args.report.write_text(base.json.dumps(dict(original_frames=15,
+            complete_body_cases=12, retf_only_cases=3, cpu_words=14,
+            ram_bytes_per_case=229, unicorn_divergences=unicorn_divergences,
+            c_mismatches=problems, capture_sha256=dict(results)), indent=2)+"\n")
     print('synthetic instruction/all-four-mode evidence; no natural game reach or external calls')
 
 if __name__=='__main__':main()

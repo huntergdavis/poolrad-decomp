@@ -12,9 +12,9 @@ typedef struct {
 } pr_u6f_032f_cpu;
 
 typedef enum {
-    PR_U6F_032F_OK = 0,
-    PR_U6F_032F_ARGUMENT
-} pr_u6f_032f_status;
+    PR_U6F_VECTOR_032F_OK = 0,
+    PR_U6F_VECTOR_032F_ARGUMENT
+} pr_u6f_vector_032f_status;
 
 /* Complete unit 6F:+032F..+0475 through RETF 8. Entry SS:SP contains
  * return IP/CS, destination far pointer, then source far pointer.
@@ -25,8 +25,13 @@ typedef enum {
  * A zero source count underflows to 65536 iterations, matching the original.
  * Aliased loop-control storage can retain source nontermination. Code must
  * remain immutable; RAM is a flat A20-disabled model, without video devices.
+ * CPU storage must be distinct from RAM; execution is synchronous with no
+ * interrupts or modeled hardware faults. LES crossing FFFD..FFFF follows
+ * the contiguous operand profile checked with Unicorn, not a native seam
+ * measurement. The returned CS:IP is the live frame, even inside this body;
+ * this API executes one invocation and does not resume after its RETF.
  * Ownership and reached game identity remain separate review gates. */
-pr_u6f_032f_status pr_u6f_vector_merge_032f(
+pr_u6f_vector_032f_status pr_u6f_vector_merge_032f(
     uint8_t *ram, size_t ram_size, pr_u6f_032f_cpu *cpu);
 
 #endif

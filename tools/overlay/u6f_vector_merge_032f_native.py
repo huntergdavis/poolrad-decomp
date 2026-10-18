@@ -214,7 +214,10 @@ leaf:
 
 
 def main():
-    body, _ = base.source_audit()
+    parser = base.argparse.ArgumentParser(description=__doc__)
+    base.add_media_arguments(parser)
+    args = parser.parse_args()
+    body, _ = base.source_audit(args.exe, args.ovr)
     directory = base.ROOT / "resources/oracle-runs/u6f-032f-synthetic-native"
     directory.mkdir(parents=True, exist_ok=True)
     source, asm, obj, com = (directory / n for n in
@@ -285,6 +288,11 @@ def main():
     print(f"{CASES} synthetic DOSBox/C far-call cases: all 14 CPU words, 20 frame bytes, "
           "records/vectors/globals equal; no flag mask")
     print("result SHA-256 " + sha256(result).hexdigest())
+    if args.report:
+        args.report.write_text(base.json.dumps(dict(cases=CASES, cpu_words=14,
+            ram_bytes_per_case=201, flags_mask=0,
+            result_sha256=sha256(result).hexdigest(),
+            com_sha256=sha256(com.read_bytes()).hexdigest()), indent=2) + "\n")
     print("synthetic native frame evidence; natural game reach and ownership remain unmeasured")
 
 

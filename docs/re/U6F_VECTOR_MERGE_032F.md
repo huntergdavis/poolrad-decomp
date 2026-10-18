@@ -2,9 +2,71 @@
 
 The new `pr_u6f_vector_merge_032f` translates the complete call-free body
 through `RETF 8`, with live raw RAM, fourteen CPU words and defined arithmetic
-flags. This is an unclaimed substantive source candidate outside the active
-U7F/U33/U38/U6C lanes. It does not promote game identity or strict credit;
+flags. This raw-CPU model complements the mapped-memory U6F picture-merge API. It does not promote game identity or strict credit;
 the current classification is `game_or_other_library_unresolved`.
+
+## Current publication refresh (2026-10-17)
+
+This publication reuses recovery commit
+25f32f0b09fc68a4eb41e81464f2f20aac4e61df and native RETF repair
+45314d7179e53ca5ccd1a882623bfce5319c6d6d. The implementation body is unchanged.
+Its status type and constants now have the separate vector prefix, so callers
+can include both this header and the existing mapped-memory picture-merge
+header. The focused C test includes both headers to check that integration.
+
+The current schema-7 queue still lists higher-ranked models that already have
+raw-CPU implementations, and +07BC is already inlined in strict +0E0C.
+U31 +0675 merged as #906 and U25 +1FB1 belongs to the other author lane.
+The remaining U6F +032F mapped-memory model does not expose CPU/stack state.
+The queue's game_or_other_library_unresolved classification remains unchanged.
+Target-specific recall timed out after 20 seconds with no reusable result;
+the two Git commits above are the reused evidence, not a recalled session.
+
+The refreshed audit adds 48 cases: 18 nested LES seams, 18 argument LES seams,
+and 12 relocated CS cases. Boundary operands at FFFD/FFFE/FFFF use physically
+contiguous reads after effective-address formation. These new LES seams are
+Unicorn evidence only; native operand-fault behavior there remains unmeasured.
+The three impossible unsigned-zero JA outcomes remain declared.
+
+The audit now writes a JSON receipt that separates exact Unicorn execution
+from cases substituting the independently measured native RETF word-pop rule.
+No FLAGS bit is masked and no fixture is excluded. Native full-body cases
+observe selected RAM regions, not a whole-RAM native capture. CPU storage
+must be distinct from RAM; immutable code, synchronous execution, flat RAM,
+and absent hardware devices/faults remain explicit model assumptions.
+
+All three scripts accept --exe, --ovr and --report. Pass owner media paths
+explicitly when resources/DOS/POOLRAD is absent. Original images, generated
+programs, logs and JSON receipts stay under ignored resources/.
+
+Current results:
+
+- 473 returning full-RAM/CPU cases: 471 execute the original through RETF;
+  two (entry SP FFFE/FFFF) substitute the native-established RETF rule.
+  All 14 CPU words, including full FLAGS, and every 1 MiB RAM byte match.
+- 121/121 instruction starts; 15/18 conditional outcomes, with exactly
+  three unsigned-zero JA outcomes proven impossible; no exclusions.
+- 384 native complete-body cases compare CPU14 and 201 selected RAM bytes.
+  The native result hash remains
+  5d51b85d60f56275fba389e43945cde31f48a8b7d78acbca72d29918c0413123.
+- 15 directed native wrap frames comprise 12 complete-body cases and three
+  RETF-only probes. CPU14 and 229 selected RAM bytes match; ten Unicorn CS
+  divergences at FFFE/FFFF remain explicit. Repaired C has zero mismatches.
+- Strict C11 with all warnings as errors and ASan/UBSan pass. Both API
+  headers coexist in the focused synthetic test translation unit.
+
+The original selection history and earlier evidence below are retained for
+provenance. Current measured results are recorded in the PR and the local
+resources/u6f-032f-{original,native,wrap}.json receipts.
+
+| Review field | Assessment |
+| --- | --- |
+| target_function | OVL_006F_032F, complete 327-byte leaf |
+| source_candidates | raw-CPU vector merge and existing mapped-memory picture merge |
+| signals | pinned body and caller hashes, instruction/branch coverage, whole-RAM CPU differential, native modes and RETF boundaries |
+| score | strong behavioral evidence within the declared memory/CPU profile; ownership unresolved |
+| verdict | likely_match, pending independent review |
+| review_notes | hybrid RETF cases must not be reported as exact Unicorn execution; no natural replay, native LES seam proof, or self-credit |
 
 ## Source, selection and callers
 

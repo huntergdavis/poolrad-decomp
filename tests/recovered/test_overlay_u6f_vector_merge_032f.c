@@ -1,4 +1,5 @@
 #include "poolrad/recovered/overlay_u6f_vector_merge_032f.h"
+#include "poolrad/recovered/overlay_u6f_032f_picture_merge.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -61,7 +62,7 @@ int main(void)
         int valid = mode <= 2u;
         pr_u6f_032f_cpu c = setup(ram, mode);
         memcpy(before, ram, PR_U6F_032F_RAM_SIZE);
-        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
+        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_VECTOR_032F_OK);
         for (unsigned i = 0; i < 8u; ++i) {
             size_t dst = address(0x4000u, (uint16_t)(0x0117u + i));
             size_t src = address(0x5000u, (uint16_t)(0x0217u + i));
@@ -87,9 +88,9 @@ int main(void)
     {
         pr_u6f_032f_cpu c = setup(ram, 0u), saved = c;
         memcpy(before, ram, PR_U6F_032F_RAM_SIZE);
-        assert(pr_u6f_vector_merge_032f(NULL, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_ARGUMENT);
-        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE - 1u, &c) == PR_U6F_032F_ARGUMENT);
-        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, NULL) == PR_U6F_032F_ARGUMENT);
+        assert(pr_u6f_vector_merge_032f(NULL, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_VECTOR_032F_ARGUMENT);
+        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE - 1u, &c) == PR_U6F_VECTOR_032F_ARGUMENT);
+        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, NULL) == PR_U6F_VECTOR_032F_ARGUMENT);
         assert(memcmp(&saved, &c, sizeof c) == 0);
         assert(memcmp(before, ram, PR_U6F_032F_RAM_SIZE) == 0);
     }
@@ -100,7 +101,7 @@ int main(void)
         pointer(ram, 0x5000u, 0x0213u, 0x7000u, 0x0401u);
         ram[address(0x7000u, 0x0401u)] = 0xFEu;
         ram[address(0x7000u, 0x0402u)] = 0u;
-        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
+        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_VECTOR_032F_OK);
         /* The first write changes source offset 0401 -> 0400; a stale LES
          * would read the zero at 0402 and clear this high offset byte. */
         assert(ram[address(0x5000u, 0x0213u)] == 0u);
@@ -111,7 +112,7 @@ int main(void)
         put16(ram, 0x5000u, 0x0211u, 1u);
         put16(ram, 0x3000u, 0x0511u, 0u);
         memset(ram + address(0x7000u, 0u), 0xFF, 65536u);
-        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
+        assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_VECTOR_032F_OK);
         assert(c.ax == 0xFFFFu && c.di == 0x02FFu && c.flags == 0x7246u);
     }
     for (unsigned mode = 0; mode < 4u; ++mode) {
@@ -125,7 +126,7 @@ int main(void)
             put16(ram, c.ss, (uint16_t)(sp + 2u), 0x1234u);
             pointer(ram, c.ss, (uint16_t)(sp + 4u), 0x4000u, 0x0100u);
             pointer(ram, c.ss, (uint16_t)(sp + 8u), 0x5000u, 0x0200u);
-            assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_032F_OK);
+            assert(pr_u6f_vector_merge_032f(ram, PR_U6F_032F_RAM_SIZE, &c) == PR_U6F_VECTOR_032F_OK);
             assert(c.cs == 0x1234u && c.ip == 0x5678u && c.sp == (uint16_t)(sp + 12u));
             assert(c.bp == 0x7777u);
         }

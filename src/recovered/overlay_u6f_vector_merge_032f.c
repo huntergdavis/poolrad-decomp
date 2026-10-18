@@ -145,12 +145,12 @@ static void merge_loop(uint8_t *ram, pr_u6f_032f_cpu *c,
     }
 }
 
-pr_u6f_032f_status pr_u6f_vector_merge_032f(
+pr_u6f_vector_032f_status pr_u6f_vector_merge_032f(
     uint8_t *ram, size_t ram_size, pr_u6f_032f_cpu *c)
 {
     uint8_t mode;
     if (ram == NULL || c == NULL || ram_size < PR_U6F_032F_RAM_SIZE)
-        return PR_U6F_032F_ARGUMENT;
+        return PR_U6F_VECTOR_032F_ARGUMENT;
     c->sp = (uint16_t)(c->sp - 2u);
     put_word(ram, c->ss, c->sp, c->bp);
     c->bp = c->sp;
@@ -181,5 +181,5 @@ pr_u6f_032f_status pr_u6f_vector_merge_032f(
     c->ip = word(ram, c->ss, c->sp);
     c->cs = word(ram, c->ss, (uint16_t)(c->sp + 2u));
     c->sp = (uint16_t)(c->sp + 12u);
-    return PR_U6F_032F_OK;
+    return PR_U6F_VECTOR_032F_OK;
 }
