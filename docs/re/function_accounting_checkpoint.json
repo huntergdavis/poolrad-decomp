@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "0fd23fb0a5ec57edd01488095fdd56f3cd684888d13b9be5ee6c36647132ea2c",
-    "full_c_map": "95129b007e0a50d08b5be19024bf4a29a80a41e758f70aaac776702091d2b499",
+    "classification": "e9070dfbaeed25f6f26a2d9a55f0f43909b595ead8b52737f2bfcac8367fdcf2",
+    "full_c_map": "305248d9cba001d04807610f92e11d1a24f2e23dd9f5d66f3f14630173a81b9b",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "237815c50d1aca23c8bc6048833abd286555c59639bb75494cf60d681ec114d7"
+    "reviewed_identities": "9fc89da32815e7a510fa1fc6f8f9d50ec27245bade519cf8754f66ffc4cab8b7"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "703b688409ee47b4b57b4b9a035dc6ca2ce50cf14e02c1593f3e5c2e97f48651",
+  "queue_sha256": "2f035c7899cfde48f7b8a562a36c9ee02f53c7475f67530641a4127c1ab62d8d",
   "reviewed_change": {
-    "approval_reference": "Batch verifying-lane acceptance of the six archived publications plus #920, at their merge commits: OVL_03B0_0000 (#913, 72 + 4 native), OVL_03B0_0067 (#914, 32 + 3 native, 68-byte reachable body), OVL_009E_110D (#916, 110 + 4 native), OVL_009E_10E4 (#917, 72 + 4 native), OVL_007F_003A (#918, 2,212 + 544 native; contiguous-RETF profile caveat), OVL_03C6_06E9 (#919, 4,083 + 1,024 native + 16 wrap, 6 native RETF substitutions), OVL_0086_0729 and RES_00BA_26C2 (#920, 403 + 363 whole-RAM/14-word cases, 160 native, result SHA-256 3d778eba). Each is raw-CPU full-state parity; native evidence is synthetic selected-memory captures, not natural replay or whole-RAM native. Identity decision: the overlay bodies are credited as game identities; RES_00BA_26C2 is added to GAME_SPECIFIC_TARGETS (103 B / 38 insns, RETF 2, SHA 5e191d39) as a new resident strict credit and is manifest-full, so the queue can compose it. LES FFFD..FFFF remains Unicorn-only where stated; #918 does not establish wrapped-SS native behavior. Focused CTests pass for all eight.",
+    "approval_reference": "Consolidated verifying-lane acceptance of six bodies. (1) OVL_0086_07D6 PR #921 merge 683f1c9c, head d4389220: 480 whole-RAM/14-word cases, 99/99 starts, 14/14 outcomes; 77 MUL-final cases mask only undefined SF/PF/AF (DOSBox-X profile, 45 native unmasked); 120 native, no mask, SHA 731093ad. (2) OVL_03C6_071A PR #923 merge d660be83, head 4d1f6799: 1,499 whole-RAM/14-word comparisons, 170/170 closed-chain starts, 34/34 outcomes, 1,481 exact Unicorn + 18 hybrid wrapped-RETF (42 CS substitutions), 18 contiguous-LES seam cases; 26 native full chains. READINESS CAVEAT retained: +0000 keeps its public contiguous LES profile, so FFFD..FFFF LES operand seams are Unicorn-only and not native parity; +0CB9 documents a differing native segment-word read; this qualification applies to queue readiness/composition. (3)-(6) OVL_0038_2915 and entries 89/90/91 (+2976/+2984/+2992) PR #925 merge c68d07d8, head 2fbbc538: 214 unmasked whole-RAM/14-word cases each, full coverage; 120 native, SHA 03b63aed; composes RES_00BA_26C2, the U9E +0DE3 dice chain and the U38 +0000 helper. Focused CTests pass for all six. Limits: synthetic frames, no gameplay replay; native selected-memory captures, not whole RAM; natural saved-game reach unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 103,
-    "body_sha256": "a7d25485edf131a638e320475f22544c82fe81967478369e17556db2509b2a3c",
-    "evidence_doc": "docs/re/U3B0_ENTRY1_0000.md",
+    "body_bytes": 186,
+    "body_sha256": "97c632304df8ce07a32c07045300b149df14dbd48c88d52a96c51f61dfbb9b2c",
+    "evidence_doc": "docs/re/U3C6_STEP_071A.md",
     "game_identity": true,
-    "original_id": "OVL_03B0_0000",
-    "review_pr": 913,
-    "reviewed_commit": "426299365625fa3a8325023846ab8fbdf9943aab",
+    "original_id": "OVL_03C6_071A",
+    "review_pr": 923,
+    "reviewed_commit": "d660be83035a7ba98d086dc7633b6b1b0390e046",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 132,
+    "overlay": 138,
     "resident": 10
   },
-  "strict_full_c_originals": 142,
-  "unknown_ownership": 611,
+  "strict_full_c_originals": 148,
+  "unknown_ownership": 605,
   "verified_game_by_domain": {
-    "overlay": 187,
+    "overlay": 193,
     "resident": 11
   },
-  "verified_game_identities": 198,
+  "verified_game_identities": 204,
   "whole_game_denominator": "unknown"
 }
