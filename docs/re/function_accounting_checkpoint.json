@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "a604da90a408f797e757d2fda57d4a1b6ac10a9bec9a851167e460cc01a42aea",
-    "full_c_map": "5ef6b3d020389b6b0dc40f6a509b830789669a253fb8682092939bca7c484a7a",
+    "classification": "e9070dfbaeed25f6f26a2d9a55f0f43909b595ead8b52737f2bfcac8367fdcf2",
+    "full_c_map": "305248d9cba001d04807610f92e11d1a24f2e23dd9f5d66f3f14630173a81b9b",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
-    "reviewed_identities": "e94ff732b12d5ddc16d4c743a358ff9af86b7998be0f0c27ee858d1f0cc3adb1"
+    "reviewed_identities": "9fc89da32815e7a510fa1fc6f8f9d50ec27245bade519cf8754f66ffc4cab8b7"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "59492a866d81e8b1f6ba45dedad01680360b72f8d2d685a43cd74cb51875c37f",
+  "queue_sha256": "2f035c7899cfde48f7b8a562a36c9ee02f53c7475f67530641a4127c1ab62d8d",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_0086_07D6 PR #921 merge 683f1c9c, ds4/pi re-run at head d4389220: 480 original-byte cases with the whole 1 MiB RAM and all 14 CPU words equal (99/99 starts, 14/14 outcomes); 77 MUL-final cases mask only the architecturally undefined SF/PF/AF and follow the pinned DOSBox-X profile, confirmed unmasked in 45 native MUL-final cases; 120 native DOSBox-X normal-core/386 cases with no mask, result SHA-256 731093ad19b9afe3a0dd7dd521a20e6f256d1467ffae16a9db69358fca5c2af6, COM segment 0814; focused CTest passes. Composes the U9E +0DE3 dice chain through the loaded 00B0:0048 stub and raw-CPU RES_00BA_26C2. Limits: synthetic frames, no gameplay replay; native selected-memory capture, not whole RAM; natural saved-game reach unmeasured.",
+    "approval_reference": "Consolidated verifying-lane acceptance of six bodies. (1) OVL_0086_07D6 PR #921 merge 683f1c9c, head d4389220: 480 whole-RAM/14-word cases, 99/99 starts, 14/14 outcomes; 77 MUL-final cases mask only undefined SF/PF/AF (DOSBox-X profile, 45 native unmasked); 120 native, no mask, SHA 731093ad. (2) OVL_03C6_071A PR #923 merge d660be83, head 4d1f6799: 1,499 whole-RAM/14-word comparisons, 170/170 closed-chain starts, 34/34 outcomes, 1,481 exact Unicorn + 18 hybrid wrapped-RETF (42 CS substitutions), 18 contiguous-LES seam cases; 26 native full chains. READINESS CAVEAT retained: +0000 keeps its public contiguous LES profile, so FFFD..FFFF LES operand seams are Unicorn-only and not native parity; +0CB9 documents a differing native segment-word read; this qualification applies to queue readiness/composition. (3)-(6) OVL_0038_2915 and entries 89/90/91 (+2976/+2984/+2992) PR #925 merge c68d07d8, head 2fbbc538: 214 unmasked whole-RAM/14-word cases each, full coverage; 120 native, SHA 03b63aed; composes RES_00BA_26C2, the U9E +0DE3 dice chain and the U38 +0000 helper. Focused CTests pass for all six. Limits: synthetic frames, no gameplay replay; native selected-memory captures, not whole RAM; natural saved-game reach unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 237,
-    "body_sha256": "db359b4e8066b0eb0d830a85866d8f402cba123c74ada2951ba21ddcc52db656",
-    "evidence_doc": "docs/re/U86_ROLL_VALUE_07D6.md",
+    "body_bytes": 186,
+    "body_sha256": "97c632304df8ce07a32c07045300b149df14dbd48c88d52a96c51f61dfbb9b2c",
+    "evidence_doc": "docs/re/U3C6_STEP_071A.md",
     "game_identity": true,
-    "original_id": "OVL_0086_07D6",
-    "review_pr": 921,
-    "reviewed_commit": "683f1c9c3e6e82463460728d7f6e8fb62d74cc83",
+    "original_id": "OVL_03C6_071A",
+    "review_pr": 923,
+    "reviewed_commit": "d660be83035a7ba98d086dc7633b6b1b0390e046",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 133,
+    "overlay": 138,
     "resident": 10
   },
-  "strict_full_c_originals": 143,
-  "unknown_ownership": 610,
+  "strict_full_c_originals": 148,
+  "unknown_ownership": 605,
   "verified_game_by_domain": {
-    "overlay": 188,
+    "overlay": 193,
     "resident": 11
   },
-  "verified_game_identities": 199,
+  "verified_game_identities": 204,
   "whole_game_denominator": "unknown"
 }
