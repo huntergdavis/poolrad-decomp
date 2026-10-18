@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "27a1d2550d3bb5d710ee36a3cfb3a2aef4f1db8f11be64d0771ffe3a905498e5",
-    "full_c_map": "3711568b6dc461ae81b229072ef7dd39f1d189ea60e03c89fec4ea54a0dab1aa",
+    "classification": "881964cf81fe89d98662a6c68730c203448fc2b487e3740d27708eab265f7b9b",
+    "full_c_map": "9d995240da835dae615b224f35285944513e695dd09b736970b516f6fb409602",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "d0d754b5c3842691cc21f04ca2551abfadaf1364b2cc06f6d816f29c2f1f21be",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "8fd32930114e4f167ef7d3a90458f42172f17c912548ce8b61a5f6117c56006f",
-    "reviewed_identities": "22a498bc601fbf04d74d21546cecec1a013aa727d42eefa3a3ffe9eeb8baea81"
+    "reviewed_identities": "be7014ab93ea5d37c241185c975f090e148ad3fb7040583f469c15a62c832ef0"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "58a4ecc6dc066817acbdcd1fdc61f284dedbe3cf3c55a39c2b1ef2a0c389dc88",
+  "queue_sha256": "8994abbfbfc0044e3773f57e38189145f3c4c3018100a7df7af6bd2c3cf7ea53",
   "reviewed_change": {
-    "approval_reference": "Verifying-lane acceptance for OVL_007F_0A01 PR #904 merge 4faceb7c, ds4/pi re-run at head 8fa01581: 2,786 original-byte comparisons (2,773 outer returns + 13 control exits, no exclusions) with the whole 1 MiB RAM matching in every case, 58/58 instruction starts, 4/4 branch outcomes, 2,089 cases exact in all 14 CPU words. In 697 final-SHL cases the only difference is the architecturally undefined AF bit (C/native profile AF=1, Unicorn AF=0) and is explicitly asserted, NOT a full unmasked CPU match. 780 native DOSBox-X normal-core/386 cases (778 returns, 2 control exits) compare all 14 CPU words/flags and 2,592 selected RAM bytes with no mask, result SHA-256 b5c6632ecdd4f810b7f2f3c605ae535f6f564e7af46ffb59e1d03ae69d9c3297, including outer/inner RETF wraps and overwritten IP/CS; 519 final-SHL paths have native AF=1. Both caller and callee focused CTests pass. Limits: synthetic frames, no gameplay replay; LES FFFD..FFFF native behavior unmeasured; native RAM snapshots are selected footprints, not whole RAM; hardware faults and executing-code aliases excluded.",
+    "approval_reference": "Verifying-lane acceptance for OVL_0031_0675 PR #906 merge 89901390, ds4/pi re-run at head cc0623f8: 407 original-byte cases with the whole 1 MiB RAM and all 14 CPU words equal (137/137 instruction starts, 20/20 conditional outcomes; last composed call per case +06DA 341, +0758 15, +076F 10, +0786 4, +079D 37); 50 native DOSBox-X normal-core/386 cases (22 reaching RES_00BA_2199), all 14 CPU words + 256 stack bytes + 39,936 data bytes with no mask, result SHA-256 aed897615da537a779844f95c57fa158c16d9789177866efa67d19cae9f5c9c1, COM segment 0814; focused CTest passes. Composes the merged U3C6 +0CB9 CPU model (its own strict credit remains pending, as flagged) and the merged raw-CPU RES_00BA_2199 model from #902. Limits: the queue's 381-byte span includes a trailing Pascal string after the RETF, so the code body is 353 bytes; synthetic frames, no gameplay replay; loader-relocated far calls; natural saved-game reach unmeasured.",
     "approved_by": "PM",
-    "body_bytes": 124,
-    "body_sha256": "3e39eb5fa8ac9c4fa437e885b9a452cd5a7913ee3a3f2cfbefafde2d0f543aa2",
-    "evidence_doc": "docs/re/U7F_RESOURCE_SUBTRACT_0A01.md",
+    "body_bytes": 353,
+    "body_sha256": "f9168e9bb1ad4b8bad993f506ece8ad99d629d15f148e8dd4b622ef56a5069a1",
+    "evidence_doc": "docs/re/U31_STEP_GATE_0675.md",
     "game_identity": true,
-    "original_id": "OVL_007F_0A01",
-    "review_pr": 904,
-    "reviewed_commit": "4faceb7ccee42a40b4cdbe40792e59db6deee68a",
+    "original_id": "OVL_0031_0675",
+    "review_pr": 906,
+    "reviewed_commit": "899013909affc4b38d28242888aae3cfabc80d31",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 114,
+    "overlay": 115,
     "resident": 9
   },
-  "strict_full_c_originals": 123,
-  "unknown_ownership": 630,
+  "strict_full_c_originals": 124,
+  "unknown_ownership": 629,
   "verified_game_by_domain": {
-    "overlay": 169,
+    "overlay": 170,
     "resident": 10
   },
-  "verified_game_identities": 179,
+  "verified_game_identities": 180,
   "whole_game_denominator": "unknown"
 }
