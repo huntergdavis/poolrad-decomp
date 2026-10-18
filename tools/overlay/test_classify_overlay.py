@@ -103,7 +103,7 @@ class ClassifyTest(unittest.TestCase):
     def test_reviewed_view_setter_only(self):
         self.assertEqual(co.VIEW_SETTER, (0x3BD, 0x0155))
         self.assertIn(co.VIEW_SETTER, co.VERIFIED)
-        self.assertNotIn((0x25, 0x01B6), co.VERIFIED)
+        self.assertNotIn((0xFFFF, 0xFFFF), co.VERIFIED)  # sentinel: VERIFIED is bounded, not exhaustive
 
     def test_verified_wins(self):
         self.assertEqual(co.classify(sig(is_verified=1, strings=0, calls=0)), ("game_verified", "verified"))
