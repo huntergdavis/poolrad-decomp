@@ -1,9 +1,11 @@
-# U38 +0679: raw-CPU string-match handler (strict, composed)
+# U38 +0679 and +0947: raw-CPU string-match handlers (strict, composed)
 
 `pr_u38_string_match_0679_cpu` is a raw-CPU, full-state model of GAME.OVR
 unit `0x38` `+0679..+06E3`, the U9E effect handler in slot 18 (public
 entry 17). It composes the merged raw-CPU SYSTEM string compare
-`pr_system_strcmp_0c10` (PR #1001).
+`pr_system_strcmp_0c10` (PR #1001). Its twin `pr_u38_string_match_0947_cpu`
+models `+0947..+09B1`, the handler in slot 26; see
+[the twin](#the-twin-0947).
 
 Issue #1019 lists the handler as `OVL_0038_0679 — slots 18; missing`. No
 model existed: the strict queue's prior-translation hits are only ledger
@@ -80,16 +82,13 @@ return IP `06D2h` are pushed, `pr_system_strcmp_0c10` runs. Without
 aliasing the loop takes three loop-backs. The index byte can alias
 `DS:[6822h]` or a string, so the host cap guards against a long loop.
 
-The handler in slot 26, `+0947`, is the same code shifted by `2CEh`. It
-loops over eight table slots from `DS:0372h`. It is a separate identity and
-is left for its own PR.
 
 ## Validation
 
 **Focused C test.** `test_overlay_u38_string_match_cpu.c` runs under CTest
 with ASan/UBSan. The source compiles with `-Wconversion -Wsign-conversion
--Wshadow -Werror`. It passes **24** hand-predicted checks with synthetic
-records and strings:
+-Wshadow -Werror`. It passes **33** hand-predicted checks with synthetic
+records and strings, 24 of them for `+0679`:
 
 - two matches out of four, with the lengths in AX, DX = DS and the final
   flags;
@@ -126,14 +125,53 @@ StrCmp bytes at absolute `0AF8:0C10`. The result SHA-256 is
 
 Original bytes and generated images stay under ignored `resources/`.
 
+## The twin +0947
+
+| Item | Value |
+| --- | --- |
+| Span | unit `0x38` `+0947..+09B1`, GAME.OVR file offset `0xF5A2` |
+| Size | 107 bytes, 37 instructions, `RETF 0Ah` at `+09AF` |
+| Slot | U9E slot 26 (public entry 23); issue #1019 lists `OVL_0038_0947 — slots 26; missing` |
+| SHA-256 | `f00c39518b7e9a889a61c2285f7256392eefbb9b41a3e4b97dd856eb75af5414` |
+
+`+0947` is `+0679`'s code shifted by `2CEh`. The two differ in exactly two
+bytes:
+
+- `ADD DI,0372h`, so the table strings are `DS:(0372h + 16i)`;
+- `CMP BYTE [BP-1],8`, so i runs from 1 to 8.
+
+The `LCALL` is at `+099B` (fixup at `+099E`), the loop-back `INC` at
+`+0981`, and without aliasing the loop takes seven loop-backs. The ledger's
+121-byte extent also covers a 14-byte string constant at `+09B2..+09BF`,
+just before `+09C0`. `+0947` never references it, so the body is the 107
+bytes above. No model of `+0947` existed either: the queue's prior hits are
+ledger rows and the boundary lines of the neighbouring `+0918` note.
+
+**Evidence.**
+
+- The focused test's 9 `+0947` checks cover three matches out of eight,
+  `LIMIT` at `+0981` with cap 6, `CODE` at `+099B` and the entry guard.
+- The Unicorn differential runs with `--routine 0947`: **161** cases (158
+  return, 1 `CODE`, 2 `LIMIT`), 37/37 instruction starts and 8/8
+  conditional outcomes, no mask.
+- The DOSBox-X oracle passes **32** cases, 17 of them with a match, no mask.
+  The result SHA-256 is
+  `7aad1bafee67d8b464224b7999030c22a4aa08356b7b5b9bebf8a07980fa4a14`.
+- The parameterized audit reproduces `+0679`'s 161 cases and native SHA
+  `44d2c21e…` unchanged.
+
+## Reproduce
+
 ```sh
 ctest --test-dir <build> -R poolrad_overlay_u38_string_match_cpu --output-on-failure
-PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 timeout 1500s \
-  python3 tools/overlay/u38_string_match_cpu_audit.py --unicorn --native --output resources/u38-0679/report.json
+for r in 0679 0947; do
+  PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 timeout 1500s \
+    python3 tools/overlay/u38_string_match_cpu_audit.py --routine $r --unicorn --native --output resources/u38-$r/report.json
+done
 ```
 
 `deja "Poolrad U38 +0679 string compare handler"` hit its 90-second timebox
 with no result, so nothing is reused.
 
 No classifier, queue or count ledger is changed. Crediting `OVL_0038_0679`
-is the verifying lane's call.
+and `OVL_0038_0947` is the verifying lane's call.

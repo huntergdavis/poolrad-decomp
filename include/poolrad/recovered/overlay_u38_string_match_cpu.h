@@ -45,4 +45,14 @@ typedef enum {
 pr_u38_string_match_status pr_u38_string_match_0679_cpu(uint8_t *ram, size_t ram_size, pr_u38_string_match_cpu *cpu,
                                                         unsigned max_loopbacks, int *callee_status);
 
+/* Raw-CPU, full-state model of GAME.OVR unit 0x38 +0947..+09B1 (107 bytes,
+ * 37 instructions), the U9E effect handler in slot 26 (public entry 23):
+ * +0679's code shifted by 2CEh, comparing with the table strings
+ * DS:(0372h + 16i) for i = 1..8 (ADD DI,0372h; CMP BYTE [BP-1],8). The
+ * LCALL is at +099B, the loop-back INC at +0981, and RETF 0Ah at +09AF;
+ * without aliasing the loop takes seven loop-backs. Otherwise as above,
+ * with IP = 0947h. */
+pr_u38_string_match_status pr_u38_string_match_0947_cpu(uint8_t *ram, size_t ram_size, pr_u38_string_match_cpu *cpu,
+                                                        unsigned max_loopbacks, int *callee_status);
+
 #endif

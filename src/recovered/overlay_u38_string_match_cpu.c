@@ -1,4 +1,4 @@
-/* GAME.OVR unit 0x38 +0679 (raw CPU, composing SYSTEM StrCmp 0AF8:0C10); docs/re/U38_STRING_MATCH_CPU.md. */
+/* GAME.OVR unit 0x38 +0679 and its twin +0947 (raw CPU, composing SYSTEM StrCmp 0AF8:0C10); docs/re/U38_STRING_MATCH_CPU.md. */
 #include "poolrad/recovered/overlay_u38_string_match_cpu.h"
 #include "poolrad/recovered/system_string_move_leaves_cpu.h"
 
@@ -200,4 +200,10 @@ pr_u38_string_match_status pr_u38_string_match_0679_cpu(uint8_t *ram, size_t ram
                                                         unsigned max_loopbacks, int *callee_status)
 {
     return match(ram, ram_size, cpu, 0x0679u, 0x0332u, 4u, max_loopbacks, callee_status);
+}
+
+pr_u38_string_match_status pr_u38_string_match_0947_cpu(uint8_t *ram, size_t ram_size, pr_u38_string_match_cpu *cpu,
+                                                        unsigned max_loopbacks, int *callee_status)
+{
+    return match(ram, ram_size, cpu, 0x0947u, 0x0372u, 8u, max_loopbacks, callee_status);
 }
