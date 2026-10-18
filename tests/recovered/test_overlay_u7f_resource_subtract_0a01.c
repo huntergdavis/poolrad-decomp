@@ -100,6 +100,18 @@ int main(void)
         CHECK(pr_u7f_resource_subtract_0a01(ram,PR_U7F_0020_RAM_SIZE,&c)==PR_U7F_0A01_CONTROL_EXIT);
         CHECK(c.ip==0x0A16 && c.cs==0x3000 && c.sp==0x7FFE);
     }
+    {
+        /* The callee's record+102 write aliases DS:49F3. Mode 6 becomes 5,
+         * so the later accumulator branch must observe the changed byte. */
+        pr_u7f_0a01_cpu c=setup(ram,0x8000,0,1,0x48F1,0x1000,6);
+        put(ram,c.ds,0x4979,0x1000);put(ram,c.ds,0x49F3,0x8006);
+        put(ram,c.ds,0x67F4,0xFFFF);put(ram,c.ds,0x67F6,0x1234);
+        CHECK(pr_u7f_resource_subtract_0a01(ram,PR_U7F_0020_RAM_SIZE,&c)==PR_U7F_0A01_OK);
+        CHECK(get(ram,c.ds,0x49F3)==0x8005 && get(ram,c.ds,0x4979)==0x0FFF);
+        CHECK(get(ram,c.ds,0x67F4)==0xFFFF && get(ram,c.ds,0x67F6)==0x1234);
+        CHECK(c.ax==0x8005 && c.dx==0x0FFF && c.flags==final_flags(0,5));
+        CHECK(c.bx==0x3456 && c.cx==0x5678 && c.ip==0x7000 && c.sp==0x800C);
+    }
     free(ram);puts("u7f +0A01: 65536 independent index/mode cases, natural effects, wrap and nested return aliases passed");
     return 0;
 }

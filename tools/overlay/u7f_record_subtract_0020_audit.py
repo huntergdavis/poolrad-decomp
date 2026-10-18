@@ -20,9 +20,9 @@ TARGET={"symbol":"pr_u7f_record_subtract_0020","source":"overlay_u7f_record_subt
 WORDS=[0,1,7,8,15,16,127,128,255,256,0x7FFE,0x7FFF,0x8000,0x8001,0xFFFE,0xFFFF]
 NATIVE_COUNT=512
 
-def source_audit(root):
-    exe=(root/"resources/DOS/POOLRAD/START.EXE").read_bytes()
-    ovr=(root/"resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def source_audit(root, exe_path=None, ovr_path=None):
+    exe=(exe_path or root/"resources/DOS/POOLRAD/START.EXE").read_bytes()
+    ovr=(ovr_path or root/"resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     check(sha256(exe).hexdigest()==EXE_SHA,"START.EXE hash changed")
     check(sha256(ovr).hexdigest()==OVR_SHA,"GAME.OVR hash changed")
     unit=next(u for u in find_units(exe[parse_mz(exe)["header_bytes"]:],ovr) if u["stub_para"]==0x7F)

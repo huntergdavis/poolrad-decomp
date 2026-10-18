@@ -299,7 +299,7 @@ def native_audit(root,image,function):
     check(return_ip==0x2000 and count==len(cases()),"native header changed")
     check(data+0x1000<=code and code+0x1000<=stack and stack+0x1100<=0xA000,"native allocations overlap")
     check(com.read_bytes()[image_ip-0x100:image_ip-0x100+len(image)]==image,"copied original image differs")
-    shifted_af=set();statuses=set()
+    shifted_af=set();statuses=set();shifted_count=0;returns=0
     for number,original_row in enumerate(cases()):
         row=list(original_row)
         if row[4] in (2,3):row[2]=(code-(data if row[4]==2 else stack))&65535
@@ -335,7 +335,16 @@ def native_audit(root,image,function):
             check(actual[last:start]==memory[last:start],"C wrote outside native-observed footprint")
             last=end
         check(actual[last:]==memory[last:],"C wrote outside native-observed footprint")
-        if mode in (1,6) and style==0:shifted_af.add(bool(cpu.flags&0x10))
+        if status==0:returns+=1
+        # Style 1 with zero subtraction preserves the nested return IP,
+        # then runs the same final shifts as the ordinary mode-1/6 path.
+        if mode in (1,6) and (style==0 or (style==1 and amount==0)):
+            shifted_af.add(bool(cpu.flags&0x10));shifted_count+=1
     check(shifted_af=={True} and statuses=={0,2},"native SHL/transfer evidence incomplete")
     print(f"{len(cases())} DOSBox-X cases:all14 CPU words/{sum(n for _,_,n in BLOCKS)} RAM bytes; all index/mode bytes; outer and inner RETF wraps; overwritten IP and CS; no masks")
     print("native result SHA256 "+sha256(result).hexdigest())
+    print(f"Native returns {returns}; control exits {len(cases())-returns}; final-SHL AF-set cases {shifted_count}")
+    return {"cases":len(cases()),"returns":returns,"control_exits":len(cases())-returns,
+            "ram_bytes_per_case":sum(n for _,_,n in BLOCKS),"cpu_words":14,
+            "final_shl_af_set_cases":shifted_count,"result_sha256":sha256(result).hexdigest(),
+            "com_sha256":sha256(com.read_bytes()).hexdigest(),"core":"normal","cpu":"386"}

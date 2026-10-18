@@ -2,6 +2,7 @@
 """Original-byte/full-RAM parity for U7F public entry 8 and its closed +0020 callee."""
 import argparse
 import ctypes
+import json
 from hashlib import sha256
 from pathlib import Path
 import random
@@ -18,10 +19,10 @@ RAM_SIZE=1 << 20
 ENTRY,END=0x0A01,0x0A7D
 DIGEST="3e39eb5fa8ac9c4fa437e885b9a452cd5a7913ee3a3f2cfbefafde2d0f543aa2"
 
-def source_audit(root):
-    helper,helper_instructions=callee_audit(root)
-    exe=(root/"resources/DOS/POOLRAD/START.EXE").read_bytes()
-    ovr=(root/"resources/DOS/POOLRAD/GAME.OVR").read_bytes()
+def source_audit(root, exe_path=None, ovr_path=None):
+    helper,helper_instructions=callee_audit(root,exe_path,ovr_path)
+    exe=(exe_path or root/"resources/DOS/POOLRAD/START.EXE").read_bytes()
+    ovr=(ovr_path or root/"resources/DOS/POOLRAD/GAME.OVR").read_bytes()
     check(sha256(exe).hexdigest()==EXE_SHA and sha256(ovr).hexdigest()==OVR_SHA,"media hash changed")
     units=find_units(exe[parse_mz(exe)["header_bytes"]:],ovr)
     unit=next(u for u in units if u["stub_para"]==0x7F)
@@ -76,8 +77,8 @@ def signed_index(index):
 
 def fixture(image,*,index=0,amount=1,mode=6,value=0x8000,base=0x8000,
             total=0xDEADFFFF,ss=0x2000,sp=0x8000,ds=0x1000,
-            record_segment=0x4000,record_offset=0x9000,flags=0x0002):
-    memory=bytearray([0xA5])*RAM_SIZE;cs=0x3000
+            record_segment=0x4000,record_offset=0x9000,flags=0x0002,code_segment=0x3000):
+    memory=bytearray([0xA5])*RAM_SIZE;cs=code_segment
     put16(memory,record_segment,(record_offset+0x88+2*signed_index(index))&65535,value)
     put16(memory,record_segment,(record_offset+0x102)&65535,base)
     acc=(0x67F4+4*signed_index(index))&65535
@@ -134,6 +135,20 @@ def specifications(quick=False):
         ("indexed-store-mode-alias",dict(record_segment=0x1000,record_offset=0x496B,index=0,amount=1)),
         ("flags-preserved",dict(flags=0x0603,mode=0)),
     ])
+    for index in (0,61,128,255):
+        accumulator=(0x67F4+4*signed_index(index))&65535
+        for target in (0x49F3,accumulator,(accumulator+2)&65535):
+            for amount in (1,5,0xFFFF):
+                for mode in (1,6):
+                    cases.append((f"second-store-DS-{index}-{target:04x}-{amount}-{mode}",
+                                  dict(index=index,record_segment=0x1000,
+                                       record_offset=(target-0x102)&65535,
+                                       amount=amount,mode=mode,total=0xFFFFFFFF)))
+    for cs in (0x5000,0xFFFF):
+        for index in (0,61,128,255):
+            for mode in (0,1,6):
+                cases.append((f"relocated-{cs:04x}-{index}-{mode}",
+                              dict(code_segment=cs,index=index,mode=mode)))
     return cases
 
 def differential(image,decoded,function,quick=False):
@@ -145,6 +160,7 @@ def differential(image,decoded,function,quick=False):
     original.mem_map_ptr(RAM_SIZE,RAM_SIZE,7,ctypes.addressof(backing))
     starts={i.address for i in decoded};mnemonics={i.address:i.mnemonic for i in decoded}
     visited=set();edges=set();completed=0;nonterminating=[];undefined_af=0
+    returns=0;exits=[]
     for label,options in specifications(quick):
         memory,cpu=fixture(image,**options);ctypes.memmove(backing,bytes(memory),RAM_SIZE)
         for (name,_),register in zip(Cpu._fields_,registers):original.reg_write(register,getattr(cpu,name))
@@ -178,31 +194,44 @@ def differential(image,decoded,function,quick=False):
             value=original.reg_read(register)&65535
             if name=="flags" and state["last_flags"]=="shl":
                 # SHL AF is undefined. Unicorn clears it; DOSBox-X normal 386
-                # sets it in all 518 native final-SHL cases. Keep this sole
+                # sets it in the native final-SHL cases. Keep this sole
                 # one-bit exception visible; native checks the full word.
                 check((getattr(cpu,name)&~0x10)==(value&~0x10),f"{label}/defined SHL flags mismatch")
                 check(cpu.flags&0x10 and not value&0x10,f"{label}/SHL backend AF behavior changed")
                 undefined_af+=1;continue
             check(getattr(cpu,name)==value,f"{label}/{name}: C={getattr(cpu,name):04x},original={value:04x}")
         completed+=1
+        if status==0:returns+=1
+        else:exits.append({"case":label,"cs":cpu.cs,"ip":cpu.ip,"sp":cpu.sp})
     check(visited==starts,f"missing instruction starts: {sorted(starts-visited)}")
     check(all(edge in edges for edge in ((0xA3B,0xA44),(0xA3B,0xA3D),(0xA42,0xA44),(0xA42,0xA79))),
           "missing conditional branch edge")
     print(f"{completed} original-byte cases:whole 1 MiB/all14 CPU fields; {len(visited)}/{len(starts)} starts; both edges of both conditionals")
     print(f"Sole Unicorn exception: architecturally undefined final-SHL AF bit in {undefined_af} cases; native checks full FLAGS with no mask")
     check(not nonterminating,f"nonterminating alias fixtures need separate contract review: {nonterminating}")
+    print(f"Returns {returns}; control exits {len(exits)}; exact full CPU {completed-undefined_af}; no exclusions")
+    return {"cases":completed,"returns":returns,"control_exits":exits,
+            "exact_cpu_cases":completed-undefined_af,"final_shl_af_exceptions":undefined_af,
+            "instruction_starts":len(visited),"conditional_outcomes":4,"budget_exclusions":[]}
 
 def main():
     root=Path(__file__).resolve().parents[2]
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--unicorn",action="store_true");parser.add_argument("--native",action="store_true")
-    parser.add_argument("--quick",action="store_true");args=parser.parse_args()
-    image,decoded=source_audit(root)
+    parser.add_argument("--quick",action="store_true")
+    parser.add_argument("--exe",type=Path);parser.add_argument("--ovr",type=Path)
+    parser.add_argument("--report",type=Path)
+    args=parser.parse_args()
+    image,decoded=source_audit(root,args.exe,args.ovr)
+    report={"owner_sha256":DIGEST,"exe_sha256":EXE_SHA,"ovr_sha256":OVR_SHA}
     with tempfile.TemporaryDirectory(prefix="poolrad-u7f-owner-") as temporary:
         function=build_c(root,Path(temporary))
-        if args.unicorn:differential(image,decoded,function,args.quick)
+        if args.unicorn:report["unicorn"]=differential(image,decoded,function,args.quick)
         if args.native:
             from u7f_resource_subtract_0a01_native import native_audit
-            native_audit(root,image,function)
+            report["native"]=native_audit(root,image,function)
+    if args.report:
+        args.report.parent.mkdir(parents=True,exist_ok=True)
+        args.report.write_text(json.dumps(report,indent=2)+"\n")
 
 if __name__=="__main__":main()
