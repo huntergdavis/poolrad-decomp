@@ -1,8 +1,8 @@
 # Reviewed function accounting refresh
 
 The current [machine checkpoint](function_accounting_checkpoint.json) is
-**151 strict full-C originals** (141 overlay, ten resident) and **207 verified
-game identities** (196 overlay, eleven resident). The queue still contains 898
+**153 strict full-C originals** (143 overlay, ten resident) and **208 verified
+game identities** (197 overlay, eleven resident). The queue still contains 898
 candidate starts: 673 overlay, 145 non-SYSTEM resident, and 80 SYSTEM closure
 seeds. There are 89 inferred-library starts and 666 unknown-ownership starts.
 The whole-game denominator remains unknown; no completion percentage follows
@@ -59,6 +59,8 @@ merge. Passing tests alone never promotes an original.
 | `OVL_0038_2915`, `OVL_0038_2976`, `OVL_0038_2984`, `OVL_0038_2992` | PR #925, `c68d07d8a2be353b66bfdaac91e3c91cffd1046a`; ds4/pi re-verified at head 2fbbc538 (214 unmasked whole-RAM/14-word cases each; 120 native). Compose RES_00BA_26C2, the U9E +0DE3 chain and the U38 +0000 helper | 97 B `cb60388e…`, 14 B `76360e93…`, 14 B `679c7643…`, 36 B `c33cf31a…` | [roll gate](U38_ROLL_GATE_2915_CPU.md) |
 | `OVL_0038_04BA` | PR #927, `0957f7864cf77eb82c6e9a2bd3f641ba7ecf3e94`; ds4/pi re-verified at head ed19c499 (3,018 comparisons: 3,000 exact + 18 hybrid wrapped-RETF, 145/145 starts, 24/24 outcomes; 24 native full chains). Caveat: contiguous LES; FFFD..FFFF seams Unicorn-only | 284 bytes, SHA-256 `0556f1d0f2eb60cc9d8d5e346274a4b6ba13c9e0a0dad054bc2d7eccbbcf010e` | [pair 04BA](U38_PAIR_04BA.md) |
 | `OVL_03B0_08D7`, `OVL_03B0_0923` | PR #928 (restacked by #930), `817397fee9ecd3b529c3c42845eb138ba56cb1b2`; ds4/pi re-verified at head 712acc0e (330 + 3 CODE-stop cases each, 31/31 and 29/29 starts, 4/4 outcomes; 122 native). Credited as game identities (helper_candidate class) on the +0969/+0A08 callers | 76 B `74358249…`, 70 B `f296aa6e…` | [space scans](U3B0_SPACE_SCAN_CPU.md) |
+| `OVL_03C6_0CB9` | PR #933, `dd651b1d2aaf7afa0fd3fbee9552087ce71ca7dd`; ds4/pi re-verified at head 30da745c (1,102 original-chain cases, 254/254 sites, 40/40 outcomes; 27 native). LES seam at +0D29 fail-closed, FFFD..FFFF LES not claimed measured | 344 bytes, SHA-256 `63f0434e2d8cadf426464601eed98ae42fa5d13b708303f45ac5440faf95d43b` | [0CB9 parity](U3C6_0CB9_PARITY.md) |
+| `OVL_0025_0F53` | PR #932 (restacked by #934), `e8b3a1657457ebb5b39b49748895cb491be08f51`; ds4/pi re-verified at head dc6d515 (283 composed cases, full RAM/CPU; 100 native). **BASE_VERIFIED identity already**, so strict-credit upgrade only | 512 bytes, SHA-256 `fb04baf47e5abfffab480e8494d662d5c49762e67ca4269b12128cc9e9fd3815` | [store string](U25_STORE_STRING_0F53.md) |
 
 The first two historical changes produced 67/129 and 68/130. The seven latest
 advanced the prior 75/136 checkpoint to 76/137, 77/138, 78/139, 79/140,
