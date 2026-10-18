@@ -255,6 +255,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u1c_vertical_menu_two_node_0f73.c
                                     src/recovered/overlay_u7f_div5.c
                                     src/recovered/overlay_u7f_record_subtract_0020.c
+                                    src/recovered/overlay_u7f_clear_0508.c
                                     src/recovered/overlay_u7f_resource_subtract_0a01.c
                                     src/recovered/overlay_u7f_div5_dwords.c
                                     src/recovered/overlay_u7f_party_count_05e0.c
@@ -1220,6 +1221,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7f_div5_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7f_div5_tests
              COMMAND poolrad_overlay_u7f_div5_tests)
+    add_executable(poolrad_overlay_u7f_clear_0508_tests
+                   tests/recovered/test_overlay_u7f_clear_0508.c)
+    target_link_libraries(poolrad_overlay_u7f_clear_0508_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u7f_clear_0508_tests
+             COMMAND poolrad_overlay_u7f_clear_0508_tests)
     add_executable(poolrad_overlay_u7f_resource_subtract_0a01_tests
                    tests/recovered/test_overlay_u7f_resource_subtract_0a01.c)
     target_link_libraries(poolrad_overlay_u7f_resource_subtract_0a01_tests PRIVATE poolrad_recovered)
