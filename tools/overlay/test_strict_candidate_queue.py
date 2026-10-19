@@ -202,6 +202,11 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows2["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
 
     def test_resident_callee_requires_strict_credit(self):
+        # Isolate from any real caveat on this synthetic resident id.
+        _saved = dict(scq.RAW_CPU_INTERFACE_CAVEATS)
+        scq.RAW_CPU_INTERFACE_CAVEATS.pop("RES_00BA_2E8B", None)
+        self.addCleanup(lambda: (scq.RAW_CPU_INTERFACE_CAVEATS.clear(),
+                                 scq.RAW_CPU_INTERFACE_CAVEATS.update(_saved)))
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
         mentions = {cid: {"source": [], "tooling": [], "docs": []}
@@ -210,7 +215,7 @@ class StrictCandidateQueueTest(unittest.TestCase):
             dict(kind="near_candidate", unit=0x19, site=0x35, src_func=0x30, target=0x20,
                  target_func=0x20, exact_prologue=True),
             dict(kind="far_fixup_confirmed", unit=0x19, site=0x45, src_func=0x20, seg=0x00BA,
-                 off=0x23B7, resolution="resident")])
+                 off=0x2E8B, resolution="resident")])
         main_files = {"OVL_0019_0020": ["src/recovered/overlay_u19_x_0020.c"]}
         result: dict = scq.build_queue(state, graph, inventory["units"], ledger,
                                        classifications, mentions, main_files, {}, {},
@@ -220,7 +225,7 @@ class StrictCandidateQueueTest(unittest.TestCase):
                          {"resident_unmapped": 1})
         self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["counts"],
                          {"modeled_blocked": 1})
-        strict_resident = [dict(id="RES_00BA_23B7",
+        strict_resident = [dict(id="RES_00BA_2E8B",
                                 evidence_doc="docs/re/synthetic.md")]
         state2 = scq.load_queue(inventory, ledger, classifications,
                                 strict_resident, None)
@@ -231,7 +236,7 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows2["OVL_0019_0020"]["callee_readiness"]["counts"],
                          {"resident_unmapped": 1})
         state3 = scq.load_queue(inventory, ledger, classifications, strict_resident,
-                                None, [dict(id="RES_00BA_23B7", status="full",
+                                None, [dict(id="RES_00BA_2E8B", status="full",
                                             evidence_doc="docs/re/synthetic.md")])
         result3: dict = scq.build_queue(state3, graph, inventory["units"], ledger,
                                         classifications, mentions, main_files, {}, {},
@@ -242,7 +247,7 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertTrue(rows3["OVL_0019_0020"]["callee_readiness"]["composable"])
         self.assertEqual(rows3["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
         state4 = scq.load_queue(inventory, ledger, classifications, strict_resident,
-                                None, [dict(id="RES_00BA_23B7", status="callback",
+                                None, [dict(id="RES_00BA_2E8B", status="callback",
                                             evidence_doc="docs/re/synthetic.md")])
         result4: dict = scq.build_queue(state4, graph, inventory["units"], ledger,
                                         classifications, mentions, main_files, {}, {},
@@ -254,34 +259,24 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows4["OVL_0019_0030"]["callee_readiness"]["counts"],
                          {"modeled_blocked": 1})
 
-
-    def test_raw_cpu_interface_caveat_outranks_strict_credit(self):
-        """A callback-only resident stays unready even when strict-credited and
-        manifest-full: the caveat is about the interface, not the credit."""
+    def test_merged_raw_dependency_updates_readiness(self):
+        """A merged raw implementation must land in full_models so callers see a
+        ready 'modeled' callee instead of staying modeled_blocked."""
         inventory, ledger, classifications = fixture()
-        mentions = {cid: {"source": [], "tooling": [], "docs": []}
-                    for cid in scq.load_queue(inventory, ledger, classifications,
-                                              [], None)["candidates"].values()}
-        graph = dict(edges=[
-            dict(kind="near_candidate", unit=0x19, site=0x35, src_func=0x30,
-                 target=0x20, target_func=0x20, exact_prologue=True),
-            dict(kind="far_fixup_confirmed", unit=0x19, site=0x45, src_func=0x20,
-                 seg=0x00BA, off=0x2E8B, resolution="resident")])
-        main_files = {"OVL_0019_0020": ["src/recovered/overlay_u19_x_0020.c"]}
-        manifest = [dict(id="RES_00BA_2E8B", status="full",
+        without = scq.load_queue(inventory, ledger, classifications, [], None)
+        self.assertNotIn("OVL_0019_0020", without["full_models"])
+        manifest = [dict(id="OVL_0019_0020", status="full",
                          evidence_doc="docs/re/synthetic.md")]
-        state = scq.load_queue(inventory, ledger, classifications,
-                               [dict(id="RES_00BA_2E8B",
-                                     evidence_doc="docs/re/synthetic.md")],
-                               None, manifest)
-        result = scq.build_queue(state, graph, inventory["units"], ledger,
-                                 classifications, mentions, main_files, {}, {},
-                                 dict(ovr=bytes(200)))
-        rows = {row["id"]: row for row in result["rows"]}
-        readiness = rows["OVL_0019_0020"]["callee_readiness"]
-        self.assertEqual(readiness["counts"], {"resident_interface_caveat": 1})
-        self.assertFalse(readiness["composable"])
-        self.assertTrue(readiness["raw_cpu_caveats"])
+        with_manifest = scq.load_queue(inventory, ledger, classifications, [],
+                                       None, manifest)
+        self.assertIn("OVL_0019_0020", with_manifest["full_models"])
+        self.assertEqual(with_manifest["full_models"]["OVL_0019_0020"],
+                         "docs/re/synthetic.md")
+        partial = scq.load_queue(inventory, ledger, classifications, [], None,
+                                 [dict(id="OVL_0019_0020", status="partial",
+                                       evidence_doc="docs/re/synthetic.md")])
+        self.assertIn("OVL_0019_0020", partial["partial_models"])
+        self.assertNotIn("OVL_0019_0020", partial["full_models"])
 
     def test_phantom_near_candidates_are_ignored(self):
         inventory, ledger, classifications = fixture()
