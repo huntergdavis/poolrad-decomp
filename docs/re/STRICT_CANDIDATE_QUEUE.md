@@ -138,13 +138,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`28a4b7d35ae258b44f0f9f29b5b2454a155b6f4195de803a63fec8e1bbb6a643`,
-on the 227/273 main after #885–#1122 plus the phantom-edge filter, the
+`dff4023ff9ed864808e74d331687e4910cca7adb246f4cc700de37ce4e921fc5`,
+on the 227/273 main after #885–#1124 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1643 refs / 1164 tips / 534 unmerged tips (`tips_sha256`
-`b842f9ab…`) and 2586 commits (`commits_sha256` `5c4d4dbf…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1648 refs / 1166 tips / 534 unmerged tips (`tips_sha256`
+`b95e01eb…`) and 2590 commits (`commits_sha256` `d65f499b…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 467)
@@ -167,7 +167,7 @@ other lanes keep pushing refs.
 | 14 | `OVL_0086_0C20` | `0x86:0x0c20` | 815 | 322 | A | game_evidenced | 4/0/0/4 | 8/10 | no | 6 | 0 | source_mention | 68 |
 | 15 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
 | 16 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 7 | 2 | source_mention | 66 |
-| 17 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/3 | 4/3 | no | 4 | 0 | source_mention | 66 |
+| 17 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/2 | 4/3 | no | 4 | 0 | source_mention | 66 |
 | 18 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 2/0/0/2 | 4/5 | no | 3 | 0 | source_mention | 66 |
 | 19 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 5/6 | no | 2 | 0 | commit_mention | 66 |
 | 20 | `OVL_005E_08B2` | `0x5e:0x08b2` | 952 | 344 | A | game_evidenced | 4/0/0/2 | 6/5 | no | 2 | 0 | source_mention | 65 |
@@ -177,10 +177,10 @@ other lanes keep pushing refs.
 | 24 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
 | 25 | `OVL_001C_2B33` | `0x1c:0x2b33` | 75 | 36 | B | game_verified | 1/0/0/0 | 3/1 | no | 0 | 1 | source_mention | 64 |
 
-Queue summary (schema 8, on the 227/273 main after #885–#1122 and the
+Queue summary (schema 8, on the 227/273 main after #885–#1124 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
-system-runtime coverage): 467 candidates, 68 would be composable without the
-caveats and 66 are composable — 9 bodies carry an interface caveat;
+system-runtime coverage): 467 candidates, 67 would be composable without the
+caveats and 65 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 311, game_verified 45, helper_candidate 45,
 unresolved 66; grades A 286, B 179, D 2; prior status main_model 81,
 inline_in_model 30, inline_in_strict 24, unmerged_branch 9, commit_mention 18,
@@ -199,27 +199,25 @@ candidate's bounded-decode size, so they are a lower bound on recovery effort.
 
 | single untranslated callee | rows it alone gates | of those game_evidenced | blocker own B / insns | transitive cost B / insns | transitive leaves | depth |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| `OVL_0086_08C3` | 29 | 26 | 462 / 177 | 6257 / 2541 | 11 | 7 |
+| `OVL_0086_08C3` | 32 | 28 | 462 / 177 | 6257 / 2541 | 11 | 7 |
 | `OVL_03B0_03BD` | 11 | 11 | 830 / 298 | 910 / 329 | 1 | 2 |
-| `OVL_009E_0000` | 8 | 5 | 38 / 16 | 38 / 16 | 1 | 1 |
 | `OVL_009E_1344` | 6 | 5 | 786 / 301 | 5176 / 2112 | 8 | 6 |
 | `OVL_03B0_10D1` | 5 | 5 | 111 / 52 | 1021 / 381 | 1 | 3 |
-| `OVL_009E_175D` | 5 | 5 | 268 / 94 | 306 / 110 | 1 | 2 |
+| `OVL_009E_175D` | 5 | 5 | 268 / 94 | 268 / 94 | 1 | 1 |
 | `OVL_03B0_0D9A` | 5 | 4 | 823 / 333 | 1733 / 662 | 1 | 3 |
 | `OVL_009E_115C` | 4 | 4 | 488 / 189 | 488 / 189 | 1 | 1 |
 | `OVL_0038_0058` | 4 | 4 | 181 / 62 | 4571 / 1873 | 8 | 6 |
 | `OVL_0038_1545` | 4 | 0 | 166 / 67 | 4865 / 1993 | 9 | 7 |
 | `OVL_0025_054E` | 3 | 0 | 353 / 124 | 5899 / 2393 | 8 | 5 |
 | `OVL_005E_1884` | 3 | 2 | 666 / 226 | 12433 / 4996 | 21 | 8 |
+| `OVL_006C_3291` | 3 | 2 | 342 / 100 | 464 / 159 | 1 | 2 |
 
 Read it as: a large fan-out with a deep, expensive closure must not be read as a
 cheap multi-row unlock; prefer blockers whose transitive cost and depth are
 small.
 
-`OVL_0025_1815` retains its semantic-API interface caveat, while its runtime
-string compare `0AF8:0C10` is covered by merged `pr_system_strcmp_0c10`.
-The historical U9E +0000 cost row above omits its unresolved indirect
-handlers and must not be used as a 38-byte closure estimate. U38
+`OVL_0025_1815` is additionally gated on the unmodeled runtime string compare
+`0AF8:0C10` (not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
 `+2556/+070F/+0C4B` and `+0B1B/+2610` remain gated on `RES_00BA_16EC` and
 `OVL_0038_0058` respectively even after the SYSTEM string leaves `0B0B/0B98`
 became covered.
@@ -266,7 +264,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 227/273 main (206 overlay credits) the schema-8 candidate set is 467 and 66 bodies are composable.
+reasons. On the 227/273 main (206 overlay credits) the schema-8 candidate set is 467 and 65 bodies are composable.
 
 ## Reproduce
 
