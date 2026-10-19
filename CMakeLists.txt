@@ -416,6 +416,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/system_getmem_023f_cpu.c
                                     src/recovered/system_textassign_insert_cpu.c
                                     src/recovered/system_freemem_0254_cpu.c
+                                    src/recovered/overlay_u1c_return_0a9f_cpu.c
                                     src/recovered/overlay_u3b0_dispose_11f3_cpu.c
                                     src/recovered/system_string_leaves_cpu.c
                                     src/recovered/system_string_move_leaves_cpu.c
@@ -3477,4 +3478,10 @@ if(BUILD_TESTING)
     add_executable(poolrad_u3b0_dispose_11f3_cpu_tests tests/recovered/test_overlay_u3b0_dispose_11f3_cpu.c)
     target_link_libraries(poolrad_u3b0_dispose_11f3_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_u3b0_dispose_11f3_cpu_tests COMMAND poolrad_u3b0_dispose_11f3_cpu_tests)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(poolrad_u1c_return_0a9f_cpu_tests tests/recovered/test_overlay_u1c_return_0a9f_cpu.c)
+    target_link_libraries(poolrad_u1c_return_0a9f_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_u1c_return_0a9f_cpu_tests COMMAND poolrad_u1c_return_0a9f_cpu_tests)
 endif()
