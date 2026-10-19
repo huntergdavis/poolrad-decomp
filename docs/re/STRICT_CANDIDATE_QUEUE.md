@@ -113,7 +113,7 @@ identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
 `03b41e42bbc11e6eb05b5e3d845f011d20d2ba3fa7a2767ddecf561da291c370`,
-on the 225/273 main after #885–#1105 plus the phantom-edge filter, the
+on the 225/273 main after #885–#1106 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
@@ -151,7 +151,7 @@ other lanes keep pushing refs.
 | 24 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
 | 25 | `OVL_001C_2B33` | `0x1c:0x2b33` | 75 | 36 | B | game_verified | 1/0/0/0 | 3/1 | no | 0 | 1 | source_mention | 64 |
 
-Queue summary (schema 8, on the 225/273 main after #885–#1105 and the
+Queue summary (schema 8, on the 225/273 main after #885–#1106 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
 system-runtime coverage): 469 candidates, 70 would be composable without the
 caveats and 68 are composable — 9 bodies carry an interface caveat;
