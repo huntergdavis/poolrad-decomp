@@ -142,6 +142,7 @@ def main():
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
                         "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
                         str(ROOT / "src/recovered/overlay_u38_target_select_101d.c"),
+                        str(ROOT / "src/recovered/resident_character_target_select.c"),
                         str(ROOT / "src/recovered/overlay_u38_effect_clear_264b.c"),
                         "-o", str(library)], check=True)
         model = ctypes.CDLL(str(library)).pr_u38_effect_clear_264b
