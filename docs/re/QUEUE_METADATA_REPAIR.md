@@ -175,3 +175,37 @@ are not edited. Historical snapshots above retain their original totals.
 Recall reused Codex session 01a1386e-bea7-7883-8ddd-06fd2be8db9b for the
 73-byte/29-instruction prefix and eleven-byte tail distinction; the linked
 accepted evidence and original-byte recheck supply the hashes here.
+
+## U7D +047A follow-up
+
+VP instruction i19018 applies the already reviewed executable span from
+[the raw +047A evidence](U7D_UPDATE_047A_CPU.md) to ledger generation.
+The body is U7D [047A,0563), GAME file [148038,148271): **233 bytes /
+92 instructions**, ending with RETF 4 at +0560. The two bytes [0563,0565)
+are trailing data, before the next prologue at +0565.
+
+- Executable body SHA-256:
+  471d0464b3c216b69f1c3188b7a8aa2cc69ca1f81109de5217e3f4dd574da8b7.
+- Excluded two-byte tail SHA-256:
+  44c808fd166dbb8961fb795587e5ee0082f8a2dc781ff06a3f02223dcc06a7da.
+- Historical 235-byte span SHA-256 (body plus tail):
+  0c687ca966432b6c241673264978796173f6f31e91905a8a67ee3dee5110bc4e.
+
+The body and tail hashes were rechecked against the pinned original GAME.OVR;
+all 92 instructions decode contiguously through the final return. The existing
+hash-checked executable_end mechanism excludes the tail before feature decoding.
+Regeneration changes exactly one row: bound 235 to 233, decoded bytes 235 to
+233, instructions 93 to 92. All other fields and the nine prior pins remain
+unchanged. Thirty-five queue regressions pass, including hash/bounds rejection
+and tail exclusion before decoding. Original bytes remain private.
+
+On tested main 25edf536 (reviewer-owned checkpoint 235 strict / 281 verified),
++047A is already strict and excluded from the non-strict candidate queue.
+Two frozen schema-9 no-git exports are byte-identical; the baseline's 459
+candidates, 57 composable rows and ready-ID set are unchanged. This is extent
+metadata only: no recovered C, classification, strict map, reviewed identity,
+manifest or accounting edits, and no additional credit.
+
+Dunking Sheep recall located prior +047A context in Claude session
+281c8700-5acc-438b-b93d-c061e28437eb. The exact executable/tail distinction and
+hashes reuse the linked accepted evidence and were independently remeasured here.
