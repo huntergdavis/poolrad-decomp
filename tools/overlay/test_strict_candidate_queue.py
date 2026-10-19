@@ -254,6 +254,25 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows4["OVL_0019_0030"]["callee_readiness"]["counts"],
                          {"modeled_blocked": 1})
 
+    def test_merged_raw_dependency_updates_readiness(self):
+        """A merged raw implementation must land in full_models so callers see a
+        ready 'modeled' callee instead of staying modeled_blocked."""
+        inventory, ledger, classifications = fixture()
+        without = scq.load_queue(inventory, ledger, classifications, [], None)
+        self.assertNotIn("OVL_0019_0020", without["full_models"])
+        manifest = [dict(id="OVL_0019_0020", status="full",
+                         evidence_doc="docs/re/synthetic.md")]
+        with_manifest = scq.load_queue(inventory, ledger, classifications, [],
+                                       None, manifest)
+        self.assertIn("OVL_0019_0020", with_manifest["full_models"])
+        self.assertEqual(with_manifest["full_models"]["OVL_0019_0020"],
+                         "docs/re/synthetic.md")
+        partial = scq.load_queue(inventory, ledger, classifications, [], None,
+                                 [dict(id="OVL_0019_0020", status="partial",
+                                       evidence_doc="docs/re/synthetic.md")])
+        self.assertIn("OVL_0019_0020", partial["partial_models"])
+        self.assertNotIn("OVL_0019_0020", partial["full_models"])
+
     def test_phantom_near_candidates_are_ignored(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
