@@ -9,6 +9,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify accounting commit provenance
+        run: python3 tools/overlay/check_record_shas.py
+      - name: Test accounting provenance guard
+        run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
       - name: Reject tracked game media and resource files
         shell: bash
         run: |
