@@ -9,12 +9,15 @@ above a prior-translated one, and inline/branch evidence is reported.
 """
 
 import copy
+import hashlib
 import sys
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import strict_candidate_queue as scq
+import function_ledger as ledger_tool
 
 
 def fixture() -> tuple[dict, list, list]:
@@ -72,6 +75,55 @@ def queue(data=None, graph=None, prior=None) -> dict:
 
 
 class StrictCandidateQueueTest(unittest.TestCase):
+    def test_reviewed_executable_span_refuses_mismatched_bytes_or_bounds(self):
+        code = b"padding" + b"body!" + b"tail after return"
+        pin = {(0x19, 7): (12, hashlib.sha256(b"body!").hexdigest())}
+        with patch.dict(ledger_tool.EXECUTABLE_SPANS, pin, clear=True):
+            self.assertEqual(ledger_tool.executable_end(0x19, 7, len(code), code), 12)
+            self.assertEqual(ledger_tool.executable_end(0x19, 7, 12, code), 12)
+            with self.assertRaisesRegex(ValueError, "hash differs"):
+                ledger_tool.executable_end(0x19, 7, len(code), code[:8] + b"?" + code[9:])
+            with self.assertRaisesRegex(ValueError, "outside candidate bounds"):
+                ledger_tool.executable_end(0x19, 7, 11, code)
+            # Unreviewed routines retain their full proposed span: an early
+            # return alone does not prove that the remaining bytes are DATA.
+            self.assertEqual(ledger_tool.executable_end(0x19, 8, len(code), code), len(code))
+
+    def test_unresolved_indirect_dispatch_blocks_self_and_modeled_callers(self):
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        main_files = {cid: ["synthetic.c"] for cid in mentions}
+        dispatch = {"OVL_0019_0010": dict(site=0x16, note="synthetic unresolved handler",
+                                          evidence_doc="synthetic.md")}
+        with patch.dict(scq.UNRESOLVED_INDIRECT_DISPATCH, dispatch, clear=True):
+            # Even a stale 'full' model label cannot erase an explicit live
+            # indirect boundary. The callgraph has no outgoing edge for 0010.
+            state["full_models"]["OVL_0019_0010"] = "synthetic.md"
+            result = scq.build_queue(state, callgraph(), inventory["units"], ledger,
+                                     classifications, mentions, main_files, {}, {})
+        rows = {r["id"]: r for r in result["rows"]}
+        direct = rows["OVL_0019_0010"]["callee_readiness"]
+        self.assertEqual(direct["total"], 1)
+        self.assertEqual(direct["unready"], 1)
+        self.assertEqual(direct["targets"][0]["kind"], "indirect")
+        self.assertIsNone(direct["targets"][0]["offset"])
+        self.assertEqual(direct["targets"][0]["site"], 0x16)
+        self.assertEqual(rows["OVL_0019_0020"]["callee_readiness"]["counts"],
+                         {"indirect_unresolved": 1})
+        self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["counts"],
+                         {"modeled_blocked": 1})
+        self.assertTrue(all(not r["callee_readiness"]["composable"] for r in rows.values()))
+        self.assertEqual(result["schema_version"], 9)
+
+    def test_string_compare_runtime_coverage_keeps_overlay_interface_caveat(self):
+        note = scq.RAW_CPU_INTERFACE_CAVEATS["OVL_0025_1815"]
+        self.assertIn("not a CPU-state callee", note)
+        self.assertIn("pr_system_strcmp_0c10", note)
+        self.assertNotIn("unmodeled runtime", note)
+        self.assertIn((0x0AF8, 0x0C10), scq.RUNTIME_COVERED_ENDPOINTS)
+
     def test_ranking_and_prior_detection(self):
         result = queue()
         rows = {row["id"]: row for row in result["rows"]}
