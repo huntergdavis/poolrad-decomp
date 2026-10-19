@@ -11,9 +11,11 @@ import csv
 import hashlib
 import io
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
+import tempfile
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -74,6 +76,93 @@ def git(root, *args):
     return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
 
 
+def _cc_commands(tree, root):
+    """Every `subprocess.run([...])` whose argv starts with a C compiler."""
+    def ev(node):
+        if isinstance(node, ast.List):
+            return [ev(elt) for elt in node.elts]
+        if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            return node.value
+        if isinstance(node, ast.Name) and node.id == "ROOT":
+            return str(root)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "str":
+            return str(ev(node.args[0]))
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
+            return str(Path(ev(node.left)) / ev(node.right))
+        raise ValueError(ast.dump(node)[:60])
+    found = []
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "run" and node.args):
+            continue
+        literal = node.args[0]
+        if not isinstance(literal, ast.List):
+            continue
+        argv = []
+        for element in literal.elts:
+            try:
+                value = ev(element)
+            except ValueError:
+                # Un-evaluable tail (e.g. str(library) after -o): drop it and
+                # stop, keeping the source list that precedes it.
+                if argv and argv[-1] == "-o":
+                    argv.pop()
+                break
+            argv.append(value)
+        if argv and argv[0] in ("cc", "gcc", "clang"):
+            found.append(argv)
+    return found
+
+
+def sweep(root, timeout=120):
+    """Best-effort compile of every checker found. Never raises, never gates."""
+    results = []
+    for folder in ("tests/recovered", "tools/overlay"):
+        for path in sorted((root / folder).glob("*.py")):
+            text = path.read_text()
+            if "src/recovered" not in text:
+                continue
+            try:
+                tree = ast.parse(text, filename=str(path))
+            except SyntaxError as error:
+                results.append(dict(file=str(path.relative_to(root)), status="PARSE",
+                                    detail=str(error)[:120]))
+                continue
+            commands = _cc_commands(tree, root)
+            if not commands:
+                continue
+            rel = str(path.relative_to(root))
+            entry = dict(file=rel, status="NO-COMPILE", detail="")
+            argv = list(commands[0])
+            argv = [os.environ.get("CC") or "cc" if a == "cc" else a for a in argv]
+            out_dir = tempfile.mkdtemp(prefix="sweep-")
+            probe = [a for a in argv if a not in ("-o",)] 
+            if "-o" in argv:
+                cut = argv.index("-o")
+                probe = argv[:cut] + ["-o", os.path.join(out_dir, "probe.so")]
+            else:
+                probe = argv + ["-o", os.path.join(out_dir, "probe.so")]
+            try:
+                done = subprocess.run(probe, capture_output=True, text=True, timeout=timeout)
+            except OSError as error:
+                results.append(dict(file=rel, status="NO-CC", detail=str(error)[:120]))
+                continue
+            except subprocess.TimeoutExpired:
+                results.append(dict(file=rel, status="TIMEOUT", detail=str(timeout)))
+                continue
+            if done.returncode == 0:
+                entry = dict(file=rel, status="OK", detail="")
+            else:
+                first = (done.stderr or "").strip().splitlines()
+                detail = (first[0] if first else "cc failed")[:160]
+                # A dynamic source list (built at runtime) leaves the argv with
+                # no inputs; that is an extraction limit, not a stale checker.
+                status = "UNEXTRACTABLE" if "no input files" in detail else "FAIL"
+                entry = dict(file=rel, status=status, detail=detail)
+            results.append(entry)
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rows", nargs="*", help="every row being offered for review")
@@ -81,7 +170,16 @@ def main():
     parser.add_argument("--base-ref", default="origin/main",
                         help="fetched main ref that HEAD must include")
     parser.add_argument("--output", type=Path, help="optional JSON build receipt")
+    parser.add_argument("--sweep", action="store_true",
+                        help="best-effort compile of every checker; never gates (exit 0)")
     args = parser.parse_args()
+    if args.sweep:
+        rows = sweep(ROOT)
+        bad = [r for r in rows if r["status"] != "OK"]
+        for r in rows:
+            print(f"{r['status']:>12}  {r['file']}  {r['detail']}")
+        print(f"SWEEP: {len(rows)} checkers attempted, {len(bad)} not clean (non-blocking)")
+        return 0
     if args.all and args.rows:
         parser.error("choose row IDs or --all")
     try:
