@@ -13,9 +13,9 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "02aba1e3fbb44c3f5dc078b35706568261fde54fca8c2f63d862a5d38ba499d1",
+  "queue_sha256": "20445a25f4733ae9eb5cc2e5962d3e3c3a06446153ac3fc2e7aefbce439defd4",
   "reviewed_change": {
-    "approval_reference": "schema-9 strict candidate queue re-derivation on the 235/281 main after #1142 (queue SHA-256 02aba1e3..., 459 candidates / 57 composable / 9 interface caveats); queue metadata only, no credit",
+    "approval_reference": "schema-9 queue re-derivation with the OVL_0068_0294 disposition record (queue SHA-256 c1a0dbb6..., 459 candidates / 57 composable / 9 interface caveats, no score changes); record-only, no credit",
     "approved_by": "PM",
     "batch": "prior-filter-ip",
     "body_bytes": 50,
