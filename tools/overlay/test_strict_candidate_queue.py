@@ -441,6 +441,21 @@ class StrictCandidateQueueTest(unittest.TestCase):
         for text, expected in shapes:
             self.assertEqual(scq.is_boundary_mention({"text": text}), expected, text)
 
+    def test_ip_redirect_and_comment_mentions_fail_closed(self):
+        """A loader's `c->ip = 0x....u` redirect and a bare comment mention name
+        an address without implementing it, so neither is inline evidence."""
+        shapes = [
+            ("c->ip = 0x07BCu;", True),
+            ("                c->ip = 0x0A74u;", True),
+            ("/* DOS v1.3 unit 25 load word +0E0C, classifier +06FB, load hook +07BC.", True),
+            (" * +0x179B. Evidence: docs/re/U1C_SURPRISE_16C9.md.", True),
+            # keyword rescue: a comment that says the body is inlined still counts
+            ("/* this routine is inlined here, entry 0x07BC */", False),
+            ("call OVL_0038_101D at 0x101D", False),
+        ]
+        for text, expected in shapes:
+            self.assertEqual(scq.is_boundary_mention({"text": text}), expected, text)
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)

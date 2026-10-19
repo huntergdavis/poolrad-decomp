@@ -138,13 +138,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`2fead2ddff5642efb8988c2093a3ed1e01d96f68ad9a5c76c240b0d6278cfb92`,
-on the 235/281 main after #885–#1135 plus the phantom-edge filter, the
+`086afe41c673b5a46469c18bd40a3bee0a991e2f1d82affd62a613ccf2c0d7d4`,
+on the 235/281 main after #885–#1136 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1665 refs / 1178 tips / 535 unmerged tips (`tips_sha256`
-`a577edd0…`) and 2611 commits (`commits_sha256` `e6f030b8…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1666 refs / 1178 tips / 535 unmerged tips (`tips_sha256`
+`876df62b…`) and 2613 commits (`commits_sha256` `3c871371…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 459)
@@ -152,39 +152,39 @@ other lanes keep pushing refs.
 | rank | id | unit:offset | bytes | insns | grade | classification | callees (strict/modeled/verified/untranslated) | ready/unready | composable | fixup callers | aligned PUSH CS | prior | score |
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- | --- | ---: | ---: | --- | ---: |
 | 1 | `OVL_03B4_016D` | `0x3b4:0x016d` | 307 | 114 | A | game_evidenced | 5/0/0/3 | 5/3 | no | 10 | 0 | source_mention | 76 |
-| 2 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 1/0/0/3 | 8/7 | no | 3 | 3 | source_mention | 72 |
-| 3 | `OVL_001C_19B0` | `0x1c:0x19b0` | 1025 | 405 | B | game_verified | 4/0/0/0 | 11/4 | no | 0 | 1 | source_mention | 71 |
-| 4 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/0 | 1/1 | no | 14 | 1 | source_mention | 71 |
-| 5 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 1/0/0/0 | 5/4 | no | 7 | 2 | source_mention | 71 |
-| 6 | `OVL_0086_331A` | `0x86:0x331a` | 249 | 113 | A | game_evidenced | 0/0/0/0 | 8/1 | no | 2 | 1 | source_mention | 70 |
-| 7 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 3/0/0/0 | 4/3 | no | 4 | 0 | source_mention | 70 |
-| 8 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 6/7 | no | 8 | 0 | commit_mention | 70 |
-| 9 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 5/0/0/1 | 8/4 | no | 0 | 1 | source_mention | 69 |
-| 10 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 5/2 | no | 0 | 1 | source_mention | 69 |
-| 11 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/0 | 3/1 | no | 3 | 1 | source_mention | 69 |
-| 12 | `OVL_03C6_02D5` | `0x3c6:0x02d5` | 203 | 87 | A | game_evidenced | 2/0/0/2 | 2/2 | no | 6 | 1 | source_mention | 69 |
-| 13 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/0/2 | 5/4 | no | 0 | 1 | source_mention | 68 |
-| 14 | `OVL_0086_0C20` | `0x86:0x0c20` | 815 | 322 | A | game_evidenced | 4/0/0/4 | 8/10 | no | 6 | 0 | source_mention | 68 |
-| 15 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
-| 16 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 7 | 2 | source_mention | 66 |
-| 17 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/2 | 4/3 | no | 4 | 0 | source_mention | 66 |
-| 18 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 2/0/0/2 | 4/5 | no | 3 | 0 | source_mention | 66 |
-| 19 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 5/6 | no | 2 | 0 | commit_mention | 66 |
-| 20 | `OVL_005E_08B2` | `0x5e:0x08b2` | 952 | 344 | A | game_evidenced | 4/0/0/2 | 6/5 | no | 2 | 0 | source_mention | 65 |
-| 21 | `OVL_007D_0C9A` | `0x7d:0x0c9a` | 454 | 181 | A | game_evidenced | 2/2/0/6 | 10/7 | no | 1 | 0 | source_mention | 65 |
-| 22 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/1/0/3 | 7/4 | no | 4 | 0 | source_mention | 65 |
-| 23 | `OVL_009E_115C` | `0x9e:0x115c` | 488 | 189 | A | game_evidenced | 2/0/0/0 | 2/1 | no | 4 | 0 | source_mention | 65 |
-| 24 | `OVL_03B0_10D1` | `0x3b0:0x10d1` | 111 | 52 | A | game_evidenced | 0/0/0/1 | 3/1 | no | 26 | 0 | source_mention | 65 |
-| 25 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
+| 2 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | commit_mention | 74 |
+| 3 | `OVL_0077_004A` | `0x77:0x004a` | 1219 | 495 | A | game_evidenced | 1/0/0/3 | 8/7 | no | 3 | 3 | source_mention | 72 |
+| 4 | `OVL_001C_0EBC` | `0x1c:0x0ebc` | 76 | 29 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | source_mention | 71 |
+| 5 | `OVL_001C_19B0` | `0x1c:0x19b0` | 1025 | 405 | B | game_verified | 4/0/0/0 | 11/4 | no | 0 | 1 | source_mention | 71 |
+| 6 | `OVL_009E_0D63` | `0x9e:0x0d63` | 128 | 53 | A | game_evidenced | 1/0/0/0 | 1/1 | no | 14 | 1 | source_mention | 71 |
+| 7 | `OVL_009E_1656` | `0x9e:0x1656` | 263 | 109 | A | game_evidenced | 1/0/0/0 | 5/4 | no | 7 | 2 | source_mention | 71 |
+| 8 | `OVL_0086_331A` | `0x86:0x331a` | 249 | 113 | A | game_evidenced | 0/0/0/0 | 8/1 | no | 2 | 1 | source_mention | 70 |
+| 9 | `OVL_009E_1869` | `0x9e:0x1869` | 201 | 75 | A | game_evidenced | 3/0/0/0 | 4/3 | no | 4 | 0 | source_mention | 70 |
+| 10 | `OVL_03BD_0E08` | `0x3bd:0x0e08` | 703 | 278 | A | game_verified | 0/0/0/1 | 6/7 | no | 8 | 0 | commit_mention | 70 |
+| 11 | `OVL_001C_0BD1` | `0x1c:0x0bd1` | 163 | 66 | B | game_verified | 3/0/0/1 | 6/2 | no | 0 | 1 | source_mention | 69 |
+| 12 | `OVL_001C_1EF8` | `0x1c:0x1ef8` | 1747 | 653 | B | game_verified | 5/0/0/1 | 8/4 | no | 0 | 1 | source_mention | 69 |
+| 13 | `OVL_001C_25CB` | `0x1c:0x25cb` | 159 | 66 | B | game_verified | 3/0/0/0 | 5/2 | no | 0 | 1 | source_mention | 69 |
+| 14 | `OVL_005E_0D23` | `0x5e:0x0d23` | 303 | 102 | A | game_evidenced | 1/0/0/0 | 3/1 | no | 3 | 1 | source_mention | 69 |
+| 15 | `OVL_03C6_02D5` | `0x3c6:0x02d5` | 203 | 87 | A | game_evidenced | 2/0/0/2 | 2/2 | no | 6 | 1 | source_mention | 69 |
+| 16 | `OVL_001C_2CCF` | `0x1c:0x2ccf` | 260 | 88 | B | game_verified | 5/0/0/2 | 5/4 | no | 0 | 1 | source_mention | 68 |
+| 17 | `OVL_0086_0C20` | `0x86:0x0c20` | 815 | 322 | A | game_evidenced | 4/0/0/4 | 8/10 | no | 6 | 0 | source_mention | 68 |
+| 18 | `OVL_001C_1435` | `0x1c:0x1435` | 500 | 177 | B | game_verified | 3/0/0/1 | 4/1 | no | 0 | 1 | source_mention | 67 |
+| 19 | `OVL_006C_3291` | `0x6c:0x3291` | 342 | 100 | A | game_evidenced | 1/0/0/1 | 1/1 | no | 7 | 2 | source_mention | 66 |
+| 20 | `OVL_009E_0AE7` | `0x9e:0x0ae7` | 360 | 164 | A | game_evidenced | 2/0/0/2 | 4/3 | no | 4 | 0 | source_mention | 66 |
+| 21 | `OVL_009E_0F06` | `0x9e:0x0f06` | 204 | 74 | A | game_evidenced | 2/0/0/2 | 4/5 | no | 3 | 0 | source_mention | 66 |
+| 22 | `OVL_03BD_10C7` | `0x3bd:0x10c7` | 319 | 124 | A | game_verified | 0/0/0/0 | 5/6 | no | 2 | 0 | commit_mention | 66 |
+| 23 | `OVL_005E_08B2` | `0x5e:0x08b2` | 952 | 344 | A | game_evidenced | 4/0/0/2 | 6/5 | no | 2 | 0 | source_mention | 65 |
+| 24 | `OVL_007D_0C9A` | `0x7d:0x0c9a` | 454 | 181 | A | game_evidenced | 2/2/0/6 | 10/7 | no | 1 | 0 | source_mention | 65 |
+| 25 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/1/0/3 | 7/4 | no | 4 | 0 | source_mention | 65 |
 
-Queue summary (schema 8, on the 235/281 main after #885–#1135 and the
+Queue summary (schema 8, on the 235/281 main after #885–#1136 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
 system-runtime coverage): 459 candidates, 59 would be composable without the
 caveats and 57 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 303, game_verified 45, helper_candidate 45,
 unresolved 66; grades A 279, B 178, D 2; prior status main_model 73,
-inline_in_model 29, inline_in_strict 25, unmerged_branch 9, commit_mention 18,
-source_mention 305; 607 fixup-backed and 625 aligned-PUSH-CS caller sites across
+inline_in_model 20, inline_in_strict 20, unmerged_branch 9, commit_mention 25,
+source_mention 312; 607 fixup-backed and 625 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
