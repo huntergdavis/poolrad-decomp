@@ -112,13 +112,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`f73ef5a30e7be09da0f160b843804941e0d9d325e2a0091a2028ceacc17e4911`,
-on the 223/273 main after #885–#1078 plus the phantom-edge filter, the
+`7131f308723f03c8d82b904d5b984348fc9f27aefbf5c3a7ecddf2a1fa3ddf40`,
+on the 223/273 main after #885–#1080 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1534 refs / 1116 tips / 525 unmerged tips (`tips_sha256`
-`eda1f882…`) and 2489 commits (`commits_sha256` `89cd04ff…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1537 refs / 1118 tips / 525 unmerged tips (`tips_sha256`
+`4d2e76f9…`) and 2493 commits (`commits_sha256` `4beb6f0f…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 471)
@@ -151,14 +151,14 @@ other lanes keep pushing refs.
 | 24 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
 | 25 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
 
-Queue summary (schema 8, on the 223/273 main after #885–#1078 and the
+Queue summary (schema 8, on the 223/273 main after #885–#1080 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
-system-runtime coverage): 471 candidates, 71 would be composable without the
-caveats and 69 are composable — 9 bodies carry an interface caveat;
+system-runtime coverage): 471 candidates, 72 would be composable without the
+caveats and 70 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 311, game_verified 49, helper_candidate 45,
-unresolved 66; grades A 286, B 183, D 2; prior status main_model 77,
+unresolved 66; grades A 286, B 183, D 2; prior status main_model 78,
 inline_in_model 34, inline_in_strict 32, unmerged_branch 9, commit_mention 17,
-source_mention 302; 607 fixup-backed and 632 aligned-PUSH-CS caller sites across
+source_mention 301; 607 fixup-backed and 632 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
@@ -238,7 +238,7 @@ removed once PR #902 landed the raw-CPU `pr_res_00ba_2199_cpu` full-state
 model, restoring U31 `+0675` and U25 `+1FB1` to composable. Nine bodies now
 carry an interface caveat and three (`OVL_0068_04DF`, `OVL_0068_0294`,
 `OVL_0038_0400`) drop out; the other six were already unready for other
-reasons. On the 223/273 main (202 overlay credits) the schema-8 candidate set is 471 and 69 bodies are composable.
+reasons. On the 223/273 main (202 overlay credits) the schema-8 candidate set is 471 and 70 bodies are composable.
 
 ## Reproduce
 
