@@ -35,7 +35,7 @@ MAPPED_RANGES = {
 
 # These targets operate on character sidecar lists, the loader-backed party
 # list, or character-linked game state; see the RESIDENT_* evidence notes.
-GAME_SPECIFIC_TARGETS = {(0x0BA, 0x1816),
+GAME_SPECIFIC_TARGETS = {(0x3F1, 0x0137), (0xBA, 0x17E3), (0x709, 0x0DD3), (0x709, 0x05EB), (0x709, 0x0CAB), (0x0BA, 0x1816),
                          (0x709, 0x01DF), (0x709, 0x0626),
                          (0x899, 0x0104),
                          (0x709, 0x0DBE),
@@ -182,7 +182,7 @@ def collect(exe, ovr):
             "mapped target count changed")
     require(len(set(mapped_offsets)) == len(mapped_offsets),
             "mapped resident targets alias the same file offset")
-    require(sum(x["classification"] == "game_verified" for x in resident) == 16,
+    require(sum(x["classification"] == "game_verified" for x in resident) == 21,
             "verified game subset changed")
     raw_prologues = len(list(re.finditer(b"\x55\x89\xe5", image)))
     require(raw_prologues == 132, "resident raw prologue count changed")
@@ -201,8 +201,8 @@ def collect(exe, ovr):
                              mapped_exact_prologue_targets=84,
                              unmapped_called_targets=2,
                              resident_classifications=dict(
-                                 game_verified=16,
-                                 game_or_other_library_unresolved=71,
+                                 game_verified=21,
+                                 game_or_other_library_unresolved=66,
                                  other_library_verified=0),
                              game_specific_verified_lower_bound=10,
                              directly_called_game_candidate_range=[9, 86],
