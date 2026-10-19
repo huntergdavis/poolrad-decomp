@@ -321,6 +321,20 @@ class StrictCandidateQueueTest(unittest.TestCase):
             [], [], {"OVL_007D_03A3"}, known)
         self.assertEqual(flags["status"], "inline_in_strict")
 
+    def test_range_comment_is_not_inline_evidence(self):
+        """A comment naming this routine only as the END of a neighbour's range
+        is not inline-model evidence; an explicit call/inline word still is."""
+        shapes = [
+            ("/* GAME.OVR U38 public entry 99, +2A87..+2AE6 (95 original bytes). */", True),
+            ("assert ins[-1].address + ins[-1].size == 0x11F3", True),
+            ("0x0829: 0x047A,", True),
+            ("* 67 instructions: the next prologue is +0x047A)", True),
+            ("call OVL_0038_101D entry inline at 0x101D", False),
+            ("/* calls OVL_0038_2A87 at +2A87..+2AE6 */", False),
+        ]
+        for text, expected in shapes:
+            self.assertEqual(scq.is_boundary_mention({"text": text}), expected, text)
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
