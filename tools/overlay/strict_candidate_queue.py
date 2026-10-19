@@ -62,6 +62,10 @@ PRIOR_ORDER = ("main_model", "inline_in_strict", "unmerged_branch",
 RAW_CPU_INTERFACE_CAVEATS = {
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
+    "RES_00BA_2E8B": "the raw selector ABI now exists (#1102), but the legacy "
+                     "call sites still reach this resident through its callback "
+                     "wrapper, so those callers are not converted and cannot "
+                     "compose until their call sites move to the raw API",
     "OVL_0025_1815": "ecl_helpers.h exposes the string compare as a semantic "
                      "API; it also needs the unmodeled runtime string compare "
                      "0AF8:0C10",
