@@ -19,7 +19,7 @@ semantic-only API and remains interface-caveated.
 
 On the unchanged input identities, the schema-9 export (re-derived on the
 235/281 main after #1143, queue SHA-256
-`20445a25f4733ae9eb5cc2e5962d3e3c3a06446153ac3fc2e7aefbce439defd4`) has 459
+`6994d6310050bee18f93103f5e6f3516d24596942324e9583cec81522793a087`) has 459
 candidates, 57 composable rows (59 without the caveats), nine interface-caveat
 rows, and 14 rows that explicitly name an unresolved indirect target (the
 dispatcher and 13 direct callers).
@@ -141,14 +141,14 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-9 export (queue SHA-256
-`20445a25f4733ae9eb5cc2e5962d3e3c3a06446153ac3fc2e7aefbce439defd4`,
+`6994d6310050bee18f93103f5e6f3516d24596942324e9583cec81522793a087`,
 on the 235/281 main after #885–#1143 plus the phantom-edge filter, the
 inline-prior filter, the remaining raw-CPU interface caveats and the
 modeled-system-runtime coverage) was generated from `START.EXE` `d825df2b…a07bd`,
 `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph
-`c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1677 refs / 1186 tips /
-535 unmerged tips (`tips_sha256` `e41dc32f…`) and 2628 commits (`commits_sha256`
-`49b9b2fb…`). Git pins are point-in-time;
+`c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1679 refs / 1186 tips /
+536 unmerged tips (`tips_sha256` `e41dc32f…`) and 2629 commits (`commits_sha256`
+`2931b31e…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 459)
