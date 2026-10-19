@@ -21,6 +21,7 @@ Grade: A = entry or far_called; B = near_called only; C = procptr only; D = entr
 only; U = none.
 
 Feature columns come from a bounded linear decode from the prologue to the next prologue
+(except hash-checked executable-span corrections documented in QUEUE_METADATA_REPAIR.md)
 (Capstone 5, 16-bit): decoded bytes, instruction count, far calls by segment class
 (runtime 0xAF8, overlay stub segments, other resident), direct near calls, indirect calls
 through memory, distinct DS-relative global operands, ES-relative operands, return form.
@@ -38,6 +39,26 @@ except ImportError:
 
 RUNTIME_SEG = 0xAF8
 ALIAS_DELTA = 0x800
+
+# Reviewed executable ends, not a heuristic to stop at the first RETF: other
+# routines can have live branch targets after an early return. Hashes bind
+# these exceptions to the original bodies; no trailing string data is decoded.
+EXECUTABLE_SPANS = {
+    (0x86, 0x3092): (0x3097, "fc1e97b8fe4158fdf9a46de4d3a1b4a04602fb787f6793778bc6d2b7a758d780"),
+    (0x6A, 0x0824): (0x08BF, "c77f6aa238e6d9f11bf01decb9084b02ac0a6cd4a5742611adae6848b0d927d7"),
+}
+
+
+def executable_end(unit, start, proposed_end, code):
+    correction = EXECUTABLE_SPANS.get((unit, start))
+    if correction is None:
+        return proposed_end
+    end, digest = correction
+    if not start < end <= proposed_end <= len(code):
+        raise ValueError(f"reviewed span outside candidate bounds: {unit:04X}:{start:04X}")
+    if hashlib.sha256(code[start:end]).hexdigest() != digest:
+        raise ValueError(f"reviewed executable span hash differs: {unit:04X}:{start:04X}")
+    return end
 
 
 def main():
@@ -125,6 +146,7 @@ def main():
             fixset = {f for f in u["fixups"] if not (f >= 3 and code[f - 3] == 0x9A)}
             for i, rel in enumerate(pro):
                 end = pro[i + 1] if i + 1 < len(pro) else len(code)
+                end = executable_end(u["stub_para"], rel, end, code)
                 ins = list(md.disasm(code[rel:end], rel))
                 f_rt = f_ovl = f_res = ind = near = 0
                 for k, x in enumerate(ins):

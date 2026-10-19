@@ -63,10 +63,21 @@ RAW_CPU_INTERFACE_CAVEATS = {
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
     "OVL_0025_1815": "ecl_helpers.h exposes the string compare as a semantic "
-                     "API; it also needs the unmodeled runtime string compare "
-                     "0AF8:0C10",
+                     "API, not a CPU-state callee; its runtime dependency "
+                     "0AF8:0C10 has the merged pr_system_strcmp_0c10 raw model",
     "OVL_0025_18EB": "ecl_helpers.h exposes the word compare as a semantic API, "
                      "not a CPU-state callee",
+}
+
+# Reviewed unresolved dispatches omitted by the direct-call graph. Keep the
+# actual indirect site visible, and propagate its blocker through modeled
+# callers. A filename/strict/full label cannot close a known dispatch boundary.
+UNRESOLVED_INDIRECT_DISPATCH = {
+    "OVL_009E_0000": dict(
+        site=0x001E,
+        note="LCALL through DS:6828+4*type; the raw prefix stops before the "
+             "indirect call and does not execute its effect handler",
+        evidence_doc="docs/re/U9E_LIST_RELEASE_0026_CPU.md"),
 }
 
 # SYSTEM/runtime endpoints with merged raw-CPU full-state models. A runtime
@@ -447,7 +458,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
         seen.add(entry)
         if entry[0] == "overlay":
             target_id = ovl_id(entry[1], entry[2])
-            readiness = ("interface_caveat" if target_id in RAW_CPU_INTERFACE_CAVEATS
+            readiness = ("indirect_unresolved" if target_id in UNRESOLVED_INDIRECT_DISPATCH
+                         else "interface_caveat" if target_id in RAW_CPU_INTERFACE_CAVEATS
                          else "strict" if target_id in strict_overlay
                          else "partial" if target_id in partial_models
                          else "modeled" if target_id in main_files
@@ -457,6 +469,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
                          else "untranslated")
             targets.append(dict(kind="overlay", id=target_id, unit=entry[1],
                                 offset=entry[2], readiness=readiness))
+            if target_id in UNRESOLVED_INDIRECT_DISPATCH:
+                targets[-1]["unresolved_dispatch"] = UNRESOLVED_INDIRECT_DISPATCH[target_id].copy()
         elif entry[0] == "resident":
             res_id = (f"RES_{entry[1]:04X}_{entry[2]:04X}"
                       if entry[1] is not None and entry[2] is not None else None)
@@ -472,6 +486,10 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
                          else "runtime_unmapped")
             targets.append(dict(kind="runtime", seg=entry[1], offset=entry[2],
                                 readiness=readiness))
+    if source_id in UNRESOLVED_INDIRECT_DISPATCH:
+        targets.append(dict(kind="indirect", seg=None, offset=None,
+                            readiness="indirect_unresolved",
+                            **UNRESOLVED_INDIRECT_DISPATCH[source_id]))
     counts = Counter(target["readiness"] for target in targets)
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
                       for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
@@ -481,7 +499,8 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
                + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
-               + counts["interface_caveat"] + counts["resident_interface_caveat"])
+               + counts["interface_caveat"] + counts["resident_interface_caveat"]
+               + counts["indirect_unresolved"])
     base = min(30, 6 * counts["strict"] + 4 * counts["modeled"]
                + 2 * counts["verified"] + counts["partial"]
                + counts["modeled_blocked"] + 2 * counts["resident_covered"]
@@ -554,7 +573,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             elif edge.get("resolution") == "runtime" and edge.get("seg") is not None \
                     and edge.get("off") is not None:
                 runtime_edges[source_id].add((edge["seg"], edge["off"]))
-    nodes = set(graph) | set(resident_edges) | set(runtime_edges)
+    nodes = set(graph) | set(resident_edges) | set(runtime_edges) | set(UNRESOLVED_INDIRECT_DISPATCH)
     for targets in graph.values():
         nodes |= targets
 
@@ -575,6 +594,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     # target is strict-credited, and no runtime call remains uncovered.
     endpoints = {node for node in nodes if node in state["full_models"]}
     ready = {node: (node not in RAW_CPU_INTERFACE_CAVEATS)
+                    and (node not in UNRESOLVED_INDIRECT_DISPATCH)
                     and (base_category(node) in ("strict", "modeled") or node in endpoints)
              for node in nodes}
     changed = True
@@ -641,6 +661,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                                          for item in ranked),
                    interface_caveat_bodies=sum(1 for item in ranked
                                                if item["callee_readiness"]["raw_cpu_caveats"]),
+                   unresolved_indirect_bodies=sum(1 for item in ranked
+                       if item["callee_readiness"]["counts"].get("indirect_unresolved")),
                    near_call_evidence=("decoded_validated" if state["near_validated"]
                                        else "raw_unvalidated"),
                    prior_status=counts(item["prior_translation"]["status"] for item in ranked),
@@ -651,7 +673,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
                    top_score=ranked[0]["score"] if ranked else None)
-    return dict(schema_version=8, inputs=DIGESTS.copy(), git=git_view,
+    return dict(schema_version=9, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
 
 

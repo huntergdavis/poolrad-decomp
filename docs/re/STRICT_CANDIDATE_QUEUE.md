@@ -7,6 +7,23 @@ commit messages. It answers "what should the next strict translation be, and
 what has already been attempted?" — not "how complete is the game?". The
 whole-game denominator stays open and no completion percentage is calculated.
 
+## Schema 9 metadata repair
+
+[QUEUE_METADATA_REPAIR.md](QUEUE_METADATA_REPAIR.md) records the original-byte
+proof and regenerated rows. U86 +3092 is 5 bytes / 4 instructions, and U6A
++0824 is 155 bytes / 57 instructions; hash-checked corrections apply at ledger
+generation. U9E +0000 now reports an explicit `indirect_unresolved` target
+at +001E and is not composable. The blocker propagates to modeled callers.
+SYSTEM +0C10 is covered by `pr_system_strcmp_0c10`; U25 +1815 still has a
+semantic-only API and remains interface-caveated.
+
+On the unchanged input identities, the schema-9 export has 467 candidates,
+65 composable rows, nine interface-caveat rows, and 14 rows that explicitly
+name an unresolved indirect target (the dispatcher and 13 direct callers).
+These are queue metadata, not credit or completion counts. The schema-8
+ranked tables, hashes and historical traps below remain dated snapshots;
+they are not a fresh authoring backlog.
+
 ## Method
 
 Inputs are the regenerated hash-pinned products (`inventory.json`,
@@ -35,12 +52,11 @@ merged per-routine file in `src/recovered`, `include/poolrad/recovered` or
 model whose transitive closure still contains an unready callee), `verified`
 (classification `game_verified` with no model) or `untranslated`. A strict
 overlay credit is `interface_caveat` instead of `strict` when its published
-C endpoint is not a raw-CPU callee (for example `OVL_0068_0109` exposes
-`overlay_u68_map_update.h` scalar arguments and a segment view without
-CPU/stack effects, `OVL_0025_1815`/`+18EB` expose `ecl_helpers.h` semantic
-compare APIs with `+1815` also needing the unmodeled runtime string compare
-`0AF8:0C10`, and `OVL_03C6_0BE7`/`+0C0F`/`+0C37` expose semantic slot/word
-getters), so a caller cannot be composed by handing it the live CPU and RAM
+C endpoint is not a raw-CPU callee (for example
+`OVL_0025_1815`/`+18EB` expose `ecl_helpers.h` semantic compare APIs).
+The string comparator's runtime dependency `0AF8:0C10` already has the
+merged `pr_system_strcmp_0c10` raw model, but the overlay API still needs
+CPU/stack effects before a caller can pass it a live CPU and RAM
 image. Resident
 targets are `resident_covered` only when their `RES_<seg>_<off>` id is both
 strict-credited and listed `full` in the callee-model manifest (the
@@ -60,7 +76,7 @@ lists the SYSTEM/runtime leaves with merged raw-CPU full-state models
 RANDOM, `0AF8:11D6` random bit, `0AF8:120F` seed step, `0AF8:16A8`
 FillChar, `0AF8:182A` UpCase), else `runtime_unmapped`.
 **Only strict, closure-ready modeled, resident_covered and runtime_covered
-count as ready; `interface_caveat`, `resident_interface_caveat`, `partial`,
+count as ready; `indirect_unresolved`, `interface_caveat`, `resident_interface_caveat`, `partial`,
 `modeled_blocked`, `verified`, `resident_callback`, `resident_unmapped` and
 `runtime_unmapped` do not**: readiness reports `ready`, `unready` and
 `total`, and a body is `composable` only when every target is ready. Readiness is the
@@ -71,6 +87,16 @@ callee in its closure is ready, each resident target is strict-credited and
 no runtime call is uncovered. The schema-2–5 corrections (2026-10-17, after
 Claude's, Astra's, Codex's and the #848 review) stop the queue proposing
 bodies whose callees are not yet full-state composable.
+
+**Unresolved indirect dispatch.** Direct-call graphs omit dynamic targets.
+The evidence-backed `UNRESOLVED_INDIRECT_DISPATCH` map records known open
+boundaries. A dispatcher receives a target with `kind="indirect"`,
+`readiness="indirect_unresolved"`, a known instruction `site`, and null
+target `seg`/`offset` because the live handler address is unresolved.
+An overlay edge to that dispatcher also carries the reason and evidence
+document. Explicit dispatch blockers override a stale strict/full label,
+and propagate through modeled callers. This is not an exhaustive audit
+of every indirect call in the corpus.
 
 **Caller evidence.** Fixup-confirmed far callers resolving to the candidate's
 exact start, and decoded near callers with an exact prologue target. An
@@ -190,8 +216,10 @@ Read it as: a large fan-out with a deep, expensive closure must not be read as a
 cheap multi-row unlock; prefer blockers whose transitive cost and depth are
 small.
 
-`OVL_0025_1815` is additionally gated on the unmodeled runtime string compare
-`0AF8:0C10` (not a `RUNTIME_COVERED_ENDPOINTS` member), and U38
+`OVL_0025_1815` retains its semantic-API interface caveat, while its runtime
+string compare `0AF8:0C10` is covered by merged `pr_system_strcmp_0c10`.
+The historical U9E +0000 cost row above omits its unresolved indirect
+handlers and must not be used as a 38-byte closure estimate. U38
 `+2556/+070F/+0C4B` and `+0B1B/+2610` remain gated on `RES_00BA_16EC` and
 `OVL_0038_0058` respectively even after the SYSTEM string leaves `0B0B/0B98`
 became covered.
@@ -313,4 +341,6 @@ for a fast overlay-only pass.
 * Ledger `bound`/`decoded` sizes can exceed the actual callable extent — for
   example `OVL_001C_0B52` is 127/126 bytes in the ledger but 118 bytes / 41
   instructions through its RETF; the queue reports the ledger values and
-  `instructions` as bounded-decode metadata, not the reviewed callable body.
+  `instructions` as bounded-decode metadata, except for the explicitly
+  hash-checked executable spans in `function_ledger.EXECUTABLE_SPANS`.
+  A first RETF alone is not a safe general truncation rule.
