@@ -121,6 +121,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_unit38_effects_next.c
                                     src/recovered/resident_character_target_select.c
                                     src/recovered/overlay_unit38_helper.c
+                                    src/recovered/overlay_u38_clear_cycle_2e08_cpu.c
                                     src/recovered/overlay_u38_helper_cluster_cpu.c
                                     src/recovered/overlay_u38_dispatch_nop_cpu.c
                                     src/recovered/overlay_u38_target_reset_133f_cpu.c
@@ -391,6 +392,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u68_entry2_up.c
                                     src/recovered/overlay_u7d_entry1.c
                                     src/recovered/overlay_u7d_carry_02f2.c
+                                    src/recovered/overlay_u7d_update_047a_cpu.c
                                     src/recovered/overlay_u7d_update_03a3.c
                                     src/recovered/overlay_u7d_list_timer_0000_cpu.c
                                     src/recovered/system_seed_fullstate_120f.c
@@ -3491,4 +3493,16 @@ if(BUILD_TESTING)
     add_executable(poolrad_u1c_clearmonsters_125d_cpu_tests tests/recovered/test_overlay_u1c_clearmonsters_125d_cpu.c)
     target_link_libraries(poolrad_u1c_clearmonsters_125d_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_u1c_clearmonsters_125d_cpu_tests COMMAND poolrad_u1c_clearmonsters_125d_cpu_tests)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(test_overlay_u7d_update_047a_cpu tests/recovered/test_overlay_u7d_update_047a_cpu.c)
+    target_link_libraries(test_overlay_u7d_update_047a_cpu PRIVATE poolrad_recovered)
+    add_test(NAME overlay_u7d_update_047a_cpu COMMAND test_overlay_u7d_update_047a_cpu)
+endif()
+
+if(BUILD_TESTING)
+    add_executable(test_overlay_u38_clear_cycle_2e08_cpu tests/recovered/test_overlay_u38_clear_cycle_2e08_cpu.c)
+    target_link_libraries(test_overlay_u38_clear_cycle_2e08_cpu PRIVATE poolrad_recovered)
+    add_test(NAME overlay_u38_clear_cycle_2e08_cpu COMMAND test_overlay_u38_clear_cycle_2e08_cpu)
 endif()
