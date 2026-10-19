@@ -170,6 +170,7 @@ def main():
         subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
                         "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
                         str(ROOT / "src/recovered/overlay_u3b0_entry6_1140.c"),
+                        str(ROOT / "src/recovered/system_getmem_023f_cpu.c"),
                         "-o", str(library)], check=True)
         model = ctypes.CDLL(str(library)).pr_u3b0_entry6_1140
         model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
