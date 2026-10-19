@@ -265,6 +265,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u3b0_leaf_0711.c
                                     src/recovered/overlay_u3b0_entry_0969_cpu.c
                                     src/recovered/overlay_u3b0_entry_0a08_cpu.c
+                                    src/recovered/overlay_u3b0_entry_07a4_cpu.c
                                     src/recovered/overlay_u3b0_entry1_0000.c
                                     src/recovered/overlay_u3b0_leaf_0067.c
                                     src/recovered/overlay_u38_sidecar_flag_0918.c
@@ -3454,4 +3455,7 @@ if(BUILD_TESTING)
     add_executable(poolrad_u3b0_entry_0a08_cpu_tests tests/recovered/test_overlay_u3b0_entry_0a08_cpu.c)
     target_link_libraries(poolrad_u3b0_entry_0a08_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_u3b0_entry_0a08_cpu_tests COMMAND poolrad_u3b0_entry_0a08_cpu_tests)
+    add_executable(poolrad_u3b0_entry_07a4_cpu_tests tests/recovered/test_overlay_u3b0_entry_07a4_cpu.c)
+    target_link_libraries(poolrad_u3b0_entry_07a4_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_u3b0_entry_07a4_cpu_tests COMMAND poolrad_u3b0_entry_07a4_cpu_tests)
 endif()
