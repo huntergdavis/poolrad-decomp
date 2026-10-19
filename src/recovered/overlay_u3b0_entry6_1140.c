@@ -194,3 +194,81 @@ pr_u3b0_1140_status pr_u3b0_entry6_1140(
     cpu->sp = (uint16_t)(cpu->sp + 6u);
     return PR_U3B0_1140_OK;
 }
+
+/* The callback entry owns the 58 caller instructions. This private adapter
+ * supplies the real far-call and callee effects, retaining its legacy ABI. */
+#include "poolrad/recovered/system_getmem_023f_cpu.h"
+
+typedef struct {
+    unsigned remaining, heap_steps;
+    int *diagnostic;
+    pr_u3b0_1140_cpu_status status;
+} raw_allocation;
+
+#define COPY_CPU(to, from) do { \
+    (to)->ax=(from)->ax; (to)->bx=(from)->bx; (to)->cx=(from)->cx; \
+    (to)->dx=(from)->dx; (to)->si=(from)->si; (to)->di=(from)->di; \
+    (to)->bp=(from)->bp; (to)->sp=(from)->sp; (to)->cs=(from)->cs; \
+    (to)->ip=(from)->ip; (to)->ds=(from)->ds; (to)->es=(from)->es; \
+    (to)->ss=(from)->ss; (to)->flags=(from)->flags; \
+} while (0)
+
+static int raw_allocate(void *context, uint8_t *ram, size_t size,
+                        pr_u3b0_1140_cpu *cpu)
+{
+    raw_allocation *a = context;
+    pr_system_getmem_cpu inner;
+    pr_system_getmem_status status;
+    uint16_t caller_cs = cpu->cs, next = (uint16_t)(cpu->ip + 5u);
+    uint16_t segment;
+    if (ram[physical(cpu->cs, cpu->ip)] != 0x9Au ||
+        read16(ram, cpu->cs, (uint16_t)(cpu->ip + 1u)) != 0x023Fu) {
+        a->status = PR_U3B0_1140_CPU_CODE;
+        return 0;
+    }
+    if (a->remaining == 0u) {
+        a->status = PR_U3B0_1140_CPU_LIMIT;
+        return 0;
+    }
+    --a->remaining;
+    segment = read16(ram, cpu->cs, (uint16_t)(cpu->ip + 3u));
+    push16(ram, cpu, cpu->cs);
+    push16(ram, cpu, next);
+    cpu->cs = segment;
+    cpu->ip = 0x023Fu;
+    COPY_CPU(&inner, cpu);
+    status = pr_system_getmem_023f(ram, size, &inner, a->heap_steps);
+    COPY_CPU(cpu, &inner);
+    if (a->diagnostic != NULL) *a->diagnostic = (int)status;
+    if (status != PR_SYSTEM_GETMEM_RETURNED) {
+        a->status = PR_U3B0_1140_CPU_CALLEE;
+        return 0;
+    }
+    if (cpu->cs != caller_cs || cpu->ip != next) {
+        a->status = PR_U3B0_1140_CPU_TRANSFER;
+        return 0;
+    }
+    /* The legacy callback ABI leaves the argument cleanup to allocate().
+     * GetMem already performed RETF 2, so compensate solely in the adapter;
+     * allocate() immediately adds these two bytes back, with no RAM access. */
+    cpu->sp = (uint16_t)(cpu->sp - 2u);
+    return 1;
+}
+
+pr_u3b0_1140_cpu_status pr_u3b0_entry6_1140_cpu(
+    uint8_t *ram, size_t ram_size, pr_u3b0_1140_cpu *cpu,
+    unsigned max_allocations, unsigned max_heap_steps, int *getmem_status)
+{
+    raw_allocation context = {max_allocations, max_heap_steps, getmem_status,
+                              PR_U3B0_1140_CPU_OK};
+    if (getmem_status != NULL) *getmem_status = -1;
+    if (ram == NULL || cpu == NULL || ram_size != PR_U3B0_1140_RAM_SIZE ||
+        cpu->ip != 0x1140u || cpu->sp < 0x0040u || cpu->sp > 0xFFF6u)
+        return PR_U3B0_1140_CPU_ARGUMENT;
+    if (pr_u3b0_entry6_1140(ram, ram_size, cpu, raw_allocate, &context)
+        != PR_U3B0_1140_OK)
+        return context.status;
+    return PR_U3B0_1140_CPU_OK;
+}
+
+#undef COPY_CPU

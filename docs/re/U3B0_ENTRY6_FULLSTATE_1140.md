@@ -1,5 +1,7 @@
 # Unit 0x3B0 entry 6 +0x1140: VERTICAL MENU node allocator
 
+A raw GetMem composition companion is documented in [U3B0_ALLOC_1140_CPU.md](U3B0_ALLOC_1140_CPU.md). The callback API and its historical evidence below are preserved.
+
 The VERTICAL MENU call at unit `0x1C:+0x0F73` targets `3C5:003E`. That
 segment is an **overlay stub**, not resident code: the
 [overlay inventory](overlay_inventory.md) maps stub `0x3C5` to unit `0x3B0`,
