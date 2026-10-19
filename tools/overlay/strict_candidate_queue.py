@@ -359,6 +359,32 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 near_validated=near_validated)
 
 
+# Evidence shapes that mention an address without modelling it: a test assertion
+# about where the PREVIOUS body ends, a call-site map entry (`0x0829: 0x047A`),
+# a span hash of bytes seen en route, or a comment naming the next prologue. A
+# *call* is the opposite of an inlined model, so none of these is inline-model
+# evidence. Require a call/entry/patch/model keyword to treat a text as such.
+BOUNDARY_ASSERTION = re.compile(
+    r"address\s*\+\s*[^=]{1,40}?==\s*0x[0-9a-fA-F]{3,5}"
+    r"|\bsize\s*\+\s*[^=]{1,40}?==\s*0x[0-9a-fA-F]{3,5}")
+CALLSITE_MAP = re.compile(r"^0x[0-9a-fA-F]{3,5}\s*:\s*0x[0-9a-fA-F]{3,5}\s*,?$")
+SPAN_HASH = re.compile(
+    r"^\(0x[0-9a-fA-F]{3,5},\s*0x[0-9a-fA-F]{3,5}\)\s*:\s*\"?[0-9a-fA-F]{16,}")
+NEXT_PROLOGUE = re.compile(r"next\s+prologue|prologue\s+is\s+\+?0x", re.IGNORECASE)
+INLINE_EVIDENCE_KEYWORD = re.compile(r"call|invoke|entry|patch|model", re.IGNORECASE)
+
+
+def is_boundary_mention(mention):
+    """True when a mention of this address is not evidence of an inline model."""
+    text = (mention.get("text") or "").strip()
+    if INLINE_EVIDENCE_KEYWORD.search(text):
+        return False
+    return bool(BOUNDARY_ASSERTION.search(text)
+                or CALLSITE_MAP.match(text)
+                or SPAN_HASH.match(text)
+                or NEXT_PROLOGUE.search(text))
+
+
 def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
     own = main_files.get(cid, [])
     flags, inline = set(), []
@@ -367,6 +393,8 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
     for mention in mentions["source"]:
         covered_by = routine_of(mention["file"], known_ids)
         if covered_by is None or covered_by == cid:
+            continue
+        if is_boundary_mention(mention):
             continue
         if covered_by in strict_overlay:
             inline.append(dict(mention, covered_by=covered_by))
