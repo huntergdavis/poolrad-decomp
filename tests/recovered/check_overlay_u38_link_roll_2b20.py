@@ -172,6 +172,15 @@ def main():
                         "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
                         str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
                         str(ROOT / "src/recovered/overlay_u38_link_roll_2b20.c"),
+                        str(ROOT / "src/recovered/system_random_fullstate_11c0.c"),
+                        str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_compose_0de3.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_loop_0e05.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_system_call_0e0e.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_tail_0e1f.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_postcall_0e13.c"),
+                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_prefix_0de3.c"),
                         "-o", str(library)], check=True)
         model = ctypes.CDLL(str(library)).pr_u38_link_roll_2b20
         callee_model = ctypes.CDLL(str(library)).pr_u9e_entry9_roll_latch_0e2e
