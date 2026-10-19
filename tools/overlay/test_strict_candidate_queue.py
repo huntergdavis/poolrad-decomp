@@ -268,6 +268,35 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(row["callee_readiness"]["counts"], {})
         self.assertTrue(row["callee_readiness"]["composable"])
 
+    def test_non_model_mentions_are_not_inline_evidence(self):
+        """A call site, a span hash, a next-prologue comment or a previous-body
+        end assertion mentions an address without modelling it."""
+        known = {"OVL_007D_03A3": (0x7D, 0x03A3)}
+        main_files = {"OVL_007D_03A3": ["src/recovered/overlay_u7d_update_03a3.c"]}
+        shapes = [
+            'assert ins[-1].address + ins[-1].size == 0x047A',
+            "0x0829: 0x047A,",
+            '(0x047A, 0x0565): "0c687ca966432b6c241673264978796173f6f31e91905a8a67ee3dee5110bc4e",',
+            "* 67 instructions, `retf 4`, no trailing data: the next prologue is +0x047A)",
+        ]
+        for text in shapes:
+            self.assertTrue(scq.is_boundary_mention({"text": text}), text)
+            flags = scq.prior_evidence(
+                "OVL_007D_047A", main_files,
+                {"source": [{"file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+                             "text": text}], "tooling": [], "docs": []},
+                [], [], {"OVL_007D_03A3"}, known)
+            self.assertNotEqual(flags["status"], "inline_in_strict", text)
+        # positive control: a real inline mention still counts
+        real = {"file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+                "text": "call OVL_007D_03A3 entry at 0x03A3"}
+        self.assertFalse(scq.is_boundary_mention(real))
+        flags = scq.prior_evidence(
+            "OVL_007D_047A", main_files,
+            {"source": [real], "tooling": [], "docs": []},
+            [], [], {"OVL_007D_03A3"}, known)
+        self.assertEqual(flags["status"], "inline_in_strict")
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
