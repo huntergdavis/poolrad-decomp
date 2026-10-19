@@ -112,13 +112,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`97b82fddadff9627594ee1b7d2100a10c9da4996e2074465365674a1f533c60e`,
+`dc309e8c3758e02d418d5ecff6be4d8dd58ad1790273dffa529665aad4505035`,
 on the 223/273 main after #885–#1089 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1552 refs / 1128 tips / 530 unmerged tips (`tips_sha256`
-`14e5b9fd…`) and 2508 commits (`commits_sha256` `7f592c5e…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1554 refs / 1129 tips / 530 unmerged tips (`tips_sha256`
+`f6506713…`) and 2510 commits (`commits_sha256` `31edfe2d…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 471)
