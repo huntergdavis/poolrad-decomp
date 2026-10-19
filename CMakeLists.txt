@@ -3573,3 +3573,12 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_u1c_delay_271f_cpu_tests
              COMMAND poolrad_u1c_delay_271f_cpu_tests)
 endif()
+
+if(BUILD_TESTING)
+    add_executable(poolrad_u68_roll_gate_0294_cpu_tests
+                   tests/recovered/test_u68_roll_gate_0294_cpu.c)
+    target_include_directories(poolrad_u68_roll_gate_0294_cpu_tests PRIVATE tests/recovered)
+    target_link_libraries(poolrad_u68_roll_gate_0294_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_u68_roll_gate_0294_cpu_tests
+             COMMAND poolrad_u68_roll_gate_0294_cpu_tests)
+endif()
