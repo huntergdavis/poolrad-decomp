@@ -202,6 +202,11 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rows2["OVL_0019_0030"]["callee_readiness"]["counts"], {"modeled": 1})
 
     def test_resident_callee_requires_strict_credit(self):
+        # Isolate from any real caveat on this synthetic resident id.
+        _saved = dict(scq.RAW_CPU_INTERFACE_CAVEATS)
+        scq.RAW_CPU_INTERFACE_CAVEATS.pop("RES_00BA_2E8B", None)
+        self.addCleanup(lambda: (scq.RAW_CPU_INTERFACE_CAVEATS.clear(),
+                                 scq.RAW_CPU_INTERFACE_CAVEATS.update(_saved)))
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
         mentions = {cid: {"source": [], "tooling": [], "docs": []}
