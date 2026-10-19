@@ -63,3 +63,48 @@ Focused C11 `-Wall -Wextra -Wpedantic -Werror` ASan/UBSan CTest passes.
 
 The native frames are synthetic direct entries, not item-49 dispatches or
 reached gameplay. This branch makes no strict identity or count claim.
+
+## Completeness pilot: no readiness gain measured
+
+Author measurement on main `926f3b5d57ca48deb9734ce98720a16b44f2b9bc`:
+**full executable body extent, with a 12-case harness covering 28/28 wrapper
+instruction starts, 6/6 composed +0C06 starts, and 2/2 feasible conditional
+outcomes; exhaustive input, alias and flag-space parity is not established.**
+The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. Four synthetic
+native frames also pass. This is a measured coverage statement, not new identity
+or strict-C acceptance; reviewer acceptance remains separate from the author claim.
+
+The original `GAME.OVR` slice is `[65293,65366)` (`[0xFF0D,0xFF56)`),
+U38 `[+12B2,+12FB)`, 73 bytes / 28 instructions, with the body hash above.
+The final three-byte `RETF 10` begins at +12F8; the next prologue and public
+entry begin exactly at +12FB. The excluded tail is **zero bytes** (`[12FB,12FB)`),
+so the ledger needs no extent repair. The composed +0C06 body is 15 bytes /
+6 instructions. Both outcomes at +12D5 were observed: +12D7 and +12ED.
+
+The coverage observation is reproducible without changing the cases or comparisons:
+
+```sh
+python3 tests/recovered/check_overlay_u38_effect_match_12b2.py --coverage
+python3 tests/recovered/native_overlay_u38_effect_match_12b2.py
+```
+
+These commands require the ignored, hash-pinned media and the checker's existing
+Capstone/Unicorn dependencies; the second additionally needs DOSBox-X and binutils.
+The new `--coverage` output records starts/outcomes; it changes no parity masks
+or expected results. The four-frame native result SHA-256 again equals
+`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1`.
+
+Counterfactual: adding the three-field row `OVL_0038_12B2,full,docs/re/U38_EFFECT_MATCH_12B2.md`
+to `partial_callee_models.csv` leaves **460 candidates / 58 composable** and the
+entire ready-ID set unchanged; zero callers become ready and zero callee-readiness
+records change. There are no decoded direct callers to +12B2. The installed
+effect-table item 49 remains behind U9E +0000's unresolved indirect dispatch;
+this declaration would not resolve that dispatch. +12B2 itself was already
+composable through its sole strict +0C06 callee.
+
+Per PM decision i19015, **no manifest row is added**. Future declarations must
+first demonstrate at least one newly ready caller; a zero delta is recorded and
+the declaration skipped. This pilot does not authorize bulk declarations.
+The existing implementation/evidence was located through Dunking Sheep session
+`01a1386e-bea7-7883-8ddd-06fd2be8db9b`; span, coverage, native result and queue delta
+were remeasured against the current source and pinned media.

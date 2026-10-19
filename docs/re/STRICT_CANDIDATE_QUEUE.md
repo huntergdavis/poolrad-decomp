@@ -366,3 +366,48 @@ strict, so it is excluded from the candidate queue. Regeneration preserves
 the current 465 candidates and 63 composable IDs; the earlier 467/65
 snapshots predate the reviewer's two identity/credit acceptances in #1127.
 This follow-up changes no identity, strict map, readiness or accounting.
+
+## Checker availability before handoff
+
+A proposed row must have a runnable checker on the current main baseline before
+review. Fetch main, update the author branch to include it, then run the row gate
+using a Python environment with Capstone 5.0.7 and Unicorn 2.1.4:
+
+```sh
+git fetch origin main
+python3 tools/overlay/check_checker_builds.py OVL_0038_12B2 --output resources/checker-builds.json
+```
+
+The gate refuses a HEAD that does not include fetched main, unknown row IDs,
+compiler errors, load/bind errors, and checkers that do not confirm completion.
+It discovers literal `CHECKER_ROWS = ("OVL_0038_12B2",)` registrations in the
+actual Python checker files under `tests/recovered/` and `tools/overlay/`.
+Each registered file implements `--compile-only` using the same build function,
+compiler source list, dynamic-library load and exported-symbol binding as its
+normal audit. It prints `CHECKER_BUILD_OK` only after those operations succeed.
+There is no second source list or stand-in compiler command to drift out of sync.
+
+The initial registry covers two rows and five build paths: +12B2's differential
+and native checkers, and +2B20's differential, native and raw-closure audit builds.
+The raw-closure native helper shares the latter audit's library. Existing
+unregistered rows are not claimed covered. Every newly proposed row must register
+its actual checkers; passing another row's gate is insufficient. The CI
+`checker-builds` job runs all registered builds with no game media, and also
+requires registration for any manifest row added or changed relative to fetched
+main. It does not run native emulation or differential comparisons.
+
+The JSON receipt pins fetched main, HEAD and checker file hashes. Compile success
+alone is insufficient: shared libraries may retain unresolved symbols until load,
+so the gate loads and binds the real entry points. Synthetic regressions exercise
+this failure, missing compiler inputs, absent completion markers, unknown IDs and
+new unregistered manifest rows. A build pass establishes checker availability;
+it does not establish parity, coverage, identity or credit. For uncommitted work,
+the receipt's checker hashes identify the files actually tested.
+
+The +12B2 completeness pilot measured zero newly ready callers (460 candidates /
+58 composable on its tested baseline), so its declaration remains documentation
+only; see [its measured coverage and limits](U38_EFFECT_MATCH_12B2.md).
+Future full-model declarations must first run the before/after readiness
+counterfactual and unlock at least one caller. Record a zero delta and skip the
+manifest row. Authors make completeness claims; reviewers accept them. Neither a
+manifest declaration nor a checker-build pass adds credit.

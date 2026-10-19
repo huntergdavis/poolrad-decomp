@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """DOSBox-X frames for original U38:+12B2 and its +0C06 callee."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 import json
@@ -11,6 +12,8 @@ import subprocess
 import tempfile
 
 import check_overlay_u38_effect_match_12b2 as audit
+
+CHECKER_ROWS = ("OVL_0038_12B2",)
 
 ROOT = Path(__file__).resolve().parents[2]
 MODES = range(4)  # equal 0, equal 1, mismatch 0/1, mismatch 1/0
@@ -104,20 +107,25 @@ def run_native(directory):
     return result.read_bytes()
 
 
+def build_model(directory):
+    library = directory / "model.so"
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+                    "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
+                    str(ROOT / "src/recovered/overlay_u38_effect_match_12b2.c"),
+                    "-o", str(library)], check=True)
+    model = ctypes.CDLL(str(library)).pr_u38_effect_match_12b2
+    model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                      ctypes.POINTER(audit.helper.Cpu)]
+    model.restype = ctypes.c_int
+    return model
+
+
 def compare(data, com):
     assert len(data) == 6 + len(MODES) * RECORD_SIZE
     seg, ret_ip, count = struct.unpack_from("<3H", data)
     assert count == len(MODES)
     with tempfile.TemporaryDirectory(prefix="u38-12b2-native-") as tmp:
-        library = Path(tmp) / "model.so"
-        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
-                        "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
-                        str(ROOT / "src/recovered/overlay_u38_effect_match_12b2.c"),
-                        "-o", str(library)], check=True)
-        model = ctypes.CDLL(str(library)).pr_u38_effect_match_12b2
-        model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                          ctypes.POINTER(audit.helper.Cpu)]
-        model.restype = ctypes.c_int
+        model = build_model(Path(tmp))
         for mode in MODES:
             expected = data[6 + mode * RECORD_SIZE:6 + (mode + 1) * RECORD_SIZE]
             memory = bytearray(audit.helper.RAM_SIZE)
@@ -149,6 +157,15 @@ def compare(data, com):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="compile, load and bind the actual C model without media")
+    args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory() as temp:
+            build_model(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     directory = ROOT / "resources/u38-12b2-parity/native"
     directory.mkdir(parents=True, exist_ok=True)
     source_bytes = audit.source()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Full-state original U38:+2B20 / U9E entry-9 composition parity."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 from pathlib import Path
@@ -12,6 +13,8 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
 
 import check_overlay_u9e_entry9_roll_latch_0e2e as latch
+
+CHECKER_ROWS = ("OVL_0038_2B20",)
 
 ROOT = Path(__file__).resolve().parents[2]
 BODY_SHA = "9a322acac07936548b9d1257854e48fc256e29bf2dec0f4c58dfab9ca639366b"
@@ -161,34 +164,51 @@ def compare(label, model, callee_model, callback_type, wrapper, callee):
         assert actual == expected, (label, name, hex(actual), hex(expected))
 
 
+def build_model(directory):
+    callback_type = ctypes.CFUNCTYPE(
+        ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_size_t, ctypes.POINTER(latch.Cpu))
+    library = directory / "model.so"
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+                    "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
+                    str(ROOT / "src/recovered/overlay_u38_link_roll_2b20.c"),
+                    str(ROOT / "src/recovered/system_random_fullstate_11c0.c"),
+                    str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_compose_0de3.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_loop_0e05.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_system_call_0e0e.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_tail_0e1f.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_postcall_0e13.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_prefix_0de3.c"),
+                    "-o", str(library)], check=True)
+    model = ctypes.CDLL(str(library)).pr_u38_link_roll_2b20
+    callee_model = ctypes.CDLL(str(library)).pr_u9e_entry9_roll_latch_0e2e
+    for fn in (model, callee_model):
+        fn.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                       ctypes.POINTER(latch.Cpu), callback_type,
+                       ctypes.c_void_p]
+        fn.restype = ctypes.c_int
+    return model, callee_model
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="compile, load and bind the actual C model without media")
+    args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory() as temp:
+            build_model(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     wrapper, callee = source(), latch.source()
     callback_type = ctypes.CFUNCTYPE(
         ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t, ctypes.POINTER(latch.Cpu))
     with tempfile.TemporaryDirectory(prefix="poolrad-u38-2b20-") as tmp:
-        library = Path(tmp) / "model.so"
-        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
-                        "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
-                        str(ROOT / "src/recovered/overlay_u38_link_roll_2b20.c"),
-                        str(ROOT / "src/recovered/system_random_fullstate_11c0.c"),
-                        str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_compose_0de3.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_loop_0e05.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_system_call_0e0e.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_tail_0e1f.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_postcall_0e13.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_prefix_0de3.c"),
-                        "-o", str(library)], check=True)
-        model = ctypes.CDLL(str(library)).pr_u38_link_roll_2b20
-        callee_model = ctypes.CDLL(str(library)).pr_u9e_entry9_roll_latch_0e2e
-        for fn in (model, callee_model):
-            fn.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                           ctypes.POINTER(latch.Cpu), callback_type,
-                           ctypes.c_void_p]
-            fn.restype = ctypes.c_int
+        model, callee_model = build_model(Path(tmp))
         cases = [(mode, *layout, segment, seed, override)
                  for segment in (0xB000, 0xD123)
                  for mode in (0, 1, 2)
