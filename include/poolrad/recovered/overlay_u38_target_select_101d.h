@@ -26,4 +26,16 @@ pr_u38_101d_status pr_u38_target_select_101d(
     uint8_t *ram, size_t ram_size, pr_u38_101d_cpu *cpu,
     pr_u38_101d_select select_target, void *context);
 
+
+/* Raw CPU composition API; legacy callback API above is retained. */
+#include "poolrad/recovered/resident_character_target_select.h"
+/* Complete U38 [101D,1086), RETF4, raw resident selector composition.
+ * Same flat-RAM/immutable-code profile as the resident API, IP101D,
+ * SP0020..FFF8. SP+4 is a far character pointer. The live far-call operand
+ * at1048 binds the resident segment. CODE stops before changed CALL;
+ * CALLEE propagates failure, TRANSFER preserves unexpected return state.
+ * Diagnostic fields start at -1 and retain raw dependency results.
+ * CPU/diagnostic/RAM storage must not overlap one another. */
+pr_target_status pr_u38_target_select_101d_cpu(uint8_t *ram,size_t size,
+    pr_target_cpu *cpu,pr_target_diagnostic *diagnostic);
 #endif
