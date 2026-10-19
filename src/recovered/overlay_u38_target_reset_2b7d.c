@@ -141,3 +141,154 @@ done:
     cpu->sp = (uint16_t)(cpu->sp + 10u);
     return PR_U38_2B7D_OK;
 }
+
+/* Complete original instructions; docs/re/U38_TARGET_RESET_2B7D_CPU.md. */
+#define MASK (PR_TARGET_CPU_RAM_SIZE - 1u)
+static size_t phys(uint16_t s,uint16_t o) {return (((size_t)s<<4)+o)&MASK;}
+static uint16_t word_at(const uint8_t *m,size_t p) {return (uint16_t)(m[p&MASK]|((uint16_t)m[(p+1u)&MASK]<<8));}
+static uint16_t get(const uint8_t *m,uint16_t s,uint16_t o,unsigned bits)
+{size_t p=phys(s,o);return bits==8?m[p]:word_at(m,p);}
+static void put(uint8_t *m,uint16_t s,uint16_t o,unsigned bits,uint16_t v)
+{size_t p=phys(s,o);m[p]=(uint8_t)v;if(bits==16)m[(p+1u)&MASK]=(uint8_t)(v>>8);}
+static void push(uint8_t *m,pr_target_cpu *c,uint16_t v)
+{c->sp=(uint16_t)(c->sp-2u);put(m,c->ss,c->sp,16,v);}
+static uint16_t logic(pr_target_cpu *c,uint16_t v,unsigned bits)
+{
+    unsigned p=v&255u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags&=(uint16_t)~0x08D5u;
+    if(!(p&1u))c->flags|=4u;
+    if(!v)c->flags|=64u;
+    if(v&(bits==8?128u:32768u))c->flags|=128u;
+    return v;
+}
+static uint16_t sub(pr_target_cpu *c,uint16_t a,uint16_t b,unsigned bits)
+{
+    uint16_t r=(uint16_t)((a-b)&(bits==8?255u:65535u));
+    (void)logic(c,r,bits);
+    if(a<b)c->flags|=1u;
+    if((a^b^r)&16u)c->flags|=16u;
+    if((a^b)&(a^r)&(bits==8?128u:32768u))c->flags|=0x800u;
+    return r;
+}
+
+pr_target_status pr_u38_target_reset_2b7d_cpu(uint8_t *m,size_t size,pr_target_cpu *c,pr_target_diagnostic *d)
+{
+    size_t at;
+    uint16_t source_cs; int status;
+    if(m==NULL||c==NULL||size!=PR_TARGET_CPU_RAM_SIZE||c->ip!=0x2B7Du||c->sp<0x002Eu||c->sp>0xFFFCu) return PR_TARGET_ARGUMENT;
+    if(d!=NULL){d->selector_status=-1;d->resident_status=-1;}
+    for(;;) switch(c->ip) {
+    case 0x2B7Du: /* push bp */
+        push(m,c,c->bp);
+        c->ip=0x2B7Eu;
+        break;
+    case 0x2B7Eu: /* mov bp, sp */
+        c->bp=(uint16_t)(c->sp);
+        c->ip=0x2B80u;
+        break;
+    case 0x2B80u: /* sub sp, 4 */
+        c->sp=(uint16_t)(sub(c,c->sp,0x4u,16));
+        c->ip=0x2B83u;
+        break;
+    case 0x2B83u: /* push word ptr [0x5d94] */
+        push(m,c,get(m,c->ds,(uint16_t)(0x5D94u),16));
+        c->ip=0x2B87u;
+        break;
+    case 0x2B87u: /* push word ptr [0x5d92] */
+        push(m,c,get(m,c->ds,(uint16_t)(0x5D92u),16));
+        c->ip=0x2B8Bu;
+        break;
+    case 0x2B8Bu: /* push cs */
+        push(m,c,c->cs);
+        c->ip=0x2B8Cu;
+        break;
+    case 0x2B8Cu: /* call 0x101d */
+        if(get(m,c->cs,0x2B8Cu,8)!=0xE8u||get(m,c->cs,0x2B8Du,16)!=0xE48Eu)return PR_TARGET_CODE;
+        source_cs=c->cs;
+        push(m,c,0x2B8Fu);
+        c->ip=0x101Du;
+        status=pr_u38_target_select_101d_cpu(m,size,c,d);
+        if(d!=NULL)d->selector_status=status;
+        if(status!=PR_TARGET_RETURNED)return PR_TARGET_CALLEE;
+        if(c->cs!=source_cs||c->ip!=0x2B8Fu)return PR_TARGET_TRANSFER;
+        break;
+    case 0x2B8Fu: /* mov word ptr [bp - 4], ax */
+        put(m,c->ss,(uint16_t)(c->bp - 0x4u),16,c->ax);
+        c->ip=0x2B92u;
+        break;
+    case 0x2B92u: /* mov word ptr [bp - 2], dx */
+        put(m,c->ss,(uint16_t)(c->bp - 0x2u),16,c->dx);
+        c->ip=0x2B95u;
+        break;
+    case 0x2B95u: /* mov ax, word ptr [bp - 4] */
+        c->ax=(uint16_t)(get(m,c->ss,(uint16_t)(c->bp - 0x4u),16));
+        c->ip=0x2B98u;
+        break;
+    case 0x2B98u: /* or ax, word ptr [bp - 2] */
+        c->ax=(uint16_t)(logic(c,(uint16_t)(c->ax|get(m,c->ss,(uint16_t)(c->bp - 0x2u),16)),16));
+        c->ip=0x2B9Bu;
+        break;
+    case 0x2B9Bu: /* je 0x2ba7 */
+        c->ip=(c->flags&64u)?0x2BA7u:0x2B9Du;
+        break;
+    case 0x2B9Du: /* les di, ptr [bp - 4] */
+        at=phys(c->ss,(uint16_t)(c->bp - 0x4u));
+        c->di=(uint16_t)(word_at(m,at));
+        c->es=word_at(m,at+2u);
+        c->ip=0x2BA0u;
+        break;
+    case 0x2BA0u: /* cmp byte ptr es:[di + 0x32], 0 */
+        (void)sub(c,get(m,c->es,(uint16_t)(c->di + 0x32u),8),0x0u,8);
+        c->ip=0x2BA5u;
+        break;
+    case 0x2BA5u: /* jne 0x2bc2 */
+        c->ip=!(c->flags&64u)?0x2BC2u:0x2BA7u;
+        break;
+    case 0x2BA7u: /* les di, ptr [0x5d92] */
+        at=phys(c->ds,(uint16_t)(0x5D92u));
+        c->di=(uint16_t)(word_at(m,at));
+        c->es=word_at(m,at+2u);
+        c->ip=0x2BABu;
+        break;
+    case 0x2BABu: /* cmp byte ptr es:[di + 0x2e], 0 */
+        (void)sub(c,get(m,c->es,(uint16_t)(c->di + 0x2Eu),8),0x0u,8);
+        c->ip=0x2BB0u;
+        break;
+    case 0x2BB0u: /* jg 0x2bbd */
+        c->ip=(!(c->flags&64u)&&!(((c->flags>>7)^(c->flags>>11))&1u))?0x2BBDu:0x2BB2u;
+        break;
+    case 0x2BB2u: /* les di, ptr [0x5d92] */
+        at=phys(c->ds,(uint16_t)(0x5D92u));
+        c->di=(uint16_t)(word_at(m,at));
+        c->es=word_at(m,at+2u);
+        c->ip=0x2BB6u;
+        break;
+    case 0x2BB6u: /* cmp byte ptr es:[di + 0x73], 4 */
+        (void)sub(c,get(m,c->es,(uint16_t)(c->di + 0x73u),8),0x4u,8);
+        c->ip=0x2BBBu;
+        break;
+    case 0x2BBBu: /* jge 0x2bc2 */
+        c->ip=!(((c->flags>>7)^(c->flags>>11))&1u)?0x2BC2u:0x2BBDu;
+        break;
+    case 0x2BBDu: /* mov byte ptr [0x6818], 0 */
+        put(m,c->ds,(uint16_t)(0x6818u),8,0x0u);
+        c->ip=0x2BC2u;
+        break;
+    case 0x2BC2u: /* mov sp, bp */
+        c->sp=(uint16_t)(c->bp);
+        c->ip=0x2BC4u;
+        break;
+    case 0x2BC4u: /* pop bp */
+        c->bp=(uint16_t)(get(m,c->ss,c->sp,16));
+        c->sp=(uint16_t)(c->sp+2u);
+        c->ip=0x2BC5u;
+        break;
+    case 0x2BC5u: /* retf 0xa */
+        at=phys(c->ss,c->sp);
+        c->ip=word_at(m,at);
+        c->cs=word_at(m,at+2u);
+        c->sp=(uint16_t)(c->sp+14u);
+        return PR_TARGET_RETURNED;
+    default:return PR_TARGET_CODE;
+    }
+}
