@@ -209,3 +209,49 @@ manifest or accounting edits, and no additional credit.
 Dunking Sheep recall located prior +047A context in Claude session
 281c8700-5acc-438b-b93d-c061e28437eb. The exact executable/tail distinction and
 hashes reuse the linked accepted evidence and were independently remeasured here.
+
+## U9E +115C follow-up
+
+VP instruction i19057 authorizes this extent-only repair after the read-only
+caller-identity feasibility report i19056. The executable body is U9E
+**[115C,1287), 299 bytes / 109 reachable instruction starts**, GAME file
+[180294,180593). RETF 12 starts at +1284. Every executable byte belongs to
+the contiguous decoded body; its direct branches remain inside that body.
+Public entry 18 maps to +115C through original stub 00B0:007A.
+
+The excluded **[1287,1344)** suffix is 189 bytes, GAME file
+[180593,180782). It contains twelve length-prefixed printable strings and
+one 32-byte set at [131A,133A). Each of these thirteen data ranges has an
+explicit immediate-pointer reference in the following +1344 routine; none
+is a public entry. This data-use evidence supports the boundary independently
+of finding an early return. Original strings and bytes remain private.
+
+- Executable body SHA-256:
+  e122e18cccee13655b750e38c4d5e6eb664fca16b125cc72bcd724580af6fb8b.
+- Excluded 189-byte tail SHA-256:
+  7568302f3356c70ea6504a3bb5c338a78b9c5ad02c9b5d7042ed71d2cb024550.
+- Historical 488-byte span SHA-256:
+  6f044b002833362a842abe523b35c28094538a592098b2635793404dcf589c4c.
+
+All hashes were checked against the pinned GAME.OVR. The existing
+executable_end guard checks the exact body hash and candidate bounds before
+feature extraction. Regeneration changes exactly one ledger row: bound
+488 to 299, decoded bytes 486 to 299, instructions 189 to 109, and ES
+references 26 to 14. All other fields, rows and ten earlier pins remain
+unchanged. Thirty-six queue regressions pass, including hash/bounds rejection
+and exclusion of trailing data before decoding.
+
+The tested baseline is main 4c83524a. Identity feasibility is separate from
+accepted identity or strict C: +115C remains game_evidenced and blocked on
+RES_00BA_0BB8. No implementation, classification, strict map, reviewed-identity
+record, partial-callee manifest or accounting changes are included.
+Two frozen schema-9 no-git exports are byte-identical. All readiness records
+and the ready-ID set are unchanged: 459 candidates and 57 composable bodies.
+
+This repair reuses the private original-byte feasibility audit from i19056
+and the existing ledger-generation mechanism from #1139. Dunking Sheep recall
+located earlier extent-repair context in Codex sessions
+01a147c2-7af9-7ac2-98fd-eb8ba607789d and
+01a147c2-b9dc-70f3-a04b-d8e47ee1e6e8; their other routine spans are not used
+as evidence for this body. This body's boundary, data references and hashes
+were independently rechecked against the original media.
