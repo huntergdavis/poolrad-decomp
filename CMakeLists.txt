@@ -153,10 +153,16 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/slot_a_u3b0_prompt_row.c
                                     src/recovered/slot_a_second_cycle_zero_row.c
                                     src/recovered/resident_0709_rect_fill_00b7.c
+                                    src/recovered/resident_0709_clear_0dd3_cpu.c
                                     src/recovered/resident_0709_rect_fill_00b7_cpu.c
                                     src/recovered/resident_0709_glyph_01df_cpu.c
+                                    src/recovered/resident_0709_screen_0cab_cpu.c
+                                    src/recovered/resident_0709_space_05eb_cpu.c
+                                    src/recovered/resident_0709_text_06a7_cpu.c
                                     src/recovered/resident_0709_printer_0626_cpu.c
                                     src/recovered/resident_00ba_display_1816_cpu.c
+                                    src/recovered/resident_00ba_clear_17e3_cpu.c
+                                    src/recovered/resident_03f1_clear_0137_cpu.c
                                     src/recovered/slot_a_glyph_plane_byte.c
                                     src/recovered/u19_row14_cpu_sources.c
                                     src/recovered/overlay_u3bd_cell.c
@@ -413,6 +419,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u1c_on_goto_18f8_cpu.c
                                     src/recovered/overlay_u86_string_node_028d.c
                                     src/recovered/overlay_u86_sidecar_list_044e.c
+                                    src/recovered/overlay_u86_list_build_059c_cpu.c
                                     src/recovered/overlay_u86_sidecar_gate_051c_cpu.c
                                     src/recovered/overlay_u1c_gosub_0111_cpu.c
                                     src/recovered/overlay_u6a_string_node_0e37.c
@@ -523,16 +530,46 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_resident_0709_clear_0dd3_cpu_tests
+                   tests/recovered/test_resident_0709_clear_0dd3_cpu.c)
+    target_link_libraries(poolrad_resident_0709_clear_0dd3_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_clear_0dd3_cpu_tests
+             COMMAND poolrad_resident_0709_clear_0dd3_cpu_tests)
     add_executable(poolrad_resident_0709_rect_fill_00b7_cpu_tests
                    tests/recovered/test_resident_0709_rect_fill_00b7_cpu.c)
     target_link_libraries(poolrad_resident_0709_rect_fill_00b7_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_0709_rect_fill_00b7_cpu_tests
              COMMAND poolrad_resident_0709_rect_fill_00b7_cpu_tests)
+    add_executable(poolrad_resident_00ba_clear_17e3_cpu_tests
+                   tests/recovered/test_resident_00ba_clear_17e3_cpu.c)
+    target_link_libraries(poolrad_resident_00ba_clear_17e3_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_00ba_clear_17e3_cpu_tests
+             COMMAND poolrad_resident_00ba_clear_17e3_cpu_tests)
+    add_executable(poolrad_resident_03f1_clear_0137_cpu_tests
+                   tests/recovered/test_resident_03f1_clear_0137_cpu.c)
+    target_link_libraries(poolrad_resident_03f1_clear_0137_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_03f1_clear_0137_cpu_tests
+             COMMAND poolrad_resident_03f1_clear_0137_cpu_tests)
     add_executable(poolrad_resident_00ba_display_1816_cpu_tests
                    tests/recovered/test_resident_00ba_display_1816_cpu.c)
     target_link_libraries(poolrad_resident_00ba_display_1816_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_00ba_display_1816_cpu_tests
              COMMAND poolrad_resident_00ba_display_1816_cpu_tests)
+    add_executable(poolrad_resident_0709_screen_0cab_cpu_tests
+                   tests/recovered/test_resident_0709_screen_0cab_cpu.c)
+    target_link_libraries(poolrad_resident_0709_screen_0cab_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_screen_0cab_cpu_tests
+             COMMAND poolrad_resident_0709_screen_0cab_cpu_tests)
+    add_executable(poolrad_resident_0709_space_05eb_cpu_tests
+                   tests/recovered/test_resident_0709_space_05eb_cpu.c)
+    target_link_libraries(poolrad_resident_0709_space_05eb_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_space_05eb_cpu_tests
+             COMMAND poolrad_resident_0709_space_05eb_cpu_tests)
+    add_executable(poolrad_resident_0709_text_06a7_cpu_tests
+                   tests/recovered/test_resident_0709_text_06a7_cpu.c)
+    target_link_libraries(poolrad_resident_0709_text_06a7_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_text_06a7_cpu_tests
+             COMMAND poolrad_resident_0709_text_06a7_cpu_tests)
     add_executable(poolrad_resident_0709_printer_0626_cpu_tests
                    tests/recovered/test_resident_0709_printer_0626_cpu.c)
     target_link_libraries(poolrad_resident_0709_printer_0626_cpu_tests PRIVATE poolrad_recovered)
@@ -2436,6 +2473,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_system_longmul_0a5b_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_system_longmul_0a5b_cpu_tests
              COMMAND poolrad_system_longmul_0a5b_cpu_tests)
+    add_executable(poolrad_overlay_u86_list_build_059c_cpu_tests
+                   tests/recovered/test_overlay_u86_list_build_059c_cpu.c)
+    target_link_libraries(poolrad_overlay_u86_list_build_059c_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u86_list_build_059c_cpu_tests
+             COMMAND poolrad_overlay_u86_list_build_059c_cpu_tests)
     add_executable(poolrad_overlay_u86_sidecar_gate_051c_cpu_tests
                    tests/recovered/test_overlay_u86_sidecar_gate_051c_cpu.c)
     target_link_libraries(poolrad_overlay_u86_sidecar_gate_051c_cpu_tests PRIVATE poolrad_recovered)
