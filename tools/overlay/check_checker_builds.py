@@ -77,39 +77,90 @@ def git(root, *args):
 
 
 def _cc_commands(tree, root):
-    """Every `subprocess.run([...])` whose argv starts with a C compiler."""
-    def ev(node):
-        if isinstance(node, ast.List):
-            return [ev(elt) for elt in node.elts]
+    """Every `subprocess.run([...])` whose argv starts with a C compiler.
+
+    Source lists are frequently assembled into a module- or function-level
+    name and then splatted; resolve those so the real paths come back.
+    """
+    constants = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+            if isinstance(target, ast.Name):
+                constants[target.id] = value
+
+    def ev(node, depth=0, env=None):
+        env = env or {}
+        if depth > 8:
+            raise ValueError("deep")
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             return node.value
-        if isinstance(node, ast.Name) and node.id == "ROOT":
-            return str(root)
+        if isinstance(node, ast.Name):
+            if node.id in env:
+                return env[node.id]
+            if node.id == "ROOT":
+                return str(root)
+            if node.id in constants:
+                return ev(constants[node.id], depth + 1, env)
+            raise ValueError(node.id)
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "str":
-            return str(ev(node.args[0]))
+            return str(ev(node.args[0], depth + 1, env))
         if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Div):
-            return str(Path(ev(node.left)) / ev(node.right))
-        raise ValueError(ast.dump(node)[:60])
+            return str(Path(ev(node.left, depth + 1, env)) / ev(node.right, depth + 1, env))
+        if isinstance(node, (ast.ListComp, ast.GeneratorExp)) and len(node.generators) == 1:
+            # `[str(ROOT/'src/recovered'/s) for s in SOURCES]`
+            generator = node.generators[0]
+            if generator.ifs or not isinstance(generator.target, ast.Name):
+                raise ValueError("comp")
+            items = ev(generator.iter, depth + 1, env)
+            if not isinstance(items, list):
+                raise ValueError("comp")
+            return [ev(node.elt, depth + 1, dict(env, **{generator.target.id: item}))
+                    for item in items]
+        raise ValueError(ast.dump(node)[:40])
+
+    def argv_of(node):
+        """Flatten a list expression, expanding `*name` splats in place."""
+        if not isinstance(node, (ast.List, ast.Tuple)):
+            return None
+        out = None
+        for element in node.elts:
+            if isinstance(element, ast.Starred):
+                try:
+                    value = ev(element.value)
+                except ValueError:
+                    return None
+                if not isinstance(value, list):
+                    return None
+                out = (out or []) + value
+                continue
+            try:
+                out = (out or []) + [ev(element)]
+            except ValueError:
+                # Un-evaluable tail (typically the -o destination): stop here
+                # and let the caller substitute its own probe output.
+                return (out or []) + [None]
+        return out
+
     found = []
     for node in ast.walk(tree):
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                 and node.func.attr == "run" and node.args):
             continue
-        literal = node.args[0]
-        if not isinstance(literal, ast.List):
-            continue
-        argv = []
-        for element in literal.elts:
+        argv = argv_of(node.args[0])
+        if argv is None and isinstance(node.args[0], ast.Name):
             try:
-                value = ev(element)
-            except ValueError:
-                # Un-evaluable tail (e.g. str(library) after -o): drop it and
-                # stop, keeping the source list that precedes it.
-                if argv and argv[-1] == "-o":
-                    argv.pop()
-                break
-            argv.append(value)
-        if argv and argv[0] in ("cc", "gcc", "clang"):
+                argv = argv_of(constants.get(node.args[0].id))
+            except (ValueError, KeyError):
+                argv = None
+        if not (argv and isinstance(argv[0], str) and argv[0] in ("cc", "gcc", "clang")):
+            continue
+        # Extraction stops at the first un-evaluable element, so the tail may
+        # be a dangling flag or a placeholder. Trim it: a leftover `-I` would
+        # otherwise swallow the output flag we append.
+        while argv and (argv[-1] is None or argv[-1] in ("-I", "-D", "-L", "-o", "-include")):
+            argv.pop()
+        if argv:
             found.append(argv)
     return found
 
@@ -130,18 +181,39 @@ def sweep(root, timeout=120):
                 continue
             commands = _cc_commands(tree, root)
             if not commands:
+                # A cc call we could not reconstruct, or none at all.
+                if 'subprocess.run' in text:
+                    results.append(dict(file=str(path.relative_to(root)),
+                                        status="UNEXTRACTABLE",
+                                        detail="cc argv not statically resolvable"))
                 continue
             rel = str(path.relative_to(root))
             entry = dict(file=rel, status="NO-COMPILE", detail="")
-            argv = list(commands[0])
-            argv = [os.environ.get("CC") or "cc" if a == "cc" else a for a in argv]
-            out_dir = tempfile.mkdtemp(prefix="sweep-")
-            probe = [a for a in argv if a not in ("-o",)] 
-            if "-o" in argv:
-                cut = argv.index("-o")
-                probe = argv[:cut] + ["-o", os.path.join(out_dir, "probe.so")]
-            else:
-                probe = argv + ["-o", os.path.join(out_dir, "probe.so")]
+            if not any(str(a).endswith(".c") for a in commands[0]):
+                results.append(dict(file=rel, status="UNEXTRACTABLE",
+                                    detail="no source paths extracted"))
+                continue
+            source = list(commands[0])
+            output = os.path.join(tempfile.mkdtemp(prefix="sweep-"), "probe.so")
+            # Substitute -o's destination IN PLACE and drop any un-evaluable
+            # placeholder; never reorder or add a second -o.
+            probe, index, seen_output = [], 0, False
+            while index < len(source):
+                item = source[index]
+                if item == "cc":
+                    item = os.environ.get("CC") or "cc"
+                if item is None:
+                    index += 1
+                    continue
+                probe.append(item)
+                if item == "-o" and index + 1 < len(source) and not seen_output:
+                    probe.append(output)
+                    seen_output = True
+                    index += 2
+                    continue
+                index += 1
+            if not seen_output:
+                probe += ["-o", output]
             try:
                 done = subprocess.run(probe, capture_output=True, text=True, timeout=timeout)
             except OSError as error:
