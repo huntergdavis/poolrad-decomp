@@ -138,13 +138,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`765f825ad44260f5382322ca733f4df1429e6e422961f9d455f491fb6fd5ad6d`,
-on the 230/276 main after #885–#1128 plus the phantom-edge filter, the
+`426493df2aef15cd67cfe2bfeeca38a5da66e4f67044f128549dfcd5bb95b077`,
+on the 230/276 main after #885–#1131 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1657 refs / 1173 tips / 535 unmerged tips (`tips_sha256`
-`ba8a0096…`) and 2601 commits (`commits_sha256` `146346fa…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1659 refs / 1173 tips / 535 unmerged tips (`tips_sha256`
+`714092dc…`) and 2603 commits (`commits_sha256` `d869f657…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 464)
@@ -177,7 +177,7 @@ other lanes keep pushing refs.
 | 24 | `OVL_001C_0292` | `0x1c:0x0292` | 78 | 30 | B | game_verified | 4/0/0/0 | 4/1 | no | 0 | 1 | inline_in_model | 64 |
 | 25 | `OVL_001C_2B33` | `0x1c:0x2b33` | 75 | 36 | B | game_verified | 1/0/0/0 | 3/1 | no | 0 | 1 | source_mention | 64 |
 
-Queue summary (schema 8, on the 230/276 main after #885–#1128 and the
+Queue summary (schema 8, on the 230/276 main after #885–#1131 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
 system-runtime coverage): 464 candidates, 64 would be composable without the
 caveats and 62 are composable — 9 bodies carry an interface caveat;
