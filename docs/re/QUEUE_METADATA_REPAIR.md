@@ -141,3 +141,37 @@ Reused recall: Codex session 01a14af7-41a3-7b92-803d-39037aab3555 located
 +1363 author evidence. All six extents/hashes reuse the linked accepted
 evidence documents and were rechecked here. Other stale extents disclosed
 separately are outside this six-row authorization.
+
+
+## U38 +25BC follow-up
+
+VP instruction i18951 adds the already reviewed U38 +25BC extent after
+#1126. The [raw-selector evidence](U38_TARGET_SELECTOR_CPU.md) pins
+[25BC,2605), GAME file [70167,70240), at **73 bytes / 29 instructions**.
+RETF 0Ah starts at +2602; the following eleven bytes [2605,2610) are data.
+The former ledger bound/decoded/instructions were 84/83/34.
+
+- Executable body SHA-256:
+  4921365d3d512d870ac24085a63d408b38ab60e6f98e4136f583a7c5c78fe753.
+- Excluded tail SHA-256:
+  095a90f713555df4530f7b65abc167913bbd989a9ac89489bc059ee02adf516d.
+
+Both hashes were rechecked against the pinned original media. The existing
+executable_end guard validates this body before feature decoding. Original
+bytes and tail text remain private. Regeneration changes exactly this one
+row's bound, decoded bytes, instruction count and ES-reference count (3 to 1).
+Every other ledger field and all eight earlier span pins remain unchanged.
+The 35 related queue regressions pass, including hash/bounds rejection and
+tail-exclusion checks.
+
+The reviewed baseline is main 83306859, with 229 strict implementations and
+275 verified identities after #1127. This metadata repair changes neither
+count nor its acceptance records. U38 +25BC is already strict and therefore
+excluded from the non-strict queue. Two frozen no-git schema-9 exports agree;
+the 465-candidate, 63-composable ready-ID set is unchanged from this baseline.
+Classification, strict maps, reviewed identities, accounting and recovered C
+are not edited. Historical snapshots above retain their original totals.
+
+Recall reused Codex session 01a1386e-bea7-7883-8ddd-06fd2be8db9b for the
+73-byte/29-instruction prefix and eleven-byte tail distinction; the linked
+accepted evidence and original-byte recheck supply the hashes here.

@@ -354,3 +354,15 @@ instructions and U38 +2EDA at 113 / 47. These corrections confer no readiness
 or credit. The regenerated schema-9 snapshot retains 467 candidates,
 65 composable rows, nine interface-caveat rows and fourteen explicit
 indirect-blocker rows. Ranked tables and git pins above are historical.
+
+
+## U38 +25BC extent follow-up
+
+The [U38 +25BC correction](QUEUE_METADATA_REPAIR.md#u38-25bc-follow-up)
+changes its ledger extent from 84 bytes / 34 instructions to 73 / 29 using
+the accepted body hash before feature decoding. Its eleven-byte tail is
+excluded and separately hashed. On main 83306859 this original is already
+strict, so it is excluded from the candidate queue. Regeneration preserves
+the current 465 candidates and 63 composable IDs; the earlier 467/65
+snapshots predate the reviewer's two identity/credit acceptances in #1127.
+This follow-up changes no identity, strict map, readiness or accounting.
