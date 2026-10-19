@@ -344,3 +344,15 @@ for a fast overlay-only pass.
   `instructions` as bounded-decode metadata, except for the explicitly
   hash-checked executable spans in `function_ledger.EXECUTABLE_SPANS`.
   A first RETF alone is not a safe general truncation rule.
+
+
+## Six-span ledger follow-up
+
+The [reviewed corrections](QUEUE_METADATA_REPAIR.md#six-reviewed-executable-extents)
+now cover U1C +271F, U6A +0E37, U38 +1730/+1363/+2EDA and U7D +05F0.
+Hash-pinned executable spans are applied before feature decoding. Four are
+strict and excluded; the visible rows are U7D +05F0 at 232 bytes / 102
+instructions and U38 +2EDA at 113 / 47. These corrections confer no readiness
+or credit. The regenerated schema-9 snapshot retains 467 candidates,
+65 composable rows, nine interface-caveat rows and fourteen explicit
+indirect-blocker rows. Ranked tables and git pins above are historical.

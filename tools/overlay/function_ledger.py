@@ -44,8 +44,14 @@ ALIAS_DELTA = 0x800
 # routines can have live branch targets after an early return. Hashes bind
 # these exceptions to the original bodies; no trailing string data is decoded.
 EXECUTABLE_SPANS = {
+    (0x1C, 0x271F): (0x272D, "aec9bf6c4361ea61af680d3d4aed03b5bdc0f62e5d8b3221bc197845ca34f8b1"),
+    (0x38, 0x1363): (0x1382, "4850fb98f51666178d3b6e8fc612f3a2afa80e355a7fa13cafb56073481a58c2"),
+    (0x38, 0x1730): (0x175E, "402e83b7c5036596f9af8cb3da21ea77519e58cca195e5385fc88d593e0e2f25"),
+    (0x38, 0x2EDA): (0x2F4B, "e75c9f7ebfcd4235a1a5a11b6d77ae544c0bd64a3c3f8ade8c5fac454757ecd3"),
     (0x86, 0x3092): (0x3097, "fc1e97b8fe4158fdf9a46de4d3a1b4a04602fb787f6793778bc6d2b7a758d780"),
     (0x6A, 0x0824): (0x08BF, "c77f6aa238e6d9f11bf01decb9084b02ac0a6cd4a5742611adae6848b0d927d7"),
+    (0x6A, 0x0E37): (0x0EBE, "5f63f1823287894ede57fcef122307f3e296293a633e530a1836f2f36d389234"),
+    (0x7D, 0x05F0): (0x06D8, "ac3eb0a915fa30d77b06b262429879f2400d3b8584b6e97ba413dde924709c7d"),
 }
 
 

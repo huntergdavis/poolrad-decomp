@@ -9,10 +9,17 @@ above a prior-translated one, and inline/branch evidence is reported.
 """
 
 import copy
+import contextlib
+import csv
 import hashlib
+import io
+import json
 import sys
+import tempfile
+from types import SimpleNamespace
 from pathlib import Path
 import unittest
+import warnings
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -75,6 +82,53 @@ def queue(data=None, graph=None, prior=None) -> dict:
 
 
 class StrictCandidateQueueTest(unittest.TestCase):
+    def test_reviewed_tail_is_excluded_before_feature_decoding(self):
+        # The decoder deliberately treats tail bytes as ES/global accesses.
+        # Checking only the final byte count would leave these false features.
+        code = b"AAAAzzzzBBBB"
+        decoded = []
+
+        class Decoder:
+            def disasm(self, data, start):
+                decoded.append((start, data))
+                return [SimpleNamespace(address=start + i, size=1,
+                                        mnemonic="mov" if byte == ord("z") else "nop",
+                                        op_str="es:[0xabcd]" if byte == ord("z") else "")
+                        for i, byte in enumerate(data)]
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            inputs = dict(game_ovr_sha256=hashlib.sha256(code).hexdigest(),
+                          start_exe_sha256=hashlib.sha256(b"synthetic exe").hexdigest())
+            inventory = dict(inputs=inputs, units=[dict(
+                stub_para=0x19, memory_segment=0x1C, ovr_offset=0,
+                code_size=len(code), entry_count=2, entries=[0, 8],
+                functions=[dict(rel=0), dict(rel=8)], fixups=[])])
+            (root / "inventory.json").write_text(json.dumps(inventory))
+            (root / "graph.json").write_text(json.dumps(dict(inputs=inputs, edges=[])))
+            (root / "overlay.bin").write_bytes(code)
+            argv = ["function_ledger.py", "--inventory", str(root / "inventory.json"),
+                    "--callgraph", str(root / "graph.json"),
+                    "--ovr", str(root / "overlay.bin"),
+                    "--csv", str(root / "ledger.csv"), "--md", str(root / "ledger.md")]
+            pin = {(0x19, 0): (4, hashlib.sha256(b"AAAA").hexdigest())}
+            with patch.object(sys, "argv", argv), \
+                    patch.object(ledger_tool, "Cs", return_value=Decoder()), \
+                    patch.object(ledger_tool, "CS_ARCH_X86", 0, create=True), \
+                    patch.object(ledger_tool, "CS_MODE_16", 0, create=True), \
+                    patch.dict(ledger_tool.EXECUTABLE_SPANS, pin, clear=True), \
+                    contextlib.redirect_stdout(io.StringIO()), warnings.catch_warnings():
+                # The legacy CLI uses short-lived open(...).read() handles.
+                warnings.simplefilter("ignore", ResourceWarning)
+                ledger_tool.main()
+            with (root / "ledger.csv").open() as source:
+                rows = list(csv.DictReader(source))
+        self.assertEqual(decoded, [(0, b"AAAA"), (8, b"BBBB")])
+        self.assertEqual(len(rows), 2)
+        for row in rows:
+            self.assertEqual((row["bound"], row["decoded"], row["insns"]), ("4", "4", "4"))
+            self.assertEqual((row["ds_globals"], row["es_refs"], row["cls"]), ("0", "0", "leaf"))
+
     def test_reviewed_executable_span_refuses_mismatched_bytes_or_bounds(self):
         code = b"padding" + b"body!" + b"tail after return"
         pin = {(0x19, 7): (12, hashlib.sha256(b"body!").hexdigest())}
