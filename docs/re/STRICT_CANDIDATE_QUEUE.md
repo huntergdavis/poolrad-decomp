@@ -17,9 +17,12 @@ at +001E and is not composable. The blocker propagates to modeled callers.
 SYSTEM +0C10 is covered by `pr_system_strcmp_0c10`; U25 +1815 still has a
 semantic-only API and remains interface-caveated.
 
-On the unchanged input identities, the schema-9 export has 467 candidates,
-65 composable rows, nine interface-caveat rows, and 14 rows that explicitly
-name an unresolved indirect target (the dispatcher and 13 direct callers).
+On the unchanged input identities, the schema-9 export (re-derived on the
+235/281 main after #1142, queue SHA-256
+`02aba1e3fbb44c3f5dc078b35706568261fde54fca8c2f63d862a5d38ba499d1`) has 459
+candidates, 57 composable rows (59 without the caveats), nine interface-caveat
+rows, and 14 rows that explicitly name an unresolved indirect target (the
+dispatcher and 13 direct callers).
 These are queue metadata, not credit or completion counts. The schema-8
 ranked tables, hashes and historical traps below remain dated snapshots;
 they are not a fresh authoring backlog.
@@ -137,14 +140,15 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 **Determinism and pins.** Sorted inputs everywhere; with frozen refs two
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
-schema-8 export (queue SHA-256
-`086afe41c673b5a46469c18bd40a3bee0a991e2f1d82affd62a613ccf2c0d7d4`,
-on the 235/281 main after #885–#1136 plus the phantom-edge filter, the
-remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
-was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
-inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1666 refs / 1178 tips / 535 unmerged tips (`tips_sha256`
-`876df62b…`) and 2613 commits (`commits_sha256` `3c871371…`). Git pins are point-in-time;
+schema-9 export (queue SHA-256
+`02aba1e3fbb44c3f5dc078b35706568261fde54fca8c2f63d862a5d38ba499d1`,
+on the 235/281 main after #885–#1142 plus the phantom-edge filter, the
+inline-prior filter, the remaining raw-CPU interface caveats and the
+modeled-system-runtime coverage) was generated from `START.EXE` `d825df2b…a07bd`,
+`GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph
+`c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1676 refs / 1185 tips /
+535 unmerged tips (`tips_sha256` `2e4596a3…`) and 2626 commits (`commits_sha256`
+`f47fe85c…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 459)
@@ -177,14 +181,14 @@ other lanes keep pushing refs.
 | 24 | `OVL_007D_0C9A` | `0x7d:0x0c9a` | 454 | 181 | A | game_evidenced | 2/2/0/6 | 10/7 | no | 1 | 0 | source_mention | 65 |
 | 25 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/1/0/3 | 7/4 | no | 4 | 0 | source_mention | 65 |
 
-Queue summary (schema 8, on the 235/281 main after #885–#1136 and the
-phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
-system-runtime coverage): 459 candidates, 59 would be composable without the
+Queue summary (schema 9, on the 235/281 main after #885–#1142, the
+phantom-edge and inline-prior filters, the remaining raw-CPU interface caveats
+and modeled system-runtime coverage): 459 candidates, 59 would be composable without the
 caveats and 57 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 303, game_verified 45, helper_candidate 45,
 unresolved 66; grades A 279, B 178, D 2; prior status main_model 73,
-inline_in_model 20, inline_in_strict 20, unmerged_branch 9, commit_mention 25,
-source_mention 312; 607 fixup-backed and 625 aligned-PUSH-CS caller sites across
+inline_in_model 20, inline_in_strict 20, unmerged_branch 9, commit_mention 26,
+source_mention 311; 607 fixup-backed and 625 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
@@ -351,8 +355,8 @@ now cover U1C +271F, U6A +0E37, U38 +1730/+1363/+2EDA and U7D +05F0.
 Hash-pinned executable spans are applied before feature decoding. Four are
 strict and excluded; the visible rows are U7D +05F0 at 232 bytes / 102
 instructions and U38 +2EDA at 113 / 47. These corrections confer no readiness
-or credit. The regenerated schema-9 snapshot retains 467 candidates,
-65 composable rows, nine interface-caveat rows and fourteen explicit
+or credit. The regenerated schema-9 snapshot retains 459 candidates,
+57 composable rows, nine interface-caveat rows and fourteen explicit
 indirect-blocker rows. Ranked tables and git pins above are historical.
 
 
@@ -362,9 +366,10 @@ The [U38 +25BC correction](QUEUE_METADATA_REPAIR.md#u38-25bc-follow-up)
 changes its ledger extent from 84 bytes / 34 instructions to 73 / 29 using
 the accepted body hash before feature decoding. Its eleven-byte tail is
 excluded and separately hashed. On main 83306859 this original is already
-strict, so it is excluded from the candidate queue. Regeneration preserves
-the current 465 candidates and 63 composable IDs; the earlier 467/65
-snapshots predate the reviewer's two identity/credit acceptances in #1127.
+strict, so it is excluded from the candidate queue. Regeneration on the
+current 235/281 main yields 459 candidates and 57 composable IDs; the 467/65
+and 465/63 figures are snapshots that predate the later identity/credit
+acceptances through #1136.
 This follow-up changes no identity, strict map, readiness or accounting.
 
 ## Checker availability before handoff
