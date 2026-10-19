@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Original-byte full-state parity for U38 +12B2 calling U38 +0C06."""
 
+import argparse
 import ctypes
+import json
 from hashlib import sha256
 from pathlib import Path
 import subprocess
@@ -12,6 +14,8 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
 
 import check_overlay_u38_target_select_101d as helper
+
+CHECKER_ROWS = ("OVL_0038_12B2",)
 
 ROOT = Path(__file__).resolve().parents[2]
 BODY_SHA = "fdc58872484dc92452c0eb042ec51727f3543e989c6fed48c30876899ddc061b"
@@ -81,9 +85,15 @@ def compare(label, source_bytes, model):
         original.reg_write(reg, getattr(cpu, name))
     reached = [False]
     calls = []
+    seen, transitions = set(), set()
+    previous = [None]
 
     def on_code(emu, address, size, user):
         del size, user
+        seen.add(address)
+        if previous[0] is not None:
+            transitions.add((previous[0], address))
+        previous[0] = address
         if address == 0xF0C06:
             calls.append(address)
         elif address == helper.physical(0xD000, 0x1234):
@@ -108,20 +118,37 @@ def compare(label, source_bytes, model):
                                 for reg in helper.REGISTERS))
     assert helper.snap(cpu) == helper.snap(expected_cpu), (
         label, helper.snap(cpu), helper.snap(expected_cpu))
+    return seen, transitions
+
+
+def build_model(directory):
+    library = directory / "u38_12b2.so"
+    subprocess.run(["cc", "-shared", "-fPIC", "-std=c11", "-Wall",
+                    "-Wextra", "-Wpedantic", "-Werror", "-Iinclude",
+                    "src/recovered/overlay_u38_effect_match_12b2.c",
+                    "-o", str(library)], cwd=ROOT, check=True)
+    model = ctypes.CDLL(str(library)).pr_u38_effect_match_12b2
+    model.argtypes = (ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                      ctypes.POINTER(helper.Cpu))
+    model.restype = ctypes.c_int
+    return model
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="compile, load and bind the actual C model without media")
+    parser.add_argument("--coverage", action="store_true",
+                        help="report observed starts/outcomes for the unchanged 12 cases")
+    args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory() as temp:
+            build_model(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     source_bytes = source()
     with tempfile.TemporaryDirectory() as temp:
-        library = Path(temp) / "u38_12b2.so"
-        subprocess.run(["cc", "-shared", "-fPIC", "-std=c11", "-Wall",
-                        "-Wextra", "-Wpedantic", "-Werror", "-Iinclude",
-                        "src/recovered/overlay_u38_effect_match_12b2.c",
-                        "-o", str(library)], cwd=ROOT, check=True)
-        model = ctypes.CDLL(str(library)).pr_u38_effect_match_12b2
-        model.argtypes = (ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                          ctypes.POINTER(helper.Cpu))
-        model.restype = ctypes.c_int
+        model = build_model(Path(temp))
         modes = ((0x00, 0, 0x7F, 0xFF),
                  (0x10, 1, 0xFF, 0x7F),
                  (0x00, 1, 0x00, 0x80),
@@ -132,9 +159,30 @@ def main():
         cases = [(mode, ds, ss, sp, b3, a10e, old16, old22)
                  for mode, (b3, a10e, old16, old22) in enumerate(modes)
                  for ds, ss, sp in layouts]
+        seen, transitions = set(), set()
         for label in cases:
-            compare(label, source_bytes, model)
+            starts, edges = compare(label, source_bytes, model)
+            seen.update(starts)
+            transitions.update(edges)
     print(f"U38 +12B2 plus +0C06: {len(cases)} full-RAM/14-CPU original-byte cases pass")
+    if args.coverage:
+        md = Cs(CS_ARCH_X86, CS_MODE_16)
+        wrapper = list(md.disasm(source_bytes[0], 0xF12B2))
+        leaf = list(md.disasm(source_bytes[1], 0xF0C06))
+        outcomes = {(i.address, target)
+                    for i in wrapper + leaf
+                    if i.mnemonic.startswith("j") and i.mnemonic != "jmp"
+                    for target in (i.address + i.size, int(i.op_str, 16))}
+        wrapper_starts = {i.address for i in wrapper}
+        leaf_starts = {i.address for i in leaf}
+        print(json.dumps(dict(cases=len(cases), ram_bytes=helper.RAM_SIZE,
+            cpu_fields=len(helper.Cpu._fields_),
+            wrapper_starts=len(seen & wrapper_starts), wrapper_total=len(wrapper),
+            callee_starts=len(seen & leaf_starts), callee_total=len(leaf),
+            conditional_outcomes=len(transitions & outcomes),
+            conditional_total=len(outcomes),
+            missing_starts=sorted((wrapper_starts | leaf_starts) - seen),
+            missing_outcomes=sorted(outcomes - transitions)), sort_keys=True))
 
 
 if __name__ == "__main__":

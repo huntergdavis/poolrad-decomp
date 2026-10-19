@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Synthetic DOSBox-X U38:+2B20 -> U9E entry-9 far-call frames."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 import json
@@ -11,6 +12,8 @@ import subprocess
 import tempfile
 
 import check_overlay_u38_link_roll_2b20 as audit
+
+CHECKER_ROWS = ("OVL_0038_2B20",)
 
 ROOT = Path(__file__).resolve().parents[2]
 MODES = (0, 1, 2, 3, 4)
@@ -121,6 +124,36 @@ def run_native(directory):
     return result.read_bytes()
 
 
+def build_model(directory):
+    callback_type = ctypes.CFUNCTYPE(
+        ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_size_t, ctypes.POINTER(audit.latch.Cpu))
+    library = directory / "model.so"
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+                    "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
+                    str(ROOT / "src/recovered/overlay_u38_link_roll_2b20.c"),
+                    str(ROOT / "src/recovered/system_random_fullstate_11c0.c"),
+                    str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_compose_0de3.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_loop_0e05.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_system_call_0e0e.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_tail_0e1f.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_postcall_0e13.c"),
+                    str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_prefix_0de3.c"),
+                    "-o", str(library)], check=True)
+    so = ctypes.CDLL(str(library))
+    model = so.pr_u38_link_roll_2b20
+    callee_model = so.pr_u9e_entry9_roll_latch_0e2e
+    for fn in (model, callee_model):
+        fn.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                       ctypes.POINTER(audit.latch.Cpu), callback_type,
+                       ctypes.c_void_p]
+        fn.restype = ctypes.c_int
+    return model, callee_model
+
+
 def compare(data, com):
     assert len(data) == 8 + len(MODES) * RECORD_SIZE
     seg, target_seg, ret_ip, count = struct.unpack_from("<4H", data)
@@ -130,29 +163,7 @@ def compare(data, com):
         ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t, ctypes.POINTER(audit.latch.Cpu))
     with tempfile.TemporaryDirectory(prefix="u38-2b20-native-") as tmp:
-        library = Path(tmp) / "model.so"
-        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
-                        "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
-                        str(ROOT / "src/recovered/overlay_u38_link_roll_2b20.c"),
-                        str(ROOT / "src/recovered/system_random_fullstate_11c0.c"),
-                        str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_compose_0de3.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_loop_0e05.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_system_call_0e0e.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_tail_0e1f.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_postcall_0e13.c"),
-                        str(ROOT / "src/recovered/overlay_u9e_entry8_fullstate_prefix_0de3.c"),
-                        "-o", str(library)], check=True)
-        so = ctypes.CDLL(str(library))
-        model = so.pr_u38_link_roll_2b20
-        callee_model = so.pr_u9e_entry9_roll_latch_0e2e
-        for fn in (model, callee_model):
-            fn.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                           ctypes.POINTER(audit.latch.Cpu), callback_type,
-                           ctypes.c_void_p]
-            fn.restype = ctypes.c_int
+        model, callee_model = build_model(Path(tmp))
         for index, mode in enumerate(MODES):
             expected = data[8 + index * RECORD_SIZE:
                             8 + (index + 1) * RECORD_SIZE]
@@ -226,6 +237,15 @@ def compare(data, com):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="compile, load and bind the actual C model without media")
+    args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory() as temp:
+            build_model(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     directory = ROOT / "resources/u38-2b20-parity/native"
     directory.mkdir(parents=True, exist_ok=True)
     wrapper, callee = audit.source(), audit.latch.source()

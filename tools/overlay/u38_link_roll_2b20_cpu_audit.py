@@ -7,6 +7,7 @@ from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from overlay_inventory import find_units,parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu,ROOT,SIZE,EXE_SHA,OVR_SHA,REGISTERS,physical,put16
+CHECKER_ROWS = ("OVL_0038_2B20",)
 CS,DICE,STUB,SYSTEM,DS,SS,HEAP=0x5000,0x6000,0x7000,0xAF8,0x1800,0x2800,0x3000
 ENTRIES={'caller':0x2B20,'latch':0x0E2E}
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
@@ -166,7 +167,11 @@ def differential(caller,dice,system,decoded,conditional,functions):
     out=dict(cases=len(specs),modes=modes,stops=stops,cpu_words=14,ram_bytes=SIZE,closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)],caller_roll_results=sorted(rolls))
     print('Original parity',out,flush=True);return out
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:
+        with tempfile.TemporaryDirectory() as directory:library(Path(directory))
+        print("CHECKER_BUILD_OK")
+        return
     caller,dice,system,decoded,conditional,digests=source();report=dict(target=digests,multiplier_sha256=sha256(system[0x1245:0x1247]).hexdigest())
     with tempfile.TemporaryDirectory() as directory:
         fs=library(Path(directory))
