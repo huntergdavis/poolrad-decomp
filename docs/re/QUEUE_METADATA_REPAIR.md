@@ -1,7 +1,7 @@
 # Queue span and indirect-dispatch metadata repair
 
-This schema-9 hygiene change corrects four planning traps found after the
-U3B0 +1140 raw upgrade. It changes queue metadata and two ledger rows; it
+The initial schema-9 hygiene change corrected four planning traps found after the
+U3B0 +1140 raw upgrade. It changed queue metadata and two ledger rows; it
 does not change recovered C, classification, strict manifests or credit.
 VP instructions i18901/i18906 authorize this scope.
 
@@ -90,3 +90,54 @@ U6A 0824 U9E 0000 indirect dispatch 0C10` returned Codex session
 `01a14c56-d196-777f-aaeb-0eac03c2083d`. Reused evidence is the existing
 U6A sort extent, U9E dispatch-boundary document and merged SYSTEM raw API;
 the ledger span corrections were rechecked against the original bytes here.
+
+## Six reviewed executable extents
+
+VP instruction i18936 authorizes extending the same ledger-generation guard
+after #1124 to six already accepted executable spans. This follow-up changes
+only those six ledger rows; acceptance records, recovered C, classification,
+strict map and accounting remain unchanged. All body hashes below were
+rechecked against the pinned GAME.OVR before regeneration.
+
+| Original | Executable unit span | GAME file span | Old bound / decoded / instructions | Correct bytes / instructions | Tail bytes |
+| --- | --- | --- | --- | --- | --- |
+| [OVL_001C_271F](U1C_DELAY_271F_CPU.md) | [271F,272D) | [13413,13427) | 86 / 86 / 38 | 14 / 6 | 72 |
+| [OVL_006A_0E37](U6A_STRING_NODE_0E37.md) | [0E37,0EBE) | [99944,100079) | 389 / 389 / 159 | 135 / 48 | 254 |
+| [OVL_0038_1730](U38_ROLL_APPEND_1730_CPU.md) | [1730,175E) | [66443,66489) | 63 / 62 / 29 | 46 / 22 | 17 |
+| [OVL_0038_1363](U38_APPEND_1363_CPU.md) | [1363,1382) | [65470,65501) | 54 / 53 / 26 | 31 / 15 | 23 |
+| [OVL_007D_05F0](U7D_ENTRY_05F0_CPU.md) | [05F0,06D8) | [148412,148644) | 305 / 304 / 138 | 232 / 102 | 73 |
+| [OVL_0038_2EDA](U38_DISPATCH_BOUNDARY_2EDA.md) | [2EDA,2F4B) | [72501,72614) | 125 / 122 / 51 | 113 / 47 | 12 |
+
+| Original | Executable body SHA-256 | Excluded tail SHA-256 |
+| --- | --- | --- |
+| OVL_001C_271F | aec9bf6c4361ea61af680d3d4aed03b5bdc0f62e5d8b3221bc197845ca34f8b1 | 5c2c68ee56c5956df192668559937b31e33f4b827f7828ecb78c47cb9e3dd343 |
+| OVL_006A_0E37 | 5f63f1823287894ede57fcef122307f3e296293a633e530a1836f2f36d389234 | c15c8d8b687431d77130f54082be24678e8ce0df139d754a0e4e1fd053a4e9b6 |
+| OVL_0038_1730 | 402e83b7c5036596f9af8cb3da21ea77519e58cca195e5385fc88d593e0e2f25 | 6095847039b5986e3b9a9fcd4fb4da095cad067d8b0b9de5c2cb1e22530ffc01 |
+| OVL_0038_1363 | 4850fb98f51666178d3b6e8fc612f3a2afa80e355a7fa13cafb56073481a58c2 | 07fef1b29ba7cd29896475353e1e6e43c30133201487f8ed76c30d42e884acf8 |
+| OVL_007D_05F0 | ac3eb0a915fa30d77b06b262429879f2400d3b8584b6e97ba413dde924709c7d | 150b499ae1f3bbae867a4639265da22500c46aaba6b9e562d6d07d0f8342ec75 |
+| OVL_0038_2EDA | e75c9f7ebfcd4235a1a5a11b6d77ae544c0bd64a3c3f8ade8c5fac454757ecd3 | 26e004e80d1b0979de8b61640adf7b98240d73db6c5e47a28caa9bb4d92d05f2 |
+
+The tail ends at the old next-prologue bound. Original bytes and strings stay
+private. Each corrected body decodes fully through its documented RETF and
+its hash must match before feature extraction. This is an explicit reviewed
+exception, not a rule to truncate at the first return. Existing hash/bounds
+tests retain that distinction.
+
+Thirty-five related queue tests pass. A new synthetic CLI regression checks
+that excluded tail bytes never reach the feature decoder and that the next
+routine remains intact. Only bound, decoded bytes, instructions and these
+ES-reference counts change: U1C +271F 2 to 0, U38 +1730 1 to 0, and
+U6A +0E37 21 to 7. Every other ledger row and column is unchanged; both
+earlier #1124 corrections are preserved.
+
+The regenerated schema-9 queue retains 467 candidates, 65 composable rows,
+nine interface-caveat rows and fourteen explicit indirect-blocker rows.
+Four corrected originals are strict and excluded from this candidate queue.
+The visible corrected rows are U7D +05F0 (232 bytes / 102 instructions) and
+U38 +2EDA (113 / 47); the latter remains unready. Two frozen no-git exports
+are byte-identical. Size changes confer no readiness or credit.
+
+Reused recall: Codex session 01a14af7-41a3-7b92-803d-39037aab3555 located
++1363 author evidence. All six extents/hashes reuse the linked accepted
+evidence documents and were rechecked here. Other stale extents disclosed
+separately are outside this six-row authorization.
