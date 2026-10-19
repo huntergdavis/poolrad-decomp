@@ -22,7 +22,7 @@ callee of 9 rows (5 game_evidenced) and as a callee in 25 rows. In the
 
 | Item | Value |
 | --- | --- |
-| Span | unit `0x9E` `+0E52..+0F05`, GAME.OVR file offset `0x2BD3C` |
+| Span | unit `0x9E` `+0E52..+0F06` (exclusive upper bound), GAME.OVR file offset `0x2BD3C` |
 | Size | 180 bytes, 57 instructions |
 | SHA-256 | `cfde5096f098f1f0c4aa15f805eb6a02c3540f56a2f0df8632b99501a6366b20` |
 | Calls | one `LCALL 0AF8:023F` at `+0E5C` (fixup at `+0E5F`) |
