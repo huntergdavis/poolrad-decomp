@@ -86,7 +86,11 @@ header or implementation. `PR_TARGET_SHIFT_UNICORN` clears undefined AF
 at the final SHR; `PR_TARGET_SHIFT_DOSBOX386` sets it. These are measured
 emulator profiles, not universal x86 rules. The
 [prior SYSTEM flags evidence](SYSTEM_GETMEM_308_SELECTION_GATE.md) explains
-the same distinction. No comparison masks AF or any other CPU/RAM field.
+the same distinction. The C-vs-Unicorn differential masks nothing; the separate
+DOSBox native checker `tests/recovered/native_overlay_u38_target_index_gate_2a87.py`
+does mask exactly one bit - AF (`& ~0x0010`) - and only for the SHR modes, because
+DOSBox-X sets AF where Unicorn and the C model clear it on this architecturally
+undefined bit. Every other CPU word and every RAM byte is compared exactly.
 Native case 2 starts with FLAGS=0002 and amount=18, then returns AX=0009,
 FLAGS=0016. The Unicorn profile produces FLAGS=0006 for the corresponding
 fixture. Non-halving paths agree across the two profiles.
