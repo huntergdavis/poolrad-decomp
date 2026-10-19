@@ -62,4 +62,34 @@ typedef struct {
 /* The handler on lane A's loader state. `report` may be NULL. */
 pr_u1c_delay_status pr_u1c_op_delay(pr_rec_ecl_loader_state *state, pr_u1c_delay_env *env, pr_u1c_delay_report *report);
 
+
+/* Raw CPU entry for exactly [271F,272D): 14 bytes / 6 instructions.
+ * The trailing Pascal strings are DATA, not part of this body. The schema-8
+ * queue's 86-byte row includes that data; see docs/re/U1C_DELAY_271F_CPU.md. */
+#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
+
+typedef pr_r0709_delay_cpu pr_u1c_delay_cpu;
+typedef enum {
+    PR_U1C_DELAY_CPU_OK = 0,
+    PR_U1C_DELAY_CPU_ARGUMENT,
+    PR_U1C_DELAY_CPU_CODE,
+    PR_U1C_DELAY_CPU_CALLEE,
+    PR_U1C_DELAY_CPU_TRANSFER
+} pr_u1c_delay_cpu_status;
+
+typedef struct {
+    int wrapper_status; /* -1 until the resident wrapper executes */
+    int delay_status;   /* -1 until the CRT Delay executes */
+} pr_u1c_delay_cpu_report;
+
+/* A20-off 1 MiB ordinary RAM, immutable code, entry IP=271F, SP=0010..FFFC.
+ * Entry already has the caller's far-return frame. The loopback budget is
+ * passed unchanged to CRT Delay; stopped CPU/RAM are retained without unwind.
+ * No elapsed-time guarantee; no hook dispatch or gameplay routing change.
+ * Undefined MUL flags at a nested CODE stop use the resident's existing
+ * Unicorn profile. All other profile limits are in the evidence document. */
+pr_u1c_delay_cpu_status pr_u1c_delay_271f_cpu(
+    uint8_t *ram, size_t ram_size, pr_u1c_delay_cpu *cpu,
+    uint64_t max_loopbacks, pr_u1c_delay_cpu_report *report);
+
 #endif
