@@ -112,13 +112,13 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-8 export (queue SHA-256
-`7131f308723f03c8d82b904d5b984348fc9f27aefbf5c3a7ecddf2a1fa3ddf40`,
-on the 223/273 main after #885–#1080 plus the phantom-edge filter, the
+`9f3bd37c5065e19c3fa81be50b8516b31997251311e74248dfc376e0350ac06a`,
+on the 223/273 main after #885–#1086 plus the phantom-edge filter, the
 remaining raw-CPU interface caveats and the modeled-system-runtime coverage)
 was generated from `START.EXE` `d825df2b…a07bd`, `GAME.OVR` `872964a3…28614`,
 inventory `6de7664f…ca7f8`, callgraph `c180ff95…f4dc3`, near audit
-`a40ba4f2…cbd2c`, with 1537 refs / 1118 tips / 525 unmerged tips (`tips_sha256`
-`4d2e76f9…`) and 2493 commits (`commits_sha256` `4beb6f0f…`). Git pins are point-in-time;
+`a40ba4f2…cbd2c`, with 1547 refs / 1125 tips / 528 unmerged tips (`tips_sha256`
+`509aa263…`) and 2504 commits (`commits_sha256` `a0232f7a…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 471)
@@ -151,14 +151,14 @@ other lanes keep pushing refs.
 | 24 | `OVL_001C_2C03` | `0x1c:0x2c03` | 204 | 74 | B | game_verified | 3/0/0/0 | 3/1 | no | 0 | 1 | commit_mention | 64 |
 | 25 | `OVL_005E_37E4` | `0x5e:0x37e4` | 494 | 161 | A | game_evidenced | 1/0/0/1 | 1/2 | no | 3 | 1 | source_mention | 63 |
 
-Queue summary (schema 8, on the 223/273 main after #885–#1080 and the
+Queue summary (schema 8, on the 223/273 main after #885–#1086 and the
 phantom-edge filter plus the remaining raw-CPU interface caveats and modeled
 system-runtime coverage): 471 candidates, 72 would be composable without the
 caveats and 70 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 311, game_verified 49, helper_candidate 45,
-unresolved 66; grades A 286, B 183, D 2; prior status main_model 78,
+unresolved 66; grades A 286, B 183, D 2; prior status main_model 81,
 inline_in_model 34, inline_in_strict 32, unmerged_branch 9, commit_mention 17,
-source_mention 301; 607 fixup-backed and 632 aligned-PUSH-CS caller sites across
+source_mention 298; 607 fixup-backed and 632 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
@@ -174,12 +174,12 @@ candidate's bounded-decode size, so they are a lower bound on recovery effort.
 | single untranslated callee | rows it alone gates | of those game_evidenced | blocker own B / insns | transitive cost B / insns | transitive leaves | depth |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | `OVL_0086_08C3` | 29 | 26 | 462 / 177 | 6257 / 2541 | 11 | 7 |
-| `OVL_03B0_03BD` | 9 | 9 | 830 / 298 | 1393 / 505 | 2 | 2 |
+| `OVL_03B0_03BD` | 10 | 10 | 830 / 298 | 910 / 329 | 1 | 2 |
 | `OVL_009E_0000` | 8 | 5 | 38 / 16 | 38 / 16 | 1 | 1 |
 | `OVL_009E_1344` | 6 | 5 | 786 / 301 | 5176 / 2112 | 8 | 6 |
-| `OVL_03B0_10D1` | 5 | 5 | 111 / 52 | 1504 / 557 | 2 | 3 |
+| `OVL_03B0_10D1` | 5 | 5 | 111 / 52 | 1021 / 381 | 1 | 3 |
+| `OVL_009E_175D` | 5 | 5 | 268 / 94 | 306 / 110 | 1 | 2 |
 | `OVL_009E_115C` | 4 | 4 | 488 / 189 | 488 / 189 | 1 | 1 |
-| `OVL_009E_175D` | 4 | 4 | 268 / 94 | 306 / 110 | 1 | 2 |
 | `OVL_0038_0058` | 4 | 4 | 181 / 62 | 4571 / 1873 | 8 | 6 |
 | `OVL_0038_1545` | 4 | 0 | 166 / 67 | 4865 / 1993 | 9 | 7 |
 | `OVL_0025_054E` | 3 | 0 | 353 / 124 | 5899 / 2393 | 8 | 5 |
