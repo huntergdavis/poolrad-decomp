@@ -3,7 +3,10 @@
 This completes the 128-byte U86 caller using the merged raw-CPU +323D
 predicate and +044E sidecar builder. It clears 49 far-pointer slots, resets
 the count, walks the character's record chain, and applies +044E only to
-records whose indexed category is 11..13. There are no host callbacks.
+records whose byte at `record+2Eh`, used as an index into the category
+table, selects a table entry whose category lies in 11..13. The gated value
+is the table entry, not the `record+2Eh` index itself. There are no host
+callbacks.
 This author PR requests independent review; it assigns no strict credit.
 
 ## Identity and provenance

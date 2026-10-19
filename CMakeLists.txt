@@ -155,8 +155,11 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_0709_clear_0dd3_cpu.c
                                     src/recovered/resident_0709_rect_fill_00b7_cpu.c
                                     src/recovered/resident_0709_glyph_01df_cpu.c
+                                    src/recovered/resident_0709_text_06a7_cpu.c
                                     src/recovered/resident_0709_printer_0626_cpu.c
                                     src/recovered/resident_00ba_display_1816_cpu.c
+                                    src/recovered/resident_00ba_clear_17e3_cpu.c
+                                    src/recovered/resident_03f1_clear_0137_cpu.c
                                     src/recovered/slot_a_glyph_plane_byte.c
                                     src/recovered/u19_row14_cpu_sources.c
                                     src/recovered/overlay_u3bd_cell.c
@@ -533,11 +536,26 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_0709_rect_fill_00b7_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_0709_rect_fill_00b7_cpu_tests
              COMMAND poolrad_resident_0709_rect_fill_00b7_cpu_tests)
+    add_executable(poolrad_resident_00ba_clear_17e3_cpu_tests
+                   tests/recovered/test_resident_00ba_clear_17e3_cpu.c)
+    target_link_libraries(poolrad_resident_00ba_clear_17e3_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_00ba_clear_17e3_cpu_tests
+             COMMAND poolrad_resident_00ba_clear_17e3_cpu_tests)
+    add_executable(poolrad_resident_03f1_clear_0137_cpu_tests
+                   tests/recovered/test_resident_03f1_clear_0137_cpu.c)
+    target_link_libraries(poolrad_resident_03f1_clear_0137_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_03f1_clear_0137_cpu_tests
+             COMMAND poolrad_resident_03f1_clear_0137_cpu_tests)
     add_executable(poolrad_resident_00ba_display_1816_cpu_tests
                    tests/recovered/test_resident_00ba_display_1816_cpu.c)
     target_link_libraries(poolrad_resident_00ba_display_1816_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_00ba_display_1816_cpu_tests
              COMMAND poolrad_resident_00ba_display_1816_cpu_tests)
+    add_executable(poolrad_resident_0709_text_06a7_cpu_tests
+                   tests/recovered/test_resident_0709_text_06a7_cpu.c)
+    target_link_libraries(poolrad_resident_0709_text_06a7_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0709_text_06a7_cpu_tests
+             COMMAND poolrad_resident_0709_text_06a7_cpu_tests)
     add_executable(poolrad_resident_0709_printer_0626_cpu_tests
                    tests/recovered/test_resident_0709_printer_0626_cpu.c)
     target_link_libraries(poolrad_resident_0709_printer_0626_cpu_tests PRIVATE poolrad_recovered)
