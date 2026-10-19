@@ -62,6 +62,9 @@ PRIOR_ORDER = ("main_model", "inline_in_strict", "unmerged_branch",
 RAW_CPU_INTERFACE_CAVEATS = {
     "RES_00BA_23DB": "resident_party_count.h exposes memory callbacks, not a "
                      "CPU-state callee",
+    "RES_00BA_2E8B": "resident_character_target_select.h exposes a callback "
+                     "interface, not a CPU-state callee; callers that reach it "
+                     "need a raw selector ABI before they can compose",
     "OVL_0025_1815": "ecl_helpers.h exposes the string compare as a semantic "
                      "API; it also needs the unmodeled runtime string compare "
                      "0AF8:0C10",
