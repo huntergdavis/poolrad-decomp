@@ -3557,3 +3557,11 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_u3b0_row_clear_06fb_cpu_tests
              COMMAND poolrad_u3b0_row_clear_06fb_cpu_tests)
 endif()
+
+if(BUILD_TESTING)
+    add_executable(poolrad_u1c_clear_box_2b14_cpu_tests
+                   tests/recovered/test_u1c_clear_box_2b14_cpu.c)
+    target_link_libraries(poolrad_u1c_clear_box_2b14_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_u1c_clear_box_2b14_cpu_tests
+             COMMAND poolrad_u1c_clear_box_2b14_cpu_tests)
+endif()
