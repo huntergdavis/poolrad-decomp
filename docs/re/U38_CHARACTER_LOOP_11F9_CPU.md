@@ -110,7 +110,7 @@ With owner media under resources/DOS/POOLRAD and Capstone/Unicorn installed:
     ctest --test-dir resources/u38-11f9/build -R '^poolrad_overlay_u38_character_loop_11f9_cpu_tests$' --output-on-failure
 
 Private receipt resources/evidence.json SHA-256:
-5fa738432ecdfd5a27f6f5f9a5f9c2eb16241bc487a952d6bf64cbf0b5ef7508.
+bbbcc97f896beab1655d3ade5d5fb7459da8258c19824c9c19cc4668832b26bc.
 It pins 19 public build/tool/queue inputs, 19 private artifacts,
 media/tool binaries and 14 unchanged dependency files against main
 5438ae2f027244b0a258e9ecca5a1826de3c5a02. The document is excluded from its own receipt.

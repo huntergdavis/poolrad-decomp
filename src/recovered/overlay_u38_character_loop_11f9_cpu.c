@@ -1,5 +1,5 @@
 /* Complete U38 [11F9,1268); raw SYSTEM StrCmp composed.
- * Memory/flags/composition reuse U38 +11F9/+0947. */
+ * Memory/flags/composition reuse U38 +0679/+0947. */
 #include "poolrad/recovered/overlay_u38_character_loop_11f9_cpu.h"
 #include "poolrad/recovered/system_string_move_leaves_cpu.h"
 
