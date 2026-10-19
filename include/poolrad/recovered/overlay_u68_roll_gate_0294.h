@@ -96,4 +96,34 @@ typedef struct {
 pr_u68_roll_gate_status pr_u68_roll_gate(pr_u68_roll_gate_state *state, uint8_t *al_out,
                                          pr_u68_roll_gate_report *report);
 
+
+/* Raw-composition upgrade of the existing bounded model: exactly
+ * [0294,04DF), 587 executable bytes / 247 instructions; no trailing data.
+ * See docs/re/U68_ROLL_GATE_0294_CPU.md. */
+#include "poolrad/recovered/overlay_u68_map_update_0109_cpu.h"
+typedef pr_u68_0109_cpu pr_u68_roll_gate_cpu;
+typedef enum {
+    PR_U68_ROLL_CPU_OK = 0, PR_U68_ROLL_CPU_ARGUMENT,
+    PR_U68_ROLL_CPU_CODE, PR_U68_ROLL_CPU_CALLEE,
+    PR_U68_ROLL_CPU_TRANSFER, PR_U68_ROLL_CPU_LIMIT
+} pr_u68_roll_gate_cpu_status;
+typedef enum {
+    PR_U68_ROLL_CPU_NONE = 0, PR_U68_ROLL_CPU_FIELD,
+    PR_U68_ROLL_CPU_DICE, PR_U68_ROLL_CPU_MAP
+} pr_u68_roll_gate_cpu_callee;
+typedef struct {
+    pr_u68_roll_gate_cpu_callee callee; /* last reached call boundary */
+    int status; /* -1 until that callee runs */
+} pr_u68_roll_gate_cpu_report;
+/* Enter after far CALL at IP0294, SP0040..FFFC, with 1MiB A20-off ordinary
+ * RAM and immutable code. Loaded overlay stubs are read from RAM.
+ * List budget stops at target02AB; dice budget is per invocation and stops
+ * in U9E at0E0E. Failed/stopped CPU and RAM are retained without unwind.
+ * Dice LIMIT clears undefined XOR AF for the measured emulator profile;
+ * the shared dice API is unchanged. No gameplay routing is changed. */
+pr_u68_roll_gate_cpu_status pr_u68_roll_gate_0294_cpu(
+    uint8_t *ram, size_t ram_size, pr_u68_roll_gate_cpu *cpu,
+    unsigned max_loopbacks, unsigned max_system_calls,
+    pr_u68_roll_gate_cpu_report *report);
+
 #endif
