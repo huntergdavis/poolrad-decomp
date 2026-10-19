@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Original-byte/full-state parity for GAME.OVR U38 public entry 78."""
 
+import argparse
 import ctypes
 from hashlib import sha256
 from pathlib import Path
@@ -142,24 +143,45 @@ def compare(label, model, callback_type, wrapper, callee):
         assert actual == expected, (label, name, hex(actual), hex(expected))
 
 
+CHECKER_ROWS = ("OVL_0038_25BC",)
+
+
+def build_model(tmp):
+    """Compile, load and bind the C model; returns the bound function."""
+    callback_type = ctypes.CFUNCTYPE(
+        ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_size_t, ctypes.POINTER(helper.Cpu))
+    library = Path(tmp) / "model.so"
+    subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+                    "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
+                    str(ROOT / "src/recovered/overlay_u38_target_select_101d.c"),
+                    str(ROOT / "src/recovered/resident_character_target_select.c"),
+                    str(ROOT / "src/recovered/overlay_u38_target_mask81_25bc.c"),
+                    "-o", str(library)], check=True)
+    model = ctypes.CDLL(str(library)).pr_u38_target_mask81_25bc
+    model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                      ctypes.POINTER(helper.Cpu), callback_type,
+                      ctypes.c_void_p]
+    model.restype = ctypes.c_int
+    return model
+
+
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="compile, load and bind the actual C model without media")
+    args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-u38-25bc-") as tmp:
+            build_model(Path(tmp))
+        print("CHECKER_BUILD_OK")
+        return
     wrapper, callee = source(), helper.source()
     callback_type = ctypes.CFUNCTYPE(
         ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t, ctypes.POINTER(helper.Cpu))
     with tempfile.TemporaryDirectory(prefix="poolrad-u38-25bc-") as tmp:
-        library = Path(tmp) / "model.so"
-        subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
-                        "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
-                        str(ROOT / "src/recovered/overlay_u38_target_select_101d.c"),
-                        str(ROOT / "src/recovered/resident_character_target_select.c"),
-                        str(ROOT / "src/recovered/overlay_u38_target_mask81_25bc.c"),
-                        "-o", str(library)], check=True)
-        model = ctypes.CDLL(str(library)).pr_u38_target_mask81_25bc
-        model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                          ctypes.POINTER(helper.Cpu), callback_type,
-                          ctypes.c_void_p]
-        model.restype = ctypes.c_int
+        model = build_model(Path(tmp))
         cases = [(mode, index, flag, amount, *layout, seg)
                  for seg in (0x00BA, 0x3456)
                  for mode in range(8)
