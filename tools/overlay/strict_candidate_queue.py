@@ -384,6 +384,10 @@ SPAN_HASH = re.compile(
 NEXT_PROLOGUE = re.compile(r"next\s+prologue|prologue\s+is\s+\+?0x", re.IGNORECASE)
 # A comment describing an address RANGE (e.g. "+2A87..+2AE6 (95 original bytes)")
 # names this routine only as the end of its neighbour's extent.
+# An IP REDIRECT (`c->ip = 0x07BCu`) is the loader handing control to an
+# address, and a bare comment mention only names it; neither models the body.
+IP_REDIRECT = re.compile(r"->\s*ip\s*=\s*(?:0x[0-9a-fA-F]+|\d+)|\bip\s*=\s*0x[0-9a-fA-F]+u?")
+COMMENT_ONLY = re.compile(r"^\s*(?:/\*|\*|//)")
 RANGE_COMMENT = re.compile(
     r"\+?(?:0x)?[0-9a-fA-F]{3,5}\s*\.\.\s*\+?(?:0x)?[0-9a-fA-F]{3,5}")
 INLINE_MODEL_WORD = re.compile(r"\bcalls?\b|\bcalled\b|invoke|inline|\bmodel\b|patched",
@@ -397,7 +401,9 @@ def is_boundary_mention(mention):
     structural = bool(CALLSITE_MAP.match(text)
                       or SPAN_HASH.match(text)
                       or BOUNDARY_ASSERTION.search(text)
-                      or RANGE_COMMENT.search(text))
+                      or RANGE_COMMENT.search(text)
+                      or IP_REDIRECT.search(text)
+                      or COMMENT_ONLY.match(text))
     if structural:
         return not INLINE_MODEL_WORD.search(text)
     return bool(NEXT_PROLOGUE.search(text))
