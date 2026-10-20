@@ -61,7 +61,7 @@ def media(root):
     ovr = (base / "GAME.OVR").read_bytes()
     image = bytes(unpack(exe)[0])
     units = find_units(exe[parse_mz(exe)["header_bytes"]:], ovr)
-    return image, ovr, {u["stub_para"]: u for u in units}
+    return image, ovr, {u["stub_para"]: u for u in units}, Cs(CS_ARCH_X86, CS_MODE_16)
 
 
 def span(md, blob, origin, cap=8192):
@@ -109,8 +109,7 @@ def sole_blockers(strict_rows):
 
 
 def price(root, queue_path, limit_bytes=600, top=15):
-    image, ovr, units = media(root)
-    md = Cs(CS_ARCH_X86, CS_MODE_16)
+    image, ovr, units, md = media(root)
     rows = json.loads(Path(queue_path).read_text())["rows"]
     sole = sole_blockers(rows)
     priced = []
