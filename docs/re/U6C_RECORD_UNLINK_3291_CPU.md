@@ -51,6 +51,37 @@ generated on main f04d610e. It lists this row `game_evidenced`, grade A,
 callees `OVL_006C_0000` and `OVL_03CE_014E` both `strict`, composable, prior
 status `source_mention` only (no existing translation).
 
+## Identity under the two-factor standard (an argument, not a credit)
+
+The standard in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)
+asks for **both** a call site inside game code and a subject of documented game
+state. Both are stated here with the CSV values, not prose.
+
+1. **Reached from game code, relocated.** The seven `LCALL 0078:002A` sites above
+   each carry a relocation on the segment word (the audit scans the unit fixup
+   tables for the stub address) and lie in these functions, classified in
+   `overlay_classification.csv`: `OVL_001C_02E0` (`game_verified`, +0394),
+   `OVL_0020_04C9` (`game_evidenced`, +06EA and +0748), `OVL_0020_11AC`
+   (`game_evidenced`, +1239), `OVL_0033_19F5` (`game_evidenced`, +1DCF) and
+   `OVL_006A_18E5` (`game_evidenced`, +1935 and +19E5). **None of the five is
+   strict-credited**, so the basis is the classification the standard names, not a
+   credited caller. Each enclosing function was found by site-in-extent against the
+   ledger bounds.
+2. **Operates on documented game state.** The body's subject is the party list:
+   `DS:5D96/5D98` head, `DS:5D92/5D94` active record, the record's next link at
+   +104h/+106h, its slot byte at +0BFh, and the window-1 pointer `DS:49D6` with the
+   counter at +67Ch. [U6F_PARTY_INSERT_1446_CPU.md](U6F_PARTY_INSERT_1446_CPU.md)
+   defines exactly this structure with evidence; its body `OVL_006F_1446` is in
+   `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`, and it is
+   the insertion this routine undoes. The active-character pointer is measured
+   natively in [SLOT_A_NATIVE_19E3_INSERTION_RETURN.md](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md).
+   The body addresses these globals directly; its two stack arguments are byte
+   flags, so no pointer is passed in and no frame-slot trace is needed.
+
+What is **not** argued: the overlay manager's stub, the two near callers inside
+unit 6C (aligned `PUSH CS`, listed only for completeness), and any credit. The
+caller's own identity is not claimed to follow from this body.
+
 ## Behavior and profile
 
 The frame is a far call: `[SP]` return IP, `[SP+2]` return CS, `[SP+4]` a word
