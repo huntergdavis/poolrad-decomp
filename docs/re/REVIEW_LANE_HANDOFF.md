@@ -94,9 +94,20 @@ Sizing them shows no cheap leaf: the resident blockers are 26-263 bytes and only
   `game_evidenced`), but its transitive cost is 6,257 bytes / 2,541
   instructions across 11 leaves at depth 7, so it is not the cheap unlock its
   gated-row count suggests.
-* **Hold `RES_00BA_16EC`** — no leaf of 16EC can become strict until 16EC itself
-  is; the port harness stays spec-only.
-* **Defer `RES_00BA_0BB8`** — 5–13 days, and it is what `+115C` is blocked on.
+* **Hold `RES_00BA_16EC`** — priced, not assumed: its own body is 247 bytes /
+  116 starts, but its measured closure is **65 routines / 6,312 code bytes**,
+  and no leaf of 16EC can become strict until 16EC itself is. The port harness
+  stays spec-only. It gates 17 rows, which is exactly why the size matters and
+  why this hold is not up for re-litigation.
+* **Defer `RES_00BA_0BB8`** — *closed*: credited through `+115C` (PR #1147),
+  with `+1168`/`+13AB` credited on declaration (PR #1149).
+
+Two facts to keep beside those decisions, because together they kill the idea
+that the big fan-outs are the cheap route: **the only leaf-sized blocker in the
+candidate set (26 bytes) gates nothing on its own**, and **the two
+highest-fan-out blockers are the two most expensive bodies available**
+(`OVL_009E_02FA` at 2,029 bytes / 911 starts and `RES_00BA_16EC` at a
+6,312-byte closure). Fan-out is not cost.
 
 ## Where the truth lives
 
