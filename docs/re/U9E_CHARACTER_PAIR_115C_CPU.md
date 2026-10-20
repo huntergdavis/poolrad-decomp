@@ -209,3 +209,32 @@ Measured report SHA-256 values (private captures remain under resources/):
 - oracle-final.json: 7cd5537c1b07569d600e6008d8758f8f83441d51d860572043de7fa86eb6ed98
 - oracle-native/report.json: ab39eea1dae20b8db83b95f74289fe1d2b0c53c2fe99e6e579fb13d83a6a3237
 - helpers-oracle-review.json: 5df1065c81bfaa4dc3b7d3b71826e718cf543731c44dd6ef276875aa8aa71b0d
+
+## Declared resident helper targets
+
+RES_00BA_1168 and RES_00BA_13AB are separately declared full callees in
+the readiness manifest and registered with this same checker. This exposes
+already implemented bodies for independent review; it adds no translation,
+new test run claim, or author-assigned credit.
+
+| Target | Original span | Bytes / starts | Existing measured branch outcomes |
+| --- | --- | ---: | ---: |
+| RES_00BA_1168 | [1168,11EA) | 130 / 54 | 22 feasible of 24 syntactic; the two impossible directions are proved above |
+| RES_00BA_13AB | [13AB,148B) | 224 / 89 | 36 of 36 |
+
+The published 3,441-case audit includes all starts and feasible outcomes of
+both bodies through U9E-origin execution. It also includes 256 standalone
++1168 inputs and 512 standalone +13AB inputs. These are subsets of the
+existing totals, not additional comparisons. The existing 33 native
+captures include two completed wrapped-SP entries for each helper and
+three explicitly intercepted MUL checkpoints inside +13AB. The same native
+RAM subset, coordinate provenance, raw-Unicorn disagreements and
+normal/386 restrictions apply. No separate full-1MiB native claim is made.
+
+Body SHA-256: +1168
+4c5c49b63f5a382b3de7df784840f406cd807921aeeffbb88948483067ac49a4;
++13AB
+22732f3cfe79dc6feb87722de05c3da242b1d3c7f984db735f8c3d38ef3b7bbe.
+The unchanged evidence reports above pin the already measured execution.
+VP i19181 requested these declarations; the independent reviewer retains
+all acceptance and credit decisions.
