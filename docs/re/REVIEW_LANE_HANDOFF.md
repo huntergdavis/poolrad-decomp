@@ -65,6 +65,19 @@ This is a **correction**, not a relaxation (VP inbox i19579). A body is game cod
 
 **Read the CSVs, not the prose, for a row's credit status.** On 2026-10-20 a reviewer took "31A2 is unresolved" from two stale document sentences, while `reviewed_function_identities.csv` and `strict_full_c_addresses.csv` had credited it since 21b65e9a.
 
+## RETF stack-top wrap: a recorded class, deliberately not swept (2026-10-20)
+
+**The class.** Most recovered models read a far-return frame physically contiguous: the CS word is read at `(at + 2u) & MASK`. On 2026-10-20 that held for **96** source files under `src/recovered/`, against **4** that read CS at `SS:((SP+2) mod 64K)`. At a return-time SP of FFFE or FFFF, DOSBox-X normal/386 (binary `99d74601…`) wraps the CS word within SS, while the contiguous models read `SS*16+10000h`. At FFFD, where the word straddles FFFF, every oracle reads it contiguous.
+
+**Why the evidence system was blind.** Unicorn 2.1.4 shares the contiguous reading, so no original-byte Unicorn differential can expose this. Only a DOSBox-X probe with the wrapped and contiguous frame copies given *different* values can. [`tools/overlay/retf_stack_edge_probe.py`](../../tools/overlay/retf_stack_edge_probe.py) is that probe. It ran on SYSTEM Move and GetMem's exit, and it reproduces the 0714 table from #1192.
+
+**Decision (VP i19691): record, state limits where reachable, do not sweep.**
+* Two credited rows can reach the band inside their stated contracts: `OVL_0025_1951` (entry SP 0006/0007 and FFFE/FFFF) and `OVL_009E_0E52` (000E/000F and FFFE/FFFF). Both now carry a stated limit, and none of those SPs was exercised.
+* The runtime endpoints SYSTEM GetMem `023F` and the Move leaves (`1685`, which shares `retf()` with `0B57`, `0C10` and `0C3B`) carry the limit too.
+* Fixing these means re-accepting evidence for a divergence that needs a stack wrap nothing reaches. A sweep of the 96 files would mean a fortnight of re-acceptance for an unexercised edge. Revisit only when a body needs the band.
+
+**Acceptance rule (from this finding).** A body that composes a stack-frame reader, i.e. any callee whose RETF or POP frame it reaches, must have its **entry-SP window stated at acceptance**. An ARGUMENT guard that checks the RAM, CPU, size and IP but **not the entry SP** is the pattern to flag: `1951` and `0E52` were accepted that way. Compute the callee's entry SP from the caller's stack delta at the call, and either bound the caller's entry SP so the callee cannot wrap, or state the limit.
+
 ## Four false-prior classes (each has a filter and a regression test)
 
 1. **Boundary assertions** — `address + size == 0x…` end-of-previous-body and
