@@ -220,8 +220,8 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 
 | candidate | measured cost | rows unlocked | **cost/row** | note |
 | --- | --- | ---: | ---: | --- |
-| `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | class `game_or_other_library_unresolved` — identity decision, not bytes |
-| `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | depends on `007F_0000`; same identity caveat |
+| `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | **cheap but uncreditable** — identity not establishable, see below |
+| `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | same verdict |
 | `OVL_001C_13D7` | 94 B (32 starts) | 1 | **94 B** | `game_evidenced`; cleanest single credit left |
 | `OVL_0077_275B` | 132 B | 1 | 132 B | |
 | `OVL_03C6_0105` | 156 B = 34 + 122 | 1 | 156 B | |
@@ -231,6 +231,29 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 | `OVL_009E_1869` | 547 B | 2 | 274 B | |
 | `OVL_009E_0026` | — | 5 | **not priced** | calls `OVL_009E_0000`, readiness `indirect_unresolved` |
 | `OVL_009E_0160` | — | 1 | **not priced** | same dispatch blocker |
+
+**Identity verdict for the `0x7F` pair: not establishable from the media.**
+Measured against the standard used to credit other rows:
+
+* **Callers.** Unit `0x7F` entry 1 (`+0x54`) has six call sites, all the
+  byte-identical static stub call `lcall 0x8F:0x0025` — units `0x68 +C7AB`,
+  `0x6A +B645`, `0x6C +94F7`, `0x6F +4E90`, `0x75 +27D9`, `0x77 +1E3C`. Only the
+  last carries a relocation (segment word at `+1E3F`); the other five are static.
+  The enclosing functions are `OVL_0068_10A7` (`helper_candidate`) and
+  `OVL_0077_1CEE` (`game_evidenced`) — **neither is credited**, so citing them as
+  game evidence would be circular.
+* **Dispatch-table ownership.** `+0x54` *is* entry 1 of unit `0x7F`'s own public
+  entry table, but that table's ownership is precisely the question at issue.
+* **Behaviour.** `+0x0000` takes two words, calls the credited resident
+  `00BA:13AB`, adds the constant **1500**, returns it. `+0x0054` is a bounds
+  helper over caller-supplied far pointers: it calls `+0x0000` twice, reads
+  `es:[di+0x102]`, compares against a sum and sets a byte flag. **Neither reads
+  any documented DS game state, and neither contains strings** — which is exactly
+  why the classifier returns `game_or_other_library_unresolved`, and the decode
+  confirms the classifier rather than contradicting it.
+
+So the pair stays out of the credit tables. It is a cheap *body* and an
+unestablished *identity*, and the difference is the whole point of the rule.
 
 The two `0x7F` rows are one job, not two: `0054` calls `0000`, so 32 + 84 = 116 B
 of body buys 2 credits and makes 4 rows composable — **~29 B/row combined**. That
