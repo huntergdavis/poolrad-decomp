@@ -276,3 +276,43 @@ next target. Classification and acceptance manifests remain unchanged.
 
 The regenerated summary also refreshes a stale decode-short total. The CSV
 changes are confined to the two rows above; prior extent pins remain intact.
+
+## Identity-cleared rows: trailing data (2026-10-20)
+
+Found while pricing the identity-cleared rows
+([IDENTITY_CLEARED_PRICING.md](IDENTITY_CLEARED_PRICING.md)). VP i19611
+asked for 0511 to be recorded; the same check found two more. **Evidence and
+proposed pins only.** This change regenerates no ledger, queue product,
+classification or manifest; applying `executable_end` pins is the review
+lane's step.
+
+In each case the body decodes straight to its first return, with no direct
+branch past it and no indirect transfer in the body. The excluded tail is
+wholly length-prefixed printable strings. Whether neighbouring code
+references those strings was not traced. Strings are summarised only.
+
+| Row | Executable body | GAME file | Excluded tail | Queue extent |
+| --- | --- | --- | --- | --- |
+| OVL_0025_0511 | [0511,0544) 51 B / 21, RETF 4 at +0541 | [79E4,7A17) | [0544,054E) 10 B: two strings (5 and 3 chars) | 61 B / 27 |
+| OVL_006F_0482 | [0482,0674) 498 B / 183, RETF 2 at +0671 | [1E468,1E65A) | [0674,069E) 42 B: seven strings (file suffixes, a disk prompt) | 540 B / 199 |
+| OVL_006F_0010 | [0010,0197) 391 B / 147, RETF 4 at +0194 | [1DFF6,1E17D) | [0197,01B8) 33 B: three strings (a file name, a disk prompt) | 424 B / 160 |
+
+SHA-256 (checked against the pinned GAME.OVR `872964a3…`):
+
+- OVL_0025_0511:
+  - body `755c5d1d6e77aaa70982d05d3c9b0b9b985fe19beac8387ecc94a9d8070c2500`
+  - tail `7b286a6bb2319cfcc858802e9f5a5e162ce44e1b23e697ed93e8561b0e9e1d52`
+  - historical 61 B `953309b30280c5b8ec87b1e836cc159f4ae37a9f117ed6739075bc7a6fe45f0d`
+- OVL_006F_0482:
+  - body `be72ede6980e67ba2ef0d51e84c154a281ab9b27b9d00070b7701fcf4bd0a4a3`
+  - tail `8ccc8f762faf22b781b85f7460f4b03870e121f535ea8fbe98ee3d8de467017f`
+  - historical 540 B `a939d6fc0f5514a7efd9e9a08cbff48ef14ff41eddd13652284fd381489240aa`
+- OVL_006F_0010:
+  - body `3dd22f1389f59ad3481634a8cb455521b7aa619a991fe1fb8b32d71171d7cb36`
+  - tail `fb3e54559f7567e2ffde8d129525c2c85eddbede8c2eca93d5fb7bc39bab70c9`
+  - historical 424 B `5b0d3e3a06d8837a505dcebee1d889e35c58eeff08947c4f700353eda4e80971`
+
+Readiness is unaffected: none of the three changes its callee set, and none
+becomes composable. Two further 32-byte non-text tails, on `OVL_009E_0026`
+and `OVL_006F_1262`, are **not** proposed: their data use is unproven (see
+the pricing record).
