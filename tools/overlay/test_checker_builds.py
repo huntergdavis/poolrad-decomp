@@ -122,6 +122,15 @@ class PreconditionTest(unittest.TestCase):
         self.assertIsNone(gate.precondition_error(self.root, "origin/main",
                                                   event="merge_group"))
 
+    def test_push_event_ci_tolerates_main_ahead_of_head(self):
+        """The hygiene workflow also runs on push, where main is legitimately ahead."""
+        self.assertIsNone(gate.precondition_error(self.root, "origin/main",
+                                                 event="push", ci=True))
+
+    def test_local_run_stays_strict_without_ci_environment(self):
+        problem = gate.precondition_error(self.root, "origin/main", event=None, ci=False)
+        self.assertIn("HEAD does not include fetched main", problem)
+
     def test_require_current_main_flag_is_strict_even_in_ci(self):
         problem = gate.precondition_error(self.root, "origin/main",
                                           require_current_main=True,

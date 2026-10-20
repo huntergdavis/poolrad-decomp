@@ -236,6 +236,11 @@ def sweep(root, timeout=120):
 
 
 PR_EVENTS = ("pull_request", "pull_request_target", "merge_group")
+# The hygiene workflow triggers on `push` as well as `pull_request`, so a branch
+# push arrives as GITHUB_EVENT_NAME=push with main legitimately ahead of HEAD.
+# Any CI run therefore uses the merge-base relation check; only a local run (no
+# CI environment at all) requires HEAD to include the fetched base.
+CI_ENV = ("GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "CI")
 
 
 def _run_git(root, *args):
@@ -244,7 +249,7 @@ def _run_git(root, *args):
 
 
 def precondition_error(root, base_ref="origin/main", *, require_current_main=False,
-                       event=None):
+                       event=None, ci=None):
     """Why this tree may not be handed off, or None if it may.
 
     A local pre-handoff run must be current: HEAD has to include fetched main.
@@ -258,7 +263,10 @@ def precondition_error(root, base_ref="origin/main", *, require_current_main=Fal
     if base.returncode or head.returncode:
         return f"cannot resolve {base_ref} or HEAD; fetch before handoff"
     base, head = base.stdout.strip(), head.stdout.strip()
-    strict = require_current_main or event not in PR_EVENTS
+    if ci is None:
+        ci = any(os.environ.get(name) for name in CI_ENV)
+    relaxed = ci or event in PR_EVENTS
+    strict = require_current_main or not relaxed
     if strict:
         if _run_git(root, "merge-base", "--is-ancestor", base, head).returncode:
             return "HEAD does not include fetched main; update before handoff"
@@ -299,7 +307,8 @@ def main():
         base, head = git(ROOT, "rev-parse", args.base_ref), git(ROOT, "rev-parse", "HEAD")
         problem = precondition_error(ROOT, args.base_ref,
                                      require_current_main=args.require_current_main,
-                                     event=os.environ.get("GITHUB_EVENT_NAME"))
+                                     event=os.environ.get("GITHUB_EVENT_NAME"),
+                                     ci=any(os.environ.get(name) for name in CI_ENV))
         if problem:
             raise ValueError(problem)
         registry = discover(ROOT)
