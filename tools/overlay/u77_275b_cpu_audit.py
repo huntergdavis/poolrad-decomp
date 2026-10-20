@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""U77 [275B,27DD) original-byte oracle: the caller's 132 bytes against our C.
+"""U77 [275B,27DF) original-byte oracle: the caller's 132 bytes against our C.
 
 Design: the original side executes the caller's real bytes under Unicorn. At the
 two far calls (275B+0x0C -> 0x2767 into 00BA:0BB8, and 0x27A8 into 00BA:13AB) it
@@ -57,13 +57,14 @@ REGISTERS = ((UC_X86_REG_AX, "ax"), (UC_X86_REG_BX, "bx"), (UC_X86_REG_CX, "cx")
 # feasible outcome, or say which one and why" - never a widened mask.
 #
 # 0x277B (`mov byte [bp-2],1` on the type>15 path) is unreachable in this
-# composition: the type byte lives at the same object the body passes to
-# 00BA:0BB8, and 0BB8 clears that byte before the comparison. Measured over
-# pre-set values 00,01,0E,0F,10,11,20,7F,80,FF: the post-call byte is 0 in every
-# case, so `cmp byte es:[di+0xC7],0xF` always takes the JBE. If a 0BB8 state is
-# found that preserves +0xC7 the branch becomes feasible and a fixture must
-# reach it; until then this is an exclusion, not a covered path.
-EXCLUDED_STARTS = {}   # 0x277B is reachable once the item chain is attached
+# 0x277B needs no exclusion. 00BA:0BB8 zeroes target +0xC7 and then walks the
+# item chain at +0xC8/+0xCA, executing `inc byte es:[di+0xC7]` at 0C2C once per
+# node (each node's next pointer sits at +0x2A/+0x2C). Fixtures with a NULL chain
+# leave the byte at 0 and never take the branch; the 16- and 20-node chain
+# fixtures push it past 15 and DO take it, so the start is covered and this set
+# is deliberately empty. The checker's EXCLUSION NO LONGER TRUE guard fails if a
+# reader re-adds an exclusion for a start that a fixture reaches.
+EXCLUDED_STARTS = {}
 
 # Excluded conditional SIDES, with the argument that makes them unreachable.
 #   At 27C2 `cmp dx,bx` with dx = 0 and bx = sign-extension of (AX + 1500), where
@@ -74,8 +75,8 @@ EXCLUDED_STARTS = {}   # 0x277B is reachable once the item chain is attached
 #   always reaches `cmp ax,cx`. Neither sign branch can be taken. They would
 #   need a return outside [-1500, 31267], which the decode excludes for every AL.
 EXCLUDED_SIDES = {
-    (0x27C4, 0x27CC): "dx=0, bx=sign(AX+1500)=0 in every measured state",
-    (0x27C6, 0x27D0): "same: bx=0 leaves cmp 0,0 equal, so no strict less",
+    (0x27C4, 0x27CC): "by contract: 13AB returns in [-350,15000], so AX+1500 in [1150,16500] keeps bit 15 clear and bx=0",
+    (0x27C6, 0x27D0): "same contract: bx=0 leaves cmp 0,0 equal, so no strict less",
 }
 
 

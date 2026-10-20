@@ -10,7 +10,7 @@ DECLARATION (read this before reading the numbers):
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim; this run corroborates the **caller's 132 bytes**
    against the original instruction stream with **synthetic entry frames**.
-4. Coverage reduction: this set is **26 of 31** fixtures. The three non-default-SP
+4. Coverage reduction: this set is **28 of 31** fixtures. The three non-default-SP
    cases are excluded **by construction** because this capture does not vary SP;
    closing them needs assembly that sets SP per case.
 5. Frame: this run uses its **own declared frame** (return IP 0x0000, CS 0xDEAD,

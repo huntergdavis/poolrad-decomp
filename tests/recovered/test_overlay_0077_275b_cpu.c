@@ -64,14 +64,23 @@ int main(void)
 {
     /* Both residents run and the routine returns normally. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 4, 1, 0x0100);
+    uint16_t entry_sp = cpu.sp;                 /* SP as the fixture laid the frame out */
     assert(run() == PR_OVL0077_275B_RETURNED);
     assert(diag.first_status == 0 && diag.second_status == 0 && diag.calls == 2);
     assert(cpu.cs == 0xDEAD && cpu.ip == 0x0000);       /* returned through the frame */
-    assert(cpu.sp == 0x800C);                            /* RETF 8 popped IP/CS + 8 bytes */
+    assert(cpu.sp == (uint16_t)(entry_sp + 12u));        /* RETF 8 popped IP/CS + 8 bytes */
     assert(cpu.bp == 0x7F00);                            /* saved bp restored */
-    /* bp = 0x7FF2 here (push bp at SP-2), so [bp-1] is 0x7FF1, not 0x7FFF. */
-    assert(ram[physical(cpu.ss, 0x7FF1)] <= 1);          /* [bp-1] holds the returned flag */
-    assert((cpu.ax & 0xFF) == ram[physical(cpu.ss, 0x7FF1)]);
+
+    /* The body writes its result byte to [frame_bp-1]; frame_bp is entry SP minus the
+     * pushed BP. Do not trust a hand-derived address: print what was actually used and
+     * require the stack byte to agree with the returned AL, which is independent. */
+    uint16_t frame_bp = (uint16_t)(entry_sp - 2u);
+    uint16_t flag_at = (uint16_t)(frame_bp - 1u);
+    uint8_t flag_on_stack = ram[physical(cpu.ss, flag_at)];
+    printf("frame: entry_sp=%04X frame_bp=%04X flag_at=%04X stack=%u al=%u\n",
+           entry_sp, frame_bp, flag_at, flag_on_stack, (unsigned)(cpu.ax & 0xFF));
+    assert(flag_on_stack <= 1u);
+    assert(flag_on_stack == (cpu.ax & 0xFF));
 
     /* Argument guard: wrong entry IP, short RAM, null diagnostic-free call. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 4, 1, 0x0100);
@@ -86,10 +95,8 @@ int main(void)
      * same quantity, which is the observable effect of the `jbe` at 0x2791. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 7, 0, 0x0100);
     assert(run() == PR_OVL0077_275B_RETURNED);
-    uint16_t flag_zero_count = get16(cpu.ss, 0x7FFF);
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 7, 1, 0x0100);
     assert(run() == PR_OVL0077_275B_RETURNED);
-    (void)flag_zero_count;
 
     /* A saturated quantity and count keep the routine in range and return. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 0xFFFF, 255, 0xFFFF);

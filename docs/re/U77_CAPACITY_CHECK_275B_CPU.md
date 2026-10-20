@@ -7,10 +7,9 @@ The extent ends at `27DF` because `RETF 8` at
 wrong.
 
 **What it does.** Two far pointers in the frame: target at `[bp+0x0A]` with its
-**segment at `[bp+0x0C]`**, and the record at `[bp+0x06]`/`[bp+0x08]`. It reads the second pointer's
-object fields `+0xC7` (type byte, compared against 15), `+0x37` (quantity word)
-and `+0x39` (count byte), multiplies quantity by count when the count is
-non-zero, adds the composed `00BA:0BB8` result plus **1500**, and compares that
+**segment at `[bp+0x0C]`**, and the record at `[bp+0x06]`/`[bp+0x08]`. It reads the **target** object's `+0xC7` (type byte, compared against 15) and the
+**record** object's `+0x37` (quantity word) and `+0x39` (count byte), multiplies quantity by count when the count is
+non-zero, adds the composed `00BA:13AB` result plus **1500**, and compares that
 sign-extended 32-bit total with the first pointer's `+0x102` word plus the
 product. `AL` returns the flag; it is also stored at `[bp-1]`.
 
@@ -34,6 +33,12 @@ Both enclosing functions are `game_evidenced`, and both callees this body compos
 behaviour — the capacity comparison over item quantity, count and a 1500
 constant — matches the record/list fields the credited residents maintain.
 
+**`+0x102` is zeroed by the resident.** `00BA:0BB8` writes zero to
+`es:[di+0x102]` at `0C09`-`0C14`, so the base word the compare reads is **always
+0** at that point. An earlier version of this document described six fixtures
+that varied it as "sign-edge" cases; **that claim is withdrawn** - those fixtures
+exercise the resident, not the compare.
+
 ## Differential
 
 `tools/overlay/u77_275b_cpu_audit.py` executes the caller's **original bytes**
@@ -45,12 +50,13 @@ instruction substitution inside the body**.
 Current result, stated exactly:
 
 ```
-cases 29 · starts 44/44 (+1 excluded) · outcomes 7/10 (+3 excluded sides)
-flag_masks 0 · substitutions 0 · stops: return 29 · both residents called in every case
+cases 31 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
+flag_masks 0 · substitutions 0 · stops: return 31 · both residents called in every case
 ```
 
-That is **not** "100% of reachable" and **not** "all outcomes": one start and
-three conditional sides are excluded, each for a stated reason below. Branch
+That is **not** "100% of reachable" and **not** "all outcomes": **no starts** are
+excluded (`EXCLUDED_STARTS` is empty) and **two** conditional sides are, for the
+contract reason below. Branch
 accounting is **successor-based** — when a conditional jump executes, the next IP
 *is* the side taken — so no flag interpretation can retire an untaken path.
 
@@ -114,11 +120,11 @@ caller's original bytes. Its declaration, per the five required points:
 2. **What the stub does not do:** it does **not** execute the residents'
    closure, so their internal SYSTEM endpoints are **not exercised by this run**
    — only by the differential.
-3. **Division of labour:** the differential (29 fixtures, 14 CPU words, all
+3. **Division of labour:** the differential (31 fixtures, 14 CPU words, all
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim. This run corroborates the **caller's 132 bytes**
    against the original instruction stream.
-4. **Coverage reduction, stated:** this set is **26 of 31** fixtures. The three
+4. **Coverage reduction, stated:** this set is **28 of 31** fixtures. The three
    non-default-`SP` fixtures are excluded **by construction** because the
    capture assembly does not vary `SP`; closing them needs assembly that sets
    `SP` per case. Compared per case: **12 CPU words**, both 0x300-byte object
@@ -129,8 +135,9 @@ caller's original bytes. Its declaration, per the five required points:
    by `POPF`, and `SP` at the post-`CALL` value. It is **not asserted** to be
    byte-identical to the differential's fixture frame.
 
-Result: 26/26 captured cases agree on the 12 compared words, both object blocks
-and the masked flags; `RESULT.BIN` SHA-256 `0792fc88…`.
+Result: **28 of 31** captured cases agree on the 12 compared words, both 0x300-byte
+object blocks and the masked flags; `RESULT.BIN` SHA-256
+`fec5fd7778014b68717a6a3a899f14d9d3b81788234149cf2eeed5e7d81ba120`.
 
 **What the native run found that the differential could not:** with the real
 resident composed, `00BA:13AB` overwrites `AX`, which hid a missing
