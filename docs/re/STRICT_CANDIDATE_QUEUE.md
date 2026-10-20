@@ -255,6 +255,27 @@ Measured against the standard used to credit other rows:
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
 
+**Use the queue's fixup-verified target list, not your own disassembly.** A
+second pass that expanded one hop from a linear decode priced
+`OVL_001C_2F2D` at 580 B with no unready callees, while the queue lists **49
+targets** for it (11 strict, 18 `verified`, 19 `modeled_blocked`). Decode-only
+expansion understates any body whose calls do not fall out of a clean linear
+sweep. Re-priced from the queue's targets, the sub-600 B menu settles as:
+
+| candidate | cost | rows | B/row | gate |
+| --- | ---: | ---: | ---: | --- |
+| `OVL_007F_0000` / `_0054` | 32 / 116 | 2 / 2 | 16 / 58 | **identity not establishable** |
+| `OVL_03C6_0105` | 95 = 34 + 61 | 1 | **95** | needs `RES_0464_2A0D`, a BIOS INT 10h thunk the record leaves uncredited on purpose |
+| `OVL_0077_275B` | 132 | 1 | **132** | **cheapest creditable and unblocked** |
+| `OVL_0038_1545` | 709 | 4 | 177 | |
+| `OVL_0038_0FAC` | 580 | 3 | 193 | |
+| `OVL_0038_15EB` | 672 | 3 | 224 | |
+
+So the cheap era closes with two independent gates rather than one price wall:
+the sub-100 entries are either uncreditable (the `0x7F` pair) or depend on a
+boundary the record deliberately refuses to credit (`2A0D`). The cheapest row
+that is both creditable and unblocked is **132 B/row**.
+
 **Identity is not readiness.** The first version of this table was wrong for
 `OVL_001C_13D7` because it treated a callee's `game_verified` **classification**
 (identity known) as ready. Callee readiness is **strict translation**: `0C77` has
