@@ -140,6 +140,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u38_append_1363_cpu.c
                                     src/recovered/overlay_u9e_list_release_0026_cpu.c
                                      src/recovered/overlay_u6c_record_release_0000_cpu.c
+                                     src/recovered/overlay_u6c_record_unlink_3291_cpu.c
                                     src/recovered/resident_ecl_dax_block.c
                                     src/recovered/resident_dax_rle.c
                                     src/recovered/overlay_unit38_walk.c
@@ -3498,6 +3499,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_u6c_record_release_0000_cpu_tests tests/recovered/test_overlay_u6c_record_release_0000_cpu.c)
     target_link_libraries(poolrad_u6c_record_release_0000_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_u6c_record_release_0000_cpu_tests COMMAND poolrad_u6c_record_release_0000_cpu_tests)
+    add_executable(poolrad_u6c_record_unlink_3291_cpu_tests tests/recovered/test_overlay_u6c_record_unlink_3291_cpu.c)
+    target_link_libraries(poolrad_u6c_record_unlink_3291_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_u6c_record_unlink_3291_cpu_tests COMMAND poolrad_u6c_record_unlink_3291_cpu_tests)
 endif()
 
 if(BUILD_TESTING)
