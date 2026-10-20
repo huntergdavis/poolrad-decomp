@@ -94,6 +94,9 @@ both oracles do.
 Offsets wrap at 16 bits and physical addresses at 1 MiB. `LES` pairs, `POP`
 and every `RET`/`RETF` frame are read physically contiguous.
 
+**Stated limit (reviewer-added 2026-10-20, VP i19691): entry SP FFFE and FFFF.** The `RETF 2` at `024B` reads its frame physically contiguous, so at a return-time SP of FFFE or FFFF the return CS comes from `SS*16+10000h`/`+10001h`. DOSBox-X normal/386 (binary `99d74601…`), the project's native oracle, wraps that word within SS and reads `SS:0000`/`SS:0001`. `PUSH BP`/`POP BP` are balanced, so the return-time SP equals the entry SP: the divergence is at entry SP FFFE and FFFF. It was measured on the original exit bytes `0248..024D`. Measured with a three-oracle probe ([`tools/overlay/retf_stack_edge_probe.py`](../../tools/overlay/retf_stack_edge_probe.py)) that gives the wrapped and contiguous frame copies different return CS values. At SP FFFD, where the word straddles FFFF, all three oracles read it contiguous, and at SP ≤ FFFC they agree. **Unicorn 2.1.4 shares the model's contiguous reading, which is why the original-byte differential could not have caught this.** **Never exercised by this row's evidence**: the highest audited SP is FFF8. This is a runtime-coverage endpoint, not a strict credit. Two credited composers have no entry-SP guard and can enter it in the band: `OVL_0025_1951` at entry SP 0006/0007 and `OVL_009E_0E52` at 000E/000F. Their documents carry the limit.
+
+
 ## Validation
 
 **Focused C test.** `test_system_getmem_023f_cpu.c` runs under CTest with

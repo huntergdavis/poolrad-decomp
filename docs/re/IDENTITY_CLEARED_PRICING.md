@@ -165,3 +165,72 @@ and wrappers `1186` 12 B, `119A` 4 B, `119E` 14 B. A scan of those bodies finds 
 with the stack and the RunError stop. The three entries gate exactly one row outright (`1CC3`; three
 more rows list them among other blockers). That is about 448 B per cleared row, against 2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
 
+## `RES_0464_1B52`: priced and declined (2026-10-20)
+
+The requirement for a bus-aware SYSTEM Move was raised by the par-b lane (i19660). This section records the measurement
+behind the decline, made read-only from the media and the checked-in sources on the same queue export as above, so
+that nobody rebuilds it later believing it is cheap. VP ruling i19674: declined.
+
+**The body.** `RES_0464_1B52` is a resident body with no queue row: **778 B / 305 instructions**, one `RETF`, ledger
+class `unresolved`, with 13 overlay far call sites and 5 loader sites, and no model, strict credit or identity. It is the
+saved-slot-A page flush, an `A200 -> A000` mode-1 transfer
+([U19_A200_MODE1_LATCH_BOUNDARY.md](U19_A200_MODE1_LATCH_BOUNDARY.md),
+[SLOT_A_RES464_SECOND_FLUSH.md](SLOT_A_RES464_SECOND_FLUSH.md)). It makes six calls, **all in
+`RUNTIME_COVERED_ENDPOINTS`**: `0AF8:1685` Move backward three times and `0AF8:16A8` FillChar three times. It also
+executes nine `OUT DX,AL` and eight `POP ES`; there is no `IN`, `INT` or `HLT`, no indirect transfer and no other callee.
+
+**Why "covered" does not mean ready here.** The covered endpoint `0AF8:1685` maps to `pr_system_move_1685`, which takes
+flat RAM. `include/poolrad/recovered/memory_bus.h` defines `pr_bus`: byte accesses to physical `A0000..AFFFF` go through
+`pr_ega` (a read loads the four latches; a write goes through the write mode, and in mode 1 it writes the latches), the rest
+is flat RAM, and `OUT` goes to the port environment and then the EGA. A Move over `A000`/`A200` run on flat RAM would copy
+RAM bytes instead of loading and writing latches. A bus-aware FillChar exists (`system_fillchar_bus_16a8_cpu`), but the
+covered set maps `16A8` to the flat leaf; **no bus-aware Move exists anywhere in the tree.**
+
+**The three-part cost.**
+
+1. the body: a port-bound `pr_bus` raw-CPU model of 778 B / 305 instructions, like the other port-bound residents;
+2. a new endpoint model `pr_system_move_bus_1685` (35 B / 16 instructions: `MOV BX,SP`, `MOV DX,DS`, `LDS SI`, `LES DI`,
+   `MOV CX`, `CLD`, `CMP SI,DI`, `JAE`, `ADD SI,CX`, `ADD DI,CX`, `DEC SI`, `DEC DI`, `STD`, `REP MOVSB`, `MOV DS,DX`,
+   `RETF 0Ah`) with each byte through `pr_bus_read8`/`pr_bus_write8`;
+3. a way for the covered set to say "covered with a bus": today one endpoint maps to one model, so this is a structural
+   change to the readiness mechanism, not a model.
+
+**The value.** Eleven queue rows list `1B52` as an unready callee, but **only one has it as its sole unready callee:
+`OVL_03BD_05F3`** (10 B, classified `game_or_other_library_unresolved`, so its own identity is unresolved). That is about
+**813 B (778 + 35) for one small row**, before the covered-with-bus mechanism, which has no byte price.
+
+**Declare instead of model?** No mechanism that exists allows it. The latch semantics already live as a model (`pr_ega`),
+and the declaration mechanisms (the manifest `callback` status, `declared_boundary`) cannot launder an ordinary SYSTEM
+helper, as the [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records. If the bus-aware Move is ever wanted, it is
+built as a model, by ruling.
+
+## Parked work with no reachable consumer (recorded so it is not rebuilt)
+
+**`RES_0464_248E`** - finished and parked, never pushed as a PR. Branch **`claude/par-b-0464-248e` @ `4f605bf2`** on origin. Measurements: Unicorn 41 cases over CPU14 + 1,048,576 B, body 95/95 starts and 6/6 outcomes, closure 206/209 starts and 27/30 outcomes (the three `GetMem` HeapError AL>=1 continuations excluded on the same argument as credited `U33`), **eight declared AF-only splits** where the model follows DOSBox-X, confirmed by native 46/46 including seven cases with AF=1, and 22 ASan checks. It has **no evidence doc**, and it **depends on `emit_raw_cpu_c.py` from `#1213`**.
+Why parked: its only consumers were the `0511` chain and `0111 -> 05D9 -> 01C8` (08AE-gated, closed by policy). The `0511` chain is dead for **two independent reasons**: `1B52` is declined, so `U3B9 +0000` cannot complete, and `1951` cannot be declared ready (next section). Re-deriving `248E` does not revive that chain. If either route is ever reopened, start from that branch rather than re-deriving it.
+
+## `RES_0464_1951`: translated and evidenced, but undeclarable (2026-10-20)
+
+`RES_0464_1951` (the bitmap blit, 513 B / 201 instructions) is **translated and evidenced**: the raw-CPU body and its
+full evidence merged as #1213 ([RES_0464_BLIT_1951_CPU.md](RES_0464_BLIT_1951_CPU.md)), with the DOSBox-X binary
+substitution declared. It is still counted as **untranslated wherever it is a callee**, because it **cannot be declared
+ready until it has identity**. It is `unresolved` in both resident ledgers.
+
+Measured on main `057d901f` by the review lane (VP ruling i19703). Each available declaration is refused by the tooling:
+
+- **Strict row:** `RES_0464_1951` in `strict_full_c_addresses.csv` makes `function_queue.py` refuse with "strict
+  full-C credit lacks verified game identity".
+- **Manifest row:** `RES_0464_1951,full` in `partial_callee_models.csv` leaves the checkpointed function queue unchanged
+  (`0936e38e`, 250 / 296), because that queue does not read the manifest. But `strict_candidate_queue.py` refuses it
+  with "callee model manifest address is neither an overlay row nor a strict-credited resident id"
+  (`strict_candidate_queue.py`, the resident branch of the manifest check).
+
+Resident readiness is **credit-gated**, the same structural gate met at `2595` from the other side. No readiness-only
+declaration exists for an unresolved resident.
+
+**Not taken:** loosening the resident manifest gate so that readiness could be declared without credit. That would let
+any unresolved resident compose, which is the laundering the gate prevents. Doing it would need a deliberate ruling with
+the `08AE` and `2A0D` consistency cost named, not a tooling convenience.
+
+**Consequence:** every caller that lists `1951` keeps it as an unready callee. That includes the `0511` chain above,
+and `OVL_040C_015D` under the held `RES_03F1_0000` ([STRICT_CANDIDATE_QUEUE.md](STRICT_CANDIDATE_QUEUE.md)).

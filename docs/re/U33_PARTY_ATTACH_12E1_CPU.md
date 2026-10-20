@@ -76,6 +76,8 @@ Entry IP must be 12E1 and SP must be in [0100,FFF0]. Null/size/entry/SP
 errors or a mismatch in any of the three immutable far-call bindings
 return ARGUMENT before changing RAM, CPU, budget or diagnostic.
 
+**Stack-top RETF wrap: unreachable inside this window (reviewer-added 2026-10-20, VP i19693).** With entry SP E in [0100,FFF0], SYSTEM GetMem `0AF8:023F` (called at `+1315`) is entered at E−0Eh (`PUSH BP`, `SUB SP,6`, the size word and the far return), i.e. in [00F2,FFE2]. The arguments pushed earlier for `00BA:0BB8` are popped by its `RETF 4`. Its own far return executes at the entry SP, because the frame is balanced, so at most FFF0. None of these ranges reaches FFFE/FFFF. That is the only band where DOSBox-X wraps a RETF's CS word within SS while the merged SYSTEM models and Unicorn read it contiguous ([REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#retf-stack-top-wrap-a-recorded-class-deliberately-not-swept-2026-10-20)). The window, not a measurement, keeps the band out of reach, and a caller outside the window is outside the contract.
+
 After valid guards, the diagnostic is -1 until GetMem executes, then
 records its exact most recent status. Each executed caller or resident
 instruction consumes one shared budget unit. Existing GetMem and FillChar

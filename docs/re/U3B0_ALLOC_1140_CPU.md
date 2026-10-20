@@ -60,6 +60,8 @@ it compensates the legacy callback's pending two-byte argument cleanup;
 the caller immediately restores those two bytes without a memory access.
 The legacy body and public callback declarations remain unchanged.
 
+**Stack-top RETF wrap: unreachable inside this window (reviewer-added 2026-10-20, VP i19693).** With entry SP E in [0040,FFF6], SYSTEM GetMem `0AF8:023F` (called at `+114A` and `+11A8`) is entered at E−10h (`PUSH BP`, `SUB SP,8`, the size word and the far return), i.e. in [0030,FFE6]. Its own far return executes at the entry SP, because the frame is balanced, so at most FFF6. None of these ranges reaches FFFE/FFFF. That is the only band where DOSBox-X wraps a RETF's CS word within SS while the merged SYSTEM models and Unicorn read it contiguous ([REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#retf-stack-top-wrap-a-recorded-class-deliberately-not-swept-2026-10-20)). The window, not a measurement, keeps the band out of reach, and a caller outside the window is outside the contract. This row is a model, not a strict credit; the window is recorded for completeness.
+
 Stops are explicit:
 
 - CODE (2): invalid call opcode/target, before pushing the far frame.

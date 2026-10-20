@@ -82,10 +82,10 @@ ARGUMENT preserves CPU/RAM/EGA and resets optional diagnostics.
 | Check | Result |
 |---|---|
 | Original-byte differential | 95 cases: 78 returns, 5 CODE, 10 CALLEE, 2 caller LIMIT |
-| Original state | CPU14 + 983,040 ordinary RAM bytes; 25,543 ordered OUT events, 48,076 raw VRAM write operands; zero masks |
-| Caller coverage | 171/172 instruction starts, 15/16 conditional outcomes |
+| Original state | CPU14 (no flag mask) + the **entire 1,048,576-byte backing RAM**, no excluded range; independent EGA planes/latches/registers (262,164 B); 25,543 ordered OUT events, 48,076 VRAM write operands. **Superseded measurement:** the author run compared only 983,040 bytes, excluding `A0000..AFFFF` (65,536 B), and its "zero masks" referred to flags only; see *Aperture re-audit* |
+| Caller coverage | 171/172 instruction starts, 15/16 conditional outcomes; **171/171 feasible starts and 15/15 feasible outcomes** after the machine-checked infeasible edge `+01FC→+01FE` (and its start `+01FE`), both kept in the denominator |
 | Registered closure | 592/596 starts, 67/72 conditional outcomes |
-| DOSBox-X EGA normal/386 | 42 returning cases: CPU14 + 197,632 RAM bytes + 262,144 plane bytes; 38,998 ordered OUT events; zero masks |
+| DOSBox-X EGA normal/386 | 42 returning cases: CPU14 (no flag mask) + 197,632 RAM bytes + 262,144 plane bytes; 38,998 ordered OUT events. **Native RAM is partial: 850,944 backing bytes are not compared natively** (unchanged by the re-audit) |
 | ASan/UBSan semantics | 19,047 checks passed |
 | Focused CMake/CTest | 1/1 passed |
 
@@ -122,7 +122,7 @@ Native uses the original set and synthetic text/context/returning frames;
 modified set bitmaps are original-differential and semantic cases only.
 No native partial-stop, wrapped-context, gameplay reachability, separate
 latch/register equality or directed unexpected dependency-return claim is
-made. Original comparison checks raw VRAM operands; native checks planes.
+made. Original comparison checks raw VRAM operands and, since the re-audit, the independent EGA's planes, latches and registers; native checks planes.
 
 ## Reproduction and provenance
 
@@ -170,3 +170,45 @@ unpacked executable and composed through the existing raw runtime leaf.
 - review_notes: retain unresolved game/library ownership, code/data correction,
   unreachable branch denominator, ordinary-RAM restrictions, bounded-adapter
   distinction, remaining glyph outcomes, synthetic scope and independent review.
+
+## Aperture re-audit and extent repair
+
+**Masking correction.** The original author evidence compared 983,040 ordinary
+RAM bytes and said "zero masks". Flags were unmasked, but the 65,536-byte video
+aperture `A0000..AFFFF` was excluded, the original differential checked only VRAM
+write operands (not plane contents), and the native row's "zero masks" sat beside
+a partial capture. This revision re-runs the same 95 cases with the aperture served
+by the independent Python EGA used for `RES_00BA_1693` (MMIO): CPU14 without flag
+masks, **all 1,048,576 backing RAM bytes**, ordered OUT events, every write operand
+and the full device state (262164 bytes). Excluded ranges: **none**. Result: **95 cases,
+zero mismatches**, stops `{RETURN 78, CODE 5, CALLEE 10, caller LIMIT 2}`
+(unchanged); 25,543 OUT events, 48,076 VRAM write operands, 0 aperture reads. Closure
+**592/596 starts, 67/72 outcomes**; caller **171/172 starts, 15/16 outcomes**, i.e.
+**171/171 feasible starts and 15/15 feasible outcomes**.
+
+**The infeasible caller edge, now machine-checked.** `+01E3` compares the byte at
+`SS:[DI-64h]` with zero and `+01E8 JA` enters only when it is nonzero; `+01ED`
+reloads DI from the same unwritten `[BP+6]` and `+01F0` reads the *same* byte again
+with no intervening memory write, so `[BP-2]` >= 1 and `+01F9 CMP 1,[BP-2]` makes
+`JBE +01FC` always taken. The fall-through `+01FC→+01FE`, and the `JMP +0315` at
+`+01FE`, never execute. Feasibility rests on immutable code, flat RAM and
+synchronous execution (no interrupt or DMA modifies the byte between two
+instructions). The audit keeps both items in the denominator and **fails the run if
+either is observed**; they were not observed in 95 cases.
+
+**Extent repair (64 trailing bytes).** The queue and ledger bound `[01DA,03BD)`
+(483 B / 176 instructions) includes a 64-byte tail that is data. The executable is
+`[01DA,037D)`, 419 B / 172 instructions, SHA-256
+`8676c97ae6dcaa88c9f7d68d75c75f81e4936572b517bd84a7e19876c58d96ce`, one RETF
+(`+037A`). The reasoning, hashes and the hash-bound `function_ledger.py` entry are
+recorded in [QUEUE_METADATA_REPAIR.md](QUEUE_METADATA_REPAIR.md). In short: no
+instruction in the body branches to or loads from `[037D,03BD)`, and the next
+routine `+03BD` loads `CS:037D` and `CS:039D` as the two 32-byte SYSTEM `SET IN`
+constants it uses. `overlay_function_ledger.csv` changes by exactly one row (extent fields only: bound 483 to 419, decoded 427 to 419, instructions 176 to 172); see the repair record.
+
+The audit now declares `CHECKER_ROWS = ('OVL_03B0_01DA',)` and a media-free
+`--compile-only` mode, so `check_checker_builds.py` covers it. No body, header or
+model changed. Native evidence is unchanged and partial (above). Classification
+stays `game_or_other_library_unresolved`; strict credit, identity and manifest
+decisions are untouched. The earlier "identity pending" caveats in this document
+are unchanged.
