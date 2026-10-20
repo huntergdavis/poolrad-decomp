@@ -32,6 +32,12 @@ jobs:
         run: python3 tools/overlay/check_record_shas.py
       - name: Test accounting provenance guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
+      - name: Test body/checker pairing gate
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_body_doc_pairing.py'
+      # A body or checker must land with its evidence document and CHECKER_ROWS.
+      # Needs full history so the merge-base diff resolves.
+      - name: Refuse unpaired bodies and checkers
+        run: python3 tools/overlay/check_body_doc_pairing.py --base origin/main
       - name: Test declared-boundary credit guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_boundary_credits.py'
       # A declared boundary endpoint may be COMPOSED, never credited. This refuses a
