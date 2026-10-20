@@ -29,6 +29,15 @@ check() type. Any other exception is reported as a crash, not a detection. The
 unbroken baseline must pass first; if it fails, the audit itself is red, and
 the result says nothing about fail-closed behaviour.
 
+SCOPE: 3-tuple source() audits only. Today that is exactly one audit,
+u3b0_entry_01da_cpu_audit (#1216). Audits with another shape, e.g.
+u3b0_dispose_11f3_cpu_audit (source() returns 5 values; differential(image, blob,
+decoded, conditional, f)) and u6c_record_unlink_3291_audit (8 values;
+differential(ctx, f)), are refused with an UNSUPPORTED AUDIT SHAPE line and exit 4,
+never a traceback and never a verdict. The static half of the shape check runs
+before any media is read. Passing each audit's own tuple through to its own
+differential() is the follow-up (option b); it needs every signature checked.
+
 Audit contract (the U3B0 +01DA convention, #1216):
   INFEASIBLE_EDGES  {(src_key, dst_key): reason}   module global
   INFEASIBLE_STARTS {key: reason}                  module global
@@ -40,15 +49,57 @@ Audit contract (the U3B0 +01DA convention, #1216):
 Usage (needs the owner's media and the pinned checker dependencies):
   python3 tools/overlay/check_exclusion_fail_closed.py u3b0_entry_01da_cpu_audit
 Exit 0: every attack detected. 1: an attack passed or crashed. 2: the baseline
-failed. 3: environment missing (not a tree failure).
+failed. 3: environment missing (not a tree failure). 4: unsupported audit shape
+(not a verdict: this tool cannot judge that audit).
 """
 import argparse
 import importlib
+import inspect
 import sys
 import tempfile
 from pathlib import Path
 
 NONEXISTENT_TARGET = 0x10000  # outside any 16-bit offset, so never decoded
+SUPPORTED = ("u3b0_entry_01da_cpu_audit",)
+CONTRACT = "3-tuple source() and differential(bodies, decoded, lib)"
+UNSUPPORTED_EXIT = 4
+
+
+class UnsupportedShape(Exception):
+    """The audit does not follow the contract this tool can judge."""
+
+
+def static_shape(audit):
+    """Problems visible without running the audit (no media read)."""
+    problems = []
+    edges, starts = getattr(audit, "INFEASIBLE_EDGES", None), getattr(audit, "INFEASIBLE_STARTS", None)
+    if not (isinstance(edges, dict) or isinstance(starts, dict)) or not (edges or starts):
+        problems.append("declares no INFEASIBLE_EDGES/INFEASIBLE_STARTS")
+    for name in ("source", "library", "compare", "differential"):
+        if not callable(getattr(audit, name, None)):
+            problems.append(f"has no {name}()")
+    if callable(getattr(audit, "differential", None)):
+        params = [p for p in inspect.signature(audit.differential).parameters.values()
+                  if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+        if len(params) != 3:
+            problems.append(f"differential() takes {len(params)} positional parameters "
+                            f"({', '.join(p.name for p in params)}), not (bodies, decoded, lib)")
+    return problems
+
+
+def source_shape(value):
+    """Problems with what source() returned."""
+    if not isinstance(value, tuple) or len(value) != 3:
+        count = len(value) if isinstance(value, (tuple, list)) else type(value).__name__
+        return [f"source() returned {count} values, not 3"]
+    return []
+
+
+def unsupported_message(name, problems):
+    return (f"UNSUPPORTED AUDIT SHAPE: {name}: " + "; ".join(problems) +
+            f". This tool supports only the {CONTRACT} contract (covered: {', '.join(SUPPORTED)}). "
+            "This is NOT a fail-closed verdict and NOT a tree failure; passing each audit's own "
+            "tuple to its own differential() is the documented follow-up.")
 
 
 def memoise(audit):
@@ -107,8 +158,9 @@ def fmt_edge(edge):
 
 def run(audit, bodies, decoded, lib):
     """Return (baseline_report, [(label, outcome, detail)]); outcome is detected/passed/crashed."""
-    if not (getattr(audit, "INFEASIBLE_EDGES", None) or getattr(audit, "INFEASIBLE_STARTS", None)):
-        raise SystemExit(f"{audit.__name__} declares no INFEASIBLE_EDGES/INFEASIBLE_STARTS")
+    problems = [p for p in static_shape(audit) if not p.startswith("has no source") and not p.startswith("has no library")]
+    if problems:
+        raise UnsupportedShape(unsupported_message(audit.__name__, problems))
     cache, calls = memoise(audit)
     edges0, starts0 = dict(audit.INFEASIBLE_EDGES), dict(audit.INFEASIBLE_STARTS)
     try:
@@ -143,8 +195,11 @@ def verdict(results):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("audit", help="audit module name under tools/overlay, e.g. u3b0_entry_01da_cpu_audit")
+    parser = argparse.ArgumentParser(
+        description=__doc__.split("\n\n")[0] + f" Scope: {CONTRACT} audits only (covered: {', '.join(SUPPORTED)}).",
+        epilog="Exit codes: 0 fail-closed; 1 an attack passed or crashed; 2 baseline failed; "
+               "3 environment missing; 4 unsupported audit shape (not a verdict).")
+    parser.add_argument("audit", help="audit module name under tools/overlay; supported: " + ", ".join(SUPPORTED))
     args = parser.parse_args(argv)
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     try:
@@ -156,7 +211,16 @@ def main(argv=None):
                   "docs/re/REVIEW_LANE_HANDOFF.md.", file=sys.stderr)
             return 3
         raise
-    bodies, decoded, _ = audit.source()
+    problems = static_shape(audit)
+    if problems:
+        print(unsupported_message(args.audit, problems), file=sys.stderr)
+        return UNSUPPORTED_EXIT
+    value = audit.source()
+    problems = source_shape(value)
+    if problems:
+        print(unsupported_message(args.audit, problems), file=sys.stderr)
+        return UNSUPPORTED_EXIT
+    bodies, decoded, _ = value
     with tempfile.TemporaryDirectory() as tmp:
         lib = audit.library(Path(tmp))
         baseline, results = run(audit, bodies, decoded, lib)
