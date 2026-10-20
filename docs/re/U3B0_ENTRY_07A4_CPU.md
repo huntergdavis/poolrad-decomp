@@ -83,10 +83,10 @@ base; read-only accounting metadata is pinned at the integration base.
 | Check | Result |
 |---|---|
 | Original-byte differential | 105 cases: 66 returns, 10 CODE, 26 CALLEE, 3 row LIMIT |
-| Original state | CPU14 + 983,040 ordinary RAM bytes, 28,648 ordered OUT events, 70,954 raw VRAM write operands; zero masks |
+| Original state | CPU14 (no flag mask) + the **entire 1,048,576-byte backing RAM**, no excluded range; independent EGA planes/latches/registers (262,164 B); 28,648 ordered OUT events, 70,954 VRAM write operands. **Superseded measurement:** the author run compared only 983,040 bytes, excluding `A0000..AFFFF` (65,536 B); see *Aperture re-audit* |
 | Caller coverage | 115/115 starts, 8/8 conditional outcomes |
 | Registered dependency closure | 1026/1035 starts, 98/108 conditional outcomes |
-| DOSBox-X EGA normal/386 | 52 returning cases: CPU14 + 197,632 RAM bytes + 262,144 plane bytes, 29,410 ordered OUT events; zero masks |
+| DOSBox-X EGA normal/386 | 52 returning cases: CPU14 (no flag mask) + 197,632 RAM bytes + 262,144 plane bytes, 29,410 ordered OUT events. **Native RAM is partial: 850,944 backing bytes are not compared natively** (unchanged by the re-audit) |
 | ASan/UBSan semantics | 6,606 checks passed |
 | Focused CMake/CTest | 1/1 passed |
 
@@ -113,8 +113,9 @@ the final fixtures by the receipt generator. RESULT.BIN SHA256:
 Native cases use synthetic returning frames with valid nodes, including a
 finite cyclic viewport. They do not establish native null/exhausted-head,
 partial-stop, row-wrap LIMIT, or gameplay reachability. Hardware latch/register
-equality is not separately claimed. Original comparison checks raw VRAM write
-operands; native comparison checks actual planes. No directed altered-return
+equality is not separately claimed. The original comparison checks raw VRAM write
+operands and, since the re-audit, the independent EGA's planes, latches and
+registers; native comparison checks actual planes. No directed altered-return
 case is claimed for implemented TRANSFER handling. Full caller coverage does
 not mean exhaustive dependency coverage; exact missing starts/outcomes remain
 in the private report. Original closure gaps include +0711 flagged-node
@@ -165,3 +166,31 @@ padding composition, live traversal, row budgets and nested stop propagation.
 - verdict: likely_match within the documented profile.
 - review_notes: retain provisional identity, ordinary-RAM restrictions,
   closure gaps, synthetic native scope and independent acceptance/credit.
+
+## Aperture re-audit (doc-truth correction)
+
+The original author evidence said "zero masks" beside a 983,040-byte RAM
+comparison. That wording was ambiguous: flags were unmasked, but the 65,536-byte
+video aperture `A0000..AFFFF` was excluded from the RAM compare and the
+Unicorn differential checked only the VRAM write operands, not plane contents.
+The checker was also not registered with the checker-build gate.
+
+This revision re-runs the same 105 cases with the aperture served by the
+independent Python EGA used for `RES_00BA_1693` (MMIO), so the compare covers CPU14
+without flag masks, **all 1,048,576 backing RAM bytes**, ordered OUT events, every
+write operand and the full device state (four planes, latches, sequencer and
+graphics registers; 262,164 bytes). Excluded ranges: **none**. Result:
+**105 cases, zero mismatches**, stops `{RETURN 66, CODE 10, CALLEE 26, row LIMIT 3}`
+(unchanged); caller **115/115 starts, 8/8 outcomes**; closure **1,026/1,035 starts,
+98/108 outcomes** (the unexecuted 9 starts and 10 outcomes lie in delivered
+callees and are listed in the ignored report); 28,648 OUT events, 70,954 VRAM write
+operands; 0 aperture reads. The measured counts equal the earlier ones, so the
+earlier claim stands; only its masking description was wrong.
+
+The audit now declares `CHECKER_ROWS = ('OVL_03B0_07A4',)` and a media-free
+`--compile-only` mode using the audit's own compiler command and symbol binding,
+so `check_checker_builds.py` covers it. During the port, one defect in the port
+itself was found and fixed before this result: the OUT hook did not forward port
+writes to the independent EGA, which surfaced as plane mismatches on the first
+case. No body, header or model changed. Native evidence is unchanged and still
+partial (above). Strict credit, identity and manifest decisions are untouched.

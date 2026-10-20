@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "052bdde540a15fae0a3a3369d656a1826c21a3011f4ac998d48d52467711b09e",
-    "full_c_map": "3b6e6fe4103a6e16deceb1ac2b5f73581ae2c5c9f96dbff8d8e5c1bfad4b378f",
+    "classification": "62ebf69e982ab4357ef3bf805079f7cad76bcddd9f384db42c4d140e8e9dc561",
+    "full_c_map": "28b2e5b974f0e50b05806dfd08fcaad8538bdf2a0f3ea016540f896e739baaab",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "53dadc2d5d81a0ca44d0e978ce6abe08fadf4afea8d9b7adaff79873a717b47e",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
-    "reviewed_identities": "a810f0c7028bc2b91dc9ff615b24f7af8700a8174e53611fe2da82d1e9412aa6"
+    "reviewed_identities": "9c73c87fd4fdf26cbb799e219da53c9c0b21eb5f27e10baa9af74de10811d678"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "6bd5ca69d7d8852d19d3b2c699039286157f47cef73c4fe6a30b14539f3e905c",
+  "queue_sha256": "cf7a5a3327b3244541ada037acbd5bd23028248c0f054c0c1aa76c98c68840e0",
   "reviewed_change": {
-    "approval_reference": "acceptance of PR #1188 (VP inbox:i19559): OVL_0077_275B [275B,27DF) 132 B/45 starts credited on the reproduced differential (31 cases, 45/45 starts, 8/10 outcomes with 2 contract-excluded sides, 14 words + 1 MiB, flag_masks 0) and 28 declared-stub native captures; ownership from fixup-confirmed far caller 0x23:+0239 (+024D) and near caller 0x77:+1734 (+178A)",
+    "approval_reference": "acceptance of PR #1198 (VP inbox:i19576 near-call A1 ruling, two-factor standard #1195): OVL_0038_101D [101D,1086) 105 B/36 starts credited on the reproduced differential (852 cases, closure 134/134 starts and 24/24 outcomes, 14 words + 1 MiB unmasked) and 288 native returns; identity from six strict-credited near callers (25BC/264B/2A87/2AE6/2B7D/2D88) each pushing DS:5D92/5D94, dereferenced by the body at +102B/+105B (+CC/+CE)",
     "approved_by": "PM",
-    "body_bytes": 132,
-    "body_sha256": "91d407737828c3a1912ca24a72d2260b43f0d99d93028174bd9325a3419435b7",
-    "evidence_doc": "docs/re/U77_CAPACITY_CHECK_275B_CPU.md",
+    "body_bytes": 105,
+    "body_sha256": "632b609ad14b0fff262cd578a81e144d5dbeab6418ee8ef68303ff9e60cea33a",
+    "evidence_doc": "docs/re/U38_TARGET_SELECTOR_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_0077_275B",
-    "review_pr": 1188,
-    "reviewed_commit": "f50a9c10b022c08140475ab065cbfe504b7c92b7",
+    "original_id": "OVL_0038_101D",
+    "review_pr": 1198,
+    "reviewed_commit": "0c0b9571c91e142142b356ca271f613519515837",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 219,
+    "overlay": 221,
     "resident": 26
   },
-  "strict_full_c_originals": 245,
-  "unknown_ownership": 518,
+  "strict_full_c_originals": 247,
+  "unknown_ownership": 516,
   "verified_game_by_domain": {
-    "overlay": 264,
+    "overlay": 266,
     "resident": 27
   },
-  "verified_game_identities": 291,
+  "verified_game_identities": 293,
   "whole_game_denominator": "unknown"
 }
