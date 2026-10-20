@@ -334,6 +334,19 @@ def differential(lib):
         for address in conditional:
             if address in seen_by_case:
                 branch_cases.setdefault(address, []).append(case_name)
+    # The exclusion list is asserted, not assumed: if a fixture now reaches an
+    # excluded start or side, the documentation claim is false and this fails.
+    wrongly_reached = sorted(set(EXCLUDED_STARTS) & starts)
+    if wrongly_reached:
+        raise AssertionError(
+            f"EXCLUSION NO LONGER TRUE: start(s) {[hex(a) for a in wrongly_reached]} "
+            f"are now reached; update docs/re/U77_CAPACITY_CHECK_275B_CPU.md")
+    wrongly_taken = sorted(set(EXCLUDED_SIDES) & edges)
+    if wrongly_taken:
+        raise AssertionError(
+            f"EXCLUSION NO LONGER TRUE: side(s) "
+            f"{[(hex(a), hex(b)) for a, b in wrongly_taken]} are now taken; "
+            f"update docs/re/U77_CAPACITY_CHECK_275B_CPU.md")
     missing_starts = sorted(expected_starts - starts)
     missing_sides = sorted(reachable_sides - edges - set(EXCLUDED_SIDES))
     if missing_starts:
