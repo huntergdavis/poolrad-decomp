@@ -15,6 +15,8 @@ import u3b0_leaf_0711_native as flagged
 from res0709_ega_reset_0000_cpu_audit import Cpu,Env,OUT_FN,IN_FN,ROOT,SIZE,EXE_SHA,REGISTERS,physical,put16,check
 from u86_procvars_3413_audit import OVR_SHA
 from res03f1_clear_0137_cpu_audit import Ega,Bus,WRITE_FN
+from res00ba_display_1693_cpu_audit import PythonEga
+CHECKER_ROWS=('OVL_03B0_07A4',)
 CS,DS,SS,SYS,GLYPH,FONT,DATA=0x9000,0x1800,0x2800,0x4000,0x8800,0x7000,0x6000
 ENTRY,END,RETF=0x7A4,0x8D7,0x8D4
 CLEAR=0x8400
@@ -108,8 +110,13 @@ def owner(key):
 def compare(name,state,bodies,decoded,lib,row_limit=65536,clear_limit=65536,rect_limit=65536,printer_limit=65536,glyph_limit=65536,refuse=None):
     from unicorn import Uc,UC_ARCH_X86,UC_MODE_16,UC_HOOK_CODE,UC_HOOK_MEM_WRITE,UC_HOOK_INSN
     from unicorn import x86_const as R
-    m,c=state;uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
-    uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
+    m,c=state;uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m);device=PythonEga()
+    def vread(em,off,size,user):return sum(device.read((off+j)&65535)<<(8*j) for j in range(size))
+    def vwrite(em,off,size,value,user):
+        for j in range(size):device.write((off+j)&65535,(value>>(8*j))&255)
+    for origin in (0,SIZE):  # the aperture is an independent device; all other backing RAM is flat, including the unused A0000..AFFFF backing bytes
+        uc.mem_map_ptr(origin,0xA0000,7,ctypes.addressof(backing));uc.mmio_map(origin+0xA0000,65536,vread,None,vwrite,None)
+        uc.mem_map_ptr(origin+0xB0000,0x50000,7,ctypes.addressof(backing)+0xB0000)
     for (n,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,n))
     st=dict(stop=None,ret=False,root_return=False,previous=None,executing=None)
     d=[-1]*12;calls=[];seen=set();edges=set();events=[];writes=[];loops=dict(row=0,clear=0,rect=0,printer=0,glyph=0)
@@ -175,15 +182,13 @@ def compare(name,state,bodies,decoded,lib,row_limit=65536,clear_limit=65536,rect
         if ins.mnemonic in ('ret','retf'):
             if key==('root',RETF):st['root_return']=True
             else:st['ret']=True
-    def out(em,port,size,value,user):events.append((port,value,size,uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)))
+    def out(em,port,size,value,user):
+        events.append((port,value,size,uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)));device.out(port,value,size)
     protected=[(physical(SEGMENTS[k],a),physical(SEGMENTS[k],a)+len(b)) for (k,a),b in bodies.items()]
     def write(em,access,address,size,value,user):
         for j in range(size):
             at=(address+j)&(SIZE-1)
             check(not any(a<=at<b for a,b in protected),f'code mutation {name}/{at:x}')
-            if 0xA0000<=at<0xB0000:
-                check(st['executing'] in ('glyph','rect','sys'),f'flat-RAM aperture write {name}/{st["executing"]}')
-                writes.append((at-0xA0000,(value>>(8*j))&255))
     uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_INSN,out,None,1,0,R.UC_X86_INS_OUT);uc.hook_add(UC_HOOK_MEM_WRITE,write)
     uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=4000000)
     check(st['stop'] is not None,f'instruction ceiling {name}')
@@ -193,12 +198,15 @@ def compare(name,state,bodies,decoded,lib,row_limit=65536,clear_limit=65536,rect
     for (n,_),reg in zip(Cpu._fields_,REGISTERS):
         want=uc.reg_read(reg)&65535;check(getattr(actual,n)==want,f'CPU {name}/{n}: C {getattr(actual,n):04X}, original {want:04X}')
     check(mine==events,f'OUTs {name}: {len(mine)}/{len(events)}')
-    check(stores==writes,f'VRAM operands {name}: {len(stores)}/{len(writes)}')
-    expected=bytes(backing);a=ram[:0xA0000]+ram[0xB0000:];b=expected[:0xA0000]+expected[0xB0000:]
-    if a!=b:
-        diff=[(hex(i),x,y) for i,(x,y) in enumerate(zip(a,b)) if x!=y]
+    check(stores==device.writes,f'VRAM operands {name}: {len(stores)}/{len(device.writes)}')
+    if ram!=bytes(backing):  # the whole 1,048,576-byte backing array, A0000..AFFFF included
+        diff=[(hex(i),x,y) for i,(x,y) in enumerate(zip(ram,backing)) if x!=y]
         raise ValueError(f'RAM {name}: {diff[:8]} ({len(diff)} bytes)')
-    return status,seen,edges,len(events),len(writes)
+    if ega!=device.packed():
+        want=device.packed();diff=[(hex(i),x,y) for i,(x,y) in enumerate(zip(ega,want)) if x!=y]
+        per=[sum(1 for i in range(q*65536,(q+1)*65536) if ega[i]!=want[i]) for q in range(4)]
+        raise ValueError(f'EGA {name}: {diff[:8]} ({len(diff)} bytes) planes={per} C-regs={list(ega[262144:])} model-regs={list(want[262144:])} reads={len(device.reads)}')
+    return status,seen,edges,len(events),len(device.writes),len(device.reads)
 def cases():
     result=[('default',{}),('unmarked',dict(node_flag=0)),('marked',dict(node_flag=255)),
       ('mixed',dict(node_flags=(0,1,255))),('empty',dict(text=b'')),('no-pad',dict(width=0)),
@@ -230,19 +238,22 @@ def cases():
     for site in (0x140,0x63C,0x691,0x207):result.append((f'bad-video-{site:x}',dict(writes=((GLYPH,site,b'\x90'),))))
     return result
 def differential(bodies,decoded,lib):
-    seen=set();edges=set();stops={};outs=stores=0;allcases=cases()
+    seen=set();edges=set();stops={};outs=stores=reads=0;allcases=cases()
     for name,options in allcases:
         options=dict(options);limits={k:options.pop(k) for k in tuple(options) if k.endswith('_limit') or k=='refuse'}
-        status,s,e,o,w=compare(name,build(bodies,**options),bodies,decoded,lib,**limits)
-        seen|=s;edges|=e;outs+=o;stores+=w;stops[status]=stops.get(status,0)+1;print(name,status,flush=True)
+        status,s,e,o,w,r=compare(name,build(bodies,**options),bodies,decoded,lib,**limits)
+        seen|=s;edges|=e;outs+=o;stores+=w;reads+=r;stops[status]=stops.get(status,0)+1;print(name,status,flush=True)
     expected={((k,a),(k,v)) for (k,a),i in decoded.items() if i.mnemonic.startswith('j') and i.mnemonic!='jmp' for v in (a+i.size,int(i.op_str,16))}
     caller={k for k in decoded if k[0]=='root' and k[1]>=ENTRY};ce={e for e in expected if e[0] in caller}
-    return dict(cases=len(allcases),stops=stops,cpu_words=14,ordinary_ram_bytes=SIZE-65536,flag_masks=0,out_events=outs,vram_write_operands=stores,
+    return dict(cases=len(allcases),stops=stops,cpu_words=14,ram_bytes=SIZE,ram_excluded_ranges=[],ega_bytes=len(PythonEga().packed()),flag_masks=0,out_events=outs,vram_write_operands=stores,ega_reads=reads,
         caller_starts=len(seen&caller),caller_total=len(caller),caller_outcomes=len(edges&ce),caller_outcomes_total=len(ce),
         chain_starts=len(seen),chain_total=len(decoded),chain_outcomes=len(edges&expected),chain_outcomes_total=len(expected),
         missing_starts=sorted(set(decoded)-seen),missing_outcomes=sorted(expected-edges))
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    if a.compile_only:  # same compiler command, shared library load and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory() as tmp:library(Path(tmp))
+        print('CHECKER_BUILD_OK');return
     bodies,decoded,meta=source();report=dict(identity=meta)
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))
