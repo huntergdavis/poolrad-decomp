@@ -101,16 +101,20 @@ are exercised as CODE stops in the differential only.
 
 ## Stops, named
 
-| Status | Meaning | Differential cases |
+| Stop (receipt name) | Meaning | Differential cases |
 | --- | --- | ---: |
-| OK | RETF 4 taken | 1,334 |
-| CODE | malformed `LCALL`/`PUSH CS`/`CALL`, or the stub is not a loaded `EA` to +014E | 7 |
-| CALLEE, pair | `+014E` stopped (status 2: resident RunError204 or heap LIMIT) | 181 |
-| CALLEE, record 3 | `+0000` stopped on a FreeMem RunError204 or heap LIMIT | 38 |
-| CALLEE, record 4 | `+0000` stopped on a changed FreeMem far return | 3 |
-| CALLEE, record 5 | `+0000` list budget (LIMIT) | 6 |
-| TRANSFER | a callee returned to a CS:IP other than the call's next instruction | 3 |
-| LIMIT | walk budget at the taken `JMP +006F->+0034` | 7 |
+| `return` | RETF 4 taken | 1,348 |
+| `CODE_3321_stub`, `CODE_337B_stub` | malformed `LCALL 03E9:002F` (opcode or offset), or the stub is not a loaded `EA` to +014E; walk site / head site | 4 / 3 |
+| `CODE_334A_near`, `CODE_33B2_near` | malformed `PUSH CS` / `CALL +0000` (opcode, `PUSH CS`, or displacement); walk site / head site | 3 / 2 |
+| `CALLEE_pair_2_rs2_in2` | `+014E` status 2: resident status 2, FreeMem RunError204 | 148 |
+| `CALLEE_pair_2_rs2_in4` | `+014E` status 2: FreeMem heap-walk LIMIT | 9 |
+| `CALLEE_record_2_in-1` | `+0000` CODE: its own malformed FreeMem call site, before any FreeMem call | 1 |
+| `CALLEE_record_3_in2` | `+0000` status 3: FreeMem RunError204 | 36 |
+| `CALLEE_record_3_in4` | `+0000` status 3: FreeMem heap-walk LIMIT | 5 |
+| `CALLEE_record_4_in0` | `+0000` TRANSFER: a FreeMem far return changed | 3 |
+| `CALLEE_record_5_in0` | `+0000` list budget (LIMIT) | 7 |
+| `TRANSFER_334A_near`, `TRANSFER_33B2_near` | `+0000` returned to a CS:IP other than the call's next instruction | 1 / 2 |
+| `LIMIT` | walk budget at the taken `JMP +006F->+0034` | 7 |
 | ARGUMENT | host-object or profile violation; changes nothing | C test only |
 
 ARGUMENT, and `+014E`'s own ARGUMENT (binding mismatch, surfaced as CALLEE), are
@@ -126,20 +130,34 @@ and SYSTEM spans. After every case **all 14 CPU words and every byte of the
 emulator substitutions**, plus the stop kind, the callee identity and status,
 the call site, both callee diagnostics and the call counts.
 
-- **1,579 cases**: 1,334 returns, 245 named stops (table above).
+- **1,579 cases**: 1,348 returns, 231 named stops (table above).
 - Caller: **95/95 instruction starts, 22/22 conditional outcomes**. Outcomes are
   accounted by successor: each conditional is credited per taken or fall-through
   successor actually executed next.
 - Combined closure (caller + `+0000` + `+014E` + resident + FreeMem):
-  **366/366 starts, 72/72 conditional outcomes**, no exclusions.
+  **366/366 starts, 72/72 conditional outcomes**, no exclusions. The checker
+  **asserts** the caller and the closure coverage and the equality of the
+  incoming-caller list with the seven above, so a later model change cannot drop
+  a case silently.
 - Cases: the hand set (head nil, head equals active, walks to depth 2, active
   absent, B6/B8 combinations with garbage high bytes, children, merges, top
   shrink, invalid record and bitmap pointers, walk limit and cycle, cold and
-  wrong stubs, six malformed call sites, relocated SYSTEM, aliased window,
-  `SS=DS`, A20 stack, SP edges, heap-resident stack sweeps), 360 random
-  scenarios and one random-RAM image, the resident `+2595` audit's targeted
-  cases and the `+0000` audit's targeted cases, both reached through this caller,
-  and a DS=0/SS=0 sweep (below).
+  wrong stubs, malformed call sites, relocated SYSTEM, aliased window, `SS=DS`,
+  A20 stack, SP edges, heap-resident stack sweeps), 360 random scenarios and one
+  random-RAM image, the resident `+2595` audit's targeted cases and the `+0000`
+  audit's targeted cases, both reached through this caller, and a DS=0/SS=0
+  sweep (below).
+- **Fixtures are asserted to reach their path, not trusted by name.** The bitmap
+  table defaults to nil, so a fixture that does not provide bitmaps makes
+  `+014E` a no-op and execution proceeds to the code the fixture is about (an
+  earlier draft left the table at the fill byte, which made `+014E` fail first and
+  hid the `+0000` and call-site paths). The audit carries an expected-stop map and
+  fails if a named fixture stops elsewhere: the four malformed `LCALL` fixtures stop
+  `CODE_3321_stub`/`CODE_337B_stub`; the five malformed near-call fixtures run with
+  B6=0 and stop `CODE_334A_near`/`CODE_33B2_near`; the malformed `+0000` site with
+  B6=0 stops `CALLEE_record_2`; the cold and wrong-offset stubs stop `CODE_*_stub`;
+  the budgets stop `LIMIT` / `CALLEE_record_5`. The receipt records every named
+  fixture's measured stop (`named_stops`).
 
 **One closure outcome needed an argued case.** Resident `+25A5->+25A7` (nil slot)
 looks infeasible because `+014E` tests the table entry before the call, but it is
@@ -160,7 +178,34 @@ unchanged.
 
 ## Measured evidence: native DOSBox-X
 
-NATIVE_PENDING
+DOSBox-X normal/386 (`dosbox-x 2026.01.02` SDL2 from PATH, the invocation the merged
+native harnesses use; **not** the pinned 5a9c7c53 source build) runs the original
+caller, `+0000`, `+014E`, resident `+2595` and SYSTEM FreeMem bodies as real code
+from a synthetic COM image: the harness stages each body at its segment, pushes
+B6 and B8, flags and registers, and `CALL`s the entry. Only the external FreeMem
+RunError entry is patched, to capture its boundary; it is not part of the compared
+closure.
+
+- **144 cases: 131 returns and 13 RunError204 stops.** All 14 CPU words, the
+  1,024-byte stack window, the full 65,536-byte DS segment and the 65,536-byte heap
+  arena agree with the C model, **zero masks: 132,096 compared RAM bytes**.
+- **Excluded from the native comparison: the other 916,480 bytes** of the
+  1 MiB address space (all of them outside the captured windows and the staged
+  code), because real DOS memory there is not reproducible by a flat-fill model.
+  A case is native-eligible only if the C model, run on two RAM images whose bytes
+  outside the windows differ (A5 versus 5A), gives identical status, CPU and window
+  contents and leaves the outside untouched; that test kept 1,394 of 1,396 candidates,
+  and 144 are replayed (every named case plus an even sample of the translated and
+  random cases).
+- Not replayed natively, by construction: cases with code writes, relocated or
+  per-site SYSTEM segments, non-default stubs, a non-default frame, DS or SS,
+  non-default caps, cyclic/limit cases, heap-resident stack sweeps and the DS=0
+  sweep, and every stop that is not a return or a FreeMem RunError (CODE, LIMIT,
+  TRANSFER, budgets). Those are covered by the original-byte differential only.
+- The **stub is synthetic**: the harness stages the loaded `EA 4E 01 <U3CE
+  segment>` at a free segment. This is synthetic execution, not natural gameplay
+  reachability, and it is not a claim about the overlay manager.
+- RESULT.BIN SHA-256: `019c0bc25372f45ca911abbaff27a2d95564c1810552061a3bf65cc1e1b95cea`.
 
 ## Exclusions and what is not claimed
 
@@ -186,10 +231,15 @@ a `full` declaration is the reviewer's call.
 `tools/overlay/u6c_record_unlink_3291_audit.py` declares
 `CHECKER_ROWS=('OVL_006C_3291',)` and implements `--compile-only` through the
 same `library()` build (all five C sources, the real entry point bound), printing
-`CHECKER_BUILD_OK`. CHECKER_GATE_PENDING
+`CHECKER_BUILD_OK`. **Gate run:** on main `e63a9bf7` with this branch,
+`check_checker_builds.py OVL_006C_3291` reports `PASS: 1 actual checker builds for
+1 rows`, and `check_body_doc_pairing.py --base e63a9bf7` reports every body and
+checker paired with evidence and registration. `--compile-only` needs no media.
 
 ## Reproduction and private receipt
 
+Base: main `e63a9bf7` (the branch was rebased onto it; the composed `+0000`, `+014E`,
+resident and FreeMem sources are unchanged from the previous base `f04d610e`).
 Provide owner-supplied media in ignored `resources/DOS/POOLRAD/`. Capstone 5.0.7
 and Unicorn 2.1.4 are required. Under the crew's host rule every step runs through
 `/home/hunter/workspace/poolrad-heavy.sh`.

@@ -19,6 +19,7 @@ RECORD=30+WINDOW+0x10000+0x10000
 FLAGS=(0x0002,0x00D7,0x08D7,0x0402,0x0893,0x0003)
 REGS=dict(ax=0x1234,bx=0x3456,cx=0x5678,dx=0x789A,si=0x9ABC,di=0xBCDE,bp=0x7777)
 DEFAULTS=dict(walk_cap=64,list_cap=64,heap_cap=64)
+CONFINED={}
 
 def eligible(label,o):
     """Ordinary-RAM cases with default frame, segments and caps: stops are return or the FreeMem RunError trap."""
@@ -59,6 +60,7 @@ def cases(ctx=None,function=None):
         for n,(l,o) in enumerate(picked):
             if confined(ctx,dict(o,flags=0x602),span,function):kept.append((l,o))
             if n%100==0:print(f'confinement pre-pass {n}/{len(picked)} kept {len(kept)} {time.time()-t0:.0f}s',flush=True)
+        CONFINED.update(candidates=len(picked),kept=len(kept));print(f'confinement: {len(kept)} of {len(picked)} candidates kept',flush=True)
         picked=kept
     named=[x for x in picked if not x[0].startswith(('random-','res-','rel-'))]
     other=[x for x in picked if x[0].startswith(('random-','res-','rel-'))]
@@ -158,5 +160,5 @@ def native_audit(ctx,function):
             diff=[i for i,(a,b) in enumerate(zip(actual,record[30:])) if a!=b]
             raise ValueError(f'native {label} RAM mismatch {[(hex(i),actual[i],record[30+i]) for i in diff[:8]]}; {len(diff)} bytes')
         name='return' if status==OK else 'RunError204';stops[name]=stops.get(name,0)+1
-    report=dict(cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',stub='synthetic loaded EA jump 03E9:002F -> U3CE +014E')
+    report=dict(cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',confinement=dict(CONFINED),stub='synthetic loaded EA jump 03E9:002F -> U3CE +014E')
     print('Native parity:',report,flush=True);return report
