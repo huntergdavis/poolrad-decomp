@@ -2,7 +2,7 @@
 #define POOLRAD_RECOVERED_OVERLAY_0077_275B_CPU_H
 #include "poolrad/recovered/resident_00ba_character_0bb8_cpu.h"
 
-/* U77 [275B,27DD): 132 bytes, 45 starts, RETF 8. Same CPU/status vocabulary as
+/* U77 [275B,27DF): 132 bytes, 45 starts, RETF 8. Same CPU/status vocabulary as
  * the resident models it composes. */
 typedef pr_res00ba_cpu pr_ovl0077_275b_state;
 

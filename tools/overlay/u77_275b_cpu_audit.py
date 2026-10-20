@@ -63,18 +63,17 @@ REGISTERS = ((UC_X86_REG_AX, "ax"), (UC_X86_REG_BX, "bx"), (UC_X86_REG_CX, "cx")
 # case, so `cmp byte es:[di+0xC7],0xF` always takes the JBE. If a 0BB8 state is
 # found that preserves +0xC7 the branch becomes feasible and a fixture must
 # reach it; until then this is an exclusion, not a covered path.
-EXCLUDED_STARTS = {0x277B: "type byte cleared by 00BA:0BB8 before the compare"}
+EXCLUDED_STARTS = {}   # 0x277B is reachable once the item chain is attached
 
 # Excluded conditional SIDES, with the argument that makes them unreachable.
-#   at 27C2 `cmp dx,bx` with dx = 0 and bx = sign-extension of (AX + 1500) from
-#   the 00BA:13AB result. Across every measured state 13AB returns a value whose
-#   sum with 1500 wraps below 0x8000 (the resident returns 0xFFFE here, so
-#   0xFFFE + 0x05DC = 0x05DA), hence bx = 0x0000 and `cmp 0,0` is equal: neither
-#   `jg 27CC` nor `jl 27D0` can be taken, and the 32-bit test always proceeds to
-#   `cmp ax,cx`. A resident state returning [0x7A24,0xFFFF] would make them
-#   feasible; until one is found these are named exclusions, not covered paths.
+#   At 27C2 `cmp dx,bx` with dx = 0 and bx = sign-extension of (AX + 1500), where
+#   AX is the 00BA:13AB result. That body selects its return from AL and every
+#   value lies in [-350, 15000] (0xFEA2/0xFF06/0xFF6A, 100, 200, 350, then
+#   500+250k, 2000+1000k, 7500, 9000+3000k, else 0), so AX + 1500 lies in
+#   [1150, 16500]: bit 15 is never set, bx = 0, `cmp 0,0` is equal, and control
+#   always reaches `cmp ax,cx`. Neither sign branch can be taken. They would
+#   need a return outside [-1500, 31267], which the decode excludes for every AL.
 EXCLUDED_SIDES = {
-    (0x2779, 0x277B): "target start 0x277B is excluded (type byte cleared by 0BB8)",
     (0x27C4, 0x27CC): "dx=0, bx=sign(AX+1500)=0 in every measured state",
     (0x27C6, 0x27D0): "same: bx=0 leaves cmp 0,0 equal, so no strict less",
 }
@@ -142,7 +141,7 @@ def build(body):
 
 
 def case(name, *, type_byte=0x0C, quantity=4, count=1, base=0x0100,
-         sp=0x7FF4, flags=0x0202, saturate=None):   # post-CALL SP: frame at SS:SP
+         sp=0x7FF4, flags=0x0202, saturate=None, nodes=0):   # post-CALL SP: frame at SS:SP
     """One fixture: object fields plus the frame words the body reads."""
     ram, cpu = build(CASE_BODY)
     cpu.sp = sp
@@ -170,6 +169,24 @@ def case(name, *, type_byte=0x0C, quantity=4, count=1, base=0x0100,
     ram[at] = quantity & 0xFF
     ram[(at + 1) & MASK] = (quantity >> 8) & 0xFF
     ram[physical(record_segment, (record_offset + 0x39) & 0xFFFF)] = count
+    if nodes:
+        # 00BA:0BB8 zeroes target +0xC7, then walks the chain at +0xC8/+0xCA and
+        # increments +0xC7 once per node (inc at 0C2C); each node's next pointer
+        # lives at +0x2A/+0x2C. Enough nodes push +0xC7 above 15 and reach 0x277B.
+        def put(at, value):
+            ram[at] = value & 0xFF
+            ram[(at + 1) & MASK] = (value >> 8) & 0xFF
+        node_segment, node_offset = 0x5000, 0x0000
+        put(physical(target_segment, (target_offset + 0xC8) & 0xFFFF), node_offset)
+        put(physical(target_segment, (target_offset + 0xCA) & 0xFFFF), node_segment)
+        for index in range(nodes):
+            here = node_offset + index * 0x40
+            following = 0 if index == nodes - 1 else here + 0x40
+            put(physical(node_segment, (here + 0x2A) & 0xFFFF), following)
+            put(physical(node_segment, (here + 0x2C) & 0xFFFF), node_segment if following else 0)
+            at = physical(node_segment, here)
+            put((at + 0x37) & MASK, 3)
+            ram[(at + 0x39) & MASK] = 0
     if saturate is not None:
         for segment in (target_segment, record_segment):
             base_at = physical(segment, 0)
@@ -198,6 +215,9 @@ def cases():
     # comparison can reach the `jg` side of the 32-bit test
     for fill in (0x00, 0x7F, 0x80, 0xFF):
         specs.append(dict(quantity=0xFFFF, count=255, base=0xFFFF, saturate=fill))
+    # item chains: 16 and 20 nodes push target +0xC7 past 15, reaching 0x277B
+    specs.append(dict(nodes=16))
+    specs.append(dict(nodes=20, quantity=0, count=0))
     names = []
     for index, spec in enumerate(specs):
         names.append((f"case{index}", spec))

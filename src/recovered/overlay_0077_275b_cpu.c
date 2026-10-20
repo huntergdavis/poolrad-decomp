@@ -1,4 +1,4 @@
-/* U77 [275B,27DD): 132-byte capacity check composing two credited residents. */
+/* U77 [275B,27DF): 132-byte capacity check composing two credited residents. */
 #include "poolrad/recovered/overlay_0077_275b_cpu.h"
 
 #define MASK (PR_U9E_10E4_RAM_SIZE - 1u)

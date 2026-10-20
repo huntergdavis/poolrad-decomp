@@ -1,12 +1,13 @@
 # U77 `+275B`: canvas capacity check over two credited residents
 
 **Body.** GAME.OVR unit `0x77`, `[275B,27DF)`, **132 bytes / 45 instruction
-starts**, terminating `RETF 8`. The extent ends at `27DF` because `RETF 8` at
+starts**, terminating `RETF 8`. Body SHA-256 `91d407737828c3a1912ca24a72d2260b43f0d99d93028174bd9325a3419435b7`.
+The extent ends at `27DF` because `RETF 8` at
 `27DC` occupies three bytes; a first-`RETF`-exclusive read reports 130 and is
 wrong.
 
-**What it does.** Three frame words: a far pointer at `[bp+0x0A]`, a word at
-`[bp+0x0C]`, and a far pointer at `[bp+0x06]`. It reads the second pointer's
+**What it does.** Two far pointers in the frame: target at `[bp+0x0A]` with its
+**segment at `[bp+0x0C]`**, and the record at `[bp+0x06]`/`[bp+0x08]`. It reads the second pointer's
 object fields `+0xC7` (type byte, compared against 15), `+0x37` (quantity word)
 and `+0x39` (count byte), multiplies quantity by count when the count is
 non-zero, adds the composed `00BA:0BB8` result plus **1500**, and compares that
@@ -16,6 +17,22 @@ product. `AL` returns the flag; it is also stored at `[bp-1]`.
 **Composition.** Both far calls compose credited raw residents — `00BA:0BB8`
 through `pr_res00ba_0bb8_cpu` and `00BA:13AB` through `pr_res00ba_helpers_cpu`
 with entry `13AB`. No callback stands in for original code.
+
+## Ownership
+
+Two callers, both in game code:
+
+* **Far, fixup-confirmed:** unit `0x23` at `+0239` (exact prologue
+  `push bp; mov bp,sp; sub sp,14h`) issues `lcall 0x0085:0x004D` at **`+024D`**
+  with the segment word relocated. `0x0085` is unit `0x77`'s `memory_segment`, so
+  this is a fixup-backed call into game unit `0x77` from game unit `0x23`.
+* **Near, same unit:** `push cs; call 0x275B` at **`+178A`**, inside the function
+  that starts at `+1734`.
+
+Both enclosing functions are `game_evidenced`, and both callees this body composes
+(`00BA:0BB8`, `00BA:13AB`) are **credited game residents**. The body's own
+behaviour — the capacity comparison over item quantity, count and a 1500
+constant — matches the record/list fields the credited residents maintain.
 
 ## Differential
 
@@ -39,33 +56,47 @@ accounting is **successor-based** — when a conditional jump executes, the next
 
 ## Exclusions, verbatim with their evidence
 
-### 1. `0x277B` — unreachable **by composition**
+### 1. `0x277B` - **now covered**, previously excluded in error
 
-The instruction is `mov byte [bp-2],1` on the type-`> 15` path after
-`cmp byte es:[di+0xC7],0xF` / `jbe` at `0x2773`/`0x2779`.
+The earlier version of this document claimed the type-`> 15` path was unreachable
+because `00BA:0BB8` zeroes `es:[di+0xC7]`. That conclusion came from fixtures with
+a **null item chain**. `0BB8` zeroes `+0xC7` and then walks the list at
+`+0xC8`/`+0xCA` (each node's next pointer at `+0x2A`/`+0x2C`), doing
+`inc byte es:[di+0xC7]` at `0C2C` **once per node**. With **16 and 20 nodes**
+attached the byte passes 15 and the branch executes.
 
-**Argument.** The type byte lives in the same object the body hands to
-`00BA:0BB8`, and **`0BB8` clears `+0xC7` before the comparison**. Measured across
-pre-set values `00, 01, 0E, 0F, 10, 11, 20, 7F, 80, FF`: the post-call byte reads
-**0** in every case, so the `JBE` is always taken.
+The exclusion was removed and the chain fixtures added; the checker's own
+`EXCLUSION NO LONGER TRUE` guard fired when they did, which is how the error was
+caught. Coverage is now **45/45 starts**.
 
-**State that would make it feasible:** a `00BA:0BB8` state that does **not**
-clear `+0xC7`. If such a state is found, this exclusion becomes false and the
-document must be updated.
-
-### 2. `jg 0x27CC` and `jl 0x27D0` — unreachable **by contract**
+### 2. `jg 0x27CC` and `jl 0x27D0` - unreachable **by contract** (closed form)
 
 At `0x27C2`, `cmp dx,bx` with `dx = 0` and `bx =` sign-extension of
 `(AX + 1500)`, where `AX` is the `00BA:13AB` result.
 
-**Argument.** `13AB` returns **`0xFFFE`** in every measured state, so
-`0xFFFE + 0x05DC` wraps to **`0x05DA`**, `bx = 0x0000`, and `cmp 0,0` is equal:
-neither `jg` nor `jl` can be taken, and the 32-bit test always proceeds to
-`cmp ax,cx`. **120 input combinations were searched** for a `13AB` state
-returning in `[0x7A24,0xFFFF]` and none was found.
+**The contract, read off the body.** `13AB` (decoded at `0x13AB`) returns a
+value selected from `AL`:
 
-**State that would make them feasible:** a `13AB` return in `[0x7A24,0xFFFF]`,
-i.e. a value whose sum with 1500 keeps bit 15 set.
+| `AL` | return |
+| --- | --- |
+| 1..3 | `0xFEA2` = -350 |
+| 4..5 | `0xFF06` = -250 |
+| 6..7 | `0xFF6A` = -150 |
+| `0x0C`..`0x0D` | 100 |
+| `0x0E`..`0x0F` | 200 |
+| `0x10` | 350 |
+| `0x11`..`0x15` | 500 + 250·k, k=0..4 |
+| `0x16`..`0x1A` | 2000 + 1000·k, k=0..4 |
+| `0x1B` | 7500 |
+| `0x1C`..`0x1E` | 9000 + 3000·k, k=0..2 |
+| otherwise | 0 |
+
+So the return lies in **[-350, 15000]** and `AX + 1500` lies in
+**[1150, 16500]**: bit 15 is never set, `bx = 0`, `cmp 0,0` is equal, and the
+32-bit test always proceeds to `cmp ax,cx`. Neither sign branch is reachable.
+
+**State that would make them feasible:** a `13AB` return outside
+`[-1500, 31267]`, which the decoding above excludes for every `AL`.
 
 **The exclusions are asserted in code**, not merely documented: the checker fails
 with `EXCLUSION NO LONGER TRUE` if any fixture later reaches one of these
@@ -87,7 +118,7 @@ caller's original bytes. Its declaration, per the five required points:
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim. This run corroborates the **caller's 132 bytes**
    against the original instruction stream.
-4. **Coverage reduction, stated:** this set is **26 of 29** fixtures. The three
+4. **Coverage reduction, stated:** this set is **26 of 31** fixtures. The three
    non-default-`SP` fixtures are excluded **by construction** because the
    capture assembly does not vary `SP`; closing them needs assembly that sets
    `SP` per case. Compared per case: **12 CPU words**, both 0x300-byte object
@@ -115,8 +146,7 @@ rubber-stamping.
 - The two callees are composed as their accepted raw models, not re-derived here.
 - Interrupts, device state, self-modifying code, wrapping stack frames and
   arbitrary aliasing are outside the model.
-- Native corroboration and its synthetic-frame declaration are recorded
-  separately when the native harness lands; until then this document's evidence
-  is the Unicorn differential only.
+- Native corroboration has landed with **declared stubs** (see above); it
+  corroborates the caller only, and the composition claim is the differential's.
 - **No credit is claimed by this document.** Identity and strict credit are the
   reviewer's decision, not the author's.

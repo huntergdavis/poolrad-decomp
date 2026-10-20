@@ -10,14 +10,15 @@ DECLARATION (read this before reading the numbers):
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim; this run corroborates the **caller's 132 bytes**
    against the original instruction stream with **synthetic entry frames**.
-4. Coverage reduction: this set is **27 of 29** fixtures. The two non-0x8000 SP
+4. Coverage reduction: this set is **26 of 31** fixtures. The three non-default-SP
    cases are excluded **by construction** because this capture does not vary SP;
    closing them needs assembly that sets SP per case.
 5. Frame: this run uses its **own declared frame** (return IP 0x0000, CS 0xDEAD,
    then the record and target far pointers at [bp+6]/[bp+0x0A]). It is **not
    asserted** to be byte-identical to the differential's fixture frame.
 
-Compared: 14 CPU words, status, and both 0x200-byte object blocks.
+Compared: 12 CPU words (CS and IP are the harness's frame), the arithmetic flags
+under mask 0x0FD5, and both 0x300-byte object blocks.
 """
 import ctypes
 import os
@@ -240,7 +241,7 @@ def native_audit(body):
                 object_bytes=2 * OBJECT_BYTES,
                 stubbed_endpoints=("00BA:0BB8", "00BA:13AB"),
                 frame="declared (synthetic): return IP 0000, CS DEAD",
-                excluded_by_construction=("sp!=8000 fixtures",),
+                excluded_by_construction=("three non-default-SP fixtures",),
                 result_sha256=sha256(result).hexdigest())
 
 

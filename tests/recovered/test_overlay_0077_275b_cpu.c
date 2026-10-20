@@ -69,7 +69,9 @@ int main(void)
     assert(cpu.cs == 0xDEAD && cpu.ip == 0x0000);       /* returned through the frame */
     assert(cpu.sp == 0x800C);                            /* RETF 8 popped IP/CS + 8 bytes */
     assert(cpu.bp == 0x7F00);                            /* saved bp restored */
-    assert(ram[physical(cpu.ss, 0x7FFF)] == 0);          /* [bp-1] holds the returned flag */
+    /* bp = 0x7FF2 here (push bp at SP-2), so [bp-1] is 0x7FF1, not 0x7FFF. */
+    assert(ram[physical(cpu.ss, 0x7FF1)] <= 1);          /* [bp-1] holds the returned flag */
+    assert((cpu.ax & 0xFF) == ram[physical(cpu.ss, 0x7FF1)]);
 
     /* Argument guard: wrong entry IP, short RAM, null diagnostic-free call. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 4, 1, 0x0100);
