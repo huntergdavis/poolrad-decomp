@@ -36,7 +36,9 @@ decoded, conditional, f)) and u6c_record_unlink_3291_audit (8 values;
 differential(ctx, f)), are refused with an UNSUPPORTED AUDIT SHAPE line and exit 4,
 never a traceback and never a verdict. The static half of the shape check runs
 before any media is read. Passing each audit's own tuple through to its own
-differential() is the follow-up (option b); it needs every signature checked.
+differential() is the follow-up (option b). It needs every signature checked,
+and a common exclusion declaration: neither of those two audits declares
+INFEASIBLE_EDGES/INFEASIBLE_STARTS, because their exclusions live under other names.
 
 Audit contract (the U3B0 +01DA convention, #1216):
   INFEASIBLE_EDGES  {(src_key, dst_key): reason}   module global
