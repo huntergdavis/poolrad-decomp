@@ -16,10 +16,14 @@ def specifications():
       dict(gate=1,calibration=1),dict(pages=(0xA200,0xA000)),dict(pattern=1),dict(pattern=2),
       dict(fontseg=0xA000),dict(writes=((DS,0x5E20,bytes(4)),))]
     cases += [dict(stop_site=ip,gate=1) for ip in (0x6E8,0x6FD,0x207,0x3AD,0x3D5,0x470)]
+    # Declared oracle split, not a pass: MUL DX leaves AX=0104h. Pinned DOSBox-X MULW takes PF
+    # from all 32 bits of DX:AX; Unicorn and the model take the low byte. Only the +06FD CODE
+    # stop (mutated code, outside the contract) exposes it: CRT Delay's OR DX,DX overwrites it.
+    cases += [dict(stop_site=0x6FD,gate=1,speed=26,oracle_split='PF')]
     for n,c in enumerate(cases):c.setdefault('flags',FLAGS[n%6]);c.setdefault('mode',1)
     return cases
 def fixture(case,bodies,segment=0x0814,returned=0):
-    options=dict(case);stop=options.pop('stop_site',0)
+    options=dict(case);stop=options.pop('stop_site',0);options.pop('oracle_split',None)
     if stop in (0x207,0x6E8,0x6FD):options['writes']=((CS,stop,bytes([0x90])),)
     m,c=build(bodies,ss=segment,sp=TOP-6,parent=0xEE00,**options);c.es=segment
     put16(m,segment,TOP-6,returned);put16(m,segment,TOP-4,segment)
@@ -138,7 +142,7 @@ def native(bodies,lib):
     result=output.read_bytes()
     check(len(result)==6+len(specs)*(RECORD+TRACE_BYTES),f'native output length {len(result)}')
     segment,returned,count=struct.unpack_from('<3H',result);check(count==len(specs),'native header count')
-    outs=0
+    outs=0;splits=[]
     for n,case in enumerate(specs):
         at=6+n*(RECORD+TRACE_BYTES);record=result[at:at+RECORD];trace=result[at+RECORD:at+RECORD+TRACE_BYTES]
         m,c=fixture(case,bodies,segment,returned)
@@ -146,6 +150,10 @@ def native(bodies,lib):
         status,ram,events,writes,ega,d=run_c(lib,m,c,refuse=refuse)
         check(status==(2 if stop in (0x6E8,0x6FD) else 3 if stop else 0),f'native status {n}: {status}')
         for (reg,_),want in zip(Cpu._fields_,struct.unpack_from('<14H',record)):
+            if reg=='flags' and case.get('oracle_split'):
+                full=bin(c.ax).count('1')%2==0
+                check(c.ax==0x104 and c.dx==0 and getattr(c,reg)^want==4 and bool(want&4)==full,f'oracle split {n}: C {c.flags:04x}, DOS {want:04x}')
+                splits.append(dict(case=n,site='+06FD',ax=f'{c.ax:04X}',model_flags=f'{c.flags:04X}',dosbox_flags=f'{want:04X}',differing='PF'));continue
             check(getattr(c,reg)==want,f'native CPU {n}/{reg}: C {getattr(c,reg):04x}, DOS {want:04x}')
         mine=ram[physical(segment,LOW):physical(segment,LOW)+WINDOW]+ram[physical(DS,0):physical(DS,0)+65536]+ram[physical(FONT,0):physical(FONT,0)+65536]+ega[:4*65536]
         if mine!=record[28:]:
@@ -158,6 +166,6 @@ def native(bodies,lib):
             logged.append((port,value,size,cs,ip))
         check(logged==events,f'native OUT trace {n}: {logged}/{events}')
         outs+=count
-    return dict(cases=len(specs),cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,plane_bytes=4*65536,
+    return dict(cases=len(specs)-len(splits),oracle_splits=splits,cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,plane_bytes=4*65536,
         traced_out_events=outs,pre_call_code_cases=3,pre_out_port_cases=3,ega_font_read_cases=1,flag_masks=0,machine='ega',video_mode='0Dh',core='normal',cpu='386',
         result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')
