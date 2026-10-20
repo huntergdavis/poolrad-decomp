@@ -139,5 +139,7 @@ semantic reason, and it is exactly the churn the rule exists to stop.
 `docs/BATTLE_CARD.md` (measured format) · `docs/re/FUNCTION_ACCOUNTING_REFRESH.md`
 · `docs/re/STRICT_CANDIDATE_QUEUE.md` (pins, point-in-time by design) ·
 `docs/re/QUEUE_METADATA_REPAIR.md` (extent repairs) ·
-`docs/re/partial_callee_models.csv` (readiness only) ·
+`docs/re/partial_callee_models.csv` (readiness only) · the measured
+selection-cost table in `docs/re/STRICT_CANDIDATE_QUEUE.md` (cost per
+unlocked row — never select on the queue's byte fields) ·
 `docs/re/OVL_0068_0294_DISPOSITION.md` (the last uncredited row, and why).

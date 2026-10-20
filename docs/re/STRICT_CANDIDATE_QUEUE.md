@@ -194,6 +194,31 @@ source_mention 310; 603 fixup-backed and 624 aligned-PUSH-CS caller sites across
 the queue. Near-call evidence is `decoded_validated` for this export.
 
 
+## Measured selection cost (do not select on the row fields)
+
+The queue's byte fields are **decode bounds, not costs**, and selecting on them
+has now produced two wrong answers: `OVL_0025_0C77` reads 405 B in its row while
+its measured closure is **>=1,672 B / >=590 starts across four non-overlapping
+bodies** (4x the row, and still a lower bound before thirteen further targets),
+and several rows carried trailing data that a first-`RETF` measurement removes.
+Use this table instead; every figure is measured from `GAME.OVR` / the
+loader-expanded image with the `RETF` located, and the one-hop figure includes
+directly-called untranslated bodies.
+
+| candidate | measured cost | rows unlocked | cost per row | status |
+| --- | --- | ---: | ---: | --- |
+| `RES_00BA_1693` | 89 B / 44 starts | 3 | **~30 B** | credited (PR #1162) |
+| `OVL_0086_08C3` | ~3.7 KB one-hop (443 B body; 11 leaves, depth 7) | 26 | **~143 B** | held: priced, not funded |
+| `RES_00BA_16EC` | 1.8 KB one-hop · 6.3 KB full closure (65 routines) | 14 | **~131 B one-hop, ~451 B full** | held: priced, not funded |
+| `OVL_0025_0C77` | >=1,672 B / >=590 starts (lower bound) | 10 | **>=167 B** | declined: row understated 4x |
+
+Two rules follow. **Select on cost per unlocked row, not on absolute body size**
+— `08C3` and `16EC` are cheaper per row than `0C77` despite being larger, which
+is the opposite of what the row fields suggest. And **treat any row figure as a
+decoded bound until a first-`RETF` measurement confirms it**; the trailing-data
+error class has now affected seven rows, including every one of the last three
+bodies reviewed.
+
 ## Highest-leverage next recoveries
 
 A callee that is the *only* untranslated dependency of a candidate row gates that
