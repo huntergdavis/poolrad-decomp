@@ -209,8 +209,7 @@ unchanged.
 
 ## Measured evidence: native DOSBox-X
 
-DOSBox-X normal/386 (`dosbox-x 2026.01.02` SDL2 from PATH, the invocation the merged
-native harnesses use; **not** the pinned 5a9c7c53 source build) runs the original
+DOSBox-X normal/386 (the binary declared under "Declared substitution" below) runs the original
 caller, `+0000`, `+014E`, resident `+2595` and SYSTEM FreeMem bodies as real code
 from a synthetic COM image: the harness stages each body at its segment, pushes
 B6 and B8, flags and registers, and `CALL`s the entry. Only the external FreeMem
@@ -237,6 +236,35 @@ closure.
   segment>` at a free segment. This is synthetic execution, not natural gameplay
   reachability, and it is not a claim about the overlay manager.
 - RESULT.BIN SHA-256: `019c0bc25372f45ca911abbaff27a2d95564c1810552061a3bf65cc1e1b95cea`.
+
+### Declared substitution: the DOSBox-X binary
+
+The native oracle is **not** the pinned DOSBox-X source build (git
+`5a9c7c53481c2e933948039c33256776653f4faf`; `flags.cpp` `3ea36c4c…`,
+`core_normal/prefix_none.h` `aaee6bcd…`). It is the packaged binary on PATH:
+
+| Item | Value |
+| --- | --- |
+| Path | `/usr/bin/dosbox-x` |
+| Version | `DOSBox-X version 2026.01.02 SDL2` |
+| SHA-256 | `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3` |
+| Config | `core=normal`, `cputype=386`, `cycles=max`, no sound, dummy video |
+
+This is a substitution, declared in the same way as the stub: the pinned build
+was neither rebuilt nor re-run here. The receipt records the binary's path, hash
+and version. What could differ from the pinned build: the lazy-flag conventions
+(AF after OR/XOR/AND/TEST/MUL/DIV and after non-zero shifts, OF after SHL, ZF/PF
+after MUL), the LES wraparound above offset FFFC, and stack-offset wrap at FFFF.
+Why this capture is still informative, and where it is not: `+3291` itself executes
+no `SHL`, `SHR`, `MUL` or `DIV`; its flag-setting instructions are `OR`, `CMP`,
+`SUB` and `DEC`. The profile keeps entry SP at or below FFF8 with nonwrapping reached
+return frames, so the stack-wrap case is not reachable. All 14 CPU words, FLAGS
+included, matched in all 144 replayed cases under this binary, so no divergence was
+observed. That does **not** prove agreement with the pinned build on states the 144
+cases do not reach, and the composed `+0000`, `+014E`, resident and FreeMem closures
+carry their own flag conventions, which this document does not re-audit. A reviewer
+who needs the pinned result must re-run the native harness with that binary; the
+receipt's `dosbox_x` block will then show it.
 
 ## Exclusions and what is not claimed
 
