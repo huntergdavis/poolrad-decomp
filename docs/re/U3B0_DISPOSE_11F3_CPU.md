@@ -179,7 +179,17 @@ start. The receipt stores every named fixture's measured stop (`named_stops`).
 `CHECKER_ROWS=('OVL_03B0_11F3',)` is declared in the audit, which implements
 `--compile-only` (it builds the model with the real SYSTEM FreeMem source and binds
 the entry point before reading any media, and prints `CHECKER_BUILD_OK`).
-GATE_PENDING
+**Gate run:** on main `b0f19a30` with this branch, `check_checker_builds.py OVL_03B0_11F3`
+reports `PASS: 1 actual checker builds for 1 rows`, `check_body_doc_pairing.py --base b0f19a30`
+reports every body and checker paired with evidence and registration, the focused CTest target
+`poolrad_u3b0_dispose_11f3_cpu_tests` builds from CMake and passes 1/1, and the ASan/UBSan C
+suite (`-Werror`) passes its 799 checks. `--compile-only` needs no media.
+
+The private receipt (`--unicorn --native --output`, generated at code commit `59d7f28f`, which the
+branch head carries unchanged apart from merges of main) has SHA-256 `b7f1c26663ac8d573fd09ce943fb4862c0694dd97db694483f70b182ea59b0ab`. It pins the
+media and the FreeMem span hashes, the Unicorn report with every named fixture's stop, and the native
+report including the `dosbox_x` binary block. A re-run of the final harness reproduced the previous
+RESULT.BIN hash `69417130…` bit-for-bit.
 
 ## Readiness counterfactual (measured on the pinned queue)
 
