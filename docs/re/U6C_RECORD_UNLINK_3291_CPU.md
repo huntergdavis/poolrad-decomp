@@ -172,7 +172,7 @@ single-node and successor head cases, the walk relink and window decrement, the
 absent active record, the stub call with nil tables, the walk LIMIT, the stub and
 call-site CODE stops, an unfreeable record, and the ARGUMENT guards with state
 unchanged. Their expectations were derived by hand from the disassembly. The
-focused CTest target is `poolrad_u6c_record_unlink_3291_cpu_tests`. Five C
+focused CTest target `poolrad_u6c_record_unlink_3291_cpu_tests` builds from CMake and passes 1/1. Five C
 sources are compiled; the `+0000`, `+014E`, resident and FreeMem sources are
 unchanged.
 
