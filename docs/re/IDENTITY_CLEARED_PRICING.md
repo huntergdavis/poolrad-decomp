@@ -204,3 +204,7 @@ and the declaration mechanisms (the manifest `callback` status, `declared_bounda
 helper, as the [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records. If the bus-aware Move is ever wanted, it is
 built as a model, by ruling.
 
+## Parked work with no reachable consumer (recorded so it is not rebuilt)
+
+**`RES_0464_248E`** - finished and parked, never pushed as a PR. Branch **`claude/par-b-0464-248e` @ `4f605bf2`** on origin. Measurements: Unicorn 41 cases over CPU14 + 1,048,576 B, body 95/95 starts and 6/6 outcomes, closure 206/209 starts and 27/30 outcomes (the three `GetMem` HeapError AL>=1 continuations excluded on the same argument as credited `U33`), **eight declared AF-only splits** where the model follows DOSBox-X, confirmed by native 46/46 including seven cases with AF=1, and 22 ASan checks. It has **no evidence doc**, and it **depends on `emit_raw_cpu_c.py` from `#1213`**.
+Why parked: its only consumers were the `0511` chain (dead - `1B52` is declined, so `U3B9 +0000` cannot complete) and `0111 -> 05D9 -> 01C8` (08AE-gated, closed by policy). If either route is ever reopened, start from that branch rather than re-deriving it.
