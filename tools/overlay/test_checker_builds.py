@@ -95,12 +95,17 @@ class EnvironmentDetectionTest(unittest.TestCase):
             gate.importlib.util.find_spec = real
 
     def test_main_returns_environment_exit_and_never_gates_the_tree(self):
+        import contextlib, io
         real = gate.missing_dependencies
         gate.missing_dependencies = lambda: ["capstone==5.0.7", "unicorn==2.1.4"]
+        buffer = io.StringIO()
         try:
-            self.assertEqual(gate.main(["--all"]), gate.ENVIRONMENT_EXIT)
+            with contextlib.redirect_stdout(buffer):
+                code = gate.main(["--all"])
         finally:
             gate.missing_dependencies = real
+        self.assertEqual(code, gate.ENVIRONMENT_EXIT)
+        self.assertIn("ENVIRONMENT MISSING", buffer.getvalue())
 
 
 @unittest.skipUnless(shutil.which("git"), "git required")
