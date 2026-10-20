@@ -74,10 +74,10 @@ at the integration base.
 | Check | Result |
 |---|---|
 | Original-byte differential | 202 cases: 172 returns, 10 CODE, 20 CALLEE |
-| Original state | CPU14 + 983,040 ordinary RAM bytes, 13,618 ordered OUT events, 25,624 raw VRAM write operands; zero flag masks |
+| Original state | CPU14 (no flag mask) + the **entire 1,048,576-byte backing RAM**, no excluded range; independent EGA planes/latches/registers (262,164 B); 13,618 ordered OUT events, 25,624 VRAM write operands. **Superseded measurement:** the author run compared only 983,040 bytes, excluding `A0000..AFFFF` (65,536 B); see *Aperture re-audit* |
 | Caller coverage | 107/107 starts, 2/2 conditional outcomes |
 | Registered dependency closure | 705/712 starts, 82/90 conditional outcomes |
-| DOSBox-X EGA normal/386 | 100 returning cases: CPU14 + 197,632 RAM bytes + 262,144 plane bytes, 10,880 ordered OUT events; zero masks |
+| DOSBox-X EGA normal/386 | 100 returning cases: CPU14 (no flag mask) + 197,632 RAM bytes + 262,144 plane bytes, 10,880 ordered OUT events. **Native RAM is partial: 850,944 backing bytes are not compared natively** (unchanged by the re-audit) |
 | ASan/UBSan semantics | 190,899 checks passed |
 | Focused CMake/CTest | 1/1 passed |
 
@@ -105,7 +105,8 @@ and different context colors. RESULT.BIN SHA256:
 Native cases are synthetic, returning, and select valid nodes; they do not
 establish native null/exhausted-list, error/limit/refusal, or gameplay reachability.
 Hardware latch/register equality is not separately claimed. Original comparison
-checks raw VRAM operands; native comparison checks actual planes. No directed
+checks raw VRAM operands and, since the re-audit, the independent EGA's planes, latches and
+registers; native comparison checks actual planes. No directed
 altered-return case is claimed for implemented TRANSFER handling. Remaining
 closure gaps include Copy's negative index/count branches, an UpCase outcome,
 and glyph alternatives; complete locations are in the private report. Full
@@ -152,3 +153,30 @@ and all seven call sites. No guessed callee callback supplies game behavior.
 - verdict: likely_match within the documented profile.
 - review_notes: retain provisional classification, ordinary-RAM restrictions,
   closure gaps and synthetic-only native scope. No merge or self-credit.
+
+## Aperture re-audit (doc-truth correction)
+
+The original author evidence compared 983,040 ordinary RAM bytes and said
+"zero flag masks". Flags were indeed unmasked, but the 65,536-byte video
+aperture `A0000..AFFFF` was excluded from the RAM compare, the original
+differential checked only the VRAM write operands (not plane contents), and the
+native row's "zero masks" sat beside a partial capture. The checker was also
+not registered with the checker-build gate.
+
+This revision re-runs the same 202 cases with the aperture served by the
+independent Python EGA used for `RES_00BA_1693` (MMIO). The compare covers CPU14
+without flag masks, **all 1,048,576 backing RAM bytes**, ordered OUT events, every
+write operand and the full device state (four planes, latches, sequencer and
+graphics registers; 262,164 bytes). Excluded ranges: **none**. Result:
+**202 cases, zero mismatches**, stops `{RETURN 172, CODE 10, CALLEE 20}` (unchanged);
+caller **107/107 starts, 2/2 outcomes**; closure **705/712 starts, 82/90 outcomes**
+(the unexecuted 7 starts and 8 outcomes lie in delivered callees and are listed in
+the ignored report); 13,618 OUT events, 25,624 VRAM write operands; 0 aperture
+reads. The measured counts equal the earlier ones, so the earlier claim stands;
+only its masking description was wrong.
+
+The audit now declares `CHECKER_ROWS = ('OVL_03B0_0A08',)` and a media-free
+`--compile-only` mode using the audit's own compiler command and symbol binding,
+so `check_checker_builds.py` covers it. No body, header or model changed. Native
+evidence is unchanged and still partial (above). Strict credit, identity and
+manifest decisions are untouched.
