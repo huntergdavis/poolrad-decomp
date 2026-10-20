@@ -54,7 +54,7 @@ original byte bodies in Unicorn and compare all 1 MiB RAM and 14 CPU fields
 with C. They cover both equal and unequal branches, increment/decrement
 overflow and zero, DS/SS aliasing, and an odd near-boundary stack frame.
 
-Four DOSBox-X normal-core synthetic far-entry frames also execute both
+*(Superseded by the 48-case native suite in the Exhaustive re-audit below.)* Four DOSBox-X normal-core synthetic far-entry frames also execute both
 original bodies. All 14 CPU words, 52 stack bytes, and DS `[0x6816]` and
 `[0x6822]` match C. Generated COM, copied original bytes, logs, and capture
 stay in ignored `resources/u38-12b2-parity/native/`. Capture SHA-256:
@@ -73,7 +73,7 @@ outcomes; exhaustive input, alias and flag-space parity is not established.**
 (*Superseded for the data bytes, flags, registers and aliases by the Exhaustive re-audit
 below; the 12-case default run is unchanged.*)
 The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. Four synthetic
-native frames also pass. This is a measured coverage statement, not new identity
+native frames also passed (superseded by the 48-case native suite below). This is a measured coverage statement, not new identity
 or strict-C acceptance; reviewer acceptance remains separate from the author claim.
 
 The original `GAME.OVR` slice is `[65293,65366)` (`[0xFF0D,0xFF56)`),
@@ -93,8 +93,9 @@ python3 tests/recovered/native_overlay_u38_effect_match_12b2.py
 These commands require the ignored, hash-pinned media and the checker's existing
 Capstone/Unicorn dependencies; the second additionally needs DOSBox-X and binutils.
 The new `--coverage` output records starts/outcomes; it changes no parity masks
-or expected results. The four-frame native result SHA-256 again equals
-`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1`.
+or expected results. The four-frame native result SHA-256 then equalled
+`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1` (historical; the
+current native run is described in the Exhaustive re-audit).
 
 Counterfactual: adding the three-field row `OVL_0038_12B2,full,docs/re/U38_EFFECT_MATCH_12B2.md`
 to `partial_callee_models.csv` leaves **460 candidates / 58 composable** and the
@@ -160,10 +161,27 @@ coverage statement, not a proof over every machine state.
 
 ### Native, ownership and registration
 
-Native corroboration is unchanged: four synthetic far-entry frames, comparing all 14
-CPU words, 52 stack bytes and `DS:[6816]`/`DS:[6822]`, so **about 54 backing bytes
-per case are compared natively and the rest are not**. Capture
-`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1` is unchanged.
+Native corroboration is now a **48-case DOSBox-X suite** (replacing the earlier four
+synthetic frames, whose capture `f595d051...8cf1` is superseded). **The native
+harness is the par-b lane's contribution**, offered on branch `claude/par-b-12b2` and
+taken here unchanged (cherry-picked with its author and message); I reproduced
+it on this host before relying on it. Cases: 24 `B[+3]` x `A[+10Eh]` pairs over both
+branches, 12 counter-edge cases (`[6816]` x `[6822]` in {00,01,7F,80,FE,FF}) and 12 flag
+cases, with six initial-flag profiles (`0002`, `00D7`, `08D7`, `0402`, `0893`, `0003`).
+Every case runs the original wrapper and the original +0C06 bytes as a far call with a
+synthetic return frame, with interrupts off from the fill until the record is taken.
+Compared per case: all 14 CPU words, and **three whole regions refilled with `5A` before
+each case** (`2000..2FFF`, `6000..6FFF`, `E800..EFFF`; 10,240 bytes) against the C model,
+**with zero masks**. Result: **48/48 equal** (18 take the equal branch);
+RESULT.BIN SHA-256 `2896dac6efb60b539fe84ed87ea2800751fe7fb7a7ffbca1523963f90dbe523b`
+(par-b's value and my reproduction agree).
+
+Native scope is partial: the other **1,038,336 backing bytes are not compared natively**
+(the harness's own code and buffers live outside the three regions); the full 1 MiB
+comparison is the Unicorn sweeps above. The native run used this host's **DOSBox-X
+2026.01.02 (`/usr/bin/dosbox-x`, SHA-256 `99d74601...2a0df3`), not the pinned
+`5a9c7c53` build**; the harness records that in its report (`pinned_build_used: false`).
+Frames are synthetic direct entries, not item-49 dispatches or reached gameplay.
 
 Ownership is not improved by this change: entry 41 is installed as item 49 by the
 +31A2 installer and reached only through U9E +0000's unresolved indirect dispatch, so
