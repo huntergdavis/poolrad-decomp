@@ -207,4 +207,30 @@ built as a model, by ruling.
 ## Parked work with no reachable consumer (recorded so it is not rebuilt)
 
 **`RES_0464_248E`** - finished and parked, never pushed as a PR. Branch **`claude/par-b-0464-248e` @ `4f605bf2`** on origin. Measurements: Unicorn 41 cases over CPU14 + 1,048,576 B, body 95/95 starts and 6/6 outcomes, closure 206/209 starts and 27/30 outcomes (the three `GetMem` HeapError AL>=1 continuations excluded on the same argument as credited `U33`), **eight declared AF-only splits** where the model follows DOSBox-X, confirmed by native 46/46 including seven cases with AF=1, and 22 ASan checks. It has **no evidence doc**, and it **depends on `emit_raw_cpu_c.py` from `#1213`**.
-Why parked: its only consumers were the `0511` chain (dead - `1B52` is declined, so `U3B9 +0000` cannot complete) and `0111 -> 05D9 -> 01C8` (08AE-gated, closed by policy). If either route is ever reopened, start from that branch rather than re-deriving it.
+Why parked: its only consumers were the `0511` chain and `0111 -> 05D9 -> 01C8` (08AE-gated, closed by policy). The `0511` chain is dead for **two independent reasons**: `1B52` is declined, so `U3B9 +0000` cannot complete, and `1951` cannot be declared ready (next section). Re-deriving `248E` does not revive that chain. If either route is ever reopened, start from that branch rather than re-deriving it.
+
+## `RES_0464_1951`: translated and evidenced, but undeclarable (2026-10-20)
+
+`RES_0464_1951` (the bitmap blit, 513 B / 201 instructions) is **translated and evidenced**: the raw-CPU body and its
+full evidence merged as #1213 ([RES_0464_BLIT_1951_CPU.md](RES_0464_BLIT_1951_CPU.md)), with the DOSBox-X binary
+substitution declared. It is still counted as **untranslated wherever it is a callee**, because it **cannot be declared
+ready until it has identity**. It is `unresolved` in both resident ledgers.
+
+Measured on main `057d901f` by the review lane (VP ruling i19703). Each available declaration is refused by the tooling:
+
+- **Strict row:** `RES_0464_1951` in `strict_full_c_addresses.csv` makes `function_queue.py` refuse with "strict
+  full-C credit lacks verified game identity".
+- **Manifest row:** `RES_0464_1951,full` in `partial_callee_models.csv` leaves the checkpointed function queue unchanged
+  (`0936e38e`, 250 / 296), because that queue does not read the manifest. But `strict_candidate_queue.py` refuses it
+  with "callee model manifest address is neither an overlay row nor a strict-credited resident id"
+  (`strict_candidate_queue.py`, the resident branch of the manifest check).
+
+Resident readiness is **credit-gated**, the same structural gate met at `2595` from the other side. No readiness-only
+declaration exists for an unresolved resident.
+
+**Not taken:** loosening the resident manifest gate so that readiness could be declared without credit. That would let
+any unresolved resident compose, which is the laundering the gate prevents. Doing it would need a deliberate ruling with
+the `08AE` and `2A0D` consistency cost named, not a tooling convenience.
+
+**Consequence:** every caller that lists `1951` keeps it as an unready callee. That includes the `0511` chain above,
+and `OVL_040C_015D` under the held `RES_03F1_0000` ([STRICT_CANDIDATE_QUEUE.md](STRICT_CANDIDATE_QUEUE.md)).

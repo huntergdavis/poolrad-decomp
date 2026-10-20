@@ -349,7 +349,10 @@ affordable-looking, and the same trap shape as `08C3` and `1545`.
 `OVL_040C_015D`'s unready set is **2,265 B on its own**: `RES_0464_00FF` 13,
 `RES_0464_08D4` 1,181, `RES_0464_1951` 513, `RES_0899_0000` 51,
 **`RES_0899_0059` 171**, plus two runtime endpoints. `0059` is the body whose
-dependency set was ruled unestablishable.
+dependency set was ruled unestablishable. `1951` has since been translated (#1213), but it
+stays in this unready set: a resident without identity cannot be declared ready by either the
+strict table or the manifest, so it is undeclarable until it has identity
+([IDENTITY_CLEARED_PRICING.md](IDENTITY_CLEARED_PRICING.md#res_0464_1951-translated-and-evidenced-but-undeclarable-2026-10-20)).
 
 **Two-hop floor 2,576 B** through a wall that has not moved: held with `1545`,
 `0FAC`, `15EB` and `08C3`. The two "leaves" said to gate `RES_00BA_16EC` -
