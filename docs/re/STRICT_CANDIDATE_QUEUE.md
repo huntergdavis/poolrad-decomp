@@ -397,11 +397,12 @@ same way**:
   (662 B) and `RES_00BA_0767` (390 B).
 * **Two-hop floor 3,801 B for 4 rows = 950 B/row**, with two held hubs inside.
 
-**The whole `0x38` band is `16EC`-gated:** 53 candidate rows list
-`RES_00BA_16EC` among their callees, including `09C0`, `10DE`, `23EC`, `2F57`,
+**`16EC` gates 53 candidate rows, 21 of them in unit `0x38` (57 candidates there):** these
+53 rows list `RES_00BA_16EC` among their callees (an earlier wording said the whole
+`0x38` band was gated, which the 21 of 57 count does not support), including `09C0`, `10DE`, `23EC`, `2F57`,
 `017F`, `1935`, `1E77`, `2556`, `1CAD`, `1399`, `0233`, `176F`, and
-`0FAC`/`15EB`/`1545`/`0058` from the priced menu. Until 16EC lands, none of that
-band is a one-hop job — so its progress belongs to the lane building 16EC, not to
+`0FAC`/`15EB`/`1545`/`0058` from the priced menu. Until 16EC lands, none of those
+rows is a one-hop job — so their progress belongs to the lane building 16EC, not to
 a separate author picking them off.
 
 **The identity-known-but-untranslated trap list (44 callees, 26 rows).** These
