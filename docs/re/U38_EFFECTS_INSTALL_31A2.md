@@ -18,9 +18,11 @@ The source audit reconstructs descriptors/fixups from these pinned inputs.
 The table's game role is independently documented by
 OVERLAY_UNIT38_EFFECT_ENTRIES.md, FUNCTION_LEDGER.md and U9E_0160.md:
 the effect dispatcher calls its entries through DS:6828. This initializer
-installs pointers for those recovered game effects. Its canonical classifier
-label remains game_or_other_library_unresolved; this PR supplies game-role
+installs pointers for those recovered game effects. At the time of this PR its canonical classifier
+label was game_or_other_library_unresolved, and this PR supplied game-role
 and parity evidence without changing any identity or strict-credit output.
+**Update 2026-10-20:** the row is now identity- and strict-credited since PR #467 (reviewed commit `aca640cf`, accounted in `21b65e9a` on 2026-10-14);
+the unresolved label above is historical.
 Selection began at main dfb6df6d3c5622a4803dde786cb3df93a28d267e. Source,
 header, test and strict-manifest searches found no existing implementation or
 credit; pF's separate U38 +0918 source/test lane stays untouched.
