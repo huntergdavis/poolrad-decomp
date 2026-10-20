@@ -249,7 +249,12 @@ PYTHONPATH=/tmp/poolrad-capstone PYTHONDONTWRITEBYTECODE=1 \
 
 This compares all three regenerated CSV ledgers byte-for-byte with the
 checked-in files. The two queues must agree with each other and with the
-SHA-256 in the published checkpoint. Diagnostics and generated products stay
+SHA-256 in the published checkpoint. The audit enforces the second condition: a run on the
+checked-in credit map, identities and classifier exits 2 with both hashes when
+the regenerated queue differs from `queue_sha256`. Runs on staged inputs, such as
+the refresh's own staging pass, are not compared, because they build the next pin.
+Before 2026-10-20 the hash was only printed, and a stale pin survived from
+`b0cd541a` until `function_accounting_refresh.py` refused it (re-pinned in #1191). Diagnostics and generated products stay
 under ignored `resources/`; public evidence contains counts, addresses,
 hashes, and synthetic tests only.
 
