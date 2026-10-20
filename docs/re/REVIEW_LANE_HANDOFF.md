@@ -85,6 +85,14 @@ free-model screen — made this exact mistake on the same body before finding th
 bytes, so treat a first-attempt hash mismatch as a method suspect before
 reporting a defect.
 
+**Example of a rule earning its keep.** The point-in-time digest rule was
+written into the queue document and, on the very next turn, a case it covers
+arrived: the digest moved (`9b04734f` -> `4dba801e`) with counts identical at
+455 candidates / 63 composable / 9 caveats, purely from branch-ref advance.
+Following the rule meant leaving the pin alone and saying so. The alternative —
+"the digest no longer reproduces, re-pin it" — is a change made for zero
+semantic reason, and it is exactly the churn the rule exists to stop.
+
 ## Two CI gates, and how to prove they fail closed
 
 1. **SHA-provenance guard** — `tools/overlay/check_record_shas.py`. Every
