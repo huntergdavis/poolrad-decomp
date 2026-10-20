@@ -157,6 +157,27 @@ class QueueTest(unittest.TestCase):
             self.assertIn("owner-media hash mismatch", result.stderr)
             self.assertFalse(output.exists())
 
+    def test_owner_audit_refuses_a_canonical_queue_that_misses_the_pin(self):
+        import function_queue_audit as audit
+        with tempfile.TemporaryDirectory() as folder:
+            checkpoint = Path(folder) / "checkpoint.json"
+            checkpoint.write_text(json.dumps({"queue_sha256": "a" * 64}))
+            canonical = (audit.DEFAULT_CREDIT, audit.DEFAULT_REVIEWED_IDENTITIES)
+            refusal = audit.pin_mismatch(checkpoint, "b" * 64, *canonical, False)
+            self.assertIn("differs from the published checkpoint pin", refusal)
+            self.assertIn("a" * 64, refusal)
+            self.assertIn("b" * 64, refusal)
+            self.assertIsNone(audit.pin_mismatch(checkpoint, "a" * 64, *canonical, False))
+            # Staged inputs (the accounting refresh) legitimately produce a new queue.
+            staged = Path(folder) / "strict.csv"
+            self.assertIsNone(audit.pin_mismatch(checkpoint, "b" * 64, staged,
+                                                 audit.DEFAULT_REVIEWED_IDENTITIES, False))
+            self.assertIsNone(audit.pin_mismatch(checkpoint, "b" * 64, audit.DEFAULT_CREDIT,
+                                                 staged, False))
+            self.assertIsNone(audit.pin_mismatch(checkpoint, "b" * 64, *canonical, True))
+            self.assertIsNone(audit.pin_mismatch(Path(folder) / "absent.json", "b" * 64,
+                                                 *canonical, False))
+
 
 if __name__ == "__main__":
     unittest.main()

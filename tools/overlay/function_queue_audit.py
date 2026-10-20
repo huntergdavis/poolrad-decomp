@@ -15,6 +15,28 @@ import sys
 from function_queue import DIGESTS, DEFAULT_CREDIT
 from classify_overlay import DEFAULT_REVIEWED_IDENTITIES
 
+DEFAULT_CHECKPOINT = Path(__file__).resolve().parents[2] / "docs/re/function_accounting_checkpoint.json"
+
+
+def pin_mismatch(checkpoint, queue_sha256, full_c_map, reviewed_identities, refresh_classification):
+    """Return a refusal message when a canonical regeneration differs from the published pin.
+
+    The pin binds only the checked-in inputs: a staged credit map, staged identities or a
+    staged classifier (the accounting refresh) legitimately produce a different queue, and
+    there is nothing to compare against when no checkpoint is published.
+    """
+    canonical = (Path(full_c_map).resolve() == DEFAULT_CREDIT.resolve()
+                 and Path(reviewed_identities).resolve() == DEFAULT_REVIEWED_IDENTITIES.resolve()
+                 and not refresh_classification)
+    checkpoint = Path(checkpoint)
+    if not canonical or not checkpoint.exists():
+        return None
+    pinned = json.loads(checkpoint.read_text())["queue_sha256"]
+    if pinned == queue_sha256:
+        return None
+    return (f"regenerated queue differs from the published checkpoint pin: "
+            f"pinned {pinned}, regenerated {queue_sha256}\n")
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -25,6 +47,8 @@ def main():
     parser.add_argument("--reviewed-identities", default=str(DEFAULT_REVIEWED_IDENTITIES))
     parser.add_argument("--refresh-classification", action="store_true",
                         help="stage a newly reviewed classifier; keep other ledger comparisons strict")
+    parser.add_argument("--checkpoint", default=str(DEFAULT_CHECKPOINT),
+                        help="published checkpoint whose queue_sha256 a canonical run must reproduce")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[2]
     exe, ovr = Path(args.exe).resolve(), Path(args.ovr).resolve()
@@ -76,8 +100,13 @@ def main():
     if content != (out / "queue-repeat.json").read_bytes():
         parser.exit(2, "queue exports differ between identical runs\n")
     result = json.loads(content)
+    digest = hashlib.sha256(content).hexdigest()
     print(json.dumps(dict(inputs=DIGESTS, summary=result["summary"],
-                          queue_sha256=hashlib.sha256(content).hexdigest()), sort_keys=True, indent=2))
+                          queue_sha256=digest), sort_keys=True, indent=2))
+    refusal = pin_mismatch(args.checkpoint, digest, args.full_c_map, args.reviewed_identities,
+                           args.refresh_classification)
+    if refusal:
+        parser.exit(2, refusal)
 
 
 if __name__ == "__main__":
