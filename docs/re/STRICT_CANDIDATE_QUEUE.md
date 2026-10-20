@@ -316,6 +316,22 @@ must come from an artifact: see
 [RES_00BA_16EC_ONE_HOP_TARGETS.md](RES_00BA_16EC_ONE_HOP_TARGETS.md)
 (reproduce with `tools/overlay/resident_target_list.py`).
 
+### Held: `RES_03F1_0000` (band-gated, 2,576 B floor)
+
+`03F1:0000`, **311 B / 145 starts**, loader-derived. Its only far call binds
+**`OVL_040C_015D`** (336 B / 127 starts), so one hop reads as 311 + 336 = 647 B -
+affordable-looking, and the same trap shape as `08C3` and `1545`.
+
+`OVL_040C_015D`'s unready set is **2,265 B on its own**: `RES_0464_00FF` 13,
+`RES_0464_08D4` 1,181, `RES_0464_1951` 513, `RES_0899_0000` 51,
+**`RES_0899_0059` 171**, plus two runtime endpoints. `0059` is the body whose
+dependency set was ruled unestablishable.
+
+**Two-hop floor 2,576 B** through a wall that has not moved: held with `1545`,
+`0FAC`, `15EB` and `08C3`. The two "leaves" said to gate `RES_00BA_16EC` -
+`03F1:0000` here and `0709:0768` in the other lane - are **the same wall viewed
+from two sides**.
+
 ### Band closed on identity, not on cost: the `0899:0059` route (2026-10-25)
 
 The `0x38` band was routed through `RES_00BA_16EC` → `0709:0768` → `0BF5` →
