@@ -262,9 +262,12 @@ return frames, so the stack-wrap case is not reachable. All 14 CPU words, FLAGS
 included, matched in all 144 replayed cases under this binary, so no divergence was
 observed. That does **not** prove agreement with the pinned build on states the 144
 cases do not reach, and the composed `+0000`, `+014E`, resident and FreeMem closures
-carry their own flag conventions, which this document does not re-audit. A reviewer
-who needs the pinned result must re-run the native harness with that binary; the
-receipt's `dosbox_x` block will then show it.
+carry their own flag conventions, which this document does not re-audit. Comparability: the same executable, by this SHA-256, is the native oracle already
+recorded in the merged evidence for `RES_0709_TEXT_06A7` (#1190),
+`RES_0709_SKIP_SPACES_0714`, `U33_PARTY_ATTACH_12E1` and `U33_1403_EVIDENCE_REFRESH`, and
+this body's own native `RESULT.BIN` reproduced bit-for-bit across three runs, including
+after a rebuild of the harness. A reviewer who needs the pinned result must re-run the
+native harness with that binary; the receipt's `dosbox_x` block will then show it.
 
 ## Exclusions and what is not claimed
 
@@ -278,8 +281,11 @@ receipt's `dosbox_x` block will then show it.
 
 ## Readiness counterfactual (measured on the pinned queue, not credit)
 
-`OVL_0020_11AC` lists this row as its only unready callee (1 of 2); crediting a
-strict translation of `+3291` makes that caller composable. Six further
+`OVL_0020_11AC` lists this row as its only unready callee (1 of 2; the other target is the
+covered runtime `0AF8:0254`); crediting a strict translation of `+3291` makes that caller
+composable. **Composable is not credited:** `OVL_0020_11AC` has no fixup-backed callers (one
+aligned `PUSH CS` and one near call), so its own identity is a separate, open question, and
+this document does not read "unlocks `11AC`" as "unlocks a credit". Six further
 candidates list it among other unready callees (`OVL_001C_02E0`, `OVL_006C_0161`,
 `OVL_0033_19F5`, `OVL_006C_1F37`, `OVL_006A_18E5`, `OVL_0020_04C9`) and stay
 gated. No manifest declaration is made here: this body has a raw-CPU endpoint, and
