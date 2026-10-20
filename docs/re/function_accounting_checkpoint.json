@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "052bdde540a15fae0a3a3369d656a1826c21a3011f4ac998d48d52467711b09e",
-    "full_c_map": "3b6e6fe4103a6e16deceb1ac2b5f73581ae2c5c9f96dbff8d8e5c1bfad4b378f",
+    "classification": "e952e702c4f231bb3ccfd87cda4f5e74e98a88ea5fa9a1a31ef006952fae5c59",
+    "full_c_map": "014b19c09ee8babf41b8369a97900558c730de3fd40f86cf6f9bb77c7f56455a",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "53dadc2d5d81a0ca44d0e978ce6abe08fadf4afea8d9b7adaff79873a717b47e",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
-    "reviewed_identities": "a810f0c7028bc2b91dc9ff615b24f7af8700a8174e53611fe2da82d1e9412aa6"
+    "reviewed_identities": "8fb76dc4350bc0d893a7aedce0a00182bccffec4aad6c4c507d9298abd8bcfce"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "6bd5ca69d7d8852d19d3b2c699039286157f47cef73c4fe6a30b14539f3e905c",
+  "queue_sha256": "70fadcc4894e3cc8b0ef567e1644c1b37f664d4dac721325894142db00236740",
   "reviewed_change": {
-    "approval_reference": "acceptance of PR #1188 (VP inbox:i19559): OVL_0077_275B [275B,27DF) 132 B/45 starts credited on the reproduced differential (31 cases, 45/45 starts, 8/10 outcomes with 2 contract-excluded sides, 14 words + 1 MiB, flag_masks 0) and 28 declared-stub native captures; ownership from fixup-confirmed far caller 0x23:+0239 (+024D) and near caller 0x77:+1734 (+178A)",
+    "approval_reference": "acceptance of PR #1193 (PM assignment to reviewer par-e, inbox w9:pH): OVL_0038_3134 [3134,317A) 70 B/26 starts credited on the reproduced differential (164 cases, 0 mismatches, 26/26 root starts, 4/4 root outcomes, CPU14 + 1,048,576 B, no excluded range, flag_masks 0) and 45 native DOSBox-X cases (0 stubs, declared far-JMP trap, 850,944 B masked); identity by A2: unit 0x38 entries[114]=+3134, stub 0041:025A = 0x20+5*114, installed into dispatch slot 135 (DS:6A44) by strict-credited OVL_0038_31A2 at +386C/+386F with the segment word relocated (+386A)",
     "approved_by": "PM",
-    "body_bytes": 132,
-    "body_sha256": "91d407737828c3a1912ca24a72d2260b43f0d99d93028174bd9325a3419435b7",
-    "evidence_doc": "docs/re/U77_CAPACITY_CHECK_275B_CPU.md",
+    "body_bytes": 70,
+    "body_sha256": "9c024ea9f2fa5fa8b113d6bafce1d7dea90603488dff98a7c6362bd38978481f",
+    "evidence_doc": "docs/re/U38_MESSAGE_3134_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_0077_275B",
-    "review_pr": 1188,
-    "reviewed_commit": "f50a9c10b022c08140475ab065cbfe504b7c92b7",
+    "original_id": "OVL_0038_3134",
+    "review_pr": 1193,
+    "reviewed_commit": "959a5b849dc188024fe7440975cfc0a9ff0e689b",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 219,
+    "overlay": 220,
     "resident": 26
   },
-  "strict_full_c_originals": 245,
-  "unknown_ownership": 518,
+  "strict_full_c_originals": 246,
+  "unknown_ownership": 517,
   "verified_game_by_domain": {
-    "overlay": 264,
+    "overlay": 265,
     "resident": 27
   },
-  "verified_game_identities": 291,
+  "verified_game_identities": 292,
   "whole_game_denominator": "unknown"
 }
