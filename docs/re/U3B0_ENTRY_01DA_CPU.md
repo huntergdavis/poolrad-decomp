@@ -204,7 +204,7 @@ either is observed**; they were not observed in 95 cases.
 recorded in [QUEUE_METADATA_REPAIR.md](QUEUE_METADATA_REPAIR.md). In short: no
 instruction in the body branches to or loads from `[037D,03BD)`, and the next
 routine `+03BD` loads `CS:037D` and `CS:039D` as the two 32-byte SYSTEM `SET IN`
-constants it uses. This change does **not** edit `overlay_function_ledger.csv`.
+constants it uses. `overlay_function_ledger.csv` changes by exactly one row (extent fields only: bound 483 to 419, decoded 427 to 419, instructions 176 to 172); see the repair record.
 
 The audit now declares `CHECKER_ROWS = ('OVL_03B0_01DA',)` and a media-free
 `--compile-only` mode, so `check_checker_builds.py` covers it. No body, header or

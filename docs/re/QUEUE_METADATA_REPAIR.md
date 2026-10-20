@@ -341,7 +341,24 @@ themselves are not published.
 
 `EXECUTABLE_SPANS` in `function_ledger.py` gains one hash-bound entry. The
 generator rejects a different body or a bound that cuts through the reviewed span,
-as for the earlier entries. **This change does not regenerate or edit the checked-in
-`overlay_function_ledger.csv`**; applying the corrected row (bound, decoded bytes and
-instruction count for `0x3B0:0x01DA`) is left to the reviewer's accounting step.
+as for the earlier entries.
+
+The checked-in `overlay_function_ledger.csv` changes by **exactly one row**
+(authorized by the VP; extent fields only, as in the earlier repair `b1fbb101`).
+Regenerating with the pinned inputs (`inventory.json`, `callgraph.json`, `near.json`,
+GAME.OVR and START.EXE, under the current generator) reproduces the checked-in file
+except for this row; the old and new files have the same header, the same 673 data rows
+in the same order, and differ as sets by one row each:
+
+| | bound | decoded | insns |
+| --- | ---: | ---: | ---: |
+| `0x3b0:0x01da` before | 483 | 427 | 176 |
+| `0x3b0:0x01da` after | 419 | 419 | 172 |
+
+Every other column of that row (grade `B`, class `glue`, far/near call counts,
+`ds_globals`, `es_refs`, `ret`) is unchanged, and no classification, credit or
+manifest file is touched. The generated summary
+`overlay_function_ledger_summary.md` would change by one derived counter (functions
+whose linear decode stops before the next prologue, 162 to 161); that file is **not**
+edited here and is left for the reviewer.
 
