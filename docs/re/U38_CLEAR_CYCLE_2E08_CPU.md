@@ -8,8 +8,9 @@ with RETF 0Ah. The new CPU14 API composes the merged raw helper and preserves
 live stack/RAM aliases, including unexpected callee return destinations.
 
 This is author evidence for independent review, with no accounting changes
-or self-credit. The game identity remains game_or_other_library_unresolved /
-unresolved; synthetic parity does not settle that classification.
+or self-credit. Synthetic parity does not settle identity. The identity
+argument is stated in [Identity via the credited installer](#identity-via-the-credited-installer)
+for the review lane to reproduce.
 
 ## Identity, queue and prior work
 
@@ -31,7 +32,8 @@ The schema-4 queue lineage currently emits schema 8. The selection snapshot
 ranks this candidate 447, score 4, 1/1 ready. Its inline_in_strict hit is only
 the neighboring +2DE4 header's end-address comment, not an implementation.
 Higher ready rows were already raw implementations, except the U38 +101D
-cluster whose resident selector remains callback-only. U25 +07BC is genuinely
+cluster, whose resident selector was then callback-only (since replaced by the
+raw selector in [U38_TARGET_SELECTOR_CPU.md](U38_TARGET_SELECTOR_CPU.md)). U25 +07BC is genuinely
 implemented inline in overlay_u25_load_word_0e0c.c and was not duplicated.
 
 Preimplementation shared-memory queries covered the U38 selector cluster,
@@ -48,6 +50,51 @@ The raw helper source/header are unchanged. The full-RAM comparator follows
 u7d_update_047a_cpu_audit.py, and the disk-fed native capture follows its native
 harness. Old test counts/captures are historical context only; all measurements
 below were produced for this implementation.
+
+## Identity via the credited installer
+
+Written against the two-factor standard in
+[REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)
+(design A2 for table entries).
+
+**Factor 1: reached from game code, through a credited installer's table.**
+Reproduced by the author on GAME.OVR `872964a3…`, the regenerated loader
+inventory and the checked-in ledger on main 5453ccb2:
+
+1. Unit 0x38's public entry table has 117 entries. `entries[109] = 2E08h`,
+   and 109 is the only index holding 2E08h.
+2. The unit's memory segment is 41h (inventory `memory_segment` 65, derived
+   from the next descriptor, sequential check true). Entry k's stub is at
+   `0041:(20h + 5k)`. This is measured, not assumed: all 136
+   `MOV AX,imm; MOV DX,0041h` pairs in 31A2 satisfy imm = 20h + 5k, and
+   every one names a ledger function's entry. (The inventory field
+   `stub_header_len` = 22 is not used for this offset.)
+   Entry 109's stub is therefore `0041:0241`.
+3. `OVL_0038_31A2` contains, at +37E4..+37F0,
+   `MOV AX,0241h; MOV DX,0041h; MOV [6A1C],AX; MOV [6A1E],DX`. It stores
+   exactly that stub far pointer in DS:6A1C/6A1E (slot 125 of the effect
+   table). The `0041h` immediate word at +37E8 carries a loader fixup. It is
+   the only `MOV AX,0241h` in any unit 0x38 ledger function.
+4. `OVL_0038_31A2` is identity-credited (reviewed identity #467, commit
+   `aca640cf…`) and strict-credited (U38_EFFECTS_INSTALL_31A2.md).
+
+So +2E08 is installed as a game effect handler by a credited game body (the
+A2 reading). Slot arithmetic per the standard: `(6A1C - 6828) / 4 = 125`.
+The older sentences calling 31A2 unresolved were corrected in #1196 (main
+`554083a2`). The credit status above is read from the two CSVs, not the prose.
+
+**Factor 2: operates on documented game state.** +2E08 pushes no pointer; its
+subject is DS game state that credited bodies' evidence docs define:
+
+- the four calls go to the credited helper `OVL_0038_0000`. Per
+  [U38_HELPER_CLUSTER_CPU.md](U38_HELPER_CLUSTER_CPU.md), with key k it
+  clears `DS:6818` and `DS:6817` when k is 0 or `DS:6817` equals k. +2E08
+  supplies k = 0Bh, 35h, 34h, 37h;
+- its final gate `CMP BYTE [682A],0` → `DS:6816 := 64h` is the same documented
+  state operation that the credited `OVL_0038_29F0` performs (same doc,
+  entry 95);
+- `DS:6818` is also the byte that the credited +25BC halves
+  ([U38_TARGET_MASK81_25BC.md](U38_TARGET_MASK81_25BC.md)).
 
 ## API and execution profile
 
@@ -98,7 +145,10 @@ always pushes one of the four nonzero immediates. Between that push and the
 helper's first CMP, only adjacent, distinct CS/IP/BP stack words are written.
 With immutable code and no interrupts, the key byte cannot become zero.
 The general helper still implements that branch, and it remains in this
-composition's six-outcome denominator.
+composition's six-outcome denominator. Kind: **unreachable-by-composition**.
+Feasible state: `[BP+6] = 0` at helper +0003, i.e. a caller passing key 0.
+The credited entries 50 (+1490), 94 (+29D9) and 96 (+2A11) do exactly that,
+so the branch is real code outside this composition.
 
 Original cases include all 256 latch values on both final-gate branches;
 additional signed/parity gate bytes; initial AH/flags variations; odd/minimum/
@@ -117,6 +167,19 @@ directly with C, not only with Unicorn.
 
 Native RESULT.BIN SHA-256:
 83b59bba64b8c279c90e625d221b70c7833589e9ed02b78836abbb75572f1adc.
+
+**Author re-run for registration** (2026-10-20 12:10:45–12:11:39 PDT, main
+5453ccb2 + this audit; resources/2e08/final.json, ignored, SHA-256
+`75b37d72…589d`). It reproduces the table: 551 cases (538 returns, 5
+TRANSFER, 8 CODE) on CPU14 + 1,048,576 bytes unmasked; caller 23/23 starts
+and 2/2 outcomes; closure 34/34 starts and 5/6 outcomes, the missing outcome
+being exactly the excluded +0007→+0011; native 256 returns with an identical
+RESULT.BIN. The ASan/UBSan figure in the table is from the original author's
+run and was not repeated here.
+
+`CHECKER_ROWS=('OVL_0038_2E08',)` registers this audit with the handoff gate.
+`--compile-only` builds the two sources before any media access and prints
+`CHECKER_BUILD_OK`; it was verified with the owner media absent.
 Native evidence is synthetic and covers normal returns only. It makes no
 claim about native transfers/refusals, whole-RAM native parity, native A20
 or wrapping-return behavior, or naturally reached gameplay. Media, generated
@@ -144,3 +207,49 @@ With the pinned private media and Python dependencies available:
 - review_notes: unresolved game identity; actual neighbor-comment false inline
   hit; unused general-helper zero-key branch retained in denominator; synthetic
   native scope; independent verification and credit remain with reviewer/VP.
+
+### Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced at author head `5d69fc39` merged with main `84da517f`, 2026-10-20.
+
+- **Unicorn:** 551 cases (538 return, 5 TRANSFER, 8 CODE) on CPU14 +
+  1,048,576 B, unmasked; caller 23/23 starts and 2/2 outcomes; closure 34/34
+  starts and 5/6 outcomes, the only missing outcome being `0007->0011`.
+  Each labelled case reached its named stop.
+- **Native:** 256 returns, RESULT.BIN `83b59bba…1adc`.
+- **C:** fresh CTest 1/1; strict C11 `-Werror` + ASan/UBSan rebuilt and run
+  by the reviewer, **49,188 checks** (the author's figure, now repeated).
+- **Gates on the merged tree:** `check_checker_builds.py --all
+  --require-current-main` 21/21; pairing, evidence-doc and record-SHA OK.
+
+**Identity (A2), checked against the CSVs and media, not the prose:**
+`entries[109] == 0x2E08` (unique), `memory_segment` 0x41, stub `0041:0241`.
+All 136 `MOV AX,imm; MOV DX,0041h` pairs in 31A2 fit `20h + 5k` with an
+in-range entry. The store at `+37E4..+37F0` writes `DS:6A1C/6A1E` (slot 125),
+`0041h` at `+37E8` is a unit fixup, and the only other `1C 6A` bytes in
+GAME.OVR lie outside every unit's code. `OVL_0038_31A2` is in both
+`strict_full_c_addresses.csv` and `reviewed_function_identities.csv`. Factor 2:
+the helper +0000 is strict-credited, and its key test reads the pushed byte.
+
+**Exclusion check (reviewer, construct-before-exclude):** +2E08 hardcodes the
+keys as `MOV AL,imm`, and the C model does likewise, so `0007->0011` is
+reachable only if a key immediate becomes 0. The reviewer tried to build that
+state:
+
+- **DS alias:** the helper's zero writes to `DS:6817/6818` cannot overlay a
+  key immediate (`2E13`, `2E1A`, `2E21`), because the alignment differs mod 16
+  for every CS.
+- **Stack alias:** any SS:SP that zeroes an immediate with a pushed word also
+  writes the return-IP high byte `2Eh` over the preceding `B0` opcode, which
+  breaks the code first.
+
+So the exclusion holds within the stated immutable-code, no-interrupt
+contract. The feasible state is `[BP+6] = 0`; the key-0 callers are
+`+09EF` (09C0), `+14E2` (1490, entry 50), `+2567/+2599` (2556), `+296D` (2915),
+`+29E9` (29D9, entry 94) and `+2A21` (2A11, entry 96).
+
+**Follow-up (reviewer, non-blocking):** the checker reports
+`missing_outcomes` but does not assert that it equals `['0007->0011']`, so a
+newly reachable or newly lost outcome would not fail the run. A one-line
+assertion would close this. The documented `--output resources/2e08/...`
+needs the parent directory to exist.

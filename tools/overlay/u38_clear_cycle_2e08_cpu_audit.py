@@ -12,6 +12,7 @@ SITES=(0x2E0F,0x2E16,0x2E1D,0x2E24)
 FLAGS=(0x0002,0x00D7,0x08D7,0x0402,0x0893,0x0003)
 BODY_SHA='7142253f1af3c81015b05a5e1743c3cf19ecf776ec43da551cc00b4e07d374a1'
 HELPER_SHA='f62ad6b7474059693853b623f564cfd5c9298cd50e4628732b49b97eb6265240'
+CHECKER_ROWS=('OVL_0038_2E08',)
 SOURCES=('overlay_u38_clear_cycle_2e08_cpu.c','overlay_u38_helper_cluster_cpu.c')
 NAMES={0:'return',2:'CODE',3:'CALLEE',4:'TRANSFER'}
 def check(ok,msg):
@@ -109,9 +110,11 @@ def differential(code,decoded,conditional,f):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args();code,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='u38-2e08-') as tmp:
         f=library(Path(tmp))
+        if a.compile_only:print('CHECKER_BUILD_OK');return
+        code,decoded,conditional,digests=source();report=dict(target=digests)
         if a.unicorn:report['unicorn']=differential(code,decoded,conditional,f)
         if a.native:
             from u38_clear_cycle_2e08_cpu_native import native_audit
