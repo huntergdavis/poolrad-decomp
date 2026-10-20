@@ -154,3 +154,38 @@ Ignored resources/evidence.json pins public inputs, unchanged dependencies,
 tool versions, media, native input/output, original reports and sanitizer/
 CTest logs. Native input is independently reconstructed before receipt
 creation. Independent review and credit remain with the VP/reviewer.
+
+
+## Manifest declaration and checker handoff
+
+The declaration of `OVL_03B0_06FB` as `full` names this already implemented
+raw entry under the memory/device/stop profile above. It does not assert
+full feasible-path coverage of the renderer closure: the measured caller
+has 13/13 starts and no conditional outcomes, while its dependencies reach
+411/451 starts. It does not turn the 983,040-byte ordinary-RAM comparison
+plus VRAM operands into a full 1 MiB flat-RAM comparison. Native separately
+corroborates EGA planes and the stated capture windows. No masking, new
+parity measurement, independent credit, or gameplay integration is implied
+by the manifest word. Readiness and game/library identity are separate:
+identity remains `game_or_other_library_unresolved`, as recorded when
+PR #1116 accepted the body without credit. Declaring composition readiness
+does not resolve that classification or grant strict credit.
+
+The actual audit now registers this row and supports a media-free
+`--compile-only` mode. It uses the same source list, compiler command,
+shared-library load and symbol binding as the original/native audit:
+
+    python tools/overlay/check_checker_builds.py OVL_03B0_06FB --require-current-main --output resources/checker-builds.json
+
+This declaration follows VP instruction i19236. Dunking Sheep context
+recalled Codex session 01a1386e-bea7-7883-8ddd-06fd2be8db9b's public entry
+mapping (3C5:002F -> U3B0 entry 3), also checked by the existing original-byte
+checker; that recalled mapping is coordination context, not new parity.
+The original evidence and implementation above remain the authority for
+the scoped declaration; acceptance and any credit belong to the reviewer.
+
+Declaration validation on main `940ffc70`: the full existing audit reran
+63 original-byte cases and 20 native EGA captures with the same counts,
+coverage and native RESULT.BIN hash reported above. The current-main gate
+compiled, loaded and bound all nine registered checkers for nine rows.
+The declaration changes no C body, header, classification or accounting.

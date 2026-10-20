@@ -16,6 +16,7 @@ import res0709_space_05eb_cpu_audit as prior
 from overlay_inventory import find_units,parse_mz
 from u86_procvars_3413_audit import OVR_SHA
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
+CHECKER_ROWS = ('OVL_03B0_06FB',)
 SOURCES=('overlay_u3b0_row_clear_06fb_cpu',)+prior.SOURCES
 WRITE_FN=ctypes.CFUNCTYPE(None,ctypes.c_void_p,ctypes.c_uint16,ctypes.c_uint8)
 class Ega(ctypes.Structure):
@@ -165,10 +166,13 @@ def differential(bodies,decoded,lib,quick=False):
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe','jb') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],
         chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
-    bodies,decoded,meta=source();report=dict(target=meta)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='u3b0-06fb-') as tmp:
         lib=library(Path(tmp))
+        if a.compile_only:
+            print('CHECKER_BUILD_OK')
+            return
+        bodies,decoded,meta=source();report=dict(target=meta)
         if a.unicorn:report['unicorn']=differential(bodies,decoded,lib,a.quick)
         if a.native:
             from u3b0_row_clear_06fb_cpu_native import native
