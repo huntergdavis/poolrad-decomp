@@ -18,6 +18,8 @@ jobs:
         run: python3 -m pip install capstone==5.0.7 unicorn==2.1.4
       - name: Test checker build failure gates
         run: python3 -m unittest discover -s tools/overlay -p 'test_checker_builds.py'
+      - name: Test candidate pricer input handling
+        run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
       - name: Compile, load and bind registered row checkers without media
         run: python3 tools/overlay/check_checker_builds.py --all
   verify-public-tree:
@@ -30,8 +32,6 @@ jobs:
         run: python3 tools/overlay/check_record_shas.py
       - name: Test accounting provenance guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
-      - name: Test candidate pricer input handling
-        run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
       - name: Test evidence-link guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_evidence_docs.py'
       # Proves each credited row links to a document that names it. It does NOT

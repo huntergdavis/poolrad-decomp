@@ -47,9 +47,14 @@ class InputHandlingTest(unittest.TestCase):
         self.assertEqual(pricer.input_problem(self.queue, self.root), "generate")
 
     def test_main_exits_with_input_code_not_a_traceback(self):
+        real = pricer.gate.missing_dependencies
+        pricer.gate.missing_dependencies = lambda: []   # this test is about the INPUT
         buffer = io.StringIO()
-        with contextlib.redirect_stdout(buffer):
-            code = pricer.main(["--root", str(self.root), "--queue", str(self.queue)])
+        try:
+            with contextlib.redirect_stdout(buffer):
+                code = pricer.main(["--root", str(self.root), "--queue", str(self.queue)])
+        finally:
+            pricer.gate.missing_dependencies = real
         self.assertEqual(code, pricer.INPUT_EXIT)
         self.assertIn("QUEUE INPUT MISSING", buffer.getvalue())
 

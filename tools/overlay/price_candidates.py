@@ -35,8 +35,6 @@ import json
 import sys
 from pathlib import Path
 
-from capstone import Cs, CS_ARCH_X86, CS_MODE_16
-
 import check_checker_builds as gate
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
@@ -54,6 +52,10 @@ UNREADY = {"untranslated", "resident_unmapped", "resident_callback",
 
 
 def media(root):
+    # Imported here, not at module scope: a checkout without Capstone must reach
+    # main()'s ENVIRONMENT MISSING message rather than dying on import.
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_16
+
     base = root / "resources/DOS/POOLRAD"
     exe = (base / "START.EXE").read_bytes()
     ovr = (base / "GAME.OVR").read_bytes()
