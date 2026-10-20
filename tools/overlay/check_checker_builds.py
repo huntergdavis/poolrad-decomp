@@ -6,6 +6,7 @@ Its --compile-only mode must use the audit's actual compiler command and
 CDLL/symbol binding, then print CHECKER_BUILD_OK. No duplicate source lists.
 """
 import argparse
+import importlib.util
 import ast
 import csv
 import hashlib
@@ -243,6 +244,39 @@ PR_EVENTS = ("pull_request", "pull_request_target", "merge_group")
 CI_ENV = ("GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "CI")
 
 
+PINNED_DEPENDENCIES = (("capstone", "5.0.7"), ("unicorn", "2.1.4"))
+ENVIRONMENT_EXIT = 3
+
+
+def missing_dependencies():
+    """Which pinned checker dependencies this interpreter cannot import.
+
+    A missing import is an ENVIRONMENT failure, not a tree failure. The two must
+    look different, because the failure mode to engineer out is a human reading
+    "ModuleNotFoundError: capstone" as "my change broke something" and going
+    hunting through the diff. This returns the missing names so main() can say so
+    in one unmissable line, and it uses find_spec so detection itself cannot
+    raise.
+    """
+    missing = []
+    for name, version in PINNED_DEPENDENCIES:
+        try:
+            found = importlib.util.find_spec(name) is not None
+        except (ImportError, ValueError):
+            found = False
+        if not found:
+            missing.append(f"{name}=={version}")
+    return missing
+
+
+def environment_message(missing):
+    return ("ENVIRONMENT MISSING: " + ", ".join(missing) +
+            " not importable - this is NOT a tree failure. Create a venv and "
+            "pin the checker dependencies (python3 -m venv .venv && "
+            "pip install capstone==5.0.7 unicorn==2.1.4), then re-run. See the "
+            "local setup note in docs/re/REVIEW_LANE_HANDOFF.md.")
+
+
 def _run_git(root, *args):
     return subprocess.run(["git", "-C", str(root), *args],
                           capture_output=True, text=True)
@@ -280,7 +314,7 @@ def precondition_error(root, base_ref="origin/main", *, require_current_main=Fal
     return None
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rows", nargs="*", help="every row being offered for review")
     parser.add_argument("--all", action="store_true", help="all registered checker rows")
@@ -293,7 +327,11 @@ def main():
                              "instead, because main moves under the PR head")
     parser.add_argument("--sweep", action="store_true",
                         help="best-effort compile of every checker; never gates (exit 0)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    missing = missing_dependencies()
+    if missing and not getattr(args, "compile_only", False):
+        print(environment_message(missing))
+        return ENVIRONMENT_EXIT
     if args.sweep:
         rows = sweep(ROOT)
         bad = [r for r in rows if r["status"] != "OK"]
@@ -333,4 +371,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
