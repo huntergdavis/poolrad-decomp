@@ -149,7 +149,9 @@ modeled-system-runtime coverage) was generated from `START.EXE` `d825df2b…a07b
 `c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1714 refs / 1207 tips /
 537 unmerged tips (`tips_sha256` `0668410a…`) and 2664 commits (`commits_sha256`
 `160aca38…`). Git pins are point-in-time;
-other lanes keep pushing refs.
+other lanes keep pushing refs. **The digest is point-in-time at the recorded
+commit: it does not track HEAD, and a branch-ref advance alone does not require
+a re-pin — see the checkpoint for the pin used for credit.**
 
 ## First ranked list (top 25 of 457)
 
