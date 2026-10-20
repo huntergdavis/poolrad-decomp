@@ -308,10 +308,10 @@ and Unicorn 2.1.4 are required. Under the crew's host rule every step runs throu
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -g -fsanitize=address,undefined -fno-omit-frame-pointer -I include tests/recovered/test_overlay_u6c_record_unlink_3291_cpu.c src/recovered/overlay_u6c_record_unlink_3291_cpu.c src/recovered/overlay_u6c_record_release_0000_cpu.c src/recovered/overlay_u3ce_bitmap_pair_release_014e_cpu.c src/recovered/resident_0464_bitmap_release_2595_cpu.c src/recovered/system_freemem_0254_cpu.c -o resources/semantic-test
     ASAN_OPTIONS=detect_leaks=1 resources/semantic-test
 
-The private receipt (`--unicorn --native --output`, generated at code commit `132a82c2`, which the PR head
-carries unchanged apart from this document) has SHA-256 `abca845c6eb45e1660630c6bbec3e23693ff0da125af8be31867d493697aedf6`; it pins the media and
-the composed-closure hashes, the Unicorn parity report with every named fixture's stop, and the native report.
-A second run on the previous commit reproduced the same differential numbers and the same RESULT.BIN hash.
+The private receipt (`--unicorn --native --output`, generated at code commit `b48ff9e7`, which the PR head
+carries unchanged apart from this document) has SHA-256 `3d7f0ec758150cc11231fc800b98bf707bfbf791e3f606b18de3fc1f714b6f43`; it pins the media and
+the composed-closure hashes, the Unicorn parity report with every named fixture's stop, and the native report
+including the `dosbox_x` binary block. A second run on the previous commit reproduced the same differential numbers and the same RESULT.BIN hash.
 
 No original or extracted bytes and no generated capture binaries are committed.
 
