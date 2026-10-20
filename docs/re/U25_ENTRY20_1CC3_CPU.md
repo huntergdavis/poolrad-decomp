@@ -207,3 +207,40 @@ The recall index was unavailable in this session, so no prior-session result was
 | signals | Body/fixup/two-caller identity, full-RAM original differential over the whole closure, independent arithmetic oracle, native replay, derived-value semantic checks |
 | verdict | likely_match within the documented bounded CPU profile |
 | review_notes | Provisional identity argument (second caller's pointer not traced); SYSTEM closure partially reached, exclusions asserted; declared AF-after-shift Unicorn split; native covers two windows only; packaged DOSBox-X substitution declared; no accounting edits |
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at author head `0ec816a3`, merged with main `c2020996` (after the #1228 re-pin), 2026-10-20.
+
+- **Unicorn:** 1,845 cases (1,017 return, 820 RunError, 8 CODE) on CPU14 + 1,048,576 B, masked 0; 278 declared
+  AF-after-shift splits; caller 81/81; SYSTEM closure 141/210. The unvisited set equals the declared set
+  (asserted in both directions), measured as 62 + 4 + 3 = 69.
+- **Split conditions are checked in code:** the only tolerated difference is in FLAGS, exactly bit 10h (AF), with the
+  model's AF set, and only when the last AF-writing instruction executed was a shift.
+- **Native:** 191 cases (115 return, 76 RunError), RESULT.BIN `47c2e1b8…`, `dosbox_x` block with SHA `99d74601…`.
+  **C:** fresh CTest 1/1; strict `-Werror` + ASan/UBSan, 63 checks.
+- **Independent arithmetic oracle (reviewer):** a Real48 decoder written for this review checked the ORIGINAL's final
+  RAM for seven factors the audit does not assert (3.0, 1.5, 0.75, -2.5, 0.25, -0.125, 5.0) over seven edge words.
+  There were 0 mismatches.
+- **Carry-out arm (reviewer):** word `FFFEh` with mantissa `8001000200h`, exponent `81h`, visits `+1021`/`+1023`,
+  and every stored word is 0. That is correct: 65534 * (1 + 2^-15 + 2^-30) = 65535.99999999813 rounds to 65536 at
+  40-bit precision, whose low 16 bits are 0.
+
+**Feasible state of each excluded group (reviewer-added; confirmed from the SYSTEM bytes):**
+
+| Group | Blocking condition (measured) | Feasible only when |
+| --- | --- | --- |
+| General multiply path, 62 starts | `+0F55 OR AH,AH` / `+0F59 OR BX,BX` take the short path when the first operand's low mantissa is 0. A word converted with DX = 0 always gives that. | the first operand has nonzero AH or BX: a LongInt with more than 16 significant bits, or a non-integer Real |
+| Negative-LongInt arm of `+10D9`, 4 starts | `+10E1 OR DX,DX; JNS 10EF` skips the arm, and this caller XORs DX before every `+119A`. | DX bit 15 is set at `+119A` (a negative LongInt) |
+| Rounding arm of `+1118`, 3 starts | The `+119E` wrapper executes `MOV CH,0` immediately before `CALL 1118`. | CH != 0 at `+1118`, i.e. a Round-style entry, not `+119E` |
+
+**Identity (two-factor), checked from the media:** entry 20, stub `002B:0084` (`20h + 5*20`), has exactly two
+relocated callers, both in game_verified `OVL_001C_1DB1`. `+1E1F` pushes the local Real and then `[5D94]:[5D92]`, and
+this body dereferences that pointer and scales `+88..+94`. The author's two unargued points (the `+1E6E` local pointer
+and 1DB1's own identity) do not defeat factor 1 or factor 2, because one documented path suffices, as for
+`OVL_03B0_11F3`.
+
+**Incidents (reviewer check):** no file over 100 MB remains in any poolrad worktree or `/tmp`, and the author's
+`dosbox.log` is 2,915 B. The 300 s timeout and the 50 MiB truncation are in code. Truncation runs after the run, so
+in-run disk use is bounded by the timeout only. The audit module's docstring still says the oracle runs at
+`A000:1CC3`; the code stages at `3000`.
