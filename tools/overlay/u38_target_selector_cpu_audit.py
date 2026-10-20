@@ -11,6 +11,7 @@ CS,RES,DS,SS,HEAP=0x5000,0xBA,0x1800,0x2800,0x3000
 ENTRIES={'resident':0x2E8B,'select':0x101D,'mask':0x25BC}
 RETURNS={'resident':(RES,0x2F54),'select':(CS,0x1083),'mask':(CS,0x2602)}
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
+CHECKER_ROWS=('OVL_0038_101D',)
 SOURCES=('resident_character_target_select.c','overlay_u38_target_select_101d.c','overlay_u38_target_mask81_25bc.c')
 NAMES={0:'return',2:'CODE',3:'CALLEE',4:'TRANSFER'}
 def check(ok,msg):
@@ -132,9 +133,11 @@ def differential(resident,code,decoded,conditional,functions):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args();resident,code,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='target-selector-') as tmp:
         fs=library(Path(tmp))
+        if a.compile_only:print('CHECKER_BUILD_OK');return
+        resident,code,decoded,conditional,digests=source();report=dict(target=digests)
         if a.unicorn:report['unicorn']=differential(resident,code,decoded,conditional,fs)
         if a.native:
             from u38_target_selector_cpu_native import native_audit
