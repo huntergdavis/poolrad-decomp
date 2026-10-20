@@ -34,6 +34,11 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
       - name: Test body/checker pairing gate
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_body_doc_pairing.py'
+      # The harness that proves an infeasible-coverage exclusion fails closed. The tests
+      # are synthetic (no media): each of the five attacks must catch a sound audit's
+      # broken claim and flag an audit that lacks the check it targets.
+      - name: Test infeasible-exclusion fail-closed harness
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_exclusion_fail_closed.py'
       # A body or checker must land with its evidence document and CHECKER_ROWS.
       # Needs full history so the merge-base diff resolves.
       - name: Refuse unpaired bodies and checkers
