@@ -44,7 +44,7 @@ the table first if the strict set has grown.
 | OVL_009E_0026 | 282 / 94 (queue 314) | unresolved | 1/2 | 009E_0000 38, `indirect_unresolved` (1/1) | ≥38 + dispatch closure |
 | OVL_0077_299C | 369 / 164 | game_evidenced | 2/8 | 0086_008A 515 (2/6); RES_03F1_02E8 ≥127 | ≥642 |
 | OVL_0025_0411 | 113 / 36 | unresolved | 1/2 | 006F_0EC4 926 (3/11) | ≥926 |
-| OVL_006F_1262 | 452 / 174 (queue 484) | game_evidenced | 2/6 | 006F_0482 540 (4/10); 006F_0EC4 926 (3/11) | ≥1,466 |
+| OVL_006F_1262 | 452 / 174 (queue 484) | game_evidenced | 2/6 | 006F_0482 498 (4/10; the queue's 540 includes the 42 B tail, corrected here); 006F_0EC4 926 (3/11) | ≥1,424 |
 | OVL_0025_1684 | 260 / 100 | game_evidenced | 3/6 | 0025_156D 279 (1/7); 03B0_03BD 830 (3/11); RES_00BA_0767 ≥390 | ≥1,499 |
 | OVL_03CE_01C8 | 820 / 353 | game_evidenced | 2/10 | RES_0464_0111 ≥404; RES_0464_1E5C ≥1,586 | ≥1,990 |
 | OVL_005E_0123 | 110 / 36 | game_evidenced | 1/1 | 009E_02FA 2,029, `partial` (1/1; HOLD per i19596) | ≥2,029 |
@@ -71,6 +71,38 @@ any row alone, because every row listed has other unready callees.
 
 `OVL_03CE_01C8` and `OVL_006F_0482` are also linked: 0482 calls 01C8. Pricing
 0482 therefore includes all of 01C8's price.
+
+## Ruled out: four identity-cleared rows are readiness-blocked (measured floors)
+
+These four rows passed the identity screen but are **not actionable**, and not as a
+scheduling choice: each needs unready callees that are themselves blocked, and each
+also reaches the 08AE driver (closure table below), which the owner's policy closes.
+The floors below add the row's own span to its **one-hop** unready callees, with the
+repaired spans used throughout. They are floors; every callee listed has unready
+callees of its own, so the true price is higher and unbounded in two cases.
+
+| Row | Own span (B) | One-hop unready callees (floor B; own unready) | One-hop floor incl. own (B) | Still unpriced / beyond one hop |
+| --- | ---: | --- | ---: | --- |
+| OVL_006F_0482 | 498 | 03CE_01C8 820 (2/10); RES_0464_1E5C ≥1,586; RES_0802_094A ≥19; RES_0802_095D ≥11 | **≥2,934** (1,318 = 0482 + 01C8, plus ≥1,616 of residents) | 01C8's own closure (RES_0464_0111 ≥404 and its 5,653 B chain); the 08AE path |
+| OVL_0077_299C | 369 | 0086_008A 515 (2/6); RES_03F1_02E8 ≥127 | **≥1,011** (884 = 299C + 008A, plus ≥127 resident) | 008A needs 03B0_0D9A (784 B measured to its first RETF; 823 B in the queue row, 39 B trailing data), so **≥1,795** with it; 0D9A's own closure is unpriced |
+| OVL_006F_0010 | 391 | 006F_02AE 129 (2/7); RES_0802_02EB ≥107 (5 SYSTEM calls) | **≥627** (520 = 0010 + 02AE, plus ≥107 resident) | **five `runtime_unmapped` endpoints (unpriced)** and the closures of 02AE and 02EB |
+| OVL_006F_1262 | 452 | 006F_0482 498 (itself blocked, above); 006F_0EC4 926 (3/11) | **≥1,876** | 0482 is not a leaf: counting its own ≥2,436 B of unready callees the chain is **≥4,312**; 0EC4's own 3/11 unready callees are unpriced |
+
+Notes that keep this table from being re-measured wrongly:
+
+- `0EC4` blocks **1262** (with 0482) and `OVL_0025_0411`; it is **not** a callee of 0482.
+  0482's unready callees are exactly `01C8`, `1E5C`, `094A` and `095D`.
+- Earlier working figures of 1,918 B for 1262 used the queue's 540 B for 0482
+  (452 + 540 + 926). With the repaired 498 B the one-hop floor is 1,876 B.
+- The sizes are first-RETF spans decoded from the original bytes (0482's 498 and 0010's
+  391 are after the trailing-data repairs recorded above); 1E5C, 094A, 095D, 02EB,
+  02E8 are floors.
+- All four rows also appear in the 08AE closure table above (closures 8,629 B, 8,917 B,
+  2,117 B and 10,113 B), reaching the driver through both gateway bodies at segment 0899.
+  `0482` is hit twice, because `01C8` is also 08AE-gated. Readiness would have to be
+  bought **and** the driver policy reopened before any of the four could be credited.
+- The creditable pool at the cheap end is therefore `OVL_0025_1CC3` (par-d, in progress)
+  and nothing else from this list.
 
 ## Extent findings made while pricing
 
@@ -207,6 +239,8 @@ built as a model, by ruling.
 ## Parked work with no reachable consumer (recorded so it is not rebuilt)
 
 **`RES_0464_248E`** - finished and parked, never pushed as a PR. Branch **`claude/par-b-0464-248e` @ `4f605bf2`** on origin. Measurements: Unicorn 41 cases over CPU14 + 1,048,576 B, body 95/95 starts and 6/6 outcomes, closure 206/209 starts and 27/30 outcomes (the three `GetMem` HeapError AL>=1 continuations excluded on the same argument as credited `U33`), **eight declared AF-only splits** where the model follows DOSBox-X, confirmed by native 46/46 including seven cases with AF=1, and 22 ASan checks. It has **no evidence doc**, and it **depends on `emit_raw_cpu_c.py` from `#1213`**.
+
+*Independently verified by par-c (2026-10-21) on `4f605bf2`, with the media and the wrapper; every figure above reproduced exactly:* 41 Unicorn cases; body 95/95 starts and 6/6 outcomes; closure 206/209 starts and 27/30 outcomes, the missing three being exactly `03C9->03CB`, `03CB->0383` and `03CB->03CD` (starts `03CB`, `03CD`, `03D0`); eight AF-only splits (model `0016`, Unicorn `0006`, all in mode 1); native 46 cases with `af_set_at_return` 7, no flag masks; 22 ASan/UBSan checks; and `emit_res0464_alloc_248e.py --check` with main's `emit_raw_cpu_c.py` regenerates the committed C and header byte for byte (`EMIT_CHECK OK`). The span was re-derived from the original bytes: 263 B / 95 insns, one RETF at `+2592` (`RETF 0Ch`), SHA-256 `3476a8ae8b3a3c1430c591b9922d493db2e4c475d542f089257464a82ce9d32f`. **Precision to carry with the figures:** the audit's direct RAM comparison is 983,040 bytes (`A0000..AFFFF` is covered by a write-operand replay and an "untouched in C" check, with no aperture reads), not a plain 1,048,576-byte compare; native compares CPU14, a 1,024-byte stack window and two 64 KiB segments (132,096 bytes, so 916,480 backing bytes are not compared natively), result SHA-256 `fdbce0903d01619d0eb8082a51f85a2f989befdb7ea045c3eca69dc2c931b838`; the eight Unicorn splits and the seven native AF=1 cases are different case sets, not a one-to-one match; the model header cites `docs/re/RES_0464_ALLOC_248E_CPU.md`, which does not exist; the branch was cut from an older main and is not gated or rebased.
 Why parked: its only consumers were the `0511` chain and `0111 -> 05D9 -> 01C8` (08AE-gated, closed by policy). The `0511` chain is dead for **two independent reasons**: `1B52` is declined, so `U3B9 +0000` cannot complete, and `1951` cannot be declared ready (next section). Re-deriving `248E` does not revive that chain. If either route is ever reopened, start from that branch rather than re-deriving it.
 
 ## `RES_0464_1951`: translated and evidenced, but undeclarable (2026-10-20)
