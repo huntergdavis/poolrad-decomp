@@ -73,6 +73,18 @@ counts as *unready*. The manifest gate that makes `RES_00BA_1168`/`13AB`
 work is a **resident-only** mechanism, so declaring an overlay row `full`
 is accurate documentation and no readiness change at all.
 
+## The loader-expanded offset trap (authors and reviewers both hit it)
+
+Resident bodies live at `physical(segment, offset)` in the **loader-expanded
+START.EXE image**, not at a raw file offset. `0x464:0x2595` is image offset
+`0x464<<4 + 0x2595 = 0x6BD5`; hashing `START.EXE[0x6BD5:0x6C72]` directly
+returns a plausible-looking wrong digest and looks like a body mismatch rather
+than a method error. Unpack with the loader first (`resident_loader_map.unpack`)
+and hash from that image. Two independent agents — the reviewer and a headless
+free-model screen — made this exact mistake on the same body before finding the
+bytes, so treat a first-attempt hash mismatch as a method suspect before
+reporting a defect.
+
 ## Two CI gates, and how to prove they fail closed
 
 1. **SHA-provenance guard** — `tools/overlay/check_record_shas.py`. Every
