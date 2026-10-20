@@ -109,6 +109,18 @@ when quoting a chain's cost before it is measured, say "at least" and expect to
 raise it. The measured table lives in `STRICT_CANDIDATE_QUEUE.md`; select on
 cost per unlocked row, never on the queue's byte fields.
 
+## Local setup (read this before reporting a gate failure)
+
+The checker gate needs Capstone 5.0.7 and Unicorn 2.1.4, which are installed in
+CI but not in this host's system Python. If they are missing the gate now stops
+with a distinct line — `ENVIRONMENT MISSING: ... not importable - this is NOT a
+tree failure` — and exit code **3**, so an environment error cannot be mistaken
+for a broken tree. To run it locally:
+
+    python3 -m venv .venv
+    .venv/bin/pip install capstone==5.0.7 unicorn==2.1.4
+    .venv/bin/python tools/overlay/check_checker_builds.py --all
+
 ## Two CI gates, and how to prove they fail closed
 
 1. **SHA-provenance guard** — `tools/overlay/check_record_shas.py`. Every

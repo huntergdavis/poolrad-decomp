@@ -77,6 +77,37 @@ class CheckerBuildGateTest(unittest.TestCase):
             gate.discover(self.root)
 
 
+class EnvironmentDetectionTest(unittest.TestCase):
+    """A missing import must not look like a broken tree."""
+
+    def test_message_and_exit_code_are_distinct(self):
+        message = gate.environment_message(["capstone==5.0.7"])
+        self.assertTrue(message.startswith("ENVIRONMENT MISSING:"))
+        self.assertIn("NOT a tree failure", message)
+        self.assertIn("capstone==5.0.7", message)
+
+    def test_missing_dependencies_detects_absent_module(self):
+        real = gate.importlib.util.find_spec
+        gate.importlib.util.find_spec = lambda name: None if name == "capstone" else real(name)
+        try:
+            self.assertIn("capstone==5.0.7", gate.missing_dependencies())
+        finally:
+            gate.importlib.util.find_spec = real
+
+    def test_main_returns_environment_exit_and_never_gates_the_tree(self):
+        import contextlib, io
+        real = gate.missing_dependencies
+        gate.missing_dependencies = lambda: ["capstone==5.0.7", "unicorn==2.1.4"]
+        buffer = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buffer):
+                code = gate.main(["--all"])
+        finally:
+            gate.missing_dependencies = real
+        self.assertEqual(code, gate.ENVIRONMENT_EXIT)
+        self.assertIn("ENVIRONMENT MISSING", buffer.getvalue())
+
+
 @unittest.skipUnless(shutil.which("git"), "git required")
 class PreconditionTest(unittest.TestCase):
     """The stale-tree check must be strict locally and relaxed in PR CI - but
