@@ -237,3 +237,36 @@ prologue boundary. No inferred older implementation is reused.
 | score | Five evidence categories: identity, structure, differential, native, contract tests; no probabilistic score |
 | verdict | likely_match within the declared profile, pending independent verification |
 | review_notes | Provisional helper identity; false queue inline tag; immutable code, nonwrapping reached frames, flat RAM, explicit partial stops; native synthetic scope and fixture correction above; no self-credit |
+
+### Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced independently by par-e (and separately by par-a) at author head
+`da1d6f06`, merged with main `28aac7f9`, 2026-10-20.
+
+- **Unicorn:** 196 cases on CPU14 + 1,048,576 B, unmasked; caller 29/29 starts
+  and 2/2 outcomes; closure 135/135 starts and 35/36 outcomes. The checker
+  asserts `missing_outcomes == ['0AF8:03D5->0431']` and no missing start, and
+  asserts the stops of the eight reasoned fixtures.
+- **The one gap:** FreeMem `+03D3 OR AX,AX; +03D5 JE 0431` is the zero-size
+  shortcut. This body always does `MOV AX,2Eh; PUSH AX` before the call, so
+  with immutable code the size is never zero.
+- **Native:** 96 cases (88 return, 8 RunError204), RESULT.BIN `69417130…`.
+  The `dosbox_x` block names the substituted binary (`/usr/bin/dosbox-x`
+  2026.01.02, SHA-256 `99d74601…0df3`), not the pinned `5a9c7c53` build.
+- **C:** fresh CTest 1/1; strict C11 `-Werror` + ASan/UBSan, 799 checks.
+- **Gates:** `check_checker_builds.py --all --require-current-main` 24/24;
+  pairing, evidence-doc and record-SHA OK; baseline queue `e408a2a5…`.
+
+**Identity (two-factor), checked from the media:** exactly 13
+relocation-backed `lcall 03C5:0043` sites (entry 7, stub `20h + 5·7`), all at
+decoded instruction boundaries. None is near-called inside unit 0x3B0.
+Twelve push a stack local (`LEA DI,[BP-x]; PUSH SS; PUSH DI`). Only
+`0x86:+0279` in game_evidenced `OVL_0086_008A` passes the global cell
+(`MOV DI,4766h; PUSH DS; PUSH DI`). This document claims nothing more. The
+body dereferences that cell and walks the `+2Ah/+2Ch` links of the 46-byte
+nodes that strict-credited `OVL_0086_028D` builds and `OVL_0086_059C` resets.
+
+**Zero delta (measured on the strict candidate queue export):** all ten rows
+that list `OVL_03B0_11F3` already count it `modeled` (ready), and none is
+composable for other reasons, so no composability moves. No manifest row is
+added.
