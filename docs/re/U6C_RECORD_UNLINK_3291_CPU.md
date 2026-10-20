@@ -194,7 +194,7 @@ closure.
   code), because real DOS memory there is not reproducible by a flat-fill model.
   A case is native-eligible only if the C model, run on two RAM images whose bytes
   outside the windows differ (A5 versus 5A), gives identical status, CPU and window
-  contents and leaves the outside untouched; that test kept 1,394 of 1,396 candidates,
+  contents and leaves the outside untouched; that test kept 1,392 of 1,396 candidates,
   and 144 are replayed (every named case plus an even sample of the translated and
   random cases).
 - Not replayed natively, by construction: cases with code writes, relocated or
@@ -248,6 +248,11 @@ and Unicorn 2.1.4 are required. Under the crew's host rule every step runs throu
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/u6c_record_unlink_3291_audit.py --native --output resources/native.json
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -g -fsanitize=address,undefined -fno-omit-frame-pointer -I include tests/recovered/test_overlay_u6c_record_unlink_3291_cpu.c src/recovered/overlay_u6c_record_unlink_3291_cpu.c src/recovered/overlay_u6c_record_release_0000_cpu.c src/recovered/overlay_u3ce_bitmap_pair_release_014e_cpu.c src/recovered/resident_0464_bitmap_release_2595_cpu.c src/recovered/system_freemem_0254_cpu.c -o resources/semantic-test
     ASAN_OPTIONS=detect_leaks=1 resources/semantic-test
+
+The private receipt (`--unicorn --native --output`, generated at code commit `132a82c2`, which the PR head
+carries unchanged apart from this document) has SHA-256 `abca845c6eb45e1660630c6bbec3e23693ff0da125af8be31867d493697aedf6`; it pins the media and
+the composed-closure hashes, the Unicorn parity report with every named fixture's stop, and the native report.
+A second run on the previous commit reproduced the same differential numbers and the same RESULT.BIN hash.
 
 No original or extracted bytes and no generated capture binaries are committed.
 
