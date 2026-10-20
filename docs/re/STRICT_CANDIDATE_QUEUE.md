@@ -228,7 +228,7 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 | `OVL_0038_1545` | 709 B | 4 | 177 B | |
 | `OVL_0038_0FAC` | 580 B | 3 | 193 B | |
 | `OVL_0038_15EB` | 672 B | 3 | 224 B | |
-| `OVL_009E_1869` | 547 B | 2 | 274 B | |
+| `OVL_009E_1869` | **635 B** = 201 + 99 (`03C6_1298`) + 247 (`00BA_16EC`) + 88 (`00BA_23DB`) | 2 | **318 B** | earlier 274 B was **pre-near-call-correction and is stale**; note it depends on the held `16EC` hub, so its true cost carries that chain |
 | `OVL_009E_0026` | — | 5 | **not priced** | calls `OVL_009E_0000`, readiness `indirect_unresolved` |
 | `OVL_009E_0160` | — | 1 | **not priced** | same dispatch blocker |
 
