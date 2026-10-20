@@ -237,3 +237,52 @@ Proposed `partial_callee_models.csv` line, text only:
 
 Strict credit and the identity decision are the reviewer's.
 `game_evidenced`/provisional is the queue's label; this PR changes none of it.
+
+### Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced at author head `959a5b84` merged with main `5453ccb2`, 2026-10-20.
+
+- **Unicorn:** 164 cases, 0 mismatches; CPU14 + 1,048,576 B, no excluded
+  range, flag_masks 0; 66,104 OUTs, 211,067 EGA write operands, 6 aperture
+  reads; root 26/26 starts, 4/4 outcomes; closure 934/941 and 84/96 with the
+  same 7 starts and 12 outcomes listed above. Every stop count in the table
+  above reproduced, and each labelled case reached its named stop (for
+  example the eleven `literal-<length>` cases all take the message path,
+  five of them with an altered frame, and each `code-*` case stops at its
+  guard).
+- **Native:** 45 cases, RESULT.BIN `c68cbbe6…b41e`, 31 returns and 14 stops,
+  0 callee stubs, 850,944 B masked in the four listed ranges.
+- **C:** fresh CMake/CTest 1/1; strict C11 `-Werror` + ASan/UBSan
+  standalone build, 5,242,818 checks.
+- **Gates on the merged tree:** `check_checker_builds.py --all
+  --require-current-main` 17/17 (main has gained two registered rows since
+  the author's 15/15); body/doc pairing, evidence-doc and record-SHA checks OK.
+
+**Identity: decided by IDENTITY_SWEEP_DESIGN A2 (game-owned dispatch table).**
+Measured from the pinned media:
+
+- unit 0x38 descriptor: `memory_segment` 0x41, `entries[114] == 0x3134`
+  (the only entry with that offset); stub `0041:025A` = `0x20 + 5*114`.
+- the strict-credited installer `OVL_0038_31A2` stores that stub into
+  dispatch slot 135, `DS:6A44 = 6828h + 4*135`: `MOV AX,025Ah; MOV DX,0041h;
+  MOV [6A44],AX; MOV [6A46],DX` at `+3866..+3872`, with the segment
+  immediate carrying a unit relocation at `+386A`.
+- `44 6A` occurs exactly once in GAME.OVR (that store), so no other
+  direct-address writer of the slot exists in the overlay file.
+
+This is the same entry-table and installer agreement that credited the
+dispatch no-ops (`+319B`, entry 116), and here the installer is itself strict
+credit, so no uncredited (circular) caller is involved.
+
+**Limits this identity relies on (reviewer-added):** the dispatcher's
+type 1..139 invariant and the absence of later writes to `DS:6A44` are
+**not** shown (they are open items in `U9E_DISPATCH_HANDLER_BACKLOG.md`), and
+natural-play reachability is still not claimed. The identity is ownership of
+the bytes through a game-owned table, not a reached route.
+
+**Reviewer notes:** the upper SP bound (`FFF2`) keeps the 16 bytes from the
+saved BP to the last argument at or below `SS:FFFF`; the last byte sits *at*
+`FFFF`. The PR description's "32 nested 1693 buckets" is 24 buckets
+covering 35 cases in the run. The table above is correct.
+No `partial_callee_models.csv` line is added: overlay manifest rows confer no
+readiness, and the #1191 overlay acceptance added none.
