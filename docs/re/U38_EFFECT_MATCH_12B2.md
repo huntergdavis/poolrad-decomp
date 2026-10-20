@@ -83,8 +83,7 @@ reached gameplay. This branch makes no strict identity or count claim.
 Author measurement on main `926f3b5d57ca48deb9734ce98720a16b44f2b9bc`:
 **full executable body extent, with a 12-case harness covering 28/28 wrapper
 instruction starts, 6/6 composed +0C06 starts, and 2/2 feasible conditional
-outcomes.** That pilot is historical: the Exhaustive re-audit below covers the
-data bytes, flags, registers and aliases, and the 12-case default run is unchanged.
+outcomes.** That pilot is historical: the Exhaustive re-audit below sweeps every `B[+3]` x `A[+10Eh]` pair exhaustively and adds edge and sampled cases for counters, flags, registers and aliases; see *What is exhaustive and what is not*. The 12-case default run is unchanged.
 The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. This is a measured coverage statement, not new identity
 or strict-C acceptance; reviewer acceptance remains separate from the author claim.
 

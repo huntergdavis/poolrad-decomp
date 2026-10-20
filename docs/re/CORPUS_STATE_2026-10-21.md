@@ -25,7 +25,7 @@ the strict set has grown (`IDENTITY_CLEARED_PRICING.md` says the same).
 | `OVL_03B0_0C33` | #1209 | 118; 49/49, 6/6 | merged, evidence-only |
 | `OVL_03B0_06FB` | #1210 | 63; 13/13 | merged, evidence-only |
 | `OVL_03B0_01DA` | #1216 | 95; 171/171 feasible starts, 15/15 outcomes; extent repaired 483 to 419 B | merged, evidence-only |
-| `OVL_0038_12B2` | #1224 | 65,814 exhaustive cases; 48-case native | open, evidence-only |
+| `OVL_0038_12B2` | #1224 | 65,814 cases (65,536 exhaustive data-byte pairs; 278 edge/sampled); 48-case native | merged, evidence-only; credit acceptance is the reviewer's |
 | `RES_0464_248E` | par-b branch | 41 cases; all figures reproduced | not gated, branch cut from old main |
 | `OVL_03B0_1140` | n/a | identity decision (b): its list head dies in stack cells | caveat: I read 0D9A's stores in bytes, did not run it |
 
@@ -64,12 +64,13 @@ policy below.
 
 ## 5. First actions for the next session
 
-1. `gh pr list`; confirm #1224's head (after the identity-text fix and rebase) and
-   get its verdict. Evidence-only, no credit proposed.
+1. #1224 (`OVL_0038_12B2`) is merged as author evidence. Read both credit CSVs to see
+   whether the reviewer's acceptance has landed; do not take it from prose.
 2. Re-run the pricing derivation on current main before pricing anything; the strict set
    grew by 1CC3 since the table was written.
-3. Open tasks: t6 (strict C toward the ceiling) and t24 (`RES_00BA_16EC`, 1,193 B one-hop
-   floor, gates 53 rows). Its body is empty; the 1,193 B and 53-row figures are the task title's, not measured here.
+3. Open task: t6 (strict C toward the ceiling). t24 (`RES_00BA_16EC`) is blocked on the
+   board: its 1,193 B and 53-row figures were a task title, never measured, so treat
+   them as unknown and measure before using them.
 4. Known unswept class: the RETF stack-top wrap (96 source files, `REVIEW_LANE_HANDOFF.md`).
    Unicorn cannot expose it; only a DOSBox-X probe can.
 5. Rules that bit this lane: spans from GAME.OVR bytes, not queue rows; credit status from
