@@ -69,6 +69,19 @@ RAW_CPU_INTERFACE_CAVEATS = {
                      "not a CPU-state callee",
 }
 
+# Endpoints DECLARED as boundary contracts: a caller may compose them without
+# the endpoint becoming credited C. Each declaration names what is modelled and
+# what is not, and the differential supplies the behaviour. This is an extension
+# of the raw-CPU interface-caveat mechanism, not a new readiness rule: it marks
+# a dependency USABLE, never CREDITED. A row in this set can never appear in
+# strict_full_c_addresses.csv or reviewed_function_identities.csv - load_queue
+# refuses that, and test_strict_candidate_queue proves the refusal.
+DECLARED_BOUNDARY_ENDPOINTS = {
+    "RES_0A40_02FD": "docs/re/DECLARED_BOUNDARY_0A40_02FD.md",
+    "RES_0A40_030F": "docs/re/DECLARED_BOUNDARY_0A40_030F.md",
+    "RES_0AF8_16BC": "docs/re/DECLARED_BOUNDARY_0AF8_16BC.md",
+}
+
 # Reviewed unresolved dispatches omitted by the direct-call graph. Keep the
 # actual indirect site visible, and propagate its blocker through modeled
 # callers. A filename/strict/full label cannot close a known dispatch boundary.
@@ -297,6 +310,17 @@ def scan_commits(repo, candidates):
     return hits, pins
 
 
+def require_not_declared_boundary(row_id):
+    """Fail closed when a credit row names a declared boundary endpoint.
+
+    A declared boundary is a dependency that may be COMPOSED; it is never a
+    credit. Keeping this in one place means the loader and the tests enforce the
+    same sentence.
+    """
+    require(row_id not in DECLARED_BOUNDARY_ENDPOINTS,
+            f"declared boundary endpoints can never be strict-credited: {row_id}")
+
+
 def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                partial_rows=None):
     """Validated join: reuse function_queue's overlay row construction."""
@@ -321,6 +345,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
     strict_overlay, strict_resident_ids = set(), set()
     for credit in strict_rows:
         target = aliases.get(credit["id"])
+        require_not_declared_boundary(credit["id"])
         if target is None:
             require(credit["id"].startswith("RES_"),
                     "strict full-C address is absent from the overlay queue")
@@ -481,6 +506,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             res_id = (f"RES_{entry[1]:04X}_{entry[2]:04X}"
                       if entry[1] is not None and entry[2] is not None else None)
             readiness = ("resident_interface_caveat" if res_id in RAW_CPU_INTERFACE_CAVEATS
+                         else "declared_boundary" if res_id in DECLARED_BOUNDARY_ENDPOINTS
                          else "resident_covered" if res_id in resident_full
                          else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
@@ -500,8 +526,9 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
                       for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
                      key=lambda item: item["id"])
+    # declared_boundary composes like a ready dependency, but is never a credit.
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
-             + counts["runtime_covered"])
+             + counts["runtime_covered"] + counts["declared_boundary"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
                + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
