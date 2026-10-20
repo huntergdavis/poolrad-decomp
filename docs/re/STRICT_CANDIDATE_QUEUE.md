@@ -255,6 +255,25 @@ Measured against the standard used to credit other rows:
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
 
+**The identity-known-but-untranslated trap list (44 callees, 26 rows).** These
+are overlay bodies whose **identity is settled** (`game_verified`) but which have
+**no strict C body**, so a pricer that treats identity as readiness will price
+their callers as cheap. Check any quote against this list *after* checking the
+queue's target list:
+
+| identity-known, untranslated callee | candidate rows it gates |
+| --- | ---: |
+| `OVL_0025_0C77` | 16 |
+| `OVL_03BD_0E08` | 3 |
+| `OVL_001C_3171` | 3 |
+| `OVL_03BD_10C7` | 2 |
+| `OVL_001C_0001` | 2 |
+| plus 39 further callees, each gating one row | 1 each |
+
+`OVL_0025_0C77` alone gates 16 rows and is the declined 1,672-byte chain; that
+single entry is why the queue looks expensive in several places at once. If
+anyone asks why a small-looking row prices as a chain, start here.
+
 **Use the queue's fixup-verified target list, not your own disassembly.** A
 second pass that expanded one hop from a linear decode priced
 `OVL_001C_2F2D` at 580 B with no unready callees, while the queue lists **49
