@@ -222,7 +222,7 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 | --- | --- | ---: | ---: | --- |
 | `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | **cheap but uncreditable** — identity not establishable, see below |
 | `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | same verdict |
-| `OVL_001C_13D7` | **1,714 B** = 94 + the `0025_0C77` chain | 1 | **1,714 B** | corrects an earlier 94 B entry: its four `lcall 0x2B:0x52` resolve to unit `0x25` entry 10 = `+0C77`, the declined chain |
+| `OVL_001C_13D7` | pricer prints **499 B** one-hop (94 + `0C77`'s 405); the chain's measured closure is >=1,672 B, so **>=1,766 B** | 1 | **>=1,766 B** | corrects an earlier 94 B entry: its four `lcall 0x2B:0x52` resolve to unit `0x25` entry 10 = `+0C77`. The one-hop print is a floor, not the price |
 | `OVL_0077_275B` | 132 B | 1 | 132 B | |
 | `OVL_03C6_0105` | 156 B = 34 + 122 | 1 | 156 B | |
 | `OVL_0038_1545` | 709 B | 4 | 177 B | |
@@ -254,6 +254,10 @@ Measured against the standard used to credit other rows:
 
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
+
+The pricer prints **one-hop figures only**. Where a callee is itself a chain, the
+printed number is a floor: `13D7` prints 499 B while its measured chain is
+>=1,672 B. Read the print as "at least".
 
 **Reproduce this table with** `python3 tools/overlay/price_candidates.py`. The
 script is committed beside the numbers on purpose: a wrong price should cost a

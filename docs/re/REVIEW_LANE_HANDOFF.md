@@ -109,6 +109,21 @@ when quoting a chain's cost before it is measured, say "at least" and expect to
 raise it. The measured table lives in `STRICT_CANDIDATE_QUEUE.md`; select on
 cost per unlocked row, never on the queue's byte fields.
 
+## Primary acceptance for the pricer (run this, not the unit tests)
+
+In a checkout **with the owner's media and the accounting products**, with the
+queue input deliberately absent, run exactly what the docs say:
+
+    rm -f resources/strict-candidate-queue/queue.json
+    python3 tools/overlay/price_candidates.py
+
+Require: exit 0, a `generating the queue input (missing)` line, then the priced
+table (`OVL_0077_275B … 132`). `tools/overlay/test_price_candidates_integration.py`
+automates this and skips where media is absent — which is why CI cannot catch a
+happy-path defect here, and why three fixes in this area were each correct on the
+path they were written for. The unit tests mock the dependency check; this does
+not.
+
 ## Local setup (read this before reporting a gate failure)
 
 The checker gate needs Capstone 5.0.7 and Unicorn 2.1.4, which are installed in
