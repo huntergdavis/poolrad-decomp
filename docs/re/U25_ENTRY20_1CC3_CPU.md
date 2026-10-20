@@ -156,7 +156,18 @@ harness with that binary.
 
 `u25_entry20_1cc3_cpu_audit.py` declares `CHECKER_ROWS=('OVL_0025_1CC3',)` and implements `--compile-only` through the same
 `library()` build (this model with the raw SYSTEM Real source), printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+**Gate run:** on main `2cb7408f` with this branch, `check_checker_builds.py OVL_0025_1CC3` reports
+`PASS: 1 actual checker builds for 1 rows`, `check_body_doc_pairing.py --base 2cb7408f` reports every body and checker paired
+with evidence and registration, the ASan/UBSan C suite (`-Werror`) passes its 63 checks, and the focused CTest target builds
+from CMake and passes 1/1.
+
+The private receipt (`--unicorn --native --output`, generated at code commit `571f60b9`, which the branch head carries
+unchanged apart from this document and merges of main) has SHA-256
+`474cd2e00f86ad456fbee82320fdd077a7ff3d316431fde5b6695dd1cfbd8a13`. It pins the media, the SYSTEM body hashes, the Unicorn
+report with every named fixture's stop and the excluded-start counts, and the native report including the `dosbox_x` block.
+An earlier run on the same code reproduced the same differential numbers and the same RESULT.BIN hash.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/u25_entry20_1cc3_cpu_audit.py --unicorn --native --output resources/u25-1cc3.json
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -g -fsanitize=address,undefined -fno-omit-frame-pointer -I include tests/recovered/test_overlay_u25_entry20_1cc3_cpu.c src/recovered/overlay_u25_entry20_1cc3_cpu.c src/recovered/system_real_cpu.c -o resources/semantic-test
