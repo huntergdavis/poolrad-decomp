@@ -70,6 +70,46 @@ class PairingGateTest(unittest.TestCase):
                                  "tools/overlay/test_evidence_docs.py"])
         self.assertEqual(code, 0)
 
+    GENERATOR = "tools/overlay/function_queue_audit.py"
+    MARKER = "# NOT_A_ROW_CHECKER: queue generator; it produces the accounting pin\n"
+
+    def test_marked_generator_is_exempt_and_reported(self):
+        self.write(self.GENERATOR, "x = 1\n" + self.MARKER)
+        self.write(DOC, "# doc")
+        code, output = self.run_gate([self.GENERATOR, DOC])
+        self.assertEqual(code, 0)
+        self.assertIn("EXEMPT (not a row checker): " + self.GENERATOR, output)
+
+    def test_marker_without_a_reason_exempts_nothing(self):
+        self.write(self.GENERATOR, "# NOT_A_ROW_CHECKER:\n")
+        self.write(DOC, "# doc")
+        code, output = self.run_gate([self.GENERATOR, DOC])
+        self.assertEqual(code, 1)
+        self.assertIn("no changed checker declares CHECKER_ROWS", output)
+
+    def test_marker_inside_a_string_exempts_nothing(self):
+        self.write(self.GENERATOR, "note = '# NOT_A_ROW_CHECKER: queue generator here'\n")
+        self.write(DOC, "# doc")
+        code, _ = self.run_gate([self.GENERATOR, DOC])
+        self.assertEqual(code, 1)
+
+    def test_marker_and_checker_rows_together_are_refused(self):
+        self.write(self.GENERATOR, self.MARKER + "CHECKER_ROWS = ('OVL_0001_0000',)\n")
+        self.write(DOC, "# doc")
+        code, output = self.run_gate([self.GENERATOR, DOC])
+        self.assertEqual(code, 1)
+        self.assertIn("a file is a row checker or it is not", output)
+
+    def test_exempt_generator_does_not_cover_an_unpaired_checker(self):
+        """A real checker in the same change still needs its own CHECKER_ROWS."""
+        self.write(self.GENERATOR, self.MARKER)
+        self.write(AUDIT, "print('no registration')")
+        self.write(DOC, "# doc")
+        code, output = self.run_gate([self.GENERATOR, AUDIT, DOC])
+        self.assertEqual(code, 1)
+        self.assertIn(AUDIT, output)
+        self.assertNotIn(self.GENERATOR + ",", output)
+
 
 if __name__ == "__main__":
     unittest.main()

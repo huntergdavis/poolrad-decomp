@@ -4,6 +4,7 @@
 Requires Capstone 5.0.7. Products stay in the chosen local output directory;
 the input media are read without modification. No recovered C is executed.
 """
+# NOT_A_ROW_CHECKER: queue generator; it produces the accounting pin and checks it (pin_mismatch), not a body row
 
 import argparse
 import hashlib
