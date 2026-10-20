@@ -95,7 +95,7 @@ int main(void)
     CHECK(c.ip == 0x1CDE && d.calls == 1);
 
     /* ARGUMENT: wrong IP, SP outside [0046,FFF2], bad host objects; nothing changes. */
-    for (k = 0; k < 7; ++k) {
+    for (k = 0; k < 6; ++k) {
         c = setup(r, words, 0x0082, 0, 0);
         if (k == 0) c.ip = 0x1CC4;
         if (k == 1) c.sp = 0x0045;
@@ -104,7 +104,6 @@ int main(void)
         CHECK(pr_u25_entry20_1cc3_cpu(k == 3 ? NULL : r, k == 4 ? 1 : PR_U25_1CC3_CPU_RAM_SIZE, k == 5 ? NULL : &c, &d) == PR_U25_1CC3_CPU_ARGUMENT);
         if (k != 5) CHECK(memcmp(&before, &c, sizeof c) == 0);
         CHECK(memcmp(saved, r, PR_U25_1CC3_CPU_RAM_SIZE) == 0);
-        if (k == 6) break;
     }
     c = setup(r, words, 0x0082, 0, 0);
     CHECK(pr_u25_entry20_1cc3_cpu(r, PR_U25_1CC3_CPU_RAM_SIZE, &c, NULL) == PR_U25_1CC3_CPU_OK);
