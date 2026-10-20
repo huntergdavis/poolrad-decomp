@@ -89,6 +89,9 @@ therefore alias.
 Offsets wrap at 16 bits and physical addresses at 1 MiB. Word operands,
 `LES` pairs, `POP` and the `RETF` frame are read physically contiguous.
 
+**Stated limit (reviewer-added 2026-10-20, VP i19691): entry SP 000E/000F and FFFE/FFFF.** The model has no entry-SP guard: ARGUMENT checks only the RAM, CPU, size and IP, so these SPs lie inside its stated contract. (1) It calls SYSTEM GetMem at `+0E5C` with GetMem's entry SP = E−16, so an entry SP of 000E/000F enters GetMem at FFFE/FFFF, where GetMem's `RETF 2` frame is read contiguous. (2) Its own `MOV SP,BP; POP BP; RETF 0Ch` at `0F00` restores the entry SP and reads the frame contiguous, which matters at entry SP FFFE/FFFF. In both cases DOSBox-X normal/386 (binary `99d74601…`) wraps the return CS within SS, while the model and Unicorn read `SS*16+10000h`. Measured with a three-oracle probe ([`tools/overlay/retf_stack_edge_probe.py`](../../tools/overlay/retf_stack_edge_probe.py)) that gives the wrapped and contiguous frame copies different return CS values. At SP FFFD, where the word straddles FFFF, all three oracles read it contiguous, and at SP ≤ FFFC they agree. **Unicorn 2.1.4 shares the model's contiguous reading, which is why the original-byte differential could not have caught this.** **Never exercised by this row's evidence**: the audited SPs are 0100, FFE0, FFF4, 0006 (which enters GetMem at FFF6), 0400 and 6000. The credit stands within what was measured; behaviour at these four entry SPs is unverified.
+
+
 ## Validation
 
 **Focused C test.** `test_overlay_u9e_list_append_0e52_cpu.c` runs under

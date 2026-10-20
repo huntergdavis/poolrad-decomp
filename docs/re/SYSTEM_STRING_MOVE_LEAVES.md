@@ -104,6 +104,8 @@ on the stack.
 **Arguments.** Null RAM or CPU, or RAM that is not exactly 1 MiB, returns
 `ARGUMENT` before any change.
 
+**Stated limit (reviewer-added 2026-10-20, VP i19691): entry SP FFFE and FFFF.** The shared `retf()` reads the far-return frame physically contiguous. At a return-time SP of FFFE or FFFF it therefore takes the return CS from `SS*16+10000h`/`+10001h`, while DOSBox-X normal/386 (binary `99d74601…`) wraps it within SS (`SS:0000`/`SS:0001`). These leaves push nothing (`MOV BX,SP`), so the return-time SP is the entry SP. This was measured on Move `[1685,16A8)` itself; Copy, compare and char-to-string use the same contiguous read but were not separately probed. Measured with a three-oracle probe ([`tools/overlay/retf_stack_edge_probe.py`](../../tools/overlay/retf_stack_edge_probe.py)) that gives the wrapped and contiguous frame copies different return CS values. At SP FFFD, where the word straddles FFFF, all three oracles read it contiguous, and at SP ≤ FFFC they agree. **Unicorn 2.1.4 shares the model's contiguous reading, which is why the original-byte differential could not have caught this.** **Never exercised by this row's evidence**: the audited SP is 0x4000. These are runtime-coverage endpoints, not strict credits.
+
 ## Validation
 
 **Focused C test.** `test_system_string_move_leaves_cpu.c` runs under
