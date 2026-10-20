@@ -228,7 +228,7 @@ def audit_coverage(exe, ovr):
                                      else "candidate")))
     classes = Counter(row["classification"] for row in rows)
     require(len(rows) == 145 and classes == Counter(
-        game_verified=25, linked_crt_inferred=9, unresolved=111),
+        game_verified=26, linked_crt_inferred=9, unresolved=110),
         "candidate classification partition changed")
     return dict(inputs=prior["inputs"],
                 summary=dict(merged_overlay_called=86, merged_exact_prologues=84,
