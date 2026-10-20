@@ -90,7 +90,13 @@ The comparison includes modes 0/2 ordinary-memory effects but does not model
 CGA/Tandy address decoding or display timing. EGA/VGA write mode 3 is excluded
 by the existing EGA contract; the oracle fails if reached.
 
-Native DOSBox-X runs use machine=ega, video mode 0Dh, core=normal, cputype=386.
+Native evidence is **corroboration, not the primary parity evidence**: the
+capture observes only 18.85% of backing RAM and masks 81.15% (850,944 bytes).
+The primary independent MMIO differential compares all 1,048,576 backing RAM
+bytes and all 262,164 EGA state bytes, including every native RAM omission and
+all 20 controller/latch bytes. This is a harness design limitation, not DOSBox
+inability. Native DOSBox-X runs use machine=ega, video mode 0Dh, core=normal,
+cputype=386.
 They compare CPU14, SS 1024 bytes, DS/font/source 64 KiB each, and four 64 KiB
 planes. **Native RAM is partial: every byte outside those 197,632 captured
 RAM bytes is masked by omission.** For the measured COM segment 0814, physical
@@ -181,6 +187,32 @@ is **not** a proof that aliases make every missing path unreachable. No 100%
 transitive branch-coverage claim is made; the previously accepted raw callee
 contracts are reused, and their broader standalone domains remain distinct
 from complete coverage of the new 89-byte caller.
+
+The requested independent acceptance scope is **RES_00BA_1693's 89-byte body
+and its composition of already accepted raw callee contracts**, not new
+transitive completion credit. The following eleven branch outcomes remain
+unexercised in the composed suite; addresses use original resident offsets.
+These dependencies bound the coverage claim even though they already have
+accepted raw models. None is discarded from the coverage denominator.
+
+| Existing dependency | Unexercised original edge | Ordinary fixture restriction / remaining gap |
+| --- | --- | --- |
+|03F1+0137 clear|017E →01D4|Mode 0 empty/reversed row loop; ordinary caller supplies row 24 at both ends.|
+|03F1+0137 clear|0259 →025B|Mode 2 empty/reversed row loop; same fixed-row input.|
+|0709+00B7 rectangle|011A →0151|Skipped rectangle row loop; normal clear supplies eight scanlines.|
+|0709+01DF glyph|01E9 →01FA|Invalid x; ordinary printer supplies 0..39.|
+|0709+01DF glyph|01EF →01FA|Invalid y; ordinary caller supplies 24.|
+|0709+01DF glyph|0201 →021A|Transform 0; printer supplies transform 1.|
+|0709+01DF glyph|022B →022D|Count 0; printer supplies count 1.|
+|0709+01DF glyph|0595 →05B6|Alternate packed-mode pixel branch; no witness in these font/data fixtures.|
+|0709+01DF glyph|05E0 →05E2|Repeat glyph-count loop; printer supplies count 1.|
+|0709+0626 printer|0645 →064D|Invalid initial x; caller supplies 0.|
+|0709+0626 printer|064B →064D|Invalid initial y; caller supplies 24.|
+
+The fixture restrictions explain ordinary paths; they are not alias-sensitive
+unreachability proofs. The missing instruction starts and edge lists are
+retained in the original report, and the declared gaps must remain visible
+in any acceptance record.
 
 ## Reproduction
 
