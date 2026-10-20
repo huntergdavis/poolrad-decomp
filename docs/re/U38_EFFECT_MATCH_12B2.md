@@ -70,6 +70,8 @@ Author measurement on main `926f3b5d57ca48deb9734ce98720a16b44f2b9bc`:
 **full executable body extent, with a 12-case harness covering 28/28 wrapper
 instruction starts, 6/6 composed +0C06 starts, and 2/2 feasible conditional
 outcomes; exhaustive input, alias and flag-space parity is not established.**
+(*Superseded for the data bytes, flags, registers and aliases by the Exhaustive re-audit
+below; the 12-case default run is unchanged.*)
 The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. Four synthetic
 native frames also pass. This is a measured coverage statement, not new identity
 or strict-C acceptance; reviewer acceptance remains separate from the author claim.
@@ -108,3 +110,64 @@ the declaration skipped. This pilot does not authorize bulk declarations.
 The existing implementation/evidence was located through Dunking Sheep session
 `01a1386e-bea7-7883-8ddd-06fd2be8db9b`; span, coverage, native result and queue delta
 were remeasured against the current source and pinned media.
+
+## Exhaustive re-audit
+
+The checker gains an `--exhaustive` mode (the default 12-case run is unchanged).
+It runs the original wrapper and the original +0C06 bytes in Unicorn and compares
+the C model on all 14 CPU words and the **entire 1,048,576-byte RAM** each time. The
+original is now mapped twice over one buffer, so A20-off wrap is reproduced exactly
+as the C model's 20-bit mask does. The wrapper reads two data bytes and writes two
+counters, so the sweeps are:
+
+| Sweep | Cases | What varies | Equal branch taken |
+| --- | ---: | --- | ---: |
+| data bytes | 65,536 | **every** `B[+3]` value x **every** `A[+10Eh]` value (256 x 256) | 256 |
+| counter edges | 72 | `[6816]` x `[6822]` in {00, 01, 7F, 80, FE, FF}, both branches | 36 |
+| flags | 96 | each defined flag set alone and cleared, plus 64 random patterns (TF excluded) | 45 |
+| registers | 64 | AX, BX, CX, DX, SI, DI, ES, BP random | 40 |
+| aliases / wraps | 34 | A or B aliasing each counter, each other, the wrapper code, the return and argument frames; 16-bit offset wrap; A20 wrap; DS = SS | 14 |
+| original run | 12 | the earlier fixed cases | -- |
+
+**65,814 cases, zero mismatches.** Coverage over them: wrapper **28/28 starts**,
+composed +0C06 **6/6 starts**, **2/2 conditional outcomes**, no missing start or
+outcome. The equal branch (call into +0C06) is taken in exactly 256 of the 65,536
+data-byte cases, one matching byte per value, as the code predicts.
+
+What is exhaustive and what is not. The branch depends only on the two data bytes,
+so that part is exhaustive. The counter update is an independent INC or DEC of a
+byte and the flags after it depend on that byte and the incoming CF, so the counters
+and flags are covered by their edge values and sweeps, not by all 2^16 counter pairs
+or all 2^16 flag words; registers and pointer values are sampled. That is a
+coverage statement, not a proof over every machine state.
+
+### Exclusions, each with the state that would make it feasible
+
+1. **Pointer or counter bytes in the video aperture `A0000..AFFFF`** (65,536 physical
+   bytes). Feasible if far pointer A or B pointed into video memory, or DS/SS/CS were
+   such that a counter or stack access landed there (DS values `997F..A97E` put
+   `DS:6816` there; 4,096 segment values, similar for `DS:6822`). Excluded because this
+   model is flat-RAM and the aperture is a device whose reads load latches; the wrapper
+   draws nothing, so no device oracle is attached.
+2. **Trap flag and interrupts**: TF set raises a single-step trap; no interrupt, fault
+   or DMA is modelled. Every other flag pattern in the sweep is compared exactly.
+3. **Self-modification**: a counter, the local byte or a write path aliasing the
+   executed code (the 73-byte wrapper or the 15-byte callee). The wrapper only
+   reads through A and B; it writes the two counters, its own local byte and the stack
+   words it pushes (arguments, the far frame and the callee's saved BP).
+4. **Frames that wrap**: the return frame and arguments are assumed not to cross
+   `SS:FFFF`. **Arbitrary-PC resume** is not provided.
+
+### Native, ownership and registration
+
+Native corroboration is unchanged: four synthetic far-entry frames, comparing all 14
+CPU words, 52 stack bytes and `DS:[6816]`/`DS:[6822]`, so **about 54 backing bytes
+per case are compared natively and the rest are not**. Capture
+`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1` is unchanged.
+
+Ownership is not improved by this change: entry 41 is installed as item 49 by the
++31A2 installer and reached only through U9E +0000's unresolved indirect dispatch, so
+the identity stays `game_evidenced`/provisional and no natural reach is claimed. The
+PM decision to add no manifest row stands. This PR is **evidence-only** and does not
+propose the row for credit. The checker already declares
+`CHECKER_ROWS = ("OVL_0038_12B2",)` and a media-free `--compile-only`; neither changed.
