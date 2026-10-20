@@ -15,8 +15,11 @@ to halve DS:6818. Every source read, word write, local, argument, LES operand
 and return frame remains live.
 
 This is author evidence for independent verification. It changes no ledger,
-classification, acceptance record or credit. +25BC remains game_evidenced /
-provisional and +101D remains game_or_other_library_unresolved / unresolved.
+classification, acceptance record or credit. Current state on main 5453ccb2:
++25BC is strict- and identity-credited (#1127). +101D has a manifest `full`
+row but no strict or identity row; its identity argument is stated in
+[Identity of +101D](#identity-of-101d-near-call-reading) and is for the
+review lane to reproduce.
 
 ## Identity and selection
 
@@ -49,6 +52,50 @@ The queue's +25BC extent is 84 bytes / 34 decoded instructions. Its final
 This implementation ends after RETF at 2602. An initial audit assertion
 mistakenly expected 28 prefix instructions; direct decoding established 29,
 and the count was corrected before the parity run.
+
+## Identity of +101D (near-call reading)
+
+This section is written against the two-factor standard in
+[REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20).
+
+**Factor 1 (reached from game code).** Reproduced by the author on GAME.OVR `872964a3…` and the checked-in function
+ledger on main 5453ccb2. Every `E8 rel16` in unit 0x38 (file base EC5Bh) whose
+target is +101D was decoded at its enclosing ledger function's instruction
+boundary:
+
+| Call site | Enclosing function | Strict-credited |
+| --- | --- | --- |
+| +25CB | OVL_0038_25BC [25BC,2605) | yes |
+| +265A | OVL_0038_264B [264B,268A) | yes |
+| +2A96 | OVL_0038_2A87 [2A87,2AE6) | yes |
+| +2AF5 | OVL_0038_2AE6 [2AE6,2B20) | yes |
+| +2B8C | OVL_0038_2B7D [2B7D,2BC8) | yes |
+| +2D97 | OVL_0038_2D88 [2D88,2DE4) | yes |
+| +1092 | OVL_0038_1086 [1086,10C1) | no |
+| +10A2 | OVL_0038_1086 [1086,10C1) | no |
+
+Each of the eight hits is a decoded `CALL` at an instruction boundary; there
+are no other `E8 → +101D` bytes inside ledger functions. Six of the eight
+callers are strict-credited game bodies that call +101D directly as a near
+callee, so +101D is game code by the same near-call reading the reviewer
+used. The two +1086 sites add nothing in either direction. Near calls have no
+segment word, so the factor-1 test is that each site lies inside its
+caller's verified ledger extent, as tabled.
+
+**Factor 2 (operates on documented game state).** At +25C2..+25CB the
+credited caller pushes `[5D94]` then `[5D92]` and calls +101D. That
+pointer is the active character pointer DS:5D92/5D94 that
+[U38_TARGET_MASK81_25BC.md](U38_TARGET_MASK81_25BC.md) documents, and it
+lands in +101D's frame slots `[BP+6]/[BP+8]`. +101D dereferences it itself:
+`LES DI,[BP+6]` then reads `ES:[DI+0CCh]/[DI+0CEh]` at +102B..+1033 and
+again at +105B..+1063. That character `+CC/+CE` link, and the `+F8/+FC`
+alternatives the resident selects, are defined in
+[RESIDENT_CHARACTER_TARGET_SELECT.md](RESIDENT_CHARACTER_TARGET_SELECT.md)
+and the credited +264B's evidence ([U38_EFFECT_CLEAR_264B_CPU.md](U38_EFFECT_CLEAR_264B_CPU.md)).
+
+The span is
+`[101D,1086)`: 105 bytes, 36 instructions, first and only return `RETF 4` at
++1083, SHA-256 `632b609a…a33a` (GAME file `[FC78,FCE1)`).
 
 ## Reused evidence and ownership
 
@@ -182,6 +229,32 @@ With private pinned media and Capstone/Unicorn available:
 - score: 5/5 author evidence categories (identity, ABI, differential, native,
   semantics), not an acceptance or credit score.
 - verdict: likely_match under the explicit RAM and flags profiles.
-- review_notes: provisional/unresolved overlay identities; queue callback
-  readiness caveat; 11 trailing data bytes; emulator-specific SHR AF;
-  synthetic native scope; independent verification/credit remains with VP.
+- review_notes: +101D identity rests on the near-call reading above;
+  queue callback readiness caveat; 11 trailing data bytes after +25BC;
+  emulator-specific SHR AF (+25BC only); synthetic native scope; independent
+  verification and credit remain with the review lane and VP.
+
+## Checker registration (OVL_0038_101D)
+
+`CHECKER_ROWS=('OVL_0038_101D',)` registers this audit with the handoff gate.
++25BC keeps its own registered checker. `--compile-only` builds and loads
+the three sources with `-std=c11 -Wall -Wextra -Wpedantic -Werror` before
+any media access and prints `CHECKER_BUILD_OK`; it was verified with the
+owner media absent.
+
+Author re-run on main 5453ccb2 for this registration (2026-10-20,
+12:00:43–12:02:33 PDT; resources/101d/final.json, ignored, SHA-256
+`b7a60a7c…1312`) reproduces the table above exactly:
+
+- 852 original-byte cases on CPU14 + 1,048,576 bytes, unmasked (resident
+  283, +101D 283, +25BC 286). +101D itself: 281 returns, 2 CODE.
+- Closure: 134/134 starts and 24/24 outcomes, with no missing start or
+  outcome.
+- Native: 288 returns (96 per entry), with RESULT.BIN `4b8cc952…41ca`
+  byte-identical to the merged evidence.
+- CTest `u38_target_selector_cpu` passed. The other u38 callback tests
+  were not rebuilt in this run.
+- `check_checker_builds.py OVL_0038_101D --require-current-main`: the
+  result on the PR head is quoted in the PR.
+
+    python3 tools/overlay/u38_target_selector_cpu_audit.py --compile-only
