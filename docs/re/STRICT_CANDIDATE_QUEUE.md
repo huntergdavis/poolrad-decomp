@@ -231,8 +231,8 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 
 | candidate | measured cost | rows unlocked | **cost/row** | note |
 | --- | --- | ---: | ---: | --- |
-| `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | **cheap but uncreditable** — identity not establishable, see below |
-| `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | same verdict |
+| `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | **identity reopened 2026-10-20**: follows `0054` under the near-call A1 ruling once `0054` is strict; see the correction below |
+| `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | **identity class (a)** under the two-factor standard; see the correction below |
 | `OVL_001C_13D7` | pricer prints **499 B** one-hop (94 + `0C77`'s 405); the chain's measured closure is >=1,672 B, so **>=1,766 B** | 1 | **>=1,766 B** | corrects an earlier 94 B entry: its four `lcall 0x2B:0x52` resolve to unit `0x25` entry 10 = `+0C77`. The one-hop print is a floor, not the price |
 | `OVL_0077_275B` | 132 B | 1 | 132 B | |
 | `OVL_03C6_0105` | 156 B = 34 + 122 | 1 | 156 B | |
@@ -265,6 +265,30 @@ Measured against the standard used to credit other rows:
 
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
+
+**Correction (2026-10-20): the verdict above was too narrow, and `0054` is game
+code.** The text above is kept as history. The verdict required the body itself
+to address documented DS game state; that test looked in the wrong place. The
+one relocated caller, `0x77:+1E3C` (segment word `+1E3F`, inside `game_evidenced`
+`OVL_0077_1CEE`), executes `push [5D94]; push [5D92]; push ax; push ss; push di;
+lcall 0x8F:0x25`. So `0054` receives the active-character far pointer
+(`DS:5D92/5D94`, measured natively in
+[SLOT_A_NATIVE_19E3_INSERTION_RETURN.md](SLOT_A_NATIVE_19E3_INSERTION_RETURN.md))
+at `[bp+0Ch]/[bp+0Eh]`. It passes that pointer to `+0000` twice and reads the
+character record's `+0x102` twice: the record is the subject of the operation,
+not a pass-through. `OVL_0077_275B`, credited in #1191, has exactly the same
+shape: its relocated caller `0x23:+024D` pushes the same pointer as its target.
+Treating one as game code and not the other would be inconsistent. The project
+therefore adopts the **two-factor identity standard** recorded in
+[REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20):
+
+* `OVL_007F_0054` is identity class **(a)** now.
+* `OVL_007F_0000`, reached only by `0054`'s `push cs; call 0` sites, becomes (a)
+  by the near-call A1 ruling once `0054` is strict-credited.
+* Neither row is credited by this note. Each still needs its body evidence and
+  an independent acceptance.
+
+Decision: VP inbox i19579. Measurement: reviewer par-a, i19578.
 
 The pricer prints **one-hop figures only**. Where a callee is itself a chain, the
 printed number is a floor: `13D7` prints 499 B while its measured chain is
@@ -405,9 +429,9 @@ sweep. Re-priced from the queue's targets, the sub-600 B menu settles as:
 
 | candidate | cost | rows | B/row | gate |
 | --- | ---: | ---: | ---: | --- |
-| `OVL_007F_0000` / `_0054` | 32 / 116 | 2 / 2 | 16 / 58 | **identity not establishable** |
+| `OVL_007F_0000` / `_0054` | 32 / 116 | 2 / 2 | 16 / 58 | ~~identity not establishable~~; **reopened 2026-10-20** (two-factor standard, see the correction above); body not yet authored |
 | `OVL_03C6_0105` | 95 = 34 + 61 | 1 | **95** | needs `RES_0464_2A0D`, a BIOS INT 10h thunk the record leaves uncredited on purpose |
-| `OVL_0077_275B` | 132 | 1 | **132** | **cheapest creditable and unblocked** |
+| `OVL_0077_275B` | 132 | 1 | **132** | cheapest creditable and unblocked when priced; **credited in #1191** |
 | `OVL_0038_1545` | 709 | 4 | 177 | |
 | `OVL_0038_0FAC` | 580 | 3 | 193 | |
 | `OVL_0038_15EB` | 672 | 3 | 224 | |
@@ -416,6 +440,10 @@ So the cheap era closes with two independent gates rather than one price wall:
 the sub-100 entries are either uncreditable (the `0x7F` pair) or depend on a
 boundary the record deliberately refuses to credit (`2A0D`). The cheapest row
 that is both creditable and unblocked is **132 B/row**.
+*(2026-10-20: the `0x7F` gate was an identity test that looked in the wrong
+place and has been corrected; see the correction under the identity verdict.
+The `2A0D` gate stands, because a BIOS INT 10h service has no game state as its
+subject.)*
 
 **Identity is not readiness.** The first version of this table was wrong for
 `OVL_001C_13D7` because it treated a callee's `game_verified` **classification**
