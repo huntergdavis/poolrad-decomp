@@ -29,6 +29,6 @@ Overlapping evidence: entries on prologues 399, far-called 192, near-called 354,
 | leaf-es | 19 |
 | state | 465 |
 
-Functions whose linear decode stops before the next prologue: 161; functions with indirect calls through memory: 3.
+Functions whose linear decode stops before the next prologue: 160; functions with indirect calls through memory: 3.
 
 Entry stub fifth byte: 394 zero, 10 non-zero (unit, slot, entries): [('0x38', 116, 117), ('0x6c', 3, 4), ('0x77', 12, 13), ('0x9b', 4, 5), ('0x9e', 22, 23), ('0x3b0', 7, 8), ('0x3b9', 7, 8), ('0x3bd', 7, 8), ('0x3c2', 6, 7), ('0x3c6', 19, 20)].

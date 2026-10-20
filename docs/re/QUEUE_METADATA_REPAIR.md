@@ -362,3 +362,53 @@ manifest file is touched. The generated summary
 whose linear decode stops before the next prologue, 162 to 161); that file is **not**
 edited here and is left for the reviewer.
 
+
+## U6C +3291 trailing data (342 B ledger row, 326 B executable)
+
+Author finding from the original bytes (GAME.OVR SHA-256
+`872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`), recorded
+2026-10-20 by par-c on the VP's instruction (i19795, job 2). The body is already
+strict- and identity-credited at 326 bytes (identity row, acceptance PR #1207); this
+repair brings the ledger row into line with the credited span and changes no credit.
+Unit `0x6C`, offsets unit-relative.
+
+| Item | Value |
+| --- | --- |
+| Executable span | `[3291,33D7)`, **326 bytes / 95 instructions**, one RETF (`+33D4`, `RETF 4`) |
+| Span SHA-256 | `1e2161950d386c5df7394667e5d6079e692e551fc7610f1582ef06157528e74f` (equals the identity row's `body_sha256`) |
+| Ledger bound before | `[3291,33E7)`, 342 bytes / 100 instructions (339 bytes decoded) |
+| Excluded tail | `[33D7,33E7)`, 16 bytes `00 0E "Head Body Keep"` (a Pascal string), SHA-256 `ae794194e8f8761497e9e1d18fba40bf96a7d2bfad78e460ce39a29e2d170ee7` |
+
+`EXECUTABLE_SPANS` in `function_ledger.py` gains one hash-bound entry
+(`(0x6C, 0x3291): (0x33D7, 1e216195...)`); the generator rejects a different body or a
+bound that cuts through the reviewed span.
+
+The checked-in `overlay_function_ledger.csv` changes by **exactly one row**, and the
+regenerated file (pinned `inventory.json`, `callgraph.json`, `near.json`, GAME.OVR and
+START.EXE, current generator) equals the new checked-in file byte for byte. The header
+and the other 672 rows are unchanged.
+
+| | bound | decoded | insns | `ds_globals` |
+| --- | ---: | ---: | ---: | ---: |
+| `0x6c:0x3291` before | 342 | 339 | 100 | 6 |
+| `0x6c:0x3291` after | 326 | 326 | 95 | 5 |
+
+Unlike the 01DA repair, one derived feature moved besides the extent fields:
+`ds_globals` 6 to 5, because one DS reference was decoded from the trailing string
+bytes. Every other column (grade `A`, class `state`, call counts, `es_refs`, `ret`) is
+unchanged.
+
+**Consequences, stated up front.**
+- `overlay_function_ledger_summary.md` changes by one derived counter (functions whose
+  linear decode stops before the next prologue: 161 to 160); it is regenerated, not
+  hand-edited.
+- The ledger is a pinned input, so the regenerated queue hash moves:
+  `aa3bad916a80...` to `1e5dd48106c8...`. `function_accounting_checkpoint.json` is
+  re-pinned in the same PR: only `queue_sha256` and `artifacts_sha256.ledger`
+  (`d38e4efe...` to `6a4bd0a5...`) change. Classification, full_c_map,
+  reviewed_identities, inventory, near_calls and resident_audit still match their
+  pins; strict 252 (226/26), identities 298 (271/27), unknown 511 and 898 originals
+  are unchanged. The canonical `function_queue_audit.py` exits 0 in two independent
+  runs with identical queue and repeat exports.
+- `STRICT_CANDIDATE_QUEUE.md` is a rendered snapshot (it still lists this credited row
+  at 342) and is not regenerated here.

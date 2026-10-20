@@ -38,7 +38,7 @@ string), SHA-256 `ae794194e8f8761497e9e1d18fba40bf96a7d2bfad78e460ce39a29e2d170e
 They are excluded from the body, the coverage and the identity claim. The audit
 asserts the extent, the body hash, that every branch target lies inside the span,
 and the RETF 4. This is a candidate for the ledger's executable-span correction
-list; this document does not edit that list.
+list; this document does not edit that list. (Applied afterwards: the ledger row now reads 326 bytes; see [QUEUE_METADATA_REPAIR.md](QUEUE_METADATA_REPAIR.md#u6c-3291-trailing-data-342-b-ledger-row-326-b-executable).)
 
 | Private media | SHA-256 |
 | --- | --- |
