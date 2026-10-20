@@ -18,9 +18,9 @@ SYSTEM +0C10 is covered by `pr_system_strcmp_0c10`; U25 +1815 still has a
 semantic-only API and remains interface-caveated.
 
 On the unchanged input identities, the schema-9 export (re-derived on the
-241/287 main after #1156, queue SHA-256
-`84a4d8b19f93fd8530c0a5206a0e7a5bcd51474a9464d2fda05b72161fd3c798`) has 457
-candidates, 61 composable rows (70 without the caveats), nine interface-caveat
+243/289 main after #1159, queue SHA-256
+`86f3b0e9886a1eb2cc790ad4c07cfa5bf24d26924d838629d577cfc36e2aa235`) has 455
+candidates, 60 composable rows (69 without the caveats), nine interface-caveat
 rows, and 14 rows that explicitly name an unresolved indirect target (the
 dispatcher and 13 direct callers).
 These are queue metadata, not credit or completion counts. The schema-8
@@ -141,14 +141,14 @@ strong channel, capped at 60. Ties break on ID. Every row carries its
 identical runs produce byte-identical JSON. The export records SHA-256 for
 every input file, the branch-tip table, and the raw `git log` scan. The
 schema-9 export (queue SHA-256
-`84a4d8b19f93fd8530c0a5206a0e7a5bcd51474a9464d2fda05b72161fd3c798`,
-on the 241/287 main after #885–#1156 plus the phantom-edge filter, the
+`86f3b0e9886a1eb2cc790ad4c07cfa5bf24d26924d838629d577cfc36e2aa235`,
+on the 243/289 main after #885–#1159 plus the phantom-edge filter, the
 inline-prior filter, the remaining raw-CPU interface caveats and the
 modeled-system-runtime coverage) was generated from `START.EXE` `d825df2b…a07bd`,
 `GAME.OVR` `872964a3…28614`, inventory `6de7664f…ca7f8`, callgraph
-`c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1703 refs / 1200 tips /
-537 unmerged tips (`tips_sha256` `30fd3471…`) and 2653 commits (`commits_sha256`
-`69f9c77f…`). Git pins are point-in-time;
+`c180ff95…f4dc3`, near audit `a40ba4f2…cbd2c`, with 1709 refs / 1204 tips /
+539 unmerged tips (`tips_sha256` `85cae8d6…`) and 2658 commits (`commits_sha256`
+`7627c004…`). Git pins are point-in-time;
 other lanes keep pushing refs.
 
 ## First ranked list (top 25 of 457)
@@ -181,10 +181,10 @@ other lanes keep pushing refs.
 | 24 | `OVL_007D_0C9A` | `0x7d:0x0c9a` | 454 | 181 | A | game_evidenced | 2/2/0/6 | 10/7 | no | 1 | 0 | source_mention | 65 |
 | 25 | `OVL_007F_0CEB` | `0x7f:0x0ceb` | 659 | 260 | A | game_evidenced | 1/1/0/3 | 7/4 | no | 4 | 0 | source_mention | 65 |
 
-Queue summary (schema 9, on the 241/287 main after #885–#1156, the
+Queue summary (schema 9, on the 243/289 main after #885–#1159, the
 phantom-edge and inline-prior filters, the remaining raw-CPU interface caveats
-and modeled system-runtime coverage): 457 candidates, 70 would be composable without the
-caveats and 61 are composable — 9 bodies carry an interface caveat;
+and modeled system-runtime coverage): 457 candidates, 69 would be composable without the
+caveats and 60 are composable — 9 bodies carry an interface caveat;
 classification game_evidenced 301, game_verified 45, helper_candidate 45,
 unresolved 66; grades A 278, B 177, D 2; prior status main_model 73,
 inline_in_model 20, inline_in_strict 20, unmerged_branch 9, commit_mention 25,

@@ -1,23 +1,23 @@
 {
   "artifacts_sha256": {
-    "classification": "798f8adcfe3d7e878a9bb476d4305225be0191d21f2f3ba50049bf6fe76f740f",
-    "full_c_map": "fec918dd7ecda372ed07919ca060da55d9dd2d972b0079ee802688204409eccd",
+    "classification": "304886351f920e5540ff1cdfb98fd33a7ee530c6132c254e36e546937760891c",
+    "full_c_map": "65f6696c7cec91b0bdebb40c3e1b08f8d96568694a61dd56db52249978fe118b",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
-    "ledger": "82175ce9fed9d38ed3c9a40dc9764e3c8045763b6e40027153f7c354708e733b",
+    "ledger": "53dadc2d5d81a0ca44d0e978ce6abe08fadf4afea8d9b7adaff79873a717b47e",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "38beb39448ce7935f5f1c59b579d55b96f574224ea38061981dea86295242ea8",
-    "reviewed_identities": "4a0931dbbfadd29a272a2baceb9b6466a8be0f40a74f14a6044211af831831d0"
+    "reviewed_identities": "5a9013c15ddd0c04fc2a4e992f3e10e3d97e35ea8ce174522ade062e871de5b9"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "84a4d8b19f93fd8530c0a5206a0e7a5bcd51474a9464d2fda05b72161fd3c798",
+  "queue_sha256": "86f3b0e9886a1eb2cc790ad4c07cfa5bf24d26924d838629d577cfc36e2aa235",
   "reviewed_change": {
-    "approval_reference": "acceptance of PR #1156: resident RES_0464_2595 [2595,2632) 157 B/52 starts credited on the verified 367-case differential (52/52 starts, 6/6 outcomes, closure 158/158, masked_bits 0) and 128 native captures; the manifest declaration is what actually moves readiness here, unlike the overlay case in #1154 (queue SHA-256 84a4d8b19f93fd85...)",
+    "approval_reference": "acceptance of PRs #1158/#1159 in one record: OVL_03B9_048F [048F,04F8) 105 B/41 starts and OVL_03CE_014E [014E,01B0) 98 B/40 starts credited on reproduced differentials (626 and 978 cases, 1 MiB, masked_bits 0) and 128 native captures each; carries the two-row ledger extent repair (queue SHA-256 86f3b0e9886a1eb2...)",
     "approved_by": "PM",
-    "batch": "1156-res0464-2595",
+    "batch": "1158-1159-bitmap-release",
     "body_bytes": 50,
     "body_sha256": "3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad",
     "evidence_doc": "docs/re/U7D_UPDATE_03A3_NATIVE_ORACLE.md",
@@ -30,15 +30,15 @@
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 216,
+    "overlay": 218,
     "resident": 25
   },
-  "strict_full_c_originals": 241,
-  "unknown_ownership": 522,
+  "strict_full_c_originals": 243,
+  "unknown_ownership": 520,
   "verified_game_by_domain": {
-    "overlay": 261,
+    "overlay": 263,
     "resident": 26
   },
-  "verified_game_identities": 287,
+  "verified_game_identities": 289,
   "whole_game_denominator": "unknown"
 }
