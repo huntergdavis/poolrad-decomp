@@ -174,9 +174,13 @@ prints `CHECKER_BUILD_OK`.
     python3 tools/overlay/check_checker_builds.py RES_0464_1951 --require-current-main
     ctest --test-dir <build> -R '^poolrad_resident_0464_blit_1951_cpu_tests$' --output-on-failure
 
-The C source was produced by a per-instruction translator. Each case carries
-the original instruction as a comment, and the hand-written helpers carry
-the flag rules above. It is reviewable without the translator.
+The C source was produced by the per-instruction emitter
+`tools/overlay/emit_raw_cpu_c.py`, driven by `tools/overlay/emit_res0464_blit_1951.py`.
+Each case carries its original instruction as a comment, and the
+hand-written helpers carry the flag rules above. The source is reviewable
+without the emitter. `python3 tools/overlay/emit_res0464_blit_1951.py --check`
+regenerates the header and source byte-for-byte (`EMIT_CHECK OK`) and prints
+the undefined-flag report.
 
 ## Author review
 
