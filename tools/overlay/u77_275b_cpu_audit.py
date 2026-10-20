@@ -387,15 +387,19 @@ def main(argv=None):
     parser.add_argument("--output", type=Path)
     args = parser.parse_args(argv)
     global CASE_BODY, DECODED, CASE_REACHED
+    if args.compile_only:
+        # Media-free handoff check: compile, load and bind only. Deliberately
+        # before source(), which reads the owner media.
+        with tempfile.TemporaryDirectory(prefix="u77-275b-") as temp:
+            library(temp)
+        print("CHECKER_BUILD_OK")
+        return 0
     body, starts = source()
     CASE_BODY = body
     CASE_REACHED = {}
     DECODED = {instruction.address: instruction for instruction in starts}
     with tempfile.TemporaryDirectory(prefix="u77-275b-") as temp:
         lib = library(temp)
-        if args.compile_only:
-            print("CHECKER_BUILD_OK")
-            return 0
         report = differential(lib)
     print(str(report))
     return 0
