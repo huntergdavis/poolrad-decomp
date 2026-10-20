@@ -5,6 +5,7 @@ stages the loaded `EA` jump to +014E at a free segment, as the C model's contrac
 Captures return or the FreeMem RunError entry: CPU14, SS 1 KiB, DS 64 KiB, heap 64 KiB.
 """
 import ctypes
+from pathlib import Path
 from hashlib import sha256
 import os
 import random
@@ -160,5 +161,8 @@ def native_audit(ctx,function):
             diff=[i for i,(a,b) in enumerate(zip(actual,record[30:])) if a!=b]
             raise ValueError(f'native {label} RAM mismatch {[(hex(i),actual[i],record[30+i]) for i in diff[:8]]}; {len(diff)} bytes')
         name='return' if status==OK else 'RunError204';stops[name]=stops.get(name,0)+1
-    report=dict(cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',confinement=dict(CONFINED),stub='synthetic loaded EA jump 03E9:002F -> U3CE +014E')
+    binary=subprocess.run(['which','dosbox-x'],capture_output=True,text=True).stdout.strip()
+    version=subprocess.run(['dosbox-x','--version'],capture_output=True,text=True).stdout.strip().splitlines()[-1:]
+    dosbox=dict(path=binary,sha256=sha256(Path(binary).read_bytes()).hexdigest(),version=version[0] if version else '',pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)')
+    report=dict(dosbox_x=dosbox,cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',confinement=dict(CONFINED),stub='synthetic loaded EA jump 03E9:002F -> U3CE +014E')
     print('Native parity:',report,flush=True);return report
