@@ -40,6 +40,31 @@ whole-game denominator is unknown — never state a completion percentage.
    + the schema-9 checkpoint together, quotes author caveats verbatim, and
    leaves merging to the VP when it touches accounting.
 
+## Identity standard (two-factor), adopted 2026-10-20
+
+This is a **correction**, not a relaxation (VP inbox i19579). A body is game code when **both** hold:
+
+1. **Reached from game code.** A call site lies inside a `game_evidenced` or strict-credited function.
+   - A **far** call must carry a relocation on its segment word.
+   - A **near** call must lie inside the caller's verified ledger extent. A near call has no segment word, so the relocation clause cannot apply to it (ruling i19576, `OVL_0038_101D`).
+2. **Operates on documented game state.** The body's subject is a structure that a merged document defines with evidence: a field ledger, a native measurement, or a credited body's evidence doc. State **passed as an argument counts** when the body dereferences or uses it, not when it only forwards it.
+   - To check this, trace the pushes at the call site into the body's frame slots, then name the document.
+
+**Why it corrects the `0x7F` verdict.** That verdict required the body itself to address DS game state, which looked in the wrong place.
+- `OVL_007F_0054` receives the active-character pointer (`DS:5D92/5D94`) from its relocated caller `0x77:+1E3C` and reads that record's `+0x102`.
+- `OVL_0077_275B` (#1191) does the same from `0x23:+024D`.
+- Both qualify. The original verdict text stays in [STRICT_CANDIDATE_QUEUE.md](STRICT_CANDIDATE_QUEUE.md), with the dated correction under it.
+
+**What it does not reopen:**
+- `RES_0464_2A0D` stays refused: its subject is a BIOS INT 10h service, not game data.
+- The four `08AE` driver internals stay refused: they have a driver role and no game state.
+- Caller class alone is never identity, and neither is unit co-location or calling a credited resident.
+
+**Table entries (design A2).** A dispatch table is game-owned when its installer is credited. Example: the U38 effect table at `DS:6828+4*type` is game-owned because its installer `OVL_0038_31A2` is identity- and strict-credited (#467).
+- Check the slot arithmetic: the entry stub is `0x20 + 5*i`, the installer stores that stub, and the slot is `(store - 6828)/4`.
+
+**Read the CSVs, not the prose, for a row's credit status.** On 2026-10-20 a reviewer took "31A2 is unresolved" from two stale document sentences, while `reviewed_function_identities.csv` and `strict_full_c_addresses.csv` had credited it since 21b65e9a.
+
 ## Four false-prior classes (each has a filter and a regression test)
 
 1. **Boundary assertions** — `address + size == 0x…` end-of-previous-body and
