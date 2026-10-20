@@ -255,3 +255,24 @@ located earlier extent-repair context in Codex sessions
 01a147c2-b9dc-70f3-a04b-d8e47ee1e6e8; their other routine spans are not used
 as evidence for this body. This body's boundary, data references and hashes
 were independently rechecked against the original media.
+
+## Newly composable bitmap callers
+
+VP i19257 requests decoded extents for the two callers unlocked by accepted
+resident +2595. These hash-pinned corrections occur before ledger decoding:
+
+| ID | Callable span | Correct bytes / starts | Former bound | Excluded tail |
+| --- | --- | --- | --- | --- |
+| OVL_03B9_048F | [048F,04F8), RETF4 at04F5 | 105 / 41 | 106 | 1 byte |
+| OVL_03CE_014E | [014E,01B0), RETF2 at01AD | 98 / 40 | 122 | 24 bytes |
+
+Body hashes are respectively
+08c8d4e1d889b5373c9d85613dd0530f4485892ee29681f5a14efcbfb203dcde and
+244d2bbd214ceb86d9d6daa80252da6af77fa0a92e4a287ac555aaca26b3c047.
+Both are checked against GAME.OVR, never copied from a queue size.
+U3B9 evidence is in U3B9_BITMAP_SET_RELEASE_048F_CPU.md. The U3CE extent
+repair alone offers no implementation or credit; it prepares that assigned
+next target. Classification and acceptance manifests remain unchanged.
+
+The regenerated summary also refreshes a stale decode-short total. The CSV
+changes are confined to the two rows above; prior extent pins remain intact.
