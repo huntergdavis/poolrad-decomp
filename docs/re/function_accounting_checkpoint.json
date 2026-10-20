@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "2a3d5fcf4fe773ac7c201afb44819e6bca4122452f122d27258323dddd16b202",
-    "full_c_map": "be742bb50b85303cfe19050cc370aa33c1bdaf35c0c184cf3e8852135189b9b2",
+    "classification": "b144174a37750fbc933c263cf378594ed42e46664c77a9664431c8791142f02f",
+    "full_c_map": "8268b0b8d891933d18628e42440ff3a032bf905487b41ce6f94c1e2d53754b9d",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "53dadc2d5d81a0ca44d0e978ce6abe08fadf4afea8d9b7adaff79873a717b47e",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
-    "reviewed_identities": "1d02c2294a0d27a24dea0fca556c862e49aedc2b92c42efbdedd8758b248897c"
+    "reviewed_identities": "5f11e1d79a17b0b7faebe748906be30e8f4ecad90c5bc4e077e47185c64e5842"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "e408a2a5de9046cc3245da1621183c4377981179a105bf0ddde7cf9165b3202e",
+  "queue_sha256": "0936e38eb893caf8e0983a977ce328bddb27d7be9cc92a09890594da8e433d86",
   "reviewed_change": {
-    "approval_reference": "acceptance of PR #1199 (VP inbox:i19632): OVL_006C_3291 [3291,33D7) 326 B/95 starts credited on the reproduced differential (1,579 cases: 1,348 return + 231 named stops; caller 95/95 starts and 22/22 outcomes; closure 366/366 and 72/72 asserted; 14 words + 1 MiB, 0 masked bits) and 144 native cases on the declared DOSBox-X substitution (/usr/bin/dosbox-x 2026.01.02, sha256 99d74601...); two-factor identity: seven relocated callers in game-verified/evidenced functions, body reads DS:5D96 party head and DS:5D92 active record",
+    "approval_reference": "acceptance of PR #1206 (PM directive wW:p1 / par-a i19647; reviewers par-e and par-a both ACCEPT at da1d6f06): OVL_03B0_11F3 [11F3,1245) 82 B/29 starts credited on the reproduced differential (196 cases, caller 29/29 and 2/2, closure 135/135 and 35/36 with FreeMem 0AF8:03D5->0431 asserted unreachable because the body pushes immediate 2Eh, CPU14 + 1,048,576 B unmasked) and 96 native DOSBox-X cases (declared binary substitution 99d74601); identity by the two-factor standard: relocated caller 0x86:+0279 in game_evidenced OVL_0086_008A passes DS:4766/4768, the node list of strict-credited OVL_0086_028D/059C",
     "approved_by": "PM",
-    "body_bytes": 326,
-    "body_sha256": "1e2161950d386c5df7394667e5d6079e692e551fc7610f1582ef06157528e74f",
-    "evidence_doc": "docs/re/U6C_RECORD_UNLINK_3291_CPU.md",
+    "body_bytes": 82,
+    "body_sha256": "ab914628d39b710f43ef46e48c393403e2d4e078df6fcf45207f4cf8f4b21dd8",
+    "evidence_doc": "docs/re/U3B0_DISPOSE_11F3_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_006C_3291",
-    "review_pr": 1199,
-    "reviewed_commit": "be2c742de68f83d1395bf986396fb84f38beb7bc",
+    "original_id": "OVL_03B0_11F3",
+    "review_pr": 1206,
+    "reviewed_commit": "da1d6f066f2619184d579c79ddc8cdcbc45fbd49",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 223,
+    "overlay": 224,
     "resident": 26
   },
-  "strict_full_c_originals": 249,
-  "unknown_ownership": 514,
+  "strict_full_c_originals": 250,
+  "unknown_ownership": 513,
   "verified_game_by_domain": {
-    "overlay": 268,
+    "overlay": 269,
     "resident": 27
   },
-  "verified_game_identities": 295,
+  "verified_game_identities": 296,
   "whole_game_denominator": "unknown"
 }

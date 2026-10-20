@@ -15,6 +15,7 @@ FONT=0x7000
 import res0709_space_05eb_cpu_audit as prior
 from overlay_inventory import find_units,parse_mz
 from u86_procvars_3413_audit import OVR_SHA
+from res00ba_display_1693_cpu_audit import PythonEga
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
 CHECKER_ROWS = ('OVL_03B0_06FB',)
 SOURCES=('overlay_u3b0_row_clear_06fb_cpu',)+prior.SOURCES
@@ -73,8 +74,13 @@ def run_c(lib,m,c,limit=65536,refuse=None):
 def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None):
     from unicorn import Uc,UC_ARCH_X86,UC_MODE_16,UC_HOOK_CODE,UC_HOOK_MEM_WRITE,UC_HOOK_INSN
     from unicorn import x86_const as R
-    m,c=state;uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
-    uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
+    m,c=state;uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m);device=PythonEga()
+    def vread(em,off,size,user):return sum(device.read((off+j)&65535)<<(8*j) for j in range(size))
+    def vwrite(em,off,size,value,user):
+        for j in range(size):device.write((off+j)&65535,(value>>(8*j))&255)
+    for origin in (0,SIZE):  # the aperture is an independent device; all other backing RAM is flat, including the unused A0000..AFFFF backing bytes
+        uc.mem_map_ptr(origin,0xA0000,7,ctypes.addressof(backing));uc.mmio_map(origin+0xA0000,65536,vread,None,vwrite,None)
+        uc.mem_map_ptr(origin+0xB0000,0x50000,7,ctypes.addressof(backing)+0xB0000)
     for (n,_),r in zip(Cpu._fields_,REGISTERS):uc.reg_write(r,getattr(c,n))
     s=dict(stop=None,ret=False,space_status=-1,callee=-1,status=-1,glyph_callee=-1,glyph_status=-1,loops=0,glyph_loops=0,last=None)
     calls=[];seen=set();edges=set();events=[];writes=[]
@@ -108,12 +114,9 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None):
                 s['callee']=0;s['status']=0;s['glyph_callee']=s['glyph_status']=-1;s['glyph_loops']=0
             else:s['glyph_callee']=0;s['glyph_status']=0
         if ins.mnemonic=='retf':s['ret']=True
-    def out(em,port,size,value,user):events.append((port,value,size,uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)))
-    def write(em,access,address,size,value,user):
-        for j in range(size):
-            at=(address+j)&(SIZE-1)
-            if 0xA0000<=at<0xB0000:writes.append((at-0xA0000,(value>>(8*j))&255))
-    uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_INSN,out,None,1,0,R.UC_X86_INS_OUT);uc.hook_add(UC_HOOK_MEM_WRITE,write)
+    def out(em,port,size,value,user):
+        events.append((port,value,size,uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)));device.out(port,value,size)
+    uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_INSN,out,None,1,0,R.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=3000000)
     check(s['stop'] is not None,f'instruction ceiling {name}')
     for (kind,start),blob in bodies.items():
@@ -123,12 +126,18 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None):
     check(status==s['stop'],f'status {name}: {status}/{s}')
     check((d.space_status,d.callee,d.status,d.glyph_callee,d.glyph_status)==tuple(s[k] for k in ('space_status','callee','status','glyph_callee','glyph_status')),f'diagnostic {name}: space={d.space_status}, {d.callee}/{d.status}/{d.glyph_callee}/{d.glyph_status}, {s}')
     check(mine==events,f'OUTs {name}: {mine}/{events}')
-    check(stores==writes,f'VRAM writes {name}: {stores[:3]}/{writes[:3]} ({len(stores)}/{len(writes)})')
+    check(stores==device.writes,f'VRAM writes {name}: {stores[:3]}/{device.writes[:3]} ({len(stores)}/{len(device.writes)})')
     expected=bytes(backing)
-    check(ram[:0xA0000]+ram[0xB0000:]==expected[:0xA0000]+expected[0xB0000:],f'RAM {name}')
+    if ram!=expected:  # the whole 1,048,576-byte backing array, A0000..AFFFF included
+        diff=[(hex(i),x,y) for i,(x,y) in enumerate(zip(ram,expected)) if x!=y]
+        raise ValueError(f'RAM {name}: {diff[:8]} ({len(diff)} bytes)')
+    if ega!=device.packed():
+        want=device.packed();diff=[(hex(i),x,y) for i,(x,y) in enumerate(zip(ega,want)) if x!=y]
+        per=[sum(1 for i in range(q*65536,(q+1)*65536) if ega[i]!=want[i]) for q in range(4)]
+        raise ValueError(f'EGA {name}: {diff[:8]} ({len(diff)} bytes) planes={per} C-regs={list(ega[262144:])} model-regs={list(want[262144:])} reads={len(device.reads)}')
     for (n,_),r in zip(Cpu._fields_,REGISTERS):
         want=uc.reg_read(r)&65535;check(getattr(actual,n)==want,f'CPU {name}/{n} {getattr(actual,n):04x}/{want:04x}')
-    return status,seen,edges,len(events),len(writes)
+    return status,seen,edges,len(events),len(device.writes)
 def cases(quick=False):
     result=[(f'mode{m}',dict(mode=m)) for m in (0,1,2,3)]
     result += [('caller-opcode',dict(writes=((OVERLAY,0x70A,b'\x90'),))),
@@ -164,7 +173,7 @@ def differential(bodies,decoded,lib,quick=False):
     return dict(cases=len(specs),stops=stops,caller_starts=len(caller&visited),caller_starts_total=len(caller),caller_outcomes=len(outcomes),caller_outcomes_feasible=0,caller_outcomes_syntactic=0,
         uncovered_starts=[f'{k}:{ip:04X}' for k,ip in sorted(set(decoded)-visited)],
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe','jb') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],
-        chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
+        chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE,ram_excluded_ranges=[],ega_bytes=len(PythonEga().packed()),flag_masks=0)
 def main():
     p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='u3b0-06fb-') as tmp:

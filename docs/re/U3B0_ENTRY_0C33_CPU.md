@@ -80,10 +80,10 @@ and imported dependency is byte-identical across both bases.
 | Check | Result |
 |---|---|
 | Original-byte differential | 118 cases: 74 returns, 2 root CODE, 42 nested CALLEE stops |
-| Original state | CPU14 + 983,040 ordinary RAM bytes; 10,792 ordered OUT events, 30,802 raw VRAM write operands; zero masks |
+| Original state | CPU14 (no flag mask) + the **entire 1,048,576-byte backing RAM**, no excluded range; independent EGA planes/latches/registers (262,164 B); 10,792 ordered OUT events, 30,802 VRAM write operands. **Superseded measurement:** the author run compared only 983,040 bytes, excluding `A0000..AFFFF` (65,536 B), and its "zero masks" referred to flags only; see *Aperture re-audit* |
 | Caller coverage | 49/49 instruction starts, 6/6 conditional outcomes |
 | Registered dependency closure | 1171/1187 starts, 118/132 conditional outcomes |
-| DOSBox-X EGA normal/386 | 44 returning cases: CPU14 + 197,632 RAM bytes + 262,144 plane bytes; 10,834 ordered OUT events; zero masks |
+| DOSBox-X EGA normal/386 | 44 returning cases: CPU14 (no flag mask) + 197,632 RAM bytes + 262,144 plane bytes; 10,834 ordered OUT events. **Native RAM is partial: 850,944 backing bytes are not compared natively** (unchanged by the re-audit) |
 | ASan/UBSan semantics | 13,090 checks passed |
 | Focused CMake/CTest | 1/1 passed |
 
@@ -113,7 +113,8 @@ null list, a finite cyclic viewport, page sizes zero/one/larger-than-total,
 styles/widths, coordinates, flags and pages. They are synthetic returning
 frames, not gameplay reachability or native partial-stop/alias/wrap evidence.
 No separate native latch/register equality or directed unexpected dependency
-return case is claimed. Original comparison checks raw VRAM write operands;
+return case is claimed. Original comparison checks raw VRAM write operands
+and, since the re-audit, the independent EGA's planes, latches and registers;
 native comparison checks actual planes.
 
 Full caller coverage does not imply exhaustive dependency coverage. Missing
@@ -171,3 +172,31 @@ movement, live alias handling, full step/display composition and nested stops.
 - review_notes: retain provisional identity, signed arithmetic and live aliases,
   ordinary-RAM restrictions, inherited unchecked selector sites, dependency
   coverage gaps, synthetic native scope and independent acceptance/credit.
+
+## Aperture re-audit (doc-truth correction)
+
+The original author evidence compared 983,040 ordinary RAM bytes and said
+"zero masks" without qualification. Flags were unmasked, but the 65,536-byte
+video aperture `A0000..AFFFF` was excluded from the RAM compare, the original
+differential checked only the VRAM write operands (not plane contents), and the
+native row's "zero masks" sat beside a partial capture. The checker was also not
+registered with the checker-build gate.
+
+This revision re-runs the same 118 cases with the aperture served by the
+independent Python EGA used for `RES_00BA_1693` (MMIO). The compare covers CPU14
+without flag masks, **all 1,048,576 backing RAM bytes**, ordered OUT events, every
+write operand and the full device state (four planes, latches, sequencer and
+graphics registers; 262164 bytes). Excluded ranges: **none**. Result: **118 cases, zero
+mismatches**, stops `{RETURN 74, CODE 2, CALLEE 42}`; caller **49/49 starts, 6/6 outcomes**; closure
+**1171/1187 starts, 118/132 outcomes** (the unexecuted starts and outcomes lie in delivered
+callees and are listed in the ignored report); 10,792 OUT events, 30,802 VRAM write
+operands; 0 aperture reads. The earlier doc's stop split was 74 returns, 2 root
+CODE and 42 nested CALLEE; the re-run's split is above.
+
+The audit now declares `CHECKER_ROWS = ('OVL_03B0_0C33',)` and a media-free
+`--compile-only` mode using the audit's own compiler command and symbol binding,
+so `check_checker_builds.py` covers it. No body, header or model changed. Native
+evidence is unchanged and still partial (above). The selection note above that
+calls `+07A4` "modeled, acceptance PR #1081 open" is historical; `+07A4`'s own
+evidence is re-audited separately (PR #1202). Strict credit, identity and manifest
+decisions are untouched.
