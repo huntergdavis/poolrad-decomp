@@ -316,3 +316,32 @@ Readiness is unaffected: none of the three changes its callee set, and none
 becomes composable. Two further 32-byte non-text tails, on `OVL_009E_0026`
 and `OVL_006F_1262`, are **not** proposed: their data use is unproven (see
 the pricing record).
+
+## U3B0 +01DA trailing data (483 B queue row, 419 B executable)
+
+Author finding from the original bytes (GAME.OVR SHA-256
+`872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`), recorded
+with the `+01DA` re-audit; unit `0x3B0`, offsets unit-relative.
+
+| Item | Value |
+| --- | --- |
+| Executable span | `[01DA,037D)`, **419 bytes / 172 instructions**, one RETF (`+037A`, `RETF 4`) |
+| Span SHA-256 | `8676c97ae6dcaa88c9f7d68d75c75f81e4936572b517bd84a7e19876c58d96ce` |
+| Queue / ledger bound | `[01DA,03BD)`, 483 bytes / 176 instructions (4 instructions decoded from data) |
+| Excluded tail | `[037D,03BD)`, **64 bytes**, SHA-256 `b8335a5106a701003106f2a2e07b0556fb8a9eac1fa8dd86976d8ccabe0f9b2f`; 0 of 64 bytes printable (not text) |
+
+Why the tail is data, not merely "after an early RETF": no instruction inside
+`[01DA,037D)` branches or calls to or past `+037D`, and none loads an offset in
+`[037D,03BD)`. The tail is two 32-byte SYSTEM set constants used by the **next**
+routine: `+03BD` loads `CS:037D` at `+061C` and `CS:039D` at `+069B`, each as
+`MOV DI,imm; PUSH CS; PUSH DI; LCALL 0AF8:0DC0` (SET IN). `+01DA` follows the same
+convention with its own constant at `CS:01BA`, loaded at `+028A` before the call
+at `+028F`. The next prologue (`55 89 E5 81`) begins at `+03BD`. The 64 bytes
+themselves are not published.
+
+`EXECUTABLE_SPANS` in `function_ledger.py` gains one hash-bound entry. The
+generator rejects a different body or a bound that cuts through the reviewed span,
+as for the earlier entries. **This change does not regenerate or edit the checked-in
+`overlay_function_ledger.csv`**; applying the corrected row (bound, decoded bytes and
+instruction count for `0x3B0:0x01DA`) is left to the reviewer's accounting step.
+
