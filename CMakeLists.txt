@@ -91,6 +91,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_character_field_zero.c
                                     src/recovered/resident_character_link_check.c
                                     src/recovered/resident_character_link_flags.c
+                                    src/recovered/resident_0464_bitmap_release_2595_cpu.c
                                     src/recovered/resident_464_bitmap_release.c
                                     src/recovered/resident_464_block_wrapper.c
                                     src/recovered/resident_464_bitmap_constructor.c
@@ -958,6 +959,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_character_link_flags_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_character_link_flags_tests
              COMMAND poolrad_resident_character_link_flags_tests)
+    add_executable(poolrad_resident_0464_bitmap_release_2595_cpu_tests
+                   tests/recovered/test_resident_0464_bitmap_release_2595_cpu.c)
+    target_link_libraries(poolrad_resident_0464_bitmap_release_2595_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_0464_bitmap_release_2595_cpu_tests
+             COMMAND poolrad_resident_0464_bitmap_release_2595_cpu_tests)
     add_executable(poolrad_resident_464_bitmap_release_tests
                    tests/recovered/test_resident_464_bitmap_release.c)
     target_link_libraries(poolrad_resident_464_bitmap_release_tests PRIVATE poolrad_recovered)

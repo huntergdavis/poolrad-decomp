@@ -40,7 +40,7 @@ GAME_SPECIFIC_TARGETS = {(0x3F1, 0x0137), (0xBA, 0x17E3), (0x709, 0x0DD3), (0x70
                          (0x899, 0x0104),
                          (0x709, 0x0DBE),
                          (0x0BA, 0x1037), (0x0BA, 0x1509), (0x0BA, 0x15F7), (0x0BA, 0x2199),
-                         (0x0BA, 0x0BB8), (0x0BA, 0x1168), (0x0BA, 0x13AB), (0x0BA, 0x23B7), (0x0BA, 0x23DB), (0x0BA, 0x2637),
+                         (0x0BA, 0x0BB8), (0x0BA, 0x1168), (0x0BA, 0x13AB), (0x0BA, 0x23B7), (0x0BA, 0x23DB), (0x0BA, 0x2637), (0x464, 0x2595),
                          (0x0BA, 0x26C2), (0x0BA, 0x2E03),
                          (0x0BA, 0x2E46), (0x0BA, 0x2E8B)}
 
@@ -182,7 +182,7 @@ def collect(exe, ovr):
             "mapped target count changed")
     require(len(set(mapped_offsets)) == len(mapped_offsets),
             "mapped resident targets alias the same file offset")
-    require(sum(x["classification"] == "game_verified" for x in resident) == 24,
+    require(sum(x["classification"] == "game_verified" for x in resident) == 25,
             "verified game subset changed")
     raw_prologues = len(list(re.finditer(b"\x55\x89\xe5", image)))
     require(raw_prologues == 132, "resident raw prologue count changed")
