@@ -7,11 +7,23 @@ from hashlib import sha256
 from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from resident_loader_map import unpack
 from res0709_ega_reset_0000_cpu_audit import Cpu,Env,OUT_FN,IN_FN,ROOT,SIZE,EXE_SHA,REGISTERS,physical,put16,check
+CHECKER_ROWS=('RES_0709_06A7',)
 CS,DS,SS,SYS=0x8800,0x5000,0x2000,0x6000
 ENTRY,END=0x6A7,0x714
 DELAY=0x7800
 LOOPS={0x2CA:0x279,0x351:0x300,0x381:0x267,0x45B:0x3BD,0x468:0x3B4,0x5BC:0x4B2,0x5C8:0x4A5,0x5D4:0x49C,0x5E2:0x235}
 FONT=0x7000
+STOPS={0:'RETURN',2:'CODE',3:'CALLEE',5:'TRANSFER',6:'LIMIT'}
+GLYPH_STATUS={2:'CODE',3:'CALLEE',4:'PORT',5:'TRANSFER',6:'LIMIT'}
+DELAY_STATUS={2:'LIMIT'}
+def conditional(ins):return (ins.mnemonic.startswith('j') and ins.mnemonic!='jmp') or ins.mnemonic.startswith('loop')
+def successors(ins):return (int(ins.op_str,16),ins.address+ins.size)
+# Composed conditional successors that no case reaches, each with the argument for
+# why it is infeasible and the state that would make it feasible. Fail-closed both ways.
+EXCLUDED={
+  (0x201,0x21A):('unreachable-by-composition','glyph transform byte [bp+6] is the immediate 1 pushed at +06E4/+06E6; nothing writes the glyph frame between that PUSH and the read at +01FD except lower-address PUSHes and [bp-2] (frames do not wrap)','[bp+6]==0 at +01FD, i.e. a caller of +01DF passing transform 0'),
+  (0x22B,0x22D):('unreachable-by-composition','glyph count byte [bp+0Ah] is the immediate 1 pushed at +06CC/+06CE; between that PUSH and the read at +0220 only PUSHes, [bp-2] and SYSTEM UpCase (no RAM writes) execute','[bp+0Ah]==0 at +0220, i.e. a caller of +01DF passing count 0'),
+}
 PARENT=0x9000
 import res0709_glyph_01df_cpu_audit as prior
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
@@ -31,7 +43,10 @@ def source():
         blob=image[physical(seg,a):physical(seg,b)];ins=list(md.disasm(blob,a))
         check(len(ins)==n and sha256(blob).hexdigest()==digest,f'identity {seg:x}:{a:x} {len(ins)}')
         kind='caller' if seg==0x709 else 'delay';bodies[kind,a]=blob;decoded.update({(kind,i.address):i for i in ins})
-        meta[f'{seg:04X}:{a:04X}']=dict(bytes=len(blob),instructions=n,sha256=digest)
+        meta[f'{seg:04X}:{a:04X}']=dict(bytes=len(blob),instructions=n,sha256=digest,image_span=[physical(seg,a),physical(seg,b)])
+    # Media span ends at the first RETF: no earlier far return inside [06A7,0714).
+    rets=[i.address for i in md.disasm(bodies['caller',ENTRY],ENTRY) if i.mnemonic=='retf']
+    check(rets==[0x711] and 0x711+3==END,f'first RETF {rets}')
     return bodies,decoded,meta
 def library(directory):
     path=directory/'printer.so'
@@ -88,8 +103,8 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
             s['ret']=False
         check(key in decoded,f'escape {name} {cs:04x}:{ip:04x}')
         ins=decoded[key]
-        if key==('caller',0x6FD) and bytes(uc.mem_read(address,3))!=bytes.fromhex('9a9c02'):return stop(2)
-        if key==('caller',0x6E8) and bytes(uc.mem_read(address,3))!=bytes.fromhex('e8f4fa'):return stop(2)
+        if key==('caller',0x6FD) and bytes(uc.mem_read(address,3))!=bytes.fromhex('9a9c02'):s['site']='+06FD';return stop(2)
+        if key==('caller',0x6E8) and bytes(uc.mem_read(address,3))!=bytes.fromhex('e8f4fa'):s['site']='+06E8';return stop(2)
         if key==('caller',0x207) and bytes(uc.mem_read(address,3))!=bytes.fromhex('9a2a18'):s['status']=2;return stop(3)
         if ins.mnemonic=='out' and refuse is not None and len(events)==refuse:s['status']=4;return stop(3)
         if key==('caller',0x70E):
@@ -105,7 +120,7 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
                 if s['delay_loops']==delay_limit:s['delay_pending']=True
                 else:s['delay_loops']+=1
         if s['last'] is not None:edges.add((s['last'],key))
-        seen.add(key);s['last']=key if ins.mnemonic in ('ja','jne','je','jbe','jb') else None
+        seen.add(key);s['last']=key if conditional(ins) else None
         if key[0]=='caller' and ins.mnemonic in ('call','lcall'):
             owner='text' if ip in (0x6FD,0x6E8) else 'glyph'
             calls.append(((cs,ip+ins.size),owner))
@@ -132,9 +147,17 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
     check(stores==writes,f'VRAM writes {name}: {stores[:3]}/{writes[:3]} ({len(stores)}/{len(writes)})')
     expected=bytes(backing)
     check(ram[:0xA0000]+ram[0xB0000:]==expected[:0xA0000]+expected[0xB0000:],f'RAM {name}')
+    # The 64 KiB aperture: the original's flat bytes are exactly the initial bytes with the
+    # ordered write operands replayed; the model's RAM aperture is untouched (EGA planes instead).
+    replay=bytearray(m[0xA0000:0xB0000])
+    for off,value in writes:replay[off]=value
+    check(expected[0xA0000:0xB0000]==bytes(replay) and ram[0xA0000:0xB0000]==bytes(m[0xA0000:0xB0000]),f'aperture {name}')
     for (n,_),r in zip(Cpu._fields_,REGISTERS):
         want=uc.reg_read(r)&65535;check(getattr(actual,n)==want,f'CPU {name}/{n} {getattr(actual,n):04x}/{want:04x}')
-    return status,seen,edges,len(events),len(writes)
+    detail=STOPS[status]
+    if status==3:detail+='/glyph/'+GLYPH_STATUS[s['status']] if s['callee']==0 else '/delay/'+DELAY_STATUS[s['status']]
+    if status==2:detail+='/'+s['site']
+    return detail,seen,edges,len(events),len(writes)
 def cases(quick=False):
     result=[(f'mode{m}',dict(mode=m)) for m in (0,1,2,3,255)]
     result += [('empty',dict(index=4)),('delay0',dict(gate=1,speed=0)),('delay',dict(gate=1)),
@@ -156,28 +179,42 @@ def cases(quick=False):
       ('zero-calibration',dict(gate=1,calibration=0,delay_limit=20)),('max-speed',dict(gate=1,speed=255,delay_limit=20)),
       ('zero-font',dict(writes=((DS,0x5E20,bytes(4)),))),
       ('overlap-pages',dict(pages=(0xA000,0xA000))),('zero-pattern',dict(pattern=1)),('ones-pattern',dict(pattern=2)),
-      ('char-boundaries',dict(text=bytes([0,63,64,96,97,255]),end=6))]
+      ('char-boundaries',dict(text=bytes([0,63,64,96,97,255]),end=6)),
+      # SS in B000..BFFF is inside the contract; a mode-2 page store at B800:0xxx then lands
+      # on the glyph frame. SP 82A1 rewrites loop byte [bp-1] (reaching +0235/+05E2); SP 829B
+      # rewrites the glyph's return pair (TRANSFER).
+      ('alias-glyph-loop',dict(mode=2,ss=0xB000,sp=0x82A1)),('alias-glyph-return',dict(mode=2,ss=0xB000,sp=0x829B)),
+      # SP 82AE: a store rewrites page counter [bp-0Eh] beyond 3, so +0595 JNE is taken; the
+      # aliased loop then runs to the stated glyph budget.
+      ('alias-page-counter',dict(mode=2,ss=0xB000,sp=0x82AE,glyph_limit=600)),
+      # AX=0104h after MUL: low-byte and 16-bit parity differ (see the MUL PF oracle split).
+      ('bad-delay-speed26',dict(gate=1,speed=26,writes=((CS,0x6FD,b'\x90'),)))]
     return result
 def differential(bodies,decoded,lib,quick=False):
-    visited=set();edges=set();stops={};out_count=write_count=0
+    visited=set();edges=set();stops={};case_stops={};out_count=write_count=0
     specs=cases(quick)
     for n,(name,options) in enumerate(specs):
         options=dict(options);limit=options.pop('limit',65536);refuse=options.pop('refuse',None);glyph_limit=options.pop('glyph_limit',65536);delay_limit=options.pop('delay_limit',1000000)
         print('BEGIN',n+1,name,flush=True)
         status,v,e,outs,writes=compare(name,build(bodies,**options),bodies,decoded,lib,limit,refuse,glyph_limit,delay_limit)
-        visited|=v;edges|=e;stops[str(status)]=stops.get(str(status),0)+1;out_count+=outs;write_count+=writes
+        visited|=v;edges|=e;stops[str(status)]=stops.get(str(status),0)+1;case_stops[name]=status;out_count+=outs;write_count+=writes
     caller={k for k in decoded if k[0]=='caller' and ENTRY<=k[1]<END}
     outcomes={e for e in edges if e[0] in caller}
     if not quick:check(caller<=visited,'caller instruction coverage')
-    return dict(cases=len(specs),stops=stops,caller_starts=len(caller&visited),caller_starts_total=len(caller),caller_outcomes=len(outcomes),
+    branches={(k,(k[0],t)) for k,ins in decoded.items() if conditional(ins) for t in successors(ins)}
+    missing=sorted((a[1],b[1]) for a,b in branches-edges)
+    if not quick:check(set(missing)==set(EXCLUDED),f'composed outcomes not covered or not excluded: {sorted(set(missing)^set(EXCLUDED))}')
+    return dict(cases=len(specs),stops=dict(sorted(stops.items())),non_return_cases={k:v for k,v in case_stops.items() if v!='RETURN'},composed_outcomes=len(branches&edges),composed_outcomes_total=len(branches),
+        excluded_outcomes=[dict(edge=f'+{a:04X}->+{b:04X}',kind=k,argument=w,feasible_if=f) for (a,b),(k,w,f) in sorted(EXCLUDED.items())],caller_starts=len(caller&visited),caller_starts_total=len(caller),caller_outcomes=len(outcomes),
         uncovered_starts=[f'{k}:{ip:04X}' for k,ip in sorted(set(decoded)-visited)],
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],
-        chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
+        chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ordinary_ram_bytes=SIZE-65536,aperture_bytes_replayed=65536,ram_bytes=SIZE,flag_masks=0)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
-    bodies,decoded,meta=source();report=dict(target=meta)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='text06a7-') as tmp:
         lib=library(Path(tmp))
+        if a.compile_only:print('CHECKER_BUILD_OK');return
+        bodies,decoded,meta=source();report=dict(target=meta)
         if a.unicorn:report['unicorn']=differential(bodies,decoded,lib,a.quick)
         if a.native:
             from res0709_text_06a7_cpu_native import native
