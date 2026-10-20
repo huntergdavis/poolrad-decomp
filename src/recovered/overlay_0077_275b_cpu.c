@@ -151,6 +151,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     /* es:di = [bp+6]; [bp-4] = es:[di+0x37] */
     les(&m, 0x06);
     saved = rd(&m, c->es, (uint16_t)(c->di + 0x37));
+    c->ax = saved;                     /* 2782: mov ax, word es:[di+0x37] */
     wr(&m, c->ss, (uint16_t)(c->bp - 4), saved);
 
     /* es:di = [bp+6]; if es:[di+0x39] > 0 then [bp-4] = byte * [bp-4] */

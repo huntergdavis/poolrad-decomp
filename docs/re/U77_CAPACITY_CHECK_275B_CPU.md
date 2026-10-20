@@ -71,26 +71,42 @@ i.e. a value whose sum with 1500 keeps bit 15 set.
 with `EXCLUSION NO LONGER TRUE` if any fixture later reaches one of these
 starts or sides, so the document cannot drift into a coverage claim.
 
-## Status: uncredited WIP, with a named blocker
+## Native corroboration (declared stubs)
 
-The differential, exclusions, unit test and CMake target are complete. The
-**native corroboration is not**, so nothing here is credited and no PR is open.
-The blocker, for whoever picks this up:
+`tools/overlay/u77_275b_cpu_native.py` runs a DOSBox-X normal/386 capture of the
+caller's original bytes. Its declaration, per the five required points:
 
-* **Symptom:** `RESULT.BIN` is created and is **0 bytes**. The COM starts and
-  faults **inside the case loop**, so this is not a launch failure.
-* **Three fixes already applied**, each of which moved the fault later, so the
-  capture shape is sound: `mov ...,ip` is not encodable (the return label is
-  recorded instead and **IP is declared not-compared**); the arguments were
-  being pushed **before** the stack switch and were discarded; and the body had
-  been copied into the COM's own `CS` while the far call targeted another
-  segment (now a dedicated `0x4000` caller segment, as in the 048F template).
-* **What exists and is usable:** the stub build (`tools/overlay/u77_275b_native_stubs.c`,
-  `RETF 4` semantics matching the C model's stub path), the two declared stub
-  sites (`00BA:0BB8`, `00BA:13AB`), 26 per-case fixture blocks, and the
-  five-point declaration in `tools/overlay/u77_275b_cpu_native.py`.
-* **Narrow next step:** instrument the loop to write **one** case and flush,
-  then bisect between the fixture read and the write.
+1. **Stubbed endpoints:** `00BA:0BB8` and `00BA:13AB`, at their entry points,
+   substituted with `RETF 4` stubs. The C side is linked against equivalent
+   stubs (`tools/overlay/u77_275b_native_stubs.c`) so both sides see the same
+   declared endpoint.
+2. **What the stub does not do:** it does **not** execute the residents'
+   closure, so their internal SYSTEM endpoints are **not exercised by this run**
+   — only by the differential.
+3. **Division of labour:** the differential (29 fixtures, 14 CPU words, all
+   1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
+   **composition** claim. This run corroborates the **caller's 132 bytes**
+   against the original instruction stream.
+4. **Coverage reduction, stated:** this set is **26 of 29** fixtures. The three
+   non-default-`SP` fixtures are excluded **by construction** because the
+   capture assembly does not vary `SP`; closing them needs assembly that sets
+   `SP` per case. Compared per case: **12 CPU words**, both 0x300-byte object
+   blocks, and the arithmetic flags under mask `0x0FD5`.
+5. **Frame:** the run uses its **own declared frame** — return IP/CS are the
+   harness's (`CS`/`IP` are therefore **declared not compared**, since the body
+   never computes them), with `DS = 0x1000`, the fixture's entry flags applied
+   by `POPF`, and `SP` at the post-`CALL` value. It is **not asserted** to be
+   byte-identical to the differential's fixture frame.
+
+Result: 26/26 captured cases agree on the 12 compared words, both object blocks
+and the masked flags; `RESULT.BIN` SHA-256 `0792fc88…`.
+
+**What the native run found that the differential could not:** with the real
+resident composed, `00BA:13AB` overwrites `AX`, which hid a missing
+`mov ax, es:[di+0x37]` in the model. Under the stub the caller's `AX` survives
+to the comparison, exposing it. The model now reproduces that instruction, and
+the differential still passes — so the stub run did real work rather than
+rubber-stamping.
 
 ## Limits
 

@@ -35,18 +35,24 @@ ENTRY = 0x275B
 RESIDENT = 0x00BA
 STACK_SEGMENT = 0x2000
 STACK_TOP = 0x8000
-OBJECT_BYTES = 0x200
+DEFAULT_SP = 0x7FF4      # post-CALL SP, matching the differential fixture
+DECLARED_RETURN_CS = 0xDEAD   # declared, and identical on the C side
+DECLARED_DS = 0x1000          # fixture DS; the body never reads it
+COMPARED_FLAGS = 0x0FD5       # CF PF AF ZF SF TF IF DF OF; IOPL/NT (0x7000) are
+                              # 386 CPU-mode state the body never computes
+OBJECT_BYTES = 0x300   # covers +0x102 base, +0x37/+0x39 fields and +0xC7 type
 TARGET_SEGMENT, TARGET_OFFSET = 0x3000, 0x0100
 RECORD_SEGMENT, RECORD_OFFSET = 0x4000, 0x0200
-HEADER = 30
+HEADER = 8            # file header: case count word + pad
 PER_CASE = 28 + 2 * OBJECT_BYTES
+RECORD_BASE = 0x5000  # reserved in the COM's segment, clear of code and blobs
 STUB_BYTES = bytes((0xCA, 0x04, 0x00))          # RETF 4
 
 
 def cases():
     """27 of the differential's 29: the two SP-variant fixtures are excluded."""
     return [(name, spec) for name, spec in audit.cases()
-            if spec.get("sp", STACK_TOP) == STACK_TOP]
+            if spec.get("sp", DEFAULT_SP) == DEFAULT_SP]
 
 
 def library(directory):
@@ -74,7 +80,8 @@ def build_com(directory, body, specs):
                             RECORD_OFFSET, RECORD_SEGMENT)
         target = ram[audit.physical(TARGET_SEGMENT, 0):audit.physical(TARGET_SEGMENT, 0) + OBJECT_BYTES]
         record = ram[audit.physical(RECORD_SEGMENT, 0):audit.physical(RECORD_SEGMENT, 0) + OBJECT_BYTES]
-        fixture_input += frame + bytes(target) + bytes(record)
+        fixture_input += frame + struct.pack("<H", spec.get("flags", 0x0202)) \
+            + bytes(target) + bytes(record)
     (directory / "INPUT.BIN").write_bytes(bytes(fixture_input))
 
     code = [".code16", ".intel_syntax noprefix", ".global _start", "_start:",
@@ -92,9 +99,15 @@ def build_com(directory, body, specs):
              "    mov word ptr cs:[input_handle],ax",
              "    mov dx,offset output_name", "    xor cx,cx", "    mov ah,0x3c", "    int 0x21",
              "    jc failure", "    mov word ptr cs:[output_handle],ax",
-             f"    mov word ptr cs:[index],0", "again:",
+             f"    mov word ptr cs:[file_header],{len(specs)}",
+             "    push cs", "    pop ds",
+             "    mov bx,word ptr cs:[output_handle]", "    mov ah,0x40", "    mov cx,8",
+             "    mov dx,offset file_header", "    int 0x21",
+             f"    mov word ptr cs:[index],0",
+             "again:",
              "    push cs", "    pop ds", "    push cs", "    pop es",
              "    mov dx,offset frame_words", "    mov cx,8", "    call read_input",
+             "    mov dx,offset frame_flags", "    mov cx,2", "    call read_input",
              "    mov dx,offset object_target", f"    mov cx,{OBJECT_BYTES}", "    call read_input",
              "    mov dx,offset object_record", f"    mov cx,{OBJECT_BYTES}", "    call read_input",
              f"    mov ax,{TARGET_SEGMENT:#x}", "    mov es,ax", "    mov si,offset object_target",
@@ -106,41 +119,58 @@ def build_com(directory, body, specs):
              # land where the body reads them: [bp+6]=record offset/segment and
              # [bp+0x0A]=target offset/segment, i.e. target pushed first.
              f"    mov ax,{STACK_SEGMENT:#x}", "    mov ss,ax", f"    mov sp,{STACK_TOP:#x}",
-             "    mov ax,word ptr cs:[frame_words+2]", "    push ax",   # target segment
+             "    mov ax,word ptr cs:[frame_words+2]", "    push ax",   # target segment (first pushed)
              "    mov ax,word ptr cs:[frame_words+0]", "    push ax",   # target offset
              "    mov ax,word ptr cs:[frame_words+6]", "    push ax",   # record segment
              "    mov ax,word ptr cs:[frame_words+4]", "    push ax",   # record offset
 
              "    push cs", "    pop ds", "    push cs", "    pop es",
              f"    mov ax,{CS:#x}", "    mov ds,ax",
-             "    call dword ptr cs:[target]", "returned:"]
+             # declared entry register file, mirroring the differential fixture
+             "    xor ax,ax", "    xor bx,bx", "    xor cx,cx", "    xor dx,dx",
+             "    xor si,si", "    xor di,di", f"    mov bp,{0x7F00:#x}",
+             "    push word ptr cs:[frame_flags]", "    popf",   # declared entry flags
+             f"    mov ax,{DECLARED_DS:#x}", "    mov ds,ax",   # declared entry DS, last moment
+             "    call dword ptr cs:[target]",   # return CS/IP are the harness frame
+             "returned:",]
     for index, register in enumerate("ax bx cx dx si di bp sp".split()):
-        code.append(f"    mov word ptr cs:[{HEADER+2*index:#x}],{register}")
+        code.append(f"    mov word ptr cs:[{RECORD_BASE+2*index:#x}],{register}")
     for offset, register in ((16, "cs"), (20, "ds"), (22, "es"), (24, "ss")):
-        code.append(f"    mov word ptr cs:[{HEADER+offset:#x}],{register}")
+        code.append(f"    mov word ptr cs:[{RECORD_BASE+offset:#x}],{register}")
     # IP cannot be moved to memory; record the return label instead and declare
     # that IP is therefore NOT compared (the frames differ by construction).
-    code.append(f"    mov word ptr cs:[{HEADER+18:#x}],offset returned")
-    code += ["    pushf", "    pop ax", f"    mov word ptr cs:[{HEADER+26:#x}],ax",
+    code.append(f"    mov word ptr cs:[{RECORD_BASE+18:#x}],offset returned")
+    code += ["    pushf", "    pop ax", f"    mov word ptr cs:[{RECORD_BASE+26:#x}],ax",
+             "    push cs", "    pop ds",        # restore DS AFTER the capture
+             "    cld",                          # a declared entry DF would break our own copies
              "    push cs", "    pop ds", "    push cs", "    pop es",
              f"    mov ax,{TARGET_SEGMENT:#x}", "    mov ds,ax", "    mov si,0",
-             f"    mov di,{HEADER+28:#x}", f"    mov cx,{OBJECT_BYTES}", "    rep movsb",
+             f"    mov di,{RECORD_BASE+28:#x}", f"    mov cx,{OBJECT_BYTES}", "    rep movsb",
              f"    mov ax,{RECORD_SEGMENT:#x}", "    mov ds,ax", "    mov si,0",
              f"    mov cx,{OBJECT_BYTES}", "    rep movsb",
              "    push cs", "    pop ds", "    push cs", "    pop es",
-             f"    mov dx,{HEADER:#x}", f"    mov cx,{PER_CASE}", "    call write_output",
+             f"    mov dx,{RECORD_BASE:#x}", f"    mov cx,{PER_CASE}", "    call write_output",
              "    push cs", "    pop ds", "    inc word ptr cs:[index]",
              f"    cmp word ptr cs:[index],{len(specs)}", "    jb again",
              "    mov bx,word ptr cs:[output_handle]", "    mov ah,0x3e", "    int 0x21",
              "    mov ax,0x4c00", "    int 0x21",
              "read_input:", "    mov bx,word ptr cs:[input_handle]", "    mov ah,0x3f", "    int 0x21",
              "    jc failure", "    cmp ax,cx", "    jne failure", "    ret",
+             "mark:", "    push ax", "    push bx", "    push cx", "    push dx", "    push ds",
+             "    push cs", "    pop ds",
+             "    mov byte ptr cs:[mark_byte],al",   # write the value BEFORE DX is reloaded
+             "    mov bx,word ptr cs:[output_handle]", "    mov ah,0x40", "    mov cx,1",
+             "    mov dx,offset mark_byte", "    int 0x21",
+             "    pop ds", "    pop dx", "    pop cx", "    pop bx", "    pop ax", "    ret",
+             "mark_byte: .byte 0",
              "write_output:", "    mov bx,word ptr cs:[output_handle]", "    mov ah,0x40", "    int 0x21",
              "    jc failure", "    cmp ax,cx", "    jne failure", "    ret",
              "failure:", "    mov ax,0x4c01", "    int 0x21",
              'input_name: .asciz "INPUT.BIN"', 'output_name: .asciz "RESULT.BIN"',
              "input_handle: .word 0", "output_handle: .word 0", "index: .word 0",
-             "frame_words: .word 0,0,0,0", f"target: .word {ENTRY:#x},{CS:#x}"]
+             "file_header: .word 0,0,0,0",
+             "frame_words: .word 0,0,0,0", "frame_flags: .word 0",
+             f"target: .word {ENTRY:#x},{CS:#x}"]
     at = 0x6000
     for label, blob in (("body", body), ("object_target", bytes(OBJECT_BYTES)),
                         ("object_record", bytes(OBJECT_BYTES))):
@@ -191,9 +221,12 @@ def native_audit(body):
                                              ctypes.byref(budget), ctypes.byref(diagnostic))
             audit.check(status == 0, f"{name}: stubbed C status {status}")
             for (_, field), want in zip(audit.REGISTERS, struct.unpack_from("<14H", record)):
-                if field == "ip":
-                    continue      # native records its return label, not the frame IP
+                if field in ("cs", "ip"):
+                    continue      # set by the harness's own return frame, not the body
                 got = getattr(cpu, field)
+                if field == "flags":
+                    got &= COMPARED_FLAGS
+                    want &= COMPARED_FLAGS
                 audit.check(got == want, f"{name} {field}: C={got:04x} DOS={want:04x}")
             produced = (bytes(working[audit.physical(TARGET_SEGMENT, 0):
                                       audit.physical(TARGET_SEGMENT, 0) + OBJECT_BYTES])
@@ -201,7 +234,9 @@ def native_audit(body):
                                         audit.physical(RECORD_SEGMENT, 0) + OBJECT_BYTES]))
             audit.check(produced == record[28:],
                         f"{name}: object blocks differ from the native capture")
-    return dict(cases=len(specs), cpu_words=13, ip_declared_not_compared=True,
+    return dict(cases=len(specs), cpu_words=12,
+                frame_words_declared_not_compared=("cs", "ip"),
+                flag_mask=f"{COMPARED_FLAGS:#06x}",
                 object_bytes=2 * OBJECT_BYTES,
                 stubbed_endpoints=("00BA:0BB8", "00BA:13AB"),
                 frame="declared (synthetic): return IP 0000, CS DEAD",

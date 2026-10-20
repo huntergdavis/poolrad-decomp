@@ -134,11 +134,15 @@ def build(body):
     cpu.ss = 0x2000
     cpu.sp = 0x8000
     cpu.bp = 0x7F00
+    # Declared entry register file, mirrored by the native harness so both sides
+    # start from the same machine state.
+    cpu.ax = 0x0000; cpu.bx = 0x0000; cpu.cx = 0x0000; cpu.dx = 0x0000
+    cpu.si = 0x0000; cpu.di = 0x0000
     return ram, cpu
 
 
 def case(name, *, type_byte=0x0C, quantity=4, count=1, base=0x0100,
-         sp=0x8000, flags=0x0202, saturate=None):
+         sp=0x7FF4, flags=0x0202, saturate=None):   # post-CALL SP: frame at SS:SP
     """One fixture: object fields plus the frame words the body reads."""
     ram, cpu = build(CASE_BODY)
     cpu.sp = sp
