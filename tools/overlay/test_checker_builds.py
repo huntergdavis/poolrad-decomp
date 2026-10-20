@@ -77,5 +77,69 @@ class CheckerBuildGateTest(unittest.TestCase):
             gate.discover(self.root)
 
 
+@unittest.skipUnless(shutil.which("git"), "git required")
+class PreconditionTest(unittest.TestCase):
+    """The stale-tree check must be strict locally and relaxed in PR CI - but
+    never so relaxed that an unrelated checkout passes."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.git("init", "-q", "-b", "main")
+        self.git("config", "user.email", "test@example.com")
+        self.git("config", "user.name", "test")
+        (self.root / "a").write_text("a")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "one")
+        self.git("checkout", "-qb", "feature")
+        (self.root / "b").write_text("b")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "two")
+        self.git("checkout", "-q", "main")
+        (self.root / "c").write_text("c")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "three")
+        self.git("checkout", "-q", "feature")
+        self.git("update-ref", "refs/remotes/origin/main", self.rev("main"))
+
+    def git(self, *args):
+        gate.subprocess.run(["git", "-C", str(self.root), *args], check=True,
+                            capture_output=True)
+
+    def rev(self, ref):
+        return gate.subprocess.run(["git", "-C", str(self.root), "rev-parse", ref],
+                                   check=True, capture_output=True,
+                                   text=True).stdout.strip()
+
+    def test_local_run_requires_current_main(self):
+        problem = gate.precondition_error(self.root, "origin/main", event=None)
+        self.assertIn("HEAD does not include fetched main", problem)
+
+    def test_pull_request_ci_tolerates_main_ahead_of_head(self):
+        self.assertIsNone(gate.precondition_error(self.root, "origin/main",
+                                                  event="pull_request"))
+        self.assertIsNone(gate.precondition_error(self.root, "origin/main",
+                                                  event="merge_group"))
+
+    def test_require_current_main_flag_is_strict_even_in_ci(self):
+        problem = gate.precondition_error(self.root, "origin/main",
+                                          require_current_main=True,
+                                          event="pull_request")
+        self.assertIn("HEAD does not include fetched main", problem)
+
+    def test_pr_mode_still_fails_closed_on_unrelated_history(self):
+        self.git("checkout", "-q", "--orphan", "orphan")
+        (self.root / "z").write_text("z")
+        self.git("add", "-A")
+        self.git("commit", "-qm", "orphan")
+        problem = gate.precondition_error(self.root, "origin/main", event="pull_request")
+        self.assertIn("no merge base", problem)
+
+    def test_unresolvable_base_blocks(self):
+        problem = gate.precondition_error(self.root, "origin/missing", event="pull_request")
+        self.assertIn("fetch before handoff", problem)
+
+
 if __name__ == "__main__":
     unittest.main()

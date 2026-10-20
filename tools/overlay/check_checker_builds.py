@@ -235,6 +235,43 @@ def sweep(root, timeout=120):
     return results
 
 
+PR_EVENTS = ("pull_request", "pull_request_target", "merge_group")
+
+
+def _run_git(root, *args):
+    return subprocess.run(["git", "-C", str(root), *args],
+                          capture_output=True, text=True)
+
+
+def precondition_error(root, base_ref="origin/main", *, require_current_main=False,
+                       event=None):
+    """Why this tree may not be handed off, or None if it may.
+
+    A local pre-handoff run must be current: HEAD has to include fetched main.
+    In pull-request CI that cannot hold - the merge ref is built from the PR
+    head while main keeps moving - so there the requirement relaxes to "the two
+    histories are related", which still fails closed on a shallow or orphan
+    checkout. The checker compilation itself is never relaxed.
+    """
+    base = _run_git(root, "rev-parse", base_ref)
+    head = _run_git(root, "rev-parse", "HEAD")
+    if base.returncode or head.returncode:
+        return f"cannot resolve {base_ref} or HEAD; fetch before handoff"
+    base, head = base.stdout.strip(), head.stdout.strip()
+    strict = require_current_main or event not in PR_EVENTS
+    if strict:
+        if _run_git(root, "merge-base", "--is-ancestor", base, head).returncode:
+            return "HEAD does not include fetched main; update before handoff"
+        return None
+    related = _run_git(root, "merge-base", base, head)
+    if related.returncode or not related.stdout.strip():
+        return "no merge base between HEAD and fetched main; cannot verify the tree"
+    if _run_git(root, "merge-base", "--is-ancestor", related.stdout.strip(),
+                base).returncode:
+        return "merge base is not an ancestor of fetched main"
+    return None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("rows", nargs="*", help="every row being offered for review")
@@ -242,6 +279,10 @@ def main():
     parser.add_argument("--base-ref", default="origin/main",
                         help="fetched main ref that HEAD must include")
     parser.add_argument("--output", type=Path, help="optional JSON build receipt")
+    parser.add_argument("--require-current-main", action="store_true",
+                        help="require HEAD to include the base ref (local pre-handoff "
+                             "runs); pull-request CI checks the merge-base relation "
+                             "instead, because main moves under the PR head")
     parser.add_argument("--sweep", action="store_true",
                         help="best-effort compile of every checker; never gates (exit 0)")
     args = parser.parse_args()
@@ -256,9 +297,11 @@ def main():
         parser.error("choose row IDs or --all")
     try:
         base, head = git(ROOT, "rev-parse", args.base_ref), git(ROOT, "rev-parse", "HEAD")
-        if subprocess.run(["git", "-C", str(ROOT), "merge-base", "--is-ancestor",
-                           base, head], check=False).returncode:
-            raise ValueError("HEAD does not include fetched main; update before handoff")
+        problem = precondition_error(ROOT, args.base_ref,
+                                     require_current_main=args.require_current_main,
+                                     event=os.environ.get("GITHUB_EVENT_NAME"))
+        if problem:
+            raise ValueError(problem)
         registry = discover(ROOT)
         added = changed_rows(git(ROOT, "show", f"{base}:{MANIFEST}"),
                              (ROOT / MANIFEST).read_text())

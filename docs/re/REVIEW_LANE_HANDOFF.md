@@ -49,8 +49,12 @@ whole-game denominator is unknown — never state a completion percentage.
    id → exit 1 with exactly one failure.
 2. **Checker handoff gate** — `tools/overlay/check_checker_builds.py`.
    `--all` blocks on the 3 registered rows; `--sweep` is a non-blocking report.
-   *Proof:* delete a source from a registered checker's `cc` list → exit 1,
-   `HANDOFF BLOCKED` naming the real undefined symbol; restore → green.
+   *Proof:* delete a source from a registered checker's `cc` list → exit 1
+   with the real undefined symbol; restore → green. The stale-tree precondition
+   is mode-aware: strict locally, relaxed to a merge-base relation in
+   `pull_request`/`merge_group` CI (where main moves under the PR head), and
+   `--require-current-main` forces the strict form anywhere. The compilation
+   itself is never relaxed.
    Sweep baseline: 143 of 264 checkers compile — a positive baseline, **not** a
    drift signal while 121 remain unextractable. Register a row's checker when
    that row is next touched.
