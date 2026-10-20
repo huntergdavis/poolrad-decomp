@@ -222,6 +222,16 @@ new test run claim, or author-assigned credit.
 | RES_00BA_1168 | [1168,11EA) | 130 / 54 | 22 feasible of 24 syntactic; the two impossible directions are proved above |
 | RES_00BA_13AB | [13AB,148B) | 224 / 89 | 36 of 36 |
 
+**Source provenance (verified during the #1162 free-model screening).**
+`RES_00BA_13AB` is a loader-expanded **START.EXE** body at file
+`[0x2027,0x2107)` = `[8231,8455)`, 224 bytes, SHA-256 `22732f3c…4b7bbe`; it is
+**not present in GAME.OVR** (the 224-byte body and even its first 32 bytes do
+not occur there). Grepping GAME.OVR finds a **12-byte prologue decoy** at
+`0x2BEBC` that matches the body up to and including `ff 76 06` and then
+diverges at byte 12 (`b0 19` where the body has `0e e8`). The same applies to
+the rest of this resident closure: its source is the loader-expanded START.EXE
+image, not the overlay file.
+
 The published 3,441-case audit includes all starts and feasible outcomes of
 both bodies through U9E-origin execution. It also includes 256 standalone
 +1168 inputs and 512 standalone +13AB inputs. These are subsets of the

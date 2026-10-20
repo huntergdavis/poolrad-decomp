@@ -80,7 +80,11 @@ START.EXE image**, not at a raw file offset. `0x464:0x2595` is image offset
 `0x464<<4 + 0x2595 = 0x6BD5`; hashing `START.EXE[0x6BD5:0x6C72]` directly
 returns a plausible-looking wrong digest and looks like a body mismatch rather
 than a method error. Unpack with the loader first (`resident_loader_map.unpack`)
-and hash from that image. Two independent agents — the reviewer and a headless
+and hash from that image. **A decoy makes the wrong answer look right for
+twelve bytes:** `GAME.OVR[0x2BEBC]` reproduces the `RES_00BA_13AB` prologue
+(`55 89 e5 83 ec 04 ff 76 08 ff 76 06`) and diverges only at byte 12
+(`b0 19` vs `0e e8`); the real body is START.EXE `[0x2027,0x2107)`, 224 B,
+SHA-256 `22732f3c…`, and does not occur in GAME.OVR at all. Two independent agents — the reviewer and a headless
 free-model screen — made this exact mistake on the same body before finding the
 bytes, so treat a first-attempt hash mismatch as a method suspect before
 reporting a defect.
