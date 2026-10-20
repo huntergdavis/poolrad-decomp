@@ -316,6 +316,32 @@ must come from an artifact: see
 [RES_00BA_16EC_ONE_HOP_TARGETS.md](RES_00BA_16EC_ONE_HOP_TARGETS.md)
 (reproduce with `tools/overlay/resident_target_list.py`).
 
+### Band closed on identity, not on cost: the `0899:0059` route (2026-10-25)
+
+The `0x38` band was routed through `RES_00BA_16EC` → `0709:0768` → `0BF5` →
+`RES_0899_0059`, and `0059` is **game code** (it saves and restores the
+`DS:0x5372` mode byte via `DS:0x5373` and toggles `DS:0x49F7` — documented state,
+independently confirmed by the other lane). So the block is not ownership of
+`0059`; it is the ownership of `0059`'s own dependencies.
+
+Measured **three-hop floor: 1,932 B**, which stands as a *measurement*. The
+route is nevertheless **closed**, because the blocker is an **identity wall**:
+
+* **Four bodies with unresolved identity** — `181A`, `1742`, `17AE`, `006C` —
+  each with **zero** direct overlay CALL fixups, parents unresolved in the
+  ledger, and two existing documents already recording their identity as
+  unresolved. Transitive reachability is not identity.
+* **Two declarable candidates only** — `137C` and `13B1` — which reach `INT21`,
+  PIT `OUT 0x43`/`0x40`, `OUT 0x40`, `IN`/`OUT 0x61` and `OUT 0xC0`. Declaring
+  them needs vector and port contracts plus an oracle that does not exist.
+
+**The `declared_boundary` class was not widened to cover these**, and the reason
+is worth keeping verbatim: *four ordinary helpers cannot be laundered through
+`declared_boundary`*. The class exists for boundary **endpoints** whose contract
+the differential supplies — not for code whose ownership is merely unknown.
+Widening it would convert an identity question into a paperwork answer, which is
+the failure mode this lane has spent the night removing.
+
 ### Rejected on measurement: `OVL_0038_1545` (2026-10-24)
 
 153 B own extent (row says 166 — 13 B trailing data), 4 rows, and it **fails the
