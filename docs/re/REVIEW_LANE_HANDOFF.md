@@ -57,6 +57,22 @@ whole-game denominator is unknown — never state a completion percentage.
 On main 6bdc0219 the credits U9E +115C, RES_00BA_0BB8/+1168/+13AB and U33 +12E1 unlocked **no** new caller: the queue stays at 457 candidates / 59 composable / 9 interface caveats, because the two callers those bodies reach are blocked on other callees — OVL_0033_1E31 (nine unready: three untranslated, one partial, one modeled, four resident) and OVL_0038_2F57 (OVL_009E_0026 plus RES_00BA_16EC).
 Sizing them shows no cheap leaf: the resident blockers are 26-263 bytes and only the 26-byte RES_0899_0122 gates nothing alone, while RES_00BA_16EC carries 17 rows but a 6,312-byte/65-routine closure, so its earlier hold stands.
 
+## Two readiness facts that look like progress but are not
+
+**Enumerate blockers with the code's own readiness sets, never a hand-written
+list of states that look unready.** `ready = strict + modeled +
+resident_covered + runtime_covered`; everything else is unready. A hand
+enumeration that included `modeled` turned an 8-blocker caller into 9 and
+promoted a ready row into a blocker, which produced a recommended "cheap"
+declaration that was functionally inert.
+
+**Overlay manifest entries confer nothing.** Overlay readiness comes from
+strict credit, a `partial` flag, or `modeled` presence in the tree; the
+manifest is consulted for overlay rows only to mark them `partial`, which
+counts as *unready*. The manifest gate that makes `RES_00BA_1168`/`13AB`
+work is a **resident-only** mechanism, so declaring an overlay row `full`
+is accurate documentation and no readiness change at all.
+
 ## Two CI gates, and how to prove they fail closed
 
 1. **SHA-provenance guard** — `tools/overlay/check_record_shas.py`. Every
