@@ -96,8 +96,12 @@ regenerate with the recipe in `STRICT_CANDIDATE_QUEUE.md` - it needs the owner
 media), plus the checked-in `strict_full_c_addresses.csv`,
 `overlay_classification.csv` and `overlay_function_ledger.csv`, plus
 `resources/DOS/POOLRAD/{START.EXE,GAME.OVR}` read-only. The queue **digest is
-printed on every run**: the numbers below are only comparable at the same digest
-or the same checkpoint.
+printed on every run**. A digest change is **not** by itself a credit change: par-e
+found that the candidate-queue digest moves with git refs (branch pushes), not only
+with credits, so "comparable only at the same digest" was stricter than reality. par-e
+reproduced the counts below (49 / 0 / 23 / 26) at doc digest `54e1c7c3`, at PR base
+`c7526b6f` and at main `6b855b2d`. Read a different digest as "re-read the counts"
+and compare the **counts and the checkpoint**; only a change in the counts is news.
 
 **Expected output**, at queue sha256 `54e1c7c3922d…03e4c2`:
 
