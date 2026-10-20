@@ -109,6 +109,14 @@ when quoting a chain's cost before it is measured, say "at least" and expect to
 raise it. The measured table lives in `STRICT_CANDIDATE_QUEUE.md`; select on
 cost per unlocked row, never on the queue's byte fields.
 
+**Repair budget for a single tool: five.** The pricer needed five consecutive
+fixes in one evening — a gate that could not fire, an input nobody could
+produce, a happy-path `NameError`, a doc that argued with the print, and a stale
+row — each correct on the path it was written for and wrong on an adjacent one.
+The acceptance above is what stopped the sequence. **If a sixth fix is needed in
+the same area, stop patching and rewrite the entry point instead**; five repairs
+to one seam is evidence about the seam, not about the five patches.
+
 ## Primary acceptance for the pricer (run this, not the unit tests)
 
 In a checkout **with the owner's media and the accounting products**, with the
