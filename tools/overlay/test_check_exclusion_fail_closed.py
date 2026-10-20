@@ -7,6 +7,9 @@ and 0004. It argues 0002->0003 infeasible, and start 0003 with it. Each "broken"
 variant drops exactly one of the three checks a sound audit needs, so each attack
 proves that it can fail.
 """
+import contextlib
+import io
+import sys
 import types
 import unittest
 
@@ -127,8 +130,68 @@ class FailClosedHarnessTest(unittest.TestCase):
     def test_audit_without_exclusion_is_refused(self):
         audit = make_audit()
         audit.INFEASIBLE_EDGES, audit.INFEASIBLE_STARTS = {}, {}
-        with self.assertRaises(SystemExit):
+        with self.assertRaises(tool.UnsupportedShape):
             tool.run(audit, {}, DECODED, None)
+
+
+def shaped_module(name, source_values, differential_params, exclusion=True):
+    """A module with a given source() arity and differential() signature, as main() sees it."""
+    audit = types.ModuleType(name)
+    audit.source_calls = 0
+    if exclusion:
+        audit.INFEASIBLE_EDGES = {(key(2), key(3)): "x"}
+        audit.INFEASIBLE_STARTS = {}
+
+    def source():
+        audit.source_calls += 1
+        return tuple(range(source_values))
+
+    namespace = {}
+    exec(f"def differential({', '.join(differential_params)}): return {{}}", namespace)
+    audit.source, audit.differential = source, namespace["differential"]
+    audit.library = lambda directory: None
+    audit.compare = lambda name, *a: (0, set(), set())
+    return audit
+
+
+class AuditShapeTest(unittest.TestCase):
+    """The two shapes the ds4 lane hit must be refused with exit 4, never a traceback."""
+
+    def main_with(self, audit):
+        sys.modules[audit.__name__] = audit
+        self.addCleanup(sys.modules.pop, audit.__name__, None)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = tool.main([audit.__name__])
+        return code, err.getvalue()
+
+    def test_five_value_source_is_unsupported_not_a_crash(self):
+        # u3b0_dispose_11f3_cpu_audit shape: 5-value source(), 5-parameter differential().
+        audit = shaped_module("shape_five", 5, ("image", "blob", "decoded", "conditional", "f"))
+        code, err = self.main_with(audit)
+        self.assertEqual(code, tool.UNSUPPORTED_EXIT)
+        self.assertIn("UNSUPPORTED AUDIT SHAPE: shape_five", err)
+        self.assertIn("differential() takes 5 positional parameters", err)
+        self.assertEqual(audit.source_calls, 0, "static shape must be refused before source() reads media")
+
+    def test_eight_value_source_without_declared_exclusion_is_unsupported(self):
+        # u6c_record_unlink_3291_audit shape: 8-value source(), differential(ctx, f), no INFEASIBLE_* globals.
+        audit = shaped_module("shape_eight", 8, ("ctx", "f"), exclusion=False)
+        code, err = self.main_with(audit)
+        self.assertEqual(code, tool.UNSUPPORTED_EXIT)
+        self.assertIn("declares no INFEASIBLE_EDGES/INFEASIBLE_STARTS", err)
+        self.assertEqual(audit.source_calls, 0)
+
+    def test_wrong_source_arity_with_right_signature_is_caught_after_source(self):
+        audit = shaped_module("shape_source_only", 5, ("bodies", "decoded", "lib"))
+        code, err = self.main_with(audit)
+        self.assertEqual(code, tool.UNSUPPORTED_EXIT)
+        self.assertIn("source() returned 5 values, not 3", err)
+        self.assertEqual(audit.source_calls, 1)
+
+    def test_supported_shape_passes_the_guard(self):
+        self.assertEqual(tool.static_shape(shaped_module("shape_ok", 3, ("bodies", "decoded", "lib"))), [])
+        self.assertEqual(tool.source_shape((1, 2, 3)), [])
 
 
 if __name__ == "__main__":
