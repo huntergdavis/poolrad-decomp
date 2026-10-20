@@ -197,3 +197,21 @@ Ownership is unchanged by this change: see the identity paragraph at the top
 (Factor 1 by A2 through the credited +31A2 installer, Factor 2 on the
 argument-dereference rule). No manifest row is added here; this PR is the author's evidence and credits nothing. The checker already declares
 `CHECKER_ROWS = ("OVL_0038_12B2",)` and a media-free `--compile-only`; neither changed.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at author head `a0fbce1a` (evidence), with the ownership paragraph checked at the merged head
+`ce8e785c`. The credit is applied on main `a534f5d1`, 2026-10-20.
+
+- **Unicorn, exhaustive:** 65,814 cases, all passing (65,536 `B[+3]` x `A[+10Eh]` values, 72 counter edges, 96 flag,
+  64 register and 34 alias cases, and the 12 originals). The equal branch is taken in 256 of the 65,536 data cases.
+  Each case compares CPU14 + 1,048,576 B.
+- **Coverage:** wrapper 28/28 starts, composed `+0C06` 6/6, 2/2 outcomes, nothing missing.
+- **Native:** 48/48 (18 equal-branch) over 10,240 B, flag masks 0, RESULT.BIN `2896dac6…`, declared substitution
+  (`/usr/bin/dosbox-x` `99d74601…`, `pinned_build_used: false`).
+- **Exclusion arithmetic:** DS `997F..A97E` (4,096 values) puts `DS:6816` in `A0000..AFFFF`, as stated.
+- **Identity (A2) by reviewer measurement:** the installer bytes `B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68` sit at
+  GAME.OVR `0x12070` and occur once. The credit rests on the installer footing; no item-49 dispatch execution was
+  observed (stated above).
+- "This branch makes no strict identity or count claim" in *Verification and limits* refers to the author branch,
+  which does not self-credit. The credit is this acceptance's.

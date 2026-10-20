@@ -221,7 +221,7 @@ id,unit,offset,ovr_offset,grade,far_in,classification,confidence,strings,doc_glo
 0x38:0x1168,0x38,0x1168,64963,A,0,game_evidenced,provisional,0,active_char,2,4,5,0,2,2,1,0,0,145,145
 0x38:0x11f9,0x38,0x11f9,65108,A,0,game_verified,verified,0,active_char,0,4,1,1,0,0,0,0,1,125,125
 0x38:0x1276,0x38,0x1276,65233,A,0,game_verified,verified,2,active_char,0,2,2,2,0,0,0,0,1,60,60
-0x38:0x12b2,0x38,0x12b2,65293,A,0,game_evidenced,provisional,0,,1,2,1,0,0,0,1,0,0,73,73
+0x38:0x12b2,0x38,0x12b2,65293,A,0,game_verified,verified,0,,1,2,1,0,0,0,1,0,1,73,73
 0x38:0x12fb,0x38,0x12fb,65366,A,0,game_evidenced,provisional,0,,1,0,3,0,1,1,1,0,0,68,68
 0x38:0x133f,0x38,0x133f,65434,A,0,game_verified,verified,0,,0,0,1,0,0,1,0,0,1,22,22
 0x38:0x1355,0x38,0x1355,65456,A,0,game_verified,verified,0,,0,0,0,0,0,0,0,0,1,7,7
