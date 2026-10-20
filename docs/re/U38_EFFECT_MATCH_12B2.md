@@ -23,36 +23,32 @@ its sole call is the near call at `+0x12E8` to U38 `+0x0C06`. That verified
 callee is `[+0x0C06,+0x0C15)`, 15 original bytes, SHA-256
 `435bd9fac807d24f064b6bf223817b188e737a5b6ddb9a8b37d5635842a52fe8`.
 
-Identity is stated against the two-factor standard in
-[REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)
-(design A2 for table entries); the earlier reason, that the item-49 dispatch is
-unmeasured, is superseded by it.
+**Factor 1 holds (A2), by the reviewer's measurement (par-e); I reproduced
+only the installer bytes below.** Unit 38 `entries[41] = 12B2` (unique); entry 41's stub is `0041:00ED`
+(`0x20 + 5*41 = 0xED`). The strict-credited installer `OVL_0038_31A2` stores that
+stub at +3415..+3421 into DS:68EC/68EE, effect-table item `(68EC-6828)/4 = 49`, with
+the segment word relocated at +3419. My byte check: GAME.OVR file `0x12070`
+(unit base `0xEC5B` + `0x3415`) is `B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68`, and
+that string occurs once. `OVL_0038_31A2` is in both credit CSVs, the same footing
+that credited `OVL_0038_3134` and `OVL_0038_2E08`.
 
-**Factor 1 holds (A2).** The original U38 +31A2 installer at +3415
-(GAME.OVR file `0x12070` = unit base `0xEC5B` + `0x3415`) is the byte string
-`B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68`: `MOV AX,00EDh; MOV DX,0041h;
-MOV [68ECh],AX; MOV [68EEh],DX`. It stores the public stub `0041:00ED` in
-effect-table item `(68EC-6828)/4 = 49`; the stub is entry 41 because
-`0x20 + 5*41 = 0xED`. The segment immediate at +3419 is a loader fixup. That
-byte string occurs once in GAME.OVR. `OVL_0038_31A2` is identity-credited and
-strict-credited (rows read from `reviewed_function_identities.csv` and
-`strict_full_c_addresses.csv`, not from prose), so the table is game-owned and
-entry 41 is installed in it. U9E +0000 reaches the table by `LCALL [DI+0x6828]`,
-which is a decoded path; no item-49 dispatch has been measured and none is
-needed under A2.
+**Factor 2 holds.** The body tests record B `+3` bit `10h` against record A `+10Eh`,
+near-calls the strict `+0C06` (which is the whole composition), and otherwise
+decrements DS:6822/6816. DS:6822 is documented as an effect counter
+(`OVERLAY_UNIT38_EFFECT_ENTRIES.md`), DS:6816 is in the helper cluster
+(`U38_HELPER_CLUSTER_CPU.md`), and `+10Eh` is in the resident character docs
+(`RESIDENT_CHARACTER_FIELD_ZERO.md`, `RESIDENT_PARTY_COUNT.md`, which leave its
+gameplay meaning unverified).
 
-**Factor 2 holds on the standard's rule that state passed as an argument counts
-when the body dereferences it.** The body reads bit 4 of byte `+3` of far
-pointer B and byte `+0x10E` of far pointer A, and adjusts DS `[6816]`/`[6822]`
-through +0C06. Merged documents name `+0x10E` as a character-record byte
-(`RESIDENT_CHARACTER_FIELD_ZERO.md`, `RESIDENT_PARTY_COUNT.md`); those same
-documents leave its gameplay meaning unverified, and no merged document defines
-B's byte `+3`. That is stated as a limit, not argued away.
+**One limit, stated plainly:** the installer footing is what is measured. No
+item-49 dispatch *execution* was observed, which is the same distinction that keeps
+the 3134 entry honest. The earlier reason for withholding credit (dispatch
+unmeasured) is superseded by A2 in the two-factor standard
+([REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)).
 
-**Status.** Both factors are met on the standard as written, so the reason
-for withholding credit is no longer the unmeasured dispatch. The row stays
-**evidence-only** here: it is in neither credit CSV, no manifest declaration
-exists, and credit is the reviewer's/VP's decision. This PR does not propose it.
+**Status.** The row is in neither credit CSV and has no manifest declaration. Per
+VP i19766 it is creditable on this evidence; the acceptance is the reviewer's to
+open. This PR is the author's evidence and does not credit it.
 
 ## Complete behavior
 
@@ -199,6 +195,5 @@ Frames are synthetic direct entries, not item-49 dispatches or reached gameplay.
 
 Ownership is unchanged by this change: see the identity paragraph at the top
 (Factor 1 by A2 through the credited +31A2 installer, Factor 2 on the
-argument-dereference rule). The PM decision to add no manifest row stands. This PR
-is **evidence-only** and does not propose the row for credit. The checker already declares
+argument-dereference rule). No manifest row is added here; this PR is the author's evidence and credits nothing. The checker already declares
 `CHECKER_ROWS = ("OVL_0038_12B2",)` and a media-free `--compile-only`; neither changed.
