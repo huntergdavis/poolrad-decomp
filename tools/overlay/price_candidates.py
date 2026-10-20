@@ -28,20 +28,22 @@ credited, promoted or written: this is a read-only pricing pass.
 Usage: python3 tools/overlay/price_candidates.py [--limit-bytes 600] [--top 15]
 """
 import argparse
+import subprocess
 import collections
 import csv
 import json
 import sys
 from pathlib import Path
 
-from capstone import Cs, CS_ARCH_X86, CS_MODE_16
-
+import check_checker_builds as gate
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 
 ROOT = Path(__file__).resolve().parents[2]
-QUEUE_PRODUCT = ROOT / "resources/function-accounting-current/queue.json"
-STRICT_QUEUE = ROOT / "resources/strict-candidate-queue/queue.json"
+DEFAULT_QUEUE = ROOT / "resources/strict-candidate-queue/queue.json"
+ACCOUNTING = ROOT / "resources/function-accounting-current"
+MEDIA = ROOT / "resources/DOS/POOLRAD"
+INPUT_EXIT = 4
 
 # Readiness states that leave a callee unusable as a dependency.
 UNREADY = {"untranslated", "resident_unmapped", "resident_callback",
@@ -50,6 +52,10 @@ UNREADY = {"untranslated", "resident_unmapped", "resident_callback",
 
 
 def media(root):
+    # Imported here, not at module scope: a checkout without Capstone must reach
+    # main()'s ENVIRONMENT MISSING message rather than dying on import.
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_16
+
     base = root / "resources/DOS/POOLRAD"
     exe = (base / "START.EXE").read_bytes()
     ovr = (base / "GAME.OVR").read_bytes()
@@ -102,10 +108,10 @@ def sole_blockers(strict_rows):
     return sole
 
 
-def price(root, limit_bytes=600, top=15):
+def price(root, queue_path, limit_bytes=600, top=15):
     image, ovr, units = media(root)
     md = Cs(CS_ARCH_X86, CS_MODE_16)
-    rows = json.loads((root / "resources/strict-candidate-queue/queue.json").read_text())["rows"]
+    rows = json.loads(Path(queue_path).read_text())["rows"]
     sole = sole_blockers(rows)
     priced = []
     for row in rows:
@@ -155,13 +161,80 @@ def price(root, limit_bytes=600, top=15):
     return priced[:top]
 
 
+def input_problem(queue_path, root=ROOT):
+    """Why the queue input is missing, and exactly what produces it.
+
+    The queue JSON is gitignored (2.7 MB, owner-media dependent), so a fresh
+    checkout does not have it. An environment error must not read as a tree
+    failure and must not read as "read the source to find out" either, so the
+    message names the two commands and the media requirement.
+    """
+    if Path(queue_path).is_file():
+        return None
+    accounting = root / "resources/function-accounting-current"
+    media_dir = root / "resources/DOS/POOLRAD"
+    products = [accounting / name for name in
+                ("inventory.json", "callgraph.json", "near.json")]
+    have_products = all(path.is_file() for path in products)
+    have_media = ((media_dir / "START.EXE").is_file()
+                  and (media_dir / "GAME.OVR").is_file())
+    if have_products and have_media:
+        return "generate"
+    steps = [
+        f"QUEUE INPUT MISSING: {queue_path} is not present - this is NOT a tree failure.",
+        "That file is gitignored and derived, never committed.",
+        "To create it (requires the owner's media under resources/DOS/POOLRAD):",
+        "  python3 tools/overlay/function_queue_audit.py --exe resources/DOS/POOLRAD/START.EXE \\",
+        "      --ovr resources/DOS/POOLRAD/GAME.OVR --out-dir resources/function-accounting-current \\",
+        "      --refresh-classification",
+        "  python3 tools/overlay/strict_candidate_queue.py \\",
+        "      --inventory resources/function-accounting-current/inventory.json \\",
+        "      --callgraph resources/function-accounting-current/callgraph.json \\",
+        "      --near-calls resources/function-accounting-current/near.json \\",
+        f"      --ovr resources/DOS/POOLRAD/GAME.OVR --repo . --json {queue_path}",
+        "Without the owner's media there is nothing to price; use a checkout that has it.",
+    ]
+    return "\n".join(steps)
+
+
+def generate_queue(queue_path, root=ROOT):
+    """Build the queue input from existing products; returns the completed path."""
+    queue_path = Path(queue_path)
+    queue_path.parent.mkdir(parents=True, exist_ok=True)
+    accounting = root / "resources/function-accounting-current"
+    command = [sys.executable, str(root / "tools/overlay/strict_candidate_queue.py"),
+               "--inventory", str(accounting / "inventory.json"),
+               "--callgraph", str(accounting / "callgraph.json"),
+               "--near-calls", str(accounting / "near.json"),
+               "--ovr", str(root / "resources/DOS/POOLRAD/GAME.OVR"),
+               "--repo", str(root), "--json", str(queue_path)]
+    print(f"generating the queue input (missing): {queue_path}")
+    done = subprocess.run(command, capture_output=True, text=True)
+    if done.returncode:
+        print((done.stderr or done.stdout).strip()[-400:])
+        raise SystemExit(INPUT_EXIT)
+    return queue_path
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--limit-bytes", type=int, default=600)
     parser.add_argument("--top", type=int, default=15)
+    parser.add_argument("--queue", type=Path, default=DEFAULT_QUEUE,
+                        help="derived queue JSON (auto-generated when its inputs exist)")
     args = parser.parse_args(argv)
-    priced = price(args.root, args.limit_bytes, args.top)
+    missing = gate.missing_dependencies()
+    if missing:
+        print(gate.environment_message(missing))
+        return gate.ENVIRONMENT_EXIT
+    problem = input_problem(args.queue, args.root)
+    if problem == "generate":
+        args.queue = generate_queue(args.queue, args.root)
+    elif problem:
+        print(problem)
+        return INPUT_EXIT
+    priced = price(args.root, args.queue, args.limit_bytes, args.top)
     print(f"{'id':<16}{'span':>6}{'cost':>8}{'rows':>5}{'B/row':>8}")
     for row in priced:
         flag = " +unknown" if row["unknown"] else ""
