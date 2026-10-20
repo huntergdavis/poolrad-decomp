@@ -1,11 +1,11 @@
 {
   "artifacts_sha256": {
     "classification": "304886351f920e5540ff1cdfb98fd33a7ee530c6132c254e36e546937760891c",
-    "full_c_map": "65f6696c7cec91b0bdebb40c3e1b08f8d96568694a61dd56db52249978fe118b",
+    "full_c_map": "c103026fad58c1523349904d8c1f3245b0ecad5f2a271990f714c01122b79f37",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "53dadc2d5d81a0ca44d0e978ce6abe08fadf4afea8d9b7adaff79873a717b47e",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "38beb39448ce7935f5f1c59b579d55b96f574224ea38061981dea86295242ea8",
+    "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
     "reviewed_identities": "5a9013c15ddd0c04fc2a4e992f3e10e3d97e35ea8ce174522ade062e871de5b9"
   },
   "inputs": {
@@ -13,11 +13,11 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "86f3b0e9886a1eb2cc790ad4c07cfa5bf24d26924d838629d577cfc36e2aa235",
+  "queue_sha256": "9b04734f31cf8aa367769fa5245e8c8fffffad66a3194c1a20a8127b01f169eb",
   "reviewed_change": {
-    "approval_reference": "acceptance of PRs #1158/#1159 in one record: OVL_03B9_048F [048F,04F8) 105 B/41 starts and OVL_03CE_014E [014E,01B0) 98 B/40 starts credited on reproduced differentials (626 and 978 cases, 1 MiB, masked_bits 0) and 128 native captures each; carries the two-row ledger extent repair (queue SHA-256 86f3b0e9886a1eb2...)",
+    "approval_reference": "acceptance of PR #1162: resident RES_00BA_1693 [1693,16EC) 89 B/44 starts credited after a 4-point mask-perturbation test proved the MMIO differential catches writes inside the 81.15% native-masked apertures; scope is the body (896/903 starts, 81/92 outcomes), no transitive claim; queue SHA-256 9eac01b4e6844d29...",
     "approved_by": "PM",
-    "batch": "1158-1159-bitmap-release",
+    "batch": "1162-res00ba-1693",
     "body_bytes": 50,
     "body_sha256": "3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad",
     "evidence_doc": "docs/re/U7D_UPDATE_03A3_NATIVE_ORACLE.md",
@@ -31,14 +31,14 @@
   "schema_version": 1,
   "strict_full_c_by_domain": {
     "overlay": 218,
-    "resident": 25
-  },
-  "strict_full_c_originals": 243,
-  "unknown_ownership": 520,
-  "verified_game_by_domain": {
-    "overlay": 263,
     "resident": 26
   },
-  "verified_game_identities": 289,
+  "strict_full_c_originals": 244,
+  "unknown_ownership": 519,
+  "verified_game_by_domain": {
+    "overlay": 263,
+    "resident": 27
+  },
+  "verified_game_identities": 290,
   "whole_game_denominator": "unknown"
 }
