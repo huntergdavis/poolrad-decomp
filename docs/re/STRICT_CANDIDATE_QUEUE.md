@@ -7,6 +7,11 @@ commit messages. It answers "what should the next strict translation be, and
 what has already been attempted?" — not "how complete is the game?". The
 whole-game denominator stays open and no completion percentage is calculated.
 
+## RES_00BA_16EC dependency band: closed on identity
+
+The three-hop floor is measured at **1,932 B**, but the route is blocked because four of the six 08AE dependency bodies have unresolved identity and the remaining two are environment endpoints requiring explicit contracts; [the 181A evidence note](RES_08AE_BYTE_181A_CPU.md) records the six-body verdict and the translated, uncredited leaf.
+Four ordinary helpers cannot be laundered through `declared_boundary`.
+
 ## Schema 9 metadata repair
 
 [QUEUE_METADATA_REPAIR.md](QUEUE_METADATA_REPAIR.md) records the original-byte
