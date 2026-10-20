@@ -30,9 +30,43 @@ end boundary. No higher-ranked substantive unimplemented caller was found;
 other ready source mentions were small prologues or already composed bodies.
 The U1C+271F queue extent also includes data (14 actual code bytes).
 
-The identity remains **helper_candidate / provisional**. Composable raw
-behavior does not establish game ownership or independent acceptance.
-This PR changes no classifier, callable ledger, or credit record.
+The classifier still says **helper_candidate / provisional**. Composable raw
+behavior alone does not establish game ownership or independent acceptance; the
+argument below is made under the two-factor standard. This change edits no
+classifier, callable ledger, manifest, checkpoint or credit record.
+
+## Identity under the two-factor standard (an argument, not a credit)
+
+The standard in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)
+needs a relocated call site inside game code **and** a subject of documented game
+state. Values below are from the CSVs and the media, re-derived here.
+
+1. **Reached from game code, relocated.** The queue lists 13 fixup-backed far
+   callers of the entry stub `03C5:0043`. Each lies inside a function that
+   `overlay_classification.csv` calls `game_evidenced`, except `OVL_001C_0F08`
+   (`game_verified`): `OVL_0086_008A` (+0279), `OVL_006F_069E` (+0782),
+   `OVL_006C_056C` (+091E, +0A33, +0D75, +0EDE), `OVL_001E_09D7` (+0C13),
+   `OVL_007F_0CEB` (+0F2E), `OVL_001C_0F08` (+106B), `OVL_006A_0FBC` (+13C3),
+   `OVL_0077_2156` (+2459), `OVL_0077_24A7` (+2749) and `OVL_006C_306D` (+3288).
+   **None of those functions is strict-credited**, so the basis is the
+   classification, not a credited caller.
+2. **Operates on documented game state.** The body frees a chain of 0x2E-byte
+   blocks linked at node+2Ah/+2Ch. That is exactly the node of the list at
+   `DS:4766/4768` that [U86_STRING_NODE_028D.md](U86_STRING_NODE_028D.md) documents:
+   46-byte nodes rounded to 48 by GetMem, link at +2Ah/+2Ch. `OVL_0086_028D` is in
+   both `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`. The
+   sibling [U86_LIST_BUILD_059C_CPU.md](U86_LIST_BUILD_059C_CPU.md) (also credited)
+   resets `DS:4766/4768` and "discards the old list pointer without freeing nodes",
+   so this routine is the disposal those two leave out. The caller
+   `OVL_0086_008A` at +0279 passes that global cell directly:
+   `mov di,4766h; push ds; push di; lcall 03C5:0043`.
+
+**Limits of the argument.** Only the `+0279` caller is shown to pass the
+`DS:4766` cell; the other twelve pass stack locals (`push ss; push di`), and this
+document does not claim that their lists are the same list. The node size and link
+offset are the same layout, which is what the body operates on. The stub
+`03C5:0043` is the overlay-manager entry stub; it is not modelled, and the
+model enters the body at +11F3 directly.
 
 ## Raw ABI and behavior
 
@@ -95,6 +129,12 @@ random lists and randomized background RAM. Semantic checks assert
 retained argument cells, sorted coalescing/top contraction for lists of
 1..64 nodes, exact partial stop frames and unchanged argument rejection.
 
+The native comparison covers the 14 CPU words, the 1,024-byte stack window, the
+65,536-byte DS segment and the 65,536-byte heap arena: **132,096 RAM bytes**. The
+other **916,480 bytes** of the 1 MiB space are excluded from it, because real DOS
+memory outside the captured windows is not reproducible by a flat-fill model; the
+original-byte oracle above compares all 1,048,576 bytes with no mask.
+
 Native fixtures are synthetic and cover return/RunError paths in initialized
 memory. They do not establish natural gameplay reach, native alias/limit/
 transfer parity, or a general memory-mapped hardware contract. An initial
@@ -105,6 +145,69 @@ the original full-memory audit. The C implementation and comparisons were
 unchanged. The failed native log/capture remain private. Final native input
 is reproduced byte-for-byte by the final harness, without repeating an
 unchanged native run when original-only cases were added.
+
+### Declared substitution: the DOSBox-X binary
+
+The native oracle is **not** the pinned DOSBox-X source build (git
+`5a9c7c53481c2e933948039c33256776653f4faf`). It is the packaged binary on PATH,
+`/usr/bin/dosbox-x`, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, reporting
+`DOSBox-X version 2026.01.02 SDL2`, run with `core=normal`, `cputype=386`,
+`cycles=max`. The receipt's `dosbox_x` block records path, hash and version. The
+pinned build was neither rebuilt nor re-run here. What could differ from it: the
+lazy-flag conventions (AF after OR/XOR/AND/TEST/MUL/DIV and non-zero shifts, OF after
+SHL, ZF/PF after MUL), the LES wraparound above FFFC and stack-offset wrap at FFFF.
+This body's only flag-setting instructions are `OR` and `SUB`; it also uses `LES`,
+moves, pushes, `POP`, jumps and the far call, and has no `ADD`, `INC`, shift, `MUL` or
+`DIV`; its profile keeps entry SP at or below FFF8 with nonwrapping
+return frames. All 14 CPU words, FLAGS included, matched in every replayed case, so no
+divergence was observed; that does not prove agreement with the pinned build on states
+the replay does not reach, and the composed FreeMem closure carries its own conventions.
+A reviewer who needs the pinned result must re-run the native harness with that binary.
+
+## Assertions the checker makes
+
+Beyond comparing every case, `u3b0_dispose_11f3_cpu_audit.py` asserts that a set of
+named fixtures reaches its expected stop (`empty`, `one`, `empty-bad-call` return;
+`bad-call-opcode`, `bad-call-target` CODE; `list-limit`, `list-limit-two` LIMIT;
+`bad-offset` CALLEE:2), that the caller is covered in full, and that the closure's
+only missing outcome is the named zero-size shortcut `0AF8:03D5->0431` with no missing
+start. The receipt stores every named fixture's measured stop (`named_stops`).
+
+## Checker registration
+
+`CHECKER_ROWS=('OVL_03B0_11F3',)` is declared in the audit, which implements
+`--compile-only` (it builds the model with the real SYSTEM FreeMem source and binds
+the entry point before reading any media, and prints `CHECKER_BUILD_OK`).
+**Gate run:** on main `b0f19a30` with this branch, `check_checker_builds.py OVL_03B0_11F3`
+reports `PASS: 1 actual checker builds for 1 rows`, `check_body_doc_pairing.py --base b0f19a30`
+reports every body and checker paired with evidence and registration, the focused CTest target
+`poolrad_u3b0_dispose_11f3_cpu_tests` builds from CMake and passes 1/1, and the ASan/UBSan C
+suite (`-Werror`) passes its 799 checks. `--compile-only` needs no media.
+
+The private receipt (`--unicorn --native --output`, generated at code commit `59d7f28f`, which the
+branch head carries unchanged apart from merges of main) has SHA-256 `b7f1c26663ac8d573fd09ce943fb4862c0694dd97db694483f70b182ea59b0ab`. It pins the
+media and the FreeMem span hashes, the Unicorn report with every named fixture's stop, and the native
+report including the `dosbox_x` binary block. A re-run of the final harness reproduced the previous
+RESULT.BIN hash `69417130…` bit-for-bit.
+
+## Readiness counterfactual (measured on the pinned queue)
+
+Ten candidate rows list this body as a callee: `OVL_007F_0CEB`, `OVL_006F_069E`,
+`OVL_006C_056C`, `OVL_0077_24A7`, `OVL_006C_306D`, `OVL_006A_0FBC`, `OVL_0077_2156`,
+`OVL_001E_09D7`, `OVL_001C_0F08` and `OVL_0086_008A`. It is already `modeled`, which
+the queue counts as ready, in all ten, and none is gated on it: a strict credit changes
+no readiness and unlocks no caller (zero delta). Per the queue rule for completeness
+declarations, no manifest row is proposed. The value of crediting it is the credit and
+the identity, not an unlock.
+
+## Proposed rows (text only; nothing here edits a CSV)
+
+    strict_full_c_addresses.csv:
+    OVL_03B0_11F3,docs/re/U3B0_DISPOSE_11F3_CPU.md
+
+    reviewed_function_identities.csv (review_pr and reviewed_commit are the acceptance PR's to fill):
+    OVL_03B0_11F3,docs/re/U3B0_DISPOSE_11F3_CPU.md,<review_pr>,<reviewed_commit>,ab914628d39b710f43ef46e48c393403e2d4e078df6fcf45207f4cf8f4b21dd8,82
 
 ## Reproduction and reuse
 

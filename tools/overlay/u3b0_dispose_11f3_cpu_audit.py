@@ -7,6 +7,11 @@ from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 import system_freemem_0254_audit as fm
 from u86_procvars_3413_audit import Cpu,ROOT,SIZE,REGISTERS,physical,put16
 check=fm.check
+CHECKER_ROWS=('OVL_03B0_11F3',)
+# Stop each reasoned fixture must reach: proves the path was reached, not inferred from the label.
+EXPECT={'empty':'return','one':'return','empty-bad-call':'return','bad-call-opcode':'CODE','bad-call-target':'CODE','list-limit':'LIMIT','list-limit-two':'LIMIT','bad-offset':'CALLEE:2'}
+# The one closure outcome this caller cannot reach: FreeMem's zero-size shortcut (this caller always pushes 0x2E).
+UNREACHABLE=['0AF8:03D5->0431']
 CS,SYSTEM,ENTRY,END=0x5000,0x0AF8,0x11F3,0x1245
 DS,SS,HEAP=fm.DS,fm.SS,fm.HEAP
 NAMES={0:'return',2:'CODE',3:'CALLEE',4:'TRANSFER',5:'LIMIT'}
@@ -145,23 +150,27 @@ def compare(label,m,c,decoded,conditional,f,cap=64,heap_cap=64,system=SYSTEM):
     return s,inner.value,seen,edges
 
 def differential(image,blob,decoded,conditional,f):
-    seen,edges,stops=set(),set(),{};rng=random.Random(0x113F)
+    seen,edges,stops,named=set(),set(),{},{};rng=random.Random(0x113F)
     for label,opts in cases():
         opts=dict(opts);cap=opts.pop('cap',64);heap_cap=opts.pop('heap_cap',64)
         m,c=build(image,blob,rng,**opts)
         s,inner,v,e=compare(label,m,c,decoded,conditional,f,cap,heap_cap,opts.get('system',SYSTEM));seen|=v;edges|=e
         name=NAMES[s]+(f':{inner}' if s==3 else '');stops[name]=stops.get(name,0)+1
-        if not label.startswith('random-'):print(label,name,flush=True)
+        if label in EXPECT:check(name==EXPECT[label],f'fixture {label} reached {name}, expected {EXPECT[label]}')
+        if not label.startswith('random-'):named[label]=name;print(label,name,flush=True)
     caller={k for k in decoded if k[0]==CS};caller_edges={(a,b) for a,pair in conditional.items() if a[0]==CS for b in pair}
     check(caller<=seen and caller_edges<=edges,'caller coverage incomplete')
     report=dict(cases=sum(stops.values()),stops=stops,cpu_words=14,ram_bytes=SIZE,caller_starts=len(caller&seen),caller_total=len(caller),caller_outcomes=len(caller_edges&edges),caller_outcomes_total=len(caller_edges),closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_starts=[f'{s:04X}:{i:04X}' for s,i in sorted(set(decoded)-seen)],missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)])
+    check(not report['missing_starts'] and report['missing_outcomes']==UNREACHABLE,f'closure coverage: {report["missing_starts"]} {report["missing_outcomes"]}')
+    report['named_stops']=named
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
-    image,blob,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='u3b0-11f3-') as tmp:
         f=library(Path(tmp))
+        if a.compile_only:print('CHECKER_BUILD_OK');return
+        image,blob,decoded,conditional,digests=source();report=dict(target=digests)
         if a.unicorn:report['unicorn']=differential(image,blob,decoded,conditional,f)
         if a.native:
             from u3b0_dispose_11f3_cpu_native import native_audit
