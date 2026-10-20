@@ -82,6 +82,8 @@ reached dependency return frame must fit inside SS:0000..FFFF, including
 after alias-induced frame changes. Interrupts, faults and self-modifying
 code are outside this profile.
 
+**Stack-top RETF wrap: unreachable inside this window (reviewer-added 2026-10-20, VP i19693).** With entry SP E in [0140,FFFA], SYSTEM GetMem `0AF8:023F` (called at `+02AE`, `+031F` and `+039C`) is entered at E−10Eh (`PUSH BP`, `SUB SP,106h`, the size word and the far return), i.e. in [0032,FEEC]. Its own far return executes at the entry SP, because the frame is balanced, so at most FFFA. None of these ranges reaches FFFE/FFFF. That is the only band where DOSBox-X wraps a RETF's CS word within SS while the merged SYSTEM models and Unicorn read it contiguous ([REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#retf-stack-top-wrap-a-recorded-class-deliberately-not-swept-2026-10-20)). The window, not a measurement, keeps the band out of reach, and a caller outside the window is outside the contract.
+
 max_list_visits must be positive and counts visits to +02D4, including
 the terminal node. LIST_LIMIT stops before the next such instruction.
 GetMem's max_heap_steps resets per allocation and counts taken free-list
