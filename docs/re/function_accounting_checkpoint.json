@@ -3,7 +3,7 @@
     "classification": "0163878a687e1f21483db8c0b52e9413768f1dc0cdad1b7df1ba97372ec14bab",
     "full_c_map": "33713c24e7fa839b0d147048f0e224afcb4dfd08b524b248a73f2c2ddbad4574",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
-    "ledger": "d38e4efed2df4cfaf6c30280dc643bb4aff22780387bf4c98d3925df53a6278f",
+    "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
     "reviewed_identities": "48e3303e1e44d956cb37dfe3c0f123e3f7231c983e7bcecada00d05b52ec26ae"
@@ -13,7 +13,7 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "aa3bad916a806fbee3e0d6f2532dc28c26a6923c25c444af98cf36ff373f95ff",
+  "queue_sha256": "1e5dd48106c8b7ef84ecb32ff123956ab8a8e94c3d41ced1d23abaf3027520a6",
   "reviewed_change": {
     "approval_reference": "acceptance of PR #1224 (VP i19765/i19768, reviewer par-e): OVL_0038_12B2 [12B2,12FB) 73 B/28 starts credited on the reproduced exhaustive differential (65,814 cases incl. all 65,536 B[+3] x A[+10Eh] values; wrapper 28/28, composed +0C06 6/6, 2/2 outcomes; CPU14 + 1,048,576 B) and 48 native DOSBox-X cases (declared substitution 99d74601); identity A2: entries[41]=+12B2, stub 0041:00ED = 0x20+5*41, stored into slot 49 (DS:68EC) by strict-credited OVL_0038_31A2 at +3415..+3421, segment word relocated at +3419; factor 2: B+3 bit 10h vs A+10Eh, near call to strict +0C06, DS:6822/6816 decrements; no item-49 dispatch execution observed (stated limit)",
     "approved_by": "PM",
