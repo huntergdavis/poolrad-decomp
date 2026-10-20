@@ -163,7 +163,7 @@ def native_audit(ctx,function):
         name='return' if status==OK else 'RunError204';stops[name]=stops.get(name,0)+1
     binary=subprocess.run(['which','dosbox-x'],capture_output=True,text=True).stdout.strip()
     probe=subprocess.run(['dosbox-x','--version'],capture_output=True,text=True)
-    version=[l.strip() for l in (probe.stdout+probe.stderr).splitlines() if l.strip()][-1:]
+    version=[l.split(',')[0].strip() for l in (probe.stdout+probe.stderr).splitlines() if l.strip().startswith('DOSBox-X version')][:1]
     dosbox=dict(path=binary,sha256=sha256(Path(binary).read_bytes()).hexdigest(),version=version[0] if version else '',pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)')
     report=dict(dosbox_x=dosbox,cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',confinement=dict(CONFINED),stub='synthetic loaded EA jump 03E9:002F -> U3CE +014E')
     print('Native parity:',report,flush=True);return report
