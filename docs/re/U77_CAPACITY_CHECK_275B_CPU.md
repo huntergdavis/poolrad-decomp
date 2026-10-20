@@ -71,6 +71,27 @@ i.e. a value whose sum with 1500 keeps bit 15 set.
 with `EXCLUSION NO LONGER TRUE` if any fixture later reaches one of these
 starts or sides, so the document cannot drift into a coverage claim.
 
+## Status: uncredited WIP, with a named blocker
+
+The differential, exclusions, unit test and CMake target are complete. The
+**native corroboration is not**, so nothing here is credited and no PR is open.
+The blocker, for whoever picks this up:
+
+* **Symptom:** `RESULT.BIN` is created and is **0 bytes**. The COM starts and
+  faults **inside the case loop**, so this is not a launch failure.
+* **Three fixes already applied**, each of which moved the fault later, so the
+  capture shape is sound: `mov ...,ip` is not encodable (the return label is
+  recorded instead and **IP is declared not-compared**); the arguments were
+  being pushed **before** the stack switch and were discarded; and the body had
+  been copied into the COM's own `CS` while the far call targeted another
+  segment (now a dedicated `0x4000` caller segment, as in the 048F template).
+* **What exists and is usable:** the stub build (`tools/overlay/u77_275b_native_stubs.c`,
+  `RETF 4` semantics matching the C model's stub path), the two declared stub
+  sites (`00BA:0BB8`, `00BA:13AB`), 26 per-case fixture blocks, and the
+  five-point declaration in `tools/overlay/u77_275b_cpu_native.py`.
+* **Narrow next step:** instrument the loop to write **one** case and flush,
+  then bisect between the fixture read and the write.
+
 ## Limits
 
 - The differential runs the caller's bytes from a **synthetic entry frame**. No
