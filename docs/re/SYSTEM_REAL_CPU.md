@@ -170,7 +170,17 @@ needs the pinned result must re-run the native harness with that binary.
 `system_real_cpu_audit.py` declares `CHECKER_ROWS=('RES_0AF8_1186','RES_0AF8_119A','RES_0AF8_119E')` (the SYSTEM
 segment ids in the row-id form the gate accepts) and implements `--compile-only` through the same `library()`
 build, printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+**Gate run:** on main `bc94f64f` with this branch, `check_checker_builds.py RES_0AF8_1186 RES_0AF8_119A RES_0AF8_119E`
+reports `PASS: 1 actual checker builds for 3 rows`, `check_body_doc_pairing.py --base bc94f64f` reports every body
+and checker paired with evidence and registration, and the focused CTest target builds from CMake and passes 1/1.
+
+The private receipt (`--unicorn --native --output`, generated at code commit `a18e8701`, which the branch head carries
+unchanged apart from this document and merges of main) has SHA-256
+`a1068edb56929b1db29f60c49f5dba182b31359faa0547ea64d8ffccd98f352e`. It pins the media, the six body hashes, the
+instruction mix, the Unicorn report with every named fixture's stop and the native report including the `dosbox_x`
+block.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/system_real_cpu_audit.py --unicorn --native --output resources/real.json
     cc -std=c11 -Wall -Wextra -Wpedantic -Werror -g -fsanitize=address,undefined -fno-omit-frame-pointer -I include tests/recovered/test_system_real_cpu.c src/recovered/system_real_cpu.c -o resources/semantic-test
