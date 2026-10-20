@@ -11,8 +11,8 @@ is fixed by two independent game-side structures:
 1. **The overlay public-entry table.** START.EXE's unit-0x38 entry table maps an
    entry index to an original far stub; the stub is the address the game calls.
 2. **The effect-table installer** `U38_EFFECTS_INSTALL_31A2.md`
-   (`game_or_other_library_unresolved` by classifier, but documented as the game
-   effect initializer): 138 four-MOV pointer groups writing `DS:682C..6A57`,
+   (identity- and strict-credited since PR #467 (reviewed commit `aca640cf`, accounted in `21b65e9a` on 2026-10-14); the earlier
+   `game_or_other_library_unresolved` label here predated that accounting): 138 four-MOV pointer groups writing `DS:682C..6A57`,
    consumed by the dispatcher at `DS:6828 + 4*type`.
 
 Both must agree on the stub for the mapping to count as ownership evidence. The
@@ -57,7 +57,10 @@ audit, and the packet is not a blanket credit.**
 
 ## Limits
 
-The installer's own classification stays `game_or_other_library_unresolved`; the
-packet uses it as a documented game-side structure, not as a classifier override.
+The installer `OVL_0038_31A2` is identity- and strict-credited since PR #467 (reviewed commit `aca640cf`, accounted in `21b65e9a` on 2026-10-14).
+An earlier version of this sentence said its classification stayed
+`game_or_other_library_unresolved`; that label predated the accounting and is stale.
+With a credited installer, the effect table satisfies the identity design's A2 test
+(game-owned table, slot arithmetic checked).
 An entry index or a slot alone is not sufficient — both must resolve to the same
 stub. No row here is credited by this document.
