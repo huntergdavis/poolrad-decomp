@@ -90,3 +90,78 @@ Four queue extents exceed the first-return span:
 
 The static pricing script is not checked in; its output is reproducible from
 the queue export and media using the method above.
+
+## Full-closure prices and the 08AE gateway (2026-10-20, par-d)
+
+The tables above price **one hop**. The queue's own rule is that an unready callee
+that is itself a chain makes the one-hop figure a floor. This section walks the whole
+closure with [`price_row_closures.py`](../../tools/overlay/price_row_closures.py) (overlay
+callees from the queue export, resident callees decoded from the loader-expanded
+START.EXE, SYSTEM endpoints against `RUNTIME_COVERED_ENDPOINTS`, strict-credited resident
+bodies as terminals), on the same queue export as the tables above.
+
+### Correction to the shared-blocker table
+
+`RES_0464_0111` is priced there at "≥404 B (154 insns, 15 calls)". That is the body
+alone: 404 B / 154 instructions, sole `RETF 0Eh` at +02A2. Its near call at +0286 goes to
+the next body `RES_0464_02A5` (1,583 B / 604 insns), and its far callee `RES_0802_0716` is
+564 B / 242 insns with 30 calls. **Closure: 31 bodies, 5,653 B, eight uncovered SYSTEM
+endpoints** (`0AF8:00E9`, `04A9`, `1410`, `1491`, `14FB`, `1563`, `1593`, `16BC`) **and a path
+into the 08AE driver (below).** `RES_0464_1E5C` is the opposite: its closure is three bodies,
+1,933 B (`1E5C` 1,586 B, `007B` 84 B, `248E` 263 B), with no uncovered endpoint and no
+driver call. It is clean, but it clears no row alone: `OVL_03CE_01C8` also needs `0111`, and
+`OVL_006F_0482` needs `01C8`, `1E5C`, `0802:094A` and `0802:095D`.
+
+### Closure per row (tool output)
+
+| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | 08AE entries (gateway bodies) | Dispatch |
+| --- | ---: | ---: | ---: | --- | --- |
+| OVL_0025_1684 | 7133 | 26 | 3 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_006F_0482 | 8629 | 36 | 8 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_0077_299C | 8917 | 30 | 2 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_006F_0010 | 2117 | 18 | 10 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_006F_22D5 | 10296 | 34 | 17 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_0025_1CC3 | 301 | 1 | 3 | none | none |
+| OVL_006F_1262 | 10113 | 39 | 8 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_0025_0511 | 9281 | 40 | 8 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_03CE_01C8 | 8059 | 33 | 8 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+| OVL_0025_0411 | 4309 | 29 | 8 | 08AE:00DC <- RES_0899_0000, RES_0899_0059; 08AE:017B <- RES_0899_0059 | none |
+
+(`OVL_009E_0026`, `OVL_005E_0123` and `OVL_009E_02FA` are not in this table: their blocker is the
+unresolved indirect dispatch `009E_0160 -> 009E_0000`, not size.)
+
+### The 08AE gateway: what the owner's policy decision costs, in rows
+
+In all nine rows that reach the driver segment, **the only path to `RES_08AE` goes through two
+resident bodies at segment 0899**: `RES_0899_0000` (51 B / 19 insns), which reaches
+`08AE:00DC`, and `RES_0899_0059` (171 B / 61 insns), which reaches `08AE:00DC` and
+`08AE:017B`. No other body in any of the nine closures calls the driver segment. Every row
+hinges on **both** entries, because every closure contains both gateway bodies; none hinges on
+`017B` alone. The nine rows are `1684`, `0482`, `299C`, `0010`, `22D5`, `1262`, `0511`, `01C8` and
+`0411`. `OVL_0025_1CC3` is the only identity-cleared blocked row with no driver path.
+
+The [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records why the driver internals give no
+game-credit route and that reopening needs an owner-level decision. This measurement gives that
+decision a price: it is the precondition for **nine rows**. It is not sufficient for any of them.
+After the two gateways, each closure still carries at least 2 KB of other bodies and, for eight
+of the nine, two or more uncovered SYSTEM endpoints. Secondary exposures that the walk lists
+but this section does not price: far targets `0A32:000B` (all nine) and `0A32:00A2` (`1684`, `299C`,
+`22D5`) and `0428:002A` (`299C`).
+
+Method limit: a resident body is priced by its first-return span, which can over-include a
+neighbouring entry stub (measured below: 80 B by span, 12 B by control flow), so closure bytes are
+not exact floors. The gateway finding does not depend on sizes; it depends on the two decoded far
+calls and the absence of any other call to the driver segment in the closures.
+
+### `OVL_0025_1CC3`: the one row with a different blocker
+
+`1CC3` (301 B) already has a model on main. Its three unready callees are SYSTEM 6-byte Real
+entry points, `0AF8:1186`, `0AF8:119A` and `0AF8:119E`, with no driver path. By control flow
+(following jumps and near calls, treating the jump to the `0AF8:00E2` RunError entry as the stop
+boundary) their closure is **448 B in six bodies**: core `0F33` 263 B, `1118` 92 B, `10D9` 63 B,
+and wrappers `1186` 12 B, `119A` 4 B, `119E` 14 B. A scan of those bodies finds no `IN`, `OUT`,
+`INT`, `HLT`, `CLI` or `STI` and no control-register operand. They are pure register arithmetic
+with the stack and the RunError stop. The three entries gate exactly one row outright (`1CC3`; three
+more rows list them among other blockers). That is about 448 B per cleared row, against at least
+2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
+
