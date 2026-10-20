@@ -25,6 +25,17 @@ whole-game denominator is unknown — never state a completion percentage.
    credits. The partial-callee manifest is callee *readiness*, never a credit
    gate. A strict-credit upgrade applies only when the identity row already
    exists.
+8. **Every limit the evidence relies on must be stated in the document that
+   carries the claim**, and a reviewer-added limit is labelled as such. An
+   unstated pre-condition is silently load-bearing: the U33 caller's document
+   stated its stack-pointer range but not heap well-formedness, so the reviewer
+   added that limit to the dependency contract and attributed it. Credit is
+   never granted on an assumption the document does not carry.
+9. **Record resident credits in the right place.** Resident identities live in
+   `GAME_SPECIFIC_TARGETS` plus `strict_full_c_addresses.csv` and nowhere else;
+   `reviewed_function_identities.csv` is overlay-only, and adding resident rows
+   there double-counts the resident total.
+
 7. **No self-credit, no self-merge.** An acceptance PR records strict + identity
    + the schema-9 checkpoint together, quotes author caveats verbatim, and
    leaves merging to the VP when it touches accounting.
