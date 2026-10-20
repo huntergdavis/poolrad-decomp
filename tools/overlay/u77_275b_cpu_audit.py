@@ -56,7 +56,6 @@ REGISTERS = ((UC_X86_REG_AX, "ax"), (UC_X86_REG_BX, "bx"), (UC_X86_REG_CX, "cx")
 # Named exclusions, with their evidence. The bar is "every start and every
 # feasible outcome, or say which one and why" - never a widened mask.
 #
-# 0x277B (`mov byte [bp-2],1` on the type>15 path) is unreachable in this
 # 0x277B needs no exclusion. 00BA:0BB8 zeroes target +0xC7 and then walks the
 # item chain at +0xC8/+0xCA, executing `inc byte es:[di+0xC7]` at 0C2C once per
 # node (each node's next pointer sits at +0x2A/+0x2C). Fixtures with a NULL chain

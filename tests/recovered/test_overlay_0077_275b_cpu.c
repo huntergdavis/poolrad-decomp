@@ -24,11 +24,6 @@ static void put16(uint16_t segment, uint16_t offset, uint16_t value)
     ram[(at + 1) & MASK] = (uint8_t)(value >> 8);
 }
 
-static uint16_t get16(uint16_t segment, uint16_t offset)
-{
-    size_t at = physical(segment, offset);
-    return (uint16_t)(ram[at] | (ram[(at + 1) & MASK] << 8));
-}
 
 /* Frame: return IP/CS at SS:SP, then the two far pointers, 8 argument bytes. */
 static void frame(uint16_t target_segment, uint16_t target_offset,

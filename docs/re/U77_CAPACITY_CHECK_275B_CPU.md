@@ -33,11 +33,15 @@ Both enclosing functions are `game_evidenced`, and both callees this body compos
 behaviour — the capacity comparison over item quantity, count and a 1500
 constant — matches the record/list fields the credited residents maintain.
 
-**`+0x102` is zeroed by the resident.** `00BA:0BB8` writes zero to
-`es:[di+0x102]` at `0C09`-`0C14`, so the base word the compare reads is **always
-0** at that point. An earlier version of this document described six fixtures
-that varied it as "sign-edge" cases; **that claim is withdrawn** - those fixtures
-exercise the resident, not the compare.
+**`+0x102` is rewritten by the resident, not merely zeroed.**
+`00BA:0BB8` sets it to 0 at `0C14`, then runs `add es:[di+0x102], ax` at `0C5A`
+once per chain node (`ax` is quantity x count, and the `jbe 0C54` path still adds
+the quantity when the count is 0). So the fixture's pre-set value never reaches
+the compare: it is **0 for a null chain and 48 / 60 for the 16- and 20-node
+fixtures** (16x3, 20x3). `0C09` writes `+0x100`, a different field. An earlier
+version of this document described six fixtures that varied `+0x102` as
+"sign-edge" cases; **that claim is withdrawn** - those fixtures exercise the
+resident, not the compare.
 
 ## Differential
 
