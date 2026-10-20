@@ -68,6 +68,19 @@ int main(void)
     CHECK(pr_r0709_skip_spaces_0714_cpu(NULL, RAM, &cpu, 9) == PR_R0709_SKIP_ARGUMENT);
     CHECK(pr_r0709_skip_spaces_0714_cpu(ram, RAM - 1u, &cpu, 9) == PR_R0709_SKIP_ARGUMENT);
 
+    /* Entry SP FFFE: IP at SS:FFFE, CS and P wrap to SS:0000/0002. The physically next bytes
+     * (SS*16+10000h) hold a decoy CS 0BADh that must not be read. */
+    cpu = frame(0, 4, "  AB");
+    cpu.sp = 0xFFFEu;
+    ram[at(0xFFFEu)] = 0x00; ram[at(0xFFFFu)] = 0x70;
+    ram[at(0x0000u)] = 0x01; ram[at(0x0001u)] = 0x70;
+    ram[at(0x0002u)] = (uint8_t)P; ram[at(0x0003u)] = (uint8_t)(P >> 8);
+    ram[(((size_t)SS0 << 4) + 0x10000u) & (RAM - 1u)] = 0xAD; ram[(((size_t)SS0 << 4) + 0x10001u) & (RAM - 1u)] = 0x0B;
+    CHECK(pr_r0709_skip_spaces_0714_cpu(ram, RAM, &cpu, 9) == PR_R0709_SKIP_OK);
+    CHECK(cpu.cs == 0x7001u && cpu.ip == 0x7000u && cpu.sp == 0x0004u && cpu.di == P + 2u && ram[at(P - 0x103u)] == 2);
+    /* PUSH BP landed at SS:FFFC (no wrap needed) and was popped back. */
+    CHECK(cpu.bp == 0x7777u && ram[at(0xFFFCu)] == 0x77 && ram[at(0xFFFDu)] == 0x77);
+
     free(ram);
     printf("skip spaces 0714: %u checks passed\n", checks);
     return 0;
