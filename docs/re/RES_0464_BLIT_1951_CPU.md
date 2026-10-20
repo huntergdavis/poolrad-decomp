@@ -76,8 +76,9 @@ behaviour, and the model follows that (see *Aliases*). The function ends
 
 ## Validation
 
-Receipt: 2026-10-20 13:13:38–13:14:14 PDT, main `84da517f` plus this branch
-(resources/1951/final.json, ignored, SHA-256 `e59fc3a8…2670`).
+Receipt: 2026-10-20 13:48:21–13:51:20 PDT on this branch, with the `dosbox_x`
+block (resources/1951/final.json, ignored, SHA-256 `039494a0…3676`). It
+reproduces the 13:13 receipt exactly; RESULT.BIN is unchanged.
 
 **Unicorn: 94 original-byte cases** compare unmasked CPU14, all 983,040
 ordinary RAM bytes, the ordered OUT stream (473 OUTs) and the ordered A000
@@ -136,6 +137,39 @@ natively; its effect is compared through the planes. EGA sequencer registers
 are write-only, so the final `OUT 3C5h,0Fh` is not natively observable. It is
 covered by the Unicorn OUT stream and the C test. The native sample is not
 1 MiB evidence and repeats none of the alias, limit or port cases.
+
+### Declared substitution: the DOSBox-X binary
+
+The native oracle is **not** the pinned DOSBox-X source build (git
+`5a9c7c53481c2e933948039c33256776653f4faf`). It is the packaged binary
+`/usr/bin/dosbox-x`, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, reporting
+`DOSBox-X version 2026.01.02 SDL2` (Debian package `2026.01.02+dfsg-2`). It runs
+with `machine=ega`, `core=normal`, `cputype=386` and `cycles=max`. The receipt's
+`dosbox_x` block records path, hash and version. The pinned build was neither
+rebuilt nor re-run here.
+
+What could differ from the pinned build:
+
+- lazy-flag conventions: AF after OR/XOR/AND/TEST, MUL/DIV and non-zero
+  shifts; OF after SHL with counts above 1; ZF/PF after MUL;
+- LES wraparound above offset FFFC;
+- stack-offset wrap at FFFF;
+- EGA write-path details.
+
+**SHL insulation.** This body's undefined-flag producers are SHL (AF, and OF
+for the `SHL AX,CL` counts). The audited 386 behaviour sets AF = 1 after a
+non-zero shift where the model uses AF = 0. The per-producer path analysis
+above shows every such AF/OF dead before every compared stop: each is
+overwritten by a later flag writer before any branch, OUT, LIMIT stop or
+RETURN, or, for SHL DI,1 at +19CC/+1B29, by Move's `CMP SI,DI` before any Move
+stop. The only stop that could expose them is the model-only CONTRACT stop,
+which no oracle compares. The 40/40 native equality, FLAGS included, is
+consistent with that. It does not prove agreement with the pinned build on
+states the replay does not reach. The native frames sit at SS:F000 and
+below, so they do not exercise LES or stack wrap at FFFF, and the native
+sample has no alias, LIMIT or PORT cases. A reviewer who needs the pinned result
+must re-run the native harness with that binary.
 
 Four native mismatches during development were **harness** defects, each
 diagnosed and fixed before this receipt; the model was not changed for any

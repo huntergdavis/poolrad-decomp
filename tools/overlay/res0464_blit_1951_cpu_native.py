@@ -110,7 +110,7 @@ def native(code, lib):
     if out.exists():
         out.unlink()
     with (directory / 'dosbox.log').open('w') as log:
-        subprocess.run(['dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
+        subprocess.run(['/usr/bin/dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=600)
     result = out.read_bytes()
@@ -138,6 +138,12 @@ def native(code, lib):
         if mine != rec[30:]:
             diff = [i for i, (a, b) in enumerate(zip(mine, rec[30:])) if a != b]
             raise ValueError(f'native memory {n}: first {[hex(i) for i in diff[:6]]} ({len(diff)} bytes)')
-    return dict(cases=len(specs), cpu_words=14, stack_bytes=WINDOW, segment_bytes=3 * 65536, plane_bytes=4 * 65536,
+    binary = '/usr/bin/dosbox-x'
+    probe = subprocess.run([binary, '--version'], capture_output=True, text=True,
+                           env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'))
+    version = next(line.split(',')[0].strip() for line in (probe.stdout + probe.stderr).splitlines() if 'DOSBox-X version' in line)
+    dosbox_x = dict(path=binary, sha256=sha256(open(binary, 'rb').read()).hexdigest(), version=version,
+                    pinned_source='5a9c7c53481c2e933948039c33256776653f4faf', pinned_build_used=False)
+    return dict(cases=len(specs), dosbox_x=dosbox_x, cpu_words=14, stack_bytes=WINDOW, segment_bytes=3 * 65536, plane_bytes=4 * 65536,
                 flag_masks=0, machine='ega', video_mode='0Dh', core='normal', cpu='386', result_sha256=sha256(result).hexdigest(),
                 com_segment=f'{segment:04X}')
