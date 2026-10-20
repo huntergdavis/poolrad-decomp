@@ -255,6 +255,11 @@ Measured against the standard used to credit other rows:
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
 
+**Reproduce this table with** `python3 tools/overlay/price_candidates.py`. The
+script is committed beside the numbers on purpose: a wrong price should cost a
+ten-minute re-run, not an argument. Its own docstring carries the two method
+rules below, so the method travels with the code that implements it.
+
 **The identity-known-but-untranslated trap list (44 callees, 26 rows).** These
 are overlay bodies whose **identity is settled** (`game_verified`) but which have
 **no strict C body**, so a pricer that treats identity as readiness will price
