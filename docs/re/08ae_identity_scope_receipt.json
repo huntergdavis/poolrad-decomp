@@ -1,0 +1,320 @@
+{
+  "baseline": "a32aa524",
+  "disposition": "VP i19467: closed by policy; driver role established, authorship unresolved",
+  "media": {
+    "exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd",
+    "ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
+    "expanded_sha256": "a42a57e68d3f7815831821cc9365bb917befda45a58e958544451fc7a878df8e"
+  },
+  "strict_map_sha256": "c103026fad58c1523349904d8c1f3245b0ecad5f2a271990f714c01122b79f37",
+  "direct_leaf_overlay_calls": {
+    "08AE:181A": 0,
+    "08AE:1742": 0,
+    "08AE:17AE": 0,
+    "08AE:006C": 0
+  },
+  "overlay_reference_columns": [
+    "unit",
+    "call_site",
+    "target_offset",
+    "ledger_owner",
+    "strict_credited"
+  ],
+  "overlay_references": [
+    [
+      "001C",
+      "2D8C",
+      "00DC",
+      "OVL_001C_2CCF",
+      false
+    ],
+    [
+      "001C",
+      "2D9C",
+      "00DC",
+      "OVL_001C_2CCF",
+      false
+    ],
+    [
+      "001C",
+      "34D3",
+      "00DC",
+      "OVL_001C_32F8",
+      false
+    ],
+    [
+      "0036",
+      "0464",
+      "01A5",
+      "OVL_0036_002D",
+      false
+    ],
+    [
+      "005E",
+      "0876",
+      "00DC",
+      "OVL_005E_0712",
+      false
+    ],
+    [
+      "005E",
+      "145D",
+      "00DC",
+      "OVL_005E_1406",
+      false
+    ],
+    [
+      "005E",
+      "16FA",
+      "00DC",
+      "OVL_005E_1406",
+      false
+    ],
+    [
+      "005E",
+      "1778",
+      "00DC",
+      "OVL_005E_1406",
+      false
+    ],
+    [
+      "005E",
+      "2816",
+      "01A5",
+      "OVL_005E_26B0",
+      false
+    ],
+    [
+      "005E",
+      "281F",
+      "00DC",
+      "OVL_005E_26B0",
+      false
+    ],
+    [
+      "005E",
+      "2865",
+      "00DC",
+      "OVL_005E_26B0",
+      false
+    ],
+    [
+      "005E",
+      "286E",
+      "01A5",
+      "OVL_005E_26B0",
+      false
+    ],
+    [
+      "0068",
+      "0742",
+      "00DC",
+      "OVL_0068_073B",
+      false
+    ],
+    [
+      "0068",
+      "0B14",
+      "00DC",
+      "OVL_0068_0989",
+      false
+    ],
+    [
+      "0068",
+      "0B59",
+      "00DC",
+      "OVL_0068_0989",
+      false
+    ],
+    [
+      "0068",
+      "1037",
+      "00DC",
+      "OVL_0068_0D6D",
+      false
+    ],
+    [
+      "0086",
+      "0DF0",
+      "01A5",
+      "OVL_0086_0C20",
+      false
+    ],
+    [
+      "0086",
+      "0E00",
+      "00DC",
+      "OVL_0086_0C20",
+      false
+    ],
+    [
+      "0086",
+      "0E0F",
+      "00DC",
+      "OVL_0086_0C20",
+      false
+    ],
+    [
+      "0086",
+      "0E1A",
+      "00DC",
+      "OVL_0086_0C20",
+      false
+    ],
+    [
+      "0086",
+      "0E3E",
+      "01A5",
+      "OVL_0086_0C20",
+      false
+    ],
+    [
+      "0086",
+      "16DD",
+      "01A5",
+      "OVL_0086_1658",
+      false
+    ],
+    [
+      "0086",
+      "16E6",
+      "00DC",
+      "OVL_0086_1658",
+      false
+    ],
+    [
+      "0086",
+      "1736",
+      "01A5",
+      "OVL_0086_1658",
+      false
+    ],
+    [
+      "03C6",
+      "0E1A",
+      "01A5",
+      "OVL_03C6_0E11",
+      false
+    ],
+    [
+      "03C6",
+      "0E2A",
+      "00DC",
+      "OVL_03C6_0E11",
+      false
+    ],
+    [
+      "03C6",
+      "100E",
+      "00DC",
+      "OVL_03C6_0E11",
+      false
+    ],
+    [
+      "03C6",
+      "109C",
+      "01A5",
+      "OVL_03C6_0E11",
+      false
+    ]
+  ],
+  "overlay_references_all_far_calls": true,
+  "resident_leaf_far_pointer_relocations": [],
+  "unit_strict_row_counts": {
+    "001C": 11,
+    "0036": 0,
+    "005E": 7,
+    "0068": 8,
+    "0086": 8,
+    "03C6": 11
+  },
+  "strict_ports": {
+    "scope": "Direct instructions from strict roots; calls not expanded; indirect jumps recorded as gaps; DX destinations not inferred",
+    "bodies": 244,
+    "ports": [
+      {
+        "id": "RES_0709_01DF",
+        "ports": [
+          {
+            "site": "03AD",
+            "mnemonic": "out",
+            "operands": "dx, al"
+          },
+          {
+            "site": "03D5",
+            "mnemonic": "out",
+            "operands": "dx, al"
+          },
+          {
+            "site": "0470",
+            "mnemonic": "out",
+            "operands": "dx, al"
+          }
+        ]
+      }
+    ],
+    "gaps": []
+  },
+  "native_existing": [
+    {
+      "file": "bp-u68-0742-ram.bin",
+      "bytes": 655360,
+      "sha256": "2c231a83bee1655a737ceb48cbc877bb66aff85e31b0f48cf5d1b1cd6d94309e",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    },
+    {
+      "file": "bp-res-1742-arg9-ram.bin",
+      "bytes": 655360,
+      "sha256": "44d0f9c46494487907b3db3ee5aa1b5ee68799ba49e9807e7a9aacd18cfe198f",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    },
+    {
+      "file": "bp-res-006c-ram.bin",
+      "bytes": 655360,
+      "sha256": "7587274616be62887c89d4b9f93555b3ccedc2669b67d441ed66935f3469feea",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    },
+    {
+      "file": "bp-res-17ae-arg0-ram.bin",
+      "bytes": 655360,
+      "sha256": "a7229f7c9bf63549d8eb12b78d3a88002aa9d17b85b4b57b83f36e82a337a48c",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    },
+    {
+      "file": "bp-res-1742-arg0-ram.bin",
+      "bytes": 655360,
+      "sha256": "c30135de53d709a888844d94d71015badf997568ecec14e7089f9fb3c5a3d9d5",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    },
+    {
+      "file": "bp-u68-0747-ram.bin",
+      "bytes": 655360,
+      "sha256": "455f22ee6705bb6aaddeb6adb23bbc0d89ac97b4519165123739a21a92326e20",
+      "data_tables_equal_media": true,
+      "resident_byte_020D": 1,
+      "game_mode_5372": 1,
+      "game_active_5374": 100
+    }
+  ],
+  "private_receipt_sha256": {
+    "08ae-identity-scope.json": "feac43aa72c3d1433ecbdc3d8d6d7cc16543befbccb6b0d9752c9a326270307f",
+    "08ae-data-scope.json": "dd3eb78f584721ff2e4cc09ba8d8a782bc548bada8512ee752d74f5b8cfe5ca0",
+    "08ae-native-existing.json": "98e1c77b717e6169bcb84d1cecdb42f63868f81ad75110ce0b84ea4cacb0873b",
+    "08ae-strict-ports.json": "458bf77046831c8c8bd3776949ca70ede535609b79798875e0548f97eb68ce01"
+  }
+}
