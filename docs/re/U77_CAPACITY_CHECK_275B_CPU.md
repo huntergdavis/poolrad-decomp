@@ -159,5 +159,17 @@ rubber-stamping.
   arbitrary aliasing are outside the model.
 - Native corroboration has landed with **declared stubs** (see above); it
   corroborates the caller only, and the composition claim is the differential's.
-- **No credit is claimed by this document.** Identity and strict credit are the
+- **No credit is claimed by this document** (as authored; accepted since, see *Status at acceptance* below). Identity and strict credit are the
   reviewer's decision, not the author's.
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_0077_275B` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1188 through acceptance PR #1191 (commit
+`63b4ae3a`, 2026-10-20 11:31 PDT), moving the checkpoint to 245 strict / 291 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note.

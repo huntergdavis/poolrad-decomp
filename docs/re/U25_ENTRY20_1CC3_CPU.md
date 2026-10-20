@@ -11,7 +11,7 @@ original-byte-verified models, so the whole closure is under one differential. S
 [original-byte audit and native oracle](../../tools/overlay/u25_entry20_1cc3_cpu_audit.py).
 
 This is author evidence for independent review, not an accounting change. It edits no ledger, manifest, classifier,
-checkpoint or credit record, states no completion percentage, and proposes the identity and strict rows as text only.
+checkpoint or credit record, states no completion percentage, and, as authored, proposed the identity and strict rows as text only (accepted since; see *Status at acceptance*).
 
 ## Extent and the call census (measured from the media)
 
@@ -244,3 +244,15 @@ and 1DB1's own identity) do not defeat factor 1 or factor 2, because one documen
 `dosbox.log` is 2,915 B. The 300 s timeout and the 50 MiB truncation are in code. Truncation runs after the run, so
 in-run disk use is bounded by the timeout only. The audit module's docstring still says the oracle runs at
 `A000:1CC3`; the code stages at `3000`.
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_0025_1CC3` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1227 through acceptance PR #1230 (commit
+`2ad0cdbf`, 2026-10-20 14:56 PDT), moving the checkpoint to 251 strict / 297 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note.

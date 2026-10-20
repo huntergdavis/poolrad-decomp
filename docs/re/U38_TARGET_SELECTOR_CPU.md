@@ -16,8 +16,8 @@ and return frame remains live.
 
 This is author evidence for independent verification. It changes no ledger,
 classification, acceptance record or credit. Current state on main 5453ccb2:
-+25BC is strict- and identity-credited (#1127). +101D has a manifest `full`
-row but no strict or identity row; its identity argument is stated in
++25BC is strict- and identity-credited (#1127). +101D had a manifest `full`
+row but no strict or identity row at that time (credited since; see *Status at acceptance* at the end); its identity argument is stated in
 [Identity of +101D](#identity-of-101d-near-call-reading) and is for the
 review lane to reproduce.
 
@@ -258,3 +258,15 @@ Author re-run on main 5453ccb2 for this registration (2026-10-20,
   result on the PR head is quoted in the PR.
 
     python3 tools/overlay/u38_target_selector_cpu_audit.py --compile-only
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_0038_101D` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1198 through acceptance PR #1201 (commit
+`bd206c40`, 2026-10-20 12:27 PDT), moving the checkpoint to 247 strict / 293 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note.

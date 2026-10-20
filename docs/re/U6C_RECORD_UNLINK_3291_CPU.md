@@ -11,7 +11,7 @@ See the [source](../../src/recovered/overlay_u6c_record_unlink_3291_cpu.c),
 
 This is author evidence for independent review, not an accounting change. No
 identity promotion, merge, ledger/manifest/checkpoint edit or credit is claimed
-here, and no completion percentage is stated.
+here (as authored; accepted since, see *Status at acceptance* at the end), and no completion percentage is stated.
 
 ## Identity and extent
 
@@ -337,3 +337,15 @@ connect), so no prior-session result was reused.
 | signals | Body/fixup/seven-caller identity, full-state original differential, native replay, hand-derived semantic checks |
 | verdict | likely_match within the documented bounded CPU profile |
 | review_notes | Provisional internal-helper identity; 16 trailing bytes excluded; stub synthetic; no accounting edits or self-credit |
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_006C_3291` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1199 through acceptance PR #1207 (commit
+`e57a358a`, 2026-10-20 12:47 PDT), moving the checkpoint to 249 strict / 295 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note. The ledger row for this body still reads bound 342 / decoded 339; the credited span is 326 bytes (see the metadata repair above), a ledger repair tracked separately.
