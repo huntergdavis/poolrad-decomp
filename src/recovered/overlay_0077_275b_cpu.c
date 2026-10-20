@@ -7,8 +7,9 @@
 #define SEGMENT_13AB 0x13ABu
 #define CONSTANT_1500 0x05DCu
 #define TYPE_LIMIT 0x0Fu
+#define RESIDENT_BUDGET (PR_U9E_10E4_RAM_SIZE)
 
-typedef struct { uint8_t *ram; pr_ovl0077_275b_cpu *cpu; } machine;
+typedef struct { uint8_t *ram; pr_ovl0077_275b_state *cpu; } machine;
 
 static size_t physical(uint16_t segment, uint16_t offset)
 {
@@ -54,14 +55,14 @@ static unsigned parity(uint8_t value)
     return (value & 1u) == 0;
 }
 
-static void set_szp(pr_ovl0077_275b_cpu *c, uint16_t result, uint16_t sign)
+static void set_szp(pr_ovl0077_275b_state *c, uint16_t result, uint16_t sign)
 {
     if (parity((uint8_t)result)) c->flags |= 4;
     if (result == 0) c->flags |= 0x40;
     if (sign && (result & sign)) c->flags |= 0x80;
 }
 
-static uint16_t add16(pr_ovl0077_275b_cpu *c, uint16_t a, uint16_t b)
+static uint16_t add16(pr_ovl0077_275b_state *c, uint16_t a, uint16_t b)
 {
     uint16_t result = (uint16_t)(a + b);
     c->flags &= (uint16_t)~0x8D5u;
@@ -72,7 +73,7 @@ static uint16_t add16(pr_ovl0077_275b_cpu *c, uint16_t a, uint16_t b)
     return result;
 }
 
-static void cmp16(pr_ovl0077_275b_cpu *c, uint16_t a, uint16_t b)
+static void cmp16(pr_ovl0077_275b_state *c, uint16_t a, uint16_t b)
 {
     uint16_t result = (uint16_t)(a - b);
     c->flags &= (uint16_t)~0x8D5u;
@@ -86,7 +87,7 @@ static void cmp16(pr_ovl0077_275b_cpu *c, uint16_t a, uint16_t b)
  * PF/AF/SF/ZF are architecturally undefined here; the original leaves them
  * from the preceding instruction, so they are preserved as the 8086 profile
  * measured from the native oracle. */
-static void mul16(pr_ovl0077_275b_cpu *c, uint16_t operand)
+static void mul16(pr_ovl0077_275b_state *c, uint16_t operand)
 {
     uint32_t product = (uint32_t)c->ax * operand;
     c->ax = (uint16_t)product;
@@ -96,13 +97,12 @@ static void mul16(pr_ovl0077_275b_cpu *c, uint16_t operand)
 }
 
 pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
-                                          pr_ovl0077_275b_cpu *c,
+                                          pr_ovl0077_275b_state *c,
                                           size_t *budget,
                                           pr_ovl0077_275b_diagnostic *diag)
 {
     machine m;
-    uint16_t caller_segment, return_offset, far_offset, far_segment, record_offset,
-             record_segment, saved, product, flag, total;
+    uint16_t caller_segment, return_offset, far_offset, far_segment, saved, flag, total;
     uint8_t type_byte, count_byte;
     int status;
 
@@ -116,11 +116,14 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     m.cpu = c;
     caller_segment = c->cs;
 
+    /* Prologue: push bp ; mov bp,sp ; sub sp,4 */
+    push(&m, c->bp);
+    c->bp = c->sp;
+    c->sp = (uint16_t)(c->sp - 4u);
+
     /* push [bp+0xC], push [bp+0xA], lcall 00BA:0BB8 */
     far_offset = rd(&m, c->ss, (uint16_t)(c->bp + 0x0A));
     far_segment = rd(&m, c->ss, (uint16_t)(c->bp + 0x0C));
-    record_offset = rd(&m, c->ss, (uint16_t)(c->bp + 0x06));
-    record_segment = rd(&m, c->ss, (uint16_t)(c->bp + 0x08));
     push(&m, far_segment);
     push(&m, far_offset);
     push(&m, caller_segment);
@@ -129,7 +132,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     c->cs = RESIDENT_CS;
     c->ip = SEGMENT_0BB8;
     if (diag != NULL) diag->calls = 1u;
-    *budget = 0;
+    *budget = RESIDENT_BUDGET;   /* fresh per resident call; LIMIT would be a CALLEE stop */
     status = (int)pr_res00ba_0bb8_cpu(ram, ram_size, c, budget);
     if (diag != NULL) diag->first_status = status;
     if (status != (int)PR_RES00BA_OK) return PR_OVL0077_275B_CALLEE;
@@ -170,7 +173,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     c->cs = RESIDENT_CS;
     c->ip = SEGMENT_13AB;
     if (diag != NULL) diag->calls = 2u;
-    *budget = 0;
+    *budget = RESIDENT_BUDGET;
     status = (int)pr_res00ba_helpers_cpu(ram, ram_size, c, budget);
     if (diag != NULL) diag->second_status = status;
     if (status != (int)PR_RES00BA_OK) return PR_OVL0077_275B_CALLEE;
@@ -215,6 +218,6 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
         c->ip = word(ram, at);
         c->cs = word(ram, (at + 2u) & MASK);
     }
-    c->sp = (uint16_t)(c->sp + 8u);
+    c->sp = (uint16_t)(c->sp + 4u + 8u);   /* pop IP+CS, then drop the 8 argument bytes */
     return PR_OVL0077_275B_RETURNED;
 }

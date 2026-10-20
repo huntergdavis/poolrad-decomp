@@ -4,7 +4,7 @@
 
 /* U77 [275B,27DD): 132 bytes, 45 starts, RETF 8. Same CPU/status vocabulary as
  * the resident models it composes. */
-typedef pr_res00ba_cpu pr_ovl0077_275b_cpu;
+typedef pr_res00ba_cpu pr_ovl0077_275b_state;
 
 typedef enum {
     PR_OVL0077_275B_RETURNED = 0,
@@ -35,7 +35,7 @@ typedef struct {
  * state are outside this model. A callee that does not return to its pushed
  * frame is TRANSFER, not success. */
 pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
-                                          pr_ovl0077_275b_cpu *cpu,
+                                          pr_ovl0077_275b_state *cpu,
                                           size_t *budget,
                                           pr_ovl0077_275b_diagnostic *diag);
 
