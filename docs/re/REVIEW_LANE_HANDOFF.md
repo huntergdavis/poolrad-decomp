@@ -117,6 +117,19 @@ The acceptance above is what stopped the sequence. **If a sixth fix is needed in
 the same area, stop patching and rewrite the entry point instead**; five repairs
 to one seam is evidence about the seam, not about the five patches.
 
+## A linear sweep counts data as code
+
+Two numbers for the same resident differed by 11x tonight: `RES_0899_0059` had
+**98** raw decoded `lcall 0899:0059` hits in my sweep and **9** fixup-backed call
+sites in the ledger and in the other lane's receipt. The 89 extras were **data
+bytes decoded as instructions** — a gap-skipping sweep walks through data. The
+verified count matches the ledger exactly (`overlay_far_sites 9`).
+
+Rule: a call site is real only if the **segment word carries a relocation** (or
+the ledger lists it). Never quote a call count from a raw sweep; a sweep tells
+you what the bytes *could* decode as, which is why it is useful for extents and
+useless for centrality.
+
 ## Primary acceptance for the pricer (run this, not the unit tests)
 
 In a checkout **with the owner's media and the accounting products**, with the
