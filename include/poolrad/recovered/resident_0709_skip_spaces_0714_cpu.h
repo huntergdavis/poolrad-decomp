@@ -30,11 +30,17 @@ typedef enum {
  *  4. POP BP; RETF 2.
  * On return the flags are the last CMP's, AL is the index read last (AH is
  * zero once a character was tested) and DI is P or P + index. Every operand
- * is reread from RAM in source order; offsets wrap at 16 bits, physical
- * addresses at 1 MiB; POP and the RETF frame are read physically contiguous.
+ * is reread from RAM in source order. Every stack and frame word is
+ * addressed at SS:(offset mod 64K), so the RETF CS word at SP FFFE is
+ * SS:0000; the two bytes of a word that straddles offset FFFF are
+ * linear-contiguous (SS*16+FFFF, SS*16+10000), as DOSBox-X normal/386 does.
+ * Physical addresses wrap at 1 MiB (A20 off). A real 386 raises INT 13 for
+ * a straddling word; that fault is not modeled.
  * The INC can alias the stack word that holds P, so max_loopbacks caps the
  * taken JMP 0717 (at most the limit minus the index when nothing aliases).
- * The code must sit at its original offsets (IP = 0714h). */
+ * The code must sit at its original offsets (IP = 0714h), and neither the
+ * PUSH BP nor the INC may write the routine's own bytes CS:0714..074D: the
+ * model does not refetch code (contract limit; the audit never violates it). */
 pr_r0709_skip_status pr_r0709_skip_spaces_0714_cpu(uint8_t *ram, size_t ram_size, pr_r0709_skip_cpu *cpu, unsigned max_loopbacks);
 
 #endif

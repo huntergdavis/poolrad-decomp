@@ -104,7 +104,9 @@ pr_r0709_skip_status pr_r0709_skip_spaces_0714_cpu(uint8_t *ram, size_t ram_size
     cpu->sp = (uint16_t)(cpu->sp + 2u);
     at = physical(cpu->ss, cpu->sp);
     cpu->ip = read16_at(ram, at);
-    cpu->cs = read16_at(ram, (at + 2u) & MASK);
+    /* Each frame word's offset wraps within SS (DOSBox-X normal/386, measured): at SP FFFE
+     * the CS word is SS:0000, not the physically next bytes. */
+    cpu->cs = read16_at(ram, physical(cpu->ss, (uint16_t)(cpu->sp + 2u)));
     cpu->sp = (uint16_t)(cpu->sp + 6u);
     return PR_R0709_SKIP_OK;
 }
