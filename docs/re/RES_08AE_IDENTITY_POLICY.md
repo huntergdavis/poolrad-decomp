@@ -1,8 +1,11 @@
 # 08AE dependency band: policy closure
 
 Disposition: VP i19467, 2026-10-20; evidence baseline **a32aa524**.
-This receipt closes the 53-row 0x38 band recorded in the
+This receipt closes the 53 candidate rows that list `RES_00BA_16EC` among their
+callees, of which 21 are in unit 0x38 (57 candidates there), recorded in the
 [queue](STRICT_CANDIDATE_QUEUE.md), whose measured three-hop floor is 1,932 B.
+(Wording corrected 2026-10-20: the original text called these rows "the 53-row 0x38
+band"; the count is across units. The 1,932 B floor was not re-derived.)
 
 08AE is documented as the timer/audio driver; its internals are audio-driver
 and service code, executing normally, not game logic.
