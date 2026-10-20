@@ -23,14 +23,36 @@ its sole call is the near call at `+0x12E8` to U38 `+0x0C06`. That verified
 callee is `[+0x0C06,+0x0C15)`, 15 original bytes, SHA-256
 `435bd9fac807d24f064b6bf223817b188e737a5b6ddb9a8b37d5635842a52fe8`.
 
-The original U38 +31A2 installer at +3415 writes the public stub
-`0041:00ED` to DS `[0x68EC]/[0x68EE]`, effect-table item 49. Its segment
-immediate is a loader fixup at +3419. U9E +0000 dispatches by an indirect
-`LCALL [DI+0x6828]` after scaling its index. This is a fixup-backed installed
-pointer and a decoded indirect call path. Neither a constant item-49 call
-nor a reached game frame for this entry has been measured. The installer
-does not execute the entry. Ownership therefore remains game-evidenced and
-provisional; strict identity/count credit is withheld.
+Identity is stated against the two-factor standard in
+[REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20)
+(design A2 for table entries); the earlier reason, that the item-49 dispatch is
+unmeasured, is superseded by it.
+
+**Factor 1 holds (A2).** The original U38 +31A2 installer at +3415
+(GAME.OVR file `0x12070` = unit base `0xEC5B` + `0x3415`) is the byte string
+`B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68`: `MOV AX,00EDh; MOV DX,0041h;
+MOV [68ECh],AX; MOV [68EEh],DX`. It stores the public stub `0041:00ED` in
+effect-table item `(68EC-6828)/4 = 49`; the stub is entry 41 because
+`0x20 + 5*41 = 0xED`. The segment immediate at +3419 is a loader fixup. That
+byte string occurs once in GAME.OVR. `OVL_0038_31A2` is identity-credited and
+strict-credited (rows read from `reviewed_function_identities.csv` and
+`strict_full_c_addresses.csv`, not from prose), so the table is game-owned and
+entry 41 is installed in it. U9E +0000 reaches the table by `LCALL [DI+0x6828]`,
+which is a decoded path; no item-49 dispatch has been measured and none is
+needed under A2.
+
+**Factor 2 holds on the standard's rule that state passed as an argument counts
+when the body dereferences it.** The body reads bit 4 of byte `+3` of far
+pointer B and byte `+0x10E` of far pointer A, and adjusts DS `[6816]`/`[6822]`
+through +0C06. Merged documents name `+0x10E` as a character-record byte
+(`RESIDENT_CHARACTER_FIELD_ZERO.md`, `RESIDENT_PARTY_COUNT.md`); those same
+documents leave its gameplay meaning unverified, and no merged document defines
+B's byte `+3`. That is stated as a limit, not argued away.
+
+**Status.** Both factors are met on the standard as written, so the reason
+for withholding credit is no longer the unmeasured dispatch. The row stays
+**evidence-only** here: it is in neither credit CSV, no manifest declaration
+exists, and credit is the reviewer's/VP's decision. This PR does not propose it.
 
 ## Complete behavior
 
@@ -54,11 +76,7 @@ original byte bodies in Unicorn and compare all 1 MiB RAM and 14 CPU fields
 with C. They cover both equal and unequal branches, increment/decrement
 overflow and zero, DS/SS aliasing, and an odd near-boundary stack frame.
 
-*(Superseded by the 48-case native suite in the Exhaustive re-audit below.)* Four DOSBox-X normal-core synthetic far-entry frames also execute both
-original bodies. All 14 CPU words, 52 stack bytes, and DS `[0x6816]` and
-`[0x6822]` match C. Generated COM, copied original bytes, logs, and capture
-stay in ignored `resources/u38-12b2-parity/native/`. Capture SHA-256:
-`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1`.
+Native corroboration is the 48-case suite in the Exhaustive re-audit below.
 Focused C11 `-Wall -Wextra -Wpedantic -Werror` ASan/UBSan CTest passes.
 
 The native frames are synthetic direct entries, not item-49 dispatches or
@@ -69,11 +87,9 @@ reached gameplay. This branch makes no strict identity or count claim.
 Author measurement on main `926f3b5d57ca48deb9734ce98720a16b44f2b9bc`:
 **full executable body extent, with a 12-case harness covering 28/28 wrapper
 instruction starts, 6/6 composed +0C06 starts, and 2/2 feasible conditional
-outcomes; exhaustive input, alias and flag-space parity is not established.**
-(*Superseded for the data bytes, flags, registers and aliases by the Exhaustive re-audit
-below; the 12-case default run is unchanged.*)
-The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. Four synthetic
-native frames also passed (superseded by the 48-case native suite below). This is a measured coverage statement, not new identity
+outcomes.** That pilot is historical: the Exhaustive re-audit below covers the
+data bytes, flags, registers and aliases, and the 12-case default run is unchanged.
+The cases compare all 1,048,576 RAM bytes and 14 CPU fields each. This is a measured coverage statement, not new identity
 or strict-C acceptance; reviewer acceptance remains separate from the author claim.
 
 The original `GAME.OVR` slice is `[65293,65366)` (`[0xFF0D,0xFF56)`),
@@ -93,9 +109,7 @@ python3 tests/recovered/native_overlay_u38_effect_match_12b2.py
 These commands require the ignored, hash-pinned media and the checker's existing
 Capstone/Unicorn dependencies; the second additionally needs DOSBox-X and binutils.
 The new `--coverage` output records starts/outcomes; it changes no parity masks
-or expected results. The four-frame native result SHA-256 then equalled
-`f595d0512a87f3188a78275b224bcb1b2013ffc7e5e2decbff8b6224311b8cf1` (historical; the
-current native run is described in the Exhaustive re-audit).
+or expected results. The current native run is described in the Exhaustive re-audit.
 
 Counterfactual: adding the three-field row `OVL_0038_12B2,full,docs/re/U38_EFFECT_MATCH_12B2.md`
 to `partial_callee_models.csv` leaves **460 candidates / 58 composable** and the
@@ -161,8 +175,8 @@ coverage statement, not a proof over every machine state.
 
 ### Native, ownership and registration
 
-Native corroboration is now a **48-case DOSBox-X suite** (replacing the earlier four
-synthetic frames, whose capture `f595d051...8cf1` is superseded). **The native
+Native corroboration is a **48-case DOSBox-X suite** (it replaced an earlier
+four-frame run, which is not relied on). **The native
 harness is the par-b lane's contribution**, offered on branch `claude/par-b-12b2` and
 taken here unchanged (cherry-picked with its author and message); I reproduced
 it on this host before relying on it. Cases: 24 `B[+3]` x `A[+10Eh]` pairs over both
@@ -183,9 +197,8 @@ comparison is the Unicorn sweeps above. The native run used this host's **DOSBox
 `5a9c7c53` build**; the harness records that in its report (`pinned_build_used: false`).
 Frames are synthetic direct entries, not item-49 dispatches or reached gameplay.
 
-Ownership is not improved by this change: entry 41 is installed as item 49 by the
-+31A2 installer and reached only through U9E +0000's unresolved indirect dispatch, so
-the identity stays `game_evidenced`/provisional and no natural reach is claimed. The
-PM decision to add no manifest row stands. This PR is **evidence-only** and does not
-propose the row for credit. The checker already declares
+Ownership is unchanged by this change: see the identity paragraph at the top
+(Factor 1 by A2 through the credited +31A2 installer, Factor 2 on the
+argument-dereference rule). The PM decision to add no manifest row stands. This PR
+is **evidence-only** and does not propose the row for credit. The checker already declares
 `CHECKER_ROWS = ("OVL_0038_12B2",)` and a media-free `--compile-only`; neither changed.
