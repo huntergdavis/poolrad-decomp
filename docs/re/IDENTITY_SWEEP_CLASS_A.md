@@ -86,3 +86,32 @@ and converting them would need a policy decision, not a test.
 
 Nothing here decides an identity or touches a classification. The caller table is
 the evidence a reviewer would cite, not the verdict.
+
+## Reproduce
+
+    python3 tools/overlay/identity_sweep_class_a.py --json /tmp/sweep.json
+
+**Inputs.** `resources/strict-candidate-queue/queue.json` (derived, gitignored;
+regenerate with the recipe in `STRICT_CANDIDATE_QUEUE.md` - it needs the owner
+media), plus the checked-in `strict_full_c_addresses.csv`,
+`overlay_classification.csv` and `overlay_function_ledger.csv`, plus
+`resources/DOS/POOLRAD/{START.EXE,GAME.OVR}` read-only. The queue **digest is
+printed on every run**: the numbers below are only comparable at the same digest
+or the same checkpoint.
+
+**Expected output**, at queue sha256 `54e1c7c3922d…03e4c2`:
+
+    identity-blocked modelled rows: 49
+    CLASS (a) by A1  (credited caller):    0
+    CLASS (a) by A1' (game-owned caller): 23
+    remaining (A1' failed): 26
+
+**These move.** The blocked set shrank from 52 to 49 in the hours between the
+first run and this note as other lanes landed credits, while **A1' stayed 23** -
+so the blocked count is not the number to watch; the A1' list is. Re-run after
+each batch of credits and refresh the table rather than quoting 23 as a constant.
+
+**What the script does not do:** it decides no identity, touches no
+classification and credits nothing. It resolves callers; a reviewer still has to
+accept the result, and A2 (dispatch-table ownership) is only flagged, never
+implemented.
