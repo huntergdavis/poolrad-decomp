@@ -30,7 +30,7 @@ end boundary. No higher-ranked substantive unimplemented caller was found;
 other ready source mentions were small prologues or already composed bodies.
 The U1C+271F queue extent also includes data (14 actual code bytes).
 
-The classifier still says **helper_candidate / provisional**. Composable raw
+When this was written the classifier said **helper_candidate / provisional** (it is `game_verified` since acceptance; see *Status at acceptance* at the end). Composable raw
 behavior alone does not establish game ownership or independent acceptance; the
 argument below is made under the two-factor standard. This change edits no
 classifier, callable ledger, manifest, checkpoint or credit record.
@@ -270,3 +270,15 @@ nodes that strict-credited `OVL_0086_028D` builds and `OVL_0086_059C` resets.
 that list `OVL_03B0_11F3` already count it `modeled` (ready), and none is
 composable for other reasons, so no composability moves. No manifest row is
 added.
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_03B0_11F3` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1206 through acceptance PR #1211 (commit
+`0384ab94`, 2026-10-20 13:07 PDT), moving the checkpoint to 250 strict / 296 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note.

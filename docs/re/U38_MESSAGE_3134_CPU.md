@@ -236,7 +236,7 @@ Proposed `partial_callee_models.csv` line, text only:
     OVL_0038_3134,full,docs/re/U38_MESSAGE_3134_CPU.md
 
 Strict credit and the identity decision are the reviewer's.
-`game_evidenced`/provisional is the queue's label; this PR changes none of it.
+`game_evidenced`/provisional was the queue's label when this was written; this PR changed none of it (the label is `game_verified` since acceptance, recorded below).
 
 ### Reviewer acceptance record (added by the review lane, not the author)
 
@@ -286,3 +286,15 @@ saved BP to the last argument at or below `SS:FFFF`; the last byte sits *at*
 covering 35 cases in the run. The table above is correct.
 No `partial_callee_models.csv` line is added: overlay manifest rows confer no
 readiness, and the #1191 overlay acceptance added none.
+
+## Status at acceptance (dated note; added 2026-10-20 by par-c, record only)
+
+`OVL_0038_3134` was accepted after this document was written: strict full-C credit and
+verified game identity, by reviewed PR #1193 through acceptance PR #1197 (commit
+`235ed71b`, 2026-10-20 12:08 PDT), moving the checkpoint to 246 strict / 292 identities.
+Sentences above that say no credit is claimed, that the row has no strict or
+identity row, that the classifier label is provisional, or that rows are proposed
+"as text only" describe the author PR at the time it was written and are
+superseded by this note. The evidence in this document is unchanged by it. The
+authority for the credit is the acceptance commit and the two credit CSVs, not this
+note.

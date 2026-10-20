@@ -1,6 +1,6 @@
-# Corpus state at main 3dbaf626 (2026-10-21), for a cold start
+# Corpus state at main 3dbaf626 (2026-10-20), for a cold start
 
-One page. Every figure below was read on 2026-10-21 from the named file on main
+One page. Every figure below was read on 2026-10-20 from the named file on main
 `3dbaf626` (after #1230), or is cited to the document that measured it. Where a
 number is a floor, it is called a floor. Re-derive the readiness figures first if
 the strict set has grown (`IDENTITY_CLEARED_PRICING.md` says the same).
