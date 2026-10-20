@@ -1,11 +1,11 @@
 {
   "artifacts_sha256": {
     "classification": "fc086a6d7fa8c4c42b37824b91be7661d9b51308b3766bdc6d7bd53ea838e0b2",
-    "full_c_map": "12b00484a1b9307f94b8d9db007cb425ab6ff39124707204d7ee25108fc615fe",
+    "full_c_map": "c2a3f29bb960ade26f92c2a9bfdc4af50a2b03502dfd680b91b19d669a3a1a5d",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
-    "ledger": "ed3a468e099ae82ea642428c706006081377b1df27a637a574f2528451732c0c",
+    "ledger": "82175ce9fed9d38ed3c9a40dc9764e3c8045763b6e40027153f7c354708e733b",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "c9750b52eb7f9cefdd61a856641594dd9d6fdc45acc3a84a79085ff590fae50b",
+    "resident_audit": "d1f44610e3ac24eae68eaa7216fad9f3bb7cca400e7b58a10a7d353c903a8738",
     "reviewed_identities": "c360f06f2883725200f5ab3106dfe0f5e9e317a31d467939f781a18268f0bd37"
   },
   "inputs": {
@@ -13,11 +13,11 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "1bc121bd6c5aab11bc0644e170e5d069a6a9e49c69c6acc3e0630e3c0cb4d9bd",
+  "queue_sha256": "30ab94b4e9534ddd59acd74fffe4bd3514f5f0d06939105fe0a3007075538145",
   "reviewed_change": {
-    "approval_reference": "schema-9 queue re-derivation with the OVL_0068_0294 disposition record (queue SHA-256 c1a0dbb6..., 459 candidates / 57 composable / 9 interface caveats, no score changes); record-only, no credit",
+    "approval_reference": "acceptance of PR #1148: declared resident targets RES_00BA_1168 [1168,11EA) 130 B/54 starts and RES_00BA_13AB [13AB,148B) 224 B/89 starts credited on the already-verified #1146 evidence (queue SHA-256 30ab94b4e9534ddd..., 458 candidates / 60 composable / 9 interface caveats)",
     "approved_by": "PM",
-    "batch": "1146-115c",
+    "batch": "1148-resident-declarations",
     "body_bytes": 50,
     "body_sha256": "3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad",
     "evidence_doc": "docs/re/U7D_UPDATE_03A3_NATIVE_ORACLE.md",
@@ -31,14 +31,14 @@
   "schema_version": 1,
   "strict_full_c_by_domain": {
     "overlay": 215,
-    "resident": 22
+    "resident": 24
   },
-  "strict_full_c_originals": 237,
-  "unknown_ownership": 526,
+  "strict_full_c_originals": 239,
+  "unknown_ownership": 524,
   "verified_game_by_domain": {
     "overlay": 260,
-    "resident": 23
+    "resident": 25
   },
-  "verified_game_identities": 283,
+  "verified_game_identities": 285,
   "whole_game_denominator": "unknown"
 }

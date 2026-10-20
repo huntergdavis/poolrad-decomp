@@ -22,7 +22,7 @@ full-C routine credit. Candidate Pascal prologues are not a verified function
 inventory.
 
 <!-- FUNCTION_ACCOUNTING:BEGIN -->
-The independently reviewed checkpoint after PR #1146 is **237 strict full-C game routines** (215 overlay, 22 resident) and **283 verified game identities** (260 overlay, 23 resident). Both whole-game denominators remain unknown. Counts and queue provenance are in [the generated accounting checkpoint](re/function_accounting_checkpoint.json).
+The independently reviewed checkpoint after PR #1148 is **239 strict full-C game routines** (215 overlay, 24 resident) and **285 verified game identities** (260 overlay, 25 resident). Both whole-game denominators remain unknown. Counts and queue provenance are in [the generated accounting checkpoint](re/function_accounting_checkpoint.json).
 <!-- FUNCTION_ACCOUNTING:END -->
 
 The saved slot-A **first-view** C page matches the same-state native page in
