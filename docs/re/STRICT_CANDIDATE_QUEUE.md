@@ -222,7 +222,7 @@ indirect-dispatch bodies left **unpriced** rather than guessed.
 | --- | --- | ---: | ---: | --- |
 | `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | **cheap but uncreditable** — identity not establishable, see below |
 | `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | same verdict |
-| `OVL_001C_13D7` | 94 B (32 starts) | 1 | **94 B** | `game_evidenced`; cleanest single credit left |
+| `OVL_001C_13D7` | **1,714 B** = 94 + the `0025_0C77` chain | 1 | **1,714 B** | corrects an earlier 94 B entry: its four `lcall 0x2B:0x52` resolve to unit `0x25` entry 10 = `+0C77`, the declined chain |
 | `OVL_0077_275B` | 132 B | 1 | 132 B | |
 | `OVL_03C6_0105` | 156 B = 34 + 122 | 1 | 156 B | |
 | `OVL_0038_1545` | 709 B | 4 | 177 B | |
@@ -254,6 +254,13 @@ Measured against the standard used to credit other rows:
 
 So the pair stays out of the credit tables. It is a cheap *body* and an
 unestablished *identity*, and the difference is the whole point of the rule.
+
+**Identity is not readiness.** The first version of this table was wrong for
+`OVL_001C_13D7` because it treated a callee's `game_verified` **classification**
+(identity known) as ready. Callee readiness is **strict translation**: `0C77` has
+identity but no C body, so the 94 B row is really the 1,672 B chain plus a 94 B
+tail. Ready = in the strict table, plus runtime-covered endpoints and manifest-
+`full` residents — never the classification column.
 
 The two `0x7F` rows are one job, not two: `0054` calls `0000`, so 32 + 84 = 116 B
 of body buys 2 credits and makes 4 rows composable — **~29 B/row combined**. That
