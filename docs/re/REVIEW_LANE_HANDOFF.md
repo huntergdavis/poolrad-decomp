@@ -246,3 +246,43 @@ for a broken tree. To run it locally:
 selection-cost table in `docs/re/STRICT_CANDIDATE_QUEUE.md` (cost per
 unlocked row — never select on the queue's byte fields) ·
 `docs/re/OVL_0068_0294_DISPOSITION.md` (the last uncredited row, and why).
+
+## Credit audit, 2026-10-20: today's eight (par-b; corroborated by par-c)
+
+Checked on main `37ab96e4`, with checkpoint commit `8e54be4b` (244/290) as the
+base. The check covers the accounting as a whole, not the bodies, which were
+reviewed per row. Each strict row and identity row was checked for: one per
+credit; the doc carrying that body's claim; the body SHA and byte count
+hash-matching GAME.OVR at the ledger offset; and `reviewed_commit` equal to
+the merged PR head.
+
+| Credit | PR | Merged head = `reviewed_commit` | Body |
+| --- | ---: | --- | ---: |
+| OVL_0077_275B | #1188 | `f50a9c10b022c08140475ab065cbfe504b7c92b7` | 132 B |
+| OVL_0038_3134 | #1193 | `959a5b849dc188024fe7440975cfc0a9ff0e689b` | 70 B |
+| OVL_0038_101D | #1198 | `0c0b9571c91e142142b356ca271f613519515837` | 105 B |
+| OVL_0038_2E08 | #1200 | `5d69fc3996ff68c7112403acff934d715b00e8e8` | 47 B |
+| OVL_006C_3291 | #1199 | `be2c742de68f83d1395bf986396fb84f38beb7bc` | 326 B |
+| OVL_03B0_11F3 | #1206 | `da1d6f066f2619184d579c79ddc8cdcbc45fbd49` | 82 B |
+| OVL_0025_1CC3 | #1227 | `0ec816a384e2b327a89deadc919f1fc8fb9e5127` | 301 B |
+| OVL_0038_12B2 | #1224 | `ce8e785cb1bffcb4d7910e0c609d03c6f4b864a1` | 73 B |
+
+Result:
+
+- The delta is exactly +8 strict and +8 identities, these ids, with nothing
+  removed.
+- `overlay_classification.csv` moves exactly these eight to `game_verified`.
+  Its other 27 changed rows change only the derived `ver_calls`.
+- `function_queue_audit` regenerates the classification and the ledger
+  byte-identically, and the canonical queue reproduces pin `aa3bad91`.
+  Counts re-derive as 252 (overlay 226, resident 26) and 298 (271 / 27).
+- One anomaly: OVL_006C_3291's ledger bound (342) includes 16 data bytes after
+  its `RETF 4` (`00 0E "Head Body Keep"`), while the credited body is 326 B.
+  The repair is par-c's one-row extent fix.
+
+**Looks like a duplicate, is not.** `OVL_0038_0647`, `OVL_0038_1355`,
+`OVL_0038_135C` and `OVL_0038_319B` share one `body_sha256` (`3d5d3102…`) in
+`reviewed_function_identities.csv`. They are byte-identical bodies at four
+distinct addresses, each a separate function, so they are correctly counted
+four times. A duplicate-SHA check will flag them; it should not treat them as
+a double count.
