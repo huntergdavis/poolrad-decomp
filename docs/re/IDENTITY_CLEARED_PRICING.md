@@ -143,8 +143,9 @@ hinges on **both** entries, because every closure contains both gateway bodies; 
 The [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records why the driver internals give no
 game-credit route and that reopening needs an owner-level decision. This measurement gives that
 decision a price: it is the precondition for **nine rows**. It is not sufficient for any of them.
-After the two gateways, each closure still carries at least 2 KB of other bodies and, for eight
-of the nine, two or more uncovered SYSTEM endpoints. Secondary exposures that the walk lists
+After the two gateways (222 B together), each closure still carries at least 1,895 B (the
+smallest is `0010`: 2,117 B minus 222 B) and at least two uncovered SYSTEM endpoints (the smallest
+count is `299C` with two; `22D5` has seventeen). Secondary exposures that the walk lists
 but this section does not price: far targets `0A32:000B` (all nine) and `0A32:00A2` (`1684`, `299C`,
 `22D5`) and `0428:002A` (`299C`).
 
@@ -162,6 +163,5 @@ boundary) their closure is **448 B in six bodies**: core `0F33` 263 B, `1118` 92
 and wrappers `1186` 12 B, `119A` 4 B, `119E` 14 B. A scan of those bodies finds no `IN`, `OUT`,
 `INT`, `HLT`, `CLI` or `STI` and no control-register operand. They are pure register arithmetic
 with the stack and the RunError stop. The three entries gate exactly one row outright (`1CC3`; three
-more rows list them among other blockers). That is about 448 B per cleared row, against at least
-2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
+more rows list them among other blockers). That is about 448 B per cleared row, against 2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
 
