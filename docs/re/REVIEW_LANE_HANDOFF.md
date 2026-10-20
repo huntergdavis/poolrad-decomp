@@ -93,6 +93,18 @@ Following the rule meant leaving the pin alone and saying so. The alternative �
 "the digest no longer reproduces, re-pin it" — is a change made for zero
 semantic reason, and it is exactly the churn the rule exists to stop.
 
+## Cost estimates are floors, and the error has a direction
+
+**Estimates have only moved one way.** Every measured replacement so far has
+been larger than the estimate it replaced: `OVL_0025_0C77` went from a 405-byte
+queue row to >=1,672 B measured, and my own 1,011 B estimate was itself 65%
+under. Seven rows have carried trailing data that a first-`RETF` measurement
+removes or reclassifies. So treat an unconfirmed figure as a **floor**, not a
+measurement, and pre-correct in that direction rather than being surprised:
+when quoting a chain's cost before it is measured, say "at least" and expect to
+raise it. The measured table lives in `STRICT_CANDIDATE_QUEUE.md`; select on
+cost per unlocked row, never on the queue's byte fields.
+
 ## Two CI gates, and how to prove they fail closed
 
 1. **SHA-provenance guard** — `tools/overlay/check_record_shas.py`. Every
