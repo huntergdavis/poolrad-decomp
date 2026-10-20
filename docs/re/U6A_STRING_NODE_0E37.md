@@ -57,6 +57,8 @@ frames must fit within SS:0000..FFFF, even after alias-induced BP changes.
 Far-call segment words are read live; native tests relocate SYSTEM to
 7000. Interrupts, faults and self-modifying code are outside this profile.
 
+**Stack-top RETF wrap: unreachable inside this window (reviewer-added 2026-10-20, VP i19693).** With entry SP E in [0060,FFF4], SYSTEM GetMem `0AF8:023F` (called at `+0E54`) is entered at E−32h (`PUSH BP`, `SUB SP,2Ah`, the size word and the far return), i.e. in [002E,FFC2]. Its own far return executes at the entry SP, because the frame is balanced, so at most FFF4. None of these ranges reaches FFFE/FFFF. That is the only band where DOSBox-X wraps a RETF's CS word within SS while the merged SYSTEM models and Unicorn read it contiguous ([REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#retf-stack-top-wrap-a-recorded-class-deliberately-not-swept-2026-10-20)). The window, not a measurement, keeps the band out of reach, and a caller outside the window is outside the contract.
+
 max_heap_steps is GetMem's taken free-list walk-edge cap. Zero allows
 paths that need no such edge. GETMEM_STOP preserves the raw allocator
 status and state: RunError 203 at +00E2, a custom HeapError at its call,
