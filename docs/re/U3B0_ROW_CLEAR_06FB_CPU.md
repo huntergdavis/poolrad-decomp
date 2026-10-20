@@ -91,9 +91,11 @@ Run with a Python environment containing Capstone and Unicorn:
     python tools/overlay/u3b0_row_clear_06fb_cpu_audit.py --native --output resources/native.json
 
 The original-byte audit executes all four bodies, compares CPU14 unmasked,
-all 983,040 ordinary RAM bytes outside the EGA aperture, ordered OUT events
-including CS:IP, and all VRAM write operands. Unicorn is not an EGA plane
-oracle. Case-specific guard/budget/refusal hooks stop immediately before the
+**all 1,048,576 backing RAM bytes** (the video aperture `A0000..AFFFF` is served
+by an independent Python EGA, not excluded), ordered OUT events including CS:IP,
+all VRAM write operands, and the full EGA state (planes, latches, registers).
+The author run originally compared only 983,040 bytes outside the aperture; see
+*Aperture re-audit*. Case-specific guard/budget/refusal hooks stop immediately before the
 corresponding instruction; no function effects are substituted.
 
 The native harness uses DOSBox-X machine=ega, video mode0Dh, core=normal,
@@ -137,10 +139,12 @@ left to independent review.
   branch. The closure reached 411/451 starts; the ignored JSON
   explicitly lists the other 40 dependency starts.
   Compared 36,492 OUT events and 66,124
-  VRAM write operands, plus CPU14 and 983,040 ordinary RAM bytes per case,
-  with no FLAGS masks.
+  VRAM write operands, plus CPU14 (no FLAGS masks) and, in the re-audit, all
+  1,048,576 backing RAM bytes and the EGA state per case. (The author run's
+  983,040-byte comparison is superseded; see *Aperture re-audit*.)
 - Native EGA: 20 cases, 14 returns, three pre-call stops and three pre-OUT
-  stops. CPU14 and 394,240 memory/plane bytes per case, unmasked.
+  stops. CPU14 (no flag mask) and 394,240 memory/plane bytes per case. Native RAM
+  is partial: 916,480 backing bytes are not compared natively.
   RESULT.BIN SHA-256:
   7c972791edc33446f23c6e5dc7a9d500c522f5e7d28f6157a8d531d1bed24556.
 - Strict C11 warnings-as-errors with ASan/UBSan: 4,194,459 checks passed.
@@ -162,8 +166,9 @@ The declaration of `OVL_03B0_06FB` as `full` names this already implemented
 raw entry under the memory/device/stop profile above. It does not assert
 full feasible-path coverage of the renderer closure: the measured caller
 has 13/13 starts and no conditional outcomes, while its dependencies reach
-411/451 starts. It does not turn the 983,040-byte ordinary-RAM comparison
-plus VRAM operands into a full 1 MiB flat-RAM comparison. Native separately
+411/451 starts. At that declaration the original differential compared only
+983,040 ordinary-RAM bytes plus VRAM operands; the *Aperture re-audit* below
+extends it to the full 1 MiB with an independent EGA. Native separately
 corroborates EGA planes and the stated capture windows. No masking, new
 parity measurement, independent credit, or gameplay integration is implied
 by the manifest word. Readiness and game/library identity are separate:
@@ -189,3 +194,24 @@ Declaration validation on main `940ffc70`: the full existing audit reran
 coverage and native RESULT.BIN hash reported above. The current-main gate
 compiled, loaded and bound all nine registered checkers for nine rows.
 The declaration changes no C body, header, classification or accounting.
+
+## Aperture re-audit (doc-truth correction)
+
+The original author evidence compared 983,040 ordinary RAM bytes outside the
+video aperture `A0000..AFFFF` (65,536 B excluded), checked only VRAM write
+operands for the original, and described the native capture as "unmasked" beside
+a partial window. This revision re-runs the same 63 cases with the aperture served
+by the independent Python EGA used for `RES_00BA_1693` (MMIO): CPU14 without flag
+masks, **all 1,048,576 backing RAM bytes**, ordered OUT events, every write
+operand, and the full device state (262164 bytes). Excluded ranges: **none**.
+Result: **63 cases, zero mismatches**, stops `{RETURN 29, CODE 2, CALLEE 32}`
+(unchanged); caller **13/13 starts** (no conditional branch, so no caller outcomes);
+closure 411/451 starts (the 40 unexecuted dependency starts are listed in the ignored
+report); 36,492 OUT events, 66,124 VRAM write operands. The counts equal the earlier run,
+so the earlier claim stands; only the masking description was incomplete.
+
+The checker already declared `CHECKER_ROWS = ('OVL_03B0_06FB',)` and a media-free
+`--compile-only`; neither changed. No body, header or model changed. Native
+evidence is unchanged and partial (above). Classification stays
+`game_or_other_library_unresolved` and PR #1116's no-credit record is untouched;
+strict credit, identity and manifest decisions are not part of this change.
