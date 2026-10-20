@@ -119,6 +119,13 @@ The caller propagates these partial CPU/RAM states without inventing a
 successful allocation or return. RunError's body and arbitrary custom
 HeapError implementations are outside that dependency contract.
 
+**Heap well-formedness (limit, added by the reviewer after independent
+review):** the heap must be well formed enough that its free-list header
+fields are readable. The per-call walk cap turns a cyclic or over-long free
+list into an exact stop that is reported rather than a successful allocation;
+heaps with corrupted header fields, and heap metadata outside the loaded
+segment, are outside this profile.
+
 GetMem and FillChar retain their existing contiguous return-frame access
 contract. This candidate therefore requires active runtime frames that
 do not cross the 16-bit stack boundary or suffer corruption from party,
