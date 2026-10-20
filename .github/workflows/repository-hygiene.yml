@@ -32,6 +32,12 @@ jobs:
         run: python3 tools/overlay/check_record_shas.py
       - name: Test accounting provenance guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
+      - name: Test declared-boundary credit guard
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_boundary_credits.py'
+      # A declared boundary endpoint may be COMPOSED, never credited. This refuses a
+      # build where one appears in a credit table, so a hand edit or bad merge fails.
+      - name: Refuse declared boundary endpoints in credit tables
+        run: python3 tools/overlay/check_boundary_credits.py
       - name: Test evidence-link guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_evidence_docs.py'
       # Proves each credited row links to a document that names it. It does NOT
