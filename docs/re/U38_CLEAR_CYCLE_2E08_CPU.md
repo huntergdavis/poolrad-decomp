@@ -207,3 +207,49 @@ With the pinned private media and Python dependencies available:
 - review_notes: unresolved game identity; actual neighbor-comment false inline
   hit; unused general-helper zero-key branch retained in denominator; synthetic
   native scope; independent verification and credit remain with reviewer/VP.
+
+### Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced at author head `5d69fc39` merged with main `84da517f`, 2026-10-20.
+
+- **Unicorn:** 551 cases (538 return, 5 TRANSFER, 8 CODE) on CPU14 +
+  1,048,576 B, unmasked; caller 23/23 starts and 2/2 outcomes; closure 34/34
+  starts and 5/6 outcomes, the only missing outcome being `0007->0011`.
+  Each labelled case reached its named stop.
+- **Native:** 256 returns, RESULT.BIN `83b59bba…1adc`.
+- **C:** fresh CTest 1/1; strict C11 `-Werror` + ASan/UBSan rebuilt and run
+  by the reviewer, **49,188 checks** (the author's figure, now repeated).
+- **Gates on the merged tree:** `check_checker_builds.py --all
+  --require-current-main` 21/21; pairing, evidence-doc and record-SHA OK.
+
+**Identity (A2), checked against the CSVs and media, not the prose:**
+`entries[109] == 0x2E08` (unique), `memory_segment` 0x41, stub `0041:0241`.
+All 136 `MOV AX,imm; MOV DX,0041h` pairs in 31A2 fit `20h + 5k` with an
+in-range entry. The store at `+37E4..+37F0` writes `DS:6A1C/6A1E` (slot 125),
+`0041h` at `+37E8` is a unit fixup, and the only other `1C 6A` bytes in
+GAME.OVR lie outside every unit's code. `OVL_0038_31A2` is in both
+`strict_full_c_addresses.csv` and `reviewed_function_identities.csv`. Factor 2:
+the helper +0000 is strict-credited, and its key test reads the pushed byte.
+
+**Exclusion check (reviewer, construct-before-exclude):** +2E08 hardcodes the
+keys as `MOV AL,imm`, and the C model does likewise, so `0007->0011` is
+reachable only if a key immediate becomes 0. The reviewer tried to build that
+state:
+
+- **DS alias:** the helper's zero writes to `DS:6817/6818` cannot overlay a
+  key immediate (`2E13`, `2E1A`, `2E21`), because the alignment differs mod 16
+  for every CS.
+- **Stack alias:** any SS:SP that zeroes an immediate with a pushed word also
+  writes the return-IP high byte `2Eh` over the preceding `B0` opcode, which
+  breaks the code first.
+
+So the exclusion holds within the stated immutable-code, no-interrupt
+contract. The feasible state is `[BP+6] = 0`; the key-0 callers are
+`+09EF` (09C0), `+14E2` (1490, entry 50), `+2567/+2599` (2556), `+296D` (2915),
+`+29E9` (29D9, entry 94) and `+2A21` (2A11, entry 96).
+
+**Follow-up (reviewer, non-blocking):** the checker reports
+`missing_outcomes` but does not assert that it equals `['0007->0011']`, so a
+newly reachable or newly lost outcome would not fail the run. A one-line
+assertion would close this. The documented `--output resources/2e08/...`
+needs the parent directory to exist.
