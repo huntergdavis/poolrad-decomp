@@ -264,6 +264,66 @@ script is committed beside the numbers on purpose: a wrong price should cost a
 ten-minute re-run, not an argument. Its own docstring carries the two method
 rules below, so the method travels with the code that implements it.
 
+### Rejected on measurement: `OVL_0086_08C3` (2026-10-24)
+
+Largest absolute unlock on the board (26 rows) and a **decisive no**, because
+readiness rather than body size decides it.
+
+* Own extent **443 B / 177 starts** to the first `RETF` (the row says 462 B — 19 B
+  of trailing data). The queue lists **9 targets**, 5 unready.
+* **One hop = 3,731 B**, which fits a 5 KB cap and is exactly why this row looked
+  affordable.
+* Every one of the five unready leaves routes through **`OVL_009E_02FA`**, whose
+  own single target is **`OVL_009E_0160`** — an unresolved **indirect dispatch**.
+* Expanding one more bounded hop gives a 10-body **4,448 B** second hop holding
+  `RES_00BA_16EC` (the held 6.3 KB closure), `OVL_009E_0026` (118 installer
+  targets / 76 unbound slots), `0160`, `0FD2`, `100A`, `03C6_0E11`, `148B`,
+  `1FEB`, `2228`.
+* **Two-hop floor 8,179 B against a 5,000 B cap — 64% over, and still a floor**
+  (it excludes the third hop and 16EC's closure entirely).
+
+The **144 B/row** this row carried in the table above is a one-hop figure and is
+**the most fragile number in the menu**: it is cheap only because the expensive
+part is one hop further out.
+
+### Dispatch traps (a second trap class, distinct from identity traps)
+
+The 44-callee identity list above is about bodies whose *ownership* is settled
+but which have no C. `08C3` exposed a different trap: a body that is cheap at one
+hop because a **callee hides an indirect dispatch**.
+
+| dispatch trap | why it traps | measured |
+| --- | --- | ---: |
+| `OVL_009E_02FA` | `partial`, 1,985 B, and its single target `0160` is an unresolved indirect dispatch | 1,985 B body |
+| `OVL_009E_0160` | 410 B, readiness `indirect_unresolved` — the dispatcher itself | 410 B body |
+
+Check for these **after** the queue target list and **before** quoting a one-hop
+number: if any callee is `indirect_unresolved`, one hop is not a bound.
+
+**Resident bodies have no queue row at all**, so for residents the equivalent list
+must come from an artifact: see
+[RES_00BA_16EC_ONE_HOP_TARGETS.md](RES_00BA_16EC_ONE_HOP_TARGETS.md)
+(reproduce with `tools/overlay/resident_target_list.py`).
+
+### Rejected on measurement: `OVL_0038_1545` (2026-10-24)
+
+153 B own extent (row says 166 — 13 B trailing data), 4 rows, and it **fails the
+same way**:
+
+* Its three unready callees are `OVL_0038_0058` (181 B), `OVL_009E_0D63` (128 B)
+  and **`RES_00BA_16EC`** (247 B body, 1,193 B one-hop, 6.3 KB closure).
+* `0D63` routes into `02FA` → `0160`, the dispatch trap.
+* `0058` has five unready callees of its own, including `02FA`, `03C6_0E11`
+  (662 B) and `RES_00BA_0767` (390 B).
+* **Two-hop floor 3,801 B for 4 rows = 950 B/row**, with two held hubs inside.
+
+**The whole `0x38` band is `16EC`-gated:** 53 candidate rows list
+`RES_00BA_16EC` among their callees, including `09C0`, `10DE`, `23EC`, `2F57`,
+`017F`, `1935`, `1E77`, `2556`, `1CAD`, `1399`, `0233`, `176F`, and
+`0FAC`/`15EB`/`1545`/`0058` from the priced menu. Until 16EC lands, none of that
+band is a one-hop job — so its progress belongs to the lane building 16EC, not to
+a separate author picking them off.
+
 **The identity-known-but-untranslated trap list (44 callees, 26 rows).** These
 are overlay bodies whose **identity is settled** (`game_verified`) but which have
 **no strict C body**, so a pricer that treats identity as readiness will price
