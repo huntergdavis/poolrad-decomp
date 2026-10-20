@@ -81,6 +81,37 @@ def queue(data=None, graph=None, prior=None) -> dict:
                            dict(ovr=bytes(overlay)))
 
 
+class DeclaredBoundaryTest(unittest.TestCase):
+    """A declared boundary endpoint composes but is never credited."""
+
+    ROOT = Path(__file__).resolve().parents[2]
+
+    def test_declaration_documents_exist(self):
+        for endpoint, document in scq.DECLARED_BOUNDARY_ENDPOINTS.items():
+            path = self.ROOT / document
+            self.assertTrue(path.is_file(), f"{endpoint} names a missing document")
+            text = path.read_text()
+            self.assertIn(endpoint, text, f"{document} does not name {endpoint}")
+            self.assertIn("NEVER a credit", text)
+
+    def test_no_declared_boundary_appears_in_a_credit_table(self):
+        """The invariant the loader also enforces, checked on the committed tables."""
+        for table in ("docs/re/strict_full_c_addresses.csv",
+                      "docs/re/reviewed_function_identities.csv"):
+            with (self.ROOT / table).open() as handle:
+                ids = {row["id"] for row in csv.DictReader(handle)}
+            overlap = ids & set(scq.DECLARED_BOUNDARY_ENDPOINTS)
+            self.assertFalse(overlap, f"{table} credits declared boundary endpoints: {overlap}")
+
+    def test_guard_refuses_a_declared_boundary_credit_row(self):
+        endpoint = sorted(scq.DECLARED_BOUNDARY_ENDPOINTS)[0]
+        with self.assertRaises(Exception) as caught:
+            scq.require_not_declared_boundary(endpoint)
+        self.assertIn("can never be strict-credited", str(caught.exception))
+        # A normal overlay id passes the same guard.
+        scq.require_not_declared_boundary("OVL_0038_12B2")
+
+
 class StrictCandidateQueueTest(unittest.TestCase):
     def test_reviewed_tail_is_excluded_before_feature_decoding(self):
         # The decoder deliberately treats tail bytes as ES/global accesses.
