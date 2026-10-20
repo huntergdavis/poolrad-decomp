@@ -212,6 +212,33 @@ directly-called untranslated bodies.
 | `RES_00BA_16EC` | 1.8 KB one-hop · 6.3 KB full closure (65 routines) | 14 | **~131 B one-hop, ~451 B full** | held: priced, not funded |
 | `OVL_0025_0C77` | >=1,672 B / >=590 starts (lower bound) | 10 | **>=167 B** | declined: row understated 4x |
 
+### Remaining menu under ~600 B nominal, priced one hop (2026-10-23)
+
+Decoded to the first `RETF` from the media; one-hop callees counted with their
+own decoded sizes; near calls to uncredited in-unit bodies counted as a hop;
+indirect-dispatch bodies left **unpriced** rather than guessed.
+
+| candidate | measured cost | rows unlocked | **cost/row** | note |
+| --- | --- | ---: | ---: | --- |
+| `OVL_007F_0000` | 32 B (12 starts) | 2 | **16 B** | class `game_or_other_library_unresolved` — identity decision, not bytes |
+| `OVL_007F_0054` | 148 B = 84 + 32 (calls `007F_0000`) | 2 | **74 B** | depends on `007F_0000`; same identity caveat |
+| `OVL_001C_13D7` | 94 B (32 starts) | 1 | **94 B** | `game_evidenced`; cleanest single credit left |
+| `OVL_0077_275B` | 132 B | 1 | 132 B | |
+| `OVL_03C6_0105` | 156 B = 34 + 122 | 1 | 156 B | |
+| `OVL_0038_1545` | 709 B | 4 | 177 B | |
+| `OVL_0038_0FAC` | 580 B | 3 | 193 B | |
+| `OVL_0038_15EB` | 672 B | 3 | 224 B | |
+| `OVL_009E_1869` | 547 B | 2 | 274 B | |
+| `OVL_009E_0026` | — | 5 | **not priced** | calls `OVL_009E_0000`, readiness `indirect_unresolved` |
+| `OVL_009E_0160` | — | 1 | **not priced** | same dispatch blocker |
+
+The two `0x7F` rows are one job, not two: `0054` calls `0000`, so 32 + 84 = 116 B
+of body buys 2 credits and makes 4 rows composable — **~29 B/row combined**. That
+is the cheapest thing left, and its cost is an **identity decision** (both are
+`game_or_other_library_unresolved`, the class that kept `OVL_03B0_06FB`
+uncredited), not more translation. The cheapest *clean* translation is
+`OVL_001C_13D7` at 94 B/row.
+
 Two rules follow. **Select on cost per unlocked row, not on absolute body size**
 — `08C3` and `16EC` are cheaper per row than `0C77` despite being larger, which
 is the opposite of what the row fields suggest. And **treat any row figure as a
