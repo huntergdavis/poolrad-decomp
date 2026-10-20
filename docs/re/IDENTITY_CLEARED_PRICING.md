@@ -165,3 +165,42 @@ and wrappers `1186` 12 B, `119A` 4 B, `119E` 14 B. A scan of those bodies finds 
 with the stack and the RunError stop. The three entries gate exactly one row outright (`1CC3`; three
 more rows list them among other blockers). That is about 448 B per cleared row, against 2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
 
+## `RES_0464_1B52`: priced and declined (2026-10-20)
+
+The requirement for a bus-aware SYSTEM Move was raised by the par-b lane (i19660). This section records the measurement
+behind the decline, made read-only from the media and the checked-in sources on the same queue export as above, so
+that nobody rebuilds it later believing it is cheap. VP ruling i19674: declined.
+
+**The body.** `RES_0464_1B52` is a resident body with no queue row: **778 B / 305 instructions**, one `RETF`, ledger
+class `unresolved`, with 13 overlay far call sites and 5 loader sites, and no model, strict credit or identity. It is the
+saved-slot-A page flush, an `A200 -> A000` mode-1 transfer
+([U19_A200_MODE1_LATCH_BOUNDARY.md](U19_A200_MODE1_LATCH_BOUNDARY.md),
+[SLOT_A_RES464_SECOND_FLUSH.md](SLOT_A_RES464_SECOND_FLUSH.md)). It makes six calls, **all in
+`RUNTIME_COVERED_ENDPOINTS`**: `0AF8:1685` Move backward three times and `0AF8:16A8` FillChar three times. It also
+executes nine `OUT DX,AL` and eight `POP ES`; there is no `IN`, `INT` or `HLT`, no indirect transfer and no other callee.
+
+**Why "covered" does not mean ready here.** The covered endpoint `0AF8:1685` maps to `pr_system_move_1685`, which takes
+flat RAM. `include/poolrad/recovered/memory_bus.h` defines `pr_bus`: byte accesses to physical `A0000..AFFFF` go through
+`pr_ega` (a read loads the four latches; a write goes through the write mode, and in mode 1 it writes the latches), the rest
+is flat RAM, and `OUT` goes to the port environment and then the EGA. A Move over `A000`/`A200` run on flat RAM would copy
+RAM bytes instead of loading and writing latches. A bus-aware FillChar exists (`system_fillchar_bus_16a8_cpu`), but the
+covered set maps `16A8` to the flat leaf; **no bus-aware Move exists anywhere in the tree.**
+
+**The three-part cost.**
+
+1. the body: a port-bound `pr_bus` raw-CPU model of 778 B / 305 instructions, like the other port-bound residents;
+2. a new endpoint model `pr_system_move_bus_1685` (35 B / 16 instructions: `MOV BX,SP`, `MOV DX,DS`, `LDS SI`, `LES DI`,
+   `MOV CX`, `CLD`, `CMP SI,DI`, `JAE`, `ADD SI,CX`, `ADD DI,CX`, `DEC SI`, `DEC DI`, `STD`, `REP MOVSB`, `MOV DS,DX`,
+   `RETF 0Ah`) with each byte through `pr_bus_read8`/`pr_bus_write8`;
+3. a way for the covered set to say "covered with a bus": today one endpoint maps to one model, so this is a structural
+   change to the readiness mechanism, not a model.
+
+**The value.** Eleven queue rows list `1B52` as an unready callee, but **only one has it as its sole unready callee:
+`OVL_03BD_05F3`** (10 B, classified `game_or_other_library_unresolved`, so its own identity is unresolved). That is about
+**813 B (778 + 35) for one small row**, before the covered-with-bus mechanism, which has no byte price.
+
+**Declare instead of model?** No mechanism that exists allows it. The latch semantics already live as a model (`pr_ega`),
+and the declaration mechanisms (the manifest `callback` status, `declared_boundary`) cannot launder an ordinary SYSTEM
+helper, as the [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records. If the bus-aware Move is ever wanted, it is
+built as a model, by ruling.
+
