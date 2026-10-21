@@ -56,7 +56,7 @@ functions: image `4354` (`+43CA`; the same function that calls `017B`), image `8
 
 ## Validation
 
-Receipt: 2026-10-20/21, main `MAIN_SHA` plus this branch.
+Receipt: 2026-10-20/21, main `e7362e73` plus this branch.
 
 **Unicorn, 324 cases + 5 service refusals + 5 ARGUMENT**, comparing unmasked CPU14, all 1,048,576 RAM bytes, the stop status and the number of `INT 21h` issued (96; Unicorn's interrupt hook plays the service with the case's `AX` and `CF`): `RETURN` 321, `TRANSFER` 3.
 Starts **17/17**, conditional outcomes **8/8**, accounted by successor. **226** cases whose stack and variable do not alias are also checked against a separately written statement of the contract. Cases: 11 handles x 7 magics x 4 service answers x 2
@@ -96,7 +96,10 @@ So `1491` alone unlocks nothing; the package unlocks 17. **Correction:** the mer
 ## Checker, gates and reproduction
 
 `system_close_1491_cpu_audit.py` declares `CHECKER_ROWS=('RES_0AF8_1491',)` and implements `--compile-only` through the same `library()` build, printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+Gate results on current main (`e7362e73`): `check_checker_builds.py RES_0AF8_1491 --require-current-main` PASS (1 actual checker build for 1 row); ASan/UBSan C test 93 checks, exit 0; focused CTest `poolrad_system_close_1491_cpu_tests` 1/1 passed; combined receipt
+`--unicorn --native`: 324 cases + 5 service refusals + 5 ARGUMENT, 17/17 starts, 8/8 outcomes, 226 reference-checked, 0 masked RAM bytes (Unicorn); native 48 runs, RESULT.BIN `75f81606...732b`, 982,784 bytes omitted. The pairing gate is run on the committed change.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/system_close_1491_cpu_audit.py --unicorn --native --output resources/close-evidence.json
     python3 tools/overlay/check_checker_builds.py RES_0AF8_1491 --require-current-main --output resources/close-checker-build.json
