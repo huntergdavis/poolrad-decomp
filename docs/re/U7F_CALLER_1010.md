@@ -177,7 +177,7 @@ image and checks its expected COM segment before copying code. DOSBox-X
 uses normal core / 386, disabled IRQs during execution, and synthetic input
 tables. No original game text, image or data table is checked in.
 
-## Correction, 2026-10-22: the FillChar LCALLs' segment is the live code word, not 0AF8h
+## Correction, 2026-10-21: the FillChar LCALLs' segment is the live code word, not 0AF8h
 
 The C model entered SYSTEM FillChar with `CS := 0AF8h`, a constant, at its three LCALLs (`1022`, `1044`, `1088`), where the
 original's `9A` carries a segment word the loader relocates (`0AF8` only at the unrelocated base): the words at `1025`,
