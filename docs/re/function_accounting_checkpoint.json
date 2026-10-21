@@ -1,11 +1,11 @@
 {
   "artifacts_sha256": {
     "classification": "774f1642941fd50965e7f2f9291c80ac8db887f05f0e7f1d8e513bdb6fea2c25",
-    "full_c_map": "5b0d465beef5dd6fe1fe171500645e0b97c69786391ba99490ec8bea63614285",
+    "full_c_map": "d2106cc38f6eb8de229100a3bb7c3a5def16a1ff2a467f1264f892511332afb0",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "964bff468d57042e8f0417acbed1ae4ad759de8dca8be61fbe109e2a0cb89403",
+    "resident_audit": "b7fa3911a7bad4e601c71c90a0aa4ab85747c11fdce0de817af0815f2bb7d40a",
     "reviewed_identities": "478431231f643d9a4f98f50af77ebb9212a89a39c1288af8d1bf880764170f8c"
   },
   "inputs": {
@@ -13,13 +13,13 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "461d4958fed4260aa644a78568d5b0c6627718e8708d119a93b5e4facdeb61f8",
+  "queue_sha256": "9913be8da0099241b178af4684942152cbc1b17173db729d2754955b6b7a054a",
   "reviewed_change": {
-    "approval_reference": "resident acceptance of RES_00BA_0000 (VP i20401, reviewer par-e); follows the RES_00BA_1693 resident precedent",
+    "approval_reference": "resident acceptance of RES_00BA_01FB (VP i20401, reviewer par-e); follows the RES_00BA_1693 resident precedent",
     "approved_by": "PM",
     "evidence_doc": "docs/re/U9E_CHARACTER_PAIR_115C_CPU.md",
     "game_identity": true,
-    "original_id": "RES_00BA_0000",
+    "original_id": "RES_00BA_01FB",
     "review_pr": 1345,
     "reviewed_commit": "738e4163",
     "status": "approved",
@@ -28,14 +28,14 @@
   "schema_version": 1,
   "strict_full_c_by_domain": {
     "overlay": 233,
-    "resident": 30
-  },
-  "strict_full_c_originals": 263,
-  "unknown_ownership": 501,
-  "verified_game_by_domain": {
-    "overlay": 277,
     "resident": 31
   },
-  "verified_game_identities": 308,
+  "strict_full_c_originals": 264,
+  "unknown_ownership": 500,
+  "verified_game_by_domain": {
+    "overlay": 277,
+    "resident": 32
+  },
+  "verified_game_identities": 309,
   "whole_game_denominator": "unknown"
 }
