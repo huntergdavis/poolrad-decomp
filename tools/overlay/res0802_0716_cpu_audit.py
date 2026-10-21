@@ -105,20 +105,21 @@ def parse_dax(blob):
 class FileSystem:
     """The declared DOS file service: one archive, any name; byte-exact reads/seeks; optional injected faults. A handle is the
     lowest free one; a successful close answers AL = 01h with AH kept (both as DOSBox-X 2026.01.02 measured natively)."""
-    def __init__(self, blob=None, read_fail=None, seek_answer=None, first_handle=5):
-        self.blob, self.read_fail, self.seek_answer = blob, read_fail, seek_answer
-        self.handles, self.next, self.reads, self.log = {}, first_handle, 0, []
+    def __init__(self, blob=None, read_fail=None, seek_answer=None, first_handle=5, appear_after=None):
+        self.blob, self.read_fail, self.seek_answer, self.appear_after = blob, read_fail, seek_answer, appear_after
+        self.handles, self.next, self.reads, self.opens, self.log = {}, first_handle, 0, 0, []
 
     def state(self):
-        return dict(handles=dict(self.handles), next=self.next, reads=self.reads)
+        return dict(handles=dict(self.handles), next=self.next, reads=self.reads, opens=self.opens)
 
     def restore(self, st):
-        self.handles, self.next, self.reads = dict(st['handles']), st['next'], st['reads']
+        self.handles, self.next, self.reads, self.opens = dict(st['handles']), st['next'], st['reads'], st.get('opens', 0)
 
     def call(self, ah, al, bx, cx, dx, read_name=None, write=None):
         """Returns (cf, ax, dx_out or None)."""
         if ah == 0x3D:
-            if self.blob is None:
+            self.opens += 1                                     # "insert disk": absent until the appear_after-th open attempt
+            if self.blob is None or (self.appear_after is not None and self.opens < self.appear_after):
                 self.log.append(('3D', al, read_name, 'absent')); return 1, 2, None
             h = self.next                                       # DOS hands out the LOWEST free handle (>= the first)
             while h in self.handles:
