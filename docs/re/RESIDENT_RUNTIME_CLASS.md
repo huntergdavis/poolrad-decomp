@@ -35,6 +35,10 @@ into every reader in one PR:
   `resident_runtime` and counts as ready.
 - **Credit refusal** (`load_queue`): a member written into `strict_full_c_addresses.csv`,
   `reviewed_function_identities.csv` or `partial_callee_models.csv` is refused, which is proved by attempt.
+- **One-hop pricer** (`price_candidates.py`): `READINESS_STATES` and `USABLE_DEPENDENCIES` gain `driver_internal` and
+  `resident_runtime`. Its vocabulary drift guard already failed on any fresh export, because the queue has emitted
+  `driver_internal` for the 11 direct rows since that class landed. The guard only passed against a stale export. An
+  unknown state defaulted to usable, so the one-hop prices were already right.
 - **Closure pricer** (`price_row_closures.py`): members of BOTH never-credit classes are ready terminals, listed and never
   walked or priced. It catches them two ways:
   - as a direct readiness: `expand()`'s ready set gains `driver_internal` and `resident_runtime`;
@@ -95,5 +99,7 @@ their three cheapest are still `OVL_0025_0341` 2,043 B, `OVL_006F_0EC4` 2,813 B 
   - the committed table is loaded and pinned;
   - on the owner media and a fresh export, `OVL_0068_073B` loses exactly 727 B and `OVL_0036_002D` exactly 110 B.
     The deltas are pinned; the absolute prices are recorded above with their base.
+- `test_price_candidates.ReadinessVocabularyTest.test_never_credit_classes_are_known_usable_states`.
+- Full `tools/overlay` suite: 206 tests, OK.
 - **Mutation-checked:** removing `driver_internal` from the ready set, disabling the member terminal, or disabling the
   near-only refusal each fails a test.

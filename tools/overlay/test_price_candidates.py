@@ -110,6 +110,13 @@ class ReadinessVocabularyTest(unittest.TestCase):
                    for t in row["callee_readiness"]["targets"]}
         self.assertEqual(emitted - pricer.READINESS_STATES, set())
 
+    def test_never_credit_classes_are_known_usable_states(self):
+        # t30: both never-credit classes compose as ready; neither may fall into UNREADY or out of the vocabulary.
+        for state in ("declared_boundary", "driver_internal", "resident_runtime"):
+            self.assertIn(state, pricer.READINESS_STATES)
+            self.assertIn(state, pricer.USABLE_DEPENDENCIES)
+            self.assertNotIn(state, pricer.UNREADY)
+
     def test_indirect_only_row_is_reported_blocked(self):
         # Behavioural, not a restatement of the constant: a row whose only
         # unready callee class is an indirect dispatch must be reported as
