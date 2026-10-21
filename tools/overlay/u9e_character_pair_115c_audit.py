@@ -20,7 +20,7 @@ from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
 
-CHECKER_ROWS = ('OVL_009E_115C', 'RES_00BA_0BB8', 'RES_00BA_1168', 'RES_00BA_13AB', 'RES_00BA_0000', 'RES_00BA_01FB', 'RES_00BA_0282', 'RES_00BA_03A0', 'RES_00BA_10E6')
+CHECKER_ROWS = ('OVL_009E_115C', 'RES_00BA_0BB8', 'RES_00BA_1168', 'RES_00BA_13AB', 'RES_00BA_0000', 'RES_00BA_01FB', 'RES_00BA_0282', 'RES_00BA_03A0', 'RES_00BA_10E6', 'RES_00BA_11EA')
 MASK = SIZE - 1
 PINS = (
  ('u9e',0x10e4,0x110d,17,'12ce30806a561605b7f7be238444a28a0d22f7cc53bda4872d6e0800330f41db'),
