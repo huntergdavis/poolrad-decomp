@@ -90,6 +90,24 @@ Precedent: in ReadKey (`CRT_READKEY_030F_CPU.md`), BREAK is 25/92 Unicorn cases 
 trigger in play is the user pressing Ctrl-Break; its frequency in play is not measured. A draft instruction
 to call it "a live outcome of ordinary keyboard state" was withdrawn for exactly this reason.
 
+## Named exclusion: "a negative load base" (VP i20208, 2026-10-20)
+
+Some alias states need a relocated segment value that the loader can only produce by loading the program **below its
+own start**. In real mode, a segment `S` in the image relocates to `load_base + S`, and `load_base` is never negative. So
+a value `< S` is not constructible for that segment.
+
+When a feasibility argument reduces to "this needs segment `S` to relocate below `S`", it is finished in one line: cite
+this section, state the required value, and state the segment. Construct the case first, as the precedent did, because
+the reduction is only trustworthy once the alias itself has been built and observed.
+
+Precedent: `RES_0899_0059`, 017B's `JMP` at +018B (#1298, `RES_0899_READKEY_0059_CPU.md`).
+- The alias was **built**: load base 1069h, SS = DS, SP 5478h.
+- 017B was never entered. The earlier ReadKey call's CS push, at the same SP, set [5373] to CS's high byte, so the
+  set-IN test failed.
+- Passing that test needs CS = 0002h or 0102h for segment 0899, which is a negative load base.
+
+The run disproved the author's prediction (outcome 1, reachable) and the doc reports the run.
+
 ## Four false-prior classes (each has a filter and a regression test)
 
 1. **Boundary assertions** — `address + size == 0x…` end-of-previous-body and
