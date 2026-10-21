@@ -22,7 +22,8 @@ ROOT = Path(__file__).resolve().parents[2]
 EXE, OVR = ROOT / "resources/DOS/POOLRAD/START.EXE", ROOT / "resources/DOS/POOLRAD/GAME.OVR"
 SIX_0802 = {"RES_0802_0040", "RES_0802_0105", "RES_0802_0193", "RES_0802_050F", "RES_0802_05CD", "RES_0802_06E7"}
 EIGHT_00BA = {f"RES_00BA_{o}" for o in ("0000", "01FB", "0282", "03A0", "10E6", "11EA", "1282", "1325")}
-NINE_NEAR_ONLY = SIX_0802 | EIGHT_00BA                      # fourteen entries (name kept from the first six-entry change)
+TWO_0709 = {"RES_0709_06A7", "RES_0709_0714"}
+NINE_NEAR_ONLY = SIX_0802 | EIGHT_00BA | TWO_0709           # sixteen entries (name kept from the first six-entry change)
 
 
 def renamed_audit(classification="unresolved"):
@@ -88,7 +89,7 @@ class AuditTest(unittest.TestCase):
     def other(self, result=None):
         return {r["image_offset"]: r for r in (result or self.base)["rows"] if r["kind"] == "other_prologue"}
 
-    def test_the_reviewed_list_is_exactly_the_fourteen_and_carries_arguments(self):
+    def test_the_reviewed_list_is_exactly_the_sixteen_and_carries_arguments(self):
         self.assertEqual({f"RES_{s:04X}_{o:04X}" for s, o in rc.REVIEWED_NEAR_ONLY.values()}, NINE_NEAR_ONLY)
         image = bytes(rc.unpack(self.exe)[0])
         self.assertEqual(set(rc.reviewed_near_only(image).values()), NINE_NEAR_ONLY)
@@ -104,7 +105,7 @@ class AuditTest(unittest.TestCase):
             size, digest = independent[int(name[-4:], 16)]
             self.assertEqual((row.group(1), int(row.group(2))), (digest, size), name)
 
-    def test_an_00ba_entry_needs_a_pass_verdict(self):
+    def test_an_entry_outside_0802_needs_a_pass_verdict(self):
         image = bytes(rc.unpack(self.exe)[0])
         with mock.patch.object(rc, "VERDICTS", "docs/re/RES_0802_IDENTITY_ARGUMENTS.md"):
             with self.assertRaises(SystemExit) as caught:

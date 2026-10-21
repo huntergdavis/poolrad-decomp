@@ -117,3 +117,27 @@ image offset (the `RPRO_` id) and size in par-a's page. The other nine of the 17
 alias list only; aliases 2,206 to 2,214; strict 262 and identities 307 unchanged. The independent alias audit passes
 (898 starts, 0 duplicate originals, 0 duplicate credits). Updated scope: of the 17 game-segment near-only residents,
 **8 now carry a reviewed name and 9 remain BLOCKED** (par-a); 14 of the 39 near-only residents are listed in all.
+
+## Extension to sixteen: two nested bodies of the printer `0709:0768` (VP i20405)
+
+par-a's pass 2 and pass 3 ([NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md)) ruled `RES_0709_06A7` PASS
+(draws the next character of 0768's message through glyph `01DF` at the window cursor `DS:5E24/5E25`) and `RES_0709_0714`
+PASS **with the 01DA limit**: it skips blanks in 0768's local copy of its string argument, and only the text that
+`game_verified` `001C_0A09` passes (far `DS:70C8`, ECL string buffer 1) is claimed; `001C_1EF8`'s stack buffers and CS
+constant are not. The limit travels with the name: listing it grants no claim beyond what par-a's page states.
+
+**Hash source, disclosed:** the 115C pins cover only `00BA`, so these two have **no independent pin**. Each hash is
+computed from the loader-expanded image over par-a's recorded size; the span decodes cleanly (41 and 19 instructions, `RETF 2`
+at the end of each, a Pascal prologue at the start), and the 26 bytes between `0714` and `0768` are a string literal, not code.
+
+| id | verdict | body_sha256 | body_bytes |
+| --- | --- | --- | ---: |
+| RES_0709_06A7 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | c9674dcc914fe3e3bb0ed3d54e58776e351f7d3888ccfd15d5b4320d97241bc5 | 109 |
+| RES_0709_0714 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 67b1ce78e79b1e281051f3bc73e634213d904cedd5ec265a4bdf72f502af799c | 58 |
+
+Ownership is still not set by the name; neither is in `GAME_SPECIFIC_TARGETS`. Tally over the 17 game-segment residents:
+10 PASS (the 0BB8 eight, `06A7`, `0714`), 5 FAIL, 2 BLOCKED.
+
+**Measured delta of this extension** (main `d0432662`, fresh export before and after): 898 originals before and after; `summary` identical;
+exactly **2** rows differ (`RES_IMAGE_07737`, `RES_IMAGE_077A4`), alias list only; aliases 2,214 to 2,216; strict 262 and
+identities 307 unchanged; the independent alias audit passes. The list is now sixteen entries.

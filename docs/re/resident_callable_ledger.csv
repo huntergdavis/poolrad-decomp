@@ -111,8 +111,8 @@ RPRO_07090,other_prologue,0x07090,0x070C9,raw_pascal_prologue,0,0,1,0,unresolved
 RPRO_07101,other_prologue,0x07101,0x0713A,raw_pascal_prologue,0,1,0,0,unresolved,candidate
 RPRO_07130,other_prologue,0x07130,0x07169,raw_pascal_prologue,0,1,2,0,unresolved,candidate
 RPRO_07147,other_prologue,0x07147,0x07180,raw_pascal_prologue,0,2,4,0,unresolved,candidate
-RPRO_07737,other_prologue,0x07737,0x07770,raw_pascal_prologue,0,0,3,0,unresolved,candidate
-RPRO_077A4,other_prologue,0x077A4,0x077DD,raw_pascal_prologue,0,0,1,0,unresolved,candidate
+RES_0709_06A7,other_prologue,0x07737,0x07770,raw_pascal_prologue,0,0,3,0,unresolved,candidate
+RES_0709_0714,other_prologue,0x077A4,0x077DD,raw_pascal_prologue,0,0,1,0,unresolved,candidate
 RPRO_08012,other_prologue,0x08012,0x0804B,raw_pascal_prologue,0,1,0,0,unresolved,candidate
 RPRO_08020,other_prologue,0x08020,0x08057,raw_pascal_prologue,0,0,1,0,unresolved,candidate
 RPRO_08040,other_prologue,0x08040,0x08077,raw_pascal_prologue,0,0,1,0,unresolved,candidate
