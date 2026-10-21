@@ -157,3 +157,11 @@ stated base. Accounting files are included only as read-only provenance.
 - review_notes: retain provisional identity, queue code/data correction,
   signed unchecked selection effects, ordinary-RAM restrictions, dependency
   coverage gaps, synthetic native scope and independent acceptance/credit.
+
+
+## Checker registration (review lane, 2026-10-20)
+
+`CHECKER_ROWS = ('OVL_007D_05F0',)` registers this audit with the handoff gate. `--compile-only` runs the audit's own
+`library()` build (`-std=c11 -Wall -Wextra -Wpedantic -Werror`) before any media access and prints `CHECKER_BUILD_OK`.
+Registration makes the row checkable; it is **not** a credit. This row is `game_evidenced`, so acceptance still needs a
+two-factor identity argument, which this document does not yet carry.
