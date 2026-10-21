@@ -25,10 +25,14 @@ EXIT_CALL = 0x14C
 
 ROOT = Path(__file__).resolve().parents[2]
 
-# Near-only resident bodies with a reviewed identity argument (t30, VP i20369). A near-only resident has no RES_ name
-# (that is the name of an overlay-called target), so it could never be credited: the credit table is keyed by RES_
-# aliases. This explicit list gives exactly these bodies their reviewed RES_ name, keyed by loaded image offset. It is
-# never a pattern over RPRO ids, and nothing joins it without a row in IDENTITY_ARGUMENTS carrying the body hash.
+# THE TWO DOORS (t30, VP i20369, i20420): a resident that nothing in an overlay calls has no RES_ name (that is the name of
+# an overlay-called target), so it could never be credited: the credit table is keyed by RES_ aliases. There are exactly
+# two such kinds, and one mechanism for both. The first door is the NEAR-ONLY resident (reached by near calls only, no far
+# caller at all); the second is the LOADER-CALLED resident (reached by far calls relocated inside the resident image, no
+# overlay caller). Both are named only through the explicit lists below, keyed by loaded image offset; a body joins a list
+# only with a reviewed identity argument and a body hash, never by a pattern over RPRO ids. A third kind, if one is ever
+# found, is a new entry condition on these lists, not a third hand-made mechanism. The name is never an identity:
+# ownership still comes only from GAME_SPECIFIC_TARGETS.
 REVIEWED_NEAR_ONLY = {0x8060: (0x802, 0x0040), 0x8125: (0x802, 0x0105), 0x81B3: (0x802, 0x0193),
                       0x852F: (0x802, 0x050F), 0x85ED: (0x802, 0x05CD), 0x8707: (0x802, 0x06E7),
                       # The eight nested bodies of credited RES_00BA_0BB8 (par-a, NEAR_ONLY_GAME_SEGMENT_IDENTITY.md).
@@ -36,15 +40,44 @@ REVIEWED_NEAR_ONLY = {0x8060: (0x802, 0x0040), 0x8125: (0x802, 0x0105), 0x81B3: 
                       0x01C86: (0xBA, 0x10E6), 0x01D8A: (0xBA, 0x11EA), 0x01E22: (0xBA, 0x1282), 0x01EC5: (0xBA, 0x1325),
                       # Nested bodies of the printer 0709:0768 (par-a, NEAR_ONLY_GAME_SEGMENT_IDENTITY.md): 06A7 and 0714 (limited).
                       0x7737: (0x709, 0x06A7), 0x77A4: (0x709, 0x0714)}
+# Second door: loader-called only. 0709:00B7 is called by two loader-relocated far calls inside credited RES_03F1_0137.
+REVIEWED_LOADER_CALLED = {0x7147: (0x709, 0x00B7)}
+REVIEWED_RESIDENTS = {**REVIEWED_NEAR_ONLY, **REVIEWED_LOADER_CALLED}
 # Where each entry's body hash is recorded: a table row `| RES_xxxx_yyyy | ... | <sha256> | <bytes> |` in one of these.
 IDENTITY_ARGUMENTS = ("docs/re/RES_0802_IDENTITY_ARGUMENTS.md", "docs/re/REVIEWED_NEAR_ONLY_ALIAS.md")
-# Every body outside 0802 additionally needs par-a's verdict, which names the body and its byte count.
+# Every body outside 0802 additionally needs a PASS verdict in par-a's pages.
 VERDICTS = "docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md"
 
 
-def reviewed_near_only(image, root=ROOT, listing=None):
-    """{image offset: RES_ id} for the reviewed list, each checked against the argument document's body hash."""
-    listing = REVIEWED_NEAR_ONLY if listing is None else listing
+def verdict_of(text, name):
+    """The LAST verdict recorded for `name` in a verdict page: PASS, FAIL, BLOCKED, NOT_ASSESSED, or None.
+
+    A verdict row is a table row whose FIRST cell is the body (a mention in another row's text is not a verdict). Its
+    verdict is PASS when it sits under a heading that starts with PASS or carries a bold PASS; FAIL, BLOCKED or 'Not
+    assessed' likewise. The last such row wins, so a later pass supersedes an earlier BLOCKED or 'not assessed'."""
+    heading, verdict = "", None
+    for line in text.splitlines():
+        if line.startswith("#"):
+            heading = line.lstrip("# ").upper()
+            continue
+        cells = line.split("|")
+        if len(cells) < 3 or not cells[1].strip().startswith(f"`{name}`"):
+            continue
+        row = line.upper()
+        if "**FAIL" in row:
+            verdict = "FAIL"
+        elif "**BLOCKED" in row:
+            verdict = "BLOCKED"
+        elif "NOT ASSESSED" in row:
+            verdict = "NOT_ASSESSED"
+        elif "**PASS" in row or heading.startswith("PASS"):
+            verdict = "PASS"
+    return verdict
+
+
+def reviewed_residents(image, root=ROOT, listing=None):
+    """{image offset: RES_ id} for the reviewed lists, each checked against its body hash and, outside 0802, its PASS verdict."""
+    listing = REVIEWED_RESIDENTS if listing is None else listing
     text = "\n".join((Path(root) / name).read_text() for name in IDENTITY_ARGUMENTS)
     verdicts = (Path(root) / VERDICTS).read_text()
     names = {}
@@ -56,10 +89,13 @@ def reviewed_near_only(image, root=ROOT, listing=None):
         require(hashlib.sha256(bytes(image[start:start + size])).hexdigest() == row.group(1),
                 f"{name} body hash differs from its reviewed argument")
         if segment != 0x802:
-            require(re.search(rf"`{name}` \(`RPRO_{start:05X}`\) \| {size} \|", verdicts) is not None,
-                    f"{name} has no PASS verdict naming its image offset and size")
+            require(verdict_of(verdicts, name) == "PASS", f"{name} has no PASS verdict in {VERDICTS} (last verdict: "
+                    f"{verdict_of(verdicts, name)})")
         names[start] = name
     return names
+
+
+reviewed_near_only = reviewed_residents   # the first name, kept for the callers that predate the second door
 
 
 def path_walk(image, seeds):
@@ -234,7 +270,7 @@ def audit_coverage(exe, ovr):
                          init_fallthrough=0,
                          classification=classification,
                          confidence=item["classification_confidence"]))
-    reviewed = reviewed_near_only(image)
+    reviewed = reviewed_residents(image)
     renamed = set()
     for item in prior["unmatched_prologues"]:
         start = item["image_offset"]
@@ -242,10 +278,12 @@ def audit_coverage(exe, ovr):
         if name is not None:
             # The alias is a name, never an identity: ownership still comes from GAME_SPECIFIC_TARGETS, like every
             # other resident path, and an unreviewed RPRO body is untouched.
-            require(not item["relocated_far_callers"] and walk["near"].get(start),
-                    f"{name} is not near-only")
+            if start in REVIEWED_LOADER_CALLED:   # second door: far callers relocated inside the image, none from an overlay
+                require(item["relocated_far_callers"], f"{name} is not loader-called")
+            else:                                  # first door: near calls only
+                require(not item["relocated_far_callers"] and walk["near"].get(start), f"{name} is not near-only")
             renamed.add(start)
-        decided = name is not None and (REVIEWED_NEAR_ONLY[start] in GAME_SPECIFIC_TARGETS)
+        decided = name is not None and (REVIEWED_RESIDENTS[start] in GAME_SPECIFIC_TARGETS)
         classification = ("game_verified" if start == PROGRAM_START or decided else
                           "linked_crt_inferred" if start == CRT_INIT_START else
                           "unresolved")
@@ -280,7 +318,7 @@ def audit_coverage(exe, ovr):
                          confidence=("high_inference" if start in CRT_NEAR_STARTS
                                      else "candidate")))
     require(renamed == set(reviewed), "a reviewed near-only body is not among the raw prologues")
-    granted = sum(REVIEWED_NEAR_ONLY[start] in GAME_SPECIFIC_TARGETS for start in reviewed)
+    granted = sum(REVIEWED_RESIDENTS[start] in GAME_SPECIFIC_TARGETS for start in reviewed)
     classes = Counter(row["classification"] for row in rows)
     require(len(rows) == 145 and classes == Counter(
         game_verified=30 + granted, linked_crt_inferred=9, unresolved=106 - granted),

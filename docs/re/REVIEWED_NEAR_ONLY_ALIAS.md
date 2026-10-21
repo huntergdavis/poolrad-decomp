@@ -141,3 +141,37 @@ Ownership is still not set by the name; neither is in `GAME_SPECIFIC_TARGETS`. T
 **Measured delta of this extension** (main `d0432662`, fresh export before and after): 898 originals before and after; `summary` identical;
 exactly **2** rows differ (`RES_IMAGE_07737`, `RES_IMAGE_077A4`), alias list only; aliases 2,214 to 2,216; strict 262 and
 identities 307 unchanged; the independent alias audit passes. The list is now sixteen entries.
+
+## The second door: loader-called residents (VP i20420)
+
+**Two doors, one mechanism, in one sentence:** a resident that no overlay calls has no `RES_` name, so it is creditable only
+through the explicit reviewed lists in `resident_callable_coverage.py`, by the **near-only door** (reached by near calls
+alone, `REVIEWED_NEAR_ONLY`) or the **loader-called door** (reached by far calls relocated inside the resident image, with
+no overlay caller, `REVIEWED_LOADER_CALLED`); a third kind, if one turns up, is a new entry condition on these lists, not a
+third hand-made mechanism. par-e counted 18 loader-called rows on main (`RPRO_03C3E`, `03DA0`, `03ED0`, `04277`, `04354`,
+`0470F`, `0708A`, `07101`, `07130`, `07147`, `08012`, `08232`, `08988`, `08ACC`, `08C5B`, `08CB2`, `0A310`, `0A400`).
+**Only one has a reviewed argument and a PASS verdict today**, so the list has one entry; the other seventeen stay under their
+`RPRO_` ids, unresolved and unlisted, and nothing here enrolls them.
+
+| id | evidence | body_sha256 | body_bytes |
+| --- | --- | --- | ---: |
+| RES_0709_00B7 | docs/re/RES_0709_RECT_FILL_00B7_CPU.md | f26747c1e8836399f118763dfee5a2bdeace551495f75b5533772b888fa65ff5 | 186 |
+
+`RES_0709_00B7` (`RPRO_07147`, image `[7147,7201)`) is the rectangle fill on the game's draw page; par-a's pass 4 rules it
+PASS: both loader-relocated far calls (`03F1:01F1`, `03F1:020C`) lie inside strict-credited `RES_03F1_0137`, and it reads and
+restores the page state `DS:4A1A`/`4A18`. **Hash source:** this row's hash is the one pinned by the evidence document's own
+body table (the 00B7 original-byte audit, 202 Unicorn cases), which a test compares; it is independent of the loader. Each door
+has its own entry condition, checked on the image: the near-only door refuses a body with any relocated far caller, the
+loader-called door refuses one with none, and the audit refuses a name in the wrong list. Ownership is still not set by the
+name: `RES_0709_00B7` is not in `GAME_SPECIFIC_TARGETS`.
+
+### A defect in the first two extensions' verdict check, found while adding this one
+
+The loader's message said "no PASS verdict", but the check it ran only looked for the body's **inventory row** (the first
+table of the verdict page: `RES_xxxx (RPRO_xxxxx) | bytes |`), which lists FAIL and BLOCKED bodies as well. A failed body
+could therefore have been listed without the loader noticing. **No listed body was affected**: all 17 listed bodies outside
+0802 do have a PASS verdict (a test now proves it), and no FAIL body was ever listed. The check is now `verdict_of`: the
+**last** verdict row whose first cell is the body (PASS under a `PASS` heading or bold `PASS`; FAIL; BLOCKED; not assessed),
+so a later pass supersedes an earlier BLOCKED and a mention in another row's text is not a verdict. Negative controls on the
+real page: `RES_0464_1509`, `1484`, `1596` and `RES_0709_0000` read FAIL and `RES_0464_007B` BLOCKED. This is the
+claim "the loader requires a PASS verdict" made true after the fact; until this change it was only true of the data.
