@@ -212,3 +212,18 @@ model changed. Native evidence is unchanged and partial (above). Classification
 stays `game_or_other_library_unresolved`; strict credit, identity and manifest
 decisions are untouched. The earlier "identity pending" caveats in this document
 are unchanged.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, i20050)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (unit `0x3B0` at file offset 182,479) and from the CSVs on main. This section is an argument, not a credit. Credit is an acceptance commit by par-e.
+
+1. **Reached from game code (near call).** Each site below decodes from the media as `0E` (push cs) followed by `E8` call to this entry. Each lies inside the caller's ledger extent (`overlay.csv` bound), so the relocation clause does not apply (ruling i19576). The callers are `game_evidenced`, and **none is strict-credited**, so the basis is the classification, as for `OVL_03B0_11F3`.
+   - Sites: `+048B`, `+05E2`, `+0606` and `+0685` in `OVL_03B0_03BD` [03BD,06FB).
+2. **Operates on documented game state (state passed as an argument).** The body dereferences its parent 03BD's frame. Traced in 03BD from the media:
+   - `+03D7..+03E0` copies 03BD's `[bp+14h]` key-list string into local `bp-53h`, which supplies the characters at `L+i-53h`.
+   - `+041D` stores its length byte at `bp-64h`.
+   - `+047A..+0482` computes the starting column `bp-65h`.
+   - `bp-8Fh` and `bp-8Eh` derive from the arguments and the highlight bound used with `DS:6B2Bh`.
+   - [GAMEPLAY_PATH.md](GAMEPLAY_PATH.md) §2.4 documents those arguments for the main-menu caller: key list `DS:05F0`, highlight index `[6B2Bh]`, and `[bp+0Eh]`/`[bp+10h]` clearing `[bp-8Fh]`. An oracle run confirmed the key behaviour. So this body draws the game's menu key list with its highlight.
+
+**Limit** (as for 11F3's one documented caller): only the main-menu caller of 03BD is documented. The strings passed by 03BD's other callers are not claimed. Of the four U3B0 rows that pass, this is the weakest factor-2 argument.
