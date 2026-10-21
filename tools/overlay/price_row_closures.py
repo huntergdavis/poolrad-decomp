@@ -10,7 +10,10 @@ resident bodies are terminals. Calls into the 08AE driver segment are recorded w
 resident gateway body that makes them. Far calls to any other segment (for example the
 Turbo Pascal DOS unit at 0A32) are neither walked nor priced but are PRINTED with the
 bodies that make them: before 2026-10-20 they were collected and never shown, which
-hid 0A32:000B (Intr) from the OVL_006F_0010 breakdown. Figures are floors: bodies are counted once,
+hid 0A32:000B (Intr) from the OVL_006F_0010 breakdown. Uncovered SYSTEM endpoints are listed BY NAME in their own column: they are
+unpriced but part of the price, so a row with no unready body is still not
+sufficient while any endpoint remains (2026-10-20: OVL_007F_0294 and 0AF8:13B1).
+Figures are floors: bodies are counted once,
 runtime_unmapped endpoints are listed and left unpriced. DECLARED boundary endpoints
 (strict_candidate_queue.DECLARED_BOUNDARY_ENDPOINTS) compose as ready dependencies, so
 they are terminals: listed in their own column, never walked or priced. Before
@@ -149,9 +152,9 @@ def main():
     p.add_argument("rows", nargs="*")
     a = p.parse_args()
     pricer = Pricer(sq.load_fresh_export(a.queue), a.exe.read_bytes())
-    print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | Declared boundaries (terminals) "
+    print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints (unpriced, part of the price) | Declared boundaries (terminals) "
           "| 08AE entries (gateway bodies) | Other far targets (calling bodies) | Dispatch |")
-    print("| --- | ---: | ---: | ---: | --- | --- | --- | --- |")
+    print("| --- | ---: | ---: | --- | --- | --- | --- | --- |")
     for row_id in a.rows or DEFAULT_ROWS:
         if row_id not in pricer.rows:
             print("| %s | not in queue (credited or removed) | | | | | | |" % row_id)
@@ -160,8 +163,9 @@ def main():
         driver = "; ".join("08AE:%04X <- %s" % (o, ", ".join(sorted(g))) for o, g in sorted(acc["driver"].items())) or "none"
         other = "; ".join("%04X:%04X <- %s" % (s, o, ", ".join(sorted(g)))
                           for (s, o), g in sorted(acc["other"].items())) or "none"
-        print("| %s | %d | %d | %d | %s | %s | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
-              len(acc["unmapped"]), ", ".join(sorted(acc["declared"])) or "none", driver, other,
+        endpoints = ", ".join("0AF8:%04X" % o for o in sorted(acc["unmapped"])) or "none"
+        print("| %s | %d | %d | %s | %s | %s | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
+              endpoints, ", ".join(sorted(acc["declared"])) or "none", driver, other,
               ", ".join(sorted(acc["dispatch"])) or "none"))
 
 

@@ -233,3 +233,19 @@ The same accounting lines as RES_0899_0000:
 
     tools/overlay/resident_inventory.py  GAME_SPECIFIC_TARGETS  += (0x899, 0x0059)
     docs/re/strict_full_c_addresses.csv:  RES_0899_0059,docs/re/RES_0899_READKEY_0059_CPU.md
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Resident strict credit, following the RES_00BA_1693 precedent (VP i20209). Reproduced by par-e on main `e37aab8d`
+(2026-10-20):
+- **Unicorn:** 115 cases (103 RETURN, 10 EXIT, 2 BREAK), body 61/61 starts, 14 CPU words and all 1,048,576 RAM bytes,
+  flag masks 0. The composed members executed: 017B 20/21 (the missing `JMP 01A3` is infeasible from this caller, as
+  argued above, and covered by 017B's own 21/21), 00DC 77/77, 006C 46/46, 0000 48/48, 137C 24/24, 13B1 27/27, 1742 43/43,
+  17AE 43/43, 181A 12/12, and QUIT 17/17.
+- **Native:** 44 cases equal. RESULT.BIN reproduced as `9135dd30…` against `1a653f1c…` above. It is a per-run receipt,
+  because the live `IN 61h` byte enters it in the 3 masked cases. The comparison passes every run.
+- **C:** 24 checks under strict `-Werror` ASan/UBSan. The checker gate passes on current main.
+- **Identity, factor 1, checked from the media:** 9 relocated `LCALL 0899:0059` sites, all at instruction boundaries.
+  Two are inside **game_verified** functions: `03BD_0E08 +0EAF` and `03BD_10C7 +114E`.
+- **Identity, factor 2:** the cited subject is the sound-state pair `DS:5372/5373` (SLOT_A_RESIDENT_DISPATCH_GATE.md).
+  `[2612]` and `[49F7]` are named without a cited definition, and the identity does not rest on them.

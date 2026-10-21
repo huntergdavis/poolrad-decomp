@@ -220,3 +220,19 @@ verified with the media absent.
 
 Resident identities live in `GAME_SPECIFIC_TARGETS` plus the strict table, and not in `reviewed_function_identities.csv`
 (handoff condition 9).
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Resident strict credit, following the RES_00BA_1693 precedent (VP i20209). Reproduced by par-e on main `ab790918` and
+`e37aab8d` (2026-10-20):
+- **Unicorn:** 112 cases, all EXIT, body 17/17 starts (the two dead starts asserted), 14 CPU words and all 1,048,576 RAM
+  bytes, flag masks 0. Composed members are fully executed: 00DC 77/77, 006C 46/46, 0000 48/48, 137C 24/24, 13B1 27/27,
+  1742 43/43, 17AE 43/43, 181A 12/12. Intr 69/69, GetTime 19/19 and LongMul 16/16.
+- **Native:** 42 cases equal. RESULT.BIN reproduced as `74957ab9…` against `01182f30…` above. It is a per-run receipt,
+  because the live `IN 61h` byte enters it in the 20 masked cases. The comparison passes every run.
+- **C:** 18 checks under strict `-Werror` ASan/UBSan. The checker gate passes on current main.
+- **Identity, factor 1, checked from the media:** 13 relocated `LCALL 0899:0000` sites, all at instruction boundaries.
+  Three are inside **game_verified** functions: `001C_19B0 +1A7B`, `03BD_0E08 +0EBC` and `03BD_10C7 +115B`.
+- **Identity, factor 2:** the only subject with a cited document is the sound-state pair `DS:5372/5373`.
+  SLOT_A_RESIDENT_DISPATCH_GATE.md tabulates its game-code writers. `[2612]`, `[4A1C]` and `4A02` are named in this
+  document without a cited definition, and the identity does not rest on them.

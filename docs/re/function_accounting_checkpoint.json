@@ -1,11 +1,11 @@
 {
   "artifacts_sha256": {
     "classification": "774f1642941fd50965e7f2f9291c80ac8db887f05f0e7f1d8e513bdb6fea2c25",
-    "full_c_map": "504fb77d5d0ec793bd15ccd66120ed881c84d90fb2267104712593437af01410",
+    "full_c_map": "2b8d460328fa9d1d28e1d91b993423269088072094232b63573e55b3fe4187cf",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "17eb4d983be1dcc4064bfe9eb19fc07be1e4db2bccf126d64efbd04244b700c8",
+    "resident_audit": "e9a3e3577debf9334a7284914e5edcfd82813d2eede83048e4d86de1c9e40222",
     "reviewed_identities": "478431231f643d9a4f98f50af77ebb9212a89a39c1288af8d1bf880764170f8c"
   },
   "inputs": {
@@ -13,31 +13,29 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "6ccb0659bedcfa07c16f77d3897cf95930d496c903af9beed82bdf0aad617337",
+  "queue_sha256": "e62553e6fcc651e606514dd47e5c8cdb3a3891765c495a16587629f00e54740d",
   "reviewed_change": {
-    "approval_reference": "acceptance of OVL_0033_08A4 (VP i20136, reviewer par-e): evidence PR #438, identity by par-a (#1282, i20136); reproduced on main c9d80b75: Unicorn 2,644 cases, all 1,048,576 RAM bytes and 14 CPU words, 338/338 sites; strict -Werror ASan/UBSan suite exits 0 (it prints no count); flag masks 0; native 512 cases, RESULT 93cf8dab",
+    "approval_reference": "resident acceptance of RES_0899_0059 (VP i20209, reviewer par-e); follows the RES_00BA_1693 resident precedent",
     "approved_by": "PM",
-    "body_bytes": 755,
-    "body_sha256": "c721e542769e5b590a6ef00ee92ffa9b4a9b7a5a76a9c4563eda25b3a4b703bc",
-    "evidence_doc": "docs/re/U33_BYTE_FLAGS_08A4.md",
+    "evidence_doc": "docs/re/RES_0899_READKEY_0059_CPU.md",
     "game_identity": true,
-    "original_id": "OVL_0033_08A4",
-    "review_pr": 438,
-    "reviewed_commit": "509f42b0e7ed9c8aad71a43a48cbb01021f21df6",
+    "original_id": "RES_0899_0059",
+    "review_pr": 1295,
+    "reviewed_commit": "0b39f752ceb44df7734cc31bb2c7969c8cc36282",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
     "overlay": 233,
-    "resident": 26
+    "resident": 28
   },
-  "strict_full_c_originals": 259,
-  "unknown_ownership": 505,
+  "strict_full_c_originals": 261,
+  "unknown_ownership": 503,
   "verified_game_by_domain": {
     "overlay": 277,
-    "resident": 27
+    "resident": 29
   },
-  "verified_game_identities": 304,
+  "verified_game_identities": 306,
   "whole_game_denominator": "unknown"
 }
