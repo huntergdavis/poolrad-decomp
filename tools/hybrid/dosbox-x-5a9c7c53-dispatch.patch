@@ -95,6 +95,33 @@ index 34222c4..cbd4eec 100644
  	return retval;
  }
  
+diff --git a/src/hardware/pic.cpp b/src/hardware/pic.cpp
+index d199b7e..ca2e3e7 100644
+--- a/src/hardware/pic.cpp
++++ b/src/hardware/pic.cpp
+@@ -17,6 +17,7 @@
+  */
+ 
+ #include <assert.h>
++unsigned long long pr_hw_irqs = 0;   /* poolrad hybrid: hardware interrupts taken (dispatch windows exclude them) */
+ 
+ #include "dosbox.h"
+ #include "inout.h"
+@@ -530,12 +531,12 @@ static void slave_startIRQ(){
+ 
+     slave.start_irq(pic1_irq);
+     master.start_irq(master_cascade_irq);
+-    CPU_HW_Interrupt((unsigned int)slave.vector_base + (unsigned int)pic1_irq);
++    ++pr_hw_irqs; CPU_HW_Interrupt((unsigned int)slave.vector_base + (unsigned int)pic1_irq);
+ }
+ 
+ static void inline master_startIRQ(Bitu i){
+     master.start_irq(i);
+-    CPU_HW_Interrupt(master.vector_base + i);
++    ++pr_hw_irqs; CPU_HW_Interrupt(master.vector_base + i);
+ }
+ 
+ void PIC_runIRQs(void) {
 diff --git a/src/cpu/pr_hybrid_record.h b/src/cpu/pr_hybrid_record.h
 new file mode 100644
 index 0000000..f880355
@@ -284,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..48a28ee
+index 0000000..ee16ab1
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,304 @@
+@@ -0,0 +1,327 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -312,7 +339,12 @@ index 0000000..48a28ee
 +#include "poolrad/recovered/resident_0899_idle_0104_cpu.h"
 +#include "poolrad/recovered/resident_0464_bitmap_release_2595_cpu.h"
 +#include "poolrad/recovered/resident_0709_glyph_01df_cpu.h"
++#include "poolrad/recovered/resident_0709_space_05eb_cpu.h"
++#include "poolrad/recovered/resident_0709_printer_0626_cpu.h"
++#include "poolrad/recovered/resident_03f1_clear_0137_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_01da_cpu.h"
 +}
++extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
 +extern HostPt MemBase;
 +
@@ -327,9 +359,14 @@ index 0000000..48a28ee
 +static Body bodies[] = {
 +    {"RES_0899_0104", 0x0899, 0x0104, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"RES_0464_2595", 0x0464, 0x2595, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
-+    {"RES_0709_01DF", 0x0709, 0x01DF, 16, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 12; a pr_bus body: V1 shadow */
++    {"RES_0709_01DF", 0x0709, 0x01DF, 16, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 12; the pr_bus bodies: V1 or route */
++    {"RES_0709_05EB", 0x0709, 0x05EB, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8 */
++    {"RES_0709_0626", 0x0709, 0x0626, 14, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 10 */
++    {"RES_03F1_0137", 0x03F1, 0x0137, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8 */
++    {"OVL_03B0_01DA", 0x0000, 0x01DA, 8, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; an overlay: seg unused */
 +};
-+static const int NBODY = 3;
++static const int NBODY = 7;
++static unsigned long long irq0 = 0;                       /* pr_hw_irqs at the window's start */
 +/* V1 replay bus: the C's device accesses are answered from, and checked against, the original's recorded stream. */
 +static int bus_mode = 0;                                  /* 0: V1 replay (shadow); 1: ROUTE (the C drives the real VGA) */
 +static bool route_now = false;                            /* set at a bus body's arrival in route mode; run before the entry */
@@ -445,7 +482,7 @@ index 0000000..48a28ee
 +    ret_ip = (uint16_t)(MemBase[top & (RAM - 1)] | (MemBase[(top + 1) & (RAM - 1)] << 8));
 +    ret_cs = (uint16_t)(MemBase[(top + 2) & (RAM - 1)] | (MemBase[(top + 3) & (RAM - 1)] << 8));
 +    sp_after = (uint16_t)(S.esp + x.pop); body_cs = c; sys_cs = (uint16_t)(c - x.seg + 0x0AF8u);
-+    interrupted = false; steps = 0; ++x.arrivals; cur = b; state = ORIGINAL;
++    interrupted = false; steps = 0; ++x.arrivals; cur = b; state = ORIGINAL; irq0 = pr_hw_irqs;
 +}
 +static void match(int index, uint16_t c, uint16_t ip) {
 +    if (state != ARMED) return;
@@ -468,6 +505,21 @@ index 0000000..48a28ee
 +    int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d);
 +    return st == PR_R0464_2595_RETURNED ? 0 : st == PR_R0464_2595_ARGUMENT ? 1 : 2;
 +}
++/* One runner for every pr_bus body: 0 RETURNED, 1 ARGUMENT, 2 a stop. Budgets are generous declared caps. */
++static int run_bus(pr_bus *bus, Cpu14 &m) {
++    const char *id = bodies[cur].id; const size_t B = (size_t)1u << 20;
++    if (!strcmp(id, "RES_0709_01DF")) { pr_r0709_glyph_cpu_diagnostic d; int st = pr_r0709_glyph_01df_cpu(bus, RAM, (pr_r0709_glyph_cpu *)&m, B, &d);
++        return st == PR_R0709_GLYPH_CPU_OK ? 0 : st == PR_R0709_GLYPH_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_0709_05EB")) { pr_r0709_space_cpu_diagnostic d; int st = pr_r0709_space_05eb_cpu(bus, RAM, (pr_r0709_space_cpu *)&m, B, &d);
++        return st == PR_R0709_SPACE_CPU_OK ? 0 : st == PR_R0709_SPACE_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_0709_0626")) { pr_r0709_printer_cpu_diagnostic d; int st = pr_r0709_printer_0626_cpu(bus, RAM, (pr_r0709_printer_cpu *)&m, B, B, &d);
++        return st == PR_R0709_PRINTER_CPU_OK ? 0 : st == PR_R0709_PRINTER_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_03F1_0137")) { pr_r03f1_clear_cpu_diagnostic d; int st = pr_r03f1_clear_0137_cpu(bus, RAM, (pr_r03f1_clear_cpu *)&m, B, B, &d);
++        return st == PR_R03F1_CLEAR_CPU_OK ? 0 : st == PR_R03F1_CLEAR_CPU_ARGUMENT ? 1 : 2; }
++    pr_u3b0_01da_limits lim = {B, B}; pr_u3b0_01da_diagnostic d;
++    int st = pr_u3b0_entry_01da_cpu(bus, RAM, (pr_u3b0_01da_cpu *)&m, &lim, &d);
++    return st == PR_U3B0_01DA_OK ? 0 : st == PR_U3B0_01DA_ARGUMENT ? 1 : 2;
++}
 +/* ROUTE: at the bus body's entry, before its first instruction, the C runs with the routed bus on the live guest and the
 + * live VGA; the game continues from the C's state. A stop hands back mid-body: the device holds exactly the C's accesses so
 + * far, so the original continues from a consistent state. Returns true (CS:IP changed). */
@@ -477,12 +529,11 @@ index 0000000..48a28ee
 +    Regs E = grab();
 +    pr_bus bus = {MemBase, &replay_ega, NULL, NULL, NULL};
 +    Cpu14 m = to14(E);
-+    pr_r0709_glyph_cpu_diagnostic gd;
-+    int st = pr_r0709_glyph_01df_cpu(&bus, RAM, (pr_r0709_glyph_cpu *)&m, (size_t)1u << 20, &gd);
-+    if (st == PR_R0709_GLYPH_CPU_ARGUMENT) { line("ROUTED_ARGUMENT", "nothing changed; the original runs"); cur = -1; return false; }
++    int cls = run_bus(&bus, m);
++    if (cls == 1) { line("ROUTED_ARGUMENT", "nothing changed; the original runs"); cur = -1; return false; }
 +    put(from14(E, m));
-+    if (st == PR_R0709_GLYPH_CPU_OK) { ++x.returned_seen; ++routed_returned; }
-+    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "status %d at %04X:%04X", st, m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", buf); }
++    if (cls == 0) { ++x.returned_seen; ++routed_returned; }
++    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "stop at %04X:%04X", m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", buf); }
 +    cur = -1; return true;
 +}
 +/* V1 for a pr_bus body, at the original's return: the C runs on a replay bus from S; its device stream must equal the
@@ -495,11 +546,10 @@ index 0000000..48a28ee
 +    cursor = 0; mismatch.clear();
 +    pr_bus bus = {MemBase, &replay_ega, NULL, NULL, NULL};
 +    Cpu14 m = to14(S);
-+    pr_r0709_glyph_cpu_diagnostic gd;
-+    int st = pr_r0709_glyph_01df_cpu(&bus, RAM, (pr_r0709_glyph_cpu *)&m, (size_t)1u << 20, &gd);
-+    if (st != PR_R0709_GLYPH_CPU_OK) {
++    int cls = run_bus(&bus, m);
++    if (cls != 0) {
 +        ++x.stops_seen; put(O); memcpy(MemBase, &oram[0], RAM);
-+        char buf[96]; snprintf(buf, sizeof buf, "status %d at %04X:%04X; original result kept", st, m.cs, m.ip);
++        char buf[96]; snprintf(buf, sizeof buf, "class %d at %04X:%04X; original result kept", cls, m.cs, m.ip);
 +        line("C_STOPPED_SHADOW", buf); close_window(); return true;
 +    }
 +    ++x.returned_seen;
@@ -521,6 +571,7 @@ index 0000000..48a28ee
 +    if (c == ret_cs && ip == ret_ip && reg_sp == sp_after) {
 +        Regs now = grab();
 +        pr_rec::on = false;
++        interrupted = pr_hw_irqs != irq0;                     /* a hardware interrupt was taken inside the window */
 +        if (interrupted) { ++x.interrupted; line("INTERRUPTED", "original result kept"); close_window(); return false; }
 +        if (x.bus) return v1(now);
 +        if (state == RERUN || state == MIDBODY) {             /* the original finished: compare with the all-original O */
@@ -540,7 +591,7 @@ index 0000000..48a28ee
 +            bool same = memcmp(&m, &before, sizeof m) == 0 && memcmp(MemBase, &sram[0], RAM) == 0;
 +            line(same ? "ARGUMENT_NOTHING_CHANGED" : "ARGUMENT_CHANGED_STATE", force_argument ? "forced" : "unforced");
 +            if (!same) ++x.back_differ;
-+            state = RERUN; steps = 0; interrupted = false; pr_obs::suppress_index = x.index; return true;
++            state = RERUN; steps = 0; interrupted = false; irq0 = pr_hw_irqs; pr_obs::suppress_index = x.index; return true;
 +        }
 +        put(from14(S, m));                                    /* the C's state, complete or partial, is now the guest's */
 +        if (cls == 0) {
@@ -552,10 +603,9 @@ index 0000000..48a28ee
 +        ++x.stops_seen;                                       /* a stop: the original continues from the C's partial state */
 +        char where[64]; snprintf(where, sizeof where, "stop at %04X:%04X%s", m.cs, m.ip, force_stop ? " (heap steps 0)" : "");
 +        line("C_STOPPED_HANDING_BACK", where);
-+        state = MIDBODY; steps = 0; interrupted = false; return true;
++        state = MIDBODY; steps = 0; interrupted = false; irq0 = pr_hw_irqs; return true;
 +    }
-+    if (!(c == body_cs || c == sys_cs)) interrupted = true;
-+    if (++steps > 200000u) { ++x.timeouts; line("TIMEOUT", "window abandoned"); close_window(); }
++    if (++steps > 2000000u) { ++x.timeouts; line("TIMEOUT", "window abandoned"); close_window(); }
 +    return false;
 +}
 +}  // namespace pr_disp
