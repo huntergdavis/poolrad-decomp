@@ -97,6 +97,18 @@ int main(void)
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 0xFFFF, 255, 0xFFFF);
     assert(run() == PR_OVL0077_275B_RETURNED);
 
+    /* The caller's BP is saved and restored whatever its low byte: the flag stores at [bp-2] and [bp-1] are BYTE stores
+     * and must not touch the saved BP at [bp+0] (a word store zeroed its low byte; the 7F00 fixture hid it). */
+    {
+        static const uint16_t saved[] = { 0x7F01u, 0x7FFEu, 0x1234u, 0xFFFFu, 0x00FFu };
+        for (unsigned k = 0; k < sizeof saved / sizeof saved[0]; ++k) {
+            frame(0x3000, 0x0100, 0x4000, 0x0200, (k & 1u) ? 0x10 : 0x0C, 4, 1, 0x0100);
+            cpu.bp = saved[k];
+            assert(run() == PR_OVL0077_275B_RETURNED);
+            assert(cpu.bp == saved[k]);
+        }
+    }
+
     /* Diagnostic may be NULL. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 4, 1, 0x0100);
     budget = 1u << 20;

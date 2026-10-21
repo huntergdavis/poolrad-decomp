@@ -54,9 +54,21 @@ instruction substitution inside the body**.
 Current result, stated exactly:
 
 ```
-cases 31 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
-flag_masks 0 · substitutions 0 · stops: return 31 · both residents called in every case
+cases 46 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
+flag_masks 0 · substitutions 0 · stops: return 46 · both residents called in every case
 ```
+
+**Correction, 2026-10-22 (found by composing this body under OVL_0023_0239, which calls it).** The C model stored the three
+flag bytes `[bp-2]`, `[bp-2]` and `[bp-1]` with the word writer, so each store also wrote the byte above it. The store at
+`[bp-1]` therefore wrote **`[bp+0]`, the low byte of the saved BP, as zero**, and `RETF 8` returned with
+`BP = (caller BP) & 0xFF00`. Every earlier fixture, the unit test and the native harness entered with `BP = 7F00`, whose
+low byte is already zero, so the defect was invisible to all of them: a fixture-value blind spot, not a coverage gap in the
+branch accounting. The model now uses a byte store (`wr8`); the differential gained 15 cases whose BP low byte is nonzero
+(`7F01`, `7FFE`, `1234`, `FFFF`, `00FF`, each with the type, over-count and saturated variants), and the unit test checks
+that BP survives for the same five values. With the old model the differential fails at the first such case
+(`bp 7F00 != original 7F01`) and the unit test at its first assertion. The body bytes, hash, identity and credit are
+unchanged; the native corroboration below still enters with `BP = 7F00`, so it cannot see this bug class and is not
+re-run here.
 
 That is **not** "100% of reachable" and **not** "all outcomes": **no starts** are
 excluded (`EXCLUDED_STARTS` is empty) and **two** conditional sides are, for the
@@ -124,7 +136,7 @@ caller's original bytes. Its declaration, per the five required points:
 2. **What the stub does not do:** it does **not** execute the residents'
    closure, so their internal SYSTEM endpoints are **not exercised by this run**
    — only by the differential.
-3. **Division of labour:** the differential (31 fixtures, 14 CPU words, all
+3. **Division of labour:** the differential (the original 31 fixtures, to which 15 Unicorn-only BP cases were added on 2026-10-22, 14 CPU words, all
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim. This run corroborates the **caller's 132 bytes**
    against the original instruction stream.
