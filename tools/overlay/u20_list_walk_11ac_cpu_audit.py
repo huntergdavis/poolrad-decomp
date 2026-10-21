@@ -171,24 +171,30 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
             raise ValueError(f'{name}: {len(diff)} RAM differences, first {diff[:8]}')
     return got,s['unlink_calls'],s['freemem_calls'],s['starts'],s['edges'],cond_sites
 def expected_coverage(ctx):
-    """Instruction starts and conditional outcomes the composed bodies can take.
+    """Coverage scoped to the body UNDER TEST, plus the callee entries it reaches.
 
-    Segments follow the install: the root at CS, +3291 and +0000 at the closure's
-    own CS, +014E at U3CE, the resident release at RESIDENT and FreeMem at SYSTEM.
+    This differential runs 11AC's original bytes against credited C MODELS of its
+    callees, so the interiors of the +3291 closure (its own CS, U3CE, RESIDENT)
+    and of the SYSTEM FreeMem core are executed by the models, never by original
+    bytes. Counting them as misses would measure the credits that own those
+    bodies, each of which carries its own evidence. The claim this harness can
+    prove is therefore:
+
+      100% of instruction starts inside [11AC,12A8),
+      100% of the callee ENTRY points it reaches,
+      every conditional outcome inside that extent.
+
+    Closure interiors are OUT OF SCOPE by construction and reported as such.
     """
-    c=ctx['closure']; md=Cs(CS_ARCH_X86,CS_MODE_16)
-    bodies={CS:[(ENTRY,ctx['body'])],closure.CS:[(UNLINK,c['body']),(0,c['body0'])],
-            closure.U3CE:[(closure.ua.ENTRY,c['pair_body'])],
-            closure.RESIDENT:[(closure.r.ENTRY,c['resident'])]}
+    md=Cs(CS_ARCH_X86,CS_MODE_16)
     starts=set(); edges=set()
-    for seg,blobs in bodies.items():
-        for base,blob in blobs:
-            for ins in md.disasm(blob,base):
-                starts.add((seg,ins.address))
-                if ins.mnemonic.startswith('j') and ins.mnemonic!='jmp' and ins.op_str.startswith('0x'):
-                    tgt=int(ins.op_str,16); fall=(ins.address+ins.size)&65535
-                    edges.add((seg,ins.address,fall)); edges.add((seg,ins.address,tgt))
-    return starts,edges
+    for ins in md.disasm(ctx['body'],ENTRY):
+        starts.add((CS,ins.address))
+        if ins.mnemonic.startswith('j') and ins.mnemonic!='jmp' and ins.op_str.startswith('0x'):
+            tgt=int(ins.op_str,16); fall=(ins.address+ins.size)&65535
+            edges.add((CS,ins.address,fall)); edges.add((CS,ins.address,tgt))
+    entries={(CS,ENTRY),(closure.CS,UNLINK),(closure.SYSTEM,0x254)}
+    return starts,edges,entries
 
 def specifications():
     base=dict(nodes=3,head=0,types={},freed={})
@@ -229,7 +235,7 @@ def main():
         lim=Limits(64,256,UnlinkLimits(64,256,512))
         results=[];seen={}
         failures=[];all_starts=set();all_edges=set()
-        exp_starts,exp_edges=expected_coverage(ctx)
+        exp_starts,exp_edges,exp_entries=expected_coverage(ctx)
         global COND_SITES
         COND_SITES={}
         for seg,site,_n in exp_edges: COND_SITES.setdefault(seg,set()).add(site)
@@ -246,15 +252,22 @@ def main():
                   ram_bytes=SIZE,flag_masks=0,ordinary_ram_bytes=SIZE-0x10000))
         for name,v in seen.items():report['stops'][str(v['status'])]=report['stops'].get(str(v['status']),0)+1
         rs=len(all_starts&exp_starts);re_=len(all_edges&exp_edges)
-        report['coverage']=dict(root_and_closure_starts=f'{rs}/{len(exp_starts)}',
-                                conditional_outcomes=f'{re_}/{len(exp_edges)}',
-                                unreached_starts=sorted({f'{s:04X}:{a:04X}' for s,a in (exp_starts-all_starts)})[:24],
-                                unreached_outcomes=sorted({f'{s:04X}:{a:04X}->{n:04X}' for s,a,n in (exp_edges-all_edges)})[:24])
-        print('Coverage',report['coverage']['root_and_closure_starts'],
-              'starts,',report['coverage']['conditional_outcomes'],'conditional outcomes',flush=True)
+        entries_hit={e for e in exp_entries if e in all_starts}
+        report['coverage']=dict(
+            scope='starts inside [11AC,12A8) + reached callee entries + conditional outcomes inside the extent; '
+                  'closure interiors are out of scope because the differential executes C models there',
+            extent_starts=f'{rs}/{len(exp_starts)}',
+            conditional_outcomes=f'{re_}/{len(exp_edges)}',
+            callee_entries=f'{len(entries_hit)}/{len(exp_entries)}',
+            out_of_scope='interiors of closure CS / U3CE / RESIDENT / SYSTEM bodies, owned by their own credits',
+            unreached_starts=sorted({f'{s:04X}:{a:04X}' for s,a in (exp_starts-all_starts)})[:16],
+            unreached_outcomes=sorted({f'{s:04X}:{a:04X}->{n:04X}' for s,a,n in (exp_edges-all_edges)})[:16])
+        print('Coverage extent',report['coverage']['extent_starts'],'starts,',
+              report['coverage']['conditional_outcomes'],'outcomes,',
+              report['coverage']['callee_entries'],'callee entries',flush=True)
         print('Original parity',{k:v for k,v in report.items() if k not in ('names','coverage')},flush=True)
-        if failures:raise SystemExit(f'{len(failures)}/{len(results)+len(failures)} cases failed')
         if a.output:a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+        if failures:raise SystemExit(f'{len(failures)}/{len(results)+len(failures)} cases failed')
 if __name__=='__main__':
     sys.modules['u20_list_walk_11ac_cpu_audit']=sys.modules[__name__]
     main()
