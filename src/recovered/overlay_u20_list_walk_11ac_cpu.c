@@ -75,6 +75,13 @@ static pr_u20_11ac_status call_unlink(machine *m,uint16_t site,uint16_t resident
     c->ip=site;d->call_site=site;
     if(rd8(m,caller,site)!=0x9A || rd(m,caller,(uint16_t)(site+1u))!=0x2A)
         return PR_U20_11AC_CODE;
+#ifdef PR_U20_11AC_TRACE
+    { uint16_t win_o=rd(m,m->c->ds,0x49D6),win_s=rd(m,m->c->ds,0x49D8);
+      fprintf(stderr,"CALL b6=%04x b8=%04x win=%04x:%04x w67c=%04x head=%04x:%04x active=%04x:%04x\n",
+        rd(m,m->c->ss,(uint16_t)(entry_sp+4u)),rd(m,m->c->ss,(uint16_t)(entry_sp+6u)),
+        win_s,win_o,rd(m,win_s,(uint16_t)(win_o+0x67Cu)),
+        rd(m,m->c->ds,0x5D98),rd(m,m->c->ds,0x5D96),rd(m,m->c->ds,0x5D94),rd(m,m->c->ds,0x5D92)); }
+#endif
     stub=rd(m,caller,(uint16_t)(site+3u));
     push(m,caller);push(m,continuation);
     c->cs=stub;c->ip=0x2A;
@@ -177,6 +184,9 @@ type1:
         fprintf(stderr," byte13=%02x zf=%d\n",er8(&m,0x13),(c->flags&0x40)!=0);
 #endif
         c->ax=(uint16_t)((c->ax&0xFF00u)|0x00u);            /* 1230 MOV AL,0 */
+#ifdef PR_U20_11AC_TRACE
+        fprintf(stderr,"AX1230=%04x di=%04x es=%04x\n",c->ax,c->di,c->es);
+#endif
         if((c->flags&0x40)==0) {                            /* 1232 JNE 1235 */
             uint16_t a=c->ax,n=(uint16_t)(a+1u);inc16(c,a,n);c->ax=n;      /* 1234 INC AX */
         }
