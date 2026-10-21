@@ -126,7 +126,11 @@ member until all six are rows, and says which. That is why the row is **text onl
 ## Checker, gates and reproduction
 
 `res08ae_dispatch_00dc_cpu_audit.py` declares `CHECKER_ROWS=('RES_08AE_00DC',)` and implements `--compile-only` through the same `library()` build, printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+Gate results on current main (`26e77aec`): `check_checker_builds.py RES_08AE_00DC --require-current-main` PASS (1 actual checker build for 1 row); ASan/UBSan C test 100 checks, exit 0; focused CTest
+`poolrad_resident_08ae_dispatch_00dc_cpu_tests` 1/1 passed; combined receipt `--unicorn --native`: 1788 stopped or returned cases + 5 ARGUMENT, 77/77 starts, 16/16 outcomes, 1050 reference-checked, 0 masked RAM bytes
+(Unicorn); native 48 runs, RESULT.BIN `21b766ad...7bb3`, 982,784 bytes omitted. The pairing gate is run on the committed change.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/res08ae_dispatch_00dc_cpu_audit.py --unicorn --native --output resources/00dc-evidence.json
     python3 tools/overlay/check_checker_builds.py RES_08AE_00DC --require-current-main --output resources/00dc-checker-build.json
