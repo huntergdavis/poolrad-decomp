@@ -1,7 +1,7 @@
 # Corpus state at main 4983d59c (2026-10-20), for a cold start
 
 One page, written 2026-10-20 and corrected after par-e's verification against products
-regenerated at its own pin. **Pin: main `4983d59c`** (after #1237). Counts and credit
+regenerated at its own pin. **Pin: main `4983d59c`** (after #1237) for counts and credit status; §3 closures were regenerated again at main `fed69789` (after #1240). Counts and credit
 status were read from the two credit CSVs and `function_accounting_checkpoint.json` at that
 commit. Readiness and closure figures in §3 were regenerated for this version from the
 pinned products: the canonical queue (`function_queue_audit.py`, queue sha
@@ -55,20 +55,20 @@ Precision limits that must travel with them:
 
 VP working ceiling is 132 B per credited row (i19611). "Floor" columns are the one-hop
 figures in `IDENTITY_CLEARED_PRICING.md`; "Closure" is `price_row_closures.py` on the
-regenerated pin (all callees transitively, bodies counted once, endpoints left unpriced).
+regenerated pin (all callees transitively, bodies counted once, endpoints left unpriced; since #1240 declared boundaries `RES_0A40_02FD`, `RES_0A40_030F`, `RES_0AF8_16BC` are terminals and their 12 CRT bodies / 1,161 B are no longer priced, which lowered every 08AE-gated row by exactly 1,161 B / 12 bodies). Queue sha `1e5dd48106c8…` at that commit.
 
 | Row | One-hop floor | Closure (B / bodies) | 08AE-gated | Note |
 | --- | ---: | ---: | --- | --- |
-| `OVL_001C_0F08` | none sourced | 15,689 / 59 (11 uncovered SYSTEM endpoints) | yes (00DC, 017B) | no indirect dispatch in the closure. An earlier figure of ">= 3,176 B" quoted here does not reproduce from any product or document and is withdrawn; the id `RES_0464_0F08` was also wrong |
-| `OVL_006F_0482` | >= 2,934 | 8,629 / 36 | yes | chain PARKED by VP ruling; do not start 1E5C or 0111 |
-| `OVL_006F_1262` | >= 1,876 (>= 4,312 with 0482's callees) | 10,113 / 39 | yes | needs 0482 and 0EC4 |
-| `OVL_0077_299C` | >= 1,011 (>= 1,795 with 0D9A) | 8,771 / 29 | yes | needs 008A, 02E8 |
-| `OVL_006F_0010` | >= 627 + 5 unpriced endpoints | 2,117 / 18 | yes | `runtime_unmapped` callees |
-| `OVL_0025_0511` | >= 303 | 9,281 / 40 | yes | cheapest by one-hop floor, **not** buyable by translation alone |
-| `OVL_0025_0411` | >= 926 | 4,309 / 29 | yes | |
-| `OVL_0025_1684` | >= 1,499 | 7,069 / 26 | yes | |
-| `OVL_03CE_01C8` | >= 1,990 | 8,059 / 33 | yes | |
-| `OVL_006F_22D5` | >= 2,404 | 10,150 / 33 | yes | |
+| `OVL_001C_0F08` | none sourced | 14,528 / 47 (10 uncovered SYSTEM endpoints) | yes (00DC, 017B) | no indirect dispatch in the closure. An earlier figure of ">= 3,176 B" quoted here does not reproduce from any product or document and is withdrawn; the id `RES_0464_0F08` was also wrong |
+| `OVL_006F_0482` | >= 2,934 | 7,468 / 24 | yes | chain PARKED by VP ruling; do not start 1E5C or 0111 |
+| `OVL_006F_1262` | >= 1,876 (>= 4,312 with 0482's callees) | 8,952 / 27 | yes | needs 0482 and 0EC4 |
+| `OVL_0077_299C` | >= 1,011 (>= 1,795 with 0D9A) | 7,610 / 17 | yes | needs 008A, 02E8 |
+| `OVL_006F_0010` | >= 627 + 5 unpriced endpoints | 956 / 6 | yes | `runtime_unmapped` callees |
+| `OVL_0025_0511` | >= 303 | 8,120 / 28 | yes | cheapest by one-hop floor, **not** buyable by translation alone |
+| `OVL_0025_0411` | >= 926 | 3,148 / 17 | yes | |
+| `OVL_0025_1684` | >= 1,499 | 5,908 / 14 | yes | |
+| `OVL_03CE_01C8` | >= 1,990 | 6,898 / 21 | yes | |
+| `OVL_006F_22D5` | >= 2,404 | 8,989 / 21 | yes | |
 | `OVL_009E_0026` | >= 38 + dispatch closure | 314 / 1 | no | dispatch through itself (`indirect_unresolved`) |
 | `OVL_005E_0123` | >= 2,029 | 2,549 / 3 | no | dispatch via `OVL_009E_0160`; 009E_02FA is on hold (i19596) |
 
