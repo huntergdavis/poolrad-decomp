@@ -141,6 +141,12 @@ def build(image_reloc, *, saved=1, w=0x0001, arg=0, mode=0x03, regs_rest=None, s
     return m, c, env
 
 
+MEMBERS = [('08AE:0000 time', 'driver', 0x0000, 0x006C), ('08AE:006C delay', 'driver', 0x006C, 0x00DC),
+           ('08AE:00DC dispatch', 'driver', 0x00DC, 0x017B), ('08AE:137C vector', 'driver', 0x137C, 0x13B1),
+           ('08AE:13B1 vector', 'driver', 0x13B1, 0x13EA), ('08AE:1742 table', 'driver', 0x1742, 0x17AE),
+           ('08AE:17AE table', 'driver', 0x17AE, 0x181A), ('08AE:181A byte', 'driver', 0x181A, 0x1830),
+           ('0A32:000B Intr', 'dos', 0x000B, 0x006C), ('0A32:00A2 GetTime', 'dos', 0x00A2, 0x00C7),
+           ('0AF8:0A5B LongMul', 'system', 0x0A5B, 0x0A76)]
 HALT = (BASE + SEG['system'], 0x00E9)
 DEAD = {0x0031, 0x0032}  # POP BP; RETF after LCALL 0AF8:00E9 (Halt never returns): dead code, never reached
 
@@ -303,9 +309,18 @@ def differential(image_reloc, decoded, f):
     by_seg = {}
     for cs, ip in closure:
         by_seg.setdefault(f'{cs - BASE:04X}', set()).add(ip)
+    # Per member: instruction starts executed in any case / instructions decoded in that member's span (original bytes).
+    per_member = {}
+    for label, seg, start, end in MEMBERS:
+        base = SEG[seg] * 16
+        decoded_ips = {i.address for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(image_reloc[base + start:base + end], start)}
+        ran = {ip for cs, ip in closure if cs == BASE + SEG[seg] and start <= ip < end}
+        check(ran <= decoded_ips, f'{label}: executed starts off the decode')
+        per_member[label] = f'{len(ran)}/{len(decoded_ips)}'
     return dict(cases=len(specs), stops=dict(EXIT=len(specs)), body_starts=len(seen), body_starts_total=len(live),
                 dead_starts=['0031 POP BP', '0032 RETF: after Halt, which never returns'],
                 conditional_outcomes_total=0, closure_instruction_starts={k: len(v) for k, v in sorted(by_seg.items())},
+                closure_member_starts=per_member,
                 driver_member_calls_histogram=dict(sorted(members.items())), cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 
 

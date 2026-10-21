@@ -111,15 +111,32 @@ modelled body is patched.
 
 - **Body starts: 17/17 live.** The two dead starts (+0031, +0032) are asserted never reached. There are no conditional
   outcomes in the body.
-- **Instruction starts executed in the closure:**
+- **Every member's code actually executed.** Each count is the instruction starts executed in any case over the
+  instructions decoded from that member's original span (receipt 21:40:10–21:40:32 PDT):
 
-  | Segment | Starts | What runs there |
-  | --- | ---: | --- |
-  | 08AE | 320 | 00DC, its members, and `RES_08AE_0000` |
-  | 0A32 | 88 | Intr 69 + GetTime 19 |
-  | 0AF8 | 16 | LongMul |
-  | INT 10h stub | 8 | — |
+  | Member | Span | Executed / decoded |
+  | --- | --- | ---: |
+  | dispatch | `08AE:[00DC,017B)` | 77/77 |
+  | vector save/install | `08AE:[137C,13B1)` | 24/24 |
+  | vector restore/PIT/PSG | `08AE:[13B1,13EA)` | 27/27 |
+  | table writer | `08AE:[1742,17AE)` | 43/43 |
+  | table writer | `08AE:[17AE,181A)` | 43/43 |
+  | byte | `08AE:[181A,1830)` | 12/12 |
+  | delay | `08AE:[006C,00DC)` | 46/46 |
+  | time | `08AE:[0000,006C)` (RES_08AE_0000) | 48/48 |
+  | Dos.Intr | `0A32:[000B,006C)` | 69/69 |
+  | Dos.GetTime | `0A32:[00A2,00C7)` | 19/19 |
+  | SYSTEM LongMul | `0AF8:[0A5B,0A76)` | 16/16 |
+  | INT 10h stub | declared | 8/8 |
 
+- **Two kinds of fidelity, kept apart** (VP i20175):
+  - **Each member's own behaviour** rests on that member's own evidence at the bar: its PR, its doc, its unmasked
+    differential.
+  - **The composition** rests on this run. The members are chained through their real interfaces (each CALL stop,
+    each resume, each environment callback), and the result is compared against the original image executing the
+    real bodies, with nothing patched.
+
+  This run is the composition proof for the set. It does not replace any member's evidence.
 - Driver member calls per case: 0 (muted: 00DC returns at once) in 29 cases, and 1 to 8 in the rest.
 - Cases:
   - saved sound state 0/1/2/3/FF × [5374] 0/1/100h × argument 0/1/FF/5;
