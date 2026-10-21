@@ -97,7 +97,7 @@ class NeverCreditClassesTest(unittest.TestCase):
         self.assertEqual(pricer.price("OVL_0001_0000")["bodies"], {"OVL_0001_0000": 10})
 
     def test_committed_table_is_loaded_and_pinned(self):
-        self.assertEqual(P.load_runtime_residents(), frozenset())
+        self.assertEqual(P.load_runtime_residents(), frozenset({"RES_0802_0175"}))  # 0175 joined (par-e)
 
     def test_real_rows_lose_exactly_the_driver_members_they_used_to_price(self):
         """On the owner media and a fresh export: rows reaching driver_internal members were overpriced by the members
@@ -144,14 +144,13 @@ class RealDisplayRowTest(unittest.TestCase):
 
     def test_0175_member_is_a_terminal_in_the_real_0193_walk(self):
         before, after = self.walk(()), self.walk({"RES_0802_0175"})
-        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30, "RES_0802_0105": 112,
-                                            "RES_0802_0040": 197})
-        self.assertEqual(after["bodies"], {"RES_0802_0193": 90, "RES_0802_0105": 112, "RES_0802_0040": 197})
+        # 0040 is strict since its acceptance (par-e), so it is no longer priced on either side; only 0175's own 30 B leave.
+        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30, "RES_0802_0105": 112})
+        self.assertEqual(after["bodies"], {"RES_0802_0193": 90, "RES_0802_0105": 112})
         self.assertEqual(after["runtime_residents"], {"RES_0802_0175"})
-        # 0040 stays priced: 0105 also reaches it, so only 0175's own 30 B leave. Nothing else changes.
         for key in ("strict", "unmapped", "bad", "declared"):
             self.assertEqual(before[key], after[key], key)
-        self.assertEqual(after["strict"], {"RES_0899_0059"})
+        self.assertEqual(after["strict"], {"RES_0899_0059", "RES_0802_0040"})
 
 
 if __name__ == "__main__":
