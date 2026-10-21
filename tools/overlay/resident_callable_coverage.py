@@ -30,14 +30,21 @@ ROOT = Path(__file__).resolve().parents[2]
 # aliases. This explicit list gives exactly these bodies their reviewed RES_ name, keyed by loaded image offset. It is
 # never a pattern over RPRO ids, and nothing joins it without a row in IDENTITY_ARGUMENTS carrying the body hash.
 REVIEWED_NEAR_ONLY = {0x8060: (0x802, 0x0040), 0x8125: (0x802, 0x0105), 0x81B3: (0x802, 0x0193),
-                      0x852F: (0x802, 0x050F), 0x85ED: (0x802, 0x05CD), 0x8707: (0x802, 0x06E7)}
-IDENTITY_ARGUMENTS = "docs/re/RES_0802_IDENTITY_ARGUMENTS.md"
+                      0x852F: (0x802, 0x050F), 0x85ED: (0x802, 0x05CD), 0x8707: (0x802, 0x06E7),
+                      # The eight nested bodies of credited RES_00BA_0BB8 (par-a, NEAR_ONLY_GAME_SEGMENT_IDENTITY.md).
+                      0x00BA0: (0xBA, 0x0000), 0x00D9B: (0xBA, 0x01FB), 0x00E22: (0xBA, 0x0282), 0x00F40: (0xBA, 0x03A0),
+                      0x01C86: (0xBA, 0x10E6), 0x01D8A: (0xBA, 0x11EA), 0x01E22: (0xBA, 0x1282), 0x01EC5: (0xBA, 0x1325)}
+# Where each entry's body hash is recorded: a table row `| RES_xxxx_yyyy | ... | <sha256> | <bytes> |` in one of these.
+IDENTITY_ARGUMENTS = ("docs/re/RES_0802_IDENTITY_ARGUMENTS.md", "docs/re/REVIEWED_NEAR_ONLY_ALIAS.md")
+# The 00BA bodies additionally need par-a's verdict, which names the body and its byte count.
+VERDICTS = "docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md"
 
 
 def reviewed_near_only(image, root=ROOT, listing=None):
     """{image offset: RES_ id} for the reviewed list, each checked against the argument document's body hash."""
     listing = REVIEWED_NEAR_ONLY if listing is None else listing
-    text = (Path(root) / IDENTITY_ARGUMENTS).read_text()
+    text = "\n".join((Path(root) / name).read_text() for name in IDENTITY_ARGUMENTS)
+    verdicts = (Path(root) / VERDICTS).read_text()
     names = {}
     for start, (segment, offset) in sorted(listing.items()):
         name = f"RES_{segment:04X}_{offset:04X}"
@@ -46,6 +53,9 @@ def reviewed_near_only(image, root=ROOT, listing=None):
         size = int(row.group(2))
         require(hashlib.sha256(bytes(image[start:start + size])).hexdigest() == row.group(1),
                 f"{name} body hash differs from its reviewed argument")
+        if segment == 0xBA:
+            require(re.search(rf"`{name}` \(`RPRO_{start:05X}`\) \| {size} \|", verdicts) is not None,
+                    f"{name} has no PASS verdict naming its image offset and size")
         names[start] = name
     return names
 

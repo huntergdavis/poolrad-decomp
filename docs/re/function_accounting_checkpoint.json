@@ -5,7 +5,7 @@
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "51caee1c2cd120c60cffcffd229b719e9ccd170967ee0ec03a3ecce91fe52113",
+    "resident_audit": "6031b2103e5c3a9134855a7c0252aedfd0d76a70398c5b41468fe884727b50d4",
     "reviewed_identities": "478431231f643d9a4f98f50af77ebb9212a89a39c1288af8d1bf880764170f8c"
   },
   "inputs": {
@@ -13,7 +13,7 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "4d4cb9a2650d3a64ece5c31f9611fae1c3e2d975be9e8b8b796694dba8138e73",
+  "queue_sha256": "ffffc026fe99a8dcd61c21f45ea0adf11ca8c182e590f38444425c6482e74d49",
   "reviewed_change": {
     "approval_reference": "resident acceptance of RES_0802_02EB (VP i20362/i20368, reviewer par-e); follows the RES_00BA_1693 resident precedent",
     "approved_by": "PM",
