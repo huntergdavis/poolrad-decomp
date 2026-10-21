@@ -89,13 +89,18 @@ static pr_u20_11ac_status call_unlink(machine *m,uint16_t site,uint16_t resident
         return PR_U20_11AC_CODE;
     c->cs=rd(m,stub,0x2D);c->ip=0x3291;COPY_CPU(inner,*c);
 #ifdef PR_U20_11AC_TRACE
-    fprintf(stderr," UNLINK#%u about to run on active=%04x:%04x\n",d->unlink_calls+1,
-            rd(m,m->c->ds,0x5D94),rd(m,m->c->ds,0x5D92));
+    fprintf(stderr," UNLINK#%u active=%04x:%04x cur_local=%04x:%04x\n",d->unlink_calls+1,
+            rd(m,m->c->ds,0x5D94),rd(m,m->c->ds,0x5D92),
+            rd(m,m->c->ss,(uint16_t)(m->c->bp-2)),rd(m,m->c->ss,(uint16_t)(m->c->bp-4)));
 #endif
     d->callee=PR_U20_11AC_UNLINK;++d->unlink_calls;
     d->callee_status=(int)pr_u6c_record_unlink_3291_cpu(m->r,PR_U20_11AC_RAM_SIZE,
         &inner,resident,system,&l->unlink,&d->unlink);
     COPY_CPU(*c,inner);
+#ifdef PR_U20_11AC_TRACE
+    fprintf(stderr," UNLINK#%u returned cur_local=%04x:%04x sp=%04x bp=%04x\n",d->unlink_calls,
+            rd(m,m->c->ss,(uint16_t)(m->c->bp-2)),rd(m,m->c->ss,(uint16_t)(m->c->bp-4)),c->sp,c->bp);
+#endif
     if(d->callee_status!=(int)PR_U6C_3291_OK)return PR_U20_11AC_CALLEE;
     if(c->cs!=caller || c->ip!=continuation)return PR_U20_11AC_TRANSFER;
     /* RETF 4 pops the 4-byte return frame and the two argument bytes */
