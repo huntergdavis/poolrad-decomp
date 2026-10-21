@@ -311,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..ee16ab1
+index 0000000..53ed352
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,327 @@
+@@ -0,0 +1,412 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -343,6 +343,10 @@ index 0000000..ee16ab1
 +#include "poolrad/recovered/resident_0709_printer_0626_cpu.h"
 +#include "poolrad/recovered/resident_03f1_clear_0137_cpu.h"
 +#include "poolrad/recovered/overlay_u3b0_entry_01da_cpu.h"
++#include "poolrad/recovered/overlay_u86_procvars_3413.h"
++#include "poolrad/recovered/overlay_u38_effects_install_31a2.h"
++#include "poolrad/recovered/overlay_u3b0_item_split_00cb_cpu.h"
++#include "poolrad/recovered/resident_0802_02eb_cpu.h"
 +}
 +extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
@@ -364,8 +368,23 @@ index 0000000..ee16ab1
 +    {"RES_0709_0626", 0x0709, 0x0626, 14, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 10 */
 +    {"RES_03F1_0137", 0x03F1, 0x0137, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8 */
 +    {"OVL_03B0_01DA", 0x0000, 0x01DA, 8, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; an overlay: seg unused */
++    {"OVL_0086_3413", 0x0000, 0x3413, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RAM-only, RETF */
++    {"OVL_0038_31A2", 0x0000, 0x31A2, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RAM-only, RETF */
++    {"OVL_03B0_00CB", 0x0000, 0x00CB, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RAM-only, RETF 6; composes SYSTEM leaves */
++    {"RES_0802_02EB", 0x0802, 0x02EB, 8, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; bus=2: DOS services replayed */
 +};
-+static const int NBODY = 7;
++static const int NBODY = 11;
++/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
++ * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
++ * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
++ * returns the recorded registers. */
++struct SvcEv { Cpu14 before, after; std::vector<std::pair<uint32_t, uint8_t> > delta; };
++static std::vector<SvcEv> svc;
++static bool int_open = false;
++static uint16_t int_ret_cs, int_ret_ip, int_sp;
++static std::vector<uint8_t> intram;
++static size_t svc_cursor = 0;
++static std::string svc_mismatch;
 +static unsigned long long irq0 = 0;                       /* pr_hw_irqs at the window's start */
 +/* V1 replay bus: the C's device accesses are answered from, and checked against, the original's recorded stream. */
 +static int bus_mode = 0;                                  /* 0: V1 replay (shadow); 1: ROUTE (the C drives the real VGA) */
@@ -475,8 +494,9 @@ index 0000000..ee16ab1
 +}
 +static void begin(int b, uint16_t c) {
 +    Body &x = bodies[b];
-+    if (x.bus && bus_mode == 1) { ++x.arrivals; cur = b; body_cs = c; route_now = true; return; }   /* no original run */
-+    if (x.bus) { pr_rec::evs.clear(); pr_rec::on = true; }
++    if (x.bus == 2) { svc.clear(); int_open = false; if (intram.size() != RAM) intram.resize(RAM); }
++    if (x.bus == 1 && bus_mode == 1) { ++x.arrivals; cur = b; body_cs = c; route_now = true; return; }   /* no original run */
++    if (x.bus == 1) { pr_rec::evs.clear(); pr_rec::on = true; }
 +    S = grab(); memcpy(&sram[0], MemBase, RAM);
 +    uint32_t top = ((uint32_t)S.ss << 4) + (uint16_t)S.esp;
 +    ret_ip = (uint16_t)(MemBase[top & (RAM - 1)] | (MemBase[(top + 1) & (RAM - 1)] << 8));
@@ -501,9 +521,17 @@ index 0000000..ee16ab1
 +        int st = pr_r0899_idle_0104_cpu(MemBase, force_argument ? RAM - 1u : RAM, (pr_r0899_idle_cpu *)&m);
 +        return st == PR_R0899_IDLE_OK ? 0 : st == PR_R0899_IDLE_ARGUMENT ? 1 : 2;
 +    }
-+    pr_r0464_2595_diagnostic d;
-+    int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d);
-+    return st == PR_R0464_2595_RETURNED ? 0 : st == PR_R0464_2595_ARGUMENT ? 1 : 2;
++    if (!strcmp(x.id, "RES_0464_2595")) {
++        pr_r0464_2595_diagnostic d;
++        int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d);
++        return st == PR_R0464_2595_RETURNED ? 0 : st == PR_R0464_2595_ARGUMENT ? 1 : 2;
++    }
++    if (!strcmp(x.id, "OVL_0086_3413")) { int st = pr_u86_procvars_3413(MemBase, RAM, (pr_u86_3413_cpu *)&m);
++        return st == PR_U86_3413_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m);
++        return st == PR_U38_31A2_OK ? 0 : 1; }
++    int cs_ = -1; int st = pr_u3b0_item_split_00cb_cpu(MemBase, RAM, (pr_u3b0_00cb_cpu *)&m, &cs_);
++    return st == PR_U3B0_00CB_OK ? 0 : st == PR_U3B0_00CB_ARGUMENT ? 1 : 2;
 +}
 +/* One runner for every pr_bus body: 0 RETURNED, 1 ARGUMENT, 2 a stop. Budgets are generous declared caps. */
 +static int run_bus(pr_bus *bus, Cpu14 &m) {
@@ -535,6 +563,50 @@ index 0000000..ee16ab1
 +    if (cls == 0) { ++x.returned_seen; ++routed_returned; }
 +    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "stop at %04X:%04X", m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", buf); }
 +    cur = -1; return true;
++}
++/* The replaying service callbacks (both INT 21h contracts share the 14-word CPU layout). */
++static int svc_replay(const Cpu14 *before, Cpu14 *after) {
++    if (!svc_mismatch.empty()) return 1;
++    char buf[160];
++    if (svc_cursor >= svc.size()) { snprintf(buf, sizeof buf, "service %u: C asked AX=%04X beyond the original's %u calls", (unsigned)svc_cursor, before->ax, (unsigned)svc.size()); svc_mismatch = buf; return 1; }
++    const SvcEv &e = svc[svc_cursor];
++    if (memcmp(before, &e.before, sizeof *before) != 0) {
++        snprintf(buf, sizeof buf, "service %u: C AX=%04X BX=%04X DX=%04X DS=%04X IP=%04X, original AX=%04X BX=%04X DX=%04X DS=%04X IP=%04X", (unsigned)svc_cursor,
++                 before->ax, before->bx, before->dx, before->ds, before->ip, e.before.ax, e.before.bx, e.before.dx, e.before.ds, e.before.ip);
++        svc_mismatch = buf; return 1;
++    }
++    for (size_t k = 0; k < e.delta.size(); ++k) MemBase[e.delta[k].first] = e.delta[k].second;
++    *after = e.after; ++svc_cursor; return 0;
++}
++static int svc_open(void *ctx, const pr_reset_cpu *b, pr_reset_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++static int svc_close(void *ctx, const pr_system_close_cpu *b, pr_system_close_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++/* A service body at the original's return: the C runs from S with the original's DOS calls replayed; registers and all
++ * 1 MiB must equal O. On any stop (including a service mismatch) the original's result is kept: a hand-back would make DOS
++ * execute the call twice. */
++static bool svc_check(const Regs &now) {
++    Body &x = bodies[cur];
++    O = now; memcpy(&oram[0], MemBase, RAM);
++    put(S); memcpy(MemBase, &sram[0], RAM);
++    svc_cursor = 0; svc_mismatch.clear();
++    pr_r0802_02eb_env env = {svc_open, NULL, svc_close, NULL};
++    pr_r0802_02eb_diagnostic dg;
++    Cpu14 m = to14(S);
++    int st = pr_r0802_02eb(MemBase, RAM, (pr_r0802_02eb_cpu *)&m, &env, &dg);
++    char tail[64]; snprintf(tail, sizeof tail, " [%u DOS calls]", (unsigned)svc.size());
++    if (st != PR_R0802_02EB_RETURNED) {
++        ++x.stops_seen; put(O); memcpy(MemBase, &oram[0], RAM);
++        char buf[96]; snprintf(buf, sizeof buf, "status %d site %04X; original result kept", st, dg.site);
++        line("C_STOPPED_SHADOW", (svc_mismatch.empty() ? std::string(buf) : svc_mismatch) + tail); close_window(); return true;
++    }
++    ++x.returned_seen;
++    if (svc_mismatch.empty() && svc_cursor != svc.size()) {
++        char buf[96]; snprintf(buf, sizeof buf, "C made %u of the original's %u DOS calls", (unsigned)svc_cursor, (unsigned)svc.size()); svc_mismatch = buf;
++    }
++    put(from14(S, m));
++    std::string d = diff(grab(), O, MemBase, &oram[0]);
++    if (svc_mismatch.empty() && d.empty()) { ++x.equal; line("SERVICES_REPLAYED_STATE_EQUAL", tail); }
++    else { ++x.differ; line(svc_mismatch.empty() ? "STATE_DIFF" : "SERVICE_DIFF", (svc_mismatch.empty() ? d : svc_mismatch) + tail); }
++    close_window(); return true;
 +}
 +/* V1 for a pr_bus body, at the original's return: the C runs on a replay bus from S; its device stream must equal the
 + * original's element by element, and its registers and RAM must equal O. The device already holds the original's effects
@@ -571,8 +643,10 @@ index 0000000..ee16ab1
 +    if (c == ret_cs && ip == ret_ip && reg_sp == sp_after) {
 +        Regs now = grab();
 +        pr_rec::on = false;
++        int_open = false;
 +        interrupted = pr_hw_irqs != irq0;                     /* a hardware interrupt was taken inside the window */
 +        if (interrupted) { ++x.interrupted; line("INTERRUPTED", "original result kept"); close_window(); return false; }
++        if (x.bus == 2) return svc_check(now);
 +        if (x.bus) return v1(now);
 +        if (state == RERUN || state == MIDBODY) {             /* the original finished: compare with the all-original O */
 +            std::string d = diff(now, O, MemBase, &oram[0]);
@@ -584,7 +658,7 @@ index 0000000..ee16ab1
 +        put(S); memcpy(MemBase, &sram[0], RAM);               /* back to the entry state */
 +        bool is0104 = !strcmp(x.id, "RES_0899_0104");
 +        bool force_argument = is0104 && x.arrivals % 10u == 0u;
-+        bool force_stop = !is0104 && x.arrivals % 2u == 1u;
++        bool force_stop = !strcmp(x.id, "RES_0464_2595") && x.arrivals % 2u == 1u;
 +        Cpu14 m = to14(S), before = m;
 +        int cls = run_c(m, force_argument, force_stop);
 +        if (cls == 1) {                                       /* ARGUMENT: nothing may change; the original reruns */
@@ -604,6 +678,17 @@ index 0000000..ee16ab1
 +        char where[64]; snprintf(where, sizeof where, "stop at %04X:%04X%s", m.cs, m.ip, force_stop ? " (heap steps 0)" : "");
 +        line("C_STOPPED_HANDING_BACK", where);
 +        state = MIDBODY; steps = 0; interrupted = false; irq0 = pr_hw_irqs; return true;
++    }
++    if (x.bus == 2 && state == ORIGINAL) {                     /* record the original's INT 21h calls */
++        LinearPt here = SegPhys(cs) + ip;
++        if (int_open && c == int_ret_cs && ip == int_ret_ip && reg_sp == int_sp) {
++            SvcEv &e = svc.back(); e.after = to14(grab());
++            for (size_t k = 0; k < RAM; ++k) if (MemBase[k] != intram[k]) e.delta.push_back(std::make_pair((uint32_t)k, MemBase[k]));
++            int_open = false;
++        } else if (!int_open && mem_readb_inline(here) == 0xCD && mem_readb_inline(here + 1u) == 0x21) {
++            SvcEv e; e.before = to14(grab()); svc.push_back(e);
++            memcpy(&intram[0], MemBase, RAM); int_ret_cs = c; int_ret_ip = (uint16_t)(ip + 2u); int_sp = reg_sp; int_open = true;
++        }
 +    }
 +    if (++steps > 2000000u) { ++x.timeouts; line("TIMEOUT", "window abandoned"); close_window(); }
 +    return false;
