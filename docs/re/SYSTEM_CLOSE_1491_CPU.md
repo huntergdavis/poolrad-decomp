@@ -13,8 +13,7 @@ declared-service pattern of [GetTime](DOS_GETTIME_00A2_CPU.md) and [Intr](DOS_IN
 | Close + helper | `0AF8:[1491,14C5)`, loader-expanded image `[0C411,0C445)` | 52 (37 + 15) / 17 (13 + 4) | `83ba3ec7cf3aabfd785f101768657a686f1915e65f5895a82be1d91030dc8858` |
 
 The audit asserts the 17 instructions exactly, the two returns (`RETF 4` at `14B3`, the helper's `RET` at `14C4`), the single `INT 21h` at `14A6` and that `AH` is set only by `MOV AH,3Eh` at `14A4` immediately
-before it, no port or far transfer, the four conditional jumps, and no loader relocation. The helper `14B6` is shared: it is also called at `147B`, `14D7`, `150D` and `1569` (the other file-I/O entries), so
-this model is also the reference for that check.
+before it, no port or far transfer, the four conditional jumps, and no loader relocation. The helper `14B6` is shared by five call sites (this one at `1497` and `147B`, `14D7`, `150D`, `1569`), so it has its own model and evidence: [SYSTEM_FILECHECK_14B6_CPU.md](SYSTEM_FILECHECK_14B6_CPU.md). **This model composes that one** (`pr_system_filecheck_14b6`) instead of re-describing the four instructions; its receipt was re-run unchanged after the change.
 
 ## Behaviour
 
