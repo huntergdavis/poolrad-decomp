@@ -500,9 +500,8 @@ def specs(bodies, dmap, literal, lib, quick=False):
         out.append((f'heap-custom-top-{n}', dict(nodes=N(n), custom_heap=True)))
         out.append((f'heap-custom-fail-{n}', dict(nodes=N(n), heap_mode='fail', custom_heap=True)))
         out.append((f'heap-cyclic-cap-{n}', dict(nodes=N(n), heap_mode='cyclic', heap_limit=2)))
-    # the list walk: a cycle never ends; N nodes need N-1 backward jumps
-    for lim in (0, 1, 5):
-        out.append((f'cycle-limit-{lim}', dict(nodes=N(3), cycle=True, walk_limit=lim, skip_contract=True)))
+    # the list walk: N nodes need N-1 backward jumps. A CYCLIC list is not a case here: 0BB8 inside 275B walks the same list
+    # first and never returns (the callee budget stops it, a CALLEE stop covered by the C unit test), so the walk is never reached.
     for lim in (0, 1, 2, 3):
         out.append((f'walk-3-limit-{lim}', dict(nodes=N(3), walk_limit=lim)))
     out.append(('walk-1-limit-0', dict(nodes=N(1), walk_limit=0)))
