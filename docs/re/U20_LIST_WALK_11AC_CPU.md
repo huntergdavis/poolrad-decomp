@@ -142,3 +142,13 @@ export PYTHONDONTWRITEBYTECODE=1
 python3 tools/overlay/u20_list_walk_11ac_cpu_audit.py --compile-only   # CHECKER_BUILD_OK
 python3 tools/overlay/u20_list_walk_11ac_cpu_audit.py --output resources/u20_11ac.json
 ```
+
+## Checker build gate: `--compile-only` must not read media
+
+`tools/overlay/u20_list_walk_11ac_cpu_audit.py --compile-only` builds the candidate
+library and prints `CHECKER_BUILD_OK` **without reading `START.EXE`/`GAME.OVR`**. The
+`checker-builds` CI job runs on a tree with no `resources/DOS/POOLRAD`, so any media
+read before the `--compile-only` branch turns the media-free build gate red. That
+happened once (main went red on #1291, fixed in the follow-up) because `source()` was
+called before the flag was handled. Order in `main()` is therefore: parse args →
+`--compile-only` (build only, exit) → media read → differential.

@@ -71,3 +71,16 @@ compares state at that point in both oracles.
 ## Proposed declaration (TEXT ONLY; the acceptance lands it)
 
     strict_candidate_queue.DECLARED_BOUNDARY_ENDPOINTS:  "RES_0AF8_00E9": "docs/re/DECLARED_BOUNDARY_0AF8_00E9.md",
+
+## Reviewer record (added by the review lane, not the author)
+
+Checked by par-e from the loader-expanded image on main `7cf02cd7` (2026-10-20):
+- the extent `0AF8:[00E9,01A5)` is 188 B, image `[0B069,0B125)`, SHA-256 `7f077542…a4e5`;
+- the entry is `XOR CX,CX; XOR BX,BX; MOV DX,0C7Ch; MOV DS,DX; STI`;
+- the span ends `MOV AX,[441C]; MOV AH,4Ch; INT 21h` at +01A3;
+- the vector-number table at +01EE is `00 02 1B 21 23 24 34–3F 75` (19 bytes).
+
+**Correction to "There is no return instruction in this span":** there is one, a `RETF` at +013F. It is the ExitProc
+dispatch from step 3 (`MOV AX,0123h; PUSH CS; PUSH AX; PUSH ES; PUSH BX; RETF`): a far jump into the exit procedure,
+which returns to +0123. It is not a return to Halt's caller. The behavioural claim stands: no path returns to the
+caller, and the boundary is terminal.
