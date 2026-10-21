@@ -35,8 +35,9 @@ int main(void)
     CHECK(c.ax == 0x1111 && c.bx == 0x2222 && c.bp == 0x789A && c.ds == DS && c.ss == SS);
 
     /* Every non-zero InOutRes is the terminal stop, never a return: asserted for all 65535 values. */
+    before = setup(r, 1);
     for (v = 1; v < 65536u; ++v) {
-        c = setup(r, v);
+        c = before; wr(r, DS, 0x4426, v);
         CHECK(pr_system_iocheck_04a9(r, RAM, &c) != PR_SYSTEM_IOCHECK_RETURNED);
         if (v < 0x100u || v == 0x8000u || v == 0xFFFFu || (v & 0x0FFFu) == 0x0ABCu) {
             CHECK(c.ip == 0x00E2u && c.ax == v && c.sp == SP && c.cs == CS && c.bp == 0x789A);
