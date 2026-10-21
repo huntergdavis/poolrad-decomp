@@ -95,3 +95,38 @@ Measured on main `1bf35dde` and later.
 **Pass-2 tally for the original nine:** 1 PASS (`06A7`), 2 FAIL (`272A`, `0464_0000`), 6 BLOCKED.
 
 **Entries:** three now carry identity arguments (`27D9`, `0768`, `02A5`), but none is a credit yet. Each still needs a full translation at the bar.
+
+## Pass 3: the ownership of `OVL_03CE_04FC`, 15C7's second entry, and 0714 (par-a, 2026-10-21, VP i20399)
+
+### Entries
+
+| Entry | Bytes | Factor 1 | Factor 2 | Verdict |
+| --- | ---: | --- | --- | --- |
+| `OVL_03CE_04FC` (entry slot 5) | 324 | 10 fixup-backed sites. **6 are in `game_evidenced` functions:** `03B4_0000` (+00A9), `03C6_0127` (+0239, +02CA), `03C6_02D5` (+0395), `03C6_0996` (+0A71) and `03C6_0AF8` (+0BD7). The other 4 are in unresolved `006C_34DF`. | Branches on the EGA flag `DS:4A1E` at `+05B7` (the 0040 ground: game-maintained display state, [RESIDENT_VIDEO_INIT_4426.md](RESIDENT_VIDEO_INIT_4426.md)). It also forwards the offscreen-object pointer `DS:4A20/4A22`, which [SLOT_A_RES464_SECOND_FLUSH.md](SLOT_A_RES464_SECOND_FLUSH.md) measures natively; forwarding alone is not counted. | **PASS** |
+| `RES_00BA_1892` | 332 | 8 fixup-backed sites in `game_evidenced` `005E_26B0` (x5) and `005E_3558` (x3) | Branches on `[4A1E] == 1` at `+18A9`, and dereferences the bitmap object at far pointer `DS:6E36` (`+11h`, `+13h`, `+17h`; [RESIDENT_464_BITMAP_RELEASE.md](RESIDENT_464_BITMAP_RELEASE.md)) | **PASS** |
+
+### Nested bodies
+
+| Body | Entry | Verdict |
+| --- | --- | --- |
+| `RES_0464_15C7` (906 B) | Its **only** callers are `04FC` (+0592, overlay fixup) and `1892` (image `0x24A1`, loader-relocated `lcall`). Both are argued above, so chain condition (b) holds. | **PASS.** Role: mirrors a bitmap object's pixel data (`es:[di+13h/15h/17h]`), choosing the method by the EGA flag `DS:4A1E` at `+1604`. |
+| `RES_0464_1484` (133 B) | 15C7 | **FAIL, factor 2 (2A0D domain).** It reverses the bits of its byte argument; no DS state. |
+| `RES_0464_1509` (141 B) | 15C7 | **FAIL, factor 2.** It reverses the 2-bit groups of its word argument, using the constant masks `DS:25E5..25F3`. That is a static mask table, not game-maintained state. |
+| `RES_0464_1596` (49 B) | 15C7 | **FAIL, factor 2.** It swaps the nibbles of its byte argument; no DS state. |
+| `RES_0709_0714` (58 B) | 0768, its only caller | **PASS, with a limit (the 01DA shape).** It skips blanks in 0768's local copy of its string argument. For the `game_verified` caller `001C_0A09` (+0A69, +0A91), that argument is far `DS:70C8`, the ECL **string buffer 1** ([FUNCTION_LEDGER.md](FUNCTION_LEDGER.md); [U1C_PRINT_0A09.md](U1C_PRINT_0A09.md) records `0709:0768` with far `DS:0x70C8`). **Limit:** only that caller's text is documented; `001C_1EF8` passes stack buffers and a CS constant, which are not claimed. |
+
+**Still blocked:**
+- `RES_0464_007B`: chain condition (b). It is also reached from `1E5C` (parked) and from `2632`, whose callers `006C_34DF` and `03BD_0174` remain unresolved.
+- `RES_0709_0000`: behind `00B7`, which is not assessed.
+
+**Running tally for the original 17:**
+
+| Verdict | Count | Bodies |
+| --- | ---: | --- |
+| PASS | 11 | the 0BB8 eight, `06A7`, `0714`, `15C7` (15C7 is not one of the 17 but now argued) |
+| FAIL | 5 | `272A`, `0464_0000`, `1484`, `1509`, `1596` |
+| BLOCKED | 2 | `007B`, `0709_0000` |
+
+Counted strictly over the 17: **10 PASS** (the eight, `06A7`, `0714`), **5 FAIL** and **2 BLOCKED**.
+
+**Entries with identity arguments, still needing translation:** `27D9`, `0768`, `02A5`, `04FC`, `1892` and `15C7`.
