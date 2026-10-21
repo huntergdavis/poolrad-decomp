@@ -5,7 +5,9 @@ have it. These tests pin the two acceptable behaviours: generate it when the
 prerequisites exist, and otherwise stop with an actionable message and a
 distinct exit code — never a bare traceback.
 """
+import collections
 import io
+import json
 import contextlib
 import tempfile
 import unittest
@@ -69,6 +71,71 @@ class InputHandlingTest(unittest.TestCase):
             pricer.gate.missing_dependencies = real
         self.assertEqual(code, pricer.gate.ENVIRONMENT_EXIT)
         self.assertIn("ENVIRONMENT MISSING", buffer.getvalue())
+
+
+class ReadinessVocabularyTest(unittest.TestCase):
+    """The unready set is the definition of an unusable dependency.
+
+    A hand-written subset of this set omitted `indirect_unresolved`, so six rows
+    carrying an indirect dispatch were counted as having zero unready callees.
+    The pricer's own menu hid the bug by skipping indirect rows before reading
+    the set; the first new consumer inherited it and priced a dispatcher as free.
+    """
+
+    def test_indirect_dispatch_is_unready(self):
+        # Pinned directly: an indirect callee's target set is unbounded, so no
+        # one-hop figure is a bound for a row that contains one.
+        self.assertIn("indirect_unresolved", pricer.UNREADY)
+
+    def test_ready_and_unready_partition_the_vocabulary(self):
+        self.assertEqual(pricer.UNREADY,
+                         pricer.READINESS_STATES - pricer.USABLE_DEPENDENCIES)
+        self.assertEqual(pricer.UNREADY | pricer.USABLE_DEPENDENCIES,
+                         pricer.READINESS_STATES)
+        self.assertEqual(pricer.UNREADY & pricer.USABLE_DEPENDENCIES, set())
+
+    def test_declared_boundary_stays_usable_but_is_not_a_credit(self):
+        # Usable for composition; the credit prohibition is enforced elsewhere.
+        self.assertNotIn("declared_boundary", pricer.UNREADY)
+
+    def test_queue_emits_only_known_states(self):
+        # Drift guard: a new readiness state in the queue must be classified
+        # here, because an unclassified state defaults to "ready".
+        queue = pricer.DEFAULT_QUEUE
+        if not Path(queue).exists():
+            self.skipTest("derived queue not present in this checkout")
+        rows = json.loads(Path(queue).read_text())["rows"]
+        emitted = {t["readiness"] for row in rows
+                   for t in row["callee_readiness"]["targets"]}
+        self.assertEqual(emitted - pricer.READINESS_STATES, set())
+
+    def test_indirect_only_row_is_reported_blocked(self):
+        # Behavioural, not a restatement of the constant: a row whose only
+        # unready callee class is an indirect dispatch must be reported as
+        # blocked, never as carrying zero unready dependencies.
+        row = {"id": "OVL_0001_0001",
+               "callee_readiness": {"targets": [{"kind": "runtime",
+                                                 "readiness": "indirect_unresolved"}],
+                                    "counts": {"indirect_unresolved": 1},
+                                    "raw_cpu_caveats": []}}
+        self.assertEqual(pricer.sole_blockers([row]),
+                         collections.Counter({"INDIRECT": 1}))
+
+    def test_indirect_callee_with_an_id_is_counted_unready(self):
+        # The omission showed up exactly here: consumers build their unready set
+        # as `readiness in UNREADY and has an id`, so an indirect callee that
+        # carries an id was invisible and its row looked actionable.
+        targets = [{"id": "OVL_009E_0000", "readiness": "indirect_unresolved"}]
+        unready = {t.get("id") for t in targets
+                   if t["readiness"] in pricer.UNREADY and t.get("id")}
+        self.assertEqual(unready, {"OVL_009E_0000"})
+        # And the row is reported as blocked by the dispatch as well, so a
+        # reviewer sees two blockers rather than zero.
+        row = {"id": "OVL_0001_0001",
+               "callee_readiness": {"targets": targets,
+                                    "counts": {"indirect_unresolved": 1},
+                                    "raw_cpu_caveats": []}}
+        self.assertEqual(pricer.sole_blockers([row]), collections.Counter())
 
 
 if __name__ == "__main__":
