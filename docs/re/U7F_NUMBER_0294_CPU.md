@@ -92,8 +92,10 @@ the character (or the pool) has". A reader comparing it with 06FB should see tha
   - **ARGUMENT**.
 - **The chain is all credited or covered, not a mix with models** (VP i20226 condition 4). `RES_0899_0059` and
   `RES_0899_0000` are now **credited** (#1302). Under them, the Crt, ParamStr, Intr, Halt, GetTime and 08AE members are
-  covered, declared or driver_internal. The SYSTEM string routines, Str and Val (#1303) are covered. 0709:05EB and 0626 are
-  resident_covered.
+  covered, declared or driver_internal. The SYSTEM string routines and Str are covered. 0709:05EB and 0626 are
+  resident_covered. **Val's model is merged (#1303), but its `RUNTIME_COVERED_ENDPOINTS` line is not yet on main**, checked
+  on main at 22:42 PDT. Until par-e lands that line, Val is the one link in this chain that is modelled but not yet
+  covered in accounting.
 - **One argued infeasible outcome.** `JG` at +0363 taken would need `0 > hi(Val(text))`, and `text` only ever holds digits
   and blanks:
   - appended digits;
