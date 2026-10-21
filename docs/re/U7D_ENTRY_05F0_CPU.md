@@ -182,3 +182,15 @@ The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-stan
 **Limit:** the array's layout and its updater are documented, but no document names its gameplay meaning, and this section does not claim one.
 
 **Verdict: game code.**
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `c9d80b75` (2026-10-20). Unicorn: 93 cases (62 return, 8 CODE, 20 CALLEE, 3 LIMIT); caller 102/102 starts, 4/4 outcomes; closure 772/798 and 84/104; 983,040 ordinary RAM bytes + aperture write stream (24,217 OUTs, 45,580 VRAM operands); ASan/UBSan 27,955; CPU14, flag masks 0. Native: 31 cases, RESULT.BIN `44d42513…` (matches this document). Body 232 B, SHA-256
+`ac3eb0a915fa30d77b06b262429879f2400d3b8584b6e97ba413dde924709c7d`, from GAME.OVR. Identity: par-a's two-factor section above (#1282). Each factor-1 site was checked from the
+media: it decodes as `0E E8` and sits at an instruction boundary inside the caller extent par-a names.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential. Native agreement is claimed for that binary only; native frames are synthetic, not a reached game caller.
