@@ -44,7 +44,14 @@ The header carries the decode-faithful outline. The parts a reader needs:
      (`3C4/3C5/3CE/3CF`) are allowed and recorded apart.
   4. Any IN or INT outside `0BF5` is refused, so it fails the case.
 
-## Finding: the original never returns when x1 > x2
+## Game behaviour: the text-window printer hangs on inverted bounds
+
+**The claim and its correction, both kept on purpose (VP i20458).** At 07:36 PDT on 2026-10-21, explaining why the C model
+needed a loop budget, I wrote to the VP: *"The original always terminates (each pass either prints and advances i, or wraps
+a row until the window fills and 0BF5 runs)."* That was **wrong**, and it was wrong in the direction that would have hidden
+this finding. It assumed every wrap leads to a print. I did not check the one input the argument checks fail to exclude.
+Adding the budget forced the question "what bounds this loop?", and answering it from the bytes found the hang below.
+Before you trust an intuition that a loop terminates, measure it or prove it.
 
 The argument checks at `0783` bound each coordinate separately (`x1, x2 <= 27h`, `y1 <= 18h`, `y2 <= 27h`). They do not
 require `x1 <= x2`. Suppose `x1 > x2` and a pass starts at a word with `i = n`, that is, a one-byte last word. Then
@@ -61,7 +68,10 @@ cycles with period 256, and the original never reaches its `RETF`.
 - **Catcher 3: the C test.** `run(3)` and `run(259)` leave byte-identical CPU and RAM, and 601 passes leave row
   `1 + 601 = 90 (mod 256)`.
 
-The model reports the hang as LIMIT at `09C8`. This is the only input class I found where the word loop does not
+In the game, a call to 0768 with inverted horizontal bounds hangs if its text's last word is one byte long. No key
+reading, no drawing and no return happen; it is the game's own text path, not a malformed data block. **Which caller can
+produce inverted bounds is NOT yet determined.** The 27 call sites (#1346) have not been read for how they compute the window,
+and that is the useful next question. The model reports the hang as LIMIT at `09C8`. This is the only input class I found where the word loop does not
 terminate. Every other pass either calls `06A7`, which advances `i` to `j + 1`, or wraps a row, and at most `y2 - y1 + 1`
 wraps reach the window-full path, which prints. I have not proved that the class is exhaustive, so the loop keeps its budget
 whatever the class turns out to be. The scans are bounded by `n <= 255` per pass but carry a budget all the same.
@@ -144,10 +154,20 @@ A mutant that hits the cap is reported as "not terminated", never left running. 
 
 The source was restored byte-identical after each mutant (cmp with a saved copy).
 
-**Native DOSBox-X corroboration: NOT DONE.** This is an open gap. The leaves `06A7`, `0DD3`, `01DF`, `0626` and `05EB`
-have their own native runs, but 0768 composed does not. Adapting `res0709_text_06a7_cpu_native.py` means a guest harness
-that plants the literal, the separator set and the `0BF5` ReadKey input. If a native run is required before credit, this
-document is updated when it lands. The packaged-dosbox caveat applies to the leaves' runs as stated in their documents.
+**Native DOSBox-X corroboration: a named limit, not a result.** No native run of 0768 exists, for any path: RETURN,
+`STOP_BF5`/resume, or LIMIT. The leaves `06A7`, `0DD3`, `01DF`, `0626` and `05EB` each have their own native runs (see their
+documents, including the packaged-dosbox caveat), so the code under 0768 has been run on DOSBox-X, but 0768 composed has not.
+Native corroboration of 0768 therefore covers nothing yet. The claims above rest on the Unicorn differential, the
+independent statement and the C test, each named in the table.
+
+Two reasons the hang in particular cannot be corroborated by the existing native harness design:
+- **It never returns.** A native case ends when the guest reaches the harness's return trap, and this case never does.
+- **The stop is at the wrong arrival.** The leaves' stop-site mechanism (for example `stop_site` in
+  `res0709_text_06a7_cpu_native.py`) plants a far `JMP` at a fixed offset, so it stops at the FIRST arrival. The LIMIT cases
+  and the period proof need the Nth arrival at `09C8`.
+
+A native LIMIT corroboration needs a counted stop at that site, for example a planted far `JMP` to a guest counter that
+returns to `09C8` until the Nth time. Building a native harness for the RETURN paths and that counted stop is the open item.
 
 ## Reproduction
 
