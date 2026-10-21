@@ -36,6 +36,8 @@ DEFAULT_LEDGER = ROOT / "docs/re/overlay_function_ledger.csv"
 DEFAULT_CLASSIFICATION = ROOT / "docs/re/overlay_classification.csv"
 DEFAULT_STRICT = ROOT / "docs/re/strict_full_c_addresses.csv"
 DEFAULT_PARTIAL = ROOT / "docs/re/partial_callee_models.csv"
+DEFAULT_DRIVER_INTERNAL = ROOT / "docs/re/driver_internal_models.csv"
+DEFAULT_IDENTITIES = ROOT / "docs/re/reviewed_function_identities.csv"
 SOURCE_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
                "tools/overlay", "docs/re")
 BRANCH_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
@@ -313,6 +315,55 @@ def scan_commits(repo, candidates):
     return hits, pins
 
 
+# DRIVER-INTERNAL bodies (VP i19914/i19925, design par-a i19920): fully translated
+# and evidenced bodies of the documented 08AE timer/audio driver, whose authorship is
+# the driver's, not the game's. A member composes like a ready dependency and is NEVER
+# a credit. It is a sibling of DECLARED_BOUNDARY_ENDPOINTS (an environment contract),
+# not a reuse of it: RES_08AE_IDENTITY_POLICY.md rules that out. Membership is narrow
+# and enforced here: only ids in docs/re/driver_internal_models.csv, only in the 08AE
+# segment, disjoint from every credit table, declared boundaries and
+# GAME_SPECIFIC_TARGETS, each with an evidence document that carries its body hash.
+DRIVER_INTERNAL_FIELDS = ("id", "evidence_doc", "review_pr", "reviewed_commit", "body_sha256", "body_bytes")
+DRIVER_INTERNAL_ID = re.compile(r"RES_08AE_[0-9A-F]{4}")
+
+
+def load_driver_internal(rows, root=ROOT, fields=None):
+    """Validate the driver-internal table and return its member ids. Fail closed."""
+    from resident_inventory import GAME_SPECIFIC_TARGETS
+    require(fields is None or tuple(fields) == DRIVER_INTERNAL_FIELDS,
+            f"driver_internal table columns must be exactly {DRIVER_INTERNAL_FIELDS}")
+    members = set()
+    for row in rows:
+        member = row["id"]
+        require(DRIVER_INTERNAL_ID.fullmatch(member) is not None,
+                f"driver_internal member outside the 08AE driver segment: {member}")
+        require(member not in members, f"duplicate driver_internal member: {member}")
+        require(member not in DECLARED_BOUNDARY_ENDPOINTS,
+                f"driver_internal member is a declared boundary: {member}")
+        require((int(member[4:8], 16), int(member[9:13], 16)) not in GAME_SPECIFIC_TARGETS,
+                f"driver_internal member is a game-specific resident target: {member}")
+        require(re.fullmatch(r"[0-9a-f]{64}", row["body_sha256"] or "") is not None
+                and str(row["body_bytes"]).isdigit() and int(row["body_bytes"]) > 0
+                and re.fullmatch(r"[0-9a-f]{40}", row["reviewed_commit"] or "") is not None
+                and str(row["review_pr"]).isdigit() and int(row["review_pr"]) > 0,
+                f"driver_internal member lacks body/approval provenance: {member}")
+        document = row["evidence_doc"]
+        require(document.startswith("docs/re/") and ".." not in document.split("/")
+                and (Path(root) / document).is_file(),
+                f"driver_internal member names a missing evidence document: {member}")
+        text = (Path(root) / document).read_text(errors="ignore")
+        require(member in text and row["body_sha256"] in text,
+                f"driver_internal evidence document does not name {member} and its body hash")
+        members.add(member)
+    return frozenset(members)
+
+
+def require_not_driver_internal(row_id, members, table):
+    """Fail closed when a credit or manifest row names a driver-internal member."""
+    require(row_id not in members,
+            f"driver_internal members can never appear in {table}: {row_id}")
+
+
 def require_not_declared_boundary(row_id):
     """Fail closed when a credit row names a declared boundary endpoint.
 
@@ -325,8 +376,15 @@ def require_not_declared_boundary(row_id):
 
 
 def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
-               partial_rows=None):
+               partial_rows=None, driver_internal=frozenset(), identity_rows=()):
     """Validated join: reuse function_queue's overlay row construction."""
+    # Refuse any credit or manifest row naming a driver-internal member BEFORE anything
+    # else, so an attempt to credit one fails on the class, not on some later check.
+    for table, rows_ in (("reviewed_function_identities.csv", identity_rows),
+                         ("strict_full_c_addresses.csv", strict_rows),
+                         ("partial_callee_models.csv", partial_rows or [])):
+        for row_ in rows_:
+            require_not_driver_internal(row_["id"], driver_internal, table)
     near_validated = False
     if near is not None:
         check_inputs(near)
@@ -395,7 +453,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 strict_resident_ids=strict_resident_ids,
                 full_models=full_models, partial_models=partial_models,
                 resident_full=resident_full, resident_callback=resident_callback,
-                near_validated=near_validated)
+                driver_internal=frozenset(driver_internal), near_validated=near_validated)
 
 
 # Evidence shapes that mention an address without modelling it: a test assertion
@@ -474,7 +532,7 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
                     partial_models, transitively_unready, resident_full,
-                    resident_callback, endpoints):
+                    resident_callback, endpoints, driver_internal=frozenset()):
     source_id = ovl_id(*key)
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
@@ -510,6 +568,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
                       if entry[1] is not None and entry[2] is not None else None)
             readiness = ("resident_interface_caveat" if res_id in RAW_CPU_INTERFACE_CAVEATS
                          else "declared_boundary" if res_id in DECLARED_BOUNDARY_ENDPOINTS
+                         else "driver_internal" if res_id in driver_internal
                          else "resident_covered" if res_id in resident_full
                          else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
@@ -529,9 +588,9 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
                       for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
                      key=lambda item: item["id"])
-    # declared_boundary composes like a ready dependency, but is never a credit.
+    # declared_boundary and driver_internal compose like ready dependencies, but are never credits.
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
-             + counts["runtime_covered"] + counts["declared_boundary"])
+             + counts["runtime_covered"] + counts["declared_boundary"] + counts["driver_internal"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
                + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
@@ -661,7 +720,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         callees = callee_evidence(key, edges_by_source, state["strict_overlay"],
                                   main_files, class_by_id, state["partial_models"],
                                   transitively_unready, state["resident_full"],
-                                  state["resident_callback"], endpoints)
+                                  state["resident_callback"], endpoints,
+                                  state.get("driver_internal", frozenset()))
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -727,6 +787,10 @@ def main():
     parser.add_argument("--strict-map", default=str(DEFAULT_STRICT))
     parser.add_argument("--partial-models", default=str(DEFAULT_PARTIAL),
                         help="checked-in bounded-model manifest for callee readiness")
+    parser.add_argument("--driver-internal", default=str(DEFAULT_DRIVER_INTERNAL),
+                        help="declared driver-internal bodies (ready, never credits)")
+    parser.add_argument("--identities", default=str(DEFAULT_IDENTITIES),
+                        help="reviewed identity table, checked disjoint from driver_internal")
     parser.add_argument("--ovr", help="hash-pinned GAME.OVR for PUSH CS call-site checks")
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
@@ -734,7 +798,8 @@ def main():
     args = parser.parse_args()
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
-             "strict_map": Path(args.strict_map), "partial_models": Path(args.partial_models)}
+             "strict_map": Path(args.strict_map), "partial_models": Path(args.partial_models),
+             "driver_internal": Path(args.driver_internal), "identities": Path(args.identities)}
     if args.near_calls:
         paths["near_calls"] = Path(args.near_calls)
     if args.ovr:
@@ -752,10 +817,14 @@ def main():
             require(hashlib.sha256(blobs["ovr"]).hexdigest() == DIGESTS["game_ovr_sha256"],
                     "GAME.OVR hash differs from the audited build")
         near = json.loads(blobs["near_calls"]) if "near_calls" in blobs else None
+        driver_text = blobs["driver_internal"].decode()
+        driver_internal = load_driver_internal(csv_rows(blobs["driver_internal"]), repo,
+                                               fields=csv.DictReader(driver_text.splitlines()).fieldnames)
         state = load_queue(inventory, csv_rows(blobs["ledger"]),
                            csv_rows(blobs["classification"]),
                            csv_rows(blobs["strict_map"]), near,
-                           csv_rows(blobs["partial_models"]))
+                           csv_rows(blobs["partial_models"]), driver_internal,
+                           csv_rows(blobs["identities"]))
         main_files = scan_main_files(repo, state["all_ids"])
         for identifier, evidence in sorted(state["full_models"].items()):
             main_files.setdefault(identifier, []).append(evidence)
