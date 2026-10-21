@@ -227,3 +227,17 @@ The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-stan
    - [GAMEPLAY_PATH.md](GAMEPLAY_PATH.md) §2.4 documents those arguments for the main-menu caller: key list `DS:05F0`, highlight index `[6B2Bh]`, and `[bp+0Eh]`/`[bp+10h]` clearing `[bp-8Fh]`. An oracle run confirmed the key behaviour. So this body draws the game's menu key list with its highlight.
 
 **Limit** (as for 11F3's one documented caller): only the main-menu caller of 03BD is documented. The strings passed by 03BD's other callers are not claimed. Of the four U3B0 rows that pass, this is the weakest factor-2 argument.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `813a9d06` (2026-10-20). Unicorn: 95 cases; caller 171/171 feasible starts, 15/15 feasible outcomes (one infeasible start and side excluded by the doc), CPU14 + 1,048,576 B, `ram_excluded_ranges []`,
+flag masks 0. Native: 42 cases, RESULT.BIN `78890ae8…` (matches this document). Body 419 B, SHA-256
+`8676c97ae6dcaa88c9f7d68d75c75f81e4936572b517bd84a7e19876c58d96ce`, from GAME.OVR. Identity: par-a's two-factor section above (#1262). Each factor-1 site was checked from the
+media: it decodes as `0E E8`, sits at an instruction boundary inside a `game_evidenced` caller, and that caller is
+not strict.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential, with the EGA device compared. Native agreement is claimed for that binary only.

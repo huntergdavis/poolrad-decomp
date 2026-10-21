@@ -206,3 +206,17 @@ The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-stan
    - Its list head is the parent slot `L+14h/16h`, which credited `OVL_03B0_0CC5`'s doc ([U3B0_CURSOR_STEP_0CC5.md](U3B0_CURSOR_STEP_0CC5.md)) defines.
 
 **Limit:** the layout is documented; this section does not claim which game list each caller's head points to.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `813a9d06` (2026-10-20). Unicorn: 105 cases; caller 115/115 starts, 8/8 outcomes, CPU14 + 1,048,576 B, `ram_excluded_ranges []`,
+flag masks 0. Native: 52 cases, RESULT.BIN `4a352684…` (matches this document). Body 307 B, SHA-256
+`b4d0d09d692e50b31125fa64fbedb3316385f9dd60dc1efb5c74605b2e669eef`, from GAME.OVR. Identity: par-a's two-factor section above (#1262). Each factor-1 site was checked from the
+media: it decodes as `0E E8`, sits at an instruction boundary inside a `game_evidenced` caller, and that caller is
+not strict.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential, with the EGA device compared. Native agreement is claimed for that binary only.

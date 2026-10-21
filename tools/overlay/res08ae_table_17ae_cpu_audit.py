@@ -81,6 +81,10 @@ def ownership():
     check(candidates == sorted(NEAR_CALLERS) and decoded == NEAR_CALLERS,
           f'near-call census differs: raw {[hex(a) for a in candidates]}, decoded {[(hex(a), hex(f)) for a, f in sorted(decoded.items())]}')
     callers = sorted(decoded)
+    rels, _ = relocations(exe, image)
+    pattern = struct.pack('<HH', ENTRY, 0x08AE)                # a resident far call is 9A + the entry + a relocated 08AE
+    far = [i - 1 for i in range(1, len(image) - 3) if image[i:i + 4] == pattern and image[i - 1] == 0x9A and (i + 2) in rels]
+    check(not far, f'resident far calls appeared: {[hex(a) for a in far]}')
     return dict(overlay_far_call_fixups=0, near_call_sites={f'{a:04X}': f'{decoded[a]:04X}' for a in callers}, identity='unresolved', credit_claimed=False)
 
 

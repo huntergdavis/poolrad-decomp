@@ -46,9 +46,10 @@ each preceded by `PUSH CS`), no interrupt, port, far or indirect transfer, the o
 
 Callers, asserted by the checker: a scan of **every `E8` in the whole 08AE segment** whose target is `017B` finds **none**; a hash-locked scan
 of every overlay segment fixup finds **zero direct far calls**; the resident image contains **two** `9A 7B 01 AE 08` far-call patterns
-whose segment word is a loader relocation (image offsets `45B3` and `8A32`). Those two are raw patterns, **not decoded to a containing
-function** here. The census is segment-wide by construction rather than by care: the checker compares the raw candidate list with the
-expected list, so a missed site fails the build. It establishes use, not game-specific source identity.
+whose segment word is a loader relocation, and both are **decoded to their containing functions** (linear decode from the nearest far-call-target start lands on the
+call on an instruction boundary): the call at image `45B2` is in the resident function at image `4354` (`+025E`), and the call at image `8A31` is in the function at
+`0899:0059` (image `89E9`, `+0048`), the funded wall's `RES_0899_0059`. **No census gap remains.** The callers do not change this body's stops (the stops are its own four callees); they name who
+composes it. **Census method.** The caller census is segment-wide by construction rather than by care: the checker compares the raw candidate list (every `E8` in the whole 08AE segment, and every relocated `9A` far-call pattern in the resident image) with the expected decoded list, so a missed site fails the build. It establishes use, not game-specific source identity.
 
 ## Measured evidence: original-byte differential
 

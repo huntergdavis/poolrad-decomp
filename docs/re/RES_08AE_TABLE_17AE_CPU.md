@@ -38,6 +38,8 @@ resident dispatcher `00DC` (`+0100`, `+012B`, `+0153`, `+0169`) and one in the f
 this entry at `+019C` with argument 0 both times). A hash-locked scan of every overlay segment fixup finds **zero direct far calls** to it. The checker
 asserts the raw candidate list and the decoded list equal this census. They establish use, not game-specific source identity.
 
+**Census method.** The caller census is segment-wide by construction rather than by care: the checker compares the raw candidate list (every `E8` in the whole 08AE segment, and every relocated `9A` far-call pattern in the resident image) with the expected decoded list, so a missed site fails the build. The resident image has no relocated `9A` far-call pattern for this entry either, so the near calls above are the whole resident census.
+
 **Correction to the merged `RES_08AE_1742` document (#1250).** That document counts only the four `00DC` sites of `1742` (`+0107`, `+0132`,
 `+0144`, `+0170`). Its checker decoded the `00DC` range only, so it missed a fifth near call to `1742` at `+0195`, in the same `017B` function as
 this entry's fifth site. The `1742` body, model and differential are unaffected (a caller census is use evidence, not a behavior claim), but the
