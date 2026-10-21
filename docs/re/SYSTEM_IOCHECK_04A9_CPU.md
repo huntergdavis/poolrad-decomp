@@ -54,7 +54,7 @@ These establish use, not identity.
 
 ## Validation
 
-Receipt: 2026-10-20, main `968d023b` plus this branch.
+Receipt: 2026-10-20, main `0279abfd` plus this branch.
 
 **Unicorn, 146 cases + 5 ARGUMENT**, comparing unmasked CPU14 and all 1,048,576 RAM bytes and the stop status: `RETURN` 19, `RUNERROR` 127. Starts **5/5**, conditional outcomes **2/2** (`JNE` taken and not taken), accounted by successor. **116** cases whose stack does
 not alias the data segment are also checked against a separately written statement of the contract (RETURN iff `InOutRes == 0`, the popped frame, `AX := InOutRes` and IP `00E2` otherwise, and an independently computed flag image). Cases: 100 distinct `InOutRes` values
@@ -94,7 +94,10 @@ So `04A9` alone unlocks nothing; it removes one of six blockers from 77 rows, as
 ## Checker, gates and reproduction
 
 `system_iocheck_04a9_cpu_audit.py` declares `CHECKER_ROWS=('RES_0AF8_04A9',)` and implements `--compile-only` through the same `library()` build, printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+Gate results on current main (`0279abfd`): `check_checker_builds.py RES_0AF8_04A9 --require-current-main` PASS (1 actual checker build for 1 row); ASan/UBSan C test 66,106 checks, exit 0; focused CTest `poolrad_system_iocheck_04a9_cpu_tests` 1/1 passed; combined receipt
+`--unicorn --native`: 146 cases + 5 ARGUMENT, 5/5 starts, 2/2 outcomes, 116 reference-checked, 0 masked RAM bytes (Unicorn); native 48 runs, RESULT.BIN `3ab300ab...d651`, 982,784 bytes omitted. The pairing gate is run on the committed change.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/system_iocheck_04a9_cpu_audit.py --unicorn --native --output resources/iocheck-evidence.json
     python3 tools/overlay/check_checker_builds.py RES_0AF8_04A9 --require-current-main --output resources/iocheck-checker-build.json
