@@ -84,7 +84,7 @@ def library(directory):
     return fn
 
 
-def fixture(span, rng, arg, *, ss=0x4000, sp=0x8000, data=DEFAULT_DATA, flags=2, background=None, writes=()):
+def fixture(span, rng, arg, *, ss=0x4000, sp=0x8000, data=DEFAULT_DATA, flags=2, background=None, writes=(), bytes_at=None, bytes_next=None):
     memory = bytearray([0xA5]) * SIZE if background is None else bytearray(background)
     at = physical(CODE, ENTRY)
     memory[at:at + len(span)] = span
@@ -93,6 +93,9 @@ def fixture(span, rng, arg, *, ss=0x4000, sp=0x8000, data=DEFAULT_DATA, flags=2,
         put16(memory, ss, (sp + off) & 0xFFFF, value)
     for off, value in writes:                                      # (offset in the data segment, word)
         put16(memory, data, off & 0xFFFF, value)
+    for at_byte in (bytes_at, bytes_next):                         # absolute (physical address, byte) pairs
+        if at_byte is not None:
+            memory[at_byte[0] & MASK] = at_byte[1]
     cpu = Cpu(*(rng.randrange(65536) for _ in range(7)), sp, CODE, ENTRY, rng.randrange(65536), rng.randrange(65536), ss, flags)
     return memory, cpu
 
@@ -199,6 +202,14 @@ def differential(span, starts, conditional, fn):
             arg = base + 8192 * j
             writes = [(0x227, 0x5555), (0x229, 0), (0x22B, 0), (0x22D, 0), (0x1D8, 0), (target, rng.randrange(65536))]
             cases.append((f'alias-t{target:04x}-r{row}-j{j}', arg, dict(writes=writes, flags=0x0ED7), True))
+    # Row 0's source word at DS:FFFF (A = 1F54h) straddles into the next paragraph; the byte at DS:10000h is the first byte
+    # of the segment that follows, so the high half of the word is outside the 64 KiB data segment.
+    for j in (0, 1, 7):
+        for low, high in ((0x34, 0x12), (0x00, 0x00), (0x00, 0x80), (0xFF, 0xFF)):
+            arg = 0x1F54 + 8192 * j
+            memory_writes = [(0x055F + 8 * 0x1F54 + 2 * i & 0xFFFF, 0x1111 * (i + 1)) for i in range(1, 4)]
+            cases.append((f'straddle-ffff-j{j}-{low:02x}{high:02x}', arg, dict(writes=memory_writes, flags=0x0ED7,
+                          bytes_at=((DEFAULT_DATA << 4) + 0xFFFF, low), bytes_next=((DEFAULT_DATA << 4) + 0x10000, high)), True))
     for sp in range(0x1C0, 0x300, 2):                               # the stack lives in the data segment
         for arg in (2, 0x0A02):
             writes = [((0x55F + 8 * arg + 2 * i) & 0xFFFF, 0x1234 + i) for i in range(4)]
