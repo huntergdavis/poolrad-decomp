@@ -378,12 +378,18 @@ class ResidentRuntimeTest(unittest.TestCase):
             with self.assertRaises(Exception) as caught:
                 self.load(self.table(folder), folder, ledger_ids=frozenset({"RES_0802_0020"}))
             self.assertIn("overlay-called entry", str(caught.exception))
-        # The committed ledger is the default source: its real entry 0802:0716 is refused.
+        # The committed ledger is the default source: its real overlay-called entry 0802:0425 (unresolved) is refused.
+        # (0802:0716 served here until its strict credit (par-e); it is now refused earlier, as a game-specific target.)
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(Exception) as caught:
+                scq.load_resident_runtime(self.table(folder, member="RES_0802_0425"), folder,
+                                          ledger_ids=scq.resident_ledger_ids(self.ROOT))
+            self.assertIn("overlay-called entry", str(caught.exception))
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(Exception) as caught:
                 scq.load_resident_runtime(self.table(folder, member="RES_0802_0716"), folder,
                                           ledger_ids=scq.resident_ledger_ids(self.ROOT))
-            self.assertIn("overlay-called entry", str(caught.exception))
+            self.assertIn("game-specific resident target", str(caught.exception))
         import resident_inventory
         with tempfile.TemporaryDirectory() as folder, \
                 mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, {"RES_0802_0020": "docs/re/X.md"}):

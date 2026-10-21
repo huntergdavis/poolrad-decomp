@@ -169,8 +169,8 @@ class AuditTest(unittest.TestCase):
         for start, target in rc.REVIEWED_RESIDENTS.items():
             want = "game_verified" if target in GRANTED_NEAR_ONLY else "unresolved"
             self.assertEqual(self.other()[start]["classification"], want)
-        # 29 + RES_0802_02EB (#1341) + RES_0802_025D (par-e), both overlay-called, + the granted near-only bodies
-        self.assertEqual(self.base["summary"]["game_verified"], 31 + len(GRANTED_NEAR_ONLY))
+        # 29 + RES_0802_02EB (#1341) + RES_0802_025D + RES_0802_0716 (par-e), all overlay-called, + the granted near-only bodies
+        self.assertEqual(self.base["summary"]["game_verified"], 32 + len(GRANTED_NEAR_ONLY))
 
     def test_ownership_comes_only_from_game_specific_targets(self):
         # Simulate one more grant: the first listed near-only body that is not yet granted (moves with the grants).
@@ -181,7 +181,7 @@ class AuditTest(unittest.TestCase):
         before, after = self.other(), self.other(changed)
         self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {start})
         self.assertEqual(after[start]["classification"], "game_verified")
-        self.assertEqual(changed["summary"]["game_verified"], 32 + len(GRANTED_NEAR_ONLY))
+        self.assertEqual(changed["summary"]["game_verified"], 33 + len(GRANTED_NEAR_ONLY))
         self.assertEqual(changed["summary"]["unresolved"], self.base["summary"]["unresolved"] - 1)
 
     def test_the_loader_called_door_is_one_entry_with_its_own_condition(self):
