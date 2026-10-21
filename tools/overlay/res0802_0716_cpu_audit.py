@@ -126,7 +126,9 @@ class FileSystem:
             self.handles[h] = 0
             self.log.append(('3D', al, read_name, h)); return 0, h, None
         if ah == 0x3E:
-            self.log.append(('3E', bx)); self.handles.pop(bx, None)
+            if bx not in self.handles:
+                self.log.append(('3E', bx, 'invalid')); return 1, 6, None          # invalid handle: DOS error 6
+            self.log.append(('3E', bx)); self.handles.pop(bx)
             return 0, (ah << 8) | 0x01, None                    # success: AL := 01h, AH kept (DOSBox-X, measured natively)
         if ah == 0x3F:
             self.reads += 1
