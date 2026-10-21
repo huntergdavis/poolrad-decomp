@@ -56,10 +56,10 @@ iret
 '''
 
 
-def assemble_stub(log_seg=LOG_SEG):
+def assemble_stub(log_seg=LOG_SEG, scratch=0x00FE):
     with tempfile.TemporaryDirectory(prefix='stub10-') as tmp:
         s, o, b = Path(tmp) / 's.S', Path(tmp) / 's.o', Path(tmp) / 's.bin'
-        s.write_text(STUB_SOURCE.replace('mov ax,0x60', f'mov ax,{log_seg:#x}'))
+        s.write_text(STUB_SOURCE.replace('mov ax,0x60', f'mov ax,{log_seg:#x}').replace('[0xfe]', f'[{scratch:#x}]'))
         subprocess.run(['as', '--32', str(s), '-o', str(o)], check=True)
         subprocess.run(['objcopy', '-O', 'binary', '-j', '.text', str(o), str(b)], check=True)
         return b.read_bytes()
@@ -204,7 +204,7 @@ def run_unicorn(name, m, c, body_ips, conditional=None, edges=None):
     return uc, backing, seen, closure
 
 
-def c_video(keep, log_seg=LOG_SEG, stub_at=(STUB_SEG, 0)):
+def c_video(keep, log_seg=LOG_SEG, stub_at=(STUB_SEG, 0), scratch=0x00FE):
     """The INT 10h logging stub's effect, as its bytes run (every push, store, re-read and the IRET), for the C model."""
     def video(ctx, ram, before, after):
         b = before[0]
@@ -224,10 +224,10 @@ def c_video(keep, log_seg=LOG_SEG, stub_at=(STUB_SEG, 0)):
         bxi = (rd(log_seg, 0) << 4) & 0xFFFF                                         # MOV BX,[0]; SHL BX,1 x4
         for k, v in ((6, b.cx), (8, b.dx), (10, b.si), (12, b.di), (14, b.bp), (16, b.es)):
             wr(log_seg, bxi + k, v)
-        ax1 = rd(ss, sp - 6); wr(log_seg, bxi + 2, ax1); wr(log_seg, 0xFE, ax1)       # POP AX; MOV [BX+2],AX; MOV [FEh],AX
+        ax1 = rd(ss, sp - 6); wr(log_seg, bxi + 2, ax1); wr(log_seg, scratch, ax1)       # POP AX; MOV [BX+2],AX; MOV [scratch],AX
         ax2 = rd(ss, sp - 4); wr(log_seg, bxi + 4, ax2)                              # POP AX; MOV [BX+4],AX
         wr(log_seg, 0, (rd(log_seg, 0) + 1) & 0xFFFF)                                # INC WORD [0]
-        a.bx = ax2; a.ax = rd(log_seg, 0xFE); a.ds = rd(ss, sp - 2)                  # MOV BX,AX; MOV AX,[FEh]; POP DS
+        a.bx = ax2; a.ax = rd(log_seg, scratch); a.ds = rd(ss, sp - 2)                  # MOV BX,AX; MOV AX,[scratch]; POP DS
         a.ip, a.cs, a.flags = rd(ss, sp), rd(ss, sp + 2), rd(ss, sp + 4); a.sp = (sp + 6) & 0xFFFF   # IRET
         after[0] = a
         return 0
