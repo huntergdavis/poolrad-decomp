@@ -41,7 +41,7 @@ freed-tail, freed-all and type-7 shapes), all agreeing; stops 34 return, 10 RunE
 - **Two audits have a single BP value** (`0020`, `003A`: `7777`). A nonzero low byte is what exposes a word store, so they are
   covered for that defect, but a second value would also catch an error that depends on the byte (a store of the wrong byte
   into `[bp+0]`, say). Cheap to add; I have not.
-- **Odd SP is nearly absent:** eight of the eleven audits never enter with an odd SP (only \`0020\`, \`0255\` and \`003A\` do) (the `sp8001` family is the same blind
+- **Odd SP is nearly absent:** eight of the eleven audits never enter with an odd SP (only `0020`, `0255` and `003A` do) (the `sp8001` family is the same blind
   spot for stack alignment). A standing odd-SP case would close it.
 - **The native harnesses** enter with a fixed register file (`ENTRY_REGS`, `BP=7777`), so for these bodies the native runs
   are dirty in BP but cover one value.
