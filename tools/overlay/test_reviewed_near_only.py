@@ -36,7 +36,7 @@ def renamed_audit(classification="unresolved"):
 
 # Reviewed near-only bodies granted game_verified by their acceptance (par-e). Exact set: each grant
 # commit adds one, deliberately.
-GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000), (0xBA, 0x01FB), (0xBA, 0x0282), (0xBA, 0x03A0), (0xBA, 0x10E6), (0xBA, 0x11EA), (0xBA, 0x1282), (0xBA, 0x1325)})
+GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000), (0xBA, 0x01FB), (0xBA, 0x0282), (0xBA, 0x03A0), (0xBA, 0x10E6), (0xBA, 0x11EA), (0xBA, 0x1282), (0xBA, 0x1325), (0x802, 0x0040)})
 
 
 class QueueNamingTest(unittest.TestCase):
@@ -173,12 +173,14 @@ class AuditTest(unittest.TestCase):
         self.assertEqual(self.base["summary"]["game_verified"], 30 + len(GRANTED_NEAR_ONLY))
 
     def test_ownership_comes_only_from_game_specific_targets(self):
-        grant = ri.GAME_SPECIFIC_TARGETS | {(0x802, 0x0040)}
+        # Simulate one more grant: the first listed near-only body that is not yet granted (moves with the grants).
+        start, target = next((s, t) for s, t in sorted(rc.REVIEWED_NEAR_ONLY.items()) if t not in ri.GAME_SPECIFIC_TARGETS)
+        grant = ri.GAME_SPECIFIC_TARGETS | {target}
         with mock.patch.object(rc, "GAME_SPECIFIC_TARGETS", grant):
             changed = rc.audit_coverage(self.exe, self.ovr)
         before, after = self.other(), self.other(changed)
-        self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {0x8060})
-        self.assertEqual(after[0x8060]["classification"], "game_verified")
+        self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {start})
+        self.assertEqual(after[start]["classification"], "game_verified")
         self.assertEqual(changed["summary"]["game_verified"], 31 + len(GRANTED_NEAR_ONLY))
         self.assertEqual(changed["summary"]["unresolved"], self.base["summary"]["unresolved"] - 1)
 

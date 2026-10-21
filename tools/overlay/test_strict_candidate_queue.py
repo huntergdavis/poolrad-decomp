@@ -341,9 +341,9 @@ class ResidentRuntimeTest(unittest.TestCase):
         self.assertEqual(tuple(reader.fieldnames), scq.RESIDENT_RUNTIME_FIELDS)
         self.assertEqual(members, frozenset())  # the class lands empty; t30's 0000/0020/0175 join with their bodies
 
-    def test_0175_is_refused_on_the_real_image_until_0040_is_ready(self):
-        """t30 side (ii): 0175's closure is 0040, a side (i) body not yet strict. The real image refuses it, so the
-        membership cannot slide in ahead of its callee (pinned: it must stop being refused when 0040 is ready)."""
+    def test_0175_closure_is_complete_once_0040_is_strict(self):
+        """t30 side (ii): 0175's closure is 0040. It was refused on the real image until 0040 was strict; 0040's
+        acceptance flips this pin (par-e), so 0175's membership row can follow as its own acceptance."""
         exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
         if not exe.is_file():
             self.skipTest("owner media absent")
@@ -354,10 +354,8 @@ class ResidentRuntimeTest(unittest.TestCase):
         sha = re.search(r"`([0-9a-f]{64})`", doc).group(1)
         rows = [dict(id="RES_0802_0175", evidence_doc="docs/re/RES_0802_0175_CPU.md", review_pr="1",
                      reviewed_commit="c" * 40, body_sha256=sha, body_bytes="30")]
-        self.assertNotIn("RES_0802_0040", strict)
-        with self.assertRaises(Exception) as caught:
-            self.load(rows, self.ROOT, image=image, strict_ids=strict)
-        self.assertIn("RES_0802_0040 is not a member or strict", str(caught.exception))
+        self.assertIn("RES_0802_0040", strict)
+        self.assertEqual(self.load(rows, self.ROOT, image=image, strict_ids=strict), {"RES_0802_0175"})
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
