@@ -177,6 +177,10 @@ The audit fails if LIMIT appears anywhere other than the budget cases, or if a b
 **Mutation:** the seam budget off by one is caught in 152 s at `budget-seams-3` (`LIMIT at 0941, original 0935`). The
 source was restored byte-identical.
 
+**A budget stop is not a timeout.** Running past any budget stops LIMIT with nothing of the next step executed. A timeout interrupts the model mid-step and leaves the state half-changed; a budget stop leaves it at a boundary, where the audit can compare it with the original stopped at the same arrival (VP i20511).
+
+**Fresh per entry, not cumulative.** Every budget restarts at each entry and at each resume after a named stop, so it bounds one pass through the loop rather than the whole run. Do not assume a counter is cumulative: the 025D audit proves the property with budget 0 (`retry-budget-0`, PROMPT/LIMIT) and budget 1 (`retry-budget-1`, PROMPT/PROMPT/RETURN, two resumes taking one loop-back each). A cumulative count would stop the second case LIMIT. Here, `max_disk_prompts` restarts at each 05CD seam and `retries` at each 025D entry and resume. `max_seams` is the one count that spans the run, because the seam loop has no entry other than 0716's.
+
 ## Reproduction
 
 `CHECKER_ROWS = ('RES_0802_0716',)`: a second checker for the 0716 row, beside `res0802_0716_cpu_audit.py`.

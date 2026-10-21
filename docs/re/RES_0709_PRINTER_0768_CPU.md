@@ -37,6 +37,7 @@ The header carries the decode-faithful outline. The parts a reader needs:
   `0858`, `089F` and `08F0` together. When a JMP would run past its budget, the model stops LIMIT with IP at that JMP and none
   of it executed, and the diagnostic site is the JMP. The audit stops the original at the same arrival and compares
   everything.
+  This loop shows why a structural bound is not a budget. 0768's word loop has no complete structural bound at all: the x1 > x2 case below never ends in the original. A budget stop is not a timeout either: it leaves the model at a boundary, with nothing of the refused JMP executed (VP i20511).
 - **The port contract, in four conditions:**
   1. This body issues no IN, OUT or INT itself (the audit asserts it in the decode).
   2. Every OUT inside `0DD3` and `06A7` goes through the bus's `pr_port_env`, then `pr_ega`, in order on both sides.
