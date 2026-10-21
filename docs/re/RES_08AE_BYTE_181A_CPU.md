@@ -174,5 +174,10 @@ exclude stack-offset wrap. The same executable hash is recorded as the native or
 evidence, and the 181A `RESULT.BIN` hash reproduces bit-for-bit under it. A reviewer who needs the pinned result must
 re-run the native harness with that binary.
 
-GATE_PENDING
+**Gate run:** on main `184d85fa` with this branch, `check_checker_builds.py RES_08AE_181A --require-current-main` reports
+`PASS: 1 actual checker builds for 1 rows`, `check_body_doc_pairing.py --base 184d85fa` reports every body and checker paired
+with evidence and registration, and the focused CTest target `poolrad_resident_08ae_byte_181a_cpu_tests` builds from CMake and
+passes 1/1. The private receipt (`--unicorn --native --output`, generated at code commit `21f0eeaa`, which the branch head
+carries unchanged apart from this document and a merge of main) has SHA-256
+`372379bce9fbc5ec0a24c8a9e10bf58b51af7c101db24852f12fd994ccfeeb96`.
 
