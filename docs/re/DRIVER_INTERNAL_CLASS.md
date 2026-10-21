@@ -98,6 +98,13 @@ member that stops at a scripted hook and resumes from a scripted stub would have
 composable had been run. This was the second laundering path found in the class, one level below the first: the first
 was a member admitted with an unready callee, which led to the loader closure check in #1255.
 
+**Laundering by order of merging (VP i20256).** The closure rule can be defeated without any wrong argument, purely by the
+order in which correct rows land. If a readiness row lands before the terminal or callee its model stops into is declared,
+every caller composes into something undeclared for as long as the gap lasts. The first case: IOCheck `04A9`'s
+`RUNERROR` stop is `JMP 00E2`, and covering `04A9` before `RES_0AF8_00E2` was declared would have let 77 rows compose
+into an undeclared terminal. **Rule:** such a row and its terminal land in one commit. `RUNTIME_COVERED_TERMINALS` in
+`strict_candidate_queue.py` makes `load_queue` refuse a covered endpoint whose terminal is not declared.
+
 ## Deferred member: `RES_08AE_01A5` (VP i20201)
 
 **Its evidence is complete, its composition is unprovable today, and the wall does not need it.**
