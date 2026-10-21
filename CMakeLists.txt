@@ -391,6 +391,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_08ae_byte_181a_cpu.c
                                     src/recovered/resident_08ae_table_1742_cpu.c
                                     src/recovered/resident_08ae_table_17ae_cpu.c
+                                    src/recovered/system_filecheck_14b6_cpu.c
                                     src/recovered/system_close_1491_cpu.c
                                     src/recovered/system_iocheck_04a9_cpu.c
                                     src/recovered/resident_08ae_state_01a5_cpu.c
@@ -2386,6 +2387,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_system_close_1491_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_system_close_1491_cpu_tests
              COMMAND poolrad_system_close_1491_cpu_tests)
+    add_executable(poolrad_system_filecheck_14b6_cpu_tests
+                   tests/recovered/test_system_filecheck_14b6_cpu.c)
+    target_link_libraries(poolrad_system_filecheck_14b6_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_system_filecheck_14b6_cpu_tests
+             COMMAND poolrad_system_filecheck_14b6_cpu_tests)
     add_executable(poolrad_system_iocheck_04a9_cpu_tests
                    tests/recovered/test_system_iocheck_04a9_cpu.c)
     target_link_libraries(poolrad_system_iocheck_04a9_cpu_tests PRIVATE poolrad_recovered)
