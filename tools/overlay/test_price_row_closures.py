@@ -135,7 +135,9 @@ class RealDisplayRowTest(unittest.TestCase):
         pricer = P.Pricer.__new__(P.Pricer)
         pricer.rows, pricer.image = {}, bytes(P.unpack(exe.read_bytes())[0])
         pricer.md, pricer.cache = Cs(CS_ARCH_X86, CS_MODE_16), {}
-        pricer.strict = {r["id"] for r in P.csv.DictReader(open(P.ROOT / "docs/re/strict_full_c_addresses.csv"))}
+        # 0193 is strict since its acceptance (par-e); a strict body is a terminal, so walking FROM it would stop at once and
+        # this test would go vacuous. The walk treats the root itself as unpriced so that it still enters 0193's body.
+        pricer.strict = {r["id"] for r in P.csv.DictReader(open(P.ROOT / "docs/re/strict_full_c_addresses.csv"))} - {"RES_0802_0193"}
         pricer.covered, pricer.driver_members = set(P.sq.RUNTIME_COVERED_ENDPOINTS), frozenset()
         pricer.runtime_residents = frozenset(members)
         acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(), declared=set())
