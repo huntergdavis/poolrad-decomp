@@ -6,7 +6,7 @@
 #define PR_SEEK_RAM_SIZE (1u << 20)
 
 /* Raw-CPU, full-state model of Turbo Pascal SYSTEM Seek(var f: file; n: longint), START.EXE 0AF8:[1563,1593) (48 bytes,
- * 19 instructions, RETF 8) with the shared open-check helper 0AF8:[14B6,14C5) (15 bytes, 4 instructions). Readiness coverage
+ * 19 instructions, RETF 8), composing par-d's shared open-check model 0AF8:[14B6,14C5) (system_filecheck_14b6_cpu). Readiness coverage
  * only, no identity claim (docs/re/SYSTEM_SEEK_1563_CPU.md).
  *
  * Entered after a far call: [SP] IP, [SP+2] CS, [SP+4] n (low word), [SP+6] n (high word), [SP+8] the far address of f.
@@ -30,7 +30,9 @@ typedef enum {
     PR_SEEK_RETURNED = 0,  /* RETF 8 executed */
     PR_SEEK_ARGUMENT,      /* null RAM/CPU/service, RAM not exactly 1 MiB, IP not 1563h, SP outside [0006h,FFF4h]; nothing changed */
     PR_SEEK_SERVICE,       /* the INT 21h service declined or returned a non-continuation; stopped at the INT (IP 1588h) */
-    PR_SEEK_ENV            /* an INT 21h function other than 42h would be issued (structural guard) */
+    PR_SEEK_ENV,           /* an INT 21h function other than 42h would be issued (structural guard) */
+    PR_SEEK_TRANSFER       /* the composed check returned somewhere other than 156Ch (its InOutRes store landed on the
+                              return slot: SS = DS with the slot at 4426h); CS:IP is where it returned */
 } pr_seek_status;
 
 typedef int (*pr_seek_dos_service)(void *context, const pr_seek_cpu *before, pr_seek_cpu *after);

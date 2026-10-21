@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Turbo Pascal SYSTEM Seek 0AF8:1563 + open-check helper 14B6 (raw CPU; runtime coverage, no identity) against the original
-bytes. INT 21h AH=42h is the declared environment (the case's carry and DX:AX); any other AH or interrupt is refused.
+"""Turbo Pascal SYSTEM Seek 0AF8:1563 (raw CPU; runtime coverage, no identity) against the original bytes, the open-check helper
+14B6 running as original bytes and composed in C from par-d's shared model. INT 21h AH=42h is the declared environment (the case's carry and DX:AX); any other AH or interrupt is refused.
 Unicorn: CPU14 + full 1 MiB. Native (DOSBox-X): CPU14 + stack + FileRec + InOutRes, with a declared INT 21h hook and the DOS
 frame masked. Media and generated programs stay under ignored resources/."""
 import argparse, ctypes, json, os, random, struct, subprocess, tempfile
@@ -16,7 +16,7 @@ CS, DS, SS, FREC = 0x6000, 0x5000, 0x2000, 0x3000
 FLAGS = (0x0002, 0x00D7, 0x08D7, 0x0402, 0x0893, 0x0003)
 CONDITIONALS = {0x14BC: (0x14C4, 0x14BE), 0x156C: (0x158F, 0x156E), 0x158A: (0x158F, 0x158C)}
 SERVICE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(Cpu), ctypes.POINTER(Cpu))
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'SERVICE', 3: 'ENV'}
+STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'SERVICE', 3: 'ENV', 4: 'TRANSFER'}
 
 
 def source():
@@ -37,7 +37,8 @@ def source():
 def library(directory):
     path = directory / 'seek.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include'),
-                    str(ROOT / 'src/recovered/system_seek_1563_cpu.c'), '-o', str(path)], check=True)
+                    str(ROOT / 'src/recovered/system_seek_1563_cpu.c'),
+                    str(ROOT / 'src/recovered/system_filecheck_14b6_cpu.c'), '-o', str(path)], check=True)
     f = ctypes.CDLL(str(path)).pr_system_seek_1563
     f.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), SERVICE_FN, ctypes.c_void_p]
     f.restype = ctypes.c_int
@@ -85,8 +86,9 @@ def compare(name, state, decoded, f):
         if s['prev'] in CONDITIONALS:
             edges.add((s['prev'], ip))
         if s['ret']:
-            s['stop'] = 0; return uc.emu_stop()
-        check(cs == CS and ip in decoded, f'escape {name} {cs:04x}:{ip:04x}')
+            s['stop'] = 'RETURN'; return uc.emu_stop()
+        if cs != CS or ip not in decoded:
+            s['stop'] = 'TRANSFER'; return uc.emu_stop()
         seen.add(ip); s['prev'] = ip
         if ip == 0x1590:
             s['ret'] = True
@@ -99,13 +101,14 @@ def compare(name, state, decoded, f):
         uc.reg_write(R.UC_X86_REG_AX, a.ax); uc.reg_write(R.UC_X86_REG_DX, a.dx); uc.reg_write(R.UC_X86_REG_EFLAGS, a.flags)
     uc.hook_add(UC_HOOK_CODE, code); uc.hook_add(UC_HOOK_INTR, intr)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=1000)
-    check(s['stop'] == 0, f'original did not return {name}')
+    check(s['stop'] is not None, f'original did not stop {name}')
     clog = []
 
     def svc(ctx, before, after):
         b = before[0]; clog.append((b.ax, b.bx, b.cx, b.dx)); after[0] = answer(b, script); return 0
     actual = Cpu.from_buffer_copy(c); ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m)
-    check(STATUS[f(ram, SIZE, ctypes.byref(actual), SERVICE_FN(svc), None)] == 'RETURN', f'C status {name}')
+    status = STATUS[f(ram, SIZE, ctypes.byref(actual), SERVICE_FN(svc), None)]
+    check(status == s['stop'], f'C status {name}: {status} original {s["stop"]}')
     check(clog == log, f'LSEEK log {name}: C {clog} original {log}')
     if bytes(ram) != bytes(backing):
         diff = [hex(i) for i, (a, b) in enumerate(zip(bytes(ram), bytes(backing))) if a != b]
@@ -113,7 +116,7 @@ def compare(name, state, decoded, f):
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         want = uc.reg_read(reg) & 0xFFFF
         check(getattr(actual, n) == want, f'CPU {name}/{n} C {getattr(actual, n):04x} original {want:04x}')
-    return seen, edges, bytes(ram), log
+    return seen, edges, bytes(ram), log, status
 
 
 def cases():
@@ -127,7 +130,9 @@ def cases():
     out += [(f'flags{fl:x}', dict(flags=fl)) for fl in FLAGS] + [(f'flags{fl:x}-closed', dict(flags=fl, magic=0xD7B0)) for fl in FLAGS]
     out += [(f'sp{sp:x}', dict(sp=sp)) for sp in (0x0006, 0x0007, 0x8001, 0xFFF3, 0xFFF4)]
     out += [('ss-ds', dict(ss=DS)), ('a20-stack', dict(ss=0xFFFF, sp=0x0400)), ('frec-straddle', dict(f=(FREC, 0xFFFD))),
-            ('frec-a20', dict(f=(0xFFFF, 0x0040))), ('alias-frec-on-args', dict(f=(SS, 0x8004)))]
+            ('frec-a20', dict(f=(0xFFFF, 0x0040))), ('alias-frec-on-args', dict(f=(SS, 0x8004))),
+            # the check's InOutRes store on its own return slot (SS = DS, entry SP 442Ah): RET to 0067h (#1314 self-flag)
+            ('transfer', dict(ss=DS, sp=0x442A, magic=0xD7B0)), ('ss-ds-slot-open', dict(ss=DS, sp=0x442A))]
     for k in range(40):
         out.append((f'random{k}', dict(magic=rng.choice((0xD7B3, 0xD7B3, 0xD7B0, rng.randrange(65536))), handle=rng.randrange(65536),
                                        recsize=rng.randrange(65536), n=rng.randrange(1 << 32), cf=rng.randrange(2),
@@ -136,10 +141,11 @@ def cases():
 
 
 def differential(pieces, decoded, f):
-    seen, edges = set(), set(); specs = cases(); checked = 0
+    seen, edges = set(), set(); specs = cases(); checked = 0; stops = {}
     for name, o in specs:
-        v, e, ram, log = compare(name, build(pieces, **o), decoded, f); seen |= v; edges |= e
-        if name.startswith(('alias', 'ss-ds', 'frec-')):
+        v, e, ram, log, status = compare(name, build(pieces, **o), decoded, f); seen |= v; edges |= e
+        stops[status] = stops.get(status, 0) + 1
+        if name.startswith(('alias', 'ss-ds', 'frec-', 'transfer')):
             continue
         magic = o.get('magic', 0xD7B3); inout = ram[physical(DS, 0x4426)] | ram[physical(DS, 0x4427)] << 8
         if magic != 0xD7B3:
@@ -149,10 +155,11 @@ def differential(pieces, decoded, f):
             check(log == [(0x4200, o.get('handle', 7), pos >> 16, pos & 0xFFFF)], f'{name}: LSEEK operands {log} vs {pos:08x}')
             check(inout == ((o['result'] & 0xFFFF) if o.get('cf') else 0x7777), f'{name}: InOutRes {inout:04x}')
         checked += 1
+    check(stops.get('TRANSFER') == 1, 'the constructed TRANSFER alias reached')
     check(seen == set(decoded), f'starts missing {sorted(hex(a) for a in set(decoded) - seen)}')
     want = {(a, t) for a, ts in CONDITIONALS.items() for t in ts}
     check(edges == want, f'outcomes missing {sorted(want - edges)}')
-    return dict(cases=len(specs), stops=dict(RETURN=len(specs)), starts=len(seen), starts_total=len(decoded),
+    return dict(cases=len(specs), stops=stops, starts=len(seen), starts_total=len(decoded),
                 conditional_outcomes=len(edges), conditional_outcomes_total=len(want), independent_checks=checked,
                 cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 
@@ -164,7 +171,7 @@ def native(pieces, f):
     directory = ROOT / 'resources/system-seek/native'; directory.mkdir(parents=True, exist_ok=True)
     for start, body in pieces:
         (directory / f'piece{start:04x}.bin').write_bytes(body)
-    specs = [(n, o) for n, o in cases() if not n.startswith(('sp', 'a20', 'ss-ds', 'random', 'alias', 'frec-'))]
+    specs = [(n, o) for n, o in cases() if not n.startswith(('sp', 'a20', 'ss-ds', 'random', 'alias', 'frec-', 'transfer'))]
     rows = []
     for _, o in specs:
         m, c, script = build(pieces, **o)
@@ -278,7 +285,7 @@ def main():
         if a.compile_only:
             print('CHECKER_BUILD_OK'); return
         pieces, decoded = source()
-        report = dict(target=dict(spans=['0AF8:[1563,1593)', '0AF8:[14B6,14C5)'], bytes=63, instructions=23, sha256=[d for _, _, d, _ in PIECES]))
+        report = dict(target=dict(spans=['0AF8:[1563,1593)', '0AF8:[14B6,14C5) (composed: par-d system_filecheck_14b6_cpu)'], bytes=63, instructions=23, sha256=[d for _, _, d, _ in PIECES]))
         if a.unicorn:
             report['unicorn'] = differential(pieces, decoded, f)
         if a.native:
