@@ -143,3 +143,21 @@ merged U25 loader/string/load-word and resident glyph/EGA audit modules.
 - review_notes: retain closure coverage gaps, synthetic-only native reachability,
   flat-RAM aperture restrictions, and observer caveat. VP/reviewer decides
   acceptance and credit; this PR makes no accounting changes.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `728f7c1f` with packet #1269 merged (2026-10-20):
+- **Unicorn:** 177 cases (OK 154, CODE 13, CALLEE 6, TRANSFER 1, LIMIT 3); caller 64/64 starts and 8/8 outcomes;
+  chain 819/1,504 starts and 81/264 outcomes. Each case compares CPU14 + 983,040 ordinary RAM bytes plus the
+  ordered aperture write stream (5,075 OUT events, 9,548 VRAM write operands), with 0 flag masks.
+- **Native:** 48 returning cases, RESULT.BIN `9da383dc…`, byte-identical to the author's and the packet's.
+- **C:** fresh CTest 1/1; strict C11 `-Werror` + ASan/UBSan, **23,076 checks**. The packet left these two for the
+  reviewer; they are now re-derived.
+- **Body:** 176 B, SHA-256 `4c04ef11f1280fba187b51494683c9bda992c5ce66e4c57aa003fd2796d59cb0`, from GAME.OVR.
+- **Identity:** pre-existing, since the row is `game_verified` in the classification. The credit adds a strict row only.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+does not name the binary or argue insulation. The Unicorn differential is the primary evidence, and native agreement
+is claimed for that binary only. The packet's limits stand: native covers returning cases only, and the differential
+does not establish an all-reads aperture audit.

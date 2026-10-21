@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SIZE = 1 << 20
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
 SPAN_SHA = "c721e542769e5b590a6ef00ee92ffa9b4a9b7a5a76a9c4563eda25b3a4b703bc"
+CHECKER_ROWS = ("OVL_0033_08A4",)
 REGISTERS = (UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CX, UC_X86_REG_DX,
              UC_X86_REG_SI, UC_X86_REG_DI, UC_X86_REG_BP, UC_X86_REG_SP,
              UC_X86_REG_CS, UC_X86_REG_IP, UC_X86_REG_DS, UC_X86_REG_ES,
@@ -150,7 +151,13 @@ def main():
     parser.add_argument("--ovr", type=Path, default=ROOT / "resources/DOS/POOLRAD/GAME.OVR")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--compile-only", action="store_true")
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-u33-08a4-") as tmp:
+            library(Path(tmp))
+        print("CHECKER_BUILD_OK")
+        return
     body, decoded = source(args.ovr)
     visited, count = set(), 0
     with tempfile.TemporaryDirectory(prefix="poolrad-u33-08a4-") as tmp:

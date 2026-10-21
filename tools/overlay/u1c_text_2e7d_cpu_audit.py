@@ -14,6 +14,7 @@ import u25_string_cores_audit as strings
 import u25_load_word_0e0c_audit as loadword
 import res0709_glyph_01df_cpu_audit as glyph
 from res0709_glyph_01df_cpu_audit import Ega,Bus,Env,OUT_FN,IN_FN,WRITE_FN
+CHECKER_ROWS = ('OVL_001C_2E7D',)
 check=glyph.check
 CS,U25,GLYPH,SYS,STUB=0x9000,0x4000,0x8800,0xAF8,0x2B
 DS,SS,FONT=0x1800,0x2800,0x7000
@@ -240,7 +241,10 @@ def differential(bodies,decoded,lib):
         missing_starts=sorted(set(decoded)-seen),missing_outcomes=sorted(wanted-edges),out_events=outs,vram_write_operands=stores)
     print('Original parity',{k:v for k,v in report.items() if not k.startswith('missing_')},flush=True);return report
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    if a.compile_only:  # same compiler command, shared library load and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory() as tmp:library(Path(tmp))
+        print('CHECKER_BUILD_OK');return
     bodies,decoded,meta=source();report={'identity':meta}
     with tempfile.TemporaryDirectory(prefix='u1c-2e7d-') as tmp:
         lib=library(Path(tmp))

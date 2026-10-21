@@ -22,6 +22,7 @@ FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
 NEAR={0x674:(0x565,1),0x6CA:(0x565,1)}
 FAR={0x633:(0xB0B,'sys',0),0x638:(0x626,'video',2),0x677:(0x626,'video',2),0x695:(0xB0B,'sys',0),0x69A:(0x626,'video',2),0x6CD:(0x626,'video',2)}
 SOURCES=tuple(dict.fromkeys(('overlay_u7d_entry_05f0_cpu','overlay_u7d_two_digits_0565_cpu','resident_00ba_byte_string_1037_cpu','system_str_1366_cpu','system_string_leaves_cpu','system_string_move_leaves_cpu')+printer.SOURCES))
+CHECKER_ROWS=('OVL_007D_05F0',)
 NAMES=('callee','status','format_callee','format_status','printer_callee','printer_status','glyph_callee','glyph_status')
 class Diagnostic(ctypes.Structure):_fields_=[(n,ctypes.c_int) for n in NAMES]
 class Limits(ctypes.Structure):_fields_=[(n,ctypes.c_size_t) for n in ('caller','printer','glyph')]
@@ -215,7 +216,10 @@ def differential(bodies,decoded,lib):
         chain_starts=len(seen),chain_total=len(decoded),chain_outcomes=len(edges&expected),chain_outcomes_total=len(expected),
         missing_starts=sorted(set(decoded)-seen),missing_outcomes=sorted(expected-edges))
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    if a.compile_only:
+        with tempfile.TemporaryDirectory() as tmp:library(Path(tmp))
+        print('CHECKER_BUILD_OK');return
     bodies,decoded,meta=source();report=dict(identity=meta)
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))
