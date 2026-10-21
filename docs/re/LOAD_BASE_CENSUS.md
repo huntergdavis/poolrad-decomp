@@ -54,6 +54,13 @@ the rerun would pass on the old models too. The per-model spy is what observes t
 - **PASSES (70 sites):** assignments whose right side was read from RAM a few lines earlier (the heuristic `--classify`
   split: LIVE 70 sites in 61 files). That the segment is *read* is shown by the scan, not that the callee is entered at it for
   every model; the spies above prove it only for the five fixed models.
+- **PARAMETER-BOUND STUBS are correct by design (par-e's third class), and the probe must not report them.** Where the host
+  passes the callee's segment as a declared parameter and the model transfers there, nothing is hard-coded in the model: it is
+  wrong only if a caller hard-coded the parameter upstream. These are not defects and are not counted: `10C7`'s
+  `lcall 00B0:0048` and the thirteen `CALL 0DE3` sites in the `OVL_007F_1010` composition take `dice_cs` (and the stub) from
+  the caller. Three classes therefore, and they must not be lumped: **constant** (a literal in the model: a defect, fixed
+  here), **live word** (read from the code: correct), **declared parameter** (host-bound: correct by design). The census
+  reports only the first; `--classify` shows the other two as LIVE and PARAM.
 - **NOT APPLICABLE, with the reason:**
   - `resident_464_2632_run014.c:122,157` and `slot_a_directory_fullstate.c:136` (`0x131C`): models of **one captured native
     run**; `0x131C` is that run's loaded SYSTEM segment (`0AF8 + 0824`), a value pinned to one *loaded* base rather than an
