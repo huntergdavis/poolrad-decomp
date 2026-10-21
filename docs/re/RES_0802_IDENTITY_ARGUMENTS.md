@@ -108,3 +108,21 @@ means its callees on the path must be ready: that is a readiness question for th
     /tmp/gate-venv/bin/python tools/overlay/res0802_identity_census.py
 
 It prints the nine spans and hashes and exits non-zero if any census count or hash changes.
+
+## FileRec and buffer subjects: the same checkable requirement, closed by existing documents (par-a, 2026-10-21, VP i20572)
+
+**The requirement is the same.** A FileRec or a buffer passed as an argument is an argument-borne subject, just like text. What is passed must be documented for at least one direct-entry caller. Decoded from the media, both 06E7 and 050F close with documents already merged.
+
+- **`RES_0802_06E7`** has no DS operands. It calls Close plus IOResult (`0AF8:1491`, `04A9`) on its two FileRec arguments.
+  - Its only caller is `0716` (`+08AD`, `+091D`). Both times 0716 passes its own frame slots `SS:[BP-133h]` and `SS:[BP-B3h]`: two FileRecs 80h bytes apart, the Pascal FileRec size.
+  - 0716 passes **the same two slots** to `05CD` at `+0775`, which opens them.
+  - [RESIDENT_DAX_FILE_OPEN.md](RESIDENT_DAX_FILE_OPEN.md) documents the name 05CD opens: the Pascal string at `DS:2614 + 1Eh x [DS:5376]`, plus the byte `DS:547D`, plus the literal at `CS:05CB`. [ECL_BLOCK_LOAD.md](ECL_BLOCK_LOAD.md) names the same `[5376]`, `[547D]` and `[557C]`.
+  - **So 06E7's subject is the archive FileRecs that 05CD opened, and 05CD's own evidence closes the chain.**
+- **`RES_0802_050F`** has no DS operands. It does Move (`0AF8:1685`) and FillChar (`16A8`) through its pointer arguments.
+  - Its only caller is `0716` (`+0935`). 050F's `[BP+0Eh]` is 0716's `[BP+6]`.
+  - [ECL_BLOCK_LOAD.md](ECL_BLOCK_LOAD.md) documents, for the direct-entry caller `OVL_0025_0341` at `+03C5..+03D3`, that 0716's `[BP+6]` is that caller's `&block` out-parameter: `load_block(name, ext, id, &size, &block)`, `retf 12h`.
+  - The caller then Moves `block + 2` into the script buffer `[49DEh]^` (FUNCTION_LEDGER window 3). 29 of 29 archive blocks were measured against the real files.
+  - **So 050F's subject is the loaded ECL block returned to that documented caller; ECL_BLOCK_LOAD.md closes it.**
+  - **Limit:** 050F does not itself touch the script buffer at `[49DEh]`, so the role line must not claim it does. The other direct-entry callers (`001C_19B0`, `006F_0EC4` x3, `03B9_00A2`, `03BD_0E08`, `03BD_10C7`) push the same shape but are not individually documented.
+
+**Restated, for every argument-borne subject in this family:** name the passed object for one direct-entry caller, and name the document that defines it. "Derived from game state" is not checkable; "this object, from this caller, in this document" is.
