@@ -57,6 +57,8 @@ agrees in every case that returns with a full record.
 it is correct only when the image is loaded at segment 0. With the image at base 1000h its Random reads the multiplier at `0AF8:1245`, finds fill bytes (5A5Ah), and draws a different seed (observed). This audit declares
 a **shadow**: a byte copy of exactly `0AF8:[11C0,1250)` (0x90 bytes) is placed in both runs; the oracle executes the relocated original and never touches it. It is a fact about that model for its reviewer.
 
+**Consequence for the draw evidence, stated plainly:** on the C side the five rolls run through the shadow at `0AF8`, on the oracle side through the relocated original at `BASE+0AF8`, so the draw evidence is **exact for that substitution and not yet exact for a run in which the 0DE3 model reads the live segment**. What is independent of the shadow: the oracle's own draws (compared against the independent LCG statement), and the native run, which executes the real `0DE3` and Random and is compared against the C model's seed and record bytes.
+
 ## DS:[557C], the disk-prompt flag
 
 `DS:[557C]` is set to **1 mid-routine** (at 107B, after block 1 has been loaded and freed) and **cleared at the end** (at 1252, before the idle call). It is not touched on any other path, so on EXIT,
@@ -152,6 +154,7 @@ all 14 CPU words and **1,234,918 bytes** (the heap-variable block with the RNG s
 
 - Real BIOS, DOS or EGA behaviour beyond the 33 native cases; the message path natively.
 - The overlay manager's INT 3Fh dispatch and stub construction, and that unit 0x9E is resident at every real call.
+- A draw run in which the merged 0DE3 model reads the live SYSTEM segment: the C-side draws here go through the declared `0AF8` shadow (see the finding above).
 - A DIVIDE stop: no case reaches it.
 - The entry-SP bound is the measured minimum over ten scenarios; a path outside them could need more, and below it the model may stop CALLEE.
 - Interrupts, faults, self-modification, arbitrary-IP resume.
