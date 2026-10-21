@@ -58,7 +58,10 @@ with the pinned build on states the cases do not reach; a reviewer who needs the
 ## Checker, gates and reproduction
 
 `system_filecheck_14b6_cpu_audit.py` declares `CHECKER_ROWS=('RES_0AF8_14B6',)` and implements `--compile-only` through the same `library()` build, printing `CHECKER_BUILD_OK` with no media. (The id names the span for the build gate; it is not a registry endpoint.)
-GATE_PENDING
+
+Gate results on current main (`c8c33022`): `check_checker_builds.py RES_0AF8_14B6` and `RES_0AF8_1491` PASS (1 actual checker build each); ASan/UBSan C tests 37 checks (helper) and 93 checks (Close, composing it), exit 0; focused CTest targets `poolrad_system_filecheck_14b6_cpu_tests` and `poolrad_system_close_1491_cpu_tests` 2/2 passed;
+combined receipt `--unicorn --native` for the helper: 155 cases + 5 ARGUMENT, 4/4 starts, 2/2 outcomes, 90 reference-checked, 0 masked RAM bytes (Unicorn); native 48 runs, 982,784 bytes omitted. The pairing gate is run on the committed change.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/system_filecheck_14b6_cpu_audit.py --unicorn --native --output resources/filecheck-evidence.json
     python3 tools/overlay/check_checker_builds.py RES_0AF8_14B6 --require-current-main --output resources/filecheck-checker-build.json
