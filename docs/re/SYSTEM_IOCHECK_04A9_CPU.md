@@ -86,7 +86,7 @@ Measured with `price_row_closures.Pricer` over all 440 queue rows, products rege
 | rows whose closure reaches uncovered `04A9` (reproduces par-b's 77) | 77 |
 | rows that lose an uncovered SYSTEM endpoint when `04A9` alone is covered | 77 |
 | rows left with **no** uncovered SYSTEM endpoint by `04A9` alone | **0** |
-| rows left with no uncovered SYSTEM endpoint by `04A9` + `1491` | 0 (78 rows change) |
+| rows left with no uncovered SYSTEM endpoint by `04A9` + `1491` | 0 (82 rows change; corrected from 78 in [SYSTEM_CLOSE_1491_CPU.md](SYSTEM_CLOSE_1491_CPU.md), the first figure used a stale export) |
 | rows left with no uncovered SYSTEM endpoint by all six file-I/O endpoints | 17 (82 rows change) |
 
 So `04A9` alone unlocks nothing; it removes one of six blockers from 77 rows, as the package framing predicted. "No uncovered SYSTEM endpoint" is not "composable": other unready bodies, a pending RunError declaration and identity may remain.
