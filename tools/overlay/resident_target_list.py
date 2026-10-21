@@ -147,6 +147,7 @@ def main(argv=None):
     seg_text, off_text = args.resident.split(":")
     seg, off = int(seg_text, 16), int(off_text, 16)
     rid = f"RES_{seg:04X}_{off:04X}"
+    queue_rules.load_fresh_export(args.root / "resources/strict-candidate-queue/queue.json", args.root)
     own, found = targets(seg, off, args.root)
     unready = [t for t in found if t["readiness"].endswith("unmapped")
                or t["readiness"] == "untranslated"]

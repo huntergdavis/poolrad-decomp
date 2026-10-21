@@ -31,7 +31,8 @@ CODE, DEFAULT_DATA = 0x8800, 0x5000
 BODY_SHA = '2cf68891044056f55a1559fb007ce30089c3bf070f44e915cb5e571cd7fa613f'
 EXPANDED_SHA = 'a42a57e68d3f7815831821cc9365bb917befda45a58e958544451fc7a878df8e'
 FLAGS = (0x0002, 0x00D7, 0x08D7, 0x0402, 0x0893, 0x7202, 0x0ED7)
-FAR_CALL_SITES_IN_IMAGE = {0x45B3 - 1: 'resident image', 0x8A32 - 1: 'resident image'}   # 9A + 7B 01 AE 08 (relocated segment word)
+# Resident far-call sites (9A + relocated 08AE:017B) and the function that contains each, decoded from the nearest far-call-target start.
+FAR_CALLERS = {0x45B2: 0x4354, 0x8A31: 0x89E9}
 MASK = SIZE - 1
 
 
@@ -82,9 +83,23 @@ def ownership():
     check(not near, f'near calls to 017B appeared: {near}')
     pattern = struct.pack('<HH', ENTRY, 0x08AE)
     far = [i - 1 for i in range(1, len(image) - 3) if image[i:i + 4] == pattern and image[i - 1] == 0x9A and (i + 2) in rels]
-    check(far == sorted(FAR_CALL_SITES_IN_IMAGE), f'resident far-call census differs: {[hex(a) for a in far]}')
-    return dict(overlay_far_call_fixups=0, near_call_sites=[], resident_far_call_sites=[f'image+{a:05X}' for a in far], identity='unresolved',
-                credit_claimed=False, note='far-call sites are raw 9A + relocated 08AE:017B patterns; not decoded to a containing function')
+    targets = set()                                            # every relocated far-call target is a candidate function start
+    for i in range(len(image) - 5):
+        if image[i] == 0x9A and (i + 3) in rels:
+            off, seg = struct.unpack_from('<HH', image, i + 1)
+            if seg * 16 + off < len(image):
+                targets.add(seg * 16 + off)
+    decoded = {}
+    for site in far:
+        for start in sorted((t for t in targets if t <= site and site - t < 0x300), reverse=True):
+            insns = list(Cs(CS_ARCH_X86, CS_MODE_16).disasm(image[start:site + 5], start))
+            if insns and insns[-1].address == site and insns[-1].mnemonic == 'lcall' and sum(i.size for i in insns) == site + 5 - start:
+                decoded[site] = start
+                break
+    check(far == sorted(FAR_CALLERS) and decoded == FAR_CALLERS,
+          f'resident far-call census differs: raw {[hex(a) for a in far]}, decoded {[(hex(a), hex(f)) for a, f in sorted(decoded.items())]}')
+    return dict(overlay_far_call_fixups=0, near_call_sites=[], resident_far_call_sites={f'image+{a:05X}': f'function image+{f:05X}' for a, f in sorted(decoded.items())},
+                identity='unresolved', credit_claimed=False)
 
 
 def library(directory):

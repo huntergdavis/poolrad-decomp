@@ -23,9 +23,13 @@ typedef struct {
 
 typedef enum {
     PR_CRT_RETURNED = 0,  /* RETF executed */
-    PR_CRT_ARGUMENT,      /* null RAM/CPU/service, RAM not exactly 1 MiB, wrong entry IP, or SP above FFFCh; nothing changed */
+    PR_CRT_ARGUMENT,      /* null RAM/CPU/service, RAM not exactly 1 MiB, wrong entry IP, or entry SP outside the
+                             routine's guard (02FD: SP <= FFFCh; 030F: [0002h,FFFCh]); nothing changed */
     PR_CRT_SERVICE,       /* the INT 16h service declined or returned a non-continuation; stopped at the INT */
-    PR_CRT_ENV            /* an INT 16h function other than 00h/01h would be issued; stopped at the INT */
+    PR_CRT_ENV,           /* an INT 16h function other than 00h/01h would be issued; stopped at the INT */
+    PR_CRT_BREAK          /* EXIT class: a Ctrl-Break is pending (DS:[8502] non-zero); stopped at 0A40:014B, where the
+                             original flushes the keyboard, writes "^C" and raises INT 23h (DOS terminate by default).
+                             Not modelled, and never a return. */
 } pr_crt_status;
 
 /* Returns 0 with *after filled, or nonzero to decline. */
@@ -36,4 +40,12 @@ typedef int (*pr_crt_int16_service)(void *context, const pr_crt_cpu *before, pr_
  * them). */
 pr_crt_status pr_crt_keypressed_02fd(uint8_t *ram, size_t ram_size, pr_crt_cpu *cpu,
                                      pr_crt_int16_service service, void *context);
+
+/* 0A40:[030F,0331) ReadKey, 34 bytes, 14 instructions, RETF, plus its near helper 0A40:[0143,014B) (8 bytes,
+ * 3 instructions): AL := the buffered extended-key byte DS:[8501] if non-zero (the byte is cleared either way);
+ * otherwise INT 16h AH=00h, and for an extended key (AL 0) the scan code AH is buffered at DS:[8501] for the next
+ * call, with AL := 3 when AH is 0 too. CALL 0143 then returns unless DS:[8502] is non-zero (BREAK). The near
+ * call writes its return word at SS:SP-2, so the entry SP guard is [0002h,FFFCh]. */
+pr_crt_status pr_crt_readkey_030f(uint8_t *ram, size_t ram_size, pr_crt_cpu *cpu,
+                                  pr_crt_int16_service service, void *context);
 #endif
