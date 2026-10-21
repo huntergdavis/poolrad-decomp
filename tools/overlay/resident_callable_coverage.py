@@ -8,10 +8,12 @@ memory. Candidate-seeded decoding is evidence, not an exhaustive function list.
 import argparse
 from collections import Counter, defaultdict
 import csv
+import hashlib
 import json
 from pathlib import Path
+import re
 
-from resident_inventory import collect, require
+from resident_inventory import GAME_SPECIFIC_TARGETS, collect, require
 from resident_loader_map import audit, relocations, unpack, word
 
 
@@ -19,6 +21,33 @@ CRT_NEAR_STARTS = {0xA42E, 0xA497, 0xA4E5, 0xA6BD, 0xA731, 0xAA0B}
 PROGRAM_START = 0xF6
 CRT_INIT_START = 0xA400
 EXIT_CALL = 0x14C
+
+
+ROOT = Path(__file__).resolve().parents[2]
+
+# Near-only resident bodies with a reviewed identity argument (t30, VP i20369). A near-only resident has no RES_ name
+# (that is the name of an overlay-called target), so it could never be credited: the credit table is keyed by RES_
+# aliases. This explicit list gives exactly these bodies their reviewed RES_ name, keyed by loaded image offset. It is
+# never a pattern over RPRO ids, and nothing joins it without a row in IDENTITY_ARGUMENTS carrying the body hash.
+REVIEWED_NEAR_ONLY = {0x8060: (0x802, 0x0040), 0x8125: (0x802, 0x0105), 0x81B3: (0x802, 0x0193),
+                      0x852F: (0x802, 0x050F), 0x85ED: (0x802, 0x05CD), 0x8707: (0x802, 0x06E7)}
+IDENTITY_ARGUMENTS = "docs/re/RES_0802_IDENTITY_ARGUMENTS.md"
+
+
+def reviewed_near_only(image, root=ROOT, listing=None):
+    """{image offset: RES_ id} for the reviewed list, each checked against the argument document's body hash."""
+    listing = REVIEWED_NEAR_ONLY if listing is None else listing
+    text = (Path(root) / IDENTITY_ARGUMENTS).read_text()
+    names = {}
+    for start, (segment, offset) in sorted(listing.items()):
+        name = f"RES_{segment:04X}_{offset:04X}"
+        row = re.search(rf"\| {name} \|[^\n]*\| ([0-9a-f]{{64}}) \| (\d+) \|", text)
+        require(row is not None, f"{name} has no reviewed identity argument row")
+        size = int(row.group(2))
+        require(hashlib.sha256(bytes(image[start:start + size])).hexdigest() == row.group(1),
+                f"{name} body hash differs from its reviewed argument")
+        names[start] = name
+    return names
 
 
 def path_walk(image, seeds):
@@ -193,12 +222,22 @@ def audit_coverage(exe, ovr):
                          init_fallthrough=0,
                          classification=classification,
                          confidence=item["classification_confidence"]))
+    reviewed = reviewed_near_only(image)
+    renamed = set()
     for item in prior["unmatched_prologues"]:
         start = item["image_offset"]
-        classification = ("game_verified" if start == PROGRAM_START else
+        name = reviewed.get(start)
+        if name is not None:
+            # The alias is a name, never an identity: ownership still comes from GAME_SPECIFIC_TARGETS, like every
+            # other resident path, and an unreviewed RPRO body is untouched.
+            require(not item["relocated_far_callers"] and walk["near"].get(start),
+                    f"{name} is not near-only")
+            renamed.add(start)
+        decided = name is not None and (REVIEWED_NEAR_ONLY[start] in GAME_SPECIFIC_TARGETS)
+        classification = ("game_verified" if start == PROGRAM_START or decided else
                           "linked_crt_inferred" if start == CRT_INIT_START else
                           "unresolved")
-        rows.append(dict(id=item["id"], kind="other_prologue",
+        rows.append(dict(id=name or item["id"], kind="other_prologue",
                          image_offset=start,
                          source_file_offset=item["source_file_offset"],
                          boundary="raw_pascal_prologue",
@@ -208,8 +247,10 @@ def audit_coverage(exe, ovr):
                          init_fallthrough=int(start == PROGRAM_START),
                          classification=classification,
                          confidence=("verified_entry" if start == PROGRAM_START else
+                                     "verified" if decided else
                                      "high_inference" if start == CRT_INIT_START else
-                                     "candidate")))
+                                     "candidate"),
+                         **({"discovery_id": item["id"]} if name else {})))
     for start in near_only:
         require(origin[start] is not None, "near target has no source provenance")
         rows.append(dict(id=f"RNEAR_{start:05X}", kind="near_only_start",
@@ -226,9 +267,11 @@ def audit_coverage(exe, ovr):
                                          else "unresolved"),
                          confidence=("high_inference" if start in CRT_NEAR_STARTS
                                      else "candidate")))
+    require(renamed == set(reviewed), "a reviewed near-only body is not among the raw prologues")
+    granted = sum(REVIEWED_NEAR_ONLY[start] in GAME_SPECIFIC_TARGETS for start in reviewed)
     classes = Counter(row["classification"] for row in rows)
     require(len(rows) == 145 and classes == Counter(
-        game_verified=30, linked_crt_inferred=9, unresolved=106),
+        game_verified=30 + granted, linked_crt_inferred=9, unresolved=106 - granted),
         "candidate classification partition changed")
     return dict(inputs=prior["inputs"],
                 summary=dict(merged_overlay_called=86, merged_exact_prologues=84,
@@ -310,7 +353,7 @@ FIELDS = ("id", "kind", "image_offset", "source_file_offset", "boundary",
 
 def write_ledger(path, rows):
     with Path(path).open("w", newline="") as output:
-        writer = csv.DictWriter(output, fieldnames=FIELDS, lineterminator="\n")
+        writer = csv.DictWriter(output, fieldnames=FIELDS, lineterminator="\n", extrasaction="ignore")
         writer.writeheader()
         for row in rows:
             formatted = dict(row)

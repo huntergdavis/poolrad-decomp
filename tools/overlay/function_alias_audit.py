@@ -5,6 +5,7 @@ The queue is a hash-pinned metadata input, not a module dependency. Equal code
 hashes are review leads, never evidence for merging different original starts.
 Original media stay local; outputs contain addresses, hashes and measured facts.
 """
+# NOT_A_ROW_CHECKER: whole-table alias audit of the queue against an independent registry; it checks no registered row
 
 import argparse
 from collections import defaultdict
@@ -73,6 +74,8 @@ def address_registry(inventory, resident):
         identity = stubs.get(image, f"RES_IMAGE_{image:05X}")
         originals.add(identity)
         add(row["id"], identity)
+        if row.get("discovery_id"):
+            add(row["discovery_id"], identity)
         add(f"RES_IMAGE_{image:05X}", identity)
         add(f"image:0x{image:05X}", identity)
     return registry, originals

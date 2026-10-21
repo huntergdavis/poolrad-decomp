@@ -126,8 +126,10 @@ def add_residents(rows, stub_images, audit):
     aliases_seen = set()
     for source in sorted(audit["rows"] + audit.get("runtime_rows", []),
                          key=lambda row: (number(row["image_offset"]), row["id"])):
-        require(source["id"] not in aliases_seen, "duplicate resident alias")
-        aliases_seen.add(source["id"])
+        # A reviewed RES_ name may carry the raw-prologue id it was discovered as; both resolve to the one original.
+        names = [source["id"]] + ([source["discovery_id"]] if source.get("discovery_id") else [])
+        require(not aliases_seen & set(names), "duplicate resident alias")
+        aliases_seen.update(names)
         image = number(source["image_offset"])
         require(image >= 0, "negative resident image address")
         rid = stub_images.get(image, f"RES_IMAGE_{image:05X}")
@@ -153,13 +155,13 @@ def add_residents(rows, stub_images, audit):
                 target["grade"] = grade(entry=ev["init_fallthrough"],
                                         far=ev["overlay_far_sites"] + ev["loader_far_sites"],
                                         near=ev["decoded_near_sites"])
-            target["aliases"].append(source["id"])
+            target["aliases"].extend(names)
             target["start_evidence"] = sorted(set(target["start_evidence"] +
                                                   [source.get("boundary", "candidate_seed")]))
             target.setdefault("resident_alias_image_offsets", []).append(image)
             continue
         target = dict(id=rid, domain="resident", original_address=f"image:0x{image:05X}",
-                      aliases=[source["id"]], grade=grade(entry=counts["init_fallthrough"],
+                      aliases=list(names), grade=grade(entry=counts["init_fallthrough"],
                       far=counts["overlay_far_sites"] + counts["loader_far_sites"],
                       near=counts["decoded_near_sites"]), evidence=counts,
                       classification=classification, game_or_library=ownership(classification),
