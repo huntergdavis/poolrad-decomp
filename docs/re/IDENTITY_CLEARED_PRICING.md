@@ -213,7 +213,7 @@ more rows list them among other blockers). That is about 448 B per cleared row, 
 
 **Reach: NECESSARY, then SUFFICIENT, in that order.** par-a regenerated the strict-candidate export on main `b3fd5718` and priced every candidate's full closure with `price_row_closures.py`.
 
-- **Necessary:** of **447** candidate rows, **303** have a gateway in their closure. 302 reach `0059`, and 303 reach `0000`; the extra row is `OVL_03B9_0708`, which reaches only `0000`. par-b reported **302 of 453**. The 302 agrees with the `0059` count; the denominator of 453 was not reproduced on this export (447) and is recorded as par-b's figure.
+- **Necessary:** of **447** candidate rows, **303** have a gateway in their closure. 302 reach `0059`, and 303 reach `0000`; the extra row is `OVL_03B9_0708`, which reaches only `0000`. par-b's 302 numerator agrees. Its first denominator, 453, came from a stale snapshot: `resources/strict-candidate-queue/queue.json` written at 12:22:50 PDT (schema 9, sha `a89e59e1`), before that afternoon's credits left the queue. The same canonical export on current main gives 447. Quote a queue count with its timestamp or commit.
 - **Sufficient for almost none:** in exactly **one** of the 303 rows (`OVL_007F_0294`, itself a caller of `0059`) are the only non-driver bodies the row and the gateways. Even that row still needs the driver members and its endpoints. **The 303 is not a promise of 303 credits.**
 
 **Non-body costs of the wall:**

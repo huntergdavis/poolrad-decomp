@@ -122,3 +122,19 @@ change, `emit_res0464_blit_1951.py --check` still regenerates 1951 byte-for-byte
 
 Closure-complete only once GetTime's `RUNTIME_COVERED_ENDPOINTS` row (proposed in #1245) lands; LongMul is
 already covered.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at author head `764442db` (merged as #1249) on main `76bc8e13`: Unicorn 74 cases (all
+RETURN), body 48/48, closure 83/83, CPU14 + 1,048,576 B, flag masks 0; native 36 cases under the declared
+`INT 21h` stub, RESULT.BIN `797dbf57…`, declared `dosbox_x` substitution; 29 C checks under `-Werror` ASan/UBSan.
+
+**Minute truncation, checked in the bytes:** `+0033 MOV AX,1770h; +0036 MUL WORD [BP-8]; +0039 XOR DX,DX`.
+The minute term is therefore `low16(minute * 6000)`, and it **wraps at minute 11, not at minute 1**:
+10 * 6000 = 60,000 fits in 16 bits and 11 * 6000 = 66,000 does not. The fixtures exercise the wrap almost
+everywhere, in both the Unicorn and native sets: the default time is `(13, 42, 7, 55)`, and the edges include
+minutes 59 and 255. Every result is asserted against an independent formula that applies the truncation, so a
+non-truncating model fails almost every case, not a rare one.
+
+**Membership is closure-checked:** the member row landed together with Dos.GetTime's runtime coverage
+(`0A32:00A2`) and with a loader closure check. LongMul `0AF8:0A5B` was already covered.
