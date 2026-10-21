@@ -105,12 +105,28 @@ enumeration that included `modeled` turned an 8-blocker caller into 9 and
 promoted a ready row into a blocker, which produced a recommended "cheap"
 declaration that was functionally inert.
 
-**Overlay manifest entries confer nothing.** Overlay readiness comes from
-strict credit, a `partial` flag, or `modeled` presence in the tree; the
-manifest is consulted for overlay rows only to mark them `partial`, which
-counts as *unready*. The manifest gate that makes `RES_00BA_1168`/`13AB`
-work is a **resident-only** mechanism, so declaring an overlay row `full`
-is accurate documentation and no readiness change at all.
+**An overlay manifest `full` row does real work; check the code, don't take this sentence's word.** (This paragraph
+used to say that overlay manifest entries "confer nothing"; that was false.) In `tools/overlay/strict_candidate_queue.py`
+(the line numbers are at main `c9de4a43` and move with edits, so search for the quoted expressions):
+
+- **It is a reviewed endpoint of the transitive pass.** Line 749 builds
+  `endpoints = {node for node in nodes if node in state["full_models"]}`. Line 752 counts an endpoint as ready when it
+  is modeled. Line 758 then skips endpoints when propagating unreadiness, so a `full` row stays ready **regardless of
+  whether its own callees are ready**.
+- **It also makes the body `modeled` by itself.** Lines 903-904 add the row's evidence doc to `main_files`, which is
+  what line 616 tests for `modeled`.
+- **`partial` is the other status**, and it marks the row *unready* (line 615).
+- **Strict credit dominates both paths:** `strict` is tested first at lines 614 and 735. So once a row is strict-credited,
+  its manifest row confers nothing further.
+- **Measured for `OVL_03B0_06FB` (2026-10-20, par-e):** regenerating the candidate queue with and without its `full` row
+  gave identical results. All 13 dependent rows see `modeled` either way, no `callee_readiness` differs, and the totals
+  are 447 candidates / 58 composable in both. The effect is **latent** because 06FB's own callees are already ready. It
+  would matter the moment they were not.
+- **The 06FB row is deleted inside its acceptance commit** (VP i20048), so no manifest row outlives the credit that
+  replaced it.
+
+The manifest gate that makes `RES_00BA_1168`/`13AB` work is a **different, resident-only** mechanism (`resident_full`,
+`resident_covered`). The loader accepts it only for strict-credited residents, as measured for `RES_0464_1951`.
 
 ## The loader-expanded offset trap (authors and reviewers both hit it)
 
