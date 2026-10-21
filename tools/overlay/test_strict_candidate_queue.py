@@ -501,6 +501,40 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(row2["callee_readiness"]["counts"], {"runtime_unmapped": 1})
         self.assertFalse(row2["callee_readiness"]["composable"])
 
+    def test_declared_boundary_applies_to_runtime_and_transitive_targets(self):
+        """Every readiness pass consults every product: a declared boundary is
+        ready whether the graph resolves it as runtime or resident, both at the
+        direct call and through a modeled callee (0AF8:16BC read runtime_unmapped)."""
+        inventory, ledger, classifications = fixture()
+        state = scq.load_queue(inventory, ledger, classifications, [], None)
+        mentions = {cid: {"source": [], "tooling": [], "docs": []}
+                    for cid in state["candidates"].values()}
+        main_files = {"OVL_0019_0030": ["src/recovered/overlay_u19_gamma_0030.c"]}
+
+        def build(boundary_edge):
+            graph = dict(edges=[
+                dict(kind="near_candidate", unit=0x19, site=0x25, src_func=0x20, target=0x30,
+                     target_func=0x30, exact_prologue=True),
+                dict(boundary_edge, kind="far_fixup_confirmed", unit=0x19, site=0x35,
+                     src_func=0x30)])
+            result = scq.build_queue(state, graph, inventory["units"], ledger, classifications,
+                                     mentions, main_files, {}, {}, dict(ovr=bytes(200)))
+            rows = {row["id"]: row["callee_readiness"] for row in result["rows"]}
+            return rows["OVL_0019_0030"], rows["OVL_0019_0020"]
+
+        for edge in (dict(seg=0x0AF8, off=0x16BC, resolution="runtime"),
+                     dict(seg=0x0A40, off=0x02FD, resolution="resident")):
+            direct, caller = build(edge)
+            self.assertEqual(direct["counts"], {"declared_boundary": 1}, edge)
+            self.assertTrue(direct["composable"], edge)
+            self.assertEqual(caller["counts"], {"modeled": 1}, edge)
+            self.assertTrue(caller["composable"], edge)
+        direct, caller = build(dict(seg=0x0AF8, off=0x16BD, resolution="runtime"))
+        self.assertEqual(direct["counts"], {"runtime_unmapped": 1})
+        self.assertEqual(caller["counts"], {"modeled_blocked": 1})
+        self.assertEqual(scq.runtime_readiness(0x0AF8, 0x00E9), "declared_boundary")
+        self.assertEqual(scq.runtime_readiness(0x0AF8, 0x0254), "runtime_covered")
+
     def test_closure_chain_and_cycle(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)

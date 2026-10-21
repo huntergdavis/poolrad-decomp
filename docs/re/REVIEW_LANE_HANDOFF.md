@@ -138,9 +138,23 @@ Sizing them shows no cheap leaf: the resident blockers are 26-263 bytes and only
 
 ## Two readiness facts that look like progress but are not
 
+**Every readiness claim must consult every product that defines readiness.**
+A tool that consults three of four produces a number that is true of its own
+inputs and false of the tree (VP i20231). The VP counts five instances on
+2026-10-20, every one overstating what is missing. Three of them:
+- `006C_3291` stayed `untranslated` after it was credited.
+- `indirect_unresolved` was left out of `unready`.
+- The declared `0AF8:16BC` read `runtime_unmapped` at its overlay call sites.
+  The call graph resolves SYSTEM targets as runtime, and the runtime branch never
+  consulted `DECLARED_BOUNDARY_ENDPOINTS`. The transitive pass had the same gap
+  for declared and `driver_internal` resident targets. Both passes now go through
+  `runtime_readiness` / `resident_target_ready`. Fixing it moved 3B93 2→1 and
+  `006C_0161` 14→13 unready, and changed no row's composability.
+
 **Enumerate blockers with the code's own readiness sets, never a hand-written
 list of states that look unready.** `ready = strict + modeled +
-resident_covered + runtime_covered`; everything else is unready. A hand
+resident_covered + runtime_covered + declared_boundary + driver_internal`;
+everything else is unready. A hand
 enumeration that included `modeled` turned an 8-blocker caller into 9 and
 promoted a ready row into a blocker, which produced a recommended "cheap"
 declaration that was functionally inert.
