@@ -248,10 +248,11 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
         uc.reg_write(reg, getattr(c, n))
     s = dict(stop=None, steps=0, arrivals=0, snap=None, after=None, last=None)
     seen, edges, calls = set(), set(), []
-    known = {base + v for v in SEG.values()} | {cs0802, STUB_SEG, base + R.CRT, base + 0x0709, CS_OV, DICE_CS, STUB_AT[0]}
+    known = {base + v for v in SEG.values()} | {cs0802, STUB_SEG, base + R.CRT, base + 0x0709, CS_OV, DICE_CS, STUB_AT[0]} | set(spec.get('extra_known', ()))
     entries = {(SYS, e): k for k, e in KINDS.items()}
     entries.update({(cs0802, 0x0716): 'load', (base + 0x0709, 0x0BF5): 'msg', (body899, 0x0000): 'quit', (body899, 0x0104): 'idle', (DICE_CS, 0x0DE3): 'roll'})
-    bp0 = (spec['sp'] - 2) & 0xFFFF
+    entries.update(spec.get('extra_entries', {}))                  # a wrapper audit names its own callees
+    bp0 = spec.get('bp0', (spec['sp'] - 2) & 0xFFFF)
 
     def cpu_now():
         return Cpu(*[uc.reg_read(r) & 0xFFFF for r in REGISTERS])
@@ -272,13 +273,17 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
             if s['last'] is not None and s['last'] in ctx['cond_at']:
                 edges.add((s['last'], ip))
             seen.add(ip); s['last'] = ip
+        elif cs in spec.get('watch', {}):                           # a wrapper audit's own span: (lo, hi, decoded starts, seen starts)
+            lo, hi, decoded_ips, seen_ips = spec['watch'][cs]
+            check(lo <= ip < hi and ip in decoded_ips, f'{name}: fetch inside the wrapper span off the decode {ip:04x}')
+            seen_ips.add(ip); s['last'] = None
         else:
             s['last'] = None
         key = entries.get((cs, ip))
         if key is not None:
             spv = uc.reg_read(RR.UC_X86_REG_SP); ssv_ = uc.reg_read(RR.UC_X86_REG_SS)
             words = struct.unpack('<12H', bytes(uc.mem_read(physical(ssv_, spv), 24)))
-            if words[1] == CS_OV:
+            if words[1] in (CS_OV, *spec.get('call_cs', ())):
                 calls.append((words[0] - 5, key, words, spv, None,
                               tuple(struct.unpack('<HHH', bytes(uc.mem_read(physical(ssv_, (bp0 - 6) & 0xFFFF), 6))))))
         if stop_at is not None and (cs, ip) == (cs0802, 0x051F):
@@ -356,7 +361,7 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
 
 
 # ---------------------------------------------------------------------------------------------------- the C model
-def run_c(f, lib, m, c, spec):
+def run_c(f, lib, m, c, spec, diag_cls=None, status_map=None):
     keep = []
     fs = file_service(spec)
     q, env = Q.c_env(M.ENVSPEC, keep, stub_at=(STUB_SEG, 0))
@@ -416,7 +421,7 @@ def run_c(f, lib, m, c, spec):
             return fn(ctx, before, after, *rest)
         return wrapped
     fns = (M.SERVICE_FN(tap(service)), A716.READ_FN(tap(read)), A716.SEEK_FN(tap(lseek))); keep += fns
-    ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m); cpu = Cpu.from_buffer_copy(c); d = Diag0EC4()
+    ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m); cpu = Cpu.from_buffer_copy(c); d = (diag_cls or Diag0EC4)()
     ctx = ctypes.cast(ram, ctypes.c_void_p)
     load = M.Env(A716.Env716(fns[1], None, fns[2], None, fns[2], None, 100000), M.FileEnv(fns[0], ctx, fns[0], ctx), P.Env193(B.Env(video, None), ke),
                  100000, 1000000, spec['retries'], spec['max_seams'], spec['max_disk_prompts'])
@@ -433,7 +438,7 @@ def run_c(f, lib, m, c, spec):
         writes.append((off, value))
     ports = E0.Env(None, E0.OUT_FN(out), E0.IN_FN()); keep.append(ports)
     bus = B5.Bus(ram, ctypes.pointer(ega), ctypes.pointer(ports), G.WRITE_FN(write), None)
-    status = STATUS[f(ctypes.byref(bus), SIZE, ctypes.byref(cpu), ctypes.byref(e), ctypes.byref(d))]
+    status = (status_map or STATUS)[f(ctypes.byref(bus), SIZE, ctypes.byref(cpu), ctypes.byref(e), ctypes.byref(d))]
     return dict(status=status, int_sps=int_sps, cpu=cpu, ram=bytes(ram), fs=fs, env=env, diag=d, events=events, writes=writes, ega=bytes(ega))
 
 
