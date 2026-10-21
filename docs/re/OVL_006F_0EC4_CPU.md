@@ -53,11 +53,9 @@ frame (count 1, sides 6), the draw order and the seed. **What it does not pin:**
 state: the checker compares the seed and every stored byte, and an independent statement (the SYSTEM LCG `seed := seed x 08088405h + 1`, `r := (seed >> 16) mod 6 + 1`, stored byte `((r+8)<<4)+r`)
 agrees in every case that returns with a full record.
 
-**Finding on the merged 0DE3 model (not changed here).** `overlay_u9e_entry8_system_call_0e0e.c` fixes the SYSTEM segment at `0AF8` (`SYSTEM_CS`) instead of reading the call's relocated segment word, so
-it is correct only when the image is loaded at segment 0. With the image at base 1000h its Random reads the multiplier at `0AF8:1245`, finds fill bytes (5A5Ah), and draws a different seed (observed). This audit declares
-a **shadow**: a byte copy of exactly `0AF8:[11C0,1250)` (0x90 bytes) is placed in both runs; the oracle executes the relocated original and never touches it. It is a fact about that model for its reviewer.
+**Finding on the merged 0DE3 model, now fixed (#1376, 2026-10-21).** `overlay_u9e_entry8_system_call_0e0e.c` assigned the SYSTEM segment as the constant `0AF8` instead of reading the call's relocated segment word, so it was correct only when the image loads at segment 0. At base 1000h its Random read the multiplier at `0AF8:1245`, found fill bytes (5A5Ah) and drew a different seed (observed). The first version of this change (#1367) declared a byte **shadow** of `0AF8:[11C0,1250)` to work around it; **that shadow is gone.** The model now reads its own segment word, and this audit leaves `0AF8:[11C0,1250)` as untouched fill on purpose: a model that read a constant segment would read fill there and the differential would show it.
 
-**Consequence for the draw evidence, stated plainly:** on the C side the five rolls run through the shadow at `0AF8`, on the oracle side through the relocated original at `BASE+0AF8`, so the draw evidence is **exact for that substitution and not yet exact for a run in which the 0DE3 model reads the live segment**. What is independent of the shadow: the oracle's own draws (compared against the independent LCG statement), and the native run, which executes the real `0DE3` and Random and is compared against the C model's seed and record bytes.
+**Draw evidence, re-derived without the substitution (2026-10-21).** The full differential and the native run were re-run from scratch on the fixed model with no shadow, at load base 1000h (Unicorn) and 3000h (native). The five rolls on the C side now go through the live segment word, `BASE+0AF8`, as the original does. The comparison is the full-RAM compare (RandSeed `DS:[4428]/[442A]` and every byte of R+C1..C6 are inside it) plus the independent LCG statement, run on **both** the oracle's RAM and the C model's RAM: **96 cases with a full record, 480 stored draw bytes**, the constant at C4, and the seed advanced by exactly five draws in each. A mutant that puts the hard-coded segment back into the 0E0E model is **caught** (the seed bytes differ in `all-three`), so the run can fail where the old one could not. The draw evidence is exact for a live segment at the two bases run; it is not a claim about any other base.
 
 ## DS:[557C], the disk-prompt flag
 
@@ -132,12 +130,12 @@ images on the full path and the dirty five on the message path; four seeds; 20 r
 | the record, the class byte, the five rolls and the chains are right | independent statement from the case alone (record bytes, the class rule, the LCG and stored byte, a chain walk of exactly ceil(size/unit) cells ending in nil with the first bytes of each cell equal to the block's), checked on every returning case with a full record |
 | `DS:[557C]` is 0 on return and the seed advanced by exactly five draws | independent check on every returning case |
 | the model's stops are the original's | stop compared per case; C-only stops are asserted in the C test |
-| the checker detects a wrong model | 14 deliberate mutations of the C model (wrong class value, a field cleared at the wrong offset, a roll loop one too long or short, a wrong C4 constant, a wrong link offset, a wrong unit size, a wrong `DS:[557C]` value twice, a wrong Move count, a wrong message colour, a wrong Str length, a missing class 7): **13 of 13 non-equivalent mutants caught**; the fourteenth (dropping the INC byte flags) **survives, and is equivalent**: its flags are overwritten by the roll callee before any stop can observe them |
+| the checker detects a wrong model | 15 deliberate mutations: 14 of the C model (wrong class value, a field cleared at the wrong offset, a roll loop one too long or short, a wrong C4 constant, a wrong link offset, a wrong unit size, a wrong `DS:[557C]` value twice, a wrong Move count, a wrong message colour, a wrong Str length, a missing class 7) and one of the 0E0E model that puts the hard-coded `0AF8` back: **14 of 14 non-equivalent mutants caught**; the fifteenth (dropping the INC byte flags) **survives, and is equivalent**: its flags are overwritten by the roll callee before any stop can observe them. The mutation run prints a START and a result line per mutant (about 40 s each) |
 
 ### Declared environment and substitutions
 
 1. The INT 3Fh overlay-manager dispatch at 00B0:0048 is replaced by a far JMP to unit 0x9E +0DE3, identically in both runs.
-2. A shadow copy of `0AF8:[11C0,1250)` (see the finding above), identically in both runs.
+2. No shadow copy of SYSTEM exists any more: `0AF8:[11C0,1250)` is left as fill (see the finding above).
 3. The environment services above are scripted or modelled, not real; every unlisted access is an environment refusal (counted, zero).
 4. The EGA is an independent Python device, not a real one; the BIOS and DOS are the scripted services.
 5. The three name constants and the message literal are read from the bytes; no game text is in the repository.
@@ -148,13 +146,12 @@ DOSBox-X normal core, 386, **33 synthetic cases that end in RETURN or RUNERROR**
 **every file operation is real DOS**. All initial memory the case needs is written to STATE.BIN and read back into place by real INT 21h reads; the entry frame's return words are written by the oracle program with its own return address; RunError's entry is replaced by a capture jump (the boundary the C model stops at). Compared with the C model on the identical state:
 all 14 CPU words and **1,234,918 bytes** (the heap-variable block with the RNG seed, `DS:[557C]`, the 32 KiB heap area, the 240h-byte record, and the 1,020h-byte stack window, minus the 24 bytes real DOS uses below each INT 21h's SP). **Result: 31 RETURN and 2 RUNERROR, 0 mismatches.**
 **Not native:** the message path (EGA, ReadKey, QUIT), the prompts, the keyboard, STALLED, the aliasing and SP/SS variants, flags with IF set, the OUT events. The native run used the host's **packaged `/usr/bin/dosbox-x` 2026.01.02** (SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`), **not the pinned `5a9c7c53` build**. STATE.BIN SHA-256 `1e43838a5851cf64a6f98fa0bd6c61cc82b8ac8ccd85a37e6198111f6a2aa465`; RESULT.BIN SHA-256
-`1c99efd5dc162083d6ee83e97d2fa3eaa11bad67c60d2b7e6b657bd955505141`; IMAGE.BIN SHA-256 `02bac6e8cd3c3e6450f1f67d87ebc450bdaaf506261fcfca6537082e1507b2fe`. Frames are synthetic; this does not establish natural reachability.
+`2ee2a433f4eb9253ceae26d072b23011089fb4c12dae4278dcdcc5e21dc1782e`; IMAGE.BIN SHA-256 `02bac6e8cd3c3e6450f1f67d87ebc450bdaaf506261fcfca6537082e1507b2fe`. Frames are synthetic; this does not establish natural reachability.
 
 ## Not established
 
 - Real BIOS, DOS or EGA behaviour beyond the 33 native cases; the message path natively.
 - The overlay manager's INT 3Fh dispatch and stub construction, and that unit 0x9E is resident at every real call.
-- A draw run in which the merged 0DE3 model reads the live SYSTEM segment: the C-side draws here go through the declared `0AF8` shadow (see the finding above).
 - A DIVIDE stop: no case reaches it.
 - The entry-SP bound is the measured minimum over ten scenarios; a path outside them could need more, and below it the model may stop CALLEE.
 - Interrupts, faults, self-modification, arbitrary-IP resume.

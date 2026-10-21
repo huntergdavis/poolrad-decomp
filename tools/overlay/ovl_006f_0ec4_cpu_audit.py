@@ -42,7 +42,7 @@ SEG = Q.SEG
 CS_OV, DICE_CS, REC_SEG, REC_OFF, FONT_SEG = 0x6400, 0x6C00, 0x7800, 0x0100, 0x7400
 RET_TO = (0x9001, 0x7000)
 STUB_AT = (BASE + 0xB0, 0x48)
-SHADOW = (0x11C0, 0x90)
+TRAP = (0x11C0, 0x90)                                   # 0AF8:[11C0,1250) left as fill: any constant-segment read of SYSTEM Random lands here
 DIRTY_FLAGS = (0x0202, 0x0602, 0x0A87, 0x0402, 0x0E57)       # the standing dirty-incoming-flags set (VP i20371)
 STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CODE', 3: 'EXIT', 4: 'RUNERROR', 5: 'DIVIDE', 6: 'BREAK', 7: 'STALLED', 8: 'LIMIT', 9: 'SERVICE',
           10: 'CALLEE', 11: 'TRANSFER'}
@@ -113,10 +113,10 @@ def source():
                 u6_fixups=sorted(u6['fixups']))
 
 
-def library(directory, override=None):
+def library(directory, override=None):      # override: {source name: path}
     path = directory / ('u6f_0ec4_mut.so' if override else 'u6f_0ec4.so')
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include')] +
-                   [str(override if override and s == 'overlay_u6f_entry6_0ec4_cpu' else ROOT / f'src/recovered/{s}.c') for s in SOURCES] + ['-o', str(path)], check=True)
+                   [str((override or {}).get(s, ROOT / f'src/recovered/{s}.c')) for s in SOURCES] + ['-o', str(path)], check=True)
     lib = ctypes.CDLL(str(path))
     f = lib.pr_u6f_entry6_0ec4_cpu
     f.argtypes = [ctypes.POINTER(B5.Bus), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.POINTER(Env0EC4), ctypes.POINTER(Diag0EC4)]
@@ -177,10 +177,9 @@ def build(ctx, reloc, stub, o):
     for f in ctx['u9_fix']:
         struct.pack_into('<H', dice, f - ctx['dice_lo'], (struct.unpack_from('<H', dice, f - ctx['dice_lo'])[0] + base) & 0xFFFF)
     at = physical(dice_cs, ctx['dice_lo']); m[at:at + len(dice)] = dice
-    # DECLARED: the credited 0DE3 closure model (overlay_u9e_entry8_system_call_0e0e.c) fixes the SYSTEM segment at 0AF8h instead of reading the call's
-    # relocated segment word, so with the image at BASE its SYSTEM reads (Random 11C0.., seed 120F.., multiplier 1245) land at 0AF8:xxxx. A byte copy of
-    # exactly those SYSTEM bytes sits there in both runs; the oracle executes the relocated original at BASE+0AF8 and never touches the copy.
-    src = physical(base + SEG['system'], SHADOW[0]); dst = physical(0x0AF8, SHADOW[0]); m[dst:dst + SHADOW[1]] = m[src:src + SHADOW[1]]
+    # No copy of SYSTEM sits at 0AF8 any more (the 0E0E model reads its segment from the relocated word, #1376). The bytes there stay fill so that a
+    # model that hard-codes the unrelocated segment reads fill and the differential shows it.
+    dst = physical(0x0AF8, TRAP[0]); check(set(m[dst:dst + TRAP[1]]) == {0x5A}, 'the 0AF8 trap region is untouched fill')
     at = physical(base + 0xB0, 0x48); m[at:at + 5] = struct.pack('<BHH', 0xEA, 0x0DE3, dice_cs)          # the declared trampoline
     # DS: block index digit, flag, RNG seed, ReadKey and glyph state
     m[physical(ds, 0x5376)] = o.get('digit', 3)
@@ -559,6 +558,7 @@ def expected_record(o, ram, sizes):
     check(ram[at(ds, 0x557C)] == 0, 'DS:[557C] cleared at the end')
     check((ram[at(ds, 0x4428)] | ram[at(ds, 0x4429)] << 8 | ram[at(ds, 0x442A)] << 16 | ram[at(ds, 0x442B)] << 24) == final if len(b1) >= 0x11D else True,
           'RandSeed advanced by exactly the five draws')
+    return len(b1) >= 0x11D
 
 
 # ---------------------------------------------------------------------------------------------------- cases
@@ -648,9 +648,10 @@ def sizes_of(o):
 def differential(ctx, reloc, stub, f, lib):
     specs = [x for x in cases() if not ONLY or any(t in x[0] for t in ONLY)]; stats = dict(stops={}, calls=0, rolls=0, cases=len(specs)); seen, edges = set(), set()
     ctx['cond_at'] = {i.address: i for i in ctx['cond']}
-    returned = 0; non_arch = []
+    returned = 0; non_arch = []; draw_cases = 0
     for index, (name, o0) in enumerate(specs):
         o = normalise(o0); t0 = time.time()
+        print(f'[{index + 1}/{len(specs)}] {name}: START', file=sys.stderr, flush=True)
         if o.get('stall'):
             o['b1'] = None
         m, c, spec = build(ctx, reloc, stub, o)
@@ -681,7 +682,8 @@ def differential(ctx, reloc, stub, f, lib):
             ostub = dict(o, ssv=spec['ssv'], rec=spec['rec'])
             check_calls(name, ostub, sizes, u['calls'], u['stop'], bp)
             if u['stop'] == 'RETURN':
-                expected_record(ostub, u['ram'], sizes)
+                if expected_record(ostub, u['ram'], sizes):                  # the oracle's draws, then the C model's, each against the independent LCG
+                    expected_record(ostub, r['ram'], sizes); draw_cases += 1
         if st == 'RETURN':
             returned += 1
         stats['stops'][st] = stats['stops'].get(st, 0) + 1; stats['calls'] += d.calls; stats['rolls'] += d.rolls
@@ -693,7 +695,7 @@ def differential(ctx, reloc, stub, f, lib):
     outcomes = {(i.address, t) for i in ctx['cond'] for t in (i.address + i.size, int(i.op_str, 16))}
     missing = sorted(outcomes - edges)
     return dict(cases=len(specs), end_states=dict(sorted(stats['stops'].items())), non_architectural_stops=len(non_arch), non_architectural=non_arch,
-                far_calls_composed=stats['calls'], rolls_composed=stats['rolls'], starts=f'{len(seen)}/{len(ctx["decoded"])}',
+                far_calls_composed=stats['calls'], rolls_composed=stats['rolls'], draw_cases_checked=draw_cases, draw_bytes_checked=5 * draw_cases, starts=f'{len(seen)}/{len(ctx["decoded"])}',
                 conditional_outcomes=f'{len(outcomes) - len(missing)}/{len(outcomes)}', conditional_outcomes_missing=[f'{a:04X}->{b:04X}' for a, b in missing],
                 dirty_flag_images=[f'{x:04X}' for x in DIRTY_FLAGS], cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 
@@ -713,24 +715,28 @@ MUTANTS = (   # (name, text in the model, replacement): each must occur exactly 
     ('Str maximum length 2', "c->ax = 1; push(&m, c->ax);", "c->ax = 2; push(&m, c->ax);"),
     ('second roll loop ends at 5', "++k, idx_end = 6u)", "++k, idx_end = 5u)"),
     ('class 7 not in the {2,4,6,7} set', "sub_flags(c, al, 7u, 0x80u); if (c->flags & 0x40u) two = 1;", "sub_flags(c, al, 8u, 0x80u); if (c->flags & 0x40u) two = 1;"),
+    ('0E0E model hard-codes the SYSTEM segment 0AF8 again (the defect #1376 fixed)', "system_cs = read16(ram, cpu->cs, 0x0E11u);", "system_cs = (uint16_t)(0x0AF8u + 0u * read16(ram, cpu->cs, 0x0E11u));", 'overlay_u9e_entry8_system_call_0e0e'),
     ('INC byte flags dropped (flags dead before the next callee: expected EQUIVALENT)', "inc8_flags(c, bp8(&m, -0x13)); ", "(void)inc8_flags; "),
 )
 
 
 def mutation_check(ctx, reloc, stub):
-    src = (ROOT / 'src/recovered/overlay_u6f_entry6_0ec4_cpu.c').read_text()
     out = []
     ONLY[:] = list(MUTANT_CASES)
-    for name, old, new in MUTANTS:
+    for k, (name, old, new, *rest) in enumerate(MUTANTS):
+        target = rest[0] if rest else 'overlay_u6f_entry6_0ec4_cpu'
+        src = (ROOT / f'src/recovered/{target}.c').read_text(); t0 = time.time()
+        print(f'[mutant {k + 1}/{len(MUTANTS)}] START {name}', file=sys.stderr, flush=True)
         check(src.count(old) == 1, f'mutant text occurs once: {name}')
         with tempfile.TemporaryDirectory(prefix='u6f-0ec4-mut-') as tmp:
             path = Path(tmp) / 'mutant.c'; path.write_text(src.replace(old, new))
-            mf, mlib = library(Path(tmp), override=path)
+            mf, mlib = library(Path(tmp), override={target: path})
             try:
                 differential(ctx, reloc, stub, mf, mlib)
                 out.append((name, 'SURVIVED'))
             except (ValueError, AssertionError) as e:
                 out.append((name, 'CAUGHT: ' + str(e)[:80]))
+        print(f'[mutant {k + 1}/{len(MUTANTS)}] {out[-1][1][:60]} ({time.time() - t0:.0f}s)', file=sys.stderr, flush=True)
     ONLY[:] = []
     return out
 
@@ -749,7 +755,7 @@ def main():
         ctx = source()
         stub = B.assemble_stub(scratch=SCRATCH)
         reloc = Q.relocate(image, sites, BASE)
-        report = dict(target=dict(span='unit 0x6F [0EC4,1262)', bytes=len(ctx['body']), instructions=len(ctx['decoded']), sha256=DIGEST, file_offset=ctx['file_start'], shadow_system_copy=f'0AF8:{SHADOW[0]:04X}+{SHADOW[1]:X}', constants_span='0E98+2C', constants_sha256=ctx['consts_sha'],
+        report = dict(target=dict(span='unit 0x6F [0EC4,1262)', bytes=len(ctx['body']), instructions=len(ctx['decoded']), sha256=DIGEST, file_offset=ctx['file_start'], constant_segment_trap=f'0AF8:{TRAP[0]:04X}+{TRAP[1]:X} left as fill (5Ah), no shadow copy', constants_span='0E98+2C', constants_sha256=ctx['consts_sha'],
                                   image_sha256=Q.IMAGE_DIGEST, load_base=f'{BASE:04X}', relocated_words=len(ctx['fix']), stub_segment=f'{STUB_AT[0] - BASE:04X}',
                                   stub_offset=f'{STUB_AT[1]:04X}', stub_original_bytes=reloc[physical(*STUB_AT):physical(*STUB_AT) + 5].hex(),
                                   unit9e_span=f'{ctx["dice_lo"]:04X}+{len(ctx["dice"]):X}', int10_stub_sha256=sha256(stub).hexdigest()))
