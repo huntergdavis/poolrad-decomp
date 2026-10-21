@@ -197,6 +197,48 @@ and wrappers `1186` 12 B, `119A` 4 B, `119E` 14 B. A scan of those bodies finds 
 with the stack and the RunError stop. The three entries gate exactly one row outright (`1CC3`; three
 more rows list them among other blockers). That is about 448 B per cleared row, against 2,117 B for the next cheapest closure, and VP ruling i19641 started this chain.
 
+## Bought blocker: the `0899` gateways (VP i20006, 2026-10-20)
+
+**Decision.** `RES_0899_0059` is funded as its own task, priced as its own row by par-b; `RES_0899_0000` is bought with it. It is the first time this program has chosen to buy a **blocker** instead of a body. The reasoning is recorded here so it can be read later.
+
+**What is bought: 222 B of game code.** The spans are decoded from the loader-expanded START.EXE, and each ends in `RETF`.
+
+| Body | Size | What it is | Calls |
+| --- | --- | --- | --- |
+| `RES_0899_0059` | 171 B / 61 insns | ReadKey with hotkeys | reads a key via `0A40:030F`; key `13h` swaps the sound state `DS:5372`/`5373` through `08AE:00DC` and `08AE:017B`; key `04` toggles `DS:49F7` (gated on `0AF8:16BC`); key `03` does `push cs; call 0000`; then drains KeyPressed/ReadKey (`0A40:02FD`/`030F`) |
+| `RES_0899_0000` | 51 B / 19 insns | QUIT | restores `5372`, stops the driver via `08AE:00DC` with `[2612]`, builds `AH=0`, `AL=DS:[4A1C]` (saved startup video mode) in the Registers record at `DS:4A02`, calls `Intr($10)` via Dos `0A32:000B`, then Halt `0AF8:00E9` |
+
+- **Identity** is strong on factor 2, through the game globals `5372`/`5373`/`49F7`/`4A1C`/`2612`.
+- **Factor 1:** fixup-backed callers inside game_verified functions (`03BD_0E08` and `03BD_10C7` for both, and `001C_19B0` for `0000`). The par-a verdict is i19944, accepted in i19946.
+
+**Reach: NECESSARY, then SUFFICIENT, in that order.** par-a regenerated the strict-candidate export on main `b3fd5718` and priced every candidate's full closure with `price_row_closures.py`.
+
+- **Necessary:** of **447** candidate rows, **303** have a gateway in their closure. 302 reach `0059`, and 303 reach `0000`; the extra row is `OVL_03B9_0708`, which reaches only `0000`. par-b reported **302 of 453**. The 302 agrees with the `0059` count; the denominator of 453 was not reproduced on this export (447) and is recorded as par-b's figure.
+- **Sufficient for almost none:** in exactly **one** of the 303 rows (`OVL_007F_0294`, itself a caller of `0059`) are the only non-driver bodies the row and the gateways. Even that row still needs the driver members and its endpoints. **The 303 is not a promise of 303 credits.**
+
+**Non-body costs of the wall:**
+1. runtime coverage for Dos `Intr` at `0A32:000B` (in every gated closure);
+2. Halt `0AF8:00E9` declared as a boundary terminal;
+3. the `08AE` `driver_internal` members (`00DC`, `017B` and their closure) that par-c and par-d are already building (see [DRIVER_INTERNAL_CLASS.md](DRIVER_INTERNAL_CLASS.md)).
+
+So the wall costs 222 B, one coverage model and one boundary declaration, on top of driver work already in flight.
+
+**Cheapest rows it enables** (closure bytes and bodies, from the same run). Each row still carries `08AE:00DC`/`017B` and `0A32:000B`.
+
+| Row | Closure | Uncovered SYSTEM endpoints |
+| --- | --- | ---: |
+| `OVL_006F_02AE` | 425 B / 4 | 2 |
+| `OVL_03D2_0004` | 539 B / 4 | 1 |
+| `OVL_007F_0294` | 662 B / 3 | 2 |
+| `OVL_006F_01B8` | 671 B / 5 | 6 |
+| `OVL_001C_0994` | 726 B / 4 | 1 |
+| `OVL_006F_0010` | 956 B / 6 | 9 |
+
+**Halt consequence: read this before reviewing any row that reaches `0000`.** Every path through `0899:0000` is **terminal**. Halt runs the ExitProc chain, restores the interrupt vectors and terminates through DOS. The `pop bp; retf` after the call is dead code, and the `push cs; call 0000` on key `03` in `0059` never returns either.
+
+- A row whose closure reaches `0000` therefore carries a stop that is a **process exit**. It must be named as such and split from returning outcomes, as `CALLEE_NONRETURNING` in the `U3B9_ENTRY7_0708_SPRITE.md` contract.
+- **Any model that claims to return from `0000` (or from Halt) is wrong**, and a differential that shows it returning is comparing against a stub.
+
 ## `RES_0464_1B52`: priced and declined (2026-10-20)
 
 The requirement for a bus-aware SYSTEM Move was raised by the par-b lane (i19660). This section records the measurement
