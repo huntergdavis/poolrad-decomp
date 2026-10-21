@@ -109,3 +109,35 @@ Gate results on current main (`e7362e73`): `check_checker_builds.py RES_0AF8_149
     ctest --test-dir resources/build -R '^poolrad_system_close_1491_cpu_tests$' --output-on-failure
 
 Under the crew's host rule every step runs through `poolrad-heavy.sh`, one checker build at a time, after a load check. Media is read from ignored `resources/DOS/POOLRAD/`; no original or extracted bytes and no capture binaries are committed. The analysis tools need the `capstone` and `unicorn` Python modules.
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20231/i20250)
+
+`(0x0AF8, 0x1491): "system Close (system_close_1491_cpu, #1309)"` lands in `RUNTIME_COVERED_ENDPOINTS`. It is readiness
+only, never a credit. Unlike `04A9`, its model has no terminal stop; `INT 21h` AH=3Eh is a declared service input. So
+it needs no boundary partner.
+
+- **The two gotchas, asserted on OUR model** by an independent reviewer harness, not the author's test:
+  - **Coverage:** every handle `0000..FFFF` × {DOS success, DOS error `AX = 6` with CF}, with magic `D7B3h`. The
+    non-open magics `D7B0h`, `D7B1h`, `D7B2h`, `0000h` and `FFFFh` × handles `00..FF`. **133,632 cases, 0
+    failures.**
+  - **INT issued exactly when handle > 4:** `INT 21h` was issued **131,062** times, exactly 2 × (65,536 − 5).
+    Handles 0..4 never call DOS. At each `INT`, `BX` = the handle and `AH` = `3Eh`.
+  - **Magic and InOutRes:** an open variable always ends with magic `D7B0h`, even when DOS fails, with
+    `InOutRes = 6` only on CF. Every non-open variable gives `InOutRes = 103`, no `INT`, and the magic unchanged.
+  - **Return:** every case ends `RETURNED` through the `BEEF:CAFE` frame with SP + 8.
+  - **Build:** ASan/UBSan with `-Werror -Wpedantic`.
+  - **The harness itself is checked:** its body bytes are read from the media (`83ba3ec7…`, equal to the doc). The
+    mutant `JBE`→`JB` is caught (2 extra `INT`s and 2 failures, at handle 4). The mutant that skips the magic store
+    on a DOS error is caught (65,531 failures).
+- **Audit reproduced** at `2d85087b`:
+  - **Unicorn:** 324 cases + 5 service refusals + 5 ARGUMENT (`RETURN` 321, `TRANSFER` 3), starts 17/17, outcomes
+    8/8, 96 `INT`s, 226 reference-checked, CPU14 + 1 MiB, masks 0.
+  - **Native:** 48 runs (`INT` 18 / no-`INT` 30), RESULT.BIN `75f81606…` equals the doc.
+  - **Author's tests:** the ASan/UBSan test passes 93 checks, and `check_checker_builds RES_0AF8_1491
+    --require-current-main` passes.
+- **Measured delta:**
+  - **Direct-callee queue, regenerated:** 440 / 52 / 9 → 440 / 52 / 9. Five direct callers go `0AF8:1491`
+    `runtime_unmapped` → `runtime_covered`, with no composability flip.
+  - **Closure pricer, regenerated export:** 82 rows lose uncovered `1491`, which reproduces this document's corrected
+    82. 0 rows become free of uncovered SYSTEM endpoints. The remaining t29 endpoints are `1410`, `14FB`, `1563` and
+    `1593`.

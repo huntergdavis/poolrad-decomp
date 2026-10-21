@@ -69,4 +69,24 @@ state: IP `00E2`, `AX = InOutRes`, SP unchanged. A model must **not** treat this
 
 ## Reviewer record (added by the review lane, not the author)
 
-(pending)
+**Registered** by par-e at main `804a6162` as `"RES_0AF8_00E2": "docs/re/DECLARED_BOUNDARY_0AF8_00E2.md"` in
+`DECLARED_BOUNDARY_ENDPOINTS`. It lands in the same commit as IOCheck `04A9`'s coverage row, whose `RUNERROR` stop is
+`JMP 00E2` (VP i20256/i20258). `RUNTIME_COVERED_TERMINALS` now makes `load_queue` refuse a covered `04A9` while this
+boundary is undeclared, and a test pins that refusal.
+
+- **Static audit reproduced.** The entry, tail and data SHA-256 values equal the table above. The interrupts are
+  `0164` AH=25h, `01A3` AH=4Ch and `01EB` AH=06h. 80 instructions are reachable, the one `RETF` is `013F`, and the
+  census of nine near `JMP`s, the `00DD` short `JMP` and the one resident far call at image `AA20` is the same.
+- **Independent walk that ENTERS the calls** (the audit's walk treats them as returning). The walk follows every near
+  call, treats `PUSH CS; CALL` as a far frame, and stops only at the `AH=4Ch` `INT`. It reaches about 150
+  instructions, including `Close` at `05C1` and the print helpers. Its exits are exactly the ExitProc dispatch `RETF`
+  at `013F`, the terminate `INT` at `01A3`, and **one indirect far call that no static walk can enter**:
+  `CALL FAR ES:[BX+DI]` at `0601`.
+  - That call is in the helper at `05FD`, called from `Close(var Text)` with `BX = 14h` and `BX = 1Ch`, so it reaches
+    the `FlushFunc` and `CloseFunc` of the Input and Output `TextRec`.
+  - Those pointers are installed at run time: the SYSTEM text driver, or CRT's driver if `AssignCrt` ran.
+  - **Stated limit:** "never returns to the caller" holds over the SYSTEM code. It also rests on the installed text
+    driver functions and the ExitProc procedures returning normally; neither can be walked statically. The Halt
+    declaration ([00E9](DECLARED_BOUNDARY_0AF8_00E9.md)) shares this tail and does not name the indirect call
+    either. That does not change its terminal use, because composition stops at the entry.
+- **Use:** composable, never credited, terminal. A composing caller stops at `0AF8:00E2` with `EXIT(RUNERROR)`.
