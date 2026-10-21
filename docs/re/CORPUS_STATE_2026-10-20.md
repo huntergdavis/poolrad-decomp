@@ -89,7 +89,7 @@ the two that are 08AE-free are blocked by indirect dispatch and a held callee.
   - **4** `game_or_other_library_unresolved`: `03B0_06FB` 22, `007F_0000` 32, `0033_0B97` 71, `03B0_01DA` 419;
   - **7** `helper_candidate`: `03D2_00F7` 5 (one fixup caller), `007F_0020` 26, `03C2_0000` 46, `03BD_031F` 49, `03C6_0000` 104, `03B0_1140` 179, `03C2_02CC` 342.
 
-So the honest pool is **13 rows with ownership evidence, or 17 counting the unresolved four**, not 58. The cheapest ownership-evidenced row is **`OVL_03B0_0C33` at 146 B**. The 22, 26 and 32 B rows are ownership-unresolved or helper candidates, not cheap credits. There is no cheap credit left in the queue; remaining work starts at 146 B. (The VP's first figures, 63/7/56/40/21, came from a different count and were not reproduced on this export.)
+So the honest pool is **13 rows with ownership evidence, or 17 counting the unresolved four**, not 58. The cheapest ownership-evidenced row is **`OVL_03B0_0C33` at 146 B**. The 22, 26 and 32 B rows are ownership-unresolved or helper candidates, not cheap credits. There is no cheap credit left in the queue; remaining work starts at 146 B. (The first figures quoted, 63/7/56/40/21, were the ds4 lane's own ownership filter enumerated over the same export, not a product. Prefer the measured 34/24/13 above; a lane's arithmetic is not a regenerated product, VP i20043.)
 
 ## 4. Policy-closed
 
