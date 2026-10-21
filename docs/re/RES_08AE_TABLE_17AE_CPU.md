@@ -135,7 +135,7 @@ review can supply):
 `res08ae_table_17ae_cpu_audit.py` declares `CHECKER_ROWS=('RES_08AE_17AE',)` and implements `--compile-only` through the same `library()`
 build, printing `CHECKER_BUILD_OK` with no media.
 
-Gate results on the merge of current main (`81e2cbec`): `check_checker_builds.py RES_08AE_17AE --require-current-main` PASS (1 actual
+Gate results on current main (`b83ea85a`): `check_checker_builds.py RES_08AE_17AE --require-current-main` PASS (1 actual
 checker build for 1 row); ASan/UBSan C test 325 checks, exit 0; focused CTest `poolrad_resident_08ae_table_17ae_cpu_tests` 1/1 passed;
 combined receipt `--unicorn --native`: 1019 RETURN + 4 ARGUMENT, 43/43 starts, 6/6 outcomes, 275 reference-checked, 0 masked RAM bytes
 (Unicorn); native 48 cases, RESULT.BIN `96d0db18...7ae9`, 982,784 bytes omitted. The pairing gate is run on the committed change.
