@@ -18,7 +18,7 @@ model, passes on the new) is the only such demonstration.
 | Audit (body) | Verdict | CPUs run | BP low byte != 0 | distinct BP low bytes | SI / DI / ES != 0 | odd SP |
 | --- | --- | ---: | ---: | ---: | --- | ---: |
 | `u77_275b_cpu_audit` (OVL_0077_275B) | **FAIL, fixed in #1351** (word stores over `[bp+0]`) | 46 | 15 added | 5 added | n/a | 0 |
-| `u20_list_walk_11ac_cpu_audit` (OVL_0020_11AC) | **PASS** after the audit was made dirty (was BP=7F00, scratch=0: blind) | 45 | 20 added | 4 added | 20 added dirty (`all` set) | 0 |
+| `u20_list_walk_11ac_cpu_audit` (OVL_0020_11AC) | **PASS** after the audit was made dirty (was BP=7F00, scratch=0: blind) | 45 | 20 added | 4 added | 5 added (the all-registers set) | 0 |
 | `system_string_move_leaves_audit` (SYSTEM string/Move leaves) | PASS | 511 | 508 | 219 | 511 / 511 / 511 | 0 |
 | `u1c_goto_00f4_cpu_audit` (OVL_001C_00F4) | PASS | 179 | 179 | 132 | all | 0 |
 | `u7f_weighted_00a8_audit` (OVL_007F_00A8) | PASS | 231 | 231 | 153 | all | 0 |
@@ -41,7 +41,7 @@ freed-tail, freed-all and type-7 shapes), all agreeing; stops 34 return, 10 RunE
 - **Two audits have a single BP value** (`0020`, `003A`: `7777`). A nonzero low byte is what exposes a word store, so they are
   covered for that defect, but a second value would also catch an error that depends on the byte (a store of the wrong byte
   into `[bp+0]`, say). Cheap to add; I have not.
-- **Odd SP is nearly absent:** seven of the eleven audits never enter with an odd SP (the `sp8001` family is the same blind
+- **Odd SP is nearly absent:** eight of the eleven audits never enter with an odd SP (only \`0020\`, \`0255\` and \`003A\` do) (the `sp8001` family is the same blind
   spot for stack alignment). A standing odd-SP case would close it.
 - **The native harnesses** enter with a fixed register file (`ENTRY_REGS`, `BP=7777`), so for these bodies the native runs
   are dirty in BP but cover one value.
