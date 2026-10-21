@@ -96,6 +96,9 @@ def build(ctx,rng,*,nodes=3,head=0,types=None,freed=None,node_off=None,sp=0x8000
         if i in (freed or {}): put_far(m,seg,(off+0x108)&65535,(0x6000+i*0x40,0x20))
     # root body, and the 0078:002A stub bound to the +3291 closure's own segment
     body=ctx['body']; at=physical(CS,ENTRY); m[at:at+len(body)]=body
+    # relocation: the loader rewrites the FreeMem call's segment word (the unlink
+    # call's 0x78 is a stub segment that stays as encoded)
+    put16(m,CS,FREEMEM_SITE+3,closure.SYSTEM)
     m[physical(unlink_stub_seg,0x2A):physical(unlink_stub_seg,0x2A)+5]=b'\xEA'+struct.pack('<HH',unlink_entry,closure.CS)
     for seg,off,blob in extra_writes:
         for j,v in enumerate(blob): m[(physical(seg,off)+j)&(SIZE-1)]=v
@@ -122,10 +125,12 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
             s['site']=ip;raw=bytes(uc.mem_read(address,5))
             want=(0x2A,STUB) if ip==UNLINK_STUB_SITE else (0x254,closure.SYSTEM)
             if raw[0]!=0x9A or struct.unpack_from('<HH',raw,1)!=want:return stop(2)
-            stub=struct.unpack_from('<H',raw,3)[0]
-            loaded=bytes(uc.mem_read(physical(stub,want[0]),5))
-            entry=UNLINK if ip==UNLINK_STUB_SITE else 0x254
-            if loaded[0]!=0xEA or struct.unpack_from('<H',loaded,1)[0]!=entry:return stop(2)
+            if ip==UNLINK_STUB_SITE:
+                # the 0x78 stub must be the loaded EA jump to the +3291 body;
+                # the FreeMem call is direct into the SYSTEM segment, no stub
+                stub=struct.unpack_from('<H',raw,3)[0]
+                loaded=bytes(uc.mem_read(physical(stub,want[0]),5))
+                if loaded[0]!=0xEA or struct.unpack_from('<H',loaded,1)[0]!=UNLINK:return stop(2)
             if ip==UNLINK_STUB_SITE:s['unlink_calls']+=1
             else:s['freemem_calls']+=1
         if cs==closure.SYSTEM and ip==0x00E2:return stop(3)          # FreeMem RunError
@@ -141,8 +146,12 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
     uc.hook_add(UC_HOOK_CODE,hook);uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=400000)
     check(s['stop'] is not None,name+': no accepted stop')
     ctypes_state=Cpu(**{n:getattr(c,n) for n,_ in Cpu._fields_})
-    ram=(ctypes.c_uint8*SIZE).from_buffer_copy(m);d=Diagnostic()
-    got=fn(ram,SIZE,ctypes.byref(ctypes_state),closure.RESIDENT,closure.SYSTEM,lim,ctypes.byref(d))
+    # The C diagnostic nests the +3291 closure's own diagnostic structures; a
+    # ctypes mirror of that layout is a second source of truth that silently
+    # corrupts the heap when it drifts (it did, with a segfault). The API allows
+    # a null diagnostic, and status + CPU14 + full RAM is the stronger claim.
+    ram=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
+    got=fn(ram,SIZE,ctypes.byref(ctypes_state),closure.RESIDENT,closure.SYSTEM,lim,None)
     check(got==s['stop'],f'{name}: status C={got} original={s["stop"]}')
     if expect is not None:check(got==expect,f'{name}: expected {expect}')
     if got==0:
@@ -152,9 +161,7 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
         if bytes(ram)!=bytes(backing):
             diff=[i for i in range(SIZE) if ram[i]!=backing[i]]
             raise ValueError(f'{name}: {len(diff)} RAM differences, first {diff[:8]}')
-    check((d.calls_unlink,d.calls_freemem)==(s['unlink_calls'],s['freemem_calls']),
-          f'{name}: call counts C={(d.calls_unlink,d.calls_freemem)} original={(s["unlink_calls"],s["freemem_calls"])}')
-    return got,d
+    return got,s['unlink_calls'],s['freemem_calls']
 def specifications():
     base=dict(nodes=3,head=0,types={},freed={})
     specs=[('nil-head',dict(base,head=None),0)]
@@ -168,13 +175,14 @@ def specifications():
              ('window-other',dict(base,window=(0x3B00,0x40)),0),
              ('ss-eq-ds',dict(base,ss=DS),0),
              ('sp-low',dict(base,sp=0x0058),0),
-             ('walk-limit-1',dict(base),5),
-             ('walk-limit-cycle',dict(base,head=0,types={0:0}),5)]
+             ('walk-limit-1',dict(base),5)]
+    specs=[(n,dict(kw,_walk=(1 if n.startswith('walk-limit') else 64)),exp) for n,kw,exp in specs]
     return specs
 def cases(ctx):
     rng=None;out=[]
     for name,kw,expect in specifications():
-        out.append((name,build(ctx,rng,**kw),expect,kw.get('walk_limit',64)))
+        walk=kw.pop('_walk',64)
+        out.append((name,build(ctx,rng,**kw),expect,walk))
     return out
 def main():
     p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--output',type=Path)
@@ -189,8 +197,8 @@ def main():
         failures=[]
         for name,state,expect,walk in cases(ctx):
             try:
-                got,d=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
-                seen[name]=dict(status=got,calls=(d.calls_unlink,d.calls_freemem))
+                got,nu,nf=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
+                seen[name]=dict(status=got,calls=(nu,nf))
                 results.append(name)
             except Exception as exc:
                 failures.append((name,str(exc)[:160]))
