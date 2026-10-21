@@ -82,6 +82,15 @@ the two that are 08AE-free are blocked by indirect dispatch and a held callee.
 
 **Bought blocker (VP i20006).** The two `0899` gateways (222 B: `0059` ReadKey-with-hotkeys and `0000` QUIT) are funded as their own task. They are **necessary** for 303 of 447 candidate rows, and **sufficient for one** (`OVL_007F_0294`); par-a regenerated both counts on `b3fd5718`. `0000` ends in Halt, so every path through it is a process exit. Numbers, costs and the cheapest enabled rows are in [IDENTITY_CLEARED_PRICING.md](IDENTITY_CLEARED_PRICING.md#bought-blocker-the-0899-gateways-vp-i20006-2026-10-20).
 
+**"58 composable" is not 58 credits (VP i20035; measured by par-a on main `b3fd5718`).** Readiness is not reachability, and neither is ownership. The strict-candidate export has 447 candidates; strict-credited rows are already excluded from it. **58** have zero unready callees, and all 58 are flagged `composable`:
+- **34** are 5-byte tails: `callers.points = 0`, no fixup-backed caller, all `helper_candidate`, and prior status `source_mention` (30), `inline_in_model` (3) or `inline_in_strict` (1). They are unreachable fragments, not work.
+- **24** remain:
+  - **13** with game ownership evidence (`game_evidenced` / `game_verified`): `03B0_0C33` 146 B, `006A_0824` 155, `001C_2E7D` 176, `0077_17ED` 176, `007D_05F0` 232, `03B0_0A08` 251, `0023_0239` 296, `03B0_07A4` 307, `0020_11AC` 316, `0068_0294` 587, `0025_07BC` 696, `0038_0CC3` 745 (no callers), `0033_08A4` 755;
+  - **4** `game_or_other_library_unresolved`: `03B0_06FB` 22, `007F_0000` 32, `0033_0B97` 71, `03B0_01DA` 419;
+  - **7** `helper_candidate`: `03D2_00F7` 5 (one fixup caller), `007F_0020` 26, `03C2_0000` 46, `03BD_031F` 49, `03C6_0000` 104, `03B0_1140` 179, `03C2_02CC` 342.
+
+So the honest pool is **13 rows with ownership evidence, or 17 counting the unresolved four**, not 58. The cheapest ownership-evidenced row is **`OVL_03B0_0C33` at 146 B**. The 22, 26 and 32 B rows are ownership-unresolved or helper candidates, not cheap credits. There is no cheap credit left in the queue; remaining work starts at 146 B. (The VP's first figures, 63/7/56/40/21, came from a different count and were not reproduced on this export.)
+
 ## 4. Policy-closed
 
 - **08AE band** (`RES_08AE_IDENTITY_POLICY.md`, VP i19467): closed by the owner's policy
