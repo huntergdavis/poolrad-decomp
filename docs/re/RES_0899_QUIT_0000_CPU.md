@@ -99,7 +99,8 @@ returns either.
 
 ## Validation
 
-Receipt: 2026-10-20 21:33:16–21:33:57 PDT (`final.json`), on this branch from main `07cc429a`.
+Receipt: 2026-10-20 21:33:16–21:33:57 PDT (`final.json`), on this branch from main `07cc429a`. The branch then merged
+main `7cf02cd7` (membership rows only), with no change to any composed source.
 
 **The closure runs from the original bytes.** The whole loader-expanded image is loaded at a test base (1000h for
 Unicorn, 3000h natively) with the **loader's own relocation table applied**, which is what DOS does. No byte of any
