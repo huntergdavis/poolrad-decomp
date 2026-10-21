@@ -75,7 +75,7 @@ def library(directory):
 def far(m,seg,off): return struct.unpack_from('<HH',m,physical(seg,off))
 def put_far(m,seg,off,value): struct.pack_into('<HH',m,physical(seg,off),value[0],value[1])
 def build(ctx,rng,*,nodes=3,head=0,types=None,freed=None,node_off=None,sp=0x8000,ss=None,flags=0x602,
-          unlink_stub_seg=STUB,unlink_entry=UNLINK,extra_writes=(),**_):
+          unlink_stub_seg=STUB,unlink_entry=UNLINK,extra_writes=(),regs=None,**_):
     """Reuse the +3291 closure's own world builder: it already chains the nodes this
     body walks (+104h), seeds the head (5D96/5D98), the active record (5D92/5D94)
     and the window pointer (49D6), and installs every closure body at its segment.
@@ -106,6 +106,7 @@ def build(ctx,rng,*,nodes=3,head=0,types=None,freed=None,node_off=None,sp=0x8000
     put16(m,cpu.ss,(sp+0)&65535,0x7777); put16(m,cpu.ss,(sp+2)&65535,0x8888)
     cpu.cs,cpu.ip,cpu.sp=CS,ENTRY,sp
     cpu.bp=0x7F00; cpu.ax=cpu.bx=cpu.cx=cpu.dx=cpu.si=cpu.di=0
+    for name,value in (regs or {}).items(): setattr(cpu,name,value)   # dirty entry registers (VP i20417 sweep)
     return m,cpu,None
 def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
     lim=Limits(max_walk,lim.max_callee_steps,lim.unlink)
@@ -177,6 +178,14 @@ def specifications():
              ('ss-eq-ds',dict(base,ss=DS),0),
              ('sp-low',dict(base,sp=0x0058),0),
              ('walk-limit-1',dict(base),5)]
+    # Dirty entry registers: the caller's BP, SI, DI and the scratch registers are not zero. A byte local stored with a word
+    # write would clobber the saved BP's low byte (the 275B defect); a fixed BP=7F00 and all-zero scratch hid that class.
+    dirty={'bp7F01':dict(bp=0x7F01),'bp7F80':dict(bp=0x7F80),'bpFFFF':dict(bp=0xFFFF),
+           'all':dict(ax=0xA5A5,bx=0x5A5A,cx=0xC3C3,dx=0x3C3C,si=0x9ABC,di=0xBCDE,bp=0x7F81,es=0x1357)}
+    for tag,regs in dirty.items():
+        for shape,kw in (('nil-head',dict(base,head=None)),('walk',dict(base)),('freed-tail',dict(base,freed={1:True})),
+                         ('freed-all',dict(base,freed={0:True,1:True,2:True})),('types-7',dict(base,types={0:7}))):
+            specs.append((f'dirty-{tag}-{shape}',dict(kw,regs=regs),3 if shape.startswith('freed') else 0))
     specs=[(n,dict(kw,_walk=(1 if n.startswith('walk-limit') else 64)),exp) for n,kw,exp in specs]
     return specs
 def cases(ctx):
