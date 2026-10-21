@@ -34,7 +34,7 @@ def renamed_audit(classification="unresolved"):
 
 # Reviewed near-only bodies granted game_verified by their acceptance (par-e). Exact set: each grant
 # commit adds one, deliberately.
-GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000)})
+GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000), (0xBA, 0x01FB)})
 
 
 class QueueNamingTest(unittest.TestCase):
