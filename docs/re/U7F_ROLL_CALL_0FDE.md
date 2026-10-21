@@ -50,7 +50,7 @@ U7F +0F7E body ends at +0FD2 and pG's +0020 leaf is disjoint.
 No native game route, full U9E CPU composition, game identity, or strict
 full-C credit follows from this call boundary.
 
-## Correction, 2026-10-22: the LCALL's segment is the live code word, not 00B0h
+## Correction, 2026-10-21: the LCALL's segment is the live code word, not 00B0h
 
 The C adapter entered the roll with `CS := 00B0h`, a constant, where the original's `9A` at `0FDE` carries a segment word at
 `0FE1` that the loader relocates (the overlay stub segment, `00B0` only at the unrelocated base). The 40 original-byte cases
