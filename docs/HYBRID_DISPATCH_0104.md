@@ -1,4 +1,6 @@
-# Hybrid executor: the first credited body executed by our C inside the game (VP i20596)
+# Hybrid executor: the first credited bodies executed by our C inside the game (VP i20596, i20618)
+
+**This is the first time in the whole port that a line of our code has run in place of the game's own, and the game did not notice.**
 
 **Result.** During one cold start of the audited v1.3 game to the main menu, `RES_0899_0104` (resident `0899:0104`, the
 30-byte frame-and-return reached from the credits wait loop) arrived **51** times. Our C, `pr_r0899_idle_0104_cpu`,
@@ -27,7 +29,7 @@ It does not claim anything about the EGA bodies.
 ## How each arrival is handled
 
 This is the in-run check, `src/cpu/pr_hybrid_dispatch.h` in
-[`tools/hybrid/dosbox-x-5a9c7c53-dispatch-0104.patch`](../tools/hybrid/dosbox-x-5a9c7c53-dispatch-0104.patch).
+[`tools/hybrid/dosbox-x-5a9c7c53-dispatch.patch`](../tools/hybrid/dosbox-x-5a9c7c53-dispatch.patch).
 
 1. **The arrival.** The stage 0 observer matches the body's signature at `CS:0104`. The dispatch snapshots **S**: all
    32-bit registers, the six segments, the flags, and guest RAM `0..1 MiB` (`MemBase`).
@@ -66,25 +68,56 @@ restored S reproduced O byte for byte.
 | The hand-back path is exact | 5 `HANDBACK_EQUAL`: ARGUMENT changed nothing, and the rerun original equalled the first original |
 | The rest of the game is undisturbed | per-ID arrival counts equal the unsubstituted run for all 270 IDs; the same main menu at 55 s; 0 emulators left |
 
-## What this does not show
+## What this does not show (the limits, verbatim, as VP i20618 asked)
 
-- **Nothing about the EGA bodies.** 5 of the 12 reached bodies need the adapter
-  ([HYBRID_EGA_ADAPTER_SCOPE.md](HYBRID_EGA_ADAPTER_SCOPE.md)).
-- **Nothing about any other RAM-only body.** Each needs its own confirmed symbol, its own CPU copy, and its own stop
-  semantics. The dispatch file knows exactly one body.
-- **Nothing about timing.** The C consumed no emulated cycles. For this 7-instruction body the effect was not visible in the
-  counts or the screen.
-- **A natural stop.** The hand-back used ARGUMENT, because this body has no callee stop. A body with real CALLEE stops will
-  test the hand-back mid-body.
+1. **Nothing about the EGA bodies.**
+2. **Nothing about other RAM-only bodies.** Each needs its own confirmed symbol and CPU copy.
+3. **Nothing about timing.** The C consumed 0 emulated cycles, with no visible effect for a 7-instruction body.
+4. **The hand-back used ARGUMENT, because 0104 has no callee stop.** A body with real CALLEE stops will test a mid-body
+   hand-back.
+
+Limit 4 is now tested; see the next section.
+
+## The mid-body hand-back: `RES_0464_2595` (VP i20618, next item 1)
+
+`RES_0464_2595` (resident `0464:[2595,2632)`, a bitmap-block release) is RAM-only. It is reached twice at cold start, and
+it composes SYSTEM FreeMem. Its model, `pr_r0464_bitmap_release_2595_cpu`, stops **CALLEE** with exact partial state when
+FreeMem stops. FreeMem stops LIMIT at `0AF8:040F`, before the next free-list walk iteration, once its declared
+`max_heap_steps` budget runs out (`include/poolrad/recovered/system_freemem_0254_cpu.h`).
+
+The same cold start, with both bodies dispatched (run `hybrid-dispatch-2595-a`):
+
+| Arrival | What happened | Result |
+|---|---|---|
+| 1 | Our C was run with `max_heap_steps = 0` and **stopped inside the callee, at `131C:040F`** (SYSTEM, live), after executing 2595's prefix and FreeMem's entry. Its partial state was written to the guest, and **the original bytes continued from it**: the rest of FreeMem, the rest of 2595's release calls, and its `RETF 4`. | at 2595's return, the full state (32-bit registers, segments, flags, 1 MiB) equals the all-original run from the same snapshot: **`MIDBODY_HANDBACK_EQUAL`** |
+| 2 | Our C was run with the full budget and returned. | **`C_EQUAL_ORIGINAL`** |
+
+In the same run, `RES_0899_0104` again gave 46 `C_EQUAL_ORIGINAL` and 5 `ARGUMENT_RERUN_EQUAL`, with 0 interrupted and
+0 timeouts for both bodies. The observer's per-ID counts again equal the unsubstituted run for all 270 IDs.
+
+**The compare sees a wrong partial state.** In the mutant, the 2595 model writes its local `[BP-2]` as `AX ^ 1` (run
+`hybrid-dispatch-2595-mutant`). That write happens in the C's prefix, before the stop, and the original reads it after the
+hand-back.
+
+- Arrival 1 gives `MIDBODY_HANDBACK_DIFF` (`ram 20ED2 18 vs 17`).
+- Arrival 2 gives `C_DIFFERS` (`ram 21006 18 vs 17`).
+- These are the first differing bytes; the log does not claim they are the mutated byte.
+- Afterwards the correct models object was restored and relinked, and the binary's sha256 prefix `5d3f9a713730cc07` equals
+  the one recorded before the mutation.
+
+**What this adds.** The design's central property now holds in the live game for a real stop: a C stop inside a callee
+leaves exact state that the original can finish. The evidence is one arrival. It is a single data point, and other stop
+kinds (CODE, TRANSFER) are not exercised.
 
 ## Build and run (local; the emulator stays under ignored `resources/`)
 
 1. **Apply the patch** to pinned DOSBox-X `5a9c7c53`, the heavy-debug configuration.
-2. **Compile the model:**
-   `gcc -std=c11 -O2 -I include -c src/recovered/resident_0899_idle_0104_cpu.c -o resources/hybrid/pr_r0899_0104.o`.
+2. **Compile the models:** `resident_0899_idle_0104_cpu.c`, `resident_0464_bitmap_release_2595_cpu.c` and
+   `system_freemem_0254_cpu.c`, each with `gcc -std=c11 -O2 -I include -c`. Combine them with `ld -r` into
+   `resources/hybrid/pr_models.o`.
 3. **Edit the local, ignored Makefiles:** append `-I<repo>/include` to `CPPFLAGS` in `src/cpu/Makefile`, and append the
    object to `LIBS` in `src/Makefile`.
-4. **Run:** with `PR_HYBRID_DISPATCH=RES_0899_0104` set, run
+4. **Run:** with `PR_HYBRID_DISPATCH=RES_0899_0104,RES_0464_2595` set, run
    `tools/hybrid/run_observer.sh <name> resources/hybrid/registry.tsv`.
 
 `/usr/bin/dosbox-x` and the desk's deployed build were not touched.
