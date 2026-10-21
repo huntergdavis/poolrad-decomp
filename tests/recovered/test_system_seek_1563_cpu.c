@@ -1,4 +1,4 @@
-/* Focused synthetic test for the raw-CPU SYSTEM Seek 0AF8:1563 + 14B6 (docs/re/SYSTEM_SEEK_1563_CPU.md). No game bytes. */
+/* Focused synthetic test for the raw-CPU SYSTEM Seek 0AF8:1563 (+ composed 14B6) (docs/re/SYSTEM_SEEK_1563_CPU.md). No game bytes. */
 #include "poolrad/recovered/system_seek_1563_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,6 +59,10 @@ int main(void)
     c = setup(ram, 0xD7B0, 128, 1);
     CHECK(pr_system_seek_1563(ram, PR_SEEK_RAM_SIZE, &c, dos, NULL) == PR_SEEK_RETURNED && calls == 0 && get(ram, DS, 0x4426) == 103);
     CHECK(get(ram, SS, 0x7FFC) == 0x156C && get(ram, SS, 0x7FFE) == 0x7777 && (c.flags & 0x40u) == 0);
+
+    /* TRANSFER: SS = DS, entry SP 442Ah puts the check's return slot on InOutRes; not open stores 103 there: RET to 0067h. */
+    c = setup(ram, 0xD7B0, 128, 1); c.ss = DS; c.sp = 0x442A;
+    CHECK(pr_system_seek_1563(ram, PR_SEEK_RAM_SIZE, &c, dos, NULL) == PR_SEEK_TRANSFER && c.ip == 0x0067 && c.sp == 0x4428 && calls == 0);
 
     /* ARGUMENT: rejected before any change. */
     c = setup(ram, 0xD7B3, 128, 1); before = c;
