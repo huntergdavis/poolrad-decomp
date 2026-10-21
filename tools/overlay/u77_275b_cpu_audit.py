@@ -141,10 +141,11 @@ def build(body):
 
 
 def case(name, *, type_byte=0x0C, quantity=4, count=1, base=0x0100,
-         sp=0x7FF4, flags=0x0202, saturate=None, nodes=0):   # post-CALL SP: frame at SS:SP
+         sp=0x7FF4, flags=0x0202, saturate=None, nodes=0, bp=0x7F00):   # post-CALL SP: frame at SS:SP
     """One fixture: object fields plus the frame words the body reads."""
     ram, cpu = build(CASE_BODY)
     cpu.sp = sp
+    cpu.bp = bp   # the caller's BP is saved and restored; a low byte other than 0 exposes a word store over [bp+0]
     cpu.flags = flags
     target_segment, target_offset = 0x3000, 0x0100
     record_segment, record_offset = 0x4000, 0x0200
@@ -211,6 +212,11 @@ def cases():
         specs.append(dict(sp=sp))
     for flags in (0x0002, 0x00D7, 0x08D7, 0x0402):
         specs.append(dict(flags=flags))
+    # the caller's BP is not always a multiple of 256: the three byte stores at [bp-2] and [bp-1] must not touch [bp+0]
+    for bp in (0x7F01, 0x7FFE, 0x1234, 0xFFFF, 0x00FF):
+        specs.append(dict(bp=bp))
+        specs.append(dict(bp=bp, type_byte=0x10))
+        specs.append(dict(bp=bp, quantity=0xFFFF, count=255, base=0xFFFF))
     # saturated objects drive the resident's result high enough that the
     # comparison can reach the `jg` side of the 32-bit test
     for fill in (0x00, 0x7F, 0x80, 0xFF):

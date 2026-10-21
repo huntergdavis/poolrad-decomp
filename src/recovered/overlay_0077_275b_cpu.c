@@ -33,6 +33,12 @@ static void wr(machine *m, uint16_t segment, uint16_t offset, uint16_t value)
     m->ram[(at + 1u) & MASK] = (uint8_t)(value >> 8);
 }
 
+/* MOV BYTE PTR [..],imm/AL: one byte, never the word that would clobber the neighbour (the saved BP at [bp+0]). */
+static void wr8(machine *m, uint16_t segment, uint16_t offset, uint8_t value)
+{
+    m->ram[physical(segment, offset)] = value;
+}
+
 static void push(machine *m, uint16_t value)
 {
     m->cpu->sp = (uint16_t)(m->cpu->sp - 2u);
@@ -140,12 +146,12 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
 
     /* [bp-2] = 0; es:di = [bp+0xA]; if es:[di+0xC7] > 15 then [bp-2] = 1 */
     flag = 0;
-    wr(&m, c->ss, (uint16_t)(c->bp - 2), flag);
+    wr8(&m, c->ss, (uint16_t)(c->bp - 2), (uint8_t)flag);
     les(&m, 0x0A);
     type_byte = ram[physical(c->es, (uint16_t)(c->di + 0xC7))];
     if (type_byte > TYPE_LIMIT) {
         flag = 1;
-        wr(&m, c->ss, (uint16_t)(c->bp - 2), flag);
+        wr8(&m, c->ss, (uint16_t)(c->bp - 2), (uint8_t)flag);
     }
 
     /* es:di = [bp+6]; [bp-4] = es:[di+0x37] */
@@ -197,19 +203,19 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
         int greater = (((c->flags & 0x800) != 0) == ((c->flags & 0x80) != 0));
         if (greater) {
             flag = 1;
-            wr(&m, c->ss, (uint16_t)(c->bp - 2), flag);
+            wr8(&m, c->ss, (uint16_t)(c->bp - 2), (uint8_t)flag);
         }
     } else {
         cmp16(c, c->ax, c->cx);                         /* cmp ax,cx */
         if ((c->flags & 1) == 0) {                      /* jbe not taken -> flag */
             flag = 1;
-            wr(&m, c->ss, (uint16_t)(c->bp - 2), flag);
+            wr8(&m, c->ss, (uint16_t)(c->bp - 2), (uint8_t)flag);
         }
     }
 
     /* al = [bp-2]; [bp-1] = al; al = [bp-1]; sp=bp; pop bp; retf 8 */
     flag = ram[physical(c->ss, (uint16_t)(c->bp - 2))];
-    wr(&m, c->ss, (uint16_t)(c->bp - 1), flag);
+    wr8(&m, c->ss, (uint16_t)(c->bp - 1), (uint8_t)flag);
     c->ax = (uint16_t)((c->ax & 0xFF00u) | ram[physical(c->ss, (uint16_t)(c->bp - 1))]);
     c->sp = c->bp;
     c->bp = rd(&m, c->ss, c->sp);
