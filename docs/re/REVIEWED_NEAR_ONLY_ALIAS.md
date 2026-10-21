@@ -87,3 +87,33 @@ For each accepted body, in the landing order of `RES_0802_IDENTITY_ARGUMENTS.md`
 `GAME_SPECIFIC_TARGETS`, regenerate (the audit then reports it `game_verified`), add the identity row and the credit row
 under the `RES_0802_*` name, and refresh the checkpoint. `RES_0802_02EB`, `025D` and `0716` are overlay-called and already
 have `RES_` names; they need no list entry.
+
+## Extension to fourteen: the eight nested bodies of credited `RES_00BA_0BB8` (VP i20397)
+
+par-a ruled these eight PASS in [NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md): factor 1 is direct
+(near sites inside the strict-credited `0BB8` and `13AB`), factor 2 is the 285-byte character object and the `+C8h` list
+records. The mechanism and the six conditions are unchanged; the list grows from six to fourteen entries, each explicit.
+The verdict page records each body's size and image offset but not its hash, so the hash is recorded here and
+**cross-checked against the 115C checker's own pins** (`PINS` in `u9e_character_pair_115c_audit.py`, an independent source),
+which a test compares.
+
+| id | verdict | body_sha256 | body_bytes |
+| --- | --- | --- | ---: |
+| RES_00BA_0000 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | dc1d899f356871351977cc5ffdba6f1445bdc9e51a0f42f0758deaae63f28917 | 507 |
+| RES_00BA_01FB | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 231ccedb42ed924477cf8c0db9d2415eb541fc21e58a52af19052ba2dad9a21f | 135 |
+| RES_00BA_0282 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 92bfa47643e8418793ce20a0ad79475c84ef340046e61327682efb132f01cf3a | 286 |
+| RES_00BA_03A0 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 56c28fb6c276cd2242687ca09e1cb39adf8b0f22d19e9a3dddd1feecb9ac1f98 | 141 |
+| RES_00BA_10E6 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | fac332383b03ed081b3c863de7a7f086277f2a3db34505e6a0ecb6959c9f101c | 130 |
+| RES_00BA_11EA | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 8331051d67bce5f352938484858963a8e7e6758d43e47bd131f72b9c2980e020 | 152 |
+| RES_00BA_1282 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | 3c9c2c535ca66703d223b5e65c9fa6b13e04d8cc05603f8a88c6024376059bf4 | 163 |
+| RES_00BA_1325 | docs/re/NEAR_ONLY_GAME_SEGMENT_IDENTITY.md | bf71db2bfc2033faa964f74e185be79e0cd2789ff3a6c0c5d5ff828b19b53a36 | 134 |
+
+1,648 B in total. Ownership is still not set by the name: none of the eight is in `GAME_SPECIFIC_TARGETS`, so all stay
+`unresolved` until par-e grants them one at a time. The loader refuses an 00BA entry that has no PASS verdict naming its
+image offset (the `RPRO_` id) and size in par-a's page. The other nine of the 17 stay BLOCKED and are not listed.
+
+**Measured delta of the extension** (main `6c0b335e`, fresh export before and after): 898 originals before and after;
+`summary` block identical; exactly **8** rows differ (`RES_IMAGE_00BA0, 00D9B, 00E22, 00F40, 01C86, 01D8A, 01E22, 01EC5`),
+alias list only; aliases 2,206 to 2,214; strict 262 and identities 307 unchanged. The independent alias audit passes
+(898 starts, 0 duplicate originals, 0 duplicate credits). Updated scope: of the 17 game-segment near-only residents,
+**8 now carry a reviewed name and 9 remain BLOCKED** (par-a); 14 of the 39 near-only residents are listed in all.
