@@ -102,3 +102,30 @@ was verified with the media absent.
 
     python3 tools/overlay/res0802_02eb_cpu_audit.py --compile-only
     python3 tools/overlay/res0802_02eb_cpu_audit.py --unicorn --native --output resources/0802-02eb/final.json
+
+## Acceptance record (added by the review lane, par-e, VP i20362/i20368)
+
+Member row: `RES_0802_02EB`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity. It is landed ALONE, ahead of the other
+eight (VP i20368): it is a ledger entry and independent of the display chain. The six near-only bodies wait for the
+alias change ruled in i20368.
+
+- **Reproduced at main `62871450`:**
+  - **Unicorn:** 40 cases, all `RETURN`. Starts 43/43, outcomes 4/4, 20 independent checks, CPU14 + 1 MiB, masks 0.
+  - **Native:** 20 cases equal against real DOS on real files. RESULT.BIN is a per-run receipt, as stated above: two
+    runs gave `c7e6fa7f…` and `571d76b0…`, and the second equals this document. Both compare 20/20.
+  - **ASan/UBSan** (`-Werror -Wpedantic`, with every composed source: StrStore, IOResult/Assign, runtime leaves, Reset,
+    Close, the `14B6` check): 19 checks.
+  - **Checker build:** `check_checker_builds RES_0802_02EB --require-current-main` passes at `62871450`.
+  - **Census:** `res0802_identity_census.py` reproduces the census and all nine spans and hashes.
+- **Composed callees are all covered:** StrStore `0B25`, Assign `13E2`, Reset `1410` (its CLOSE stop composed through
+  Close, as reviewed in #1319), Close `1491` and IOResult `04A2`.
+- **Factor 1 (direct), checked on a fresh export:** 15 overlay sites in six functions, all `game_evidenced`:
+  `OVL_006F_0010`, `069E`, `0AEC`, `1602`, `1D58` and `22D5`. No caller is `game_verified`, as the identity document
+  says.
+- **Factor 2: argument-borne, and consumed by game code.** The subject is the game's own file named by the caller.
+  - The far call at `0x6F:+19A8` passes the party/save file name
+    ([U6F_PARTY_FILENAME_BOUNDARY.md](U6F_PARTY_FILENAME_BOUNDARY.md)).
+  - The caller branches on the returned AL at `+19AD` ([SLOT_A_NATIVE_19AD_SELECTOR_RETURN.md](SLOT_A_NATIVE_19AD_SELECTOR_RETURN.md)).
+  - **Scope, stated:** the body also writes the IOResult copy at `DS:49CE`, but I found **no game-code reader**. A scan
+    of GAME.OVR for direct `[49CE]` loads and compares found 0. So `49CE` is named as a write, NOT cited as the
+    game-state subject. The identity rests on the file name and the branch only.
