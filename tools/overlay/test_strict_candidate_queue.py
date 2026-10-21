@@ -135,11 +135,67 @@ class DriverInternalTest(unittest.TestCase):
             rows = list(reader)
             members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
-        self.assertEqual(members, frozenset({"RES_08AE_181A"}))  # #1243, accepted by par-e
+        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000"}))  # #1243, #1249; accepted by par-e
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
             self.assertEqual(scq.load_driver_internal(self.table(folder), folder), {"RES_08AE_00DC"})
+
+    @staticmethod
+    def image(*bodies):
+        """A synthetic loader image holding each (08AE offset, body bytes) at its linear address."""
+        memory = bytearray(0x8AE * 16 + 0x10000)
+        for offset, body in bodies:
+            memory[0x8AE * 16 + offset:0x8AE * 16 + offset + len(body)] = body
+        return bytes(memory)
+
+    def test_member_with_an_unready_callee_is_refused(self):
+        # A member whose closure is not ready would read as ready and launder that callee (par-e, #1249 review).
+        retf = b"\xcb"
+        refused = {
+            "0AF8:0001 is not runtime-covered": b"\x9a\x01\x00\xf8\x0a" + retf,   # LCALL to an uncovered endpoint
+            "indirect near transfer": b"\xff\x17" + retf,                         # CALL WORD [BX]
+            "indirect far transfer": b"\xff\x1f" + retf,                          # LCALL DWORD [BX]
+            "interrupt": b"\xcd\x21" + retf,                                       # INT 21h
+            "RES_08AE_0200 is not a member or strict": b"\xe8\x21\x01" + retf,    # CALL 0200 (a non-member)
+            "no return found": b"\x90" * 16,
+        }
+        for message, body in refused.items():
+            with self.subTest(message), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(Exception) as caught:
+                    scq.load_driver_internal(self.table(folder), folder, image=self.image((0x00DC, body)))
+                self.assertIn("incomplete closure", str(caught.exception))
+                self.assertIn(message, str(caught.exception))
+
+    def test_member_with_a_ready_closure_loads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            covered = self.image((0x00DC, b"\x9a\x5b\x0a\xf8\x0a\xcb"))       # LCALL 0AF8:0A5B (LongMul), RETF
+            self.assertEqual(scq.load_driver_internal(self.table(folder), folder, image=covered), {"RES_08AE_00DC"})
+            strict = self.image((0x00DC, b"\xe8\x21\x01\xcb"))                # CALL 0200, a strict resident
+            self.assertEqual(scq.load_driver_internal(self.table(folder), folder, image=strict,
+                                                      strict_ids=frozenset({"RES_08AE_0200"})), {"RES_08AE_00DC"})
+            rows = self.table(folder) + [dict(self.table(folder)[0], id="RES_08AE_0200")]
+            Path(folder, "docs/re/DRIVER_TEST.md").write_text(f"RES_08AE_00DC RES_08AE_0200 {self.SHA}\n")
+            pair = self.image((0x00DC, b"\xe8\x21\x01\xcb"), (0x0200, b"\xcb"))  # member calls member
+            self.assertEqual(scq.load_driver_internal(rows, folder, image=pair), {"RES_08AE_00DC", "RES_08AE_0200"})
+
+    def test_committed_members_are_closure_complete_on_the_media(self):
+        exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
+        if not exe.is_file():
+            self.skipTest("owner media absent")
+        from resident_loader_map import unpack
+        image = bytes(unpack(exe.read_bytes())[0])
+        path = self.ROOT / "docs/re/driver_internal_models.csv"
+        rows = list(csv.DictReader(path.read_text().splitlines()))
+        self.assertEqual(scq.load_driver_internal(rows, self.ROOT, image=image),
+                         frozenset({"RES_08AE_181A", "RES_08AE_0000"}))
+        # The real 0000 body calls Dos.GetTime: withdraw that coverage and the member must be refused.
+        with mock.patch.dict(scq.RUNTIME_COVERED_ENDPOINTS):
+            del scq.RUNTIME_COVERED_ENDPOINTS[(0x0A32, 0x00A2)]
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(rows, self.ROOT, image=image)
+            self.assertIn("RES_08AE_0000 has an incomplete closure", str(caught.exception))
+            self.assertIn("0A32:00A2", str(caught.exception))
 
     def test_membership_is_narrow_and_fail_closed(self):
         cases = {

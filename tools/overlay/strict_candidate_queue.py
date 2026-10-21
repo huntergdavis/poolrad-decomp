@@ -128,6 +128,7 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x120F): "system seed step (system_seed_fullstate_120f)",
     (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
     (0x0AF8, 0x182A): "system UpCase (system_runtime_leaves_cpu)",
+    (0x0A32, 0x00A2): "Dos.GetTime (dos_gettime_00a2_cpu, #1245)",
 }
 
 TOKEN = re.compile(
@@ -327,8 +328,62 @@ DRIVER_INTERNAL_FIELDS = ("id", "evidence_doc", "review_pr", "reviewed_commit", 
 DRIVER_INTERNAL_ID = re.compile(r"RES_08AE_[0-9A-F]{4}")
 
 
-def load_driver_internal(rows, root=ROOT, fields=None):
-    """Validate the driver-internal table and return its member ids. Fail closed."""
+def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset()):
+    """Transfers out of a member body that are not ready; empty means closure-complete.
+
+    The body runs from its entry to the first return that no earlier direct forward branch jumps past, decoded
+    from the loader-expanded image. A far transfer must reach a runtime-covered endpoint, a declared boundary, a
+    member or a strict resident; a near call, or a near jump leaving the body, must reach a member or a strict
+    resident in the same segment. Indirect transfers and interrupts are unresolved, so they are gaps.
+    """
+    from capstone import CS_ARCH_X86, CS_MODE_16, Cs
+    seg, entry = int(member[4:8], 16), int(member[9:13], 16)
+    code = bytes(image[seg * 16 + entry:seg * 16 + entry + 0x1200])
+    farthest, body, end = entry, [], None
+    for ins in Cs(CS_ARCH_X86, CS_MODE_16).disasm(code, entry):
+        body.append(ins)
+        if (ins.mnemonic.startswith("j") or ins.mnemonic.startswith("loop")) and ins.op_str.startswith("0x"):
+            farthest = max(farthest, int(ins.op_str, 16))
+        if ins.mnemonic in ("ret", "retf", "iret") and ins.address + ins.size > farthest:
+            end = ins.address + ins.size
+            break
+    if end is None:
+        return [f"no return found from +{entry:04X}"]
+
+    def ready(resident_id):
+        return resident_id in members or resident_id in strict_ids or resident_id in DECLARED_BOUNDARY_ENDPOINTS
+
+    gaps = []
+    for ins in body:
+        where, mnemonic, operand = f"+{ins.address:04X} {ins.mnemonic} {ins.op_str}", ins.mnemonic, ins.op_str
+        if mnemonic in ("int", "int3", "into"):
+            gaps.append(f"{where}: interrupt (unresolved environment edge)")
+        elif mnemonic in ("lcall", "ljmp"):
+            try:
+                far_seg, far_off = (int(part, 16) for part in operand.split(", "))
+            except ValueError:
+                gaps.append(f"{where}: indirect far transfer")
+                continue
+            if (far_seg, far_off) not in RUNTIME_COVERED_ENDPOINTS and not ready(f"RES_{far_seg:04X}_{far_off:04X}"):
+                gaps.append(f"{where}: {far_seg:04X}:{far_off:04X} is not runtime-covered, declared, strict or a member")
+        elif mnemonic == "call" or mnemonic == "jmp" or mnemonic.startswith("j") or mnemonic.startswith("loop"):
+            if not operand.startswith("0x"):
+                if mnemonic in ("call", "jmp"):
+                    gaps.append(f"{where}: indirect near transfer")
+                continue
+            target = int(operand, 16) & 0xFFFF
+            if mnemonic == "call" or not entry <= target < end:
+                if not ready(f"RES_{seg:04X}_{target:04X}"):
+                    gaps.append(f"{where}: RES_{seg:04X}_{target:04X} is not a member or strict")
+    return gaps
+
+
+def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=frozenset()):
+    """Validate the driver-internal table and return its member ids. Fail closed.
+
+    With the loader-expanded START image, every member must also be closure-complete: a member whose callee is
+    unready would read as ready and launder that callee, so it is refused here rather than left to review.
+    """
     from resident_inventory import GAME_SPECIFIC_TARGETS
     require(fields is None or tuple(fields) == DRIVER_INTERNAL_FIELDS,
             f"driver_internal table columns must be exactly {DRIVER_INTERNAL_FIELDS}")
@@ -355,6 +410,10 @@ def load_driver_internal(rows, root=ROOT, fields=None):
         require(member in text and row["body_sha256"] in text,
                 f"driver_internal evidence document does not name {member} and its body hash")
         members.add(member)
+    if image is not None:
+        for member in sorted(members):
+            gaps = driver_internal_closure_gaps(member, image, members, strict_ids)
+            require(not gaps, f"driver_internal member {member} has an incomplete closure: {'; '.join(gaps)}")
     return frozenset(members)
 
 
@@ -792,6 +851,8 @@ def main():
     parser.add_argument("--identities", default=str(DEFAULT_IDENTITIES),
                         help="reviewed identity table, checked disjoint from driver_internal")
     parser.add_argument("--ovr", help="hash-pinned GAME.OVR for PUSH CS call-site checks")
+    parser.add_argument("--exe", default=str(ROOT / "resources/DOS/POOLRAD/START.EXE"),
+                        help="hash-pinned START.EXE; required whenever driver_internal has members (closure check)")
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
     parser.add_argument("--json", required=True)
@@ -818,8 +879,21 @@ def main():
                     "GAME.OVR hash differs from the audited build")
         near = json.loads(blobs["near_calls"]) if "near_calls" in blobs else None
         driver_text = blobs["driver_internal"].decode()
-        driver_internal = load_driver_internal(csv_rows(blobs["driver_internal"]), repo,
-                                               fields=csv.DictReader(driver_text.splitlines()).fieldnames)
+        driver_rows = csv_rows(blobs["driver_internal"])
+        image = None
+        if driver_rows:
+            # A member must be closure-complete; that is decided from the bytes, so the check cannot be skipped.
+            exe_path = Path(args.exe)
+            require(exe_path.is_file(), f"driver_internal has members, so the closure check needs START.EXE: {exe_path}")
+            exe = exe_path.read_bytes()
+            require(hashlib.sha256(exe).hexdigest() == DIGESTS["start_exe_sha256"],
+                    "START.EXE hash differs from the audited build")
+            from resident_loader_map import unpack
+            image = bytes(unpack(exe)[0])
+        strict_residents = frozenset(row["id"] for row in csv_rows(blobs["strict_map"]) if row["id"].startswith("RES_"))
+        driver_internal = load_driver_internal(driver_rows, repo,
+                                               fields=csv.DictReader(driver_text.splitlines()).fieldnames,
+                                               image=image, strict_ids=strict_residents)
         state = load_queue(inventory, csv_rows(blobs["ledger"]),
                            csv_rows(blobs["classification"]),
                            csv_rows(blobs["strict_map"]), near,
