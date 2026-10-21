@@ -111,7 +111,7 @@ def ownership():
 def library(directory):
     path = directory / 'close.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include'),
-                    str(ROOT / 'src/recovered/system_close_1491_cpu.c'), '-o', str(path)], check=True)
+                    str(ROOT / 'src/recovered/system_close_1491_cpu.c'), str(ROOT / 'src/recovered/system_filecheck_14b6_cpu.c'), '-o', str(path)], check=True)
     fn = ctypes.CDLL(str(path)).pr_system_close_1491
     fn.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), SERVICE_FN, ctypes.c_void_p]
     fn.restype = ctypes.c_int
