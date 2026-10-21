@@ -37,7 +37,7 @@ wraps; outside it the call returns `ARGUMENT`.
    in every one; 19 `RETURN` cases are exactly the zero-`InOutRes` ones.
 3. **Static proof from the bytes (the checker):** a walk over every path from `00E2` inside the SYSTEM segment (87 instructions, callees treated as returning to the flow) finds **one `RETF` and one `RET`**: the `RETF` at `013F` is
    the ExitProc dispatch (`MOV AX,0123; PUSH CS; PUSH AX; PUSH ES; PUSH BX; RETF`, so the exit procedure returns to `0123`, not to the I/O check's caller), the `RET` at `01B2` is a local helper reached by `CALL`; the only interrupts are
-   `INT 21h` at `0164` (print) and `01A3`, whose `AH` is set by `MOV AH,4Ch` at `01A1` (terminate). No path returns to the caller of `IOCheck`.
+   `INT 21h` at `0164` (`AH` = `25h`, set by `MOV AH,25h` at `015F`: the loop that restores the 19 saved interrupt vectors) and `01A3` (`AH` = `4Ch`, set by `MOV AH,4Ch` at `01A1`: terminate). **Correction:** the first version of this document labelled `0164` "print"; it is the vector restore. The ErrorAddr print goes through the near helpers `01A5`/`01B3`/`01CD`/`01E7`, which this walk treats as returning callees and does not enter. No path returns to the caller of `IOCheck`.
 
 ### What 00E2 is, and what is NOT yet declared
 
@@ -86,7 +86,7 @@ Measured with `price_row_closures.Pricer` over all 440 queue rows, products rege
 | rows whose closure reaches uncovered `04A9` (reproduces par-b's 77) | 77 |
 | rows that lose an uncovered SYSTEM endpoint when `04A9` alone is covered | 77 |
 | rows left with **no** uncovered SYSTEM endpoint by `04A9` alone | **0** |
-| rows left with no uncovered SYSTEM endpoint by `04A9` + `1491` | 0 (78 rows change) |
+| rows left with no uncovered SYSTEM endpoint by `04A9` + `1491` | 0 (82 rows change; corrected from 78 in [SYSTEM_CLOSE_1491_CPU.md](SYSTEM_CLOSE_1491_CPU.md), the first figure used a stale export) |
 | rows left with no uncovered SYSTEM endpoint by all six file-I/O endpoints | 17 (82 rows change) |
 
 So `04A9` alone unlocks nothing; it removes one of six blockers from 77 rows, as the package framing predicted. "No uncovered SYSTEM endpoint" is not "composable": other unready bodies, a pending RunError declaration and identity may remain.

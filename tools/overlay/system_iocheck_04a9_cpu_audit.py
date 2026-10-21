@@ -79,6 +79,7 @@ def terminal_from_runerror(image):
           'the one RETF is not the ExitProc dispatch frame')
     check(ints == [(0x0164, '0x21'), (0x01A3, '0x21')], f'interrupts reachable from RunError: {ints}')
     check(ins[0x1A1].mnemonic == 'mov' and ins[0x1A1].op_str == 'ah, 0x4c', 'the final INT 21h is not AH=4Ch')
+    check(ins[0x15F].mnemonic == 'mov' and ins[0x15F].op_str == 'ah, 0x25', 'the INT 21h at 0164 is not the AH=25h vector restore')
     check(len(seen) == RUNERROR_REACHABLE, f'reachable instruction count {len(seen)}')
     return dict(reachable_instructions=len(seen), returns=[f'{a:04X} {m}' for a, m in rets], interrupts=[f'{a:04X} {o}' for a, o in ints])
 
