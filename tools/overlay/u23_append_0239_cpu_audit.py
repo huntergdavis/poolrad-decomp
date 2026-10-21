@@ -25,7 +25,7 @@ BODY_SHA = 'cfce7e60752c92e3d2975c742d7ef052e20090a2a56824bae13b3fa6083f27c9'
 OVERLAY, STUB, U77, RES = 0x3000, 0x3200, 0x3400, 0x00BA   # the 275B model hard-codes 00BA:0BB8, so the resident closure sits at 00BA
 DS, SS, SYS, DISPLAY = base.DS, base.SS, base.SYS, base.DISPLAY
 RETURN = (0x7000, 0x9001)
-CHAR_SEG, CHAR_OFF, NODE_SEG, ITEM_SEG, RESULT_SEG, HEAP_SEG = 0x1000, 0x100, 0x1400, 0x1C00, 0x1D00, 0x9000
+CHAR_SEG, CHAR_OFF, NODE_SEG, ITEM_SEG, RESULT_SEG, HEAP_SEG = 0x1900, 0x100, 0x1B00, 0x1F00, 0x1F80, 0x9000   # clear of the native COM segment (0814..1813)
 SITES = {0x24D: (0x4D, 0, 'check'), 0x260: (0xB0B, 1, 'strload'), 0x265: (0x1693, 2, 'display'), 0x29B: (0x23F, 3, 'getmem-head'),
          0x2B4: (0xA3F, 4, 'move-head'), 0x300: (0x23F, 5, 'getmem-tail'), 0x319: (0xA3F, 6, 'move-tail'), 0x344: (0xBB8, 7, 'redraw')}
 SEG_WORDS = {0x250: STUB, 0x263: SYS, 0x268: DISPLAY, 0x29E: SYS, 0x2B7: SYS, 0x303: SYS, 0x31C: SYS, 0x347: RES}
@@ -126,10 +126,15 @@ def ownership():
     return dict(near_sites=['23:03DE (in 0361)', '23:0427 (in 0361)'], far_sites=['20:0C60 (in 0C06)'], stub=f'{stub[0]:04X}:{stub[1]:04X}')
 
 
-def library(directory):
-    path = directory / 'append0239.so'
+NATIVE_STUB = ROOT / 'tools/overlay/u23_append_0239_native_stubs.c'
+
+
+def library(directory, native=False):
+    """The C composition; native=True links the declared 275B stub in place of the 275B model (see the native module)."""
+    path = directory / ('append0239_native.so' if native else 'append0239.so')
+    sources = [str(NATIVE_STUB) if (native and s == 'overlay_0077_275b_cpu') else str(ROOT / 'src/recovered' / (s + '.c')) for s in SOURCES]
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include'),
-                    *[str(ROOT / 'src/recovered' / (s + '.c')) for s in SOURCES], '-o', str(path)], check=True)
+                    *sources, '-o', str(path)], check=True)
     lib = ctypes.CDLL(str(path))
     f = lib.pr_u23_append_0239_cpu
     f.argtypes = [ctypes.POINTER(Bus), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.POINTER(Limits), ctypes.POINTER(Diag)]
@@ -611,7 +616,10 @@ def main():
         bodies, decoded, meta, literal = source()
         report = dict(target=meta, ownership=ownership())
         if a.unicorn:
-            differential(bodies, decoded, literal, lib, a.quick, a.smoke)
+            report['unicorn'] = differential(bodies, decoded, literal, lib, a.quick, a.smoke)
+        if a.native:
+            from u23_append_0239_native import native
+            report['native'] = native(bodies, literal, library(Path(tmp), native=True))
         if a.output:
             a.output.parent.mkdir(parents=True, exist_ok=True)
             a.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
