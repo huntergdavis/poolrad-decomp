@@ -210,3 +210,17 @@ The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-stan
 2. **Operates on documented game state.** The body reads and writes exactly the parent-frame slots that credited `OVL_03B0_0CC5`'s doc ([U3B0_CURSOR_STEP_0CC5.md](U3B0_CURSOR_STEP_0CC5.md)) defines, then composes credited `OVL_03B0_0B03` and `OVL_03B0_07A4`.
    - The slots: limit `L-59h`, bound `L-56h`, the index far pointer `X` at `L+0Ah/0Ch`, and the list base `G = DS:[6B29h]`.
    - `0CC5`, `0B03` and `0969` are each in both `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `813a9d06` (2026-10-20). Unicorn: 118 cases; caller 49/49 starts, 6/6 outcomes, CPU14 + 1,048,576 B, `ram_excluded_ranges []`,
+flag masks 0. Native: 44 cases, RESULT.BIN `3b50f026…` (matches this document). Body 146 B, SHA-256
+`c7cb3ab8625088a43a7c7d35f9fa21dde2252bdfa9132e2fc5592070489fe86a`, from GAME.OVR. Identity: par-a's two-factor section above (#1262). Each factor-1 site was checked from the
+media: it decodes as `0E E8`, sits at an instruction boundary inside a `game_evidenced` caller, and that caller is
+not strict.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential, with the EGA device compared. Native agreement is claimed for that binary only.
