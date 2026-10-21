@@ -32,6 +32,11 @@ def renamed_audit(classification="unresolved"):
     return dict(inputs=fq.DIGESTS.copy(), rows=[row, resident_row("RPRO_08125", 0x8125, far=0)], runtime_rows=[])
 
 
+# Reviewed near-only bodies granted game_verified by their acceptance (par-e). Exact set: each grant
+# commit adds one, deliberately.
+GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000)})
+
+
 class QueueNamingTest(unittest.TestCase):
     def queue(self, audit, credits=()):
         return fq.export_queue(*fixture(), list(credits), audit)
@@ -125,11 +130,14 @@ class AuditTest(unittest.TestCase):
             self.assertEqual(rows[start]["discovery_id"], "RPRO_%05X" % start)
 
     def test_the_alias_is_not_an_identity_grant(self):
-        # Condition 4: with none of the six in GAME_SPECIFIC_TARGETS they stay unresolved, as before the change.
-        self.assertTrue(set(rc.REVIEWED_NEAR_ONLY.values()).isdisjoint(ri.GAME_SPECIFIC_TARGETS))
-        for start in rc.REVIEWED_NEAR_ONLY:
-            self.assertEqual(self.other()[start]["classification"], "unresolved")
-        self.assertEqual(self.base["summary"]["game_verified"], 30)   # 29 + RES_0802_02EB (overlay-called, accepted in #1341)
+        # Condition 4: a listed body is game_verified exactly when its acceptance added it to GAME_SPECIFIC_TARGETS.
+        # GRANTED_NEAR_ONLY is the exact set granted so far; each grant commit moves it (no grant comes from the name).
+        self.assertEqual(set(rc.REVIEWED_NEAR_ONLY.values()) & ri.GAME_SPECIFIC_TARGETS, set(GRANTED_NEAR_ONLY))
+        for start, target in rc.REVIEWED_NEAR_ONLY.items():
+            want = "game_verified" if target in GRANTED_NEAR_ONLY else "unresolved"
+            self.assertEqual(self.other()[start]["classification"], want)
+        # 29 + RES_0802_02EB (overlay-called, accepted in #1341) + the granted near-only bodies
+        self.assertEqual(self.base["summary"]["game_verified"], 30 + len(GRANTED_NEAR_ONLY))
 
     def test_ownership_comes_only_from_game_specific_targets(self):
         grant = ri.GAME_SPECIFIC_TARGETS | {(0x802, 0x0040)}
@@ -138,7 +146,7 @@ class AuditTest(unittest.TestCase):
         before, after = self.other(), self.other(changed)
         self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {0x8060})
         self.assertEqual(after[0x8060]["classification"], "game_verified")
-        self.assertEqual(changed["summary"]["game_verified"], 31)
+        self.assertEqual(changed["summary"]["game_verified"], 31 + len(GRANTED_NEAR_ONLY))
         self.assertEqual(changed["summary"]["unresolved"], self.base["summary"]["unresolved"] - 1)
 
     def test_a_listing_without_an_argument_or_with_a_wrong_body_is_refused(self):
