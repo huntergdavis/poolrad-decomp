@@ -151,3 +151,23 @@ session, so no prior-session result was reused.
 | signals | Span/hash/relocation identity, segment-wide caller census, full-RAM original differential with stops and outcome accounting, independent reference, mutation check, native replay with declared stubs |
 | verdict | likely_match within the documented bounded CPU profile; no identity claim |
 | review_notes | Driver-internal candidate, never credited; closure incomplete until 137C/1742/17AE/13B1 are members; callees are stops and stubbed natively; packaged DOSBox-X substitution declared; no accounting edits |
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Member row: `RES_08AE_017B` in `driver_internal_models.csv`.
+
+**This body's own evidence**, reproduced by par-e on main `e37aab8d` (2026-10-20):
+- **Unicorn:** 720 stopped or returned cases (195 RETURN, 93 CALL_137C, 144 each of CALL_1742, CALL_17AE and
+  CALL_13B1) plus 5 ARGUMENT, **21/21 starts and 2/2 outcomes**, 320 reference-checked, 14 CPU words and all 1,048,576
+  RAM bytes with no mask.
+- **Native:** 48 cases, RESULT.BIN `dbc46cf5…` (matches).
+- **C:** 53 checks under strict `-Werror` ASan/UBSan.
+
+**Composition evidence (VP i20201).** This model stops at each callee for the caller to resume. The composition is proven by
+the `RES_0899_0059` composed run (#1295, [RES_0899_READKEY_0059_CPU.md](RES_0899_READKEY_0059_CPU.md)). That run chains this
+body through its four real callee members and compares the result against the original image executing the real bodies.
+Reproduced by par-e: 115 cases (103 RETURN, 10 EXIT, 2 BREAK), CPU14 + 1 MiB, flag masks 0.
+- **This body executed 20/21 starts** in that run. The one start not executed, `JMP 01A3` at +018B, needs [5372] = 2 at
+  entry, which 0059's only call (+00A1) cannot produce (#1297's argument, including its stack-alias qualification).
+- **That branch is live in the body** and is covered by the 21/21 and 2/2 above.
+- Its four closure callees (137C, 1742, 17AE, 13B1) are members. Never a credit.
