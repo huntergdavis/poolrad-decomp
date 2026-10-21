@@ -267,6 +267,19 @@ selection-cost table in `docs/re/STRICT_CANDIDATE_QUEUE.md` (cost per
 unlocked row — never select on the queue's byte fields) ·
 `docs/re/OVL_0068_0294_DISPOSITION.md` (the last uncredited row, and why).
 
+## `reviewed_commit`: definition (VP i20093, 2026-10-20)
+
+`reviewed_commit` in `reviewed_function_identities.csv` is **the commit at which the reviewer verified the row**. It takes one of two forms:
+
+1. **The author PR's merged head**, when the evidence and the identity argument landed together in that PR. This is the usual case, and the case the credit audit below checks: its eight rows all take this form.
+2. **The commit that contains the identity argument**, when that argument landed separately after the evidence. The author PR stays in `review_pr` and is named in the row's evidence doc.
+
+**Instances of form 2:** `OVL_03B0_0C33`, `OVL_03B0_0A08`, `OVL_03B0_07A4` and `OVL_03B0_01DA` (credited 253 to 256) carry `5b225a62637afc5ea3036bea5958ef48cae6bcdc`, from #1262.
+- Their author PRs (#1209, #1204, #1202, #1216) contained the evidence but no identity argument. The argument was written later by par-a, in each doc's "Identity under the two-factor standard" section.
+- These four were deliberately **not** normalised to the author heads. That would cite commits that do not contain the argument, so the column would be consistently wrong rather than ambiguous.
+
+**To audit a row:** check `reviewed_commit` against the merged PR head; if they differ, check that the commit contains the row's identity argument and that `review_pr` names the author PR.
+
 ## Credit audit, 2026-10-20: today's eight (par-b; corroborated by par-c)
 
 Checked on main `37ab96e4`, with checkpoint commit `8e54be4b` (244/290) as the

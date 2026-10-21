@@ -36,6 +36,7 @@ import sys
 from pathlib import Path
 
 import check_checker_builds as gate
+import strict_candidate_queue as queue_rules
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 
@@ -253,6 +254,8 @@ def main(argv=None):
     elif problem:
         print(problem)
         return INPUT_EXIT
+    # A present file is not a current one: refuse an export written before the tree changed.
+    queue_rules.load_fresh_export(args.queue, args.root)
     priced = price(args.root, args.queue, args.limit_bytes, args.top)
     print(f"{'id':<16}{'span':>6}{'cost':>8}{'rows':>5}{'B/row':>8}")
     for row in priced:
