@@ -289,6 +289,8 @@ def compare(name, state, bodies, dmap, lib, budgets, refuse=None):
         key = (cs, ip)
         if (ip, cs) == spec['ret']:
             return halt(0)
+        if cs == SYS and ip == 0xE2:        # RunError's entry is not part of the closure's decoded bodies: an exact-state stop
+            return halt(4, 2)
         check(key in dmap, f'escape {name}: {cs:04X}:{ip:04X}')
         ins = dmap[key]
         if cs == OVERLAY and ip in SITES:
