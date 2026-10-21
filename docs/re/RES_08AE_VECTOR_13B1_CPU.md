@@ -158,3 +158,24 @@ establishes neither natural reachability nor real hardware behaviour.
 
 Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and
 capture receipts stay under ignored `resources/`.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Member row: `RES_08AE_13B1` in `driver_internal_models.csv`.
+
+Reproduced by par-e on main `7cf02cd7` (2026-10-20):
+- **Unicorn:** 480 cases (480 RETURN), 27/27 starts, all 256 `IN 61h` values swept, 14 CPU words and all 1,048,576 RAM
+  bytes with no mask, 4,320 environment events.
+- **Composed round trip:** the ORIGINAL bytes of 137C and then 13B1, 64 cases, vector restored.
+- **C:** 43 checks under strict `-Werror` ASan/UBSan. The checker gate passes on current main.
+
+**Declared environment service (driver_internal closure, VP i20129):** `INT 21h AH=25h` (set interrupt vector), at 13C6
+with AX=2508h. It restores INT 08h from the saved CS:1378..137B. Apart from this declared DOS vector service, the
+closure is complete: the body makes no call and no jump.
+
+**Reviewer note on the native hash.** The native comparison passed on every run (32 cases, SF/ZF/PF masked as declared
+above). The RESULT.BIN hash is **not reproducible**, though: three runs gave `013c9de2…` (this document),
+`87ea827e…` and `c7f635b1…`. `IN AL,61h` reads live emulated hardware, and that byte enters the captured result, so the
+hash is a per-run receipt, not a fixed value. Quote it as such.
+
+Membership is never a credit.
