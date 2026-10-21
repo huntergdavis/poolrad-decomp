@@ -7,7 +7,10 @@ queue export (row bytes, readiness), resident callees from the loader-expanded
 START.EXE (first-return span that no earlier branch jumps past, instruction-decoded
 near/far calls), SYSTEM endpoints against RUNTIME_COVERED_ENDPOINTS. Strict-credited
 resident bodies are terminals. Calls into the 08AE driver segment are recorded with the
-resident gateway body that makes them. Figures are floors: bodies are counted once,
+resident gateway body that makes them. Far calls to any other segment (for example the
+Turbo Pascal DOS unit at 0A32) are neither walked nor priced but are PRINTED with the
+bodies that make them: before 2026-10-20 they were collected and never shown, which
+hid 0A32:000B (Intr) from the OVL_006F_0010 breakdown. Figures are floors: bodies are counted once,
 runtime_unmapped endpoints are listed and left unpriced. DECLARED boundary endpoints
 (strict_candidate_queue.DECLARED_BOUNDARY_ENDPOINTS) compose as ready dependencies, so
 they are terminals: listed in their own column, never walked or priced. Before
@@ -101,7 +104,7 @@ class Pricer:
                 elif far_seg == 0x8AE:
                     acc["driver"].setdefault(far_off, set()).add(rid)
                 else:
-                    acc["other"].add((far_seg, far_off))
+                    acc["other"].setdefault((far_seg, far_off), set()).add(rid)
 
     def closure(self, target_id, acc):
         if target_id in acc["bodies"] or target_id in acc["strict"]:
@@ -131,7 +134,7 @@ class Pricer:
                 self.closure(t["id"], acc)
 
     def price(self, row_id):
-        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other=set(), bad=set(), dispatch=set(),
+        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(),
                    declared=set())
         row = self.rows[row_id]
         acc["bodies"][row_id] = row["bytes"]
@@ -147,13 +150,18 @@ def main():
     a = p.parse_args()
     pricer = Pricer(json.load(open(a.queue)), a.exe.read_bytes())
     print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | Declared boundaries (terminals) "
-          "| 08AE entries (gateway bodies) | Dispatch |")
-    print("| --- | ---: | ---: | ---: | --- | --- | --- |")
+          "| 08AE entries (gateway bodies) | Other far targets (calling bodies) | Dispatch |")
+    print("| --- | ---: | ---: | ---: | --- | --- | --- | --- |")
     for row_id in a.rows or DEFAULT_ROWS:
+        if row_id not in pricer.rows:
+            print("| %s | not in queue (credited or removed) | | | | | | |" % row_id)
+            continue
         acc = pricer.price(row_id)
         driver = "; ".join("08AE:%04X <- %s" % (o, ", ".join(sorted(g))) for o, g in sorted(acc["driver"].items())) or "none"
-        print("| %s | %d | %d | %d | %s | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
-              len(acc["unmapped"]), ", ".join(sorted(acc["declared"])) or "none", driver,
+        other = "; ".join("%04X:%04X <- %s" % (s, o, ", ".join(sorted(g)))
+                          for (s, o), g in sorted(acc["other"].items())) or "none"
+        print("| %s | %d | %d | %d | %s | %s | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
+              len(acc["unmapped"]), ", ".join(sorted(acc["declared"])) or "none", driver, other,
               ", ".join(sorted(acc["dispatch"])) or "none"))
 
 
