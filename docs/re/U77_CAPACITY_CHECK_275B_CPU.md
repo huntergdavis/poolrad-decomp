@@ -80,6 +80,16 @@ return 0 and `1501` returns 1, asserted against the original's own result). The 
 (`ax 0501 != original 0500`); the unit test carries the same three values. The compare's `JG`/`JL` half and the two excluded
 sides are unaffected. Body bytes, hash, identity and credit are unchanged.
 
+**Third correction, 2026-10-22 (load base).** The model entered both resident calls with `CS := 00BAh`, a constant, where the
+original's `9A LCALL` carries a segment word the loader relocates (`276A` and `27AB`). At the default base the constant and
+the word agree, so no differential can tell them apart; and because the residents' own models never look at their entry CS
+(and the audit substitutes them at the call), no differential could observe the difference at another base either. The model
+now takes each segment from the live word in the caller's code (`CS:276A`, `CS:27AB`) for the transfer. The catcher is a
+**spy test** (`test_overlay_0077_275b_live_cs.c`): the two resident models are replaced by spies that record the CS they
+are entered with, and the test sets the words to `00BA`, `1234`/`5678`, `0001`/`FFF0` and `10BA`; it fails on the old
+model (`entry_cs[0] == words[k][0]`) and passes on the new one. This is the same exposure as the 0DE3/0E0E, 1010 and 0918
+constant-CS sites par-e counted; their fixes are separate. Nothing else about the body, its hash or its credit changed.
+
 That is **not** "100% of reachable" and **not** "all outcomes": **no starts** are
 excluded (`EXCLUDED_STARTS` is empty) and **two** conditional sides are, for the
 contract reason below. Branch
