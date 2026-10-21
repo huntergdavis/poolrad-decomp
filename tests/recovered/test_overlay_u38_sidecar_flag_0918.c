@@ -10,6 +10,7 @@ typedef struct {
     uint8_t *ram;
     int calls;
     int abort;
+    uint16_t word;   /* the loader-relocated segment half of the LCALL at 092E (CS:0931) */
 } fixture;
 
 static size_t at(uint16_t seg, uint16_t off)
@@ -63,7 +64,7 @@ static int lookup(void *context, uint8_t *ram, size_t size,
     uint16_t key;
     uint8_t found = 0xA5u;
     assert(size == RAM_SIZE && ram == f->ram);
-    assert(cpu->cs == 0x00BAu && cpu->ip == 0x2199u);
+    assert(cpu->cs == f->word && cpu->ip == 0x2199u);   /* entered at the code word's segment, not at a constant 00BA */
     assert(get16(ram, cpu->ss, cpu->sp) == 0x0933u);
     assert(get16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u)) == 0xF000u);
     ++f->calls;
@@ -83,11 +84,11 @@ static int lookup(void *context, uint8_t *ram, size_t size,
     return 1;
 }
 
-static void run(int mode)
+static void run(int mode, uint16_t word)
 {
     uint8_t *ram = calloc(RAM_SIZE, 1u);
     pr_u38_0918_cpu cpu = {0};
-    fixture f = {ram, 0, mode == 4};
+    fixture f = {ram, 0, mode == 4, word};
     pr_u38_0918_status status;
     assert(ram != NULL);
     cpu.ax = 0xA5CDu;
@@ -98,6 +99,7 @@ static void run(int mode)
     cpu.ds = 0x3000u;
     cpu.ss = 0xE000u;
     cpu.flags = 0x0202u;
+    put16(ram, cpu.cs, 0x0931u, word);
     put16(ram, cpu.ss, cpu.sp, 0x1234u);
     put16(ram, cpu.ss, (uint16_t)(cpu.sp + 2u), 0xD000u);
     put16(ram, cpu.ds, 0x5D92u, 0x2300u);
@@ -113,7 +115,7 @@ static void run(int mode)
     status = pr_u38_sidecar_flag_0918(ram, RAM_SIZE, &cpu, lookup, &f);
     assert(f.calls == 1);
     if (mode == 4) {
-        assert(status == PR_U38_0918_CALL_ABORT && cpu.cs == 0x00BAu &&
+        assert(status == PR_U38_0918_CALL_ABORT && cpu.cs == word &&
                cpu.ip == 0x2199u && cpu.sp == 0x7FECu);
     } else {
         uint16_t expected_off = mode == 1 ? 0x2200u :
@@ -134,6 +136,8 @@ static void run(int mode)
 
 int main(void)
 {
-    for (int mode = 0; mode <= 4; ++mode) run(mode);
+    for (int mode = 0; mode <= 4; ++mode) run(mode, 0x00BAu);
+    /* the loader relocates the word: other bases enter the lookup at that segment (the old model assigned 00BA) */
+    run(1, 0x1234u); run(2, 0x0001u); run(4, 0x10BAu); run(0, 0xFFF0u);
     return 0;
 }
