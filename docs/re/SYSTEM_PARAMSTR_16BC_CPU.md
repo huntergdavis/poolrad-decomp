@@ -68,7 +68,8 @@ by DOS from the command line `ORACLE.COM STING foo`. The audit asserts that the 
 
 ## Validation
 
-Receipt: 2026-10-20 21:03:37–21:03:48 PDT, branch from main `a22cbfac`.
+Receipt: 2026-10-20 21:03:37–21:03:48 PDT, run on a branch from main `a22cbfac`, which then merged main up to
+`eb3149ac` with no change to these files.
 
 **Unicorn: 95 cases**, comparing unmasked CPU14 and all 1,048,576 RAM bytes.
 
