@@ -135,7 +135,7 @@ class DriverInternalTest(unittest.TestCase):
             rows = list(reader)
             members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
-        self.assertEqual(members, frozenset({"RES_08AE_181A"}))  # #1243, accepted by par-e
+        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000"}))  # #1243, #1249; accepted by par-e
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
