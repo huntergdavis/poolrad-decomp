@@ -180,3 +180,16 @@ The audit now declares `CHECKER_ROWS = ('OVL_03B0_0A08',)` and a media-free
 so `check_checker_builds.py` covers it. No body, header or model changed. Native
 evidence is unchanged and still partial (above). Strict credit, identity and
 manifest decisions are untouched.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, i20050)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (unit `0x3B0` at file offset 182,479) and from the CSVs on main. This section is an argument, not a credit. Credit is an acceptance commit by par-e.
+
+1. **Reached from game code (near call).** Each site below decodes from the media as `0E` (push cs) followed by `E8` call to this entry. Each lies inside the caller's ledger extent (`overlay.csv` bound), so the relocation clause does not apply (ruling i19576). The callers are `game_evidenced`, and **none is strict-credited**, so the basis is the classification, as for `OVL_03B0_11F3`.
+   - Site: `+0FEB` in `OVL_03B0_0D9A` [0D9A,10D1).
+2. **Operates on documented game state.** The body clears the node heading flag at `es:[di+29h]` ([U86_STRING_NODE_028D.md](U86_STRING_NODE_028D.md), credited `OVL_0086_028D`).
+   - It reads the list base `G = DS:[6B29h]` and the list head `L+14h/16h`, both defined in credited `OVL_03B0_0CC5`'s doc.
+   - It also reads the context bytes `L+1Ch` and `L+1Eh`, which credited `OVL_03B0_0969`'s doc uses the same way.
+   - The bytes it reads at `L+22h/24h` are not defined in any credited doc, and this section does not rely on them.
+
+**Limit:** as for `07A4`, the layout is documented, not the identity of each caller's list.
