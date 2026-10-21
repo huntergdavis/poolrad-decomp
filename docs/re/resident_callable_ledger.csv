@@ -90,7 +90,7 @@ RES_00BA_0000,other_prologue,0x00BA0,0x00C7C,raw_pascal_prologue,0,0,1,0,game_ve
 RES_00BA_01FB,other_prologue,0x00D9B,0x00E77,raw_pascal_prologue,0,0,1,0,game_verified,verified
 RES_00BA_0282,other_prologue,0x00E22,0x00EFE,raw_pascal_prologue,0,0,1,0,game_verified,verified
 RES_00BA_03A0,other_prologue,0x00F40,0x0101C,raw_pascal_prologue,0,0,1,0,game_verified,verified
-RES_00BA_10E6,other_prologue,0x01C86,0x01D62,raw_pascal_prologue,0,0,1,0,unresolved,candidate
+RES_00BA_10E6,other_prologue,0x01C86,0x01D62,raw_pascal_prologue,0,0,1,0,game_verified,verified
 RES_00BA_11EA,other_prologue,0x01D8A,0x01E66,raw_pascal_prologue,0,0,3,0,unresolved,candidate
 RES_00BA_1282,other_prologue,0x01E22,0x01EFE,raw_pascal_prologue,0,0,2,0,unresolved,candidate
 RES_00BA_1325,other_prologue,0x01EC5,0x01FA1,raw_pascal_prologue,0,0,2,0,unresolved,candidate
