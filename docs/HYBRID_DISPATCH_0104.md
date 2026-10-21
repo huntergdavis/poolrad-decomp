@@ -2,6 +2,17 @@
 
 **This is the first time in the whole port that a line of our code has run in place of the game's own, and the game did not notice.**
 
+**The conclusion so far (VP i20637): the hybrid mechanism is sound for RAM-only bodies, and unproven for device-touching
+ones.** Four things hold together in the live game:
+
+- a whole-body substitution (`RES_0899_0104`, 46 equal);
+- a mid-body hand-back from a stop inside a callee (`RES_0464_2595`, arrival 1);
+- a full-body run of the same composed body (`RES_0464_2595`, arrival 2);
+- no disturbance to the game (all 270 observer counts equal; 0 interrupted, 0 timeouts).
+
+The remaining unknown is the EGA/bus adapter ([HYBRID_EGA_ADAPTER_SCOPE.md](HYBRID_EGA_ADAPTER_SCOPE.md)). That is the most
+a reader should conclude from one night.
+
 **Result.** During one cold start of the audited v1.3 game to the main menu, `RES_0899_0104` (resident `0899:0104`, the
 30-byte frame-and-return reached from the credits wait loop) arrived **51** times. Our C, `pr_r0899_idle_0104_cpu`,
 **executed in place of the original bytes 46 times, and the game continued from the C's result each time.** The other 5
