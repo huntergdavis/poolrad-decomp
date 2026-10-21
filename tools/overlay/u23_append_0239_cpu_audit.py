@@ -36,7 +36,7 @@ SEGMENTS = {'stub': STUB, 'ovl': OVERLAY, 'u77': U77, 'res': RES, 'display': DIS
 SOURCES = tuple(dict.fromkeys(('overlay_u23_append_0239_cpu', 'overlay_0077_275b_cpu', 'resident_00ba_character_0bb8_cpu',
                                'resident_00ba_character_helpers_cpu', 'system_getmem_023f_cpu', 'system_runtime_leaves_cpu',
                                'system_string_leaves_cpu') + base.SOURCES))
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CODE', 3: 'RESOLVE', 4: 'CALLEE', 5: 'TRANSFER', 6: 'LIMIT'}
+STATUS = {-1: 'DIVERGED(expected)', 0: 'RETURN', 1: 'ARGUMENT', 2: 'CODE', 3: 'RESOLVE', 4: 'CALLEE', 5: 'TRANSFER', 6: 'LIMIT'}
 
 
 class Check(ctypes.Structure):
@@ -196,7 +196,7 @@ def node_at(i):
 
 def build(bodies, literal, *, nodes=(), item=None, result=(RESULT_SEG, 0x40), item_ptr=(ITEM_SEG, 0x200), heap_mode='top', custom_heap=False,
           flags=2, sp=0x8000, ss=SS, ret=RETURN, cycle=False, char_fields=None, writes=(), regs=None, fill=None, gc5=None,
-          alias=False, skip_contract=False, result_alias=False, **options):
+          alias=False, skip_contract=False, result_alias=False, char_ptr=None, expect_diverge=False, **options):
     """RAM image, CPU and the objects the body reads. `nodes` are dicts for the existing list records (weight, quantity, id)."""
     opts = dict(options)
     opts.update(sp=sp, ss=ss)
@@ -208,8 +208,8 @@ def build(bodies, literal, *, nodes=(), item=None, result=(RESULT_SEG, 0x40), it
     for seg, off, length in ((CHAR_SEG, CHAR_OFF, 0x140), (NODE_SEG, 0x2000, max(1, len(nodes)) * 0x100)):
         at = physical(seg, off)
         m[at:at + length] = template[at:at + length]
-    put16(m, ds, 0x5D92, CHAR_OFF)
-    put16(m, ds, 0x5D94, CHAR_SEG)
+    put16(m, ds, 0x5D92, char_ptr[1] if char_ptr else CHAR_OFF)
+    put16(m, ds, 0x5D94, char_ptr[0] if char_ptr else CHAR_SEG)
     heap(m, heap_mode, ds, custom_heap)
     spec = dict(item or {})
     at = physical(*item_ptr)
@@ -228,7 +228,7 @@ def build(bodies, literal, *, nodes=(), item=None, result=(RESULT_SEG, 0x40), it
         for j, v in enumerate(blob):
             m[physical(seg, (off + j) & 65535)] = v
     return m, c, dict(fill=fill, gc5=gc5, ret=ret, nodes=nodes, item=spec, result=result, item_ptr=item_ptr, ds=ds, ss=ss, sp=sp,
-                      skip_contract=skip_contract, result_alias=result_alias)
+                      skip_contract=skip_contract, result_alias=result_alias, expect_diverge=expect_diverge)
 
 
 def make_device(spec):
@@ -457,6 +457,15 @@ def run_case(name, options, bodies, dmap, literal, lib, results):
     refuse = options.pop('refuse', None)
     budgets = budgets_of(options)
     state = build(bodies, literal, **options)
+    if state[2].get('expect_diverge'):
+        # A negative control for the declared aperture hole: a pointer a FLAT callee dereferences is placed in A0000..AFFFF, where the
+        # oracle reads the planes and the flat model reads RAM. The case passes only if the two DISAGREE (the hole is reachable).
+        try:
+            compare(name, state, bodies, dmap, lib, budgets, refuse)
+        except (ValueError, AssertionError) as exc:
+            results.append((name, dict(status=-1, diverged=str(exc)[:120], seen=set(), edges=set(), outs=0, stores=0, cap={}, ram=b'', cpu=None, diag=None, events=0)))
+            return results[-1][1]
+        raise AssertionError(f'{name}: expected the flat callee to disagree with the oracle on an aperture pointer, but they agreed')
     r = compare(name, state, bodies, dmap, lib, budgets, refuse)
     if r['status'] == 0 and not state[2].get('skip_contract'):
         r['over'] = contract(name, state, r, literal)
@@ -517,6 +526,18 @@ def specs(bodies, dmap, literal, lib, quick=False):
     for tag, ptr in (('char-ptr-high', (DS, 0x5D93)), ('local-slot', (SS, (0x8000 - 2 - 4) & 65535)), ('item-byte', (ITEM_SEG, 0x200 + 0x10))):
         out.append((f'result-alias-{tag}', dict(nodes=N(2), result=ptr, result_alias=True, skip_contract=True)))
         out.append((f'result-alias-over-{tag}', dict(nodes=N(16), result=ptr, result_alias=True, skip_contract=True)))
+    # adversarial aliases (VP i20701): a caller-supplied pointer placed INSIDE the block this body obtains from GetMem (HeapPtr is the
+    # top of the heap, so the block is predictable), where the body itself then writes. ITEM is the Move source, RESULT is written first.
+    top = HEAP_SEG + 0x300
+    for tag, ptr in (('block-start', (top, 0x0)), ('block-mid', (top, 0x20)), ('block-tail', (top, 0x3A)), ('block-straddle', (top, 0x00FF - 0x20))):
+        out.append((f'alias-item-{tag}', dict(nodes=N(2), item_ptr=ptr, skip_contract=True)))
+        out.append((f'alias-item-{tag}-empty', dict(nodes=N(0), item_ptr=ptr, skip_contract=True)))
+    for tag, ptr in (('start', (top, 0x0)), ('mid', (top, 0x1F)), ('last-byte', (top, 0x3E))):
+        out.append((f'alias-result-{tag}', dict(nodes=N(2), result=ptr, result_alias=True, skip_contract=True)))
+        out.append((f'alias-result-{tag}-empty', dict(nodes=N(0), result=ptr, result_alias=True, skip_contract=True)))
+    # negative controls, expected to DISAGREE with the EGA oracle: pointers a FLAT callee dereferences, placed in the aperture
+    out.append(('hole-item-in-aperture', dict(nodes=N(2), item_ptr=(0xA000, 0x0200), skip_contract=True, expect_diverge=True)))
+    out.append(('hole-character-in-aperture', dict(nodes=N(2), char_ptr=(0xA000, 0x0100), skip_contract=True, expect_diverge=True)))
     # heap: failure stops (RunError), a custom HeapError handler, the free-list walk cap
     for n in (0, 2):
         out.append((f'heap-fail-{n}', dict(nodes=N(n), heap_mode='fail')))
