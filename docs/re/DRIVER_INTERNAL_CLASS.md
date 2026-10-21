@@ -63,16 +63,22 @@ Closure measured on main `0f8dba7c` with `price_row_closures.py` after #1240, wh
 | 7 | `RES_08AE_1742` | 108 | driver_internal | full bar (a table model exists) | |
 | 8 | `RES_08AE_17AE` | 108 | driver_internal | full bar (a table model exists) | |
 | 9 | `RES_08AE_181A` | 22 | driver_internal | full bar (raw model merged in #1185) | |
-| 10 | `RES_0899_0059` | 171 | **game candidate** (gateway) | two-factor identity on its own evidence (9 fixup-backed overlay callers), then strict | |
-| 11 | `RES_0899_0000` | 51 | **game candidate** (gateway) | two-factor identity (13 fixup-backed overlay callers), then strict | |
+| 10 | `RES_0899_0059` | 171 | **game** (gateway; two-factor identity passed, VP i19946) | strict | |
+| 11 | `RES_0899_0000` | 51 | **game** (gateway; two-factor identity passed, VP i19946) | strict | |
 | 12 | `RES_0709_0BF5` | 74 | game resident | identity + strict | |
 | 13 | `RES_0802_02EB` | 107 | game resident | identity + strict | |
 | 14 | `OVL_006F_02AE` | 129 | overlay | full bar (it becomes `modeled` once its callees are ready) | |
 | 15 | `OVL_006F_0010` | 424 | overlay, **the proving row** | full bar; identity already passes the two-factor test (it reads `DS:5D96`, the party head) | par-a accepts |
-| L | SYSTEM `00E9`, `0567`, `05C1`, `081C`, `08E1`, `0A04`, `1410`, `1491`, `17D6`; DOS unit `0A32:00A2` | unpriced | library endpoints | runtime-coverage models | |
+| L | SYSTEM `00E9`, `0567`, `05C1`, `081C`, `08E1`, `0A04`, `1410`, `1491`, `17D6`; DOS unit `0A32:000B` (Intr, called by `RES_0899_0000`) and `0A32:00A2` (called from the 08AE set) | unpriced | 11 library endpoints | runtime-coverage models | |
 
-The driver set is **769 B over 9 bodies**. Non-driver work is **956 B over 6 bodies**. There are also **10 library endpoints**. The total is **at least 1,725 B plus the 10 endpoints**.
+The driver set is **769 B over 9 bodies**. Non-driver work is **956 B over 6 bodies**. There are also **11 library endpoints**. The total is **at least 1,725 B plus the 11 endpoints**.
+
+**Correction (2026-10-20):** the first version of this table listed 10 endpoints and omitted `0A32:000B`. The pricer collected far calls outside 0AF8, the resident segments and 08AE into a set it never printed. It now prints them in an "Other far targets" column with the calling bodies. `0A32:00A2` does not appear in that column for this row, because the pricer records 08AE entries without walking the driver; it comes from the driver set's own exits (see the evidence bar above).
 
 **The class is necessary but not sufficient.**
-- If the `0899` gateways fail the two-factor identity test, the proof fails **at the gateway, not at the driver**. The class is deliberately not widened to them.
+- Had the `0899` gateways failed the two-factor identity test, the proof would have failed **at the gateway, not at the driver**. Both passed (par-a verdict i19944, accepted by the VP in i19946):
+  - `0059` is the game's key-read wrapper; its Ctrl-S branch saves and sets the sound-mode byte `DS:5372`, which the game writes and the driver only reads as a gate.
+  - `0000` is the game's quit routine: it restores `DS:5372`, restores the startup video mode `DS:4A1C` through the Registers record at `DS:4A02`, and calls Halt.
+  - Both have fixup-backed callers inside game_verified functions.
+  - The class stays `08AE`-only.
 - If the proof completes, `0010` becomes creditable with **no strict or identity row for any 08AE body**. `02AE`, `0709_0BF5`, `0802_02EB` and the two gateways also become eligible on their own identity.
