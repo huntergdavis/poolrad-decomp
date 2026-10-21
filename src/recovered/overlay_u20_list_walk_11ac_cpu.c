@@ -187,7 +187,8 @@ type1:
 #ifdef PR_U20_11AC_TRACE
         fprintf(stderr,"AX1230=%04x di=%04x es=%04x\n",c->ax,c->di,c->es);
 #endif
-        if((c->flags&0x40)==0) {                            /* 1232 JNE 1235 */
+        /* 1232 JNE 1235: the increment happens only when the compare was EQUAL */
+        if((c->flags&0x40)!=0) {
             uint16_t a=c->ax,n=(uint16_t)(a+1u);inc16(c,a,n);c->ax=n;      /* 1234 INC AX */
         }
         push(&m,c->ax);                                     /* 1235 */

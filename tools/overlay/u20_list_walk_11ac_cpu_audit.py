@@ -108,6 +108,7 @@ def build(ctx,rng,*,nodes=3,head=0,types=None,freed=None,node_off=None,sp=0x8000
     cpu.bp=0x7F00; cpu.ax=cpu.bx=cpu.cx=cpu.dx=cpu.si=cpu.di=0
     return m,cpu,None
 def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
+    lim=Limits(max_walk,lim.max_callee_steps,lim.unlink)
     from unicorn import Uc,UC_ARCH_X86,UC_MODE_16,UC_HOOK_CODE
     from unicorn.x86_const import UC_X86_REG_CS,UC_X86_REG_IP,UC_X86_REG_SP,UC_X86_REG_SS
     m,c,chain=state
@@ -169,8 +170,8 @@ def specifications():
         specs.append((f'types-{t}-head0',dict(base,types={0:t}),0))
         specs.append((f'types-{t}-head1',dict(base,head=1,types={1:t}),0))
     specs+= [('one-node',dict(base,nodes=1,head=0),0),
-             ('freed-tail',dict(base,freed={1:True}),0),
-             ('freed-all',dict(base,freed={0:True,1:True,2:True}),0),
+             ('freed-tail',dict(base,freed={1:True}),3),
+             ('freed-all',dict(base,freed={0:True,1:True,2:True}),3),
              ('head-nil-but-nodes',dict(base,head=None),0),
              ('window-other',dict(base,window=(0x3B00,0x40)),0),
              ('ss-eq-ds',dict(base,ss=DS),0),
