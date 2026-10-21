@@ -248,3 +248,7 @@ Body SHA-256: +1168
 The unchanged evidence reports above pin the already measured execution.
 VP i19181 requested these declarations; the independent reviewer retains
 all acceptance and credit decisions.
+
+## Identity of the nested near-only bodies (par-a, 2026-10-21)
+
+Eight bodies of this closure are near-only resident bodies: `+0000`, `+01FB`, `+0282`, `+03A0`, `+10E6`, `+11EA`, `+1282` and `+1325`. Their two-factor identity verdicts (all PASS) are in [NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md): direct near sites inside strict-credited `+0BB8`/`+13AB`, and the character object passed as an argument and used.
