@@ -200,3 +200,13 @@ evidence is unchanged and still partial (above). The selection note above that
 calls `+07A4` "modeled, acceptance PR #1081 open" is historical; `+07A4`'s own
 evidence is re-audited separately (PR #1202). Strict credit, identity and manifest
 decisions are untouched.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, i20050)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (unit `0x3B0` at file offset 182,479) and from the CSVs on main. This section is an argument, not a credit. Credit is an acceptance commit by par-e.
+
+1. **Reached from game code (near call).** Each site below decodes from the media as `0E` (push cs) followed by `E8` call to this entry. Each lies inside the caller's ledger extent (`overlay.csv` bound), so the relocation clause does not apply (ruling i19576). The callers are `game_evidenced`, and **none is strict-credited**, so the basis is the classification, as for `OVL_03B0_11F3`.
+   - Sites: `+1023`, `+1038`, `+1049` and `+1057` in `OVL_03B0_0D9A` [0D9A,10D1).
+2. **Operates on documented game state.** The body reads and writes exactly the parent-frame slots that credited `OVL_03B0_0CC5`'s doc ([U3B0_CURSOR_STEP_0CC5.md](U3B0_CURSOR_STEP_0CC5.md)) defines, then composes credited `OVL_03B0_0B03` and `OVL_03B0_07A4`.
+   - The slots: limit `L-59h`, bound `L-56h`, the index far pointer `X` at `L+0Ah/0Ch`, and the list base `G = DS:[6B29h]`.
+   - `0CC5`, `0B03` and `0969` are each in both `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`.

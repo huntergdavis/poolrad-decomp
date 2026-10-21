@@ -215,3 +215,13 @@ The checker already declared `CHECKER_ROWS = ('OVL_03B0_06FB',)` and a media-fre
 evidence is unchanged and partial (above). Classification stays
 `game_or_other_library_unresolved` and PR #1116's no-credit record is untouched;
 strict credit, identity and manifest decisions are not part of this change.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, i20050)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (unit `0x3B0` at file offset 182,479) and from the CSVs on main. This section is an argument, not a credit. Credit is an acceptance commit by par-e.
+
+1. **Reached from game code:** passes. There are 19 fixup-backed far sites in 11 functions, two of them in `game_verified` `OVL_0036_002D`.
+2. **Operates on documented game state:** **fails.** The 13 instructions have **no memory operand**. The body pushes constants (40 space glyphs, x=0, y=24, color 0) and far-calls resident `0709:05EB`.
+   - The standard says calling a credited resident is not identity, and the `RES_0464_2A0D` precedent says a display or BIOS subject is not game data.
+
+**Verdict:** the row stays **evidence-only**. Its `partial_callee_models.csv` `full` row is a readiness declaration and is unaffected. Reopening it would need a new ruling that the status row is game state; this standard does not cover it.

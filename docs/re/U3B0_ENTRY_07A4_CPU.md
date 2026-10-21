@@ -194,3 +194,15 @@ itself was found and fixed before this result: the OUT hook did not forward port
 writes to the independent EGA, which surfaced as plane mismatches on the first
 case. No body, header or model changed. Native evidence is unchanged and still
 partial (above). Strict credit, identity and manifest decisions are untouched.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, i20050)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (unit `0x3B0` at file offset 182,479) and from the CSVs on main. This section is an argument, not a credit. Credit is an acceptance commit by par-e.
+
+1. **Reached from game code (near call).** Each site below decodes from the media as `0E` (push cs) followed by `E8` call to this entry. Each lies inside the caller's ledger extent (`overlay.csv` bound), so the relocation clause does not apply (ruling i19576). The callers are `game_evidenced`, and **none is strict-credited**, so the basis is the classification, as for `OVL_03B0_11F3`.
+   - Sites: `+0CBC` in `OVL_03B0_0C33` [0C33,0CC5) and `+0EE4` in `OVL_03B0_0D9A` [0D9A,10D1).
+2. **Operates on documented game state.** The body follows node links at `es:[di+2Ah]`/`[di+2Ch]`, reads the string at `es:[di]` and tests the flag at `es:[di+29h]`.
+   - That is the node that [U86_STRING_NODE_028D.md](U86_STRING_NODE_028D.md) documents for credited `OVL_0086_028D`: 41 string bytes, a heading flag at +29h, and next offset/segment at +2Ah/+2Ch. The same basis credited `OVL_03B0_11F3`.
+   - Its list head is the parent slot `L+14h/16h`, which credited `OVL_03B0_0CC5`'s doc ([U3B0_CURSOR_STEP_0CC5.md](U3B0_CURSOR_STEP_0CC5.md)) defines.
+
+**Limit:** the layout is documented; this section does not claim which game list each caller's head points to.
