@@ -11,8 +11,8 @@ with a private EGA. One of them, `RES_0709_01DF`, accounts for 824 of the 976 ar
 
 | Scope | Lane-days |
 |---|---|
-| Adapter plus stream-equivalence validation | about 4.5–6.5 |
-| Adding the full-EGA-state check (the 0294-style standard) | about 7.5–11.5 |
+| Adapter plus stream-equivalence validation | about 4.5–5.5 |
+| Adding the full-EGA-state check (the 0294-style standard) | about 7.5–10.5 |
 
 **Stage (a)** would therefore be roughly the scope's week plus one to two weeks for the adapter. The largest unknown is
 whether the full-state check can snapshot and restore DOSBox-X's VGA state inside a run.
