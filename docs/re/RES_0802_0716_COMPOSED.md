@@ -126,6 +126,25 @@ keys:** AH=01h reports script[0] and AH=00h pops it, in both.
   - Their docs should say: "all scripted keys are declared type-ahead; no waited keys". That is par-d's text to add, and
     the request has gone to the VP.
 
+## Waited-key coverage (VP i20386)
+
+A **waited key** is one that arrives only after a wait has begun. While it is still waited, AH=01h must report no key; this is
+where the peek model and the canonical contract differ. **It is covered, by named cases, in two audits:**
+
+- **This composed run, under the canonical contract.** Every scripted key is a waited key unless the case declares
+  type-ahead.
+  - `insert-disk-two-prompts`: two waited keys, one per prompt. At the first prompt, ReadKey's drain asks AH=01h while the
+    second key is still waited, gets "no key", and leaves it for the second prompt, which takes it. Under the peek model the
+    same script was consumed by the first prompt; that was run #1's failure.
+  - `insert-disk-typeahead-drained`: type-ahead (drained at the first prompt) **plus** two waited keys.
+  - `insert-disk-through-05cd`, `packed-limit-prompt`, `packed-limit-before-match`, `position-negative` and the five
+    `dirty-prompt-*` cases: one waited key each.
+- **The 025D audit (#1326), under the same contract:** `insert-disk-2-prompts` (two waited keys) and `typeahead-drained`
+  (three type-ahead keys plus waited keys).
+
+**Not covered:** the 0193 and 0899:0059 audits standalone. Their scripts are all type-ahead (see above). A waited key reaches
+0193 and ReadKey only through the composed run and the 025D audit, which is where every prompt loop in this cluster lives.
+
 ## Reproduction
 
 `CHECKER_ROWS = ('RES_0802_0716',)`: a second checker for the 0716 row, beside `res0802_0716_cpu_audit.py`.
