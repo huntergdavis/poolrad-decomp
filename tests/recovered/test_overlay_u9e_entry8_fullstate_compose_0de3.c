@@ -61,6 +61,9 @@ static pr_u9e_entry8_compose_cpu frame(
     put16(ram, ds, 0x4428u, (uint16_t)seed);
     put16(ram, ds, 0x442Au, (uint16_t)(seed >> 16));
     put16(ram, 0x0AF8u, 0x1245u, 0x8405u);
+    ram[(0x3000u * 16u + 0x0E0Eu) & (SIZE - 1u)] = 0x9Au;                      /* the LCALL whose segment word the call model reads live */
+    put16(ram, 0x3000u, 0x0E0Fu, 0x11C0u);
+    put16(ram, 0x3000u, 0x0E11u, 0x0AF8u);
     return cpu;
 }
 

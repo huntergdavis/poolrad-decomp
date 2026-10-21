@@ -14,9 +14,11 @@ typedef enum {
     PR_U9E_ENTRY8_CALL_RETURN_TRANSFER
 } pr_u9e_entry8_call_status;
 
-/* Execute only U9E entry8 +0E0E LCALL 0AF8:11C0 and its merged SYSTEM
- * callee on the same live 1 MiB RAM/CPU14. A normal return stops at the
- * original U9E CS:+0E13. Other live destinations remain explicit transfers.
+/* Execute only U9E entry8 +0E0E LCALL <SYSTEM>:11C0 and its merged SYSTEM
+ * callee on the same live 1 MiB RAM/CPU14. The SYSTEM segment is the LCALL's
+ * operand word at CS:0E11, a loader relocation, read live (0AF8h when the image
+ * loads at segment 0; the base-relative value otherwise). A normal return stops
+ * at the original U9E CS:+0E13. Other live destinations remain explicit transfers.
  * Loaded U9E and SYSTEM instruction bodies must contain original bytes. */
 pr_u9e_entry8_call_status pr_u9e_entry8_system_call_0e0e(
     uint8_t *ram, size_t ram_size, pr_u9e_entry8_call_cpu *cpu);

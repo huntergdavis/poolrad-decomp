@@ -56,3 +56,26 @@ CMP defines final arithmetic FLAGS only on a normal continuation.
 The +0E05 loopback, B0:0048 dispatch, complete entry8 composition, and
 natural U7F caller frame remain open. No native/full-function/strict
 full-C count credit follows from this bounded source gate.
+
+## Correction, 2026-10-21: the SYSTEM segment is a relocated word, read live (par-c; VP i20605)
+
+**What was wrong.** The source assigned `CS := 0AF8h` as a constant (`SYSTEM_CS`) and used the same constant in its code-alias check. The far segment of the
+call is the instruction's own operand word at `CS:+0E11`, a loader relocation; the file bytes `9A C0 11 F8 0A` above are the **unrelocated** operand. At load base 0 the two
+coincide, and every earlier audit of this source and of its composers ran the original bytes at base 0, so the model and the original agreed by construction.
+It was found when the `OVL_006F_0EC4` composed-closure audit loaded the image at base 1000h: the original called `1AF8:11C0`, the model entered `0AF8:11C0`, its Random read the
+multiplier word `1245` from fill bytes (`5A5A`) and drew a different seed (observed, not inferred). par-e confirmed the finding and found the same shape in two more models.
+
+**The fix** (this source only): the segment is read from the live word at `CS:+0E11` before anything is changed, and that value is used for the transfer and for the alias check.
+At base 0 the word is `0AF8` and behaviour is unchanged.
+
+**What stands.** The evidence above is about the original bytes at base 0 and is not touched: the hashes, the 75-byte body, the call bytes, the merged-SYSTEM comparison and the
+focused cases all pass unchanged. The credit it supports is unchanged.
+
+**New cases** (`tests/recovered/test_overlay_u9e_entry8_system_call_0e0e.c`, at a non-default base): with the word `1AF8` and the multiplier only at `1AF8:1245`, the call returns the
+base-0 result (all 14 CPU words, the seed and the three pushed words equal); a seed over `1AF8:11C8` is code and is refused unchanged; a seed over `0AF8:11C8` is **not** code
+at that base and is not refused; the same seed at base 0 **is** refused. The pre-fix source fails the first of these. **Fixtures:** 13 tests built a synthetic loaded `0DE3` without the call
+word and relied on the constant; each now installs `9A C0 11 <segment>` at the unit's `+0E0E` (the shared dice fixture, the 1730, 27D9 and 2B20 fixtures, and the compose test). Nothing else in
+those tests changed. Full ctest, 597 of 597, under ASan/UBSan.
+
+**Limits.** This corrects the source's use of the segment word; it does not make the original bytes run at a second base in this document's own gate (that is the `OVL_006F_0EC4` closure audit, which runs the whole
+closure at base 1000h). No other model is changed here.

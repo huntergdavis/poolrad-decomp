@@ -35,6 +35,10 @@ static inline void dice_site(uint8_t *ram, uint16_t cs, uint16_t site, uint8_t s
     ram[dice_physical(DICE_STUB_PARAGRAPH, stub_off)] = 0xEAu;
     dice_put16(ram, DICE_STUB_PARAGRAPH, (uint16_t)(stub_off + 1u), entry);
     dice_put16(ram, DICE_STUB_PARAGRAPH, (uint16_t)(stub_off + 3u), DICE_CS);
+    /* The loaded unit 0x9E's +0E0E LCALL <SYSTEM>:11C0; its segment word is read live by the 0E0E model (correction 2026-10-21). */
+    ram[dice_physical(DICE_CS, 0x0E0Eu)] = 0x9Au;
+    dice_put16(ram, DICE_CS, 0x0E0Fu, 0x11C0u);
+    dice_put16(ram, DICE_CS, 0x0E11u, 0x0AF8u);
 }
 
 static inline void dice_system(uint8_t *ram, uint16_t ds, uint32_t seed)
