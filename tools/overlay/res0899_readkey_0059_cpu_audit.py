@@ -75,10 +75,12 @@ def library(directory):
 
 
 def build(image_reloc, *, keys=(0x1E61,), cur=1, saved=0, w=0x0001, arg=0, mode=0x03, flag49=0, buffered=0, brk=0,
-          tail=b' STING', ss=SS, sp=0xF000, flags=2, cpu=None, in61=0xB0, time_start=4736147, time_step=7, table=None):
+          tail=b' STING', ss=SS, sp=0xF000, flags=2, cpu=None, in61=0xB0, time_start=4736147, time_step=7, table=None, base=BASE):
     m = bytearray([0x5A]) * SIZE
-    b = BASE * 16; m[b:b + len(image_reloc)] = image_reloc
-    ds = BASE + SEG['data']
+    b = base * 16; m[b:b + len(image_reloc)] = image_reloc
+    ds = base + SEG['data']
+    if ss == 'ds':
+        ss = ds
     m[physical(ds, 0x5372)] = cur; m[physical(ds, 0x5373)] = saved
     put16(m, ds, 0x5374, w); put16(m, ds, 0x2612, arg); m[physical(ds, 0x4A1C)] = mode
     m[physical(ds, 0x49F7)] = flag49; m[physical(ds, 0x8501)] = buffered; m[physical(ds, 0x8502)] = brk
@@ -91,12 +93,12 @@ def build(image_reloc, *, keys=(0x1E61,), cur=1, saved=0, w=0x0001, arg=0, mode=
     m[physical(0x0040, 0x0049)] = 0x5A
     put16(m, ss, sp, RETURN_TO[1]); put16(m, ss, (sp + 2) & 0xFFFF, RETURN_TO[0])
     r = cpu or (0x1234, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE, 0x7777)
-    c = Cpu(*r, sp, BASE + SEG['body'], ENTRY, ds, 0x1111, ss, flags)
+    c = Cpu(*r, sp, base + SEG['body'], ENTRY, ds, 0x1111, ss, flags)
     env = dict(table=table or {8: (0x0123, 0xF000)}, in61=in61, time_start=time_start, time_step=time_step)
     return m, c, env, list(keys)
 
 
-def run_unicorn(name, m, c, envspec, keys, body_ips):
+def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_INSN
     from unicorn import x86_const as R
     env = Q.Env(**envspec); script = list(keys)
@@ -108,17 +110,19 @@ def run_unicorn(name, m, c, envspec, keys, body_ips):
 
     def code(em, address, size, user):
         cs = uc.reg_read(R.UC_X86_REG_CS); ip = uc.reg_read(R.UC_X86_REG_IP)
-        if s['prev'] in CONDITIONALS and cs == BASE + SEG['body']:
+        if s['prev'] in CONDITIONALS and cs == base + SEG['body']:
             edges.add((s['prev'], ip))
         s['prev'] = None
-        if (cs, ip) == Q.HALT:
+        if (cs, ip) == (base + SEG['system'], 0x00E9):
             s['stop'] = 'EXIT'; return uc.emu_stop()
-        if (cs, ip) == BREAK_AT:
+        if (cs, ip) == (base + CRT, 0x014B):
             s['stop'] = 'BREAK'; return uc.emu_stop()
         if (cs, ip) == RETURN_TO:
             s['stop'] = 'RETURN'; return uc.emu_stop()
+        if cs not in {base + v for v in SEGS.values()} | {STUB_SEG}:
+            s['stop'] = 'TRANSFER'; return uc.emu_stop()      # control left every known segment (a corrupted return)
         closure.add((cs, ip))
-        if cs == BASE + SEG['body'] and ENTRY <= ip < END:
+        if cs == base + SEG['body'] and ENTRY <= ip < END:
             check(ip in body_ips, f'escape inside 0059 {name} {ip:04x}'); seen.add(ip); s['prev'] = ip
         s['steps'] += 1
         if s['steps'] > 600000:
@@ -161,7 +165,7 @@ def run_unicorn(name, m, c, envspec, keys, body_ips):
     uc.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, R.UC_X86_INS_IN)
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, R.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=700000)
-    check(s['stop'] in ('RETURN', 'EXIT', 'BREAK'), f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in ('RETURN', 'EXIT', 'BREAK', 'TRANSFER'), f'original stop {name}: {s["stop"]}')
     return uc, backing, env, s['stop'], seen, closure, edges
 
 
@@ -312,6 +316,35 @@ def differential(image_reloc, decoded, f):
                 cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 
 
+ALIAS_BASE = 0x1069   # 0899 relocates to 1902h: the pushed CS word has low byte 02
+
+
+def constructed_alias(image, sites, decoded, f):
+    """VP i20200: SS = DS and SP placing the CS push of the +00A1 LCALL 08AE:017B on DS:5372, at a load base whose 0899
+    segment has low byte 02. Muted path ([5372] = 2, [5373] = 1), key Ctrl-S. The call at +00A1 runs with SP = entry SP -
+    104h, so entry SP = 5374h + 104h = 5478h puts the pushed CS word at DS:5372."""
+    image_reloc = Q.relocate(image, sites, ALIAS_BASE)
+    check((ALIAS_BASE + SEG['body']) & 0xFF == 0x02, 'alias base: 0899 segment low byte 02')
+    o = dict(keys=(K['s'],), cur=2, saved=1, w=0, ss='ds', sp=0x5478, base=ALIAS_BASE)
+    m, c, envspec, keys = build(image_reloc, **o)
+    uc, backing, uenv, ustop, seen, closure, edges = run_unicorn('constructed-alias', m, c, envspec, keys, set(decoded), base=ALIAS_BASE)
+    status, actual, ram, cenv, d = run_c(f, m, c, envspec, keys)
+    check(status == ustop, f'alias: C {status} original {ustop}')
+    check(cenv.log == uenv.log, 'alias: environment events')
+    check(ram == bytes(backing), 'alias: RAM')
+    for (n, _), reg in zip(Cpu._fields_, REGISTERS):
+        check(getattr(actual, n) == uc.reg_read(reg) & 0xFFFF, f'alias: CPU {n}')
+    drv = ALIAS_BASE + SEG['driver']
+    # The mechanism, asserted: the +0060 ReadKey LCALL runs at the same SP (entry SP - 104h), so its pushed CS word lands on
+    # DS:5372 first and [5373] := CS high byte (19h); the set-IN test at +0094 fails, 017B is never entered, +018B unreached.
+    check((drv, 0x017B) not in closure and (drv, 0x018B) not in closure, 'alias: 017B must not be entered')
+    check(ustop == 'RETURN' and (ALIAS_BASE + SEG['body'], 0x009B) not in closure, 'alias: the set-IN test fails (no +009B)')
+    return dict(reached_017b_entry=(drv, 0x017B) in closure,load_base=f'{ALIAS_BASE:04X}', body_cs=f'{ALIAS_BASE + SEG["body"]:04X}', entry_ss_sp=f'{c.ss:04X}:{c.sp:04X}',
+                stop=ustop, reached_017b_018b=(drv, 0x018B) in closure, final_cs_ip=f'{actual.cs:04X}:{actual.ip:04X}',
+                ds_5372=ram[physical(c.ds, 0x5372)], ds_5373=ram[physical(c.ds, 0x5373)], callee=f'{d.callee:04X}', cpu_words=14,
+                ram_bytes=SIZE)
+
+
 def main():
     p = argparse.ArgumentParser()
     for flag in ('--compile-only', '--unicorn', '--native'):
@@ -329,6 +362,7 @@ def main():
                                   relocations=len(sites), load_base=f'{BASE:04X}'))
         if a.unicorn:
             report['unicorn'] = differential(image_reloc, decoded, f)
+            report['constructed_alias'] = constructed_alias(image, sites, decoded, f)
         if a.native:
             import res0899_readkey_0059_native
             report['native'] = res0899_readkey_0059_native.native(image, sites, decoded, f, sys.modules[__name__])

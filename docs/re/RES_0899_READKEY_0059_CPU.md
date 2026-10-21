@@ -133,10 +133,18 @@ the stop, and requires an identical ordered environment event log: every `INT 16
     already tested [5373] IN {0,1}. So [5372] is 0 or 1 at 017B's entry. The **not-muted path never calls 017B**: it runs
     `[5373] := [5372]; LCALL 08AE:00DC; [5372] := 2; JMP 00A6` (+0075…+0089), and the `JMP` skips past +00A1. The bytes
     show exactly one `LCALL 08AE:017B` in 0059, at +00A1.
-    One qualification keeps this exact. The `LCALL` at +00A1 pushes CS and IP **before** 017B reads [5372]. A stack placed
-    so that the pushed CS word lands on DS:5372 would write CS's low byte there, and under some load segments that byte
-    is 02. So the claim is: *absent a stack aliasing DS:5372, this caller cannot produce [5372] = 2 at 017B's entry*.
-    No audit case builds that alias for this call. The SS = DS case places the stack far from 5372.
+    **The stack-alias route was constructed, and it cannot reach +018B** (VP i20200). The constructed case loads the image
+    at base 1069h, so that 0899 relocates to 1902h and the pushed CS word has low byte 02. It uses SS = DS and entry SP 5478h,
+    so that the +00A1 call's pushed CS lands on DS:5372. It takes the muted path ([5372] = 2, [5373] = 1) with Ctrl-S. In
+    both oracles the result is identical and the CPU and RAM agree; this is `constructed_alias` in the receipt. **017B is
+    never entered.** The reason is a second condition that had not been named before:
+    - The ReadKey `LCALL` at +0060 runs at the **same SP** as the +00A1 call, entry SP − 104h in both cases.
+    - So its pushed CS word lands on DS:5372 **first**, and [5373] becomes CS's high byte (19h here).
+    - +008B reads that byte, and the set-IN test at +0094 rejects it, so +009B…+00A1 never run.
+
+    For the test to pass, CS's high byte would have to be 00 or 01, and its low byte 02. That means CS = 0002h or 0102h,
+    which needs segment 0899 to load below 0899h: a negative load base, which a real-mode load cannot produce. **No stack
+    alias of this kind makes 0059 call 017B with [5372] = 2.** The 20/21 is a tested statement, not a caveat.
   - **In 017B's body it is live.** A different caller that enters 017B with [5372] = 2 reaches it. That outcome is
     covered by 017B's own evidence. This run does not exercise it, and nothing here claims it is dead code.
 - **Two kinds of fidelity** (VP i20175): each member's behaviour rests on that member's own evidence, and the
