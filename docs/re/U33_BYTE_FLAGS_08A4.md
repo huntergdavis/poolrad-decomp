@@ -125,3 +125,15 @@ The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-stan
    - On the high-bit path it reads ECL **window 0** through the far pointer `DS:49D2/49D4`, at byte offset `+366h` (script address `0x4AB3`). [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md) field-ledgers that window: `GetMem(0x800)`, script addresses `0x4900..0x4CFF`.
 
 **Verdict: game code.**
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `c9d80b75` (2026-10-20). Unicorn: 2,644 cases, all 1,048,576 RAM bytes and 14 CPU words, 338/338 sites; strict -Werror ASan/UBSan suite exits 0 (it prints no count); CPU14, flag masks 0. Native: 512 cases, RESULT.BIN `93cf8dab…` (matches this document). Body 755 B, SHA-256
+`c721e542769e5b590a6ef00ee92ffa9b4a9b7a5a76a9c4563eda25b3a4b703bc`, from GAME.OVR. Identity: par-a's two-factor section above (#1282). Each factor-1 site was checked from the
+media: it decodes as `0E E8` and sits at an instruction boundary inside the caller extent par-a names.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential. Native agreement is claimed for that binary only; native frames are synthetic, not a reached game caller.
