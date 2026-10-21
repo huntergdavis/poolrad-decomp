@@ -219,9 +219,15 @@ def native_audit(span, function):
     if result_path.exists():
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
-    with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
-                       env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)
+    try:
+        with (directory / "dosbox.log").open("w") as log:
+            subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+                           env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
+    finally:                                         # a spinning oracle can write gigabytes of log: keep the head only
+        log_path = directory / "dosbox.log"
+        if log_path.exists() and log_path.stat().st_size > (50 << 20):
+            with log_path.open("r+b") as log:
+                log.truncate(1 << 20)
     result = result_path.read_bytes()
     check(len(result) == 8 + NATIVE_CASES * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
     segment, returned, count, _ = struct.unpack_from("<4H", result)
@@ -249,7 +255,12 @@ def native_audit(span, function):
     digest = sha256(result).hexdigest()
     print(f"181A DOSBox-X normal-core/386 synthetic cases passed: {NATIVE_CASES}; all 14 CPU words, the stack window and the whole 64 KiB "
           f"data segment; remaining RAM masked; result SHA-256 {digest}")
-    return dict(cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE+65536, masked_ram_bytes=SIZE-WINDOW_SIZE-65536, synthetic_frames=True, callee_stubs=0)
+    probe = subprocess.run(["dosbox-x", "--version"], capture_output=True, text=True)
+    version = [l.split(",")[0].strip() for l in (probe.stdout + probe.stderr).splitlines() if l.strip().startswith("DOSBox-X version")][:1]
+    binary = subprocess.run(["which", "dosbox-x"], capture_output=True, text=True).stdout.strip()
+    dosbox = dict(path=binary, sha256=sha256(Path(binary).read_bytes()).hexdigest(), version=version[0] if version else "",
+                  pinned_source="5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)")
+    return dict(dosbox_x=dosbox, cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE+65536, masked_ram_bytes=SIZE-WINDOW_SIZE-65536, synthetic_frames=True, callee_stubs=0)
 
 
 
