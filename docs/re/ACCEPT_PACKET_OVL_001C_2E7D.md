@@ -102,10 +102,11 @@ Accepted as declared in the author doc, and reproduced here in substance:
   differential — it does not establish an all-reads aperture audit.
 - **Natural gameplay reachability and arbitrary interrupt behaviour unproven.**
 
-Not re-derived by me: the ASan/UBSan run (23,076 checks) and the focused CTest,
-which need the CMake build rather than the audit harness. par-e should either
-re-run those two or record that this packet covers the differential and native
-replay only.
+**Scope of this packet: the original-byte differential and the native replay
+only.** The ASan/UBSan run (23,076 checks) and the focused CTest were not
+re-derived - they need the CMake build rather than the audit harness - and this
+packet makes no claim about them. Re-running them to fill the sentence would be
+worth less than naming the boundary.
 
 ## Verdict for par-e
 
