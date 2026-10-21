@@ -12,6 +12,18 @@ This is the line that refused `06FB` and `RES_0464_2A0D`. A member:
 `RES_0802_0020` (GetMem wrapper) and `RES_0802_0175`. 0175's two call sites, both in `0193`, push only the constants
 28h/0/18h/0. Each joins with its own fully evidenced body and an acceptance that moves the pinned set.
 
+**Why this is not `driver_internal`.** `driver_internal` is about **authorship**: bodies of the documented 08AE
+timer/audio driver ([RES_08AE_IDENTITY_POLICY.md](RES_08AE_IDENTITY_POLICY.md)). `resident_runtime` is about **subject**:
+game-segment residents that are runtime in nature, meaning zero-call or heap wrappers and DOS/BIOS-style services, or that
+are called only with constant arguments. Their readiness should compose without conferring a game identity. This is the
+same distinction that the t30 side (ii) split made for `0000`, `0020` and `0175`.
+
+**Can the two classes ever disagree about the same body?** Not by construction. `DRIVER_INTERNAL_ID` admits only
+`RES_08AE_*`, and `RESIDENT_RUNTIME_ID` excludes `RES_08AE_*`, so no id can be a member of both, and each loader refuses the
+other's segment. The closure check lets either class's members be ready callees of the other's, and no other relation
+exists between them. If a body ever appears to belong in both, for example a runtime-shaped helper inside 08AE, that is a
+finding to raise, not a case to resolve by widening either pattern.
+
 ## Membership: narrow, enforced in code (`strict_candidate_queue.load_resident_runtime`)
 
 The rules are `driver_internal`'s, shared through one loader (`_load_noncredit_class`):
@@ -43,6 +55,11 @@ into every reader in one PR:
   walked or priced. It catches them two ways:
   - as a direct readiness: `expand()`'s ready set gains `driver_internal` and `resident_runtime`;
   - wherever the resident walk reaches them, including through a non-member's near calls (`resident()`).
+
+**A deferred member is still a body in the graph.** `RES_08AE_01A5` was deferred from `driver_internal` membership on
+purpose. Its near calls still reach members (`137C`, `13B1`), so the pricing walk has to know which of a NON-member's
+callees are ready. Deferring a body from a class is a statement about that body. It says nothing about the readiness of
+what the body calls. Before this change the walk had no way to tell, and it priced those members through `01A5`.
 
 **The defect, measured** on main `a6b28722` with a fresh export. Before this change the pricer did not know
 `driver_internal` existed. It walked members as unready residents and priced them:
