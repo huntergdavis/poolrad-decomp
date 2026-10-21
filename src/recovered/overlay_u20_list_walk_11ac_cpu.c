@@ -2,6 +2,9 @@
  * Memory/flag idioms follow merged overlay_u6c_record_unlink_3291_cpu.c; the
  * +3291 and SYSTEM FreeMem models are composed unchanged. */
 #include "poolrad/recovered/overlay_u20_list_walk_11ac_cpu.h"
+#ifdef PR_U20_11AC_TRACE
+#include <stdio.h>
+#endif
 #define MASK (PR_U20_11AC_RAM_SIZE-1u)
 #define BASE 0x11ACu
 typedef struct { uint8_t *r; pr_u20_11ac_cpu *c; } machine;
@@ -162,8 +165,17 @@ type1:
         dsw(&m,0x5D92,c->ax);                               /* 121C */
         dsw(&m,0x5D94,c->dx);                               /* 121F */
         les(&m,c->ss,(uint16_t)(c->bp-4));                  /* 1223 */
+#ifdef PR_U20_11AC_TRACE
+        fprintf(stderr,"TRACE 1223 cur=%04x:%04x",c->es,c->di);
+#endif
         les(&m,c->es,(uint16_t)(c->di+0x108));              /* 1226 */
+#ifdef PR_U20_11AC_TRACE
+        fprintf(stderr," -> es:di=%04x:%04x",c->es,c->di);
+#endif
         { uint8_t a=er8(&m,0x13);cmp8(c,a,1); }             /* 122B */
+#ifdef PR_U20_11AC_TRACE
+        fprintf(stderr," byte13=%02x zf=%d\n",er8(&m,0x13),(c->flags&0x40)!=0);
+#endif
         c->ax=(uint16_t)((c->ax&0xFF00u)|0x00u);            /* 1230 MOV AL,0 */
         if((c->flags&0x40)==0) {                            /* 1232 JNE 1235 */
             uint16_t a=c->ax,n=(uint16_t)(a+1u);inc16(c,a,n);c->ax=n;      /* 1234 INC AX */
