@@ -28,7 +28,7 @@ CODE, DEFAULT_DATA = 0x8800, 0x5000
 BODY_SHA = '6128c5126be22f692937ccbb5e5eb2b07c85081a04f086e9bb84579486258484'
 EXPANDED_SHA = 'a42a57e68d3f7815831821cc9365bb917befda45a58e958544451fc7a878df8e'
 FLAGS = (0x0002, 0x00D7, 0x08D7, 0x0402, 0x0893, 0x7202, 0x0ED7)
-NEAR_CALLERS = [0x107, 0x132, 0x144, 0x170]       # 00DC's near calls to this entry (census asserted below)
+NEAR_CALLERS = {0x107: 0x00DC, 0x132: 0x00DC, 0x144: 0x00DC, 0x170: 0x00DC, 0x195: 0x017B}   # near-call site: containing function
 MASK = SIZE - 1
 
 
@@ -69,9 +69,19 @@ def ownership():
                 direct.append(f"{unit['stub_para']:04X}:{fix - 3:04X}")
     check(not direct, f'direct overlay far calls to 08AE:1742 appeared: {direct}')
     image = bytes(unpack(exe)[0])
-    callers = [i.address for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(image[0x8BBC:0x8C5B], 0xDC) if i.mnemonic == 'call' and i.op_str == '0x1742']
-    check(callers == NEAR_CALLERS, f'00DC near callers {[hex(a) for a in callers]}')
-    return dict(overlay_far_call_fixups=0, resident_00dc_near_sites=[f'{a:04X}' for a in callers], identity='unresolved', credit_claimed=False)
+    segment = image[0x8AE0:0x8AE0 + 0x10000]
+    # Every E8 whose rel16 lands on the entry anywhere in the 08AE segment, then decoded: each candidate must be a real
+    # `call` at an instruction start of the function that contains it (00DC for four, 017B for the fifth).
+    candidates = [o for o in range(len(segment) - 2) if segment[o] == 0xE8 and (o + 3 + struct.unpack_from('<h', segment, o + 1)[0]) & 0xFFFF == ENTRY]
+    decoded = {}
+    for start, stop in ((0x00DC, 0x017B), (0x017B, 0x01A5)):
+        for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(segment[start:stop], start):
+            if i.mnemonic == 'call' and i.op_str == f'{ENTRY:#x}'.lower():
+                decoded[i.address] = start
+    check(candidates == sorted(NEAR_CALLERS) and decoded == NEAR_CALLERS,
+          f'near-call census differs: raw {[hex(a) for a in candidates]}, decoded {[(hex(a), hex(f)) for a, f in sorted(decoded.items())]}')
+    callers = sorted(decoded)
+    return dict(overlay_far_call_fixups=0, near_call_sites={f'{a:04X}': f'{decoded[a]:04X}' for a in callers}, identity='unresolved', credit_claimed=False)
 
 
 def library(directory):
