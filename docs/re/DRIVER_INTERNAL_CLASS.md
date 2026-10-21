@@ -1,6 +1,14 @@
 # Driver-internal bodies: a declared readiness class that is never a credit
 
-**Status: class implemented with an EMPTY member table.** Readiness does not change until a member is added through review. Design approved in principle by the VP (i19925, after design i19920); the reviewer roles were ruled in i19927.
+**Status: one member, `RES_08AE_181A`** (22 B; author PR #1243 at `df1dc4d8`, accepted by par-e and merged as #1247). Design approved in principle by the VP (i19925, after design i19920); the reviewer roles were ruled in i19927.
+
+**The first member bought no body and no credit.** Readiness delta is **zero**:
+- par-a regenerated the strict-candidate export on main `30b92e0a` twice, once with the committed table and once with a header-only table.
+- Both give 447 candidates and 58 composable.
+- No candidate's callee readiness differs, and no candidate targets `181A` directly. Its only callers are other 08AE bodies.
+- Strict and identity counts stay 252 / 298.
+
+A member counts toward a row only when every other unready callee on that row's path is also ready.
 
 ## What it is
 
@@ -21,6 +29,9 @@ The 08AE policy states that driver helpers "do not become environment endpoints 
 ## Membership: narrow, enforced in code (`strict_candidate_queue.load_driver_internal`)
 
 - **Where members live:** only ids listed in [`driver_internal_models.csv`](driver_internal_models.csv). The columns are `id, evidence_doc, review_pr, reviewed_commit, body_sha256, body_bytes`, with exactly that header.
+- **Every member moves a pinned set under review.** `test_committed_table_loads_with_exactly_the_reviewed_members` (`test_strict_candidate_queue.py`) asserts the exact member set, which is currently `{RES_08AE_181A}`. So a table row added without the matching test change fails CI.
+  - Before #1247 that test asserted the table was empty. That was a vacuous truth written by par-a in #1241: it would have kept passing for as long as nobody added a member, and it proved nothing about the members.
+  - par-e replaced it with the pinned set.
 - **Segment-scoped:** an id must match `RES_08AE_XXXX`. Widening the class to another segment is a policy change to this rule, never a table row.
 - **Disjoint from:**
   - `DECLARED_BOUNDARY_ENDPOINTS`;
@@ -62,7 +73,7 @@ Closure measured on main `0f8dba7c` with `price_row_closures.py` after #1240, wh
 | 6 | `RES_08AE_13B1` | 57 | driver_internal | full bar | |
 | 7 | `RES_08AE_1742` | 108 | driver_internal | full bar (a table model exists) | |
 | 8 | `RES_08AE_17AE` | 108 | driver_internal | full bar (a table model exists) | |
-| 9 | `RES_08AE_181A` | 22 | driver_internal | full bar (raw model merged in #1185) | |
+| 9 | `RES_08AE_181A` | 22 | driver_internal | **member** (#1243 / #1247; zero readiness delta on its own) | author lane, accepted by par-e |
 | 10 | `RES_0899_0059` | 171 | **game** (gateway; two-factor identity passed, VP i19946) | strict | |
 | 11 | `RES_0899_0000` | 51 | **game** (gateway; two-factor identity passed, VP i19946) | strict | |
 | 12 | `RES_0709_0BF5` | 74 | game resident | identity + strict | |
