@@ -44,6 +44,16 @@ The audit asserts the following, each derived from the decode (the cluster's cou
   through g into the caller's header word, and positions f at that word + 2.
   - The log for `present-flag1`: FileExists open/close on handle 5, Reset(f) on 5, Reset(g) on 6, a 2-byte read on 6, then
     LSEEK on 5 to 1236h.
+  - **Why the audit's file service is ONE file with per-handle positions (VP i20328).** Every name opens the same blob,
+    and each handle keeps its own position, as DOS does. This matches the mechanism: the header that positions f is read
+    through g. Two things depend on that shape:
+    - The **independent statement** asserts that f's final position equals g's first two bytes + 2.
+    - The **native run** reads f's position back from DOS on a real file opened twice.
+
+    The Unicorn differential alone would not catch a fixture that gave each handle its own file: the original and the model
+    get the same service there, so they would still agree. The two checks above, which tie the header to the file's own
+    bytes, are what fix the mechanism. A model or fixture that treated f and g as independent files would agree with itself
+    and fail on the real archive.
 - **The header word is a 16-bit value added in place.** FFFEh and FFFFh wrap to 0 and 1. The Seek gets the word
   zero-extended (`XOR DX,DX`), so the archive position is at most FFFFh.
 - **A short file leaves part of the header word.** A 1-byte file overwrites only the low byte, and an empty file overwrites
