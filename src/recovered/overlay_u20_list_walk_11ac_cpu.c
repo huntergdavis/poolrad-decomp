@@ -84,7 +84,8 @@ static pr_u20_11ac_status call_unlink(machine *m,uint16_t site,uint16_t resident
     COPY_CPU(*c,inner);
     if(d->callee_status!=(int)PR_U6C_3291_OK)return PR_U20_11AC_CALLEE;
     if(c->cs!=caller || c->ip!=continuation)return PR_U20_11AC_TRANSFER;
-    if(c->sp!=entry_sp)return PR_U20_11AC_TRANSFER; /* RETF 4 must consume the two args */
+    /* RETF 4 pops the 4-byte return frame and the two argument bytes */
+    if(c->sp!=(uint16_t)(entry_sp+4u))return PR_U20_11AC_TRANSFER;
     return PR_U20_11AC_OK;
 }
 /* LCALL 0AF8:0254 FreeMem (RETF 6): size 16h, offset, segment already pushed. */
@@ -104,7 +105,8 @@ static pr_u20_11ac_status call_freemem(machine *m,uint16_t site,uint16_t system,
     COPY_CPU(*c,inner);
     if(d->callee_status!=(int)PR_SYSTEM_FREEMEM_RETURNED)return PR_U20_11AC_CALLEE;
     if(c->cs!=caller || c->ip!=continuation)return PR_U20_11AC_TRANSFER;
-    if(c->sp!=entry_sp)return PR_U20_11AC_TRANSFER; /* RETF 6 must consume the three args */
+    /* RETF 6 pops the 4-byte return frame and the three argument words */
+    if(c->sp!=(uint16_t)(entry_sp+6u))return PR_U20_11AC_TRANSFER;
     return PR_U20_11AC_OK;
 }
 pr_u20_11ac_status pr_u20_list_walk_11ac_cpu(uint8_t *ram,size_t size,

@@ -57,7 +57,7 @@ def source():
               sha256=sha256(body).hexdigest(),queue_bytes=316,queue_instructions=104,
               trimmed_tail=len(tail),tail_sha256=sha256(tail).hexdigest(),
               unlink_closure=c['info'])
-    return dict(body=body,closure=c,decoded=decoded,info=info)
+    return dict(body=body,closure=c,closure_ctx=None,decoded=decoded,info=info)
 def library(directory):
     out=Path(directory)/'libu20_11ac.so'
     inc=str(ROOT/'include');src=str(ROOT/'src/recovered')
@@ -74,40 +74,43 @@ def library(directory):
     return fn
 def far(m,seg,off): return struct.unpack_from('<HH',m,physical(seg,off))
 def put_far(m,seg,off,value): struct.pack_into('<HH',m,physical(seg,off),value[0],value[1])
-def build(ctx,rng,*,nodes=3,head=None,types=None,mark=None,freed=None,window=(0x3A00,0x1234),sp=0x8000,ss=None,ds=None,
-          flags=0x202,background=None,unlink_stub_seg=STUB,unlink_entry=UNLINK,freemem_seg=SYSTEM,**_):
-    """nodes: list of far pointers chained through +104h; types[i] sets +13h/+10Dh/+10Eh."""
-    m=bytearray([0xA5])*SIZE if background is None else bytearray(background)
-    image=ctx['closure']['image'];m[:len(image)]=image
-    ss=DS if ss is None else ss;ds=DS if ds is None else ds
-    chain=[(0x5000+i*0x120,0x10) for i in range(nodes)]
+def build(ctx,rng,*,nodes=3,head=0,types=None,freed=None,node_off=None,sp=0x8000,ss=None,flags=0x602,
+          unlink_stub_seg=STUB,unlink_entry=UNLINK,extra_writes=(),**_):
+    """Reuse the +3291 closure's own world builder: it already chains the nodes this
+    body walks (+104h), seeds the head (5D96/5D98), the active record (5D92/5D94)
+    and the window pointer (49D6), and installs every closure body at its segment.
+    Only the root body, its stub and the CPU entry frame are ours."""
+    c=closure.source()
+    import random as _random
+    rng=rng or _random.Random(20261027)
+    m,cpu=closure.build(c,rng,records=nodes,
+                        head=head if head is not None else None,active=None,
+                        sp=sp,ss=closure.SS if ss is None else ss,flags=flags,ds=closure.DS)
+    # node type bytes and free pointers, by the closure's own node addressing
     for i in range(nodes):
-        nxt=chain[i+1] if i+1<nodes else (0,0)
-        put_far(m,chain[i][0],chain[i][1]+0x104,nxt)
+        seg,off=closure.rec_ptr(i,(node_off or {}).get(i,0))
         t=(types or {}).get(i,0)
-        m[physical(chain[i][0],(chain[i][1]+0x13)&65535)]=1 if t&1 else 0
-        m[physical(chain[i][0],(chain[i][1]+0x10D)&65535)]=1 if t&2 else 0
-        m[physical(chain[i][0],(chain[i][1]+0x10E)&65535)]=1 if t&4 else 0
-        if i in (freed or {}):
-            put_far(m,chain[i][0],chain[i][1]+0x108,(0x6000+i*0x40,0x20))
-        else:
-            put_far(m,chain[i][0],chain[i][1]+0x108,(0,0))
-    put_far(m,DS,0x5D96,chain[head] if head is not None else (0,0))
-    put_far(m,DS,0x5D92,(0,0))
-    put_far(m,DS,0x49D6,window[0:2] if isinstance(window,tuple) else window)
-    put16(m,window[0],(window[1]+0x590)&65535,0x1111)
-    put16(m,window[0],(window[1]+0x67C)&65535,0x1234)
-    stub_seg=unlink_stub_seg
-    m[physical(stub_seg,0x2A):physical(stub_seg,0x2A)+5]=b'\xEA'+struct.pack('<HH',unlink_entry,CS)
-    c=dict(ax=0,bx=0x1234,cx=0x5678,dx=0,si=0x1111,di=0x2222,bp=0x7F00,sp=sp,cs=CS,ip=ENTRY,ds=ds,es=0x3333,ss=ss,flags=flags)
-    return m,c,chain
+        m[physical(seg,(off+0x13)&65535)]=1 if t&1 else 0
+        m[physical(seg,(off+0x10D)&65535)]=1 if t&2 else 0
+        m[physical(seg,(off+0x10E)&65535)]=1 if t&4 else 0
+        if i in (freed or {}): put_far(m,seg,(off+0x108)&65535,(0x6000+i*0x40,0x20))
+    # root body, and the 0078:002A stub bound to the +3291 closure's own segment
+    body=ctx['body']; at=physical(CS,ENTRY); m[at:at+len(body)]=body
+    m[physical(unlink_stub_seg,0x2A):physical(unlink_stub_seg,0x2A)+5]=b'\xEA'+struct.pack('<HH',unlink_entry,closure.CS)
+    for seg,off,blob in extra_writes:
+        for j,v in enumerate(blob): m[(physical(seg,off)+j)&(SIZE-1)]=v
+    # entry frame: far return address only (this body takes no arguments)
+    put16(m,cpu.ss,(sp+0)&65535,0x7777); put16(m,cpu.ss,(sp+2)&65535,0x8888)
+    cpu.cs,cpu.ip,cpu.sp=CS,ENTRY,sp
+    cpu.bp=0x7F00; cpu.ax=cpu.bx=cpu.cx=cpu.dx=cpu.si=cpu.di=0
+    return m,cpu,None
 def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
     from unicorn import Uc,UC_ARCH_X86,UC_MODE_16,UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_CS,UC_X86_REG_IP
+    from unicorn.x86_const import UC_X86_REG_CS,UC_X86_REG_IP,UC_X86_REG_SP,UC_X86_REG_SS
     m,c,chain=state
     uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
-    for (n,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,c[n])
+    for (n,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,n))
     s=dict(stop=None,last=None,walk=0,callee=None,cstatus=None,unlink_calls=0,freemem_calls=0,site=0)
     def stop(code):s['stop']=code;uc.emu_stop()
     def hook(em,address,size,user):
@@ -117,7 +120,7 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
             s['walk']+=1
         if cs==CS and ip in (UNLINK_STUB_SITE,FREEMEM_SITE):
             s['site']=ip;raw=bytes(uc.mem_read(address,5))
-            want=(0x2A,STUB) if ip==UNLINK_STUB_SITE else (0x254,SYSTEM)
+            want=(0x2A,STUB) if ip==UNLINK_STUB_SITE else (0x254,closure.SYSTEM)
             if raw[0]!=0x9A or struct.unpack_from('<HH',raw,1)!=want:return stop(2)
             stub=struct.unpack_from('<H',raw,3)[0]
             loaded=bytes(uc.mem_read(physical(stub,want[0]),5))
@@ -125,14 +128,21 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
             if loaded[0]!=0xEA or struct.unpack_from('<H',loaded,1)[0]!=entry:return stop(2)
             if ip==UNLINK_STUB_SITE:s['unlink_calls']+=1
             else:s['freemem_calls']+=1
-        if cs==SYSTEM and ip==0x00E2:return stop(3)          # FreeMem RunError
-        if cs==CS and ip==RETF:return stop(0)
+        if cs==closure.SYSTEM and ip==0x00E2:return stop(3)          # FreeMem RunError
+        if cs==CS and ip==RETF:
+            # the hook fires before the RETF executes; the candidate completes it,
+            # so perform the far return here to compare SP and the popped frame
+            sp_=uc.reg_read(UC_X86_REG_SP);ss_=uc.reg_read(UC_X86_REG_SS)
+            ip_=struct.unpack_from('<H',bytes(uc.mem_read(physical(ss_,sp_),2)))[0]
+            cs_=struct.unpack_from('<H',bytes(uc.mem_read(physical(ss_,(sp_+2)&65535),2)))[0]
+            uc.reg_write(UC_X86_REG_SP,(sp_+4)&65535);uc.reg_write(UC_X86_REG_IP,ip_);uc.reg_write(UC_X86_REG_CS,cs_)
+            return stop(0)
         if cs==CS and ip==END:return stop(4)
-    uc.hook_add(UC_HOOK_CODE,hook);uc.emu_start(physical(c['cs'],c['ip']),2*SIZE,count=400000)
+    uc.hook_add(UC_HOOK_CODE,hook);uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=400000)
     check(s['stop'] is not None,name+': no accepted stop')
-    ctypes_state=Cpu(**{n:c[n] for n,_ in Cpu._fields_})
+    ctypes_state=Cpu(**{n:getattr(c,n) for n,_ in Cpu._fields_})
     ram=(ctypes.c_uint8*SIZE).from_buffer_copy(m);d=Diagnostic()
-    got=fn(ram,SIZE,ctypes.byref(ctypes_state),DS,SYSTEM,lim,ctypes.byref(d))
+    got=fn(ram,SIZE,ctypes.byref(ctypes_state),closure.RESIDENT,closure.SYSTEM,lim,ctypes.byref(d))
     check(got==s['stop'],f'{name}: status C={got} original={s["stop"]}')
     if expect is not None:check(got==expect,f'{name}: expected {expect}')
     if got==0:
@@ -176,14 +186,20 @@ def main():
             print('CHECKER_BUILD_OK');return
         lim=Limits(64,256,UnlinkLimits(64,64,256))
         results=[];seen={}
+        failures=[]
         for name,state,expect,walk in cases(ctx):
-            got,d=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
-            seen[name]=dict(status=got,calls=(d.calls_unlink,d.calls_freemem))
-            results.append(name)
+            try:
+                got,d=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
+                seen[name]=dict(status=got,calls=(d.calls_unlink,d.calls_freemem))
+                results.append(name)
+            except Exception as exc:
+                failures.append((name,str(exc)[:160]))
+        for name,why in failures:print('FAIL',name,why,flush=True)
         report=dict(identity=ctx['info'],cases=len(results),names=sorted(results),stops={},state=dict(cpu_words=14,
                   ram_bytes=SIZE,flag_masks=0,ordinary_ram_bytes=SIZE-0x10000))
         for name,v in seen.items():report['stops'][str(v['status'])]=report['stops'].get(str(v['status']),0)+1
         print('Original parity',{k:v for k,v in report.items() if k!='names'},flush=True)
+        if failures:raise SystemExit(f'{len(failures)}/{len(results)+len(failures)} cases failed')
         if a.output:a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':
     sys.modules['u20_list_walk_11ac_cpu_audit']=sys.modules[__name__]
