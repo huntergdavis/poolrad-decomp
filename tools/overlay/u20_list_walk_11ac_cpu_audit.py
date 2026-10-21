@@ -188,11 +188,15 @@ def cases(ctx):
 def main():
     p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--output',type=Path)
     a=p.parse_args()
+    if a.compile_only:
+        # --compile-only must build WITHOUT media: this gate runs on a tree that
+        # has no resources/DOS/POOLRAD, so nothing may read START.EXE/GAME.OVR here.
+        with tempfile.TemporaryDirectory() as tmp:
+            library(tmp)
+        print('CHECKER_BUILD_OK');return
     ctx=source()
     with tempfile.TemporaryDirectory() as tmp:
         fn=library(tmp)
-        if a.compile_only:
-            print('CHECKER_BUILD_OK');return
         lim=Limits(64,256,UnlinkLimits(64,64,256))
         results=[];seen={}
         failures=[]
