@@ -16,6 +16,7 @@ import io
 import json
 import sys
 import tempfile
+from unittest import mock
 from types import SimpleNamespace
 from pathlib import Path
 import unittest
@@ -110,6 +111,95 @@ class DeclaredBoundaryTest(unittest.TestCase):
         self.assertIn("can never be strict-credited", str(caught.exception))
         # A normal overlay id passes the same guard.
         scq.require_not_declared_boundary("OVL_0038_12B2")
+
+
+class DriverInternalTest(unittest.TestCase):
+    """A driver-internal body composes as ready but can never be credited (VP i19925)."""
+
+    ROOT = Path(__file__).resolve().parents[2]
+    SHA = "ab" * 32
+
+    def table(self, folder, member="RES_08AE_00DC", body=None, doc_text=None):
+        doc = Path(folder) / "docs/re/DRIVER_TEST.md"
+        doc.parent.mkdir(parents=True, exist_ok=True)
+        doc.write_text(doc_text if doc_text is not None else f"# {member}\nbody {self.SHA}\n")
+        row = dict(id=member, evidence_doc="docs/re/DRIVER_TEST.md", review_pr="1", reviewed_commit="c" * 40,
+                   body_sha256=body or self.SHA, body_bytes="159")
+        return [row]
+
+    def test_committed_table_loads_and_is_empty_today(self):
+        path = self.ROOT / "docs/re/driver_internal_models.csv"
+        with path.open() as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+            members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
+        self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
+        self.assertEqual(members, frozenset())
+
+    def test_valid_member_loads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(scq.load_driver_internal(self.table(folder), folder), {"RES_08AE_00DC"})
+
+    def test_membership_is_narrow_and_fail_closed(self):
+        cases = {
+            "outside the 08AE driver segment": dict(member="RES_0899_0059"),
+            "does not name": dict(doc_text="# nothing here\n"),
+            "lacks body/approval provenance": dict(body="not-a-hash"),
+        }
+        for message, kwargs in cases.items():
+            with self.subTest(message), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(Exception) as caught:
+                    scq.load_driver_internal(self.table(folder, **kwargs), folder)
+                self.assertIn(message.split(" (")[0], str(caught.exception))
+        # Defence in depth inside the 08AE segment: a declared boundary or a
+        # game-specific resident target is refused even with valid provenance.
+        import resident_inventory
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, {"RES_08AE_00DC": "docs/re/X.md"}):
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(self.table(folder), folder)
+            self.assertIn("declared boundary", str(caught.exception))
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(resident_inventory, "GAME_SPECIFIC_TARGETS",
+                                  resident_inventory.GAME_SPECIFIC_TARGETS | {(0x8AE, 0x00DC)}):
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(self.table(folder), folder)
+            self.assertIn("game-specific resident target", str(caught.exception))
+        with tempfile.TemporaryDirectory() as folder:
+            rows = self.table(folder) * 2
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(rows, folder)
+            self.assertIn("duplicate", str(caught.exception))
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(self.table(folder), folder, fields=("id", "evidence_doc"))
+            self.assertIn("columns", str(caught.exception))
+
+    def test_attempt_to_credit_a_member_is_refused_in_every_table(self):
+        """The proof by attempt: write a member into each credit/manifest table."""
+        members = frozenset({"RES_08AE_00DC"})
+        attempts = {
+            "strict_full_c_addresses.csv": dict(strict_rows=[{"id": "RES_08AE_00DC", "evidence_doc": "docs/re/X.md"}]),
+            "reviewed_function_identities.csv": dict(identity_rows=[{"id": "RES_08AE_00DC"}]),
+            "partial_callee_models.csv": dict(partial_rows=[{"id": "RES_08AE_00DC", "status": "full",
+                                                             "evidence_doc": "docs/re/X.md"}]),
+        }
+        for table, kwargs in attempts.items():
+            with self.subTest(table):
+                arguments = dict(strict_rows=[], identity_rows=(), partial_rows=None)
+                arguments.update(kwargs)
+                with self.assertRaises(Exception) as caught:
+                    scq.load_queue({}, [], [], arguments["strict_rows"], None, arguments["partial_rows"],
+                                   members, arguments["identity_rows"])
+                self.assertIn(f"can never appear in {table}", str(caught.exception))
+
+    def test_no_member_appears_in_a_committed_credit_table(self):
+        with (self.ROOT / "docs/re/driver_internal_models.csv").open() as handle:
+            members = {row["id"] for row in csv.DictReader(handle)}
+        for table in ("docs/re/strict_full_c_addresses.csv", "docs/re/reviewed_function_identities.csv",
+                      "docs/re/partial_callee_models.csv"):
+            with (self.ROOT / table).open() as handle:
+                ids = {row["id"] for row in csv.DictReader(handle)}
+            self.assertFalse(ids & members, f"{table} names driver_internal members: {ids & members}")
 
 
 class StrictCandidateQueueTest(unittest.TestCase):
