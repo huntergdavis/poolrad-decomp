@@ -107,3 +107,18 @@ verified with the media absent.
 ## Proposed coverage row (text only; the acceptance lands it)
 
     strict_candidate_queue.RUNTIME_COVERED_ENDPOINTS:  (0x0AF8, 0x1563): "system Seek (system_seek_1563_cpu, #1314; TRANSFER fix #<this PR>)"
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20278/i20284)
+
+`(0x0AF8, 0x1563): "system Seek (system_seek_1563_cpu, #1314/#1317)"` lands in `RUNTIME_COVERED_ENDPOINTS`. It is readiness only, never a credit.
+
+- **Audit reproduced at `f902b02a`, the #1317 TRANSFER fix included:**
+  - **Unicorn:** 76 cases (`RETURN` 75, `TRANSFER` 1: the constructed `SS = DS` return-slot alias that #1314 had not
+    built). Starts 23/23, outcomes 6/6, 70 independent checks, CPU14 + 1 MiB, masks 0.
+  - **Native:** 24 cases.
+- **Composed:** par-d's shared `14B6` check (`system_filecheck_14b6_cpu`) is linked in, not re-proved.
+- **No terminal stop:** `INT 21h` AH=42h is a declared service.
+- Native RESULT.BIN `8134fea7…` equals this document. The emulator is `/usr/bin/dosbox-x` 2026.01.02, not the pinned `5a9c7c53` build (a declared substitution). ASan/UBSan with `-Werror -Wpedantic`: 17 checks. `check_checker_builds RES_0AF8_1563 --require-current-main` passes.
+- **Measured delta** (regenerated exports, closure pricer): with `1410`, `1563` and `1593` covered, **0** rows become free
+  of uncovered SYSTEM endpoints (343 → 343). All 21 rows of the t29 prize are held by `14FB` alone (see the BlockRead
+  record).

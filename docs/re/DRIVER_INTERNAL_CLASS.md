@@ -105,6 +105,14 @@ every caller composes into something undeclared for as long as the gap lasts. Th
 into an undeclared terminal. **Rule:** such a row and its terminal land in one commit. `RUNTIME_COVERED_TERMINALS` in
 `strict_candidate_queue.py` makes `load_queue` refuse a covered endpoint whose terminal is not declared.
 
+**The same gap was already open for five covered endpoints (VP i20284).** GetMem `023F`, FreeMem `0254`, LongDiv
+`0A76`, and Real `1186` and `119E` were all covered BEFORE `00E2` existed. #1312 closed that ordering gap silently, and
+`RUNTIME_COVERED_TERMINALS` makes it explicit. The same table holds BlockRead `14FB` → `RES_0AF8_00DF`: its `DIVIDE`
+stop raises INT 0, whose vector SYSTEM sets to `0AF8:00DF`, and the `00E2` declaration excludes `00DF`. That is the
+first such gap reached through the CPU's own exception path rather than through a jump. A model that stops at a
+nested call and resumes after it has the matching rule: `RUNTIME_COVERED_STOP_CALLEES` (Reset `1410` needs Close `1491`
+covered).
+
 ## Deferred member: `RES_08AE_01A5` (VP i20201)
 
 **Its evidence is complete, its composition is unprovable today, and the wall does not need it.**

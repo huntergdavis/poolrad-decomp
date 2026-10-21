@@ -152,13 +152,29 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0A32, 0x000B): "Dos.Intr (dos_intr_000b_cpu, #1259)",
     (0x0AF8, 0x04A9): "system IOCheck (system_iocheck_04a9_cpu, #1306)",
     (0x0AF8, 0x1491): "system Close (system_close_1491_cpu, #1309)",
+    (0x0AF8, 0x1410): "system Reset (system_reset_1410_cpu, #1311)",
+    (0x0AF8, 0x1563): "system Seek (system_seek_1563_cpu, #1314/#1317)",
+    (0x0AF8, 0x1593): "system FilePos (system_filepos_1593_cpu, #1316)",
 }
 
 # A covered endpoint whose model stops by transferring into a TERMINAL must not be
 # ready before that terminal is declared: otherwise every caller composes into an
 # undeclared terminal, laundering by order of merging (VP i20256). load_queue refuses it.
 RUNTIME_COVERED_TERMINALS = {
+    (0x0AF8, 0x023F): "RES_0AF8_00E2",  # GetMem RUNERROR stop: AX=203, JMP 00E2
+    (0x0AF8, 0x0254): "RES_0AF8_00E2",  # FreeMem RUNERROR stop: AX=204, JMP 00E2
     (0x0AF8, 0x04A9): "RES_0AF8_00E2",  # IOCheck RUNERROR stop: JMP 00E2 (RunError)
+    (0x0AF8, 0x0A76): "RES_0AF8_00E2",  # LongDiv DIVIDE_ERROR stop: AX=200, JMP 00E2
+    (0x0AF8, 0x1186): "RES_0AF8_00E2",  # Real multiply RUNERROR stop: AX=205, JMP 00E2
+    (0x0AF8, 0x119E): "RES_0AF8_00E2",  # Real Trunc RUNERROR stop: AX=207, JMP 00E2
+    (0x0AF8, 0x1593): "RES_0AF8_00E2",  # FilePos DIVIDE stop, through LongDiv's JMP 00E2
+    (0x0AF8, 0x14FB): "RES_0AF8_00DF",  # BlockRead DIVIDE stop: INT 0, vector 0AF8:00DF (held until declared)
+}
+
+# A covered endpoint whose model STOPS at a nested call (and resumes after it) is usable only
+# while that callee is itself covered; the composed run is in the endpoint's evidence document.
+RUNTIME_COVERED_STOP_CALLEES = {
+    (0x0AF8, 0x1410): (0x0AF8, 0x1491),  # Reset CLOSE stop: PUSH CS; CALL 1491, resume at 1445
 }
 
 TOKEN = re.compile(
@@ -544,6 +560,10 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
         require(endpoint not in RUNTIME_COVERED_ENDPOINTS or terminal in DECLARED_BOUNDARY_ENDPOINTS,
                 f"runtime-covered {endpoint[0]:04X}:{endpoint[1]:04X} stops into {terminal}, "
                 "which is not a declared boundary")
+    for endpoint, callee in RUNTIME_COVERED_STOP_CALLEES.items():
+        require(endpoint not in RUNTIME_COVERED_ENDPOINTS or callee in RUNTIME_COVERED_ENDPOINTS,
+                f"runtime-covered {endpoint[0]:04X}:{endpoint[1]:04X} stops at a call to "
+                f"{callee[0]:04X}:{callee[1]:04X}, which is not runtime-covered")
     # Refuse any credit or manifest row naming a driver-internal member BEFORE anything
     # else, so an attempt to credit one fails on the class, not on some later check.
     for table, rows_ in (("reviewed_function_identities.csv", identity_rows),
