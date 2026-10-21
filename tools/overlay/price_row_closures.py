@@ -36,11 +36,29 @@ import strict_candidate_queue as sq  # noqa: E402
 from resident_loader_map import unpack  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-OK = ("strict", "resident_covered", "runtime_covered", "declared_boundary")
+OK = ("strict", "resident_covered", "runtime_covered", "declared_boundary", "driver_internal", "resident_runtime")
 DECLARED = frozenset(sq.DECLARED_BOUNDARY_ENDPOINTS)
 RESIDENT_SEGMENTS = (0x464, 0x802, 0x899, 0x709, 0x3F1, 0xA40)
 DEFAULT_ROWS = ("OVL_0025_1684 OVL_006F_0482 OVL_0077_299C OVL_006F_0010 OVL_006F_22D5 OVL_0025_1CC3 "
                 "OVL_006F_1262 OVL_0025_0511 OVL_03CE_01C8 OVL_0025_0411").split()
+
+
+def _class_members(loader, relative, root):
+    path = Path(root) / relative
+    if not path.is_file():
+        return frozenset()
+    reader = csv.DictReader(path.read_text().splitlines())
+    return loader(list(reader), root, fields=reader.fieldnames)
+
+
+def load_runtime_residents(root=ROOT):
+    """Members of the resident_runtime class (ready, never credits), validated by the queue's own loader."""
+    return _class_members(sq.load_resident_runtime, "docs/re/resident_runtime_models.csv", root)
+
+
+def load_driver_members(root=ROOT):
+    """Members of the driver_internal class (ready, never credits), validated by the queue's own loader."""
+    return _class_members(sq.load_driver_internal, "docs/re/driver_internal_models.csv", root)
 
 
 class Pricer:
@@ -50,6 +68,8 @@ class Pricer:
         self.md = Cs(CS_ARCH_X86, CS_MODE_16)
         self.strict = {r["id"] for r in csv.DictReader(open(ROOT / "docs/re/strict_full_c_addresses.csv"))}
         self.covered = set(sq.RUNTIME_COVERED_ENDPOINTS)
+        self.runtime_residents = load_runtime_residents()
+        self.driver_members = load_driver_members()
         self.cache = {}
 
     def span(self, seg, entry):
@@ -77,6 +97,14 @@ class Pricer:
             return
         if rid in DECLARED:
             acc["declared"].add(rid)
+            return
+        if rid in getattr(self, "runtime_residents", frozenset()):
+            # A resident_runtime member is a ready terminal: listed, never walked or priced (t30, VP i20300).
+            acc.setdefault("runtime_residents", set()).add(rid)
+            return
+        if rid in getattr(self, "driver_members", frozenset()):
+            # So is a driver_internal member, however it is reached (a near call from a non-member included).
+            acc.setdefault("driver_members", set()).add(rid)
             return
         if rid in self.strict:
             acc["strict"].add(rid)
@@ -138,7 +166,7 @@ class Pricer:
 
     def price(self, row_id):
         acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(),
-                   declared=set())
+                   declared=set(), runtime_residents=set(), driver_members=set())
         row = self.rows[row_id]
         acc["bodies"][row_id] = row["bytes"]
         self.expand(row, acc)

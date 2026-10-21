@@ -305,6 +305,148 @@ class DriverInternalTest(unittest.TestCase):
             self.assertFalse(ids & members, f"{table} names driver_internal members: {ids & members}")
 
 
+class ResidentRuntimeTest(unittest.TestCase):
+    """A near-called resident runtime body composes as ready but can never be credited (VP i20291/i20300, t30)."""
+
+    ROOT = Path(__file__).resolve().parents[2]
+    SHA = "cd" * 32
+
+    def table(self, folder, member="RES_0802_0020", body=None, doc_text=None):
+        doc = Path(folder) / "docs/re/RUNTIME_TEST.md"
+        doc.parent.mkdir(parents=True, exist_ok=True)
+        doc.write_text(doc_text if doc_text is not None else f"# {member}\nbody {self.SHA}\n")
+        return [dict(id=member, evidence_doc="docs/re/RUNTIME_TEST.md", review_pr="1", reviewed_commit="c" * 40,
+                     body_sha256=body or self.SHA, body_bytes="32")]
+
+    @staticmethod
+    def image(*bodies):
+        """A synthetic loader image holding each (segment, offset, body bytes) at its linear address."""
+        memory = bytearray(1 << 20)
+        for segment, offset, body in bodies:
+            memory[segment * 16 + offset:segment * 16 + offset + len(body)] = body
+        return bytes(memory)
+
+    def load(self, rows, folder, **kwargs):
+        kwargs.setdefault("ledger_ids", frozenset())
+        return scq.load_resident_runtime(rows, folder, **kwargs)
+
+    def test_committed_table_loads_with_exactly_the_reviewed_members(self):
+        # Pinned membership: adding a member is an acceptance act, so it must also update this set.
+        path = self.ROOT / "docs/re/resident_runtime_models.csv"
+        with path.open() as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+            members = scq.load_resident_runtime(rows, self.ROOT, fields=reader.fieldnames)
+        self.assertEqual(tuple(reader.fieldnames), scq.RESIDENT_RUNTIME_FIELDS)
+        self.assertEqual(members, frozenset())  # the class lands empty; t30's 0000/0020/0175 join with their bodies
+
+    def test_valid_member_loads(self):
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.load(self.table(folder), folder), {"RES_0802_0020"})
+
+    def test_membership_is_narrow_and_fail_closed(self):
+        cases = {
+            "is outside the class (08AE bodies are driver_internal)": dict(member="RES_08AE_00DC"),
+            "is outside the class": dict(member="OVL_0025_0341"),
+            "does not name": dict(doc_text="# nothing here\n"),
+            "lacks body/approval provenance": dict(body="not-a-hash"),
+        }
+        for message, kwargs in cases.items():
+            with self.subTest(message), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(Exception) as caught:
+                    self.load(self.table(folder, **kwargs), folder)
+                self.assertIn(message, str(caught.exception))
+        # Near-called only: an overlay-called entry must earn identity, never be declared non-credit.
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(Exception) as caught:
+                self.load(self.table(folder), folder, ledger_ids=frozenset({"RES_0802_0020"}))
+            self.assertIn("overlay-called entry", str(caught.exception))
+        # The committed ledger is the default source: its real entry 0802:0716 is refused.
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(Exception) as caught:
+                scq.load_resident_runtime(self.table(folder, member="RES_0802_0716"), folder,
+                                          ledger_ids=scq.resident_ledger_ids(self.ROOT))
+            self.assertIn("overlay-called entry", str(caught.exception))
+        import resident_inventory
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, {"RES_0802_0020": "docs/re/X.md"}):
+            with self.assertRaises(Exception) as caught:
+                self.load(self.table(folder), folder)
+            self.assertIn("declared boundary", str(caught.exception))
+        with tempfile.TemporaryDirectory() as folder, \
+                mock.patch.object(resident_inventory, "GAME_SPECIFIC_TARGETS",
+                                  resident_inventory.GAME_SPECIFIC_TARGETS | {(0x802, 0x0020)}):
+            with self.assertRaises(Exception) as caught:
+                self.load(self.table(folder), folder)
+            self.assertIn("game-specific resident target", str(caught.exception))
+        with tempfile.TemporaryDirectory() as folder:
+            with self.assertRaises(Exception) as caught:
+                self.load(self.table(folder) * 2, folder)
+            self.assertIn("duplicate resident_runtime member", str(caught.exception))
+            with self.assertRaises(Exception) as caught:
+                self.load(self.table(folder), folder, fields=("id", "evidence_doc"))
+            self.assertIn("columns", str(caught.exception))
+
+    def test_closure_must_be_complete(self):
+        getmem = b"\x9a\x3f\x02\xf8\x0a\xcb"                     # LCALL 0AF8:023F (GetMem, runtime-covered); RETF
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(self.load(self.table(folder), folder, image=self.image((0x802, 0x0020, getmem))),
+                             {"RES_0802_0020"})
+        refused = {
+            "0AF8:0567 is not runtime-covered": b"\x9a\x67\x05\xf8\x0a\xcb",   # LCALL an uncovered endpoint
+            "RES_0802_0040 is not a member or strict": b"\xe8\x1d\x00\xcb",     # CALL 0040, a non-member
+        }
+        for message, body in refused.items():
+            with self.subTest(message), tempfile.TemporaryDirectory() as folder:
+                with self.assertRaises(Exception) as caught:
+                    self.load(self.table(folder), folder, image=self.image((0x802, 0x0020, body)))
+                self.assertIn("resident_runtime member RES_0802_0020 has an incomplete closure", str(caught.exception))
+                self.assertIn(message, str(caught.exception))
+        # A callee that is a member of the OTHER never-credit class is ready (the classes compose).
+        with tempfile.TemporaryDirectory() as folder:
+            far_driver = b"\x9a\xdc\x00\xae\x08\xcb"                   # LCALL 08AE:00DC
+            self.assertEqual(self.load(self.table(folder), folder, image=self.image((0x802, 0x0020, far_driver)),
+                                       driver_internal=frozenset({"RES_08AE_00DC"})), {"RES_0802_0020"})
+
+    def test_attempt_to_credit_a_member_is_refused_in_every_table(self):
+        members = frozenset({"RES_0802_0020"})
+        attempts = {
+            "strict_full_c_addresses.csv": dict(strict_rows=[{"id": "RES_0802_0020", "evidence_doc": "docs/re/X.md"}]),
+            "reviewed_function_identities.csv": dict(identity_rows=[{"id": "RES_0802_0020"}]),
+            "partial_callee_models.csv": dict(partial_rows=[{"id": "RES_0802_0020", "status": "full",
+                                                             "evidence_doc": "docs/re/X.md"}]),
+        }
+        for table, kwargs in attempts.items():
+            with self.subTest(table):
+                arguments = dict(strict_rows=[], identity_rows=(), partial_rows=None)
+                arguments.update(kwargs)
+                with self.assertRaises(Exception) as caught:
+                    scq.load_queue({}, [], [], arguments["strict_rows"], None, arguments["partial_rows"],
+                                   frozenset(), arguments["identity_rows"], members)
+                self.assertIn(f"resident_runtime members can never appear in {table}", str(caught.exception))
+
+    def test_member_reads_as_ready_and_is_labelled(self):
+        edges = {(0x25, 0x0341): [dict(kind="far_fixup_confirmed", resolution="resident", seg=0x802, off=0x0020)]}
+        args = (edges, set(), {}, {}, set(), set(), set(), set(), set())
+        before = scq.callee_evidence((0x25, 0x0341), *args)
+        self.assertEqual([t["readiness"] for t in before["targets"]], ["resident_unmapped"])
+        self.assertEqual((before["ready"], before["unready"]), (0, 1))
+        after = scq.callee_evidence((0x25, 0x0341), *args, resident_runtime=frozenset({"RES_0802_0020"}))
+        self.assertEqual([t["readiness"] for t in after["targets"]], ["resident_runtime"])
+        self.assertEqual((after["ready"], after["unready"]), (1, 0))
+        self.assertTrue(scq.resident_target_ready("RES_0802_0020", set(), resident_runtime=frozenset({"RES_0802_0020"})))
+        self.assertFalse(scq.resident_target_ready("RES_0802_0020", set()))
+
+    def test_no_member_appears_in_a_committed_credit_table(self):
+        with (self.ROOT / "docs/re/resident_runtime_models.csv").open() as handle:
+            members = {row["id"] for row in csv.DictReader(handle)}
+        for table in ("docs/re/strict_full_c_addresses.csv", "docs/re/reviewed_function_identities.csv",
+                      "docs/re/partial_callee_models.csv"):
+            with (self.ROOT / table).open() as handle:
+                ids = {row["id"] for row in csv.DictReader(handle)}
+            self.assertFalse(ids & members, f"{table} names resident_runtime members: {ids & members}")
+
+
 class StrictCandidateQueueTest(unittest.TestCase):
     def test_reviewed_tail_is_excluded_before_feature_decoding(self):
         # The decoder deliberately treats tail bytes as ES/global accesses.

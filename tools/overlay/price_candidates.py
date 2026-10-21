@@ -57,14 +57,14 @@ READINESS_STATES = {
     "declared_boundary", "untranslated", "resident_unmapped",
     "resident_callback", "runtime_unmapped", "partial", "modeled_blocked",
     "verified", "indirect_unresolved", "interface_caveat",
-    "resident_interface_caveat",
+    "resident_interface_caveat", "driver_internal", "resident_runtime",
 }
 
-# States that remain usable as a dependency. `declared_boundary` is usable for
-# composition but can never be credited; that credit rule lives in
-# check_boundary_credits.py, not here.
+# States that remain usable as a dependency. `declared_boundary`, `driver_internal` and `resident_runtime` are usable
+# for composition but can never be credited; those credit rules live in check_boundary_credits.py and
+# strict_candidate_queue.load_queue, not here.
 USABLE_DEPENDENCIES = {"strict", "modeled", "resident_covered",
-                       "runtime_covered", "declared_boundary"}
+                       "runtime_covered", "declared_boundary", "driver_internal", "resident_runtime"}
 
 # States that leave a callee unusable as a dependency. An indirect callee is
 # unready because its target set is unbounded, so no one-hop figure is a bound
