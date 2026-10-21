@@ -288,7 +288,7 @@ def native_cases():
 
 
 def native_audit(span, function):
-    directory = ROOT / 'resources/oracle-runs/res08ae-01a5-synthetic'
+    directory = ROOT / 'resources/oracle-runs/system-iocheck-04a9-synthetic'
     directory.mkdir(parents=True, exist_ok=True)
     cases = native_cases()
     table = b''.join((struct.pack('<BBHHHH', c['flags'], 0, len(c['writes']), c['entry'], c['arg'], 0) +
@@ -421,7 +421,7 @@ def main():
     p.add_argument('--output', type=Path)
     a = p.parse_args()
     report = {}
-    with tempfile.TemporaryDirectory(prefix='poolrad-01a5-') as tmp:
+    with tempfile.TemporaryDirectory(prefix='poolrad-iocheck-') as tmp:
         fn = library(Path(tmp))
         if a.compile_only:
             print('CHECKER_BUILD_OK')
