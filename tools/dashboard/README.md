@@ -20,6 +20,12 @@ assertion-enabled strict CMake build and all CTests in `/tmp/poolrad-dashboard-b
 and records commit, timestamp, exit codes, test totals, and logs in `state/`.
 The rendered status becomes **stale** if the repository commit changes.
 
+**The owner overview** (the default view) is one screen: four tiles and the line of truth (VP i20751). Code
+replaced and identities proven come from the accounting checkpoint and the census below. Unknown is the checkpoint's
+`unknown_ownership`. Running as our C comes from `hybrid_status.json`. Each of its numbers is shown only while its cited
+document (`docs/HYBRID_STAGE_A.md`, `docs/HYBRID_STAGE_B_OBSERVER.md`) still states it; otherwise the tile asks for
+re-review. Everything else is on the second view (`dashboard.html#details`).
+
 The function cards read reviewed numerators from
 `docs/re/function_accounting_checkpoint.json`. The working function total
 comes from `docs/re/function_ceiling_census.json`; candidate prologues and

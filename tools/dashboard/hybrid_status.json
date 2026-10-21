@@ -1,0 +1,16 @@
+{
+  "note": "Tile 3 of the owner overview. Each value is shown only while its source document still states it (the proof pattern); otherwise the tile asks for re-review. Update the value, the source and the proof together.",
+  "claims": {
+    "running_as_c": {"value": 12, "source": "docs/HYBRID_STAGE_A.md",
+                     "proof": "\\*\\*Bodies running as our C: 12 of the 12 credited bodies the cold start reaches\\*\\*"},
+    "c_only": {"value": 10, "source": "docs/HYBRID_STAGE_A.md", "proof": "\\*\\*10 run C-only\\.\\*\\*"},
+    "shadow": {"value": 2, "source": "docs/HYBRID_STAGE_A.md",
+               "proof": "\\*\\*2 are DOS- or BIOS-service-bound and run in shadow form"},
+    "entries_before": {"value": 976, "source": "docs/HYBRID_STAGE_A.md", "proof": "from 976 to 155 credited arrivals"},
+    "entries_after": {"value": 155, "source": "docs/HYBRID_STAGE_A.md", "proof": "from 976 to 155 credited arrivals"},
+    "credited_on_route": {"value": 16, "source": "docs/HYBRID_STAGE_B_OBSERVER.md",
+                          "proof": "277 credited, 16 reached by the cold start"},
+    "credited_off_route": {"value": 261, "source": "docs/HYBRID_STAGE_B_OBSERVER.md",
+                           "proof": "\\*\\*Credited bodies not reached by the cold start: 261\\*\\*"}
+  }
+}
