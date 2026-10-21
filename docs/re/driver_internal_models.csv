@@ -1,1 +1,2 @@
 id,evidence_doc,review_pr,reviewed_commit,body_sha256,body_bytes
+RES_08AE_181A,docs/re/RES_08AE_BYTE_181A_CPU.md,1243,df1dc4d80d43423a51b3d31a120ead9c417d7aed,4b13f9458c5b74c2a0dde8cd81bfd304d197c7712bf282efcf6cf4e38b88b79a,22

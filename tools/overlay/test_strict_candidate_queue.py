@@ -127,14 +127,15 @@ class DriverInternalTest(unittest.TestCase):
                    body_sha256=body or self.SHA, body_bytes="159")
         return [row]
 
-    def test_committed_table_loads_and_is_empty_today(self):
+    def test_committed_table_loads_with_exactly_the_reviewed_members(self):
+        # Pinned membership: adding a member is an acceptance act, so it must also update this set.
         path = self.ROOT / "docs/re/driver_internal_models.csv"
         with path.open() as handle:
             reader = csv.DictReader(handle)
             rows = list(reader)
             members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
-        self.assertEqual(members, frozenset())
+        self.assertEqual(members, frozenset({"RES_08AE_181A"}))  # #1243, accepted by par-e
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
