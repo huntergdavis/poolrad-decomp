@@ -5,6 +5,7 @@ The queue is a hash-pinned metadata input, not a module dependency. Equal code
 hashes are review leads, never evidence for merging different original starts.
 Original media stay local; outputs contain addresses, hashes and measured facts.
 """
+# NOT_A_ROW_CHECKER: whole-table alias audit of the queue against an independent registry; it checks no registered row
 
 import argparse
 from collections import defaultdict
