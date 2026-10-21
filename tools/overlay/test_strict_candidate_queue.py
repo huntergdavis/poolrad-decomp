@@ -135,7 +135,7 @@ class DriverInternalTest(unittest.TestCase):
             rows = list(reader)
             members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
-        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000"}))  # #1243, #1249; accepted by par-e
+        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000", "RES_08AE_1742"}))  # #1243, #1249; accepted by par-e
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -226,7 +226,7 @@ class DriverInternalTest(unittest.TestCase):
         path = self.ROOT / "docs/re/driver_internal_models.csv"
         rows = list(csv.DictReader(path.read_text().splitlines()))
         self.assertEqual(scq.load_driver_internal(rows, self.ROOT, image=image),
-                         frozenset({"RES_08AE_181A", "RES_08AE_0000"}))
+                         frozenset({"RES_08AE_181A", "RES_08AE_0000", "RES_08AE_1742"}))
         # The real 006C calls 08AE:0000 twice (printed as "call 0"); with 0000 a member it has no gap at all.
         self.assertEqual(scq.driver_internal_closure_gaps("RES_08AE_006C", image,
                                                          {"RES_08AE_0000", "RES_08AE_006C"}), [])
