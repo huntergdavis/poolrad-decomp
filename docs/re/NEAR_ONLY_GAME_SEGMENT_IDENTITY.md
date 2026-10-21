@@ -62,3 +62,36 @@ The chain ruling needs the entry's identity to be **direct**. None of the entrie
 - `RES_0802_0040` (197 B) reads the game's draw and active pages `DS:4A1A/4A1B` and the EGA flag `DS:4A1E`. All three are set by the game's video init, with native stops in [RESIDENT_VIDEO_INIT_4426.md](RESIDENT_VIDEO_INIT_4426.md). It maps the attribute through the colour table `DS:25D5`, which strict-credited `RES_0709_01DF`'s doc documents, and repeats the draw on the second page when the flag is set.
 
 "Uses game-supplied arguments" is **not** a sufficient ground on its own: 2A0D also uses its arguments. Resting the ruling on that clause would reopen 2A0D. The operative difference is that 0040 reads game-maintained display state and 2A0D reads none.
+
+## Pass 2: the blocking entries, then their nested bodies (par-a, 2026-10-21, VP i20396)
+
+Measured on main `1bf35dde` and later.
+- **Far callers** come from `callgraph.json` edges of kind `far_fixup_confirmed` with `resolution: resident`, attributed by `src_func`. Classification and credit are read from `classification.csv` and the two credit CSVs.
+- **Spans** come from the loader-expanded START.EXE.
+
+### Entries
+
+| Entry | Bytes | Factor 1 (fixup-backed overlay callers) | Factor 2 (documented subject) | Verdict |
+| --- | ---: | --- | --- | --- |
+| `RES_00BA_27D9` | 281 | 28 sites in 22 functions, including **`game_verified` `001C_0C74` (+0DD4), `001C_179B` (+18EF) and `001C_2E10` (+2E4F)**, and the gameplay loop `001C_32F8` (+3378) | Branches on the game mode byte `DS:49F3` ([GAMEPLAY_PATH.md](GAMEPLAY_PATH.md) §2 and §3; [RESIDENT_ROUTE_290B.md](RESIDENT_ROUTE_290B.md)). Reads the ECL-saved words `DS:49FD/49FE` ([ECL_HOOKS_6E7D.md](ECL_HOOKS_6E7D.md)). Loads the active-character pointer `DS:5D92/5D94`, which it passes to `0767`. | **PASS.** [RESIDENT_LOAD_ROUTE_27D9.md](RESIDENT_LOAD_ROUTE_27D9.md) left game-versus-library ownership open; this settles it. That doc's model is bounded, so credit still needs a full translation. |
+| `RES_0709_0768` | 635 | 27 sites in 16 functions, including **`game_verified` `001C_0A09` (x2), `001C_0F08`, `001C_1EF8` (x6) and `001C_2775`** | Reads and writes the active-window cursor bytes `DS:5E24/5E25`, which [ECL_CONTRACTS.md](ECL_CONTRACTS.md) (`0x33 PRINT RETURN`) and [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md) (function 10) document | **PASS** (the game's text-window printer). It is port-bound, and `0DD3`, `06A7` and `0BF5` are not yet modelled. |
+| `RES_0464_02A5` | 1,583 | **One** site, `03B9_00A2+0400` (`game_evidenced`, inside its bound of 1,005 B) | Reads the EGA flag `DS:4A1E`, which the game's video init sets ([RESIDENT_VIDEO_INIT_4426.md](RESIDENT_VIDEO_INIT_4426.md)), and the pixel-word table `DS:25E5`, which strict-credited `RES_0709_01DF`'s doc documents. This is the 0040 ground: it reads game-maintained display state. | **PASS, thin.** There is a single caller. The tables `25F6` and `25FA` are not documented. |
+| `RES_0464_15C7` | 906 | One site, in `03CE_04FC`, which is classified `game_or_other_library_unresolved` | n/a | **BLOCKED on `OVL_03CE_04FC` ownership.** It has no game-code caller today. |
+| `RES_0464_2632` | 987 | Six sites, in `006C_34DF` and `03BD_0174`, both `game_or_other_library_unresolved` | n/a | **BLOCKED on the ownership of those two callers.** |
+| `RES_0709_00B7` | 186 | Loader-called only (2 loader sites) | n/a | **Not assessed in this pass.** |
+
+### Nested bodies, under the chain ruling
+
+| Body | Entry | Verdict |
+| --- | --- | --- |
+| `RES_00BA_272A` | 27D9 | **FAIL, factor 2 (06FB's shape).** It reads only a 0/1 flag that 27D9 passes as a constant, loads four constant strings through `0AF8:0B0B` and prints them through `03F1:02E8`. There is no DS state and no dereferenced game argument. |
+| `RES_0709_06A7` | 0768 (its only caller, 3 sites) | **PASS.** Role: draws the next character of 0768's message buffer through glyph `01DF` at the window cursor `DS:5E24/5E25`, advances `[5E24]`, and applies the `[49E2]*10` delay when `[4A00]` is set. |
+| `RES_0709_0714` | 0768 (its only caller) | **BLOCKED.** It only skips blanks in 0768's local copy of its string argument. No document says which text the game passes to 0768, unlike 01DA's documented key list. Unblock by documenting one `game_verified` caller's text. |
+| `RES_0464_0000` | 02A5 (its only caller) | **FAIL, factor 2.** It does pure nibble arithmetic on stack values: a bitmask of which of the eight nibbles at `[bp+6..9]` equal `[bp+0Ah]`. There is no DS state, so it is a display computation in the 2A0D domain. |
+| `RES_0464_007B` | 02A5, 1E5C, 2632 | **BLOCKED.** It fails chain condition (b): it is also reachable from `1E5C` (parked 0482 chain) and `2632` (blocked). |
+| `RES_0464_1484`, `1509`, `1596` | 15C7 | **BLOCKED** on 15C7, which is blocked on `03CE_04FC`. |
+| `RES_0709_0000` | 00B7 | **BLOCKED** on 00B7, which is not assessed. |
+
+**Pass-2 tally for the original nine:** 1 PASS (`06A7`), 2 FAIL (`272A`, `0464_0000`), 6 BLOCKED.
+
+**Entries:** three now carry identity arguments (`27D9`, `0768`, `02A5`), but none is a credit yet. Each still needs a full translation at the bar.
