@@ -173,7 +173,7 @@ def node_at(i):
 
 def build(bodies, literal, *, nodes=(), item=None, result=(RESULT_SEG, 0x40), item_ptr=(ITEM_SEG, 0x200), heap_mode='top', custom_heap=False,
           flags=2, sp=0x8000, ss=SS, ret=RETURN, cycle=False, char_fields=None, writes=(), regs=None, fill=None, gc5=None,
-          alias=False, **options):
+          alias=False, skip_contract=False, result_alias=False, **options):
     """RAM image, CPU and the objects the body reads. `nodes` are dicts for the existing list records (weight, quantity, id)."""
     opts = dict(options)
     opts.update(sp=sp, ss=ss)
@@ -204,7 +204,8 @@ def build(bodies, literal, *, nodes=(), item=None, result=(RESULT_SEG, 0x40), it
     for seg, off, blob in writes:
         for j, v in enumerate(blob):
             m[physical(seg, (off + j) & 65535)] = v
-    return m, c, dict(fill=fill, gc5=gc5, ret=ret, nodes=nodes, item=spec, result=result, item_ptr=item_ptr, ds=ds, ss=ss, sp=sp)
+    return m, c, dict(fill=fill, gc5=gc5, ret=ret, nodes=nodes, item=spec, result=result, item_ptr=item_ptr, ds=ds, ss=ss, sp=sp,
+                      skip_contract=skip_contract, result_alias=result_alias)
 
 
 def make_device(spec):
@@ -315,7 +316,7 @@ def compare(name, state, bodies, dmap, lib, budgets, refuse=None):
             st['heap_walk'] += 1
             if st['heap_walk'] > budgets['heap']:
                 return halt(4, 5)
-        if key in MARKERS:
+        if key in MARKERS and not (key == (RES, 0xBB8) and st['callee'] != 7):   # 275B calls 0BB8 itself: that is not the redraw
             cap['order'].append(MARKERS[key])
         if key == (U77, 0x27C2):
             cap['regs'] = tuple(uc.reg_read(r) for r in (R.UC_X86_REG_AX, R.UC_X86_REG_CX, R.UC_X86_REG_BX))
@@ -327,7 +328,7 @@ def compare(name, state, bodies, dmap, lib, budgets, refuse=None):
             if key[1] == 0x1693:
                 at = physical(*ptr)
                 cap['display'] = (ptr, bytes(backing[at:at + 1 + backing[at]]))
-            else:
+            elif st['callee'] == 7:
                 cap['redraw'] = ptr
         seen.add(key)
         if prev[0] is not None:
@@ -438,18 +439,134 @@ def run_case(name, options, bodies, dmap, literal, lib, results):
     return r
 
 
-def specs():
-    out = [('empty', dict()), ('one', dict(nodes=({},))), ('two', dict(nodes=({}, {})))]
+def calibrate(nodes, bodies, dmap, literal, lib, **kw):
+    """The weight that puts S+P exactly on R+1500 for this list: measured from the ORIGINAL closure's own registers at 27C2
+    (AX = S+P, CX = R+1500 with ITEM weight 0 and count 1), never from the model. P = weight * count with count 1."""
+    results = []
+    r = run_case('calibrate', dict(nodes=nodes, item=dict(weight=0, quantity=1), skip_contract=True, **kw), bodies, dmap, literal, lib, results)
+    ax, cx, bx = r['cap']['regs']
+    check(bx == 0 and cx >= ax, f'calibration premise: R+1500 is positive and above S ({ax:04X}, {cx:04X}, {bx:04X})')
+    return (cx - ax) & 0xFFFF
+
+
+def specs(bodies, dmap, literal, lib, quick=False):
+    out = []
+    N = lambda n, **k: tuple(dict(weight=1 + (i * 5) % 9, quantity=1 + i % 3, **k) for i in range(n))
+    for n in (0, 1, 2, 3, 5, 14, 15):
+        out.append((f'append-{n}', dict(nodes=N(n))))
+    for mode in ('exact', 'split', 'skip'):
+        for n in (0, 2):
+            out.append((f'heap-{mode}-{n}', dict(nodes=N(n), heap_mode=mode)))
+    # the item-count boundary: the list is recounted by 0BB8; more than 15 nodes is over capacity, exactly 15 is not
+    for n in (15, 16, 17, 20):
+        out.append((f'count-{n}', dict(nodes=N(n))))
+    # the weight boundary, from the original's own R+1500 and S: equal is not over, one more is
+    for n in (0, 2, 7):
+        w = calibrate(N(n), bodies, dmap, literal, lib)
+        check(0 < w < 0xFFFF, f'boundary weight for {n} nodes: {w:04X}')
+        for tag, weight in (('minus1', w - 1), ('equal', w), ('plus1', w + 1)):
+            out.append((f'weight-{n}-{tag}', dict(nodes=N(n), item=dict(weight=weight, quantity=1))))
+        out.append((f'weight-{n}-count0-equal', dict(nodes=N(n), item=dict(weight=w, quantity=0))))
+        out.append((f'weight-{n}-count0-plus1', dict(nodes=N(n), item=dict(weight=w + 1, quantity=0))))
+        out.append((f'weight-{n}-count2-half', dict(nodes=N(n), item=dict(weight=w // 2, quantity=2))))
+    for weight in (0, 1, 0x7FFF, 0x8000, 0xFFFF):
+        for quantity in (0, 1, 2, 255):
+            out.append((f'item-{weight:04x}-{quantity}', dict(nodes=N(2), item=dict(weight=weight, quantity=quantity))))
+    flags_all = tuple(FLAGS) + (0x0202, 0x0602, 0x0A87, 0x0402, 0x0E57)       # the standing dirty set
+    for f in flags_all:
+        out.append((f'flags-append-{f:x}', dict(nodes=N(2), flags=f)))
+        out.append((f'flags-over-{f:x}', dict(nodes=N(16), flags=f)))
+    for sp in (0x200, 0x201, 0x8001, 0xFFDF, 0xFFE0):
+        out.append((f'sp-append-{sp:x}', dict(nodes=N(2), sp=sp)))
+        out.append((f'sp-over-{sp:x}', dict(nodes=N(16), sp=sp)))
+    out += [('ss-ds-alias', dict(nodes=N(2), ss=DS, alias=True, sp=0x6000)), ('a20-stack', dict(nodes=N(2), ss=0xFFFF)),
+            ('a20-stack-over', dict(nodes=N(16), ss=0xFFFF))]
+    # RESULT pointer: wrap, aperture, and aliases of live data (the contract skips the cases whose effect it cannot state)
+    for off in (0xFFFF, 0x0000):
+        out.append((f'result-offset-{off:x}', dict(nodes=N(2), result=(RESULT_SEG, off))))
+        out.append((f'result-offset-over-{off:x}', dict(nodes=N(16), result=(RESULT_SEG, off))))
+    for gc5 in (None, 1, 2):
+        out.append((f'result-aperture-append-{gc5}', dict(nodes=N(2), result=(0xA000, 0x0100), gc5=gc5)))
+        out.append((f'result-aperture-over-{gc5}', dict(nodes=N(16), result=(0xA000, 0x0100), gc5=gc5)))
+    out.append(('result-aperture-wrap', dict(nodes=N(2), result=(0xAFFF, 0x0F00))))
+    for tag, ptr in (('char-ptr-high', (DS, 0x5D93)), ('local-slot', (SS, (0x8000 - 2 - 4) & 65535)), ('item-byte', (ITEM_SEG, 0x200 + 0x10))):
+        out.append((f'result-alias-{tag}', dict(nodes=N(2), result=ptr, result_alias=True, skip_contract=True)))
+        out.append((f'result-alias-over-{tag}', dict(nodes=N(16), result=ptr, result_alias=True, skip_contract=True)))
+    # heap: failure stops (RunError), a custom HeapError handler, the free-list walk cap
+    for n in (0, 2):
+        out.append((f'heap-fail-{n}', dict(nodes=N(n), heap_mode='fail')))
+        out.append((f'heap-custom-top-{n}', dict(nodes=N(n), custom_heap=True)))
+        out.append((f'heap-custom-fail-{n}', dict(nodes=N(n), heap_mode='fail', custom_heap=True)))
+        out.append((f'heap-cyclic-cap-{n}', dict(nodes=N(n), heap_mode='cyclic', heap_limit=2)))
+    # the list walk: a cycle never ends; N nodes need N-1 backward jumps
+    for lim in (0, 1, 5):
+        out.append((f'cycle-limit-{lim}', dict(nodes=N(3), cycle=True, walk_limit=lim, skip_contract=True)))
+    for lim in (0, 1, 2, 3):
+        out.append((f'walk-3-limit-{lim}', dict(nodes=N(3), walk_limit=lim)))
+    out.append(('walk-1-limit-0', dict(nodes=N(1), walk_limit=0)))
+    # code guards: an original opcode or offset that differs stops at the call, and a stub that does not resolve
+    for site in SITES:
+        out.append((f'code-op-{site:x}', dict(nodes=N(2), writes=((OVERLAY, site, b'\x90'),))))
+        out.append((f'code-off-{site:x}', dict(nodes=N(2), writes=((OVERLAY, site + 1, b'\x00'),))))
+        out.append((f'code-op-over-{site:x}', dict(nodes=N(16), writes=((OVERLAY, site, b'\x90'),))))
+    out.append(('stub-opcode', dict(nodes=N(2), writes=((STUB, 0x4D, b'\x90'),))))
+    out.append(('stub-target', dict(nodes=N(2), writes=((STUB, 0x4E, b'\x5C'),))))
+    # display path: mode, active page, factor, planar fills and write modes, fonts, refused pages (as the 3134 closure)
+    for mode in (0, 1, 2, 3, 255):
+        out.append((f'display-mode-{mode}', dict(nodes=N(16), mode=mode)))
+    for active in range(8):
+        out.append((f'display-page-{active}', dict(nodes=N(16), active=active)))
+    for gc5 in (None, 8):
+        for fill in (None, (5, 6, 7, 8), (0x40, 0x41, 0x42, 0x43)):
+            out.append((f'display-gc5-{gc5}-{fill and fill[0]}', dict(nodes=N(16), gc5=gc5, fill=fill)))
+    out += [('display-factor-0', dict(nodes=N(16), factor=0)), ('display-factor-1', dict(nodes=N(16), factor=1)),
+            ('display-same-pages', dict(nodes=N(16), pages=(0xA000, 0xA000))), ('display-ordinary-pages', dict(nodes=N(16), pages=(0xB000, 0xC000))),
+            ('display-no-font', dict(nodes=N(16), writes=((DS, 0x5E20, bytes(4)),)))]
+    # the literal the message is made from: its length byte decides how much StrLoad copies into the 19-byte local
+    for length in (0, 1, 10, 18, 19, 20, 40, 255):
+        out.append((f'literal-{length}', dict(nodes=N(16), writes=((OVERLAY, LITERAL, bytes([length])),), skip_contract=True)))
+    rng = random.Random(0x23239)
+    for i in range(12 if quick else 60):
+        n = rng.choice((0, 0, 1, 2, 3, 6, 14, 15, 16, 17))
+        regs = {r: rng.randrange(65536) for r in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'es')}
+        out.append((f'random-{i}', dict(nodes=tuple(dict(weight=rng.randrange(65536), quantity=rng.randrange(256)) for _ in range(n)),
+                                        item=dict(weight=rng.randrange(65536), quantity=rng.choice((0, 1, 2, 255, rng.randrange(256)))),
+                                        heap_mode=rng.choice(('top', 'top', 'exact', 'split', 'skip')), flags=rng.choice(flags_all),
+                                        sp=rng.choice((rng.randrange(0x200, 0xFFE1), 0x8000)), regs=regs, mode=rng.choice((0, 1, 2, 3)),
+                                        active=rng.randrange(8), factor=i % 2)))
     return out
 
 
 def differential(bodies, decoded, literal, lib, quick=False):
     dmap = {(SEGMENTS[k], a): i for (k, a), i in decoded.items()}
     results = []
-    for name, options in specs():
+    for name, options in specs(bodies, dmap, literal, lib, quick):
         run_case(name, options, bodies, dmap, literal, lib, results)
-        print(name, STATUS[results[-1][1]['status']], results[-1][1].get('over'), flush=True)
-    return results
+        r = results[-1][1]
+        print(name, STATUS[r['status']], r.get('over'), flush=True)
+    seen, edges = set(), set()
+    stops, over = {}, {0: 0, 1: 0}
+    for name, r in results:
+        seen |= r['seen']
+        edges |= r['edges']
+        stops[STATUS[r['status']]] = stops.get(STATUS[r['status']], 0) + 1
+        if 'over' in r:
+            over[r['over']] += 1
+    root = {k for k in dmap if k[0] == OVERLAY}
+    cond = {k: dmap[k] for k in root if dmap[k].mnemonic.startswith('j') and dmap[k].mnemonic != 'jmp'}
+    expected = {(k, (OVERLAY, t)) for k, i in cond.items() for t in (k[1] + i.size, int(i.op_str, 16))}
+    report = dict(cases=len(results), stops=stops, contract_checked=dict(append=over[0], over_capacity=over[1]),
+                  root_starts=len(root & seen), root_total=len(root), root_outcomes=len(expected & edges), root_outcomes_total=len(expected),
+                  root_missing_starts=sorted(f'{a:04X}' for _, a in root - seen),
+                  root_missing_outcomes=sorted(f'{a[1]:04X}->{b[1]:04X}' for a, b in expected - edges))
+    members = {}
+    for name, group in (('0239', OVERLAY), ('275B', U77), ('0BB8 closure', RES), ('1693', DISPLAY), ('SYSTEM', SYS)):
+        keys = {k for k in dmap if k[0] == group}
+        members[name] = f'{len(keys & seen)}/{len(keys)}'
+    report['closure_starts'] = members
+    print(json.dumps(report, sort_keys=True))
+    check(not report['root_missing_starts'] and not report['root_missing_outcomes'], 'root coverage incomplete')
+    return report
 
 
 def main():
