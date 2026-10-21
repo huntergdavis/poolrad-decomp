@@ -115,10 +115,17 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
     uc=Uc(UC_ARCH_X86,UC_MODE_16);backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for (n,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,n))
-    s=dict(stop=None,last=None,walk=0,callee=None,cstatus=None,unlink_calls=0,freemem_calls=0,site=0)
+    s=dict(stop=None,last=None,walk=0,callee=None,cstatus=None,unlink_calls=0,freemem_calls=0,site=0,
+           # coverage: instruction starts reached and conditional outcomes taken, by code segment
+           starts=set(),edges=set(),prev=None)
     def stop(code):s['stop']=code;uc.emu_stop()
+    cond_sites=globals().get('COND_SITES',{})
     def hook(em,address,size,user):
         cs,ip=uc.reg_read(UC_X86_REG_CS),uc.reg_read(UC_X86_REG_IP)
+        s['starts'].add((cs,ip))
+        if s['prev'] is not None and s['prev'][0]==cs and s['prev'][1] in cond_sites.get(cs,()):
+            s['edges'].add((cs,s['prev'][1],ip))
+        s['prev']=(cs,ip)
         if cs==CS and ip==0x11CA:
             if s['walk']==max_walk:return stop(5)
             s['walk']+=1
@@ -162,7 +169,27 @@ def compare(name,state,ctx,fn,lim,*,max_walk=64,expect=None):
         if bytes(ram)!=bytes(backing):
             diff=[i for i in range(SIZE) if ram[i]!=backing[i]]
             raise ValueError(f'{name}: {len(diff)} RAM differences, first {diff[:8]}')
-    return got,s['unlink_calls'],s['freemem_calls']
+    return got,s['unlink_calls'],s['freemem_calls'],s['starts'],s['edges'],cond_sites
+def expected_coverage(ctx):
+    """Instruction starts and conditional outcomes the composed bodies can take.
+
+    Segments follow the install: the root at CS, +3291 and +0000 at the closure's
+    own CS, +014E at U3CE, the resident release at RESIDENT and FreeMem at SYSTEM.
+    """
+    c=ctx['closure']; md=Cs(CS_ARCH_X86,CS_MODE_16)
+    bodies={CS:[(ENTRY,ctx['body'])],closure.CS:[(UNLINK,c['body']),(0,c['body0'])],
+            closure.U3CE:[(closure.ua.ENTRY,c['pair_body'])],
+            closure.RESIDENT:[(closure.r.ENTRY,c['resident'])]}
+    starts=set(); edges=set()
+    for seg,blobs in bodies.items():
+        for base,blob in blobs:
+            for ins in md.disasm(blob,base):
+                starts.add((seg,ins.address))
+                if ins.mnemonic.startswith('j') and ins.mnemonic!='jmp' and ins.op_str.startswith('0x'):
+                    tgt=int(ins.op_str,16); fall=(ins.address+ins.size)&65535
+                    edges.add((seg,ins.address,fall)); edges.add((seg,ins.address,tgt))
+    return starts,edges
+
 def specifications():
     base=dict(nodes=3,head=0,types={},freed={})
     specs=[('nil-head',dict(base,head=None),0)]
@@ -176,6 +203,12 @@ def specifications():
              ('window-other',dict(base,window=(0x3B00,0x40)),0),
              ('ss-eq-ds',dict(base,ss=DS),0),
              ('sp-low',dict(base,sp=0x0058),0),
+             ('skip-increment',dict(base,types={0:3}),0),          # +13h==1 and +10Dh==1: no window(+590h) bump
+             ('mixed-chain',dict(base,types={0:2,1:1,2:4}),0),
+             ('mixed-chain-free',dict(base,types={0:2,1:0,2:0},freed={1:True}),3),
+             ('five-nodes',dict(base,nodes=5,types={2:1,4:2}),0),
+             ('head-middle',dict(base,nodes=4,head=2,types={2:4,3:1}),0),
+             ('single-freed',dict(base,nodes=1,freed={0:True}),3),
              ('walk-limit-1',dict(base),5)]
     specs=[(n,dict(kw,_walk=(1 if n.startswith('walk-limit') else 64)),exp) for n,kw,exp in specs]
     return specs
@@ -193,12 +226,17 @@ def main():
         fn=library(tmp)
         if a.compile_only:
             print('CHECKER_BUILD_OK');return
-        lim=Limits(64,256,UnlinkLimits(64,64,256))
+        lim=Limits(64,256,UnlinkLimits(64,256,512))
         results=[];seen={}
-        failures=[]
+        failures=[];all_starts=set();all_edges=set()
+        exp_starts,exp_edges=expected_coverage(ctx)
+        global COND_SITES
+        COND_SITES={}
+        for seg,site,_n in exp_edges: COND_SITES.setdefault(seg,set()).add(site)
         for name,state,expect,walk in cases(ctx):
             try:
-                got,nu,nf=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
+                got,nu,nf,st,ed,cs_=compare(name,state,ctx,fn,lim,max_walk=walk,expect=expect)
+                all_starts|=st;all_edges|=ed
                 seen[name]=dict(status=got,calls=(nu,nf))
                 results.append(name)
             except Exception as exc:
@@ -207,7 +245,14 @@ def main():
         report=dict(identity=ctx['info'],cases=len(results),names=sorted(results),stops={},state=dict(cpu_words=14,
                   ram_bytes=SIZE,flag_masks=0,ordinary_ram_bytes=SIZE-0x10000))
         for name,v in seen.items():report['stops'][str(v['status'])]=report['stops'].get(str(v['status']),0)+1
-        print('Original parity',{k:v for k,v in report.items() if k!='names'},flush=True)
+        rs=len(all_starts&exp_starts);re_=len(all_edges&exp_edges)
+        report['coverage']=dict(root_and_closure_starts=f'{rs}/{len(exp_starts)}',
+                                conditional_outcomes=f'{re_}/{len(exp_edges)}',
+                                unreached_starts=sorted({f'{s:04X}:{a:04X}' for s,a in (exp_starts-all_starts)})[:24],
+                                unreached_outcomes=sorted({f'{s:04X}:{a:04X}->{n:04X}' for s,a,n in (exp_edges-all_edges)})[:24])
+        print('Coverage',report['coverage']['root_and_closure_starts'],
+              'starts,',report['coverage']['conditional_outcomes'],'conditional outcomes',flush=True)
+        print('Original parity',{k:v for k,v in report.items() if k not in ('names','coverage')},flush=True)
         if failures:raise SystemExit(f'{len(failures)}/{len(results)+len(failures)} cases failed')
         if a.output:a.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
 if __name__=='__main__':
