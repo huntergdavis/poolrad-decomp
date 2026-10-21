@@ -97,7 +97,7 @@ class NeverCreditClassesTest(unittest.TestCase):
         self.assertEqual(pricer.price("OVL_0001_0000")["bodies"], {"OVL_0001_0000": 10})
 
     def test_committed_table_is_loaded_and_pinned(self):
-        self.assertEqual(P.load_runtime_residents(), frozenset())
+        self.assertEqual(P.load_runtime_residents(), frozenset({"RES_0802_0175"}))  # 0175 joined (par-e)
 
     def test_real_rows_lose_exactly_the_driver_members_they_used_to_price(self):
         """On the owner media and a fresh export: rows reaching driver_internal members were overpriced by the members
