@@ -88,6 +88,10 @@ static pr_u20_11ac_status call_unlink(machine *m,uint16_t site,uint16_t resident
     if(rd8(m,stub,0x2A)!=0xEA || rd(m,stub,0x2B)!=0x3291)
         return PR_U20_11AC_CODE;
     c->cs=rd(m,stub,0x2D);c->ip=0x3291;COPY_CPU(inner,*c);
+#ifdef PR_U20_11AC_TRACE
+    fprintf(stderr," UNLINK#%u about to run on active=%04x:%04x\n",d->unlink_calls+1,
+            rd(m,m->c->ds,0x5D94),rd(m,m->c->ds,0x5D92));
+#endif
     d->callee=PR_U20_11AC_UNLINK;++d->unlink_calls;
     d->callee_status=(int)pr_u6c_record_unlink_3291_cpu(m->r,PR_U20_11AC_RAM_SIZE,
         &inner,resident,system,&l->unlink,&d->unlink);
@@ -177,7 +181,8 @@ type1:
 #endif
         les(&m,c->es,(uint16_t)(c->di+0x108));              /* 1226 */
 #ifdef PR_U20_11AC_TRACE
-        fprintf(stderr," -> es:di=%04x:%04x",c->es,c->di);
+        fprintf(stderr," READ108@1226 base=%04x:%04x val=%04x:%04x unl=%u",c->es,c->di,
+                rd(&m,c->es,(uint16_t)(c->di+0x10a)),rd(&m,c->es,(uint16_t)(c->di+0x108)),d->unlink_calls);
 #endif
         { uint8_t a=er8(&m,0x13);cmp8(c,a,1); }             /* 122B */
 #ifdef PR_U20_11AC_TRACE
@@ -203,6 +208,9 @@ type1:
         goto advance;                                       /* 124A JMP 1293 */
 other:
         les(&m,c->ss,(uint16_t)(c->bp-4));                  /* 124C */
+#ifdef PR_U20_11AC_TRACE
+        fprintf(stderr," READ108@124f base=%04x:%04x val=%04x unl=%u\n",c->es,c->di,er(&m,0x108),d->unlink_calls);
+#endif
         c->ax=er(&m,0x108);                                 /* 124F */
         { uint16_t a=c->ax,b=er(&m,0x10A),r=(uint16_t)(a|b);c->ax=r;logic(c,r); } /* 1254 */
         if((c->flags&0x40)!=0)goto advance;                 /* 1259 JE 1280 */
