@@ -124,5 +124,35 @@ class NeverCreditClassesTest(unittest.TestCase):
                     before = pricer.price(row)
                 self.assertEqual(sum(before["bodies"].values()) - sum(fixed["bodies"].values()), over)
 
+class RealDisplayRowTest(unittest.TestCase):
+    """The real 0802:0193 row on the owner media (t30 side ii): 0175 as a member is a terminal, priced at exactly its 30 B."""
+
+    def walk(self, members):
+        from pathlib import Path
+        exe = Path(P.ROOT) / "resources/DOS/POOLRAD/START.EXE"
+        if not exe.is_file():
+            self.skipTest("owner media absent")
+        pricer = P.Pricer.__new__(P.Pricer)
+        pricer.rows, pricer.image = {}, bytes(P.unpack(exe.read_bytes())[0])
+        pricer.md, pricer.cache = Cs(CS_ARCH_X86, CS_MODE_16), {}
+        pricer.strict = {r["id"] for r in P.csv.DictReader(open(P.ROOT / "docs/re/strict_full_c_addresses.csv"))}
+        pricer.covered, pricer.driver_members = set(P.sq.RUNTIME_COVERED_ENDPOINTS), frozenset()
+        pricer.runtime_residents = frozenset(members)
+        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(), declared=set())
+        pricer.resident(0x802, 0x0193, acc)
+        return acc
+
+    def test_0175_member_is_a_terminal_in_the_real_0193_walk(self):
+        before, after = self.walk(()), self.walk({"RES_0802_0175"})
+        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30, "RES_0802_0105": 112,
+                                            "RES_0802_0040": 197})
+        self.assertEqual(after["bodies"], {"RES_0802_0193": 90, "RES_0802_0105": 112, "RES_0802_0040": 197})
+        self.assertEqual(after["runtime_residents"], {"RES_0802_0175"})
+        # 0040 stays priced: 0105 also reaches it, so only 0175's own 30 B leave. Nothing else changes.
+        for key in ("strict", "unmapped", "bad", "declared"):
+            self.assertEqual(before[key], after[key], key)
+        self.assertEqual(after["strict"], {"RES_0899_0059"})
+
+
 if __name__ == "__main__":
     unittest.main()
