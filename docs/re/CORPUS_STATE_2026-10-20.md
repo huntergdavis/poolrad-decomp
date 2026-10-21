@@ -1,7 +1,7 @@
-# Corpus state at main 4983d59c (2026-10-20), for a cold start
+# Corpus state at main 83c247a4 (2026-10-20, evening), for a cold start
 
 One page, written 2026-10-20 and corrected after par-e's verification against products
-regenerated at its own pin. **Pin: main `4983d59c`** (after #1237) for counts and credit status; §3 closures were regenerated again at main `fed69789` (after #1240). Counts and credit
+regenerated at its own pin. **Counts and credit status: main `83c247a4`** (after #1273; checkpoint queue sha `b4fd0885dce4…`). The readiness figures in §1a and §3 come from a strict-candidate export regenerated on main `3a2b1bd0`, which `load_fresh_export` confirms is current at `83c247a4`. The §3 closure table was regenerated at main `fed69789` (after #1240), and the 0899 reach at `b3fd5718`. The first version of this page was pinned at `4983d59c`. Counts and credit
 status were read from the two credit CSVs and `function_accounting_checkpoint.json` at that
 commit. Readiness and closure figures in §3 were regenerated for this version from the
 pinned products: the canonical queue (`function_queue_audit.py`, queue sha
@@ -11,28 +11,57 @@ Rows credited after an earlier version of this page was written are listed as su
 
 ## 1. Credited
 
-- **252 strict full-C game routines** (226 overlay, 26 resident) and **298 verified
-  identities** (271 overlay, 27 resident), from `function_accounting_checkpoint.json`
-  (queue originals 898, unknown ownership 511). Both whole-game denominators are unknown.
+- **256 strict full-C game routines** (230 overlay, 26 resident) and **302 verified
+  identities** (275 overlay, 27 resident), from `function_accounting_checkpoint.json`
+  (queue originals 898, unknown ownership 507). Both whole-game denominators are unknown.
   The 815-body figure is a ceiling on game-tier functions, not a denominator (task t6).
 - In the U38/U3B0/U25 work this lane touched, now credited: `OVL_0038_3134`,
   `OVL_0038_101D`, `OVL_0038_2E08`, `OVL_03B0_11F3`, `OVL_0025_1CC3`, `OVL_0038_12B2`
   (accepted after the first version of this page, #1224 via #1232), and the installer
-  `OVL_0038_31A2`. Read status from the CSVs, never from prose.
+  `OVL_0038_31A2`. Tonight (§1a): `OVL_03B0_0C33`, `OVL_03B0_0A08`, `OVL_03B0_07A4` and
+  `OVL_03B0_01DA`. Read status from the CSVs, never from prose.
+
+## 1a. Tonight, 2026-10-20 evening: what moved and why
+
+**Credits 252 -> 256, identities 298 -> 302. All four were verdicts, not translations.** Each body had been merged evidence-only for days: a full 1 MiB differential with the EGA aperture, native corroboration and a registered checker. Not one byte of C changed tonight. What changed was an identity decision under the two-factor standard (par-a, i20050; the argument is in each evidence doc via #1262). par-e then landed identity, strict, accounting and pin together, one commit per row.
+
+| Credit | Bytes | Factor 1 (uncredited `game_evidenced` caller, decoded `push cs; call`) | Factor 2 (documented subject) |
+| --- | ---: | --- | --- |
+| `OVL_03B0_0C33` (253) | 146 | 4 sites in `0D9A` | parent-frame slots and `DS:6B29` defined by credited 0CC5's doc |
+| `OVL_03B0_0A08` (254) | 251 | 1 site in `0D9A` | string-node flag +29h, `DS:6B29` |
+| `OVL_03B0_07A4` (255) | 307 | 2 sites (`0C33`, `0D9A`) | the 41-byte string node (+29h flag, +2Ah/+2Ch links), as for 11F3 |
+| `OVL_03B0_01DA` (256) | 419 | 4 sites in `03BD` | 03BD's copy of the menu key list (GAMEPLAY_PATH §2.4). **Limit: only the main-menu caller is documented** |
+
+`reviewed_commit` for all four is `5b225a62`, form 2 of the [definition](REVIEW_LANE_HANDOFF.md#reviewed_commit-definition-vp-i20093-2026-10-20).
+
+**Refused: `OVL_03B0_06FB`.** Its evidence is as good as the other four, and it passes factor 1 easily (19 fixup-backed sites). But its 13 instructions have no memory operand: it pushes constants and calls resident `0709:05EB`. Its subject is a display service, which is not game state. It stays evidence-only. The refusal is what makes the four credible: the same standard, applied the same night, said no.
+
+**Readiness: 447 candidates / 58 composable -> 443 / 54** (export on `3a2b1bd0`).
+- The whole move is the four credits leaving the candidate set.
+- The two `driver_internal` members (`RES_08AE_181A`, `RES_08AE_0000`) each have a readiness delta of **zero**, measured with and without each member.
+- These are readiness numbers. They must not be added to, or read into, the credit count.
+- The honest pool is now **10** composable rows with ownership evidence. The cheapest is `OVL_006A_0824` at 155 B. The other 44 are 34 callerless 5-byte tails, 3 unresolved rows (including the refused 06FB) and 7 helper candidates.
+
+**Why freshness is now enforced rather than hoped for.** Tonight three numbers were true of a file and false of the tree:
+- **453** candidate rows: par-b's export, written at 12:22:50;
+- **455** rows: ds4's non-terminator bucket;
+- **578 B** instead of **252 B** for a row whose callee `OVL_006C_3291` was labelled "untranslated" though it had been credited at 12:47.
+
+Each came from an export that was correct when written; nothing was wrong with how the labels are derived. The defect was that existence was treated as freshness: `price_candidates.py` regenerated only a *missing* export, and the other consumers read whatever file they were given. Even the reviewer's own 20:31 export was stale an hour later. Since #1272, every consumer calls `strict_candidate_queue.load_fresh_export`. It compares the export's recorded hashes of the six committed input tables with the tree and exits 2 on any difference, naming each changed input and printing the regeneration command. **Quote a queue count with its commit or timestamp, or not at all.**
 
 ## 2. Evidence at the bar, **not credited** (author evidence only)
 
 | Row | PR | Cases / coverage | Status |
 | --- | --- | --- | --- |
-| `OVL_03B0_07A4` | #1202 | 105; caller 115/115, 8/8 | merged, evidence-only |
-| `OVL_03B0_0A08` | #1204 | 202; 107/107, 2/2 | merged, evidence-only |
-| `OVL_03B0_0C33` | #1209 | 118; 49/49, 6/6 | merged, evidence-only |
-| `OVL_03B0_06FB` | #1210 | 63; 13/13 | merged, evidence-only; **has a manifest `full` row** (`partial_callee_models.csv`, added in `dc76e201`) |
-| `OVL_03B0_01DA` | #1216 | 95; 171/171 feasible starts, 15/15 outcomes; extent repaired 483 to 419 B | merged, evidence-only |
+| `OVL_03B0_07A4` | #1202 | 105; caller 115/115, 8/8 | **credited 2026-10-20 (255)**, §1a |
+| `OVL_03B0_0A08` | #1204 | 202; 107/107, 2/2 | **credited 2026-10-20 (254)**, §1a |
+| `OVL_03B0_0C33` | #1209 | 118; 49/49, 6/6 | **credited 2026-10-20 (253)**, §1a |
+| `OVL_03B0_06FB` | #1210 | 63; 13/13 | evidence-only; **identity refused** (factor 2, §1a); has a manifest `full` row (readiness only) |
+| `OVL_03B0_01DA` | #1216 | 95; 171/171 feasible starts, 15/15 outcomes; extent repaired 483 to 419 B | **credited 2026-10-20 (256)**, §1a |
 | `RES_0464_248E` | par-b branch | 41 cases; all figures reproduced | not gated, branch cut from old main |
 | `OVL_03B0_1140` | n/a | identity decision (b): its list head dies in stack cells | caveat: I read 0D9A's stores in bytes, did not run it |
 
-None of these is in either credit CSV. `OVL_03B0_06FB` is the one with a manifest
+The four U3B0 rows marked credited above are now in both CSVs. The others are in neither. `OVL_03B0_06FB` is the one with a manifest
 declaration (it declares readiness, not credit); I checked the others against
 `partial_callee_models.csv` and found no row. Whether to credit any of them is the
 reviewer's and VP's decision.
@@ -82,7 +111,7 @@ the two that are 08AE-free are blocked by indirect dispatch and a held callee.
 
 **Bought blocker (VP i20006).** The two `0899` gateways (222 B: `0059` ReadKey-with-hotkeys and `0000` QUIT) are funded as their own task. They are **necessary** for 303 of 447 candidate rows, and **sufficient for one** (`OVL_007F_0294`); par-a regenerated both counts on `b3fd5718`. `0000` ends in Halt, so every path through it is a process exit. Numbers, costs and the cheapest enabled rows are in [IDENTITY_CLEARED_PRICING.md](IDENTITY_CLEARED_PRICING.md#bought-blocker-the-0899-gateways-vp-i20006-2026-10-20).
 
-**"58 composable" is not 58 credits (VP i20035; measured by par-a on main `b3fd5718`).** Readiness is not reachability, and neither is ownership. The strict-candidate export has 447 candidates; strict-credited rows are already excluded from it. **58** have zero unready callees, and all 58 are flagged `composable`:
+**"58 composable" is not 58 credits (VP i20035; measured by par-a on main `b3fd5718`).** *(Superseded by §1a after tonight's four credits: 443 / 54, with 10 owned rows. Kept as measured at `b3fd5718`.)* Readiness is not reachability, and neither is ownership. The strict-candidate export has 447 candidates; strict-credited rows are already excluded from it. **58** have zero unready callees, and all 58 are flagged `composable`:
 - **34** are 5-byte tails: `callers.points = 0`, no fixup-backed caller, all `helper_candidate`, and prior status `source_mention` (30), `inline_in_model` (3) or `inline_in_strict` (1). They are unreachable fragments, not work.
 - **24** remain:
   - **13** with game ownership evidence (`game_evidenced` / `game_verified`): `03B0_0C33` 146 B, `006A_0824` 155, `001C_2E7D` 176, `0077_17ED` 176, `007D_05F0` 232, `03B0_0A08` 251, `0023_0239` 296, `03B0_07A4` 307, `0020_11AC` 316, `0068_0294` 587, `0025_07BC` 696, `0038_0CC3` 745 (no callers), `0033_08A4` 755;
