@@ -40,7 +40,7 @@ Rows credited after an earlier version of this page was written are listed as su
 - The whole move is the four credits leaving the candidate set.
 - The two `driver_internal` members (`RES_08AE_181A`, `RES_08AE_0000`) each have a readiness delta of **zero**, measured with and without each member.
 - These are readiness numbers. They must not be added to, or read into, the credit count.
-- The honest pool is now **10** composable rows with ownership evidence. The cheapest is `OVL_006A_0824` at 155 B. The other 44 are 34 callerless 5-byte tails, 3 unresolved rows (including the refused 06FB) and 7 helper candidates.
+- The honest pool is now **10** composable rows with ownership evidence. The cheapest is `OVL_006A_0824` at 155 B. **Cheapest is not easiest.** 0824 has no fixup-backed caller. Its single known call site is one aligned `push cs; call` at `+0A4E`, inside `OVL_006A_090A`, which is itself uncredited, `game_evidenced` and provisional. ds4 flagged that it needs a genuine reached-caller capture before it can be credited: evidence that the site is actually reached with the game state factor 2 would cite. That is a night of work, not a verdict like tonight's four. The other 44 are 34 callerless 5-byte tails, 3 unresolved rows (including the refused 06FB) and 7 helper candidates.
 
 **Why freshness is now enforced rather than hoped for.** Tonight three numbers were true of a file and false of the tree:
 - **453** candidate rows: par-b's export, written at 12:22:50;
