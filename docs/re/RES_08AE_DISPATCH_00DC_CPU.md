@@ -154,3 +154,21 @@ decision-table reference is new. The recall index was unavailable in this sessio
 | signals | Span/hash/relocation identity, segment-wide caller census (near, overlay, resident), full-RAM original differential with six named stops and outcome accounting, independent decision-table reference, mutation check, native replay with declared stubs |
 | verdict | likely_match within the documented bounded CPU profile; no identity claim |
 | review_notes | Driver-internal candidate, never credited; closure incomplete until 17AE/1742/181A/006C/137C/13B1 are members; callees are stops and stubbed natively; one equivalent mutant recorded; packaged DOSBox-X substitution declared; no accounting edits |
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Member row: `RES_08AE_00DC` in `driver_internal_models.csv`.
+
+**This body's own evidence**, reproduced by par-e on main `ab790918` (2026-10-20):
+- **Unicorn:** 1,788 stopped or returned cases (492 RETURN, 373 CALL_006C, 86 CALL_137C, 201 CALL_13B1, 332 CALL_1742,
+  196 CALL_17AE, 108 CALL_181A) plus 5 ARGUMENT, 77/77 starts and 16/16 outcomes, 1,050 reference-checked, 14 CPU words and
+  all 1,048,576 RAM bytes with no mask.
+- **Native:** 48 cases, RESULT.BIN `21b766ad…` (matches).
+- **C:** 100 checks under strict `-Werror` ASan/UBSan.
+
+**Composition evidence (VP i20169/i20176).** This model stops at each callee for the caller to resume. The composition is
+proven by the `RES_0899_0000` composed run (#1291, [RES_0899_QUIT_0000_CPU.md](RES_0899_QUIT_0000_CPU.md)). That run chains
+this dispatch through its six real callee members and compares the result against the original image executing the real
+bodies. Reproduced by par-e: 112 cases, all EXIT, CPU14 + 1 MiB, flag masks 0, with this body **77/77** starts executed,
+and 006C 46/46, 137C 24/24, 13B1 27/27, 1742 43/43, 17AE 43/43 and 181A 12/12. Every closure callee is a member. Never a
+credit.
