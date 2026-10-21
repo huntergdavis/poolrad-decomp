@@ -130,3 +130,54 @@ gate marker, and requires no media. The author branch includes fetched
 main fa14698b. Original bytes, generated assembly/COM and capture receipts
 remain under ignored resources/. Review acceptance and any later identity
 decision belong to the independent reviewer/VP.
+
+## Driver-internal declaration (class membership proposal)
+
+This section proposes `RES_08AE_181A` as a member of the
+[driver-internal class](DRIVER_INTERNAL_CLASS.md). It changes nothing above: the body stays **translated, evidenced and
+uncredited**, its identity stays unresolved, and no strict, identity or resident-manifest row is proposed or implied. The
+class refuses a credit row for a member by test, and this proposal adds none.
+
+| Item | Value |
+| --- | --- |
+| Member id | `RES_08AE_181A` (segment-scoped to `RES_08AE_XXXX`) |
+| Evidence document | this document |
+| Body | 08AE `[181A,1830)`, **22 bytes / 12 starts**, SHA-256 `4b13f9458c5b74c2a0dde8cd81bfd304d197c7712bf282efcf6cf4e38b88b79a`, from the loader-expanded image (SHA-256 `a42a57e68d3f7815831821cc9365bb917befda45a58e958544451fc7a878df8e`), ending in `RETF 2` at `182D` |
+| Merged body | the raw model, audit, tests and this evidence merged in #1185; no new translation is made here |
+| Closure | **complete: nothing to compose.** The body has no calls, no jumps, no interrupts and no port operations, so every callee requirement of the class is vacuously met |
+| Never a credit | yes: it is not added to any strict or identity table |
+
+Proposed row (text only; the acceptance PR adds it to `driver_internal_models.csv` and fills the two provenance fields that
+only the accepting review can supply):
+
+    RES_08AE_181A,docs/re/RES_08AE_BYTE_181A_CPU.md,<review_pr>,<reviewed_commit>,4b13f9458c5b74c2a0dde8cd81bfd304d197c7712bf282efcf6cf4e38b88b79a,22
+
+### Re-run on current main
+
+The audit was re-run on main `af9e15e0` with this branch. It reproduces the figures stated above: **276 RETURN cases and
+4 ARGUMENT rejections**, all 14 CPU words and all 1,048,576 RAM bytes compared with no flag or RAM mask, **12/12 starts**,
+zero conditional edges, zero callees; native **32 cases**, 65,792 captured and 982,784 omitted bytes as tabulated above, and
+a native `RESULT.BIN` SHA-256 of `095e78d384898e1b54b7ae8c583d59d93d9a049dcdcf22b75095cf0ad050bd2f`, **identical** to the
+value recorded when the body merged. The receipt now records the DOSBox-X binary, and the harness caps the oracle run at
+300 s and truncates an oversized log.
+
+### Declared substitution: the DOSBox-X binary
+
+The native oracle is **not** the pinned DOSBox-X source build (git `5a9c7c53481c2e933948039c33256776653f4faf`). It is the
+packaged binary on PATH, `/usr/bin/dosbox-x`, `DOSBox-X version 2026.01.02 SDL2`, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, run with `core=normal`, `cputype=386`, `cycles=max`. The
+pinned build was neither rebuilt nor re-run here. What could differ: the lazy-flag conventions, the LES wraparound and
+stack-offset wrap at FFFF. This body is insulated from all three: it contains only `PUSH`, `POP`, `MOV` and `RETF`, writes **no
+flag** (the audit compares FLAGS in all 276 cases and they are unchanged), has no `LES`, and the SP bounds `[0006,FFFA]`
+exclude stack-offset wrap. The same executable hash is recorded as the native oracle in the merged
+`RES_0709_TEXT_06A7`, `RES_0709_SKIP_SPACES_0714`, `U33_PARTY_ATTACH_12E1`, `U33_1403_EVIDENCE_REFRESH` and `SYSTEM_REAL_CPU`
+evidence, and the 181A `RESULT.BIN` hash reproduces bit-for-bit under it. A reviewer who needs the pinned result must
+re-run the native harness with that binary.
+
+**Gate run:** on main `184d85fa` with this branch, `check_checker_builds.py RES_08AE_181A --require-current-main` reports
+`PASS: 1 actual checker builds for 1 rows`, `check_body_doc_pairing.py --base 184d85fa` reports every body and checker paired
+with evidence and registration, and the focused CTest target `poolrad_resident_08ae_byte_181a_cpu_tests` builds from CMake and
+passes 1/1. The private receipt (`--unicorn --native --output`, generated at code commit `21f0eeaa`, which the branch head
+carries unchanged apart from this document and a merge of main) has SHA-256
+`372379bce9fbc5ec0a24c8a9e10bf58b51af7c101db24852f12fd994ccfeeb96`.
+
