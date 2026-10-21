@@ -39,6 +39,27 @@ def source(image, sites):
     return body, {i.address: i for i in ins}
 
 
+def ownership(image, sites):
+    """Segment-wide census: every near E8/E9 into 0175 inside the 0802 segment, every relocated far pattern in the resident image, every overlay fixup."""
+    from overlay_inventory import find_units, parse_mz
+    from u86_procvars_3413_audit import EXE_SHA, OVR_SHA
+    exe = (ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes()
+    ovr = (ROOT / 'resources/DOS/POOLRAD/GAME.OVR').read_bytes()
+    check(sha256(exe).hexdigest() == EXE_SHA and sha256(ovr).hexdigest() == OVR_SHA, 'media provenance')
+    seg = image[SEG['body'] * 16:SEG['body'] * 16 + 0x10000]
+    near = [o for o in range(len(seg) - 2) if seg[o] in (0xE8, 0xE9) and (o + 3 + struct.unpack_from('<h', seg, o + 1)[0]) & 0xFFFF == ENTRY]
+    check(near == [0x1B9, 0x1E4] and all(seg[o] == 0xE8 for o in near), f'near transfers into 0175: {[hex(o) for o in near]}')
+    pattern = struct.pack('<HH', ENTRY, SEG['body'])
+    far = [i - 1 for i in range(1, len(image) - 3) if image[i:i + 4] == pattern and image[i - 1] in (0x9A, 0xEA)]
+    check(not far, f'far transfers into 0802:0175: {far}')
+    direct = [f"{u['stub_para']:04X}:{f - 3:04X}" for u in find_units(exe[parse_mz(exe)['header_bytes']:], ovr) for f in u['fixups']
+              if ovr[u['ovr_offset'] + f - 3:u['ovr_offset'] + f - 2] == b'\x9a' and struct.unpack_from('<HH', ovr, u['ovr_offset'] + f - 2) == (ENTRY, SEG['body'])]
+    check(not direct, f'overlay far calls into 0802:0175: {direct}')
+    ins = {i.address: i for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(seg[0x193:0x1ED], 0x193)}
+    check([(a, ins[a].mnemonic, ins[a].op_str) for a in (0x1B9, 0x1E4)] == [(0x1B9, 'call', '0x175'), (0x1E4, 'call', '0x175')], 'both near calls are in 0193')
+    return dict(near_call_sites=['01B9', '01E4'], containing_function='0193', far_entries=0, overlay_callers=0, identity='not claimed (side ii)', credit_claimed=False)
+
+
 def library(directory):
     path = directory / 'r0802_0175.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include')] +
@@ -210,10 +231,12 @@ def main():
             print('CHECKER_BUILD_OK'); return
         image, sites = B.load_image()
         body, decoded = source(image, sites)
+        ownership_report = ownership(image, sites)
         stub = B.assemble_stub(scratch=SCRATCH)
         image_reloc = B.relocate(image, sites, BASE)
         report = dict(target=dict(span='0802:[0175,0193)', bytes=len(body), instructions=len(decoded), sha256=DIGEST, image_sha256=B.IMAGE_DIGEST, load_base=f'{BASE:04X}',
                                   int10_stub_sha256=sha256(stub).hexdigest(), class_='side (ii) non-credit; no identity'))
+        report['ownership'] = ownership_report
         if a.unicorn:
             report['unicorn'] = differential(image_reloc, stub, decoded, f)
         if a.native:
