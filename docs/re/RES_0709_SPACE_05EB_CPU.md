@@ -139,3 +139,10 @@ must stay under resources/DOS/POOLRAD.
 wrapper alone does not make that chain ready. Queue readiness must preserve
 that caveat along with the unmeasured transitive outcomes and packed-mode
 hardware limits above.
+
+## Checker registration (2026-10-22)
+
+`tools/overlay/res0709_space_05eb_cpu_audit.py` now declares `CHECKER_ROWS = ('RES_0709_05EB',)` and implements `--compile-only`
+(build and bind with no media), so the checker-build gate covers this body and the audit-wide probes (the dirty-register and
+operand-equality probes) can find it. No evidence, body, hash or credit changed. The audit's own cases already include the
+bounds equalities of the four ordering compares (`x` 0 and 39, `y` 0 and 24).
