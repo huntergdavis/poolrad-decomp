@@ -15,6 +15,15 @@
 
 **The screen.** The 55 s main menu has **0 differing pixels** against the unsubstituted run.
 
+**Read the −84% as one hot body, not as most of the game.** The 821 arrivals that stopped reaching the original are all
+calls into a single routine, `RES_0709_01DF` (824 → 3), the glyph routine, which runs once per character drawn. No other
+body's count moved. 258 of the 270 credited bodies are not on this path at all.
+
+**Shadow is safe, and that is all it is (VP i20732).** For the two shadow bodies (`02EB`, `0059`), the original runs first,
+and on any mismatch its result is kept. So a shadow body **can never make the game wrong**. For the same reason, shadow is
+**not proof that our C is authoritative**: the game would behave identically if the C were wrong for those bodies. Only the
+equality log says the C agreed (36 of 36). The hybrid cannot yet drive DOS itself.
+
 Run `hybrid-stage-a-route-b`, with the binary built from the cumulative patch (sha256 prefix `4813e8a3570db7a5`), in one
 cold start of the audited v1.3 game to the main menu.
 
