@@ -22,7 +22,15 @@
  * No named stop remains: every stop is an architectural end state (RETURNED; EXIT at Halt 0AF8:00E9; RUNERROR at 0AF8:00E2;
  * DIVIDE at BlockRead's DIV; BREAK from ReadKey; STALLED, 050F's proven fixed point) or a declared limit or service refusal.
  * Each leaf must come back to the instruction after its call in 0716's segment (else CALLEE). The CPU is passed between the
- * models unchanged; RAM is the one 1 MiB image they all share. */
+ * models unchanged; RAM is the one 1 MiB image they all share.
+ *
+ * Loop budgets (VP i20444, i20463). Both driver loops are bounded by structure or by input (every seam advances 0716; every
+ * insert-disk re-prompt consumes one scripted key, and ReadKey refuses when the script is empty). A structural bound is not a
+ * budget: a defective model can break the structure, as the 0768 row-increment mutant did. So each loop also has a declared
+ * budget, and running past it stops LIMIT with nothing of the next step executed:
+ *   max_seams         leaf calls begun from 0716 (any of its eight call sites); CPU at the leaf's entry, seam = the call site
+ *   max_disk_prompts  insert-disk prompts (0193 from 025D) per 05CD seam; CPU at 0193's entry, seam 0775h, nested 02AAh
+ *   retries           025D's 02B7 loop-back budget, passed through 05CD; CPU at 02B7h, seam 0775h, nested 02B7h */
 typedef pr_r0802_0716_cpu pr_r0802_0716c_cpu;
 
 typedef struct {
@@ -31,6 +39,9 @@ typedef struct {
     pr_r0802_0193_env prompt;     /* the display (INT 10h) and ReadKey environments; prompt.key.quit also serves QUIT */
     unsigned heap_steps;          /* the GetMem / FreeMem free-list walk cap for 0020 and 0000 */
     uint32_t decode_arrivals;     /* 050F's max_arrivals */
+    unsigned retries;             /* 025D's retry loop-back budget (through 05CD) */
+    unsigned max_seams;           /* the seam loop's budget: leaf calls begun from 0716 */
+    unsigned max_disk_prompts;    /* the 05CD driver loop's budget: insert-disk prompts per 05CD seam */
 } pr_r0802_0716c_env;
 
 typedef enum {
@@ -49,7 +60,8 @@ typedef enum {
 typedef struct {
     uint16_t seam;                /* the 0716 call site of the leaf that stopped (0775, 084A, 08AD, 08BC, 091D, 0935, 0941,
                                      084D for QUIT), 0 when 0716 itself stopped */
-    uint16_t nested;              /* inside 05CD: 02AA when the 0193 prompt called from 025D stopped, else 0 */
+    uint16_t nested;              /* inside 05CD: 02AA when the 0193 prompt called from 025D stopped (or its budget ran out),
+                                     02B7 when 025D's retry budget ran out, else 0 */
     int leaf_status;              /* the stopping model's own status, -1 when none */
     unsigned seams_composed;      /* leaf calls run to their return, all seams together */
     unsigned prompts;             /* 0193 runs (from 025D and from 0716) */

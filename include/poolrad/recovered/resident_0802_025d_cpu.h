@@ -23,6 +23,10 @@
  * composed), each far call's segment word read live from the code, each callee required to return after its call (else CALLEE).
  * The prompt 0193 is not yet modelled: a NAMED STOP with PUSH CS; CALL 0193 executed, resumable at 02ADh with the post-callee
  * state (the two-phase seam). Declared environment: INT 21h AH=3Dh (Reset's contract) and AH=3Eh (Close's), as for 02EB.
+ * Loop budget: max_retries counts taken 02B7 JE 0289 loop-backs, fresh on each entry (025Dh or 02ADh). The loop is bounded by
+ * structure (each pass breaks or stops PROMPT, so a call or resume takes at most one), but a structural bound is not a budget:
+ * a defective model can break the structure. When a loop-back would run past the budget the model stops LIMIT at 02B7 with the
+ * JE not executed (diagnostic site 02B7h).
  * Exactly 1 MiB of A20-off RAM with the relocated code at CS; IP 025Dh or 02ADh; entry SP in [0200h,FFEEh] at 025Dh (the
  * arguments reach entry SP + 11h). */
 typedef pr_r0802_02eb_cpu pr_r0802_025d_cpu;
@@ -32,11 +36,12 @@ typedef enum {
     PR_R0802_025D_ARGUMENT,      /* null pointers, RAM size, IP not an entry, entry SP out of range; nothing changed */
     PR_R0802_025D_PROMPT,        /* CALL 0193 executed (resume at 02ADh) */
     PR_R0802_025D_SERVICE,       /* a declared DOS service declined or broke its continuation; CPU at that INT */
-    PR_R0802_025D_CALLEE         /* a composed model stopped otherwise or returned elsewhere (see the diagnostic) */
+    PR_R0802_025D_CALLEE,        /* a composed model stopped otherwise or returned elsewhere (see the diagnostic) */
+    PR_R0802_025D_LIMIT          /* max_retries ran out: IP 02B7h, the JE 0289 not executed */
 } pr_r0802_025d_status;
 
 typedef pr_r0802_02eb_diagnostic pr_r0802_025d_diagnostic;
 
 pr_r0802_025d_status pr_r0802_025d(uint8_t *ram, size_t ram_size, pr_r0802_025d_cpu *cpu, const pr_r0802_02eb_env *env,
-                                   pr_r0802_025d_diagnostic *diagnostic);
+                                   unsigned max_retries, pr_r0802_025d_diagnostic *diagnostic);
 #endif

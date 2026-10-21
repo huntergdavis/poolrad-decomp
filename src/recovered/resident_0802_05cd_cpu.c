@@ -143,9 +143,10 @@ static int open_025d(uint8_t *ram, size_t ram_size, cpu_t *c, const pr_r0802_05c
     uint16_t home = c->cs;
     pr_r0802_025d_cpu m; int s;
     COPY_CPU(&m, c);
-    s = pr_r0802_025d(ram, ram_size, &m, &env->file, d);
+    s = pr_r0802_025d(ram, ram_size, &m, &env->file, env->retries, d);
     COPY_CPU(c, &m);
     if (s == PR_R0802_025D_PROMPT) return PR_R0802_05CD_PROMPT;
+    if (s == PR_R0802_025D_LIMIT) return PR_R0802_05CD_LIMIT;
     if (s == PR_R0802_025D_SERVICE) return PR_R0802_05CD_SERVICE;
     if (s != PR_R0802_025D_RETURNED || c->cs != home || c->ip != 0x065Cu) { d->site = 0x0659u; d->callee_status = s; return PR_R0802_05CD_CALLEE; }
     d->site = 0; d->callee_status = -1;

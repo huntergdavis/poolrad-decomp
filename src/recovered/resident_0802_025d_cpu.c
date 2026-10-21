@@ -102,9 +102,10 @@ static int far_call(uint8_t *ram, size_t size, cpu_t *c, const pr_r0802_02eb_env
 #define FAR(at) do { int s_ = far_call(ram, ram_size, c, env, (at), d); if (s_ != CONTINUE) return (pr_r0802_025d_status)s_; } while (0)
 
 pr_r0802_025d_status pr_r0802_025d(uint8_t *ram, size_t ram_size, cpu_t *c, const pr_r0802_02eb_env *env,
-                                   pr_r0802_025d_diagnostic *diagnostic)
+                                   unsigned max_retries, pr_r0802_025d_diagnostic *diagnostic)
 {
     pr_r0802_025d_diagnostic local, *d = diagnostic ? diagnostic : &local;
+    unsigned retries = 0;
     if (ram == NULL || c == NULL || env == NULL || env->open == NULL || env->close == NULL || ram_size != PR_R0802_025D_RAM_SIZE)
         return PR_R0802_025D_ARGUMENT;
     if (c->ip == 0x025Du) {
@@ -151,6 +152,10 @@ after_prompt:
         if ((c->flags & ZF) == 0u) break;                             /* 02B1 JNE 02B9 */
         cmp_flags(c, byte_at(ram, c, (uint16_t)(c->bp + 0x0Au)), 0u, 8u);           /* 02B3 CMP BYTE [BP+0Ah],0 */
         if ((c->flags & ZF) == 0u) break;                             /* 02B7 JE 0289 */
+        if (retries++ >= max_retries) {                               /* the loop-back past its budget: stop at the JE */
+            c->ip = 0x02B7u; d->site = 0x02B7u; d->callee_status = -1;
+            return PR_R0802_025D_LIMIT;
+        }
     }
     cmp_flags(c, byte_at(ram, c, (uint16_t)(c->bp - 0x54u)), 0u, 8u);               /* 02B9 CMP BYTE [BP-54h],0 */
     if ((c->flags & ZF) == 0u) {                                      /* 02BD JE 02DC */
