@@ -361,14 +361,46 @@ def _direct_far_target(ins):
     return None
 
 
-def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset()):
+# Environment services a driver_internal member may invoke by INT (VP ruling i20129): explicit and minimal. Each
+# entry is (interrupt, AH). Adding one is a reviewed change with its own reason, never a widening. The member's
+# evidence document must declare each service it uses with the exact marker "INT 21h AH=25h" (etc.).
+DECLARED_DOS_SERVICES = {
+    (0x21, 0x25): "DOS set interrupt vector",
+    (0x21, 0x35): "DOS get interrupt vector",
+}
+
+
+def _static_ah(body, index, block_starts):
+    """AH at body[index] when a literal MOV in the same basic block sets it, with no intervening AH write, call or
+    branch; None otherwise. Walks backwards and stops at the block start (a branch target or the entry)."""
+    from capstone.x86 import X86_OP_IMM
+    for position in range(index - 1, -1, -1):
+        ins = body[position]
+        if ins.mnemonic in ("call", "lcall", "jmp", "ljmp", "ret", "retf", "iret", "int", "int3", "into") \
+                or ins.mnemonic.startswith("j") or ins.mnemonic.startswith("loop"):
+            return None
+        written = {ins.reg_name(register) for register in ins.regs_access()[1]}
+        if written & {"ah", "ax", "eax"}:
+            operands = ins.operands
+            if ins.mnemonic != "mov" or len(operands) != 2 or operands[1].type != X86_OP_IMM:
+                return None
+            destination = ins.reg_name(operands[0].reg)
+            return operands[1].imm & 0xFF if destination == "ah" else (operands[1].imm >> 8) & 0xFF
+        if ins.address in block_starts or position == 0:
+            return None
+    return None
+
+
+def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset(), services=None):
     """Transfers out of a member body that are not ready; empty means closure-complete.
 
     The body runs from its entry to the first return that no earlier direct forward branch jumps past, decoded
     from the loader-expanded image. A far transfer must reach a runtime-covered endpoint, a declared boundary, a
     member or a strict resident; a near call, or a near jump leaving the body, must reach a member or a strict
-    resident in the same segment. Indirect transfers and interrupts are unresolved, so they are gaps. Directness
-    comes from the decoded operand types (an immediate target), never from how the disassembler prints them.
+    resident in the same segment. Indirect transfers are gaps. An interrupt is a gap unless it is INT 21h with AH
+    set by a literal MOV in the same basic block to a DECLARED_DOS_SERVICES entry; such services are collected in
+    `services` for the caller to check against the evidence document. Directness comes from the decoded operand
+    types (an immediate target), never from how the disassembler prints them.
     """
     from capstone import CS_ARCH_X86, CS_MODE_16, Cs
     seg, entry = int(member[4:8], 16), int(member[9:13], 16)
@@ -391,11 +423,25 @@ def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset())
     def ready(resident_id):
         return resident_id in members or resident_id in strict_ids or resident_id in DECLARED_BOUNDARY_ENDPOINTS
 
+    block_starts = {entry} | {target for ins in body
+                              if (ins.mnemonic.startswith("j") or ins.mnemonic.startswith("loop"))
+                              and (target := _direct_near_target(ins)) is not None}
     gaps = []
-    for ins in body:
+    for index, ins in enumerate(body):
         where, mnemonic = f"+{ins.address:04X} {ins.mnemonic} {ins.op_str}", ins.mnemonic
-        if mnemonic in ("int", "int3", "into"):
+        if mnemonic in ("int3", "into"):
             gaps.append(f"{where}: interrupt (unresolved environment edge)")
+        elif mnemonic == "int":
+            number = ins.operands[0].imm & 0xFF if ins.operands else None
+            ah = _static_ah(body, index, block_starts) if number == 0x21 else None
+            if number != 0x21:
+                gaps.append(f"{where}: INT {number:02X}h is not a declared environment service")
+            elif ah is None:
+                gaps.append(f"{where}: INT 21h with AH not statically resolved in its basic block")
+            elif (0x21, ah) not in DECLARED_DOS_SERVICES:
+                gaps.append(f"{where}: INT 21h AH={ah:02X}h is not a declared environment service")
+            elif services is not None:
+                services.add((0x21, ah))
         elif mnemonic in ("lcall", "ljmp"):
             target = _direct_far_target(ins)
             if target is None:
@@ -425,7 +471,7 @@ def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=fr
     from resident_inventory import GAME_SPECIFIC_TARGETS
     require(fields is None or tuple(fields) == DRIVER_INTERNAL_FIELDS,
             f"driver_internal table columns must be exactly {DRIVER_INTERNAL_FIELDS}")
-    members = set()
+    members, texts = set(), {}
     for row in rows:
         member = row["id"]
         require(DRIVER_INTERNAL_ID.fullmatch(member) is not None,
@@ -448,10 +494,16 @@ def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=fr
         require(member in text and row["body_sha256"] in text,
                 f"driver_internal evidence document does not name {member} and its body hash")
         members.add(member)
+        texts[member] = text
     if image is not None:
         for member in sorted(members):
-            gaps = driver_internal_closure_gaps(member, image, members, strict_ids)
+            services = set()
+            gaps = driver_internal_closure_gaps(member, image, members, strict_ids, services)
             require(not gaps, f"driver_internal member {member} has an incomplete closure: {'; '.join(gaps)}")
+            for number, ah in sorted(services):
+                require(f"INT {number:02X}h AH={ah:02X}h" in texts[member],
+                        f"driver_internal evidence document for {member} does not declare INT {number:02X}h AH={ah:02X}h "
+                        f"as an environment service")
     return frozenset(members)
 
 
