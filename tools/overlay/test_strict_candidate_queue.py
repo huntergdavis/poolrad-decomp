@@ -520,9 +520,10 @@ class StrictCandidateQueueTest(unittest.TestCase):
             (0x0AF8, 0x04A9): "RES_0AF8_00E2", (0x0AF8, 0x0A76): "RES_0AF8_00E2",
             (0x0AF8, 0x1186): "RES_0AF8_00E2", (0x0AF8, 0x119E): "RES_0AF8_00E2",
             (0x0AF8, 0x1593): "RES_0AF8_00E2", (0x0AF8, 0x14FB): "RES_0AF8_00DF"})
-        # 14FB stays uncovered until RES_0AF8_00DF is declared; covering it now must be refused.
-        self.assertNotIn((0x0AF8, 0x14FB), scq.RUNTIME_COVERED_ENDPOINTS)
-        with mock.patch.dict(scq.RUNTIME_COVERED_ENDPOINTS, {(0x0AF8, 0x14FB): "system BlockRead (test)"}):
+        # 14FB is covered only because RES_0AF8_00DF is declared; withdrawing 00DF must be refused.
+        self.assertIn((0x0AF8, 0x14FB), scq.RUNTIME_COVERED_ENDPOINTS)
+        no_00df = {k: v for k, v in scq.DECLARED_BOUNDARY_ENDPOINTS.items() if k != "RES_0AF8_00DF"}
+        with mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, no_00df, clear=True):
             with self.assertRaises(ValueError) as held:
                 scq.load_queue(inventory, ledger, classifications, [], None)
         self.assertIn("RES_0AF8_00DF", str(held.exception))

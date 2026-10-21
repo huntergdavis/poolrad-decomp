@@ -101,6 +101,7 @@ DECLARED_BOUNDARY_ENDPOINTS = {
     "RES_0AF8_16BC": "docs/re/DECLARED_BOUNDARY_0AF8_16BC.md",
     "RES_0AF8_00E9": "docs/re/DECLARED_BOUNDARY_0AF8_00E9.md",
     "RES_0AF8_00E2": "docs/re/DECLARED_BOUNDARY_0AF8_00E2.md",
+    "RES_0AF8_00DF": "docs/re/DECLARED_BOUNDARY_0AF8_00DF.md",
 }
 
 # Reviewed unresolved dispatches omitted by the direct-call graph. Keep the
@@ -155,6 +156,7 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x1410): "system Reset (system_reset_1410_cpu, #1311)",
     (0x0AF8, 0x1563): "system Seek (system_seek_1563_cpu, #1314/#1317)",
     (0x0AF8, 0x1593): "system FilePos (system_filepos_1593_cpu, #1316)",
+    (0x0AF8, 0x14FB): "system BlockRead (system_blockread_14fb_cpu, #1315)",
 }
 
 # A covered endpoint whose model stops by transferring into a TERMINAL must not be
@@ -168,7 +170,7 @@ RUNTIME_COVERED_TERMINALS = {
     (0x0AF8, 0x1186): "RES_0AF8_00E2",  # Real multiply RUNERROR stop: AX=205, JMP 00E2
     (0x0AF8, 0x119E): "RES_0AF8_00E2",  # Real Trunc RUNERROR stop: AX=207, JMP 00E2
     (0x0AF8, 0x1593): "RES_0AF8_00E2",  # FilePos DIVIDE stop, through LongDiv's JMP 00E2
-    (0x0AF8, 0x14FB): "RES_0AF8_00DF",  # BlockRead DIVIDE stop: INT 0, vector 0AF8:00DF (held until declared)
+    (0x0AF8, 0x14FB): "RES_0AF8_00DF",  # BlockRead DIVIDE stop: INT 0, vector 0AF8:00DF (#1318)
 }
 
 # A covered endpoint whose model STOPS at a nested call (and resumes after it) is usable only
