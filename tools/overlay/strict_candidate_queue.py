@@ -681,6 +681,30 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
                 mentions=mentions)
 
 
+def runtime_readiness(seg, off):
+    """Readiness of a runtime-resolved far target.
+
+    Every product that defines runtime readiness is consulted: the covered
+    runtime models and the declared boundaries. The call graph resolves SYSTEM
+    targets as runtime, so a RES_0AF8_* declaration must be found here too, or
+    it never applies at overlay call sites (0AF8:16BC read runtime_unmapped).
+    """
+    if (seg, off) in RUNTIME_COVERED_ENDPOINTS:
+        return "runtime_covered"
+    if seg is not None and off is not None \
+            and f"RES_{seg:04X}_{off:04X}" in DECLARED_BOUNDARY_ENDPOINTS:
+        return "declared_boundary"
+    return "runtime_unmapped"
+
+
+def resident_target_ready(res_id, resident_full, driver_internal=frozenset()):
+    """Transitive-pass mirror of callee_evidence's resident readiness classes."""
+    if res_id in RAW_CPU_INTERFACE_CAVEATS:
+        return False
+    return (res_id in DECLARED_BOUNDARY_ENDPOINTS or res_id in driver_internal
+            or res_id in resident_full)
+
+
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
                     partial_models, transitively_unready, resident_full,
                     resident_callback, endpoints, driver_internal=frozenset()):
@@ -726,9 +750,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             targets.append(dict(kind="resident", id=res_id, seg=entry[1],
                                 offset=entry[2], readiness=readiness))
         else:
-            readiness = ("runtime_covered"
-                         if (entry[1], entry[2]) in RUNTIME_COVERED_ENDPOINTS
-                         else "runtime_unmapped")
+            readiness = runtime_readiness(entry[1], entry[2])
             targets.append(dict(kind="runtime", seg=entry[1], offset=entry[2],
                                 readiness=readiness))
     if source_id in UNRESOLVED_INDIRECT_DISPATCH:
@@ -837,7 +859,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
     # Transitive closure: strict bodies and manifest-full models are reviewed
     # endpoints that handle their own environment calls. Every other modeled
     # body is composable only when each overlay callee is ready, each resident
-    # target is strict-credited, and no runtime call remains uncovered.
+    # target is ready by the same classes callee_evidence uses (strict-credited,
+    # declared boundary or driver_internal), and no runtime call remains unmapped.
     endpoints = {node for node in nodes if node in state["full_models"]}
     ready = {node: (node not in RAW_CPU_INTERFACE_CAVEATS)
                     and (node not in UNRESOLVED_INDIRECT_DISPATCH)
@@ -852,12 +875,12 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             if any(not ready.get(target, False) for target in graph.get(node, ())):
                 ready[node] = False
                 changed = True
-            elif any(res_id not in state["resident_full"]
-                     or res_id in RAW_CPU_INTERFACE_CAVEATS
+            elif any(not resident_target_ready(res_id, state["resident_full"],
+                                               state.get("driver_internal", frozenset()))
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
-            elif any((seg, off) not in RUNTIME_COVERED_ENDPOINTS
+            elif any(runtime_readiness(seg, off) == "runtime_unmapped"
                      for seg, off in runtime_edges.get(node, ())):
                 ready[node] = False
                 changed = True
