@@ -7,6 +7,7 @@ uncovered SYSTEM entry 0AF8:0567, the driver at 08AE:00DC and the DOS unit at
 behind 0A40:02FD hold code that must never be walked or priced.
 """
 import unittest
+import unittest.mock
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 
@@ -51,6 +52,77 @@ class DeclaredBoundaryTerminalTest(unittest.TestCase):
         self.assertEqual(acc["bodies"], {"OVL_0001_0000": 10})
         self.assertEqual(acc["declared"], {"RES_0A40_02FD"})
 
+
+
+class NeverCreditClassesTest(unittest.TestCase):
+    """The pricer honours every never-credit readiness class (VP i20300): members are ready terminals, never priced."""
+
+    def pricer(self, members=frozenset()):
+        image = bytearray(1 << 20)
+        base = 0x802 * 16
+        image[base + 0x0100:base + 0x0104] = b"\xe8\xfd\xfe\xcb"         # 0802:0100 CALL 0000; RETF
+        image[base + 0x0000:base + 0x0006] = far(0x0AF8, 0x0567) + b"\xcb"  # 0802:0000 calls an uncovered endpoint
+        image[0x8AE * 16 + 0x00DC:0x8AE * 16 + 0x00DD] = b"\xcb"
+        pricer = P.Pricer.__new__(P.Pricer)
+        pricer.rows, pricer.image, pricer.md = {}, bytes(image), Cs(CS_ARCH_X86, CS_MODE_16)
+        pricer.strict, pricer.covered, pricer.cache = set(), set(), {}
+        pricer.runtime_residents = frozenset(members)
+        pricer.driver_members = frozenset()
+        return pricer
+
+    def test_near_called_resident_runtime_member_is_a_terminal(self):
+        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(), declared=set())
+        self.pricer().resident(0x802, 0x0100, acc)
+        self.assertEqual(set(acc["bodies"]), {"RES_0802_0100", "RES_0802_0000"})   # without the class: walked, priced
+        self.assertEqual(acc["unmapped"], {0x0567})
+        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(), declared=set())
+        self.pricer({"RES_0802_0000"}).resident(0x802, 0x0100, acc)
+        self.assertEqual(set(acc["bodies"]), {"RES_0802_0100"})
+        self.assertEqual(acc["runtime_residents"], {"RES_0802_0000"})
+        self.assertEqual(acc["unmapped"], set())
+
+    def test_row_whose_only_unready_callee_is_a_member_prices_as_ready(self):
+        pricer = self.pricer({"RES_0802_0000"})
+        pricer.rows = {"OVL_0001_0000": {"id": "OVL_0001_0000", "bytes": 10, "callee_readiness": {"targets": [
+            {"kind": "resident", "id": "RES_0802_0000", "readiness": "resident_runtime"}]}}}
+        acc = pricer.price("OVL_0001_0000")
+        self.assertEqual(acc["bodies"], {"OVL_0001_0000": 10})
+        self.assertEqual((acc["unmapped"], acc["runtime_residents"]), (set(), set()))
+
+    def test_direct_driver_internal_target_is_not_priced(self):
+        # Before t30's fix the pricer walked a direct driver_internal callee and priced it (11 rows, +617..727 B).
+        pricer = self.pricer()
+        pricer.rows = {"OVL_0001_0000": {"id": "OVL_0001_0000", "bytes": 10, "callee_readiness": {"targets": [
+            {"kind": "resident", "id": "RES_08AE_00DC", "readiness": "driver_internal"}]}}}
+        self.assertEqual(pricer.price("OVL_0001_0000")["bodies"], {"OVL_0001_0000": 10})
+
+    def test_committed_table_is_loaded_and_pinned(self):
+        self.assertEqual(P.load_runtime_residents(), frozenset())
+
+    def test_real_rows_lose_exactly_the_driver_members_they_used_to_price(self):
+        """On the owner media and a fresh export: rows reaching driver_internal members were overpriced by the members
+        they walked - directly (expand) or through a non-member's near calls (resident). 073B lost all eight members
+        (727 B); 0036_002D lost 137C+13B1 (110 B) reached through the deferred 01A5. Pinned as the delta, which is
+        stable; the absolute prices move whenever unrelated bodies are credited (recorded with their base in the doc)."""
+        from pathlib import Path
+        root = Path(__file__).resolve().parents[2]
+        exe, export = root / "resources/DOS/POOLRAD/START.EXE", root / "resources/strict-candidate-queue/queue.json"
+        if not exe.is_file() or not export.is_file():
+            self.skipTest("owner media or queue export absent")
+        import json
+        queue = json.loads(export.read_text())
+        if P.sq.stale_inputs(queue, root):
+            self.skipTest("queue export is stale; regenerate it")
+        pricer = P.Pricer(queue, exe.read_bytes())
+        old_ok = ("strict", "resident_covered", "runtime_covered", "declared_boundary")
+        for row, over in (("OVL_0068_073B", 727), ("OVL_0036_002D", 110)):
+            with self.subTest(row):
+                fixed = pricer.price(row)
+                self.assertFalse(set(fixed["bodies"]) & pricer.driver_members)    # 01A5 (deferred) may still price
+                with unittest.mock.patch.object(P, "OK", old_ok), \
+                        unittest.mock.patch.object(pricer, "driver_members", frozenset()):
+                    before = pricer.price(row)
+                self.assertEqual(sum(before["bodies"].values()) - sum(fixed["bodies"].values()), over)
 
 if __name__ == "__main__":
     unittest.main()

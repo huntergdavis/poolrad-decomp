@@ -38,6 +38,7 @@ DEFAULT_CLASSIFICATION = ROOT / "docs/re/overlay_classification.csv"
 DEFAULT_STRICT = ROOT / "docs/re/strict_full_c_addresses.csv"
 DEFAULT_PARTIAL = ROOT / "docs/re/partial_callee_models.csv"
 DEFAULT_DRIVER_INTERNAL = ROOT / "docs/re/driver_internal_models.csv"
+DEFAULT_RESIDENT_RUNTIME = ROOT / "docs/re/resident_runtime_models.csv"
 DEFAULT_IDENTITIES = ROOT / "docs/re/reviewed_function_identities.csv"
 # Committed inputs an export records by hash. A consumer must refuse an export whose
 # recorded hash differs from the tree: a file that exists is not a file that is current.
@@ -47,6 +48,7 @@ FRESHNESS_INPUTS = {
     "strict_map": "docs/re/strict_full_c_addresses.csv",
     "partial_models": "docs/re/partial_callee_models.csv",
     "driver_internal": "docs/re/driver_internal_models.csv",
+    "resident_runtime": "docs/re/resident_runtime_models.csv",
     "identities": "docs/re/reviewed_function_identities.csv",
 }
 STALE_EXIT = 2
@@ -357,6 +359,18 @@ def scan_commits(repo, candidates):
 DRIVER_INTERNAL_FIELDS = ("id", "evidence_doc", "review_pr", "reviewed_commit", "body_sha256", "body_bytes")
 DRIVER_INTERNAL_ID = re.compile(r"RES_08AE_[0-9A-F]{4}")
 
+# RESIDENT-RUNTIME bodies (VP i20291/i20300, t30): fully translated and evidenced NEAR-called resident bodies whose
+# subject is a runtime structure (the heap) or a service called only with constant arguments, so no game state enters
+# them and they can never carry a game identity (the 06FB / RES_0464_2A0D line). A member composes like a ready
+# dependency and is NEVER a credit: the same contract as driver_internal, for residents outside the 08AE driver.
+# Membership is narrow: only ids in docs/re/resident_runtime_models.csv, never in 08AE (that is driver_internal),
+# never an overlay-called entry (an id with a row in resident_callable_ledger.csv must earn identity instead),
+# disjoint from every credit table, declared boundaries and GAME_SPECIFIC_TARGETS, each closure-complete, each with
+# an evidence document that carries its body hash.
+RESIDENT_RUNTIME_FIELDS = DRIVER_INTERNAL_FIELDS
+RESIDENT_RUNTIME_ID = re.compile(r"RES_(?!08AE_)[0-9A-F]{4}_[0-9A-F]{4}")
+RESIDENT_LEDGER = "docs/re/resident_callable_ledger.csv"
+
 
 def _direct_near_target(ins):
     """Target of a direct near branch or call: the instruction's single immediate operand; None if indirect."""
@@ -475,55 +489,87 @@ def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset(),
     return gaps
 
 
-def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=frozenset()):
-    """Validate the driver-internal table and return its member ids. Fail closed.
-
-    With the loader-expanded START image, every member must also be closure-complete: a member whose callee is
-    unready would read as ready and launder that callee, so it is refused here rather than left to review.
-    """
+def _load_noncredit_class(rows, name, pattern, outside, root, fields, image, strict_ids, ready_elsewhere,
+                          refuse=None):
+    """Shared validation for the never-credit readiness classes (driver_internal, resident_runtime). Fail closed."""
     from resident_inventory import GAME_SPECIFIC_TARGETS
     require(fields is None or tuple(fields) == DRIVER_INTERNAL_FIELDS,
-            f"driver_internal table columns must be exactly {DRIVER_INTERNAL_FIELDS}")
+            f"{name} table columns must be exactly {DRIVER_INTERNAL_FIELDS}")
     members, texts = set(), {}
     for row in rows:
         member = row["id"]
-        require(DRIVER_INTERNAL_ID.fullmatch(member) is not None,
-                f"driver_internal member outside the 08AE driver segment: {member}")
-        require(member not in members, f"duplicate driver_internal member: {member}")
+        require(pattern.fullmatch(member) is not None, f"{name} member {outside}: {member}")
+        require(member not in members, f"duplicate {name} member: {member}")
         require(member not in DECLARED_BOUNDARY_ENDPOINTS,
-                f"driver_internal member is a declared boundary: {member}")
+                f"{name} member is a declared boundary: {member}")
         require((int(member[4:8], 16), int(member[9:13], 16)) not in GAME_SPECIFIC_TARGETS,
-                f"driver_internal member is a game-specific resident target: {member}")
+                f"{name} member is a game-specific resident target: {member}")
+        if refuse is not None:
+            refuse(member)
         require(re.fullmatch(r"[0-9a-f]{64}", row["body_sha256"] or "") is not None
                 and str(row["body_bytes"]).isdigit() and int(row["body_bytes"]) > 0
                 and re.fullmatch(r"[0-9a-f]{40}", row["reviewed_commit"] or "") is not None
                 and str(row["review_pr"]).isdigit() and int(row["review_pr"]) > 0,
-                f"driver_internal member lacks body/approval provenance: {member}")
+                f"{name} member lacks body/approval provenance: {member}")
         document = row["evidence_doc"]
         require(document.startswith("docs/re/") and ".." not in document.split("/")
                 and (Path(root) / document).is_file(),
-                f"driver_internal member names a missing evidence document: {member}")
+                f"{name} member names a missing evidence document: {member}")
         text = (Path(root) / document).read_text(errors="ignore")
         require(member in text and row["body_sha256"] in text,
-                f"driver_internal evidence document does not name {member} and its body hash")
+                f"{name} evidence document does not name {member} and its body hash")
         members.add(member)
         texts[member] = text
     if image is not None:
         for member in sorted(members):
             services = set()
-            gaps = driver_internal_closure_gaps(member, image, members, strict_ids, services)
-            require(not gaps, f"driver_internal member {member} has an incomplete closure: {'; '.join(gaps)}")
+            gaps = driver_internal_closure_gaps(member, image, members | set(ready_elsewhere), strict_ids, services)
+            require(not gaps, f"{name} member {member} has an incomplete closure: {'; '.join(gaps)}")
             for number, ah in sorted(services):
                 require(f"INT {number:02X}h AH={ah:02X}h" in texts[member],
-                        f"driver_internal evidence document for {member} does not declare INT {number:02X}h AH={ah:02X}h "
+                        f"{name} evidence document for {member} does not declare INT {number:02X}h AH={ah:02X}h "
                         f"as an environment service")
     return frozenset(members)
 
 
-def require_not_driver_internal(row_id, members, table):
-    """Fail closed when a credit or manifest row names a driver-internal member."""
+def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=frozenset(),
+                         resident_runtime=frozenset()):
+    """Validate the driver-internal table and return its member ids. Fail closed.
+
+    With the loader-expanded START image, every member must also be closure-complete: a member whose callee is
+    unready would read as ready and launder that callee, so it is refused here rather than left to review.
+    """
+    return _load_noncredit_class(rows, "driver_internal", DRIVER_INTERNAL_ID, "outside the 08AE driver segment",
+                                 root, fields, image, strict_ids, resident_runtime)
+
+
+def resident_ledger_ids(root=ROOT):
+    """Ids of overlay-called resident entries (rows of resident_callable_ledger.csv)."""
+    path = Path(root) / RESIDENT_LEDGER
+    return frozenset(row["id"] for row in csv.DictReader(path.read_text().splitlines())) if path.is_file() else frozenset()
+
+
+def load_resident_runtime(rows, root=ROOT, fields=None, image=None, strict_ids=frozenset(), driver_internal=frozenset(),
+                          ledger_ids=None):
+    """Validate the resident-runtime table and return its member ids. Fail closed.
+
+    Same rules as driver_internal, outside 08AE, plus: a member must be NEAR-called only. An id with a row in the
+    resident callable ledger is an overlay-called entry, which must earn identity rather than be declared non-credit.
+    """
+    entries = resident_ledger_ids(root) if ledger_ids is None else frozenset(ledger_ids)
+
+    def near_only(member):
+        require(member not in entries,
+                f"resident_runtime member is an overlay-called entry (resident_callable_ledger.csv): {member}")
+    return _load_noncredit_class(rows, "resident_runtime", RESIDENT_RUNTIME_ID,
+                                 "is outside the class (08AE bodies are driver_internal)",
+                                 root, fields, image, strict_ids, driver_internal, refuse=near_only)
+
+
+def require_not_driver_internal(row_id, members, table, name="driver_internal"):
+    """Fail closed when a credit or manifest row names a never-credit class member."""
     require(row_id not in members,
-            f"driver_internal members can never appear in {table}: {row_id}")
+            f"{name} members can never appear in {table}: {row_id}")
 
 
 def require_not_declared_boundary(row_id):
@@ -538,7 +584,7 @@ def require_not_declared_boundary(row_id):
 
 
 def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
-               partial_rows=None, driver_internal=frozenset(), identity_rows=()):
+               partial_rows=None, driver_internal=frozenset(), identity_rows=(), resident_runtime=frozenset()):
     """Validated join: reuse function_queue's overlay row construction."""
     for endpoint, terminal in RUNTIME_COVERED_TERMINALS.items():
         require(endpoint not in RUNTIME_COVERED_ENDPOINTS or terminal in DECLARED_BOUNDARY_ENDPOINTS,
@@ -551,6 +597,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                          ("partial_callee_models.csv", partial_rows or [])):
         for row_ in rows_:
             require_not_driver_internal(row_["id"], driver_internal, table)
+            require_not_driver_internal(row_["id"], resident_runtime, table, "resident_runtime")
     near_validated = False
     if near is not None:
         check_inputs(near)
@@ -619,7 +666,8 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 strict_resident_ids=strict_resident_ids,
                 full_models=full_models, partial_models=partial_models,
                 resident_full=resident_full, resident_callback=resident_callback,
-                driver_internal=frozenset(driver_internal), near_validated=near_validated)
+                driver_internal=frozenset(driver_internal), resident_runtime=frozenset(resident_runtime),
+                near_validated=near_validated)
 
 
 # Evidence shapes that mention an address without modelling it: a test assertion
@@ -712,17 +760,17 @@ def runtime_readiness(seg, off):
     return "runtime_unmapped"
 
 
-def resident_target_ready(res_id, resident_full, driver_internal=frozenset()):
+def resident_target_ready(res_id, resident_full, driver_internal=frozenset(), resident_runtime=frozenset()):
     """Transitive-pass mirror of callee_evidence's resident readiness classes."""
     if res_id in RAW_CPU_INTERFACE_CAVEATS:
         return False
     return (res_id in DECLARED_BOUNDARY_ENDPOINTS or res_id in driver_internal
-            or res_id in resident_full)
+            or res_id in resident_runtime or res_id in resident_full)
 
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
                     partial_models, transitively_unready, resident_full,
-                    resident_callback, endpoints, driver_internal=frozenset()):
+                    resident_callback, endpoints, driver_internal=frozenset(), resident_runtime=frozenset()):
     source_id = ovl_id(*key)
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
@@ -759,6 +807,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
             readiness = ("resident_interface_caveat" if res_id in RAW_CPU_INTERFACE_CAVEATS
                          else "declared_boundary" if res_id in DECLARED_BOUNDARY_ENDPOINTS
                          else "driver_internal" if res_id in driver_internal
+                         else "resident_runtime" if res_id in resident_runtime
                          else "resident_covered" if res_id in resident_full
                          else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
@@ -776,9 +825,10 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
                       for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
                      key=lambda item: item["id"])
-    # declared_boundary and driver_internal compose like ready dependencies, but are never credits.
+    # declared_boundary, driver_internal and resident_runtime compose like ready dependencies, but are never credits.
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
-             + counts["runtime_covered"] + counts["declared_boundary"] + counts["driver_internal"])
+             + counts["runtime_covered"] + counts["declared_boundary"] + counts["driver_internal"]
+             + counts["resident_runtime"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
                + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
@@ -891,7 +941,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                 ready[node] = False
                 changed = True
             elif any(not resident_target_ready(res_id, state["resident_full"],
-                                               state.get("driver_internal", frozenset()))
+                                               state.get("driver_internal", frozenset()),
+                                               state.get("resident_runtime", frozenset()))
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
@@ -910,7 +961,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                                   main_files, class_by_id, state["partial_models"],
                                   transitively_unready, state["resident_full"],
                                   state["resident_callback"], endpoints,
-                                  state.get("driver_internal", frozenset()))
+                                  state.get("driver_internal", frozenset()),
+                                  state.get("resident_runtime", frozenset()))
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -1004,11 +1056,14 @@ def main():
                         help="checked-in bounded-model manifest for callee readiness")
     parser.add_argument("--driver-internal", default=str(DEFAULT_DRIVER_INTERNAL),
                         help="declared driver-internal bodies (ready, never credits)")
+    parser.add_argument("--resident-runtime", default=str(DEFAULT_RESIDENT_RUNTIME),
+                        help="declared near-called resident runtime bodies (ready, never credits)")
     parser.add_argument("--identities", default=str(DEFAULT_IDENTITIES),
                         help="reviewed identity table, checked disjoint from driver_internal")
     parser.add_argument("--ovr", help="hash-pinned GAME.OVR for PUSH CS call-site checks")
     parser.add_argument("--exe", default=str(ROOT / "resources/DOS/POOLRAD/START.EXE"),
-                        help="hash-pinned START.EXE; required whenever driver_internal has members (closure check)")
+                        help="hash-pinned START.EXE; required whenever driver_internal or resident_runtime has members "
+                             "(closure check)")
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
     parser.add_argument("--json", required=True)
@@ -1016,7 +1071,8 @@ def main():
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
              "strict_map": Path(args.strict_map), "partial_models": Path(args.partial_models),
-             "driver_internal": Path(args.driver_internal), "identities": Path(args.identities)}
+             "driver_internal": Path(args.driver_internal), "resident_runtime": Path(args.resident_runtime),
+             "identities": Path(args.identities)}
     if args.near_calls:
         paths["near_calls"] = Path(args.near_calls)
     if args.ovr:
@@ -1036,25 +1092,33 @@ def main():
         near = json.loads(blobs["near_calls"]) if "near_calls" in blobs else None
         driver_text = blobs["driver_internal"].decode()
         driver_rows = csv_rows(blobs["driver_internal"])
+        runtime_text = blobs["resident_runtime"].decode()
+        runtime_rows = csv_rows(blobs["resident_runtime"])
         image = None
-        if driver_rows:
+        if driver_rows or runtime_rows:
             # A member must be closure-complete; that is decided from the bytes, so the check cannot be skipped.
             exe_path = Path(args.exe)
-            require(exe_path.is_file(), f"driver_internal has members, so the closure check needs START.EXE: {exe_path}")
+            require(exe_path.is_file(), f"driver_internal or resident_runtime has members, so the closure check needs "
+                                        f"START.EXE: {exe_path}")
             exe = exe_path.read_bytes()
             require(hashlib.sha256(exe).hexdigest() == DIGESTS["start_exe_sha256"],
                     "START.EXE hash differs from the audited build")
             from resident_loader_map import unpack
             image = bytes(unpack(exe)[0])
         strict_residents = frozenset(row["id"] for row in csv_rows(blobs["strict_map"]) if row["id"].startswith("RES_"))
+        runtime_ids = frozenset(row["id"] for row in runtime_rows)
         driver_internal = load_driver_internal(driver_rows, repo,
                                                fields=csv.DictReader(driver_text.splitlines()).fieldnames,
-                                               image=image, strict_ids=strict_residents)
+                                               image=image, strict_ids=strict_residents, resident_runtime=runtime_ids)
+        resident_runtime = load_resident_runtime(runtime_rows, repo,
+                                                 fields=csv.DictReader(runtime_text.splitlines()).fieldnames,
+                                                 image=image, strict_ids=strict_residents,
+                                                 driver_internal=driver_internal)
         state = load_queue(inventory, csv_rows(blobs["ledger"]),
                            csv_rows(blobs["classification"]),
                            csv_rows(blobs["strict_map"]), near,
                            csv_rows(blobs["partial_models"]), driver_internal,
-                           csv_rows(blobs["identities"]))
+                           csv_rows(blobs["identities"]), resident_runtime)
         main_files = scan_main_files(repo, state["all_ids"])
         for identifier, evidence in sorted(state["full_models"].items()):
             main_files.setdefault(identifier, []).append(evidence)
