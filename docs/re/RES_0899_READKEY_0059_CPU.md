@@ -161,7 +161,9 @@ the stop, and requires an identical ordered environment event log: every `INT 16
 - `08AE:01D0+530h` and `08AE:1378+4`;
 - the BIOS mode byte, the shadow vector, the GetTime call count and the number of keys taken.
 
-RESULT.BIN `1a653f1c023dd1f2df9c2049977a14abb5a19b10076cced6b1d1f0ce4557d616`; IMAGE.BIN (at 3000h) `02bac6e8…`. The binary is
+RESULT.BIN `1a653f1c023dd1f2df9c2049977a14abb5a19b10076cced6b1d1f0ce4557d616` is **a per-run receipt**, as for
+RES_0899_0000. It records the live IN 61h byte, which the environment supplies and which varies between runs; only the
+3 masked cases are affected, and the comparison passes on every run. IMAGE.BIN (at 3000h) `02bac6e8…`. The binary is
 `/usr/bin/dosbox-x` 2026.01.02, `99d74601…`. It is **not** the pinned `5a9c7c53` build; this is declared.
 
 The native substitutions are declared, each with its exact location:
