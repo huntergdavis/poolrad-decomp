@@ -140,7 +140,7 @@ wrapper alone does not make that chain ready. Queue readiness must preserve
 that caveat along with the unmeasured transitive outcomes and packed-mode
 hardware limits above.
 
-## Checker registration (2026-10-22)
+## Checker registration (2026-10-21)
 
 `tools/overlay/res0709_space_05eb_cpu_audit.py` now declares `CHECKER_ROWS = ('RES_0709_05EB',)` and implements `--compile-only`
 (build and bind with no media), so the checker-build gate covers this body and the audit-wide probes (the dirty-register and
