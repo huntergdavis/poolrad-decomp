@@ -130,3 +130,22 @@ Measured on main `1bf35dde` and later.
 Counted strictly over the 17: **10 PASS** (the eight, `06A7`, `0714`), **5 FAIL** and **2 BLOCKED**.
 
 **Entries with identity arguments, still needing translation:** `27D9`, `0768`, `02A5`, `04FC`, `1892` and `15C7`.
+
+## Pass 4: `RES_0709_00B7` and the last 0709 body (par-a, 2026-10-21, VP i20404)
+
+**Rule that has decided four verdicts (06FB, 0464_0000, 1509 and 0709_0000):** constants and constant tables are not game state, however game-specific their contents look. A body whose only inputs are immediates, a static table, or arguments it merely transforms is in the 2A0D domain. Game-maintained state means a value the game writes at run time (a page byte, a mode flag, a record field) and the body reads.
+
+| Body | Bytes | Factor 1 | Factor 2 | Verdict |
+| --- | ---: | --- | --- | --- |
+| `RES_0709_00B7` | 186 | **Direct, from credited code.** Both loader-relocated far calls, `03F1:01F1` and `03F1:020C`, lie inside `RES_03F1_0137` (image [0x4047,0x41F8)), which is **strict-credited and `game_verified`**. | Saves and restores the game's draw page `DS:4A1A`. Sets the draw segment `DS:4A18` through `00A0`, from the page argument. Fills a rectangle on that page through EGA write mode 2 and `FillChar`. `4A1A` and `4A18` are the video init's page state ([RESIDENT_VIDEO_INIT_4426.md](RESIDENT_VIDEO_INIT_4426.md)), so this is the 0040 ground. | **PASS.** Role: rectangle fill on the game's draw page. [RES_0709_RECT_FILL_00B7_CPU.md](RES_0709_RECT_FILL_00B7_CPU.md) holds its evidence. |
+| `RES_0709_0000` | 113 | 00B7 is its only caller (+0100) | 13 constant `OUT`s that reset the EGA graphics-controller registers 0 to 8 and the sequencer map mask. There is no DS state and no argument. | **FAIL, factor 2 (06FB's shape:** constants at a display device). |
+
+**Final tally over the 17:**
+
+| Verdict | Count | Bodies |
+| --- | ---: | --- |
+| PASS | 10 | the 0BB8 eight, `06A7`, `0714` |
+| FAIL | 6 | `272A`, `0464_0000`, `1484`, `1509`, `1596`, `0709_0000` |
+| BLOCKED | 1 | `007B`, behind the parked `1E5C` and the unresolved callers of `2632` |
+
+**Entries argued along the way:** `27D9`, `0768`, `02A5`, `04FC`, `1892`, `15C7` and `00B7`. Of these, `00B7` has a direct credited caller and an existing evidence doc.
