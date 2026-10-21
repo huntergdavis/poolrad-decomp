@@ -278,6 +278,63 @@ and the declaration mechanisms (the manifest `callback` status, `declared_bounda
 helper, as the [08AE identity policy](RES_08AE_IDENTITY_POLICY.md) records. If the bus-aware Move is ever wanted, it is
 built as a model, by ruling.
 
+## `OVL_005E_3B93`: priced and declined (2026-10-20)
+
+After the `0899` wall credits (#1302), `OVL_0031_0FC1` (278 B, `game_evidenced`) has a single unready callee:
+`OVL_005E_3B93`. The VP asked whether that blocker is cheap (i20223). It is not, and the VP declined it (i20231).
+Measured by par-e on candidate-queue exports at main `968d023b` and `4850dac6` (440 / 51).
+
+**The body.** `OVL_005E_3B93` is 218 B, untranslated and `game_evidenced`. It has two unready callees: the runtime
+`0AF8:16BC` and `OVL_03C6_0996`. `0AF8:16BC` is a declared boundary, but before the readiness fix in this commit it read
+`runtime_unmapped` (see the handoff). `OVL_03C6_0996` is untranslated, 354 B.
+
+**The closure.**
+
+- **Overlay:** nine bodies, all untranslated, 2,622 B in total:
+
+  | Body | Bytes |
+  | --- | --- |
+  | `3B93` | 218 |
+  | `03C6_0996` | 354 |
+  | `03C6_0127` | 430 |
+  | `03C6_02D5` | 203 |
+  | `03C6_052B` | 446 |
+  | `03C6_07D4` | 450 |
+  | `03C6_0000` | 104 |
+  | `03CE_00F1` | 93 |
+  | `03CE_04FC` | 324 |
+
+  Two of them, `03CE_00F1` and `03CE_04FC`, are `game_or_other_library_unresolved`, so each also needs an identity
+  argued from scratch.
+- **Resident:** five `unresolved` `0464` residents, about 4,939 B in total:
+
+  | Body | Bytes |
+  | --- | --- |
+  | `08D4` | about 1,181 |
+  | `0D71` | about 1,811 |
+  | `15C7` | about 906 |
+  | `1B52` | 778 ([declined above](#res_0464_1b52-priced-and-declined-2026-10-20)) |
+  | `248E` | about 263 |
+
+  Each was measured to the first `RET` past the farthest forward jump.
+- **Not walked:** their runtime callees (`0AF8:16A8`, `0AF8:023F`) and their near callees inside `0464`
+  (`1509`, `1484`, `1596`). Every figure here is a **floor**.
+
+**The price.** For `0FC1` it is at least **~7.8 KB** of new C (278 + 2,622 + ~4,939) and **seven** identity arguments,
+for one row against the 132 B/row guide.
+
+**The yield.** If every part were credited, the closure would be:
+
+- the 9 bodies;
+- the 5 residents;
+- the six rows whose every unready callee lies inside it: `0FC1`, `03B6_0000` (519 B), `03B4_0000` (199),
+  `03C6_1298` (99), `03C6_0AF8` (239) and `03BD_05F3` (10).
+
+That is about 20 rows for about 9 KB, or about 450 B/row, 3.4 times the guide.
+
+**If the cluster is ever taken**, size it from its keystones down: `OVL_03C6_0996` (14 rows call it directly) and
+`RES_0464_1B52` (the sole blocker of `03BD_05F3`, and present in 4 of the 6 unlocked rows). Do not size it from `3B93` up.
+
 ## Parked work with no reachable consumer (recorded so it is not rebuilt)
 
 **`RES_0464_248E`** - finished and parked, never pushed as a PR. Branch **`claude/par-b-0464-248e` @ `4f605bf2`** on origin. Measurements: Unicorn 41 cases over CPU14 + 1,048,576 B, body 95/95 starts and 6/6 outcomes, closure 206/209 starts and 27/30 outcomes (the three `GetMem` HeapError AL>=1 continuations excluded on the same argument as credited `U33`), **eight declared AF-only splits** where the model follows DOSBox-X, confirmed by native 46/46 including seven cases with AF=1, and 22 ASan checks. It has **no evidence doc**, and it **depends on `emit_raw_cpu_c.py` from `#1213`**.
