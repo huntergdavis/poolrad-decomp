@@ -5,8 +5,8 @@ path. Its C now draws the game's text on the real VGA inside the running game.
 
 - **V1, stream equivalence in shadow form.** On **817 of 824** live arrivals, our C's ordered device stream equals the
   original's element by element: every VRAM byte read with its value, every VRAM byte write, every OUT. Its registers and
-  all 1 MiB of RAM equal the original's too. The other 7 arrivals had an interrupt inside the original's window and were
-  excluded. There were 0 differences.
+  all 1 MiB of RAM equal the original's too. The other 7 arrivals (numbers 34, 221, 311, 401, 550, 650 and 715) had an interrupt inside the
+  original's window and were excluded with the original's result kept. There were 0 differences.
 - **ROUTE.** In a second cold start the C drives the real VGA itself on **all 824 arrivals**, with 0 stops. The main-menu
   screen at 55 s has **0 differing pixels** against the unsubstituted run, and the 270 per-ID arrival counts are identical.
 
@@ -28,8 +28,11 @@ against pinned DOSBox-X `5a9c7c53`. It reverse-applies to the tree that ran.
   - While on, it records the CPU's every access to `A0000h..AFFFFh` as byte events, `R` with the value read and `W` with
     the value written, plus every port access (`O`/`I` with size).
   - The hook point is the core's `LoadMb..SaveMd` macros, which string instructions use too
-    (`core_normal/string.h`). So the stream is complete whichever VGA page handler serves the access. The fast planar
-    handler bypasses the generic one (`vga_memory.cpp:636-660`), so hooking inside the handlers would have missed writes.
+    (`core_normal/string.h`). So the stream is complete whichever VGA page handler serves the access.
+  - **Do not simplify this to a hook inside the VGA handlers.** The fast planar handler
+    (`VGA_UnchainedVGA_Fast_Handler`, `vga_memory.cpp:636-660`) writes the planes directly, without
+    `VGA_Generic_Write_Handler`. A recorder in the generic handlers would silently miss those writes and would still look
+    like it works (VP i20660).
   - Word and dword window accesses are issued and recorded as bytes, low first. That is exactly how the planar handlers
     split them (`vga_memory.cpp:594-608`), so device behaviour is unchanged.
 - **The replay bus (V1).** The hybrid build defines its own `pr_bus_read8`, `pr_bus_write8` and `pr_bus_out` in place of
@@ -66,6 +69,9 @@ In the same runs, `RES_0899_0104` (46 equal, 5 hand-backs) and `RES_0464_2595` (
 held unchanged.
 
 ## What this does not show
+
+- **One body, one path.** It covers `RES_0709_01DF` only, on the cold-start path to the main menu only. Glyphs drawn in play,
+  in combat or in other menus are not covered.
 
 - **Four of the five reached `pr_bus` bodies are not done:** `RES_0709_05EB`, `RES_0709_0626`, `RES_03F1_0137` and
   `OVL_03B0_01DA`. Each needs its own dispatch glue: confirmed symbol, CPU copy, budgets, and (for 0626) its composed
