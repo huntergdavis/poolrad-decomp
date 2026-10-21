@@ -1,7 +1,7 @@
 # Reviewed RES_ names for near-only resident bodies (t30; proposal for par-e, VP i20369)
 
 **Author: par-d. Reviewer and lander: par-e.** This is a naming and classification-path change. It grants no identity and
-no credit, so the accounting totals do not move. Basis: main `62871450` (re-measured on the merge with #1341, 02EB accepted), owner media, a fresh export regenerated on this tree.
+no credit, so the accounting totals do not move. Basis: main `4db0d9fa` (re-measured on the merge with #1341, 02EB accepted), owner media, a fresh export regenerated on this tree.
 
 ## The gap
 
