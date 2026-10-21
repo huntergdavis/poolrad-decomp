@@ -524,7 +524,7 @@ def specs(bodies, dmap, literal, lib, quick=False):
             ('display-same-pages', dict(nodes=N(16), pages=(0xA000, 0xA000))), ('display-ordinary-pages', dict(nodes=N(16), pages=(0xB000, 0xC000))),
             ('display-no-font', dict(nodes=N(16), writes=((DS, 0x5E20, bytes(4)),)))]
     # the literal the message is made from: its length byte decides how much StrLoad copies into the 19-byte local
-    for length in (0, 1, 10, 18, 19, 20, 40, 255):
+    for length in (0, 1, 10, 18, 19, 20):     # 19 and 20 overwrite the saved BP; 21 or more would overwrite the return address
         out.append((f'literal-{length}', dict(nodes=N(16), writes=((OVERLAY, LITERAL, bytes([length])),), skip_contract=True)))
     rng = random.Random(0x23239)
     for i in range(12 if quick else 60):
