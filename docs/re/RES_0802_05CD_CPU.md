@@ -94,6 +94,14 @@ The audit asserts the following, each derived from the decode (the cluster's cou
 reads its 2-byte header into 0716's variable, and positions the archive past it. When `[557C]` is 0, it asks for the disk
 through 025D.
 
+## Loop budget (2026-10-21)
+
+05CD has no loop of its own. It passes 025D's retry budget through, as `env.retries`, and reports 025D's LIMIT as
+**`PR_R0802_05CD_LIMIT`**, with IP `02B7h` and diagnostic site `02B7h` (see `RES_0802_025D_CPU.md`, "Loop budget"). The C
+test pins it: `retries = 0` on the resume stops LIMIT at `02B7`, with no read and no seek. The composed audit's
+`budget-retries-0` exercises the same path through 0716 against the original. This audit's own 50 cases are unchanged
+(budget 65535, never reached), and its re-run on 2026-10-21 passed.
+
 ## Evidence
 
 Receipt: 2026-10-21 01:19:44 PDT (`resources/0802-05cd/final.json`, sha `aa0f1a82…`), on a branch from main `6990130e`.
@@ -156,3 +164,25 @@ was verified with the media absent.
 
     python3 tools/overlay/res0802_05cd_cpu_audit.py --compile-only
     python3 tools/overlay/res0802_05cd_cpu_audit.py --unicorn --native --output resources/0802-05cd/final.json
+
+## Grant record: `RES_0802_05CD` (added by the review lane, par-e, VP i20362/i20571/i20573)
+
+Member row: `RES_0802_05CD`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity under the reviewed near-only
+name (#1342). Ground: **its own operands on game-written globals**. This body does not need the argument clause.
+
+- **Evidence reproduced on main `95b03d7a`,** after #1359 changed its loop budgets:
+  - **Unicorn:** 50 cases, starts 118/118, outcomes 2/2, 17 prompts, 36 independent checks, CPU14 + 1 MiB, masks 0.
+  - **Native:** 20 cases, per-run RESULT.BIN `e6df8308…`. The document's `6c7f092c…` is quoted per run, as it says.
+  - **ASan/UBSan** with every composed source: **26** checks. This document says 24; the test file now holds 26, so the
+    document's count is stale and the test is the source.
+  - **Checker build:** `check_checker_builds RES_0802_05CD --require-current-main` passes, and the row is registered.
+- **Factor 1 (chain), verified by me from the media:** the only near call to `05CD` is `0716+0775`; a raw `E8` scan of the
+  segment finds no other. `0716` is a direct entry, with 3 game_verified and 5 game_evidenced overlay callers.
+- **Factor 2, verified by me from the media:**
+  - **`DS:5376`** (the archive selector) has three direct stores in GAME.OVR: `OVL_0036_002D` (**game_verified**),
+    `OVL_006F_1602` and `OVL_006C_0161` (game_evidenced).
+  - **`DS:557C`** (the disk-prompt flag) has four: `OVL_0036_002D` (**game_verified**), `OVL_0025_0341`, and
+    `OVL_006F_0EC4` ×2 (game_evidenced).
+  - **`DS:547D`** (the drive character) has no direct store; it is defined in `RESIDENT_DAX_FILE_OPEN.md`.
+  - **Subject:** 05CD opens the game's ECL archive, base plus extension, as two FileRecs, reads the 2-byte header and
+    positions past it.

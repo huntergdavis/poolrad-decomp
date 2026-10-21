@@ -101,6 +101,10 @@ static int roll(uint8_t *ram,size_t size,pr_u7f_1010_cpu *c,unsigned limit,int *
 { pr_u7f_0fd2_raw_cpu inner;int status;COPY_CPU(&inner,c);
   status=(int)pr_u7f_roll_class_0fd2_cpu(ram,size,&inner,limit,dice_status);
   COPY_CPU(c,&inner);return status; }
+/* The SYSTEM segment of a 9A LCALL is the loader-relocated word at site+3 in the caller's code, read live, not a constant
+ * 0AF8h that is right only at the unrelocated base. */
+static uint16_t system_segment(const uint8_t *ram,uint16_t code_segment,uint16_t at)
+{ return (uint16_t)(ram[physical(code_segment,at)]|((uint16_t)ram[physical(code_segment,(uint16_t)(at+1u))]<<8)); }
 static int fill(uint8_t *ram,size_t size,pr_u7f_1010_cpu *c)
 { pr_system_leaf_cpu inner;int status;COPY_CPU(&inner,c);
   status=(int)pr_system_fillchar_16a8(ram,size,&inner);COPY_CPU(c,&inner);return status; }
@@ -133,7 +137,7 @@ pr_u7f_1010_status pr_u7f_caller_1010(
         case 0x101E: push(ram,c,c->ax);c->ip=0x101Fu;break;
         case 0x101F: al(c,(uint8_t)(0x0000u));c->ip=0x1021u;break;
         case 0x1021: push(ram,c,c->ax);c->ip=0x1022u;break;
-        case 0x1022: push(ram,c,c->cs);push(ram,c,0x1027u);c->cs=0x0AF8u;c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x1027u)return PR_U7F_1010_TRANSFER;break;
+        case 0x1022: push(ram,c,c->cs);push(ram,c,0x1027u);c->cs=system_segment(ram,code_segment,0x1025u);c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x1027u)return PR_U7F_1010_TRANSFER;break;
         case 0x1027: ram[physical(c->ss,(uint16_t)(c->bp+-4))]=(uint8_t)(0x0000u);c->ip=0x102Bu;break;
         case 0x102B: {size_t at=physical(c->ss,(uint16_t)(c->bp+6));c->di=word_at(ram,at);c->es=word_at(ram,(at+2u)&MASK);}c->ip=0x102Eu;break;
         case 0x102E: put_word(ram,c->ss,(uint16_t)(c->bp+-9),c->di);c->ip=0x1031u;break;
@@ -146,7 +150,7 @@ pr_u7f_1010_status pr_u7f_caller_1010(
         case 0x1040: push(ram,c,c->ax);c->ip=0x1041u;break;
         case 0x1041: al(c,(uint8_t)(0x0000u));c->ip=0x1043u;break;
         case 0x1043: push(ram,c,c->ax);c->ip=0x1044u;break;
-        case 0x1044: push(ram,c,c->cs);push(ram,c,0x1049u);c->cs=0x0AF8u;c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x1049u)return PR_U7F_1010_TRANSFER;break;
+        case 0x1044: push(ram,c,c->cs);push(ram,c,0x1049u);c->cs=system_segment(ram,code_segment,0x1047u);c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x1049u)return PR_U7F_1010_TRANSFER;break;
         case 0x1049: {size_t at=physical(c->ss,(uint16_t)(c->bp+-9));c->di=word_at(ram,at);c->es=word_at(ram,(at+2u)&MASK);}c->ip=0x104Cu;break;
         case 0x104C: c->ax=logic(c,(uint16_t)(c->ax^c->ax),16u);c->ip=0x104Eu;break;
         case 0x104E: put_word(ram,c->es,(uint16_t)(c->di+42),c->ax);c->ip=0x1052u;break;
@@ -168,7 +172,7 @@ pr_u7f_1010_status pr_u7f_caller_1010(
         case 0x1084: push(ram,c,c->ax);c->ip=0x1085u;break;
         case 0x1085: al(c,(uint8_t)(0x0000u));c->ip=0x1087u;break;
         case 0x1087: push(ram,c,c->ax);c->ip=0x1088u;break;
-        case 0x1088: push(ram,c,c->cs);push(ram,c,0x108Du);c->cs=0x0AF8u;c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x108Du)return PR_U7F_1010_TRANSFER;break;
+        case 0x1088: push(ram,c,c->cs);push(ram,c,0x108Du);c->cs=system_segment(ram,code_segment,0x108Bu);c->ip=0x16A8u;status=fill(ram,size,c);if(status!=0)return PR_U7F_1010_CALLEE;if(c->cs!=code_segment || c->ip!=0x108Du)return PR_U7F_1010_TRANSFER;break;
         case 0x108D: {size_t at=physical(c->ss,(uint16_t)(c->bp+-9));c->di=word_at(ram,at);c->es=word_at(ram,(at+2u)&MASK);}c->ip=0x1090u;break;
         case 0x1090: al(c,(uint8_t)(ram[physical(c->es,(uint16_t)(c->di+46))]));c->ip=0x1094u;break;
         case 0x1094: (void)arithmetic(c,(uint8_t)c->ax,0x0001u,0u,8u,1u);c->ip=0x1096u;break;

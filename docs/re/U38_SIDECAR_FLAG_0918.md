@@ -76,3 +76,12 @@ not execute the original resident `BA:2199` body. The resident lookup's
 behavior is exercised by the focused C composition and the byte-level
 callback contract. This is a strict full-C **candidate** for PM review;
 no new identity or count credit is claimed here.
+
+## Correction, 2026-10-21: the LCALL's segment is the live code word, not 00BAh
+
+The C model entered the resident lookup with `CS := 00BAh`, a constant, where the original's `9A` at `092E` carries a segment
+word at `0931` that the loader relocates (`00BA` only at the unrelocated base). The original-byte parity (96 cases) and the
+focused C test both ran at that base, where the constant and the word agree, and the unit test even asserted the constant, so
+neither could see it. The model now enters at the word read from `CS:0931`; the unit test sets the word to `00BA` and to
+`1234`, `0001`, `10BA` and `FFF0` and checks the lookup is entered at it (fails on the old model: `cpu->cs == f->word`). The
+original-byte parity still passes (its code image holds the real word). Body bytes, hash, identity and credit unchanged.

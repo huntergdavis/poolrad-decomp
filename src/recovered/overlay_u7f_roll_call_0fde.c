@@ -28,7 +28,7 @@ pr_u7f_0fde_status pr_u7f_roll_call_0fde(
     source_cs = cpu->cs;
     push(ram, cpu, source_cs);
     push(ram, cpu, 0x0FE3u);
-    cpu->cs = 0x00B0u;
+    cpu->cs = (uint16_t)(ram[physical(source_cs, 0x0FE1u)] | ((uint16_t)ram[physical(source_cs, 0x0FE2u)] << 8));   /* the relocated segment word of the 9A at 0FDE, not a constant 00B0 */
     cpu->ip = 0x0048u;
     if (!roll(context, ram, ram_size, cpu))
         return PR_U7F_0FDE_CALL_ABORT;

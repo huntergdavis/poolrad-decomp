@@ -51,14 +51,17 @@ static int open_05cd(uint8_t *ram, size_t size, cpu_t *c, const pr_r0802_0716c_e
     pr_r0802_05cd_env e;
     pr_r0802_05cd_diagnostic od;
     e.file = env->file; e.read = env->loader.read; e.read_context = env->loader.read_context;
-    e.seek = env->loader.seek; e.seek_context = env->loader.seek_context;
+    e.seek = env->loader.seek; e.seek_context = env->loader.seek_context; e.retries = env->retries;
+    unsigned disk_prompts = 0;
     for (;;) {
         pr_r0802_05cd_cpu m; int s;
         COPY_CPU(&m, c);
         s = pr_r0802_05cd(ram, size, &m, &e, &od);
         COPY_CPU(c, &m);
         if (s == PR_R0802_05CD_PROMPT) {                              /* 025D's insert-disk prompt: run 0193, resume at 02ADh */
-            int p = prompt(ram, size, c, env, text, 0x02ADu, 0x0775u, d);
+            int p;
+            if (disk_prompts++ >= env->max_disk_prompts) { d->nested = 0x02AAu; return stop(d, 0x0775u, -1, PR_R0802_0716C_LIMIT); }
+            p = prompt(ram, size, c, env, text, 0x02ADu, 0x0775u, d);
             if (p != CONTINUE) { d->nested = 0x02AAu; return p; }
             continue;
         }
@@ -70,6 +73,7 @@ static int open_05cd(uint8_t *ram, size_t size, cpu_t *c, const pr_r0802_0716c_e
         case PR_R0802_05CD_RUNERROR: return stop(d, 0x0775u, s, PR_R0802_0716C_RUNERROR);
         case PR_R0802_05CD_DIVIDE: return stop(d, 0x0775u, s, PR_R0802_0716C_DIVIDE);
         case PR_R0802_05CD_SERVICE: return stop(d, 0x0775u, s, PR_R0802_0716C_SERVICE);
+        case PR_R0802_05CD_LIMIT: d->nested = 0x02B7u; return stop(d, 0x0775u, s, PR_R0802_0716C_LIMIT);
         default: return stop(d, 0x0775u, s, PR_R0802_0716C_CALLEE);
         }
     }
@@ -80,6 +84,7 @@ pr_r0802_0716c_status pr_r0802_0716_composed(uint8_t *ram, size_t ram_size, cpu_
 {
     pr_r0802_0716c_diagnostic local, *d = diagnostic ? diagnostic : &local;
     uint16_t text;
+    unsigned seams = 0;
     if (ram == NULL || c == NULL || env == NULL || ram_size != PR_R0802_0716C_RAM_SIZE || c->ip != 0x0716u)
         return PR_R0802_0716C_ARGUMENT;
     d->seam = 0; d->nested = 0; d->leaf_status = -1; d->seams_composed = 0; d->prompts = 0; d->decode_arrivals = 0;
@@ -95,6 +100,12 @@ pr_r0802_0716c_status pr_r0802_0716_composed(uint8_t *ram, size_t ram_size, cpu_
         case PR_R0802_0716_DIVIDE: return (pr_r0802_0716c_status)stop(d, 0, ld.callee_status, PR_R0802_0716C_DIVIDE);
         case PR_R0802_0716_SERVICE: return (pr_r0802_0716c_status)stop(d, 0, ld.callee_status, PR_R0802_0716C_SERVICE);
         case PR_R0802_0716_CALLEE: return (pr_r0802_0716c_status)stop(d, 0, ld.callee_status, PR_R0802_0716C_CALLEE);
+        default:
+            if (seams++ >= env->max_seams)                            /* the seam loop past its budget: the leaf not begun */
+                return (pr_r0802_0716c_status)stop(d, ld.site, -1, PR_R0802_0716C_LIMIT);
+            break;
+        }
+        switch (s) {
         case PR_R0802_0716_OPEN: r = open_05cd(ram, ram_size, c, env, text, d); break;
         case PR_R0802_0716_PROMPT: r = prompt(ram, ram_size, c, env, text, 0x084Du, 0x084Au, d); break;
         case PR_R0802_0716_QUIT: {                                    /* the credited 0899:0000: Halt, never a return */

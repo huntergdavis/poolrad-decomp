@@ -41,6 +41,7 @@ typedef struct {
     pr_r0802_02eb_env file;                                   /* INT 21h 3Dh/3Eh, as for 025D and 02EB */
     pr_blockread_dos_service read; void *read_context;        /* INT 21h 3Fh */
     pr_seek_dos_service seek;      void *seek_context;        /* INT 21h 42h */
+    unsigned retries;                                         /* 025D's max_retries (its 02B7 loop-back budget) */
 } pr_r0802_05cd_env;
 
 typedef enum {
@@ -50,7 +51,8 @@ typedef enum {
     PR_R0802_05CD_RUNERROR,      /* IOCheck found InOutRes != 0: its JMP to 0AF8:00E2 executed; TERMINAL */
     PR_R0802_05CD_DIVIDE,        /* BlockRead's DIV by recsize 0 (unreachable: Reset sets recsize 1); CPU at the DIV */
     PR_R0802_05CD_SERVICE,       /* a declared DOS service declined or broke its continuation; CPU at that INT */
-    PR_R0802_05CD_CALLEE         /* a composed model stopped otherwise or returned elsewhere (see the diagnostic) */
+    PR_R0802_05CD_CALLEE,        /* a composed model stopped otherwise or returned elsewhere (see the diagnostic) */
+    PR_R0802_05CD_LIMIT          /* inside 025D: its retry budget ran out (IP 02B7h, diagnostic site 02B7h) */
 } pr_r0802_05cd_status;
 
 typedef pr_r0802_02eb_diagnostic pr_r0802_05cd_diagnostic;

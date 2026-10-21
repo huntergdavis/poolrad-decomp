@@ -58,7 +58,7 @@ cases 49 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
 flag_masks 0 · substitutions 0 · stops: return 49 · both residents called in every case
 ```
 
-**Correction, 2026-10-22 (found by composing this body under OVL_0023_0239, which calls it).** The C model stored the three
+**Correction, 2026-10-21 (found by composing this body under OVL_0023_0239, which calls it).** The C model stored the three
 flag bytes `[bp-2]`, `[bp-2]` and `[bp-1]` with the word writer, so each store also wrote the byte above it. The store at
 `[bp-1]` therefore wrote **`[bp+0]`, the low byte of the saved BP, as zero**, and `RETF 8` returned with
 `BP = (caller BP) & 0xFF00`. Every earlier fixture, the unit test and the native harness entered with `BP = 7F00`, whose
@@ -79,6 +79,18 @@ from them, one below, equal and one above (3 more cases, 46 to 49; for the all-z
 return 0 and `1501` returns 1, asserted against the original's own result). The old model fails the equal case
 (`ax 0501 != original 0500`); the unit test carries the same three values. The compare's `JG`/`JL` half and the two excluded
 sides are unaffected. Body bytes, hash, identity and credit are unchanged.
+
+**Third correction, 2026-10-21 (load base).** The model entered both resident calls with `CS := 00BAh`, a constant, where the
+original's `9A LCALL` carries a segment word the loader relocates (`276A` and `27AB`). At the default base the constant and
+the word agree, so no differential can tell them apart; and because the residents' own models never look at their entry CS
+(and the audit substitutes them at the call), no differential could observe the difference at another base either. The model
+now takes each segment from the live word in the caller's code (`CS:276A`, `CS:27AB`) for the transfer. The catcher is a
+**spy test** (`test_overlay_0077_275b_live_cs.c`): the two resident models are replaced by spies that record the CS they
+are entered with, and the test sets the words to `00BA`, `1234`/`5678`, `0001`/`FFF0` and `10BA`; it fails on the old
+model (`entry_cs[0] == words[k][0]`) and passes on the new one. This is the load-base class. par-e's sweep counted it at 0DE3/0E0E (1 site) and 1010 (3 sites) and here (2 sites); **0918
+(1 site, `cs = 0x00BAu`) was found by my census, not par-e's**, whose regex allowed only one leading zero (`0x0?BA`) and so
+missed it. The confirmed total is therefore **four models, seven sites** (0DE3, 1010, 0918, 275B); the same census later found
+`u7f_roll_call_0fde.c:31` (`cs = 0x00B0`), which makes five models and eight sites. Each other model is a separate fix. Nothing else about the body, its hash or its credit changed.
 
 That is **not** "100% of reachable" and **not** "all outcomes": **no starts** are
 excluded (`EXCLUDED_STARTS` is empty) and **two** conditional sides are, for the
@@ -146,7 +158,7 @@ caller's original bytes. Its declaration, per the five required points:
 2. **What the stub does not do:** it does **not** execute the residents'
    closure, so their internal SYSTEM endpoints are **not exercised by this run**
    — only by the differential.
-3. **Division of labour:** the differential (the original 31 fixtures, to which 15 Unicorn-only BP cases were added on 2026-10-22, 14 CPU words, all
+3. **Division of labour:** the differential (the original 31 fixtures, to which 15 Unicorn-only BP cases were added on 2026-10-21, 14 CPU words, all
    1,048,576 RAM bytes, successor accounting, asserted exclusions) carries the
    **composition** claim. This run corroborates the **caller's 132 bytes**
    against the original instruction stream.

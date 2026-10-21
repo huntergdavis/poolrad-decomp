@@ -1,4 +1,4 @@
-# Dirty-register sweep of the body audits (VP i20417, 2026-10-22)
+# Dirty-register sweep of the body audits (VP i20417, 2026-10-21)
 
 **Why.** `OVL_0077_275B`'s C model stored two byte locals with a word writer, so the store at `[bp-1]` zeroed the low byte of the
 saved BP ([U77_CAPACITY_CHECK_275B_CPU.md](U77_CAPACITY_CHECK_275B_CPU.md), #1351). Every fixture entered with `BP = 7F00`, whose

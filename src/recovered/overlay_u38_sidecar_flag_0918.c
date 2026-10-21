@@ -99,6 +99,7 @@ pr_u38_0918_status pr_u38_sidecar_flag_0918(
     uint8_t *ram, size_t ram_size, pr_u38_0918_cpu *cpu,
     pr_u38_0918_lookup lookup, void *context)
 {
+    uint16_t caller;
     if (ram == NULL || cpu == NULL || lookup == NULL ||
         ram_size < PR_U38_0918_RAM_SIZE || cpu->ip != 0x0918u)
         return PR_U38_0918_ARGUMENT;
@@ -112,10 +113,12 @@ pr_u38_0918_status pr_u38_sidecar_flag_0918(
     cpu->di = (uint16_t)(cpu->bp - 4u);
     push16(ram, cpu, cpu->ss);
     push16(ram, cpu, cpu->di);
-    /* LCALL BA:2199 pushes CS, then the return IP below the arguments. */
-    push16(ram, cpu, cpu->cs);
+    /* LCALL BA:2199 pushes CS, then the return IP below the arguments. The target segment is the loader-relocated word at
+     * CS:0931 (the segment half of the 9A at 092E), not a constant: it equals 00BA only at the unrelocated base. */
+    caller = cpu->cs;
+    push16(ram, cpu, caller);
     push16(ram, cpu, 0x0933u);
-    cpu->cs = 0x00BAu;
+    cpu->cs = read16(ram, caller, 0x0931u);
     cpu->ip = 0x2199u;
     if (!lookup(context, ram, ram_size, cpu)) return PR_U38_0918_CALL_ABORT;
     cpu->ip = pop16(ram, cpu);

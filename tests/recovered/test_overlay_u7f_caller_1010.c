@@ -19,6 +19,7 @@ static pr_u7f_1010_cpu setup(uint8_t *m,unsigned type,unsigned seg,unsigned off)
     for(i=0;i<512u;++i)put(m,c.ds,0x970u+2u*i,i*317u+19u);
     put(m,c.ds,0x4428,0);put(m,c.ds,0x442A,0);
     put(m,0xAF8,0x1245,0x8405);
+    put(m,c.cs,0x1025,0xAF8);put(m,c.cs,0x1047,0xAF8);put(m,c.cs,0x108B,0xAF8);   /* the relocated SYSTEM segment words of the three FillChar LCALLs */
     /* Synthetic loaded call and jump binding, not copied game code. */
     m[physical(c.cs,0xFDE)]=0x9A;put(m,c.cs,0xFDF,0x48);put(m,c.cs,0xFE1,0x4100);
     m[physical(0x4100,0x48)]=0xEA;put(m,0x4100,0x49,0xDE3);put(m,0x4100,0x4B,0x4000);

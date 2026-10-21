@@ -2,7 +2,6 @@
 #include "poolrad/recovered/overlay_u9e_entry8_system_call_0e0e.h"
 
 #define MASK (PR_SYSTEM_120F_RAM_SIZE - 1u)
-#define SYSTEM_CS 0x0AF8u
 
 static size_t physical(uint16_t segment, uint16_t offset)
 {
@@ -17,6 +16,12 @@ static void write16(uint8_t *ram, uint16_t segment, uint16_t offset,
     ram[(at + 1u) & MASK] = (uint8_t)(value >> 8);
 }
 
+static uint16_t read16(const uint8_t *ram, uint16_t segment, uint16_t offset)
+{
+    size_t at = physical(segment, offset);
+    return (uint16_t)(ram[at] | ((uint16_t)ram[(at + 1u) & MASK] << 8));
+}
+
 static int in_code(size_t at, uint16_t cs, unsigned first, unsigned last)
 {
     unsigned offset;
@@ -25,7 +30,7 @@ static int in_code(size_t at, uint16_t cs, unsigned first, unsigned last)
     return 0;
 }
 
-static int span_aliases_code(const pr_u9e_entry8_call_cpu *cpu,
+static int span_aliases_code(const pr_u9e_entry8_call_cpu *cpu, uint16_t system_cs,
                              uint16_t segment, uint16_t offset, unsigned size)
 {
     size_t first = physical(segment, offset);
@@ -33,33 +38,38 @@ static int span_aliases_code(const pr_u9e_entry8_call_cpu *cpu,
     for (i = 0u; i < size; ++i) {
         size_t at = (first + i) & MASK;
         if (in_code(at, cpu->cs, 0x0DE3u, 0x0E2Du) ||
-            in_code(at, SYSTEM_CS, 0x11C0u, 0x11D5u) ||
-            in_code(at, SYSTEM_CS, 0x120Fu, 0x1244u))
+            in_code(at, system_cs, 0x11C0u, 0x11D5u) ||
+            in_code(at, system_cs, 0x120Fu, 0x1244u))
             return 1;
     }
     return 0;
 }
 
-static int aliases_code(const pr_u9e_entry8_call_cpu *cpu)
+static int aliases_code(const pr_u9e_entry8_call_cpu *cpu, uint16_t system_cs)
 {
     /* The far call writes CS then IP; SYSTEM writes its near return word
      * and the DS seed DWORD. Each WORD's high byte is physically adjacent. */
-    return span_aliases_code(cpu, cpu->ss,
+    return span_aliases_code(cpu, system_cs, cpu->ss,
                              (uint16_t)(cpu->sp - 2u), 2u) ||
-           span_aliases_code(cpu, cpu->ss,
+           span_aliases_code(cpu, system_cs, cpu->ss,
                              (uint16_t)(cpu->sp - 4u), 2u) ||
-           span_aliases_code(cpu, cpu->ss,
+           span_aliases_code(cpu, system_cs, cpu->ss,
                              (uint16_t)(cpu->sp - 6u), 2u) ||
-           span_aliases_code(cpu, cpu->ds, 0x4428u, 4u);
+           span_aliases_code(cpu, system_cs, cpu->ds, 0x4428u, 4u);
 }
 
 pr_u9e_entry8_call_status pr_u9e_entry8_system_call_0e0e(
     uint8_t *ram, size_t ram_size, pr_u9e_entry8_call_cpu *cpu)
 {
-    uint16_t source_cs;
+    uint16_t source_cs, system_cs;
     pr_system_11c0_status result;
     if (ram == NULL || cpu == NULL || ram_size != PR_SYSTEM_120F_RAM_SIZE ||
-        cpu->ip != 0x0E0Eu || aliases_code(cpu))
+        cpu->ip != 0x0E0Eu)
+        return PR_U9E_ENTRY8_CALL_ARGUMENT;
+    /* The far segment is the LCALL's own operand word at CS:0E11, a loader relocation: it is read live, not assumed to be 0AF8h
+     * (correction 2026-10-21, docs/re/U9E_ENTRY8_SYSTEM_CALL_0E0E.md). */
+    system_cs = read16(ram, cpu->cs, 0x0E11u);
+    if (aliases_code(cpu, system_cs))
         return PR_U9E_ENTRY8_CALL_ARGUMENT;
 
     source_cs = cpu->cs;
@@ -67,7 +77,7 @@ pr_u9e_entry8_call_status pr_u9e_entry8_system_call_0e0e(
     write16(ram, cpu->ss, cpu->sp, source_cs);
     cpu->sp = (uint16_t)(cpu->sp - 2u);
     write16(ram, cpu->ss, cpu->sp, 0x0E13u);
-    cpu->cs = SYSTEM_CS;
+    cpu->cs = system_cs;
     cpu->ip = 0x11C0u;
 
     result = pr_system_random_fullstate_11c0(ram, ram_size, cpu);

@@ -97,7 +97,7 @@ class NeverCreditClassesTest(unittest.TestCase):
         self.assertEqual(pricer.price("OVL_0001_0000")["bodies"], {"OVL_0001_0000": 10})
 
     def test_committed_table_is_loaded_and_pinned(self):
-        self.assertEqual(P.load_runtime_residents(), frozenset())
+        self.assertEqual(P.load_runtime_residents(), frozenset({"RES_0802_0175"}))  # 0175 joined (par-e)
 
     def test_real_rows_lose_exactly_the_driver_members_they_used_to_price(self):
         """On the owner media and a fresh export: rows reaching driver_internal members were overpriced by the members
@@ -135,7 +135,9 @@ class RealDisplayRowTest(unittest.TestCase):
         pricer = P.Pricer.__new__(P.Pricer)
         pricer.rows, pricer.image = {}, bytes(P.unpack(exe.read_bytes())[0])
         pricer.md, pricer.cache = Cs(CS_ARCH_X86, CS_MODE_16), {}
-        pricer.strict = {r["id"] for r in P.csv.DictReader(open(P.ROOT / "docs/re/strict_full_c_addresses.csv"))}
+        # 0193 is strict since its acceptance (par-e); a strict body is a terminal, so walking FROM it would stop at once and
+        # this test would go vacuous. The walk treats the root itself as unpriced so that it still enters 0193's body.
+        pricer.strict = {r["id"] for r in P.csv.DictReader(open(P.ROOT / "docs/re/strict_full_c_addresses.csv"))} - {"RES_0802_0193"}
         pricer.covered, pricer.driver_members = set(P.sq.RUNTIME_COVERED_ENDPOINTS), frozenset()
         pricer.runtime_residents = frozenset(members)
         acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other={}, bad=set(), dispatch=set(), declared=set())
@@ -144,14 +146,17 @@ class RealDisplayRowTest(unittest.TestCase):
 
     def test_0175_member_is_a_terminal_in_the_real_0193_walk(self):
         before, after = self.walk(()), self.walk({"RES_0802_0175"})
-        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30, "RES_0802_0105": 112,
-                                            "RES_0802_0040": 197})
-        self.assertEqual(after["bodies"], {"RES_0802_0193": 90, "RES_0802_0105": 112, "RES_0802_0040": 197})
+        # 0040 and 0105 are strict since their acceptances (par-e), so neither is priced on either side; only 0175's own
+        # 30 B leave.
+        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30})
+        self.assertEqual(after["bodies"], {"RES_0802_0193": 90})
         self.assertEqual(after["runtime_residents"], {"RES_0802_0175"})
-        # 0040 stays priced: 0105 also reaches it, so only 0175's own 30 B leave. Nothing else changes.
-        for key in ("strict", "unmapped", "bad", "declared"):
+        for key in ("unmapped", "bad", "declared"):
             self.assertEqual(before[key], after[key], key)
-        self.assertEqual(after["strict"], {"RES_0899_0059"})
+        # With 0105 strict the walk stops there, so 0040 is reached only through 0175: once 0175 is a terminal, 0040
+        # leaves the strict set the walk meets. That is the only other change.
+        self.assertEqual(before["strict"], {"RES_0899_0059", "RES_0802_0040", "RES_0802_0105"})
+        self.assertEqual(after["strict"], {"RES_0899_0059", "RES_0802_0105"})
 
 
 if __name__ == "__main__":

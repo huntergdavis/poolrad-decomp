@@ -1,0 +1,729 @@
+diff --git a/src/cpu/core_normal.cpp b/src/cpu/core_normal.cpp
+index 8cfac53..b540116 100644
+--- a/src/cpu/core_normal.cpp
++++ b/src/cpu/core_normal.cpp
+@@ -23,6 +23,9 @@
+ #include "fpu.h"
+ #include "paging.h"
+ #include "mmx.h"
++#include "pr_hybrid_record.h"
++#include "pr_hybrid_observer.h"
++#include "pr_hybrid_dispatch.h"
+ 
+ extern bool do_lds_wraparound;
+ 
+@@ -45,13 +48,13 @@ extern bool ignore_opcode_63;
+ #include "debug.h"
+ #endif
+ 
+-#define LoadMb(off) mem_readb_inline(off)
+-#define LoadMw(off) mem_readw_inline(off)
+-#define LoadMd(off) mem_readd_inline(off)
++#define LoadMb(off) pr_lb(off)
++#define LoadMw(off) pr_lw(off)
++#define LoadMd(off) pr_ld(off)
+ #define LoadMq(off) ((uint64_t)((uint64_t)mem_readd_inline(off+4)<<32 | (uint64_t)mem_readd_inline(off)))
+-#define SaveMb(off,val)	mem_writeb_inline(off,val)
+-#define SaveMw(off,val)	mem_writew_inline(off,val)
+-#define SaveMd(off,val)	mem_writed_inline(off,val)
++#define SaveMb(off,val)	pr_sb(off,val)
++#define SaveMw(off,val)	pr_sw(off,val)
++#define SaveMd(off,val)	pr_sd(off,val)
+ #define SaveMq(off,val) {mem_writed_inline(off,val&0xffffffff);mem_writed_inline(off+4,(val>>32)&0xffffffff);}
+ 
+ Bitu cycle_count;
+@@ -160,9 +163,14 @@ static INLINE uint32_t Fetchd() {
+ Bits CPU_Core_Normal_Run(void) {
+ 	if (CPU_Cycles <= 0)
+ 		return CBRET_NONE;
++	if (pr_obs::state == 0) pr_obs::load();
++	if (pr_disp::state == 0 && pr_obs::state == 2) pr_disp::arm();
+ 
+ 	while (CPU_Cycles-->0) {
+ 		LOADIP;
++		PR_HYBRID_STEP();
++		PR_HYBRID_OBSERVE();
++		PR_HYBRID_ROUTE();
+ 		last_prefix=MP_NONE;
+ 		core.opcode_index=cpu.code.big*(Bitu)0x200u;
+ 		core.prefixes=cpu.code.big;
+diff --git a/src/hardware/iohandler.cpp b/src/hardware/iohandler.cpp
+index 34222c4..cbd4eec 100644
+--- a/src/hardware/iohandler.cpp
++++ b/src/hardware/iohandler.cpp
+@@ -490,8 +490,11 @@ void log_io(Bitu width, bool write, Bitu port, Bitu val) {
+ #endif
+ 
+ 
++void (*pr_io_hook)(Bitu port, Bitu val, unsigned len, int is_read) = NULL;   /* poolrad hybrid recorder (stage V1) */
++
+ void IO_WriteB(Bitu port,uint8_t val) {
+ 	log_io(0, true, port, val);
++	if (pr_io_hook) pr_io_hook(port, val, 1, 0);
+ 	if (GCC_UNLIKELY(GETFLAG(VM) && (CPU_IO_Exception(port,1)))) {
+ 		CPU_ForceV86FakeIO_Out(port,val,1);
+ 	}
+@@ -503,6 +506,7 @@ void IO_WriteB(Bitu port,uint8_t val) {
+ 
+ void IO_WriteW(Bitu port,uint16_t val) {
+ 	log_io(1, true, port, val);
++	if (pr_io_hook) pr_io_hook(port, val, 2, 0);
+ 	if (GCC_UNLIKELY(GETFLAG(VM) && (CPU_IO_Exception(port,2)))) {
+ 		CPU_ForceV86FakeIO_Out(port,val,2);
+ 	}
+@@ -514,6 +518,7 @@ void IO_WriteW(Bitu port,uint16_t val) {
+ 
+ void IO_WriteD(Bitu port,uint32_t val) {
+ 	log_io(2, true, port, val);
++	if (pr_io_hook) pr_io_hook(port, val, 4, 0);
+ 	if (GCC_UNLIKELY(GETFLAG(VM) && (CPU_IO_Exception(port,4)))) {
+ 		CPU_ForceV86FakeIO_Out(port,val,4);
+ 	}
+@@ -533,6 +538,7 @@ uint8_t IO_ReadB(Bitu port) {
+ 		retval = (uint8_t)io_readhandlers[0][port](port,1);
+ 	}
+ 	log_io(0, false, port, retval);
++	if (pr_io_hook) pr_io_hook(port, retval, 1, 1);
+ 	return retval;
+ }
+ 
+@@ -546,6 +552,7 @@ uint16_t IO_ReadW(Bitu port) {
+ 		retval = (uint16_t)io_readhandlers[1][port](port,2);
+ 	}
+ 	log_io(1, false, port, retval);
++	if (pr_io_hook) pr_io_hook(port, retval, 2, 1);
+ 	return retval;
+ }
+ 
+diff --git a/src/hardware/pic.cpp b/src/hardware/pic.cpp
+index d199b7e..ca2e3e7 100644
+--- a/src/hardware/pic.cpp
++++ b/src/hardware/pic.cpp
+@@ -17,6 +17,7 @@
+  */
+ 
+ #include <assert.h>
++unsigned long long pr_hw_irqs = 0;   /* poolrad hybrid: hardware interrupts taken (dispatch windows exclude them) */
+ 
+ #include "dosbox.h"
+ #include "inout.h"
+@@ -530,12 +531,12 @@ static void slave_startIRQ(){
+ 
+     slave.start_irq(pic1_irq);
+     master.start_irq(master_cascade_irq);
+-    CPU_HW_Interrupt((unsigned int)slave.vector_base + (unsigned int)pic1_irq);
++    ++pr_hw_irqs; CPU_HW_Interrupt((unsigned int)slave.vector_base + (unsigned int)pic1_irq);
+ }
+ 
+ static void inline master_startIRQ(Bitu i){
+     master.start_irq(i);
+-    CPU_HW_Interrupt(master.vector_base + i);
++    ++pr_hw_irqs; CPU_HW_Interrupt(master.vector_base + i);
+ }
+ 
+ void PIC_runIRQs(void) {
+diff --git a/src/cpu/pr_hybrid_record.h b/src/cpu/pr_hybrid_record.h
+new file mode 100644
+index 0000000..f880355
+--- /dev/null
++++ b/src/cpu/pr_hybrid_record.h
+@@ -0,0 +1,50 @@
++/* Poolrad hybrid executor: the DEVICE-STREAM RECORDER for V1 (docs/HYBRID_EGA_ADAPTER_SCOPE.md, VP i20594/i20637).
++ *
++ * While pr_rec::on, records, in execution order, every CPU access the guest makes to the VGA window A0000h..AFFFFh, as
++ * BYTE events ('R' with the value read, 'W' with the value written), and every port access ('O' out, 'I' in, with size).
++ * Word and dword accesses that touch the window are issued and recorded as byte accesses, low byte first: that is exactly
++ * how DOSBox-X's planar handlers split them (vga_memory.cpp do_read/do_write), so device behaviour is unchanged.
++ * Off (the default) costs one branch per memory access. Included by core_normal.cpp before its LoadMb..SaveMd macros. */
++#ifndef PR_HYBRID_RECORD_H
++#define PR_HYBRID_RECORD_H
++#include <cstdint>
++#include <vector>
++
++namespace pr_rec {
++struct Ev { char kind; uint32_t addr; uint32_t val; uint8_t size; };
++static bool on = false;
++static std::vector<Ev> evs;
++static inline bool vram(LinearPt a) { return a >= 0xA0000u && a < 0xB0000u; }
++static inline bool touches(LinearPt a, unsigned n) { return vram(a) || vram(a + n - 1u); }
++static void io(Bitu port, Bitu val, unsigned len, int is_read) {
++    if (on) { Ev e = {is_read ? 'I' : 'O', (uint32_t)port, (uint32_t)val, (uint8_t)len}; evs.push_back(e); }
++}
++}  // namespace pr_rec
++extern void (*pr_io_hook)(Bitu port, Bitu val, unsigned len, int is_read);   /* defined in iohandler.cpp */
++
++static INLINE uint8_t pr_lb(LinearPt a) {
++    uint8_t v = mem_readb_inline(a);
++    if (pr_rec::on && pr_rec::vram(a)) { pr_rec::Ev e = {'R', (uint32_t)a, v, 1}; pr_rec::evs.push_back(e); }
++    return v;
++}
++static INLINE void pr_sb(LinearPt a, uint8_t v) {
++    if (pr_rec::on && pr_rec::vram(a)) { pr_rec::Ev e = {'W', (uint32_t)a, v, 1}; pr_rec::evs.push_back(e); }
++    mem_writeb_inline(a, v);
++}
++static INLINE uint16_t pr_lw(LinearPt a) {
++    if (pr_rec::on && pr_rec::touches(a, 2)) { uint8_t lo = pr_lb(a); uint8_t hi = pr_lb(a + 1u); return (uint16_t)(lo | (hi << 8)); }
++    return mem_readw_inline(a);
++}
++static INLINE void pr_sw(LinearPt a, uint16_t v) {
++    if (pr_rec::on && pr_rec::touches(a, 2)) { pr_sb(a, (uint8_t)v); pr_sb(a + 1u, (uint8_t)(v >> 8)); return; }
++    mem_writew_inline(a, v);
++}
++static INLINE uint32_t pr_ld(LinearPt a) {
++    if (pr_rec::on && pr_rec::touches(a, 4)) { uint32_t lo = pr_lw(a); uint32_t hi = pr_lw(a + 2u); return lo | (hi << 16); }
++    return mem_readd_inline(a);
++}
++static INLINE void pr_sd(LinearPt a, uint32_t v) {
++    if (pr_rec::on && pr_rec::touches(a, 4)) { pr_sw(a, (uint16_t)v); pr_sw(a + 2u, (uint16_t)(v >> 16)); return; }
++    mem_writed_inline(a, v);
++}
++#endif
+diff --git a/src/cpu/pr_hybrid_observer.h b/src/cpu/pr_hybrid_observer.h
+new file mode 100644
+index 0000000..38102a2
+--- /dev/null
++++ b/src/cpu/pr_hybrid_observer.h
+@@ -0,0 +1,125 @@
++/* Poolrad hybrid executor, STAGE 0: OBSERVER ONLY (docs/HYBRID_EXECUTOR_SCOPE.md in the poolrad-decomp repo, VP i20556).
++ *
++ * Counts arrivals at credited entry points. It never changes guest state: it reads guest bytes and writes host files.
++ * Inactive unless PR_HYBRID_REGISTRY names a registry (tools/hybrid/hybrid_registry.py output). An arrival is an
++ * instruction start, in real mode, whose IP equals a registry entry's offset and whose bytes at CS:IP equal that entry's
++ * signature with relocated words masked. Only signatures unique across all game code are used; the rest are listed as
++ * unobservable in the report.
++ *
++ * Output (PR_HYBRID_LOG, default pr_hybrid_observer): <log>.tsv (per-ID counts, first arrival) rewritten every 4096
++ * arrivals and at exit, and <log>.seq (every arrival in order, capped at SEQ_CAP lines; the cap is reported). */
++#ifndef PR_HYBRID_OBSERVER_H
++#define PR_HYBRID_OBSERVER_H
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <cstdint>
++#include <string>
++#include <vector>
++
++namespace pr_obs {
++struct Entry {
++    std::string id;
++    uint16_t ip;
++    std::vector<uint8_t> sig, mask;
++    uint64_t count, first_insn;
++    uint16_t first_cs;
++};
++static int state = 0;                         /* 0 not loaded, 1 inactive, 2 active */
++static std::vector<Entry> entries;
++static std::vector<std::string> skipped;      /* registry rows whose signature is not unique */
++static std::vector<std::vector<int> > by_ip;  /* IP -> indexes into entries */
++static std::vector<uint8_t> hit;              /* IP -> nonzero when some entry has this IP */
++static uint64_t insns = 0, arrivals = 0, seq_lines = 0;
++static const uint64_t SEQ_CAP = 2000000;
++static std::string log_base;
++static FILE *seq = NULL;
++static void (*on_match)(int index, uint16_t cs, uint16_t ip) = NULL;   /* set by the one-body dispatch */
++static int suppress_index = -1;               /* an entry whose re-arrival is a hand-back rerun, not a new arrival */
++
++static int hexval(char c) { return c >= '0' && c <= '9' ? c - '0' : c >= 'a' && c <= 'f' ? c - 'a' + 10 : c >= 'A' && c <= 'F' ? c - 'A' + 10 : -1; }
++static bool unhex(const std::string &s, std::vector<uint8_t> &out) {
++    if (s.size() % 2) return false;
++    out.clear();
++    for (size_t k = 0; k < s.size(); k += 2) {
++        int hi = hexval(s[k]), lo = hexval(s[k + 1]);
++        if (hi < 0 || lo < 0) return false;
++        out.push_back((uint8_t)(hi * 16 + lo));
++    }
++    return true;
++}
++
++static void report(void) {
++    if (state != 2) return;
++    std::string path = log_base + ".tsv";
++    FILE *f = fopen(path.c_str(), "w");
++    if (!f) return;
++    unsigned reached = 0;
++    for (size_t k = 0; k < entries.size(); ++k) if (entries[k].count) ++reached;
++    fprintf(f, "# stage0 observer: registry_unique=%u skipped_not_unique=%u reached=%u arrivals=%llu instructions=%llu seq_lines=%llu seq_cap=%llu\n",
++            (unsigned)entries.size(), (unsigned)skipped.size(), reached, (unsigned long long)arrivals, (unsigned long long)insns,
++            (unsigned long long)seq_lines, (unsigned long long)SEQ_CAP);
++    for (size_t k = 0; k < skipped.size(); ++k) fprintf(f, "#skipped\t%s\n", skipped[k].c_str());
++    fprintf(f, "# id\tarrivals\tfirst_instruction\tfirst_cs\n");
++    for (size_t k = 0; k < entries.size(); ++k)
++        fprintf(f, "%s\t%llu\t%llu\t%04X\n", entries[k].id.c_str(), (unsigned long long)entries[k].count,
++                (unsigned long long)entries[k].first_insn, entries[k].first_cs);
++    fclose(f);
++    if (seq) fflush(seq);
++}
++
++static void load(void) {
++    const char *reg = getenv("PR_HYBRID_REGISTRY");
++    state = 1;
++    if (!reg || !*reg) return;
++    FILE *f = fopen(reg, "r");
++    if (!f) { fprintf(stderr, "PR_HYBRID: cannot open registry %s\n", reg); return; }
++    by_ip.assign(65536, std::vector<int>()); hit.assign(65536, 0);
++    char line[4096];
++    while (fgets(line, sizeof line, f)) {
++        if (line[0] == '#') continue;
++        std::vector<std::string> col; std::string cur;
++        for (char *p = line; *p && *p != '\n'; ++p) { if (*p == '\t') { col.push_back(cur); cur.clear(); } else cur += *p; }
++        col.push_back(cur);
++        if (col.size() < 6) { if (!col.empty() && !col[0].empty()) skipped.push_back(col[0] + " (no signature)"); continue; }
++        if (col[5] != "unique") { skipped.push_back(col[0] + " (" + col[5] + ")"); continue; }
++        Entry e; e.id = col[0]; e.ip = (uint16_t)strtoul(col[1].c_str(), NULL, 16); e.count = 0; e.first_insn = 0; e.first_cs = 0;
++        if (!unhex(col[3], e.sig) || !unhex(col[4], e.mask) || e.sig.size() != e.mask.size() || e.sig.empty()) {
++            skipped.push_back(e.id + " (bad row)"); continue;
++        }
++        by_ip[e.ip].push_back((int)entries.size()); hit[e.ip] = 1; entries.push_back(e);
++    }
++    fclose(f);
++    const char *lb = getenv("PR_HYBRID_LOG");
++    log_base = lb && *lb ? lb : "pr_hybrid_observer";
++    seq = fopen((log_base + ".seq").c_str(), "w");
++    if (seq) fprintf(seq, "# n\tid\tcs:ip\tinstruction\n");
++    state = 2;
++    atexit(report);
++    fprintf(stderr, "PR_HYBRID observer: %u entries, %u skipped\n", (unsigned)entries.size(), (unsigned)skipped.size());
++    report();
++}
++
++static void check(uint16_t cs, uint16_t ip, LinearPt base) {
++    const std::vector<int> &list = by_ip[ip];
++    for (size_t n = 0; n < list.size(); ++n) {
++        Entry &e = entries[list[n]];
++        size_t k = 0;
++        for (; k < e.sig.size(); ++k)
++            if (e.mask[k] && mem_readb_inline(base + (uint16_t)(ip + k)) != e.sig[k]) break;
++        if (k != e.sig.size()) continue;
++        if (on_match) on_match(list[n], cs, ip);
++        if (list[n] == suppress_index) continue;
++        if (!e.count) { e.first_insn = insns; e.first_cs = cs; }
++        ++e.count; ++arrivals;
++        if (seq && seq_lines < SEQ_CAP) { fprintf(seq, "%llu\t%s\t%04X:%04X\t%llu\n", (unsigned long long)arrivals, e.id.c_str(), cs, ip, (unsigned long long)insns); ++seq_lines; }
++        if ((arrivals & 4095u) == 0) report();
++    }
++}
++}  // namespace pr_obs
++
++/* At each instruction start: count it, and on an IP hit compare the signature. Real mode only. */
++#define PR_HYBRID_OBSERVE() do { \
++    if (pr_obs::state == 2 && !cpu.pmode) { ++pr_obs::insns; \
++        if (pr_obs::hit[(uint16_t)reg_eip]) pr_obs::check(SegValue(cs), (uint16_t)reg_eip, SegPhys(cs)); } } while (0)
++#endif
+diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
+new file mode 100644
+index 0000000..53ed352
+--- /dev/null
++++ b/src/cpu/pr_hybrid_dispatch.h
+@@ -0,0 +1,412 @@
++/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
++ *
++ * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
++ * At each arrival of a listed body (the observer's signature match):
++ *   1. snapshot S: the 32-bit registers, segments, flags and guest RAM 0..1 MiB (MemBase);
++ *   2. the ORIGINAL bytes run to the body's own return (CS:IP = the far return address on the stack, SP = entry SP + the
++ *      body's RETF pop); its state is O. Any instruction outside the body's allowed code segments before that return
++ *      (an interrupt) marks the arrival INTERRUPTED and O stands. A 200,000-instruction budget bounds the window;
++ *   3. S is restored and OUR C runs on the live guest (registers copied in, guest RAM as the model's 1 MiB, registers
++ *      copied out). Then:
++ *      - RETURNED: the game continues from the C's state, which is compared with O in full (C_EQUAL_ORIGINAL);
++ *      - a STOP (any other status but ARGUMENT): the C's partial state is written to the guest and the ORIGINAL bytes
++ *        continue from it: a MID-BODY HAND-BACK. At the body's return the live state is compared with O in full;
++ *      - ARGUMENT (forced, 0104 only, every 10th arrival): must change nothing; the original runs again from S and must
++ *        reproduce O.
++ * Per body: 0104 RETF (pop 4), allowed CS = its own; 2595 RETF 4 (pop 8), allowed CS = its own and SYSTEM, odd arrivals
++ * get max_heap_steps 0 (FreeMem stops LIMIT at 0AF8:040F when its walk loops; 2595 reports CALLEE), even arrivals 65535.
++ * Log: <PR_HYBRID_LOG>.dispatch, one line per arrival, and a summary line per body at exit. */
++#ifndef PR_HYBRID_DISPATCH_H
++#define PR_HYBRID_DISPATCH_H
++extern "C" {
++#include "poolrad/recovered/resident_0899_idle_0104_cpu.h"
++#include "poolrad/recovered/resident_0464_bitmap_release_2595_cpu.h"
++#include "poolrad/recovered/resident_0709_glyph_01df_cpu.h"
++#include "poolrad/recovered/resident_0709_space_05eb_cpu.h"
++#include "poolrad/recovered/resident_0709_printer_0626_cpu.h"
++#include "poolrad/recovered/resident_03f1_clear_0137_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_01da_cpu.h"
++#include "poolrad/recovered/overlay_u86_procvars_3413.h"
++#include "poolrad/recovered/overlay_u38_effects_install_31a2.h"
++#include "poolrad/recovered/overlay_u3b0_item_split_00cb_cpu.h"
++#include "poolrad/recovered/resident_0802_02eb_cpu.h"
++}
++extern unsigned long long pr_hw_irqs;          /* pic.cpp */
++#include "inout.h"
++extern HostPt MemBase;
++
++namespace pr_disp {
++static const size_t RAM = 1u << 20;
++struct Regs { uint32_t eax, ebx, ecx, edx, esi, edi, ebp, esp, eip, flags; uint16_t cs, ds, es, ss, fs, gs; };
++struct Cpu14 { uint16_t ax, bx, cx, dx, si, di, bp, sp, cs, ip, ds, es, ss, flags; };   /* both models' CPU layout */
++struct Body {
++    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
++    unsigned long long arrivals, equal, differ, interrupted, timeouts, mid_equal, mid_differ, back_equal, back_differ, stops_seen, returned_seen;
++};
++static Body bodies[] = {
++    {"RES_0899_0104", 0x0899, 0x0104, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"RES_0464_2595", 0x0464, 0x2595, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"RES_0709_01DF", 0x0709, 0x01DF, 16, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 12; the pr_bus bodies: V1 or route */
++    {"RES_0709_05EB", 0x0709, 0x05EB, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8 */
++    {"RES_0709_0626", 0x0709, 0x0626, 14, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 10 */
++    {"RES_03F1_0137", 0x03F1, 0x0137, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8 */
++    {"OVL_03B0_01DA", 0x0000, 0x01DA, 8, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; an overlay: seg unused */
++    {"OVL_0086_3413", 0x0000, 0x3413, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RAM-only, RETF */
++    {"OVL_0038_31A2", 0x0000, 0x31A2, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RAM-only, RETF */
++    {"OVL_03B0_00CB", 0x0000, 0x00CB, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RAM-only, RETF 6; composes SYSTEM leaves */
++    {"RES_0802_02EB", 0x0802, 0x02EB, 8, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; bus=2: DOS services replayed */
++};
++static const int NBODY = 11;
++/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
++ * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
++ * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
++ * returns the recorded registers. */
++struct SvcEv { Cpu14 before, after; std::vector<std::pair<uint32_t, uint8_t> > delta; };
++static std::vector<SvcEv> svc;
++static bool int_open = false;
++static uint16_t int_ret_cs, int_ret_ip, int_sp;
++static std::vector<uint8_t> intram;
++static size_t svc_cursor = 0;
++static std::string svc_mismatch;
++static unsigned long long irq0 = 0;                       /* pr_hw_irqs at the window's start */
++/* V1 replay bus: the C's device accesses are answered from, and checked against, the original's recorded stream. */
++static int bus_mode = 0;                                  /* 0: V1 replay (shadow); 1: ROUTE (the C drives the real VGA) */
++static bool route_now = false;                            /* set at a bus body's arrival in route mode; run before the entry */
++static unsigned long long routed_returned = 0, routed_stops = 0;
++static size_t cursor = 0;
++static std::string mismatch;
++static pr_ega replay_ega;                                 /* never touched: the glyph model only checks bus->ega != NULL */
++static void expect(char kind, uint32_t addr, uint32_t val, unsigned size, uint32_t *read_value) {
++    if (!mismatch.empty()) { if (read_value) *read_value = 0; return; }
++    char buf[160];
++    if (cursor >= pr_rec::evs.size()) {
++        snprintf(buf, sizeof buf, "event %u: C %c %05X=%X/%u beyond the original's %u events", (unsigned)cursor, kind, (unsigned)addr,
++                 (unsigned)val, size, (unsigned)pr_rec::evs.size());
++        mismatch = buf; if (read_value) *read_value = 0; return;
++    }
++    const pr_rec::Ev &e = pr_rec::evs[cursor];
++    bool ok = e.kind == kind && e.addr == addr && e.size == size && (kind == 'R' || e.val == val);
++    if (!ok) {
++        snprintf(buf, sizeof buf, "event %u: C %c %05X=%X/%u, original %c %05X=%X/%u", (unsigned)cursor, kind, (unsigned)addr, (unsigned)val,
++                 size, e.kind, (unsigned)e.addr, (unsigned)e.val, (unsigned)e.size);
++        mismatch = buf; if (read_value) *read_value = 0; return;
++    }
++    if (read_value) *read_value = e.val;
++    ++cursor;
++}
++enum { OFF = -1, NOT_TRIED = 0, ARMED = 1, ORIGINAL = 2, RERUN = 3, MIDBODY = 4 };
++static int state = NOT_TRIED, cur = -1;
++static FILE *log = NULL;
++static Regs S, O;
++static std::vector<uint8_t> sram, oram;
++static uint16_t ret_cs, ret_ip, sp_after, body_cs, sys_cs;
++static bool interrupted;
++static unsigned steps;
++
++static Regs grab(void) {
++    Regs r; FillFlags();
++    r.eax = reg_eax; r.ebx = reg_ebx; r.ecx = reg_ecx; r.edx = reg_edx; r.esi = reg_esi; r.edi = reg_edi;
++    r.ebp = reg_ebp; r.esp = reg_esp; r.eip = reg_eip; r.flags = (uint32_t)reg_flags;
++    r.cs = SegValue(cs); r.ds = SegValue(ds); r.es = SegValue(es); r.ss = SegValue(ss); r.fs = SegValue(fs); r.gs = SegValue(gs);
++    return r;
++}
++static void put(const Regs &r) {
++    FillFlags();
++    reg_eax = r.eax; reg_ebx = r.ebx; reg_ecx = r.ecx; reg_edx = r.edx; reg_esi = r.esi; reg_edi = r.edi;
++    reg_ebp = r.ebp; reg_esp = r.esp; reg_eip = r.eip; reg_flags = r.flags;
++    SegSet16(cs, r.cs); SegSet16(ds, r.ds); SegSet16(es, r.es); SegSet16(ss, r.ss); SegSet16(fs, r.fs); SegSet16(gs, r.gs);
++}
++static Cpu14 to14(const Regs &r) {
++    Cpu14 c = {(uint16_t)r.eax, (uint16_t)r.ebx, (uint16_t)r.ecx, (uint16_t)r.edx, (uint16_t)r.esi, (uint16_t)r.edi,
++               (uint16_t)r.ebp, (uint16_t)r.esp, r.cs, (uint16_t)r.eip, r.ds, r.es, r.ss, (uint16_t)r.flags};
++    return c;
++}
++static Regs from14(const Regs &base, const Cpu14 &m) {                 /* copy-out: the 16-bit halves the model owns */
++    Regs c = base;
++    c.eax = (base.eax & 0xFFFF0000u) | m.ax; c.ebx = (base.ebx & 0xFFFF0000u) | m.bx; c.ecx = (base.ecx & 0xFFFF0000u) | m.cx;
++    c.edx = (base.edx & 0xFFFF0000u) | m.dx; c.esi = (base.esi & 0xFFFF0000u) | m.si; c.edi = (base.edi & 0xFFFF0000u) | m.di;
++    c.ebp = (base.ebp & 0xFFFF0000u) | m.bp; c.esp = (base.esp & 0xFFFF0000u) | m.sp; c.eip = m.ip;
++    c.flags = (base.flags & 0xFFFF0000u) | m.flags; c.cs = m.cs; c.ds = m.ds; c.es = m.es; c.ss = m.ss;
++    return c;
++}
++static std::string diff(const Regs &a, const Regs &b, const uint8_t *ra, const uint8_t *rb) {
++    char buf[160];
++    const uint32_t x[] = {a.eax, a.ebx, a.ecx, a.edx, a.esi, a.edi, a.ebp, a.esp, a.eip, a.flags, a.cs, a.ds, a.es, a.ss, a.fs, a.gs};
++    const uint32_t y[] = {b.eax, b.ebx, b.ecx, b.edx, b.esi, b.edi, b.ebp, b.esp, b.eip, b.flags, b.cs, b.ds, b.es, b.ss, b.fs, b.gs};
++    const char *nm[] = {"eax", "ebx", "ecx", "edx", "esi", "edi", "ebp", "esp", "eip", "flags", "cs", "ds", "es", "ss", "fs", "gs"};
++    for (int k = 0; k < 16; ++k)
++        if (x[k] != y[k]) { snprintf(buf, sizeof buf, "%s %08X vs %08X", nm[k], (unsigned)x[k], (unsigned)y[k]); return buf; }
++    for (size_t k = 0; k < RAM; ++k)
++        if (ra[k] != rb[k]) { snprintf(buf, sizeof buf, "ram %05X %02X vs %02X", (unsigned)k, ra[k], rb[k]); return buf; }
++    return "";
++}
++static void summary(void) {
++    if (!log) return;
++    if (bus_mode == 1) fprintf(log, "# route mode: routed_returned=%llu routed_stops=%llu\n", routed_returned, routed_stops);
++    for (int b = 0; b < NBODY; ++b) {
++        const Body &x = bodies[b];
++        if (x.index < 0) continue;
++        fprintf(log, "# %s arrivals=%llu returned_by_c=%llu c_equal=%llu c_differ=%llu stops_by_c=%llu midbody_handback_equal=%llu "
++                     "midbody_handback_differ=%llu argument_rerun_equal=%llu argument_rerun_differ=%llu interrupted=%llu timeouts=%llu\n",
++                x.id, x.arrivals, x.returned_seen, x.equal, x.differ, x.stops_seen, x.mid_equal, x.mid_differ, x.back_equal,
++                x.back_differ, x.interrupted, x.timeouts);
++    }
++    fflush(log);
++}
++static void match(int index, uint16_t c, uint16_t ip);
++static void arm(void) {
++    const char *list = getenv("PR_HYBRID_DISPATCH");
++    state = OFF;
++    if (!list || !*list) return;
++    int armed = 0;
++    for (int b = 0; b < NBODY; ++b) {
++        if (!strstr(list, bodies[b].id)) continue;
++        for (size_t k = 0; k < pr_obs::entries.size(); ++k) if (pr_obs::entries[k].id == bodies[b].id) bodies[b].index = (int)k;
++        if (bodies[b].index >= 0) ++armed; else fprintf(stderr, "PR_HYBRID dispatch: %s not in the registry\n", bodies[b].id);
++    }
++    if (!armed) return;
++    log = fopen((pr_obs::log_base + ".dispatch").c_str(), "w");
++    if (log) fprintf(log, "# body\tn\tentry_cs:ip\tresult\tdetail\n");
++    sram.resize(RAM); oram.resize(RAM);
++    state = ARMED; atexit(summary);
++    pr_obs::on_match = match;
++    pr_io_hook = pr_rec::io;
++    { const char *m = getenv("PR_HYBRID_BUS_MODE"); bus_mode = (m && !strcmp(m, "route")) ? 1 : 0; }
++    fprintf(stderr, "PR_HYBRID bus mode: %s\n", bus_mode ? "route" : "v1-replay");
++    fprintf(stderr, "PR_HYBRID dispatch armed: %d bodies (%s)\n", armed, list);
++}
++static void begin(int b, uint16_t c) {
++    Body &x = bodies[b];
++    if (x.bus == 2) { svc.clear(); int_open = false; if (intram.size() != RAM) intram.resize(RAM); }
++    if (x.bus == 1 && bus_mode == 1) { ++x.arrivals; cur = b; body_cs = c; route_now = true; return; }   /* no original run */
++    if (x.bus == 1) { pr_rec::evs.clear(); pr_rec::on = true; }
++    S = grab(); memcpy(&sram[0], MemBase, RAM);
++    uint32_t top = ((uint32_t)S.ss << 4) + (uint16_t)S.esp;
++    ret_ip = (uint16_t)(MemBase[top & (RAM - 1)] | (MemBase[(top + 1) & (RAM - 1)] << 8));
++    ret_cs = (uint16_t)(MemBase[(top + 2) & (RAM - 1)] | (MemBase[(top + 3) & (RAM - 1)] << 8));
++    sp_after = (uint16_t)(S.esp + x.pop); body_cs = c; sys_cs = (uint16_t)(c - x.seg + 0x0AF8u);
++    interrupted = false; steps = 0; ++x.arrivals; cur = b; state = ORIGINAL; irq0 = pr_hw_irqs;
++}
++static void match(int index, uint16_t c, uint16_t ip) {
++    if (state != ARMED) return;
++    for (int b = 0; b < NBODY; ++b) if (bodies[b].index == index && ip == bodies[b].entry) { begin(b, c); return; }
++}
++static void line(const char *result, const std::string &detail) {
++    Body &x = bodies[cur];
++    if (log) fprintf(log, "%s\t%llu\t%04X:%04X\t%s\t%s\n", x.id, x.arrivals, body_cs, x.entry, result, detail.c_str());
++}
++static void close_window(void) { state = ARMED; pr_obs::suppress_index = -1; cur = -1; }
++/* Runs the C for the current body from the guest state (which equals S). Returns the model status class:
++ * 0 RETURNED, 1 ARGUMENT, 2 a stop. `m` holds the model's CPU afterwards. */
++static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
++    Body &x = bodies[cur];
++    if (!strcmp(x.id, "RES_0899_0104")) {
++        int st = pr_r0899_idle_0104_cpu(MemBase, force_argument ? RAM - 1u : RAM, (pr_r0899_idle_cpu *)&m);
++        return st == PR_R0899_IDLE_OK ? 0 : st == PR_R0899_IDLE_ARGUMENT ? 1 : 2;
++    }
++    if (!strcmp(x.id, "RES_0464_2595")) {
++        pr_r0464_2595_diagnostic d;
++        int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d);
++        return st == PR_R0464_2595_RETURNED ? 0 : st == PR_R0464_2595_ARGUMENT ? 1 : 2;
++    }
++    if (!strcmp(x.id, "OVL_0086_3413")) { int st = pr_u86_procvars_3413(MemBase, RAM, (pr_u86_3413_cpu *)&m);
++        return st == PR_U86_3413_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m);
++        return st == PR_U38_31A2_OK ? 0 : 1; }
++    int cs_ = -1; int st = pr_u3b0_item_split_00cb_cpu(MemBase, RAM, (pr_u3b0_00cb_cpu *)&m, &cs_);
++    return st == PR_U3B0_00CB_OK ? 0 : st == PR_U3B0_00CB_ARGUMENT ? 1 : 2;
++}
++/* One runner for every pr_bus body: 0 RETURNED, 1 ARGUMENT, 2 a stop. Budgets are generous declared caps. */
++static int run_bus(pr_bus *bus, Cpu14 &m) {
++    const char *id = bodies[cur].id; const size_t B = (size_t)1u << 20;
++    if (!strcmp(id, "RES_0709_01DF")) { pr_r0709_glyph_cpu_diagnostic d; int st = pr_r0709_glyph_01df_cpu(bus, RAM, (pr_r0709_glyph_cpu *)&m, B, &d);
++        return st == PR_R0709_GLYPH_CPU_OK ? 0 : st == PR_R0709_GLYPH_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_0709_05EB")) { pr_r0709_space_cpu_diagnostic d; int st = pr_r0709_space_05eb_cpu(bus, RAM, (pr_r0709_space_cpu *)&m, B, &d);
++        return st == PR_R0709_SPACE_CPU_OK ? 0 : st == PR_R0709_SPACE_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_0709_0626")) { pr_r0709_printer_cpu_diagnostic d; int st = pr_r0709_printer_0626_cpu(bus, RAM, (pr_r0709_printer_cpu *)&m, B, B, &d);
++        return st == PR_R0709_PRINTER_CPU_OK ? 0 : st == PR_R0709_PRINTER_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_03F1_0137")) { pr_r03f1_clear_cpu_diagnostic d; int st = pr_r03f1_clear_0137_cpu(bus, RAM, (pr_r03f1_clear_cpu *)&m, B, B, &d);
++        return st == PR_R03F1_CLEAR_CPU_OK ? 0 : st == PR_R03F1_CLEAR_CPU_ARGUMENT ? 1 : 2; }
++    pr_u3b0_01da_limits lim = {B, B}; pr_u3b0_01da_diagnostic d;
++    int st = pr_u3b0_entry_01da_cpu(bus, RAM, (pr_u3b0_01da_cpu *)&m, &lim, &d);
++    return st == PR_U3B0_01DA_OK ? 0 : st == PR_U3B0_01DA_ARGUMENT ? 1 : 2;
++}
++/* ROUTE: at the bus body's entry, before its first instruction, the C runs with the routed bus on the live guest and the
++ * live VGA; the game continues from the C's state. A stop hands back mid-body: the device holds exactly the C's accesses so
++ * far, so the original continues from a consistent state. Returns true (CS:IP changed). */
++static bool route(void) {
++    Body &x = bodies[cur];
++    route_now = false;
++    Regs E = grab();
++    pr_bus bus = {MemBase, &replay_ega, NULL, NULL, NULL};
++    Cpu14 m = to14(E);
++    int cls = run_bus(&bus, m);
++    if (cls == 1) { line("ROUTED_ARGUMENT", "nothing changed; the original runs"); cur = -1; return false; }
++    put(from14(E, m));
++    if (cls == 0) { ++x.returned_seen; ++routed_returned; }
++    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "stop at %04X:%04X", m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", buf); }
++    cur = -1; return true;
++}
++/* The replaying service callbacks (both INT 21h contracts share the 14-word CPU layout). */
++static int svc_replay(const Cpu14 *before, Cpu14 *after) {
++    if (!svc_mismatch.empty()) return 1;
++    char buf[160];
++    if (svc_cursor >= svc.size()) { snprintf(buf, sizeof buf, "service %u: C asked AX=%04X beyond the original's %u calls", (unsigned)svc_cursor, before->ax, (unsigned)svc.size()); svc_mismatch = buf; return 1; }
++    const SvcEv &e = svc[svc_cursor];
++    if (memcmp(before, &e.before, sizeof *before) != 0) {
++        snprintf(buf, sizeof buf, "service %u: C AX=%04X BX=%04X DX=%04X DS=%04X IP=%04X, original AX=%04X BX=%04X DX=%04X DS=%04X IP=%04X", (unsigned)svc_cursor,
++                 before->ax, before->bx, before->dx, before->ds, before->ip, e.before.ax, e.before.bx, e.before.dx, e.before.ds, e.before.ip);
++        svc_mismatch = buf; return 1;
++    }
++    for (size_t k = 0; k < e.delta.size(); ++k) MemBase[e.delta[k].first] = e.delta[k].second;
++    *after = e.after; ++svc_cursor; return 0;
++}
++static int svc_open(void *ctx, const pr_reset_cpu *b, pr_reset_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++static int svc_close(void *ctx, const pr_system_close_cpu *b, pr_system_close_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++/* A service body at the original's return: the C runs from S with the original's DOS calls replayed; registers and all
++ * 1 MiB must equal O. On any stop (including a service mismatch) the original's result is kept: a hand-back would make DOS
++ * execute the call twice. */
++static bool svc_check(const Regs &now) {
++    Body &x = bodies[cur];
++    O = now; memcpy(&oram[0], MemBase, RAM);
++    put(S); memcpy(MemBase, &sram[0], RAM);
++    svc_cursor = 0; svc_mismatch.clear();
++    pr_r0802_02eb_env env = {svc_open, NULL, svc_close, NULL};
++    pr_r0802_02eb_diagnostic dg;
++    Cpu14 m = to14(S);
++    int st = pr_r0802_02eb(MemBase, RAM, (pr_r0802_02eb_cpu *)&m, &env, &dg);
++    char tail[64]; snprintf(tail, sizeof tail, " [%u DOS calls]", (unsigned)svc.size());
++    if (st != PR_R0802_02EB_RETURNED) {
++        ++x.stops_seen; put(O); memcpy(MemBase, &oram[0], RAM);
++        char buf[96]; snprintf(buf, sizeof buf, "status %d site %04X; original result kept", st, dg.site);
++        line("C_STOPPED_SHADOW", (svc_mismatch.empty() ? std::string(buf) : svc_mismatch) + tail); close_window(); return true;
++    }
++    ++x.returned_seen;
++    if (svc_mismatch.empty() && svc_cursor != svc.size()) {
++        char buf[96]; snprintf(buf, sizeof buf, "C made %u of the original's %u DOS calls", (unsigned)svc_cursor, (unsigned)svc.size()); svc_mismatch = buf;
++    }
++    put(from14(S, m));
++    std::string d = diff(grab(), O, MemBase, &oram[0]);
++    if (svc_mismatch.empty() && d.empty()) { ++x.equal; line("SERVICES_REPLAYED_STATE_EQUAL", tail); }
++    else { ++x.differ; line(svc_mismatch.empty() ? "STATE_DIFF" : "SERVICE_DIFF", (svc_mismatch.empty() ? d : svc_mismatch) + tail); }
++    close_window(); return true;
++}
++/* V1 for a pr_bus body, at the original's return: the C runs on a replay bus from S; its device stream must equal the
++ * original's element by element, and its registers and RAM must equal O. The device already holds the original's effects
++ * (equal streams make them the C's too); on a C stop the original's result is kept. */
++static bool v1(const Regs &now) {
++    Body &x = bodies[cur];
++    O = now; memcpy(&oram[0], MemBase, RAM);
++    put(S); memcpy(MemBase, &sram[0], RAM);
++    cursor = 0; mismatch.clear();
++    pr_bus bus = {MemBase, &replay_ega, NULL, NULL, NULL};
++    Cpu14 m = to14(S);
++    int cls = run_bus(&bus, m);
++    if (cls != 0) {
++        ++x.stops_seen; put(O); memcpy(MemBase, &oram[0], RAM);
++        char buf[96]; snprintf(buf, sizeof buf, "class %d at %04X:%04X; original result kept", cls, m.cs, m.ip);
++        line("C_STOPPED_SHADOW", buf); close_window(); return true;
++    }
++    ++x.returned_seen;
++    if (mismatch.empty() && cursor != pr_rec::evs.size()) {
++        char buf[96]; snprintf(buf, sizeof buf, "C issued %u of the original's %u device events", (unsigned)cursor, (unsigned)pr_rec::evs.size());
++        mismatch = buf;
++    }
++    put(from14(S, m));
++    std::string d = diff(grab(), O, MemBase, &oram[0]);
++    char tail[64]; snprintf(tail, sizeof tail, " [%u device events]", (unsigned)pr_rec::evs.size());
++    if (mismatch.empty() && d.empty()) { ++x.equal; line("V1_STREAM_AND_STATE_EQUAL", tail); }
++    else { ++x.differ; line(mismatch.empty() ? "V1_STATE_DIFF" : "V1_STREAM_DIFF", (mismatch.empty() ? d : mismatch) + tail); }
++    close_window(); return true;
++}
++/* Before each instruction while a window is open. Returns true when CS:IP was changed (the caller reloads IP). */
++static bool step(void) {
++    Body &x = bodies[cur];
++    uint16_t c = SegValue(cs), ip = (uint16_t)reg_eip;
++    if (c == ret_cs && ip == ret_ip && reg_sp == sp_after) {
++        Regs now = grab();
++        pr_rec::on = false;
++        int_open = false;
++        interrupted = pr_hw_irqs != irq0;                     /* a hardware interrupt was taken inside the window */
++        if (interrupted) { ++x.interrupted; line("INTERRUPTED", "original result kept"); close_window(); return false; }
++        if (x.bus == 2) return svc_check(now);
++        if (x.bus) return v1(now);
++        if (state == RERUN || state == MIDBODY) {             /* the original finished: compare with the all-original O */
++            std::string d = diff(now, O, MemBase, &oram[0]);
++            if (state == RERUN) { if (d.empty()) ++x.back_equal; else ++x.back_differ; line(d.empty() ? "ARGUMENT_RERUN_EQUAL" : "ARGUMENT_RERUN_DIFF", d); }
++            else { if (d.empty()) ++x.mid_equal; else ++x.mid_differ; line(d.empty() ? "MIDBODY_HANDBACK_EQUAL" : "MIDBODY_HANDBACK_DIFF", d); }
++            close_window(); return false;
++        }
++        O = now; memcpy(&oram[0], MemBase, RAM);              /* state ORIGINAL: the all-original result */
++        put(S); memcpy(MemBase, &sram[0], RAM);               /* back to the entry state */
++        bool is0104 = !strcmp(x.id, "RES_0899_0104");
++        bool force_argument = is0104 && x.arrivals % 10u == 0u;
++        bool force_stop = !strcmp(x.id, "RES_0464_2595") && x.arrivals % 2u == 1u;
++        Cpu14 m = to14(S), before = m;
++        int cls = run_c(m, force_argument, force_stop);
++        if (cls == 1) {                                       /* ARGUMENT: nothing may change; the original reruns */
++            bool same = memcmp(&m, &before, sizeof m) == 0 && memcmp(MemBase, &sram[0], RAM) == 0;
++            line(same ? "ARGUMENT_NOTHING_CHANGED" : "ARGUMENT_CHANGED_STATE", force_argument ? "forced" : "unforced");
++            if (!same) ++x.back_differ;
++            state = RERUN; steps = 0; interrupted = false; irq0 = pr_hw_irqs; pr_obs::suppress_index = x.index; return true;
++        }
++        put(from14(S, m));                                    /* the C's state, complete or partial, is now the guest's */
++        if (cls == 0) {
++            ++x.returned_seen;
++            std::string d = diff(grab(), O, MemBase, &oram[0]);
++            if (d.empty()) ++x.equal; else ++x.differ;
++            line(d.empty() ? "C_EQUAL_ORIGINAL" : "C_DIFFERS", d); close_window(); return true;
++        }
++        ++x.stops_seen;                                       /* a stop: the original continues from the C's partial state */
++        char where[64]; snprintf(where, sizeof where, "stop at %04X:%04X%s", m.cs, m.ip, force_stop ? " (heap steps 0)" : "");
++        line("C_STOPPED_HANDING_BACK", where);
++        state = MIDBODY; steps = 0; interrupted = false; irq0 = pr_hw_irqs; return true;
++    }
++    if (x.bus == 2 && state == ORIGINAL) {                     /* record the original's INT 21h calls */
++        LinearPt here = SegPhys(cs) + ip;
++        if (int_open && c == int_ret_cs && ip == int_ret_ip && reg_sp == int_sp) {
++            SvcEv &e = svc.back(); e.after = to14(grab());
++            for (size_t k = 0; k < RAM; ++k) if (MemBase[k] != intram[k]) e.delta.push_back(std::make_pair((uint32_t)k, MemBase[k]));
++            int_open = false;
++        } else if (!int_open && mem_readb_inline(here) == 0xCD && mem_readb_inline(here + 1u) == 0x21) {
++            SvcEv e; e.before = to14(grab()); svc.push_back(e);
++            memcpy(&intram[0], MemBase, RAM); int_ret_cs = c; int_ret_ip = (uint16_t)(ip + 2u); int_sp = reg_sp; int_open = true;
++        }
++    }
++    if (++steps > 2000000u) { ++x.timeouts; line("TIMEOUT", "window abandoned"); close_window(); }
++    return false;
++}
++}  // namespace pr_disp
++
++/* The replay bus, linked in place of memory_bus.c: RAM is guest RAM; the VGA window and the ports are the V1 replay. */
++extern "C" {
++uint8_t pr_bus_read8(pr_bus *bus, size_t physical) {
++    physical &= 0xFFFFFu;
++    if (bus->ega != NULL && physical >= 0xA0000u && physical < 0xB0000u) {
++        if (pr_disp::bus_mode == 1) return mem_readb_inline((LinearPt)physical);          /* ROUTE: the real VGA, real latches */
++        uint32_t v = 0; pr_disp::expect('R', (uint32_t)physical, 0, 1, &v); return (uint8_t)v;
++    }
++    return bus->ram[physical];
++}
++void pr_bus_write8(pr_bus *bus, size_t physical, uint8_t value) {
++    physical &= 0xFFFFFu;
++    if (bus->ega != NULL && physical >= 0xA0000u && physical < 0xB0000u) {
++        if (pr_disp::bus_mode == 1) { mem_writeb_inline((LinearPt)physical, value); return; }
++        pr_disp::expect('W', (uint32_t)physical, value, 1, NULL); return;
++    }
++    bus->ram[physical] = value;
++}
++int pr_bus_out(pr_bus *bus, uint16_t port, uint16_t value, unsigned size, uint16_t cs, uint16_t ip) {
++    (void)bus; (void)cs; (void)ip;
++    if (pr_disp::bus_mode == 1) { if (size == 2) IO_WriteW(port, value); else IO_WriteB(port, (uint8_t)value); return 0; }
++    pr_disp::expect('O', port, value, size, NULL);
++    return 0;
++}
++}
++
++/* After the observer: in route mode, run a bus body's C before its first instruction executes. */
++#define PR_HYBRID_ROUTE() do { if (pr_disp::route_now && pr_disp::route()) { LOADIP; } } while (0)
++
++/* Before the observer, at each instruction start: advance an open window; reload IP when the dispatch moved CS:IP. */
++#define PR_HYBRID_STEP() do { if (pr_disp::state >= 2 && !cpu.pmode && pr_disp::step()) { LOADIP; } } while (0)
++#endif

@@ -73,7 +73,7 @@ static pr_r0802_05cd_cpu setup(uint8_t *m, unsigned flag, int is_present)
 int main(void)
 {
     uint8_t *m = malloc(PR_R0802_05CD_RAM_SIZE);
-    pr_r0802_05cd_env env = {{dos_open, NULL, dos_close, NULL}, dos_read, NULL, dos_seek, NULL};
+    pr_r0802_05cd_env env = {{dos_open, NULL, dos_close, NULL}, dos_read, NULL, dos_seek, NULL, 65535u};
     pr_r0802_05cd_cpu c, before;
     pr_r0802_05cd_diagnostic d;
     CHECK(m != NULL);
@@ -99,6 +99,11 @@ int main(void)
     CHECK(pr_r0802_05cd(m, PR_R0802_05CD_RAM_SIZE, &c, &env, &d) == PR_R0802_05CD_PROMPT && c.ip == 0x0193 && d.site == 0x02AA);
     CHECK(get(m, SS, c.sp) == 0x02AD && get(m, SS, c.sp + 2) == CS);
     CHECK(m[p(SS, get(m, SS, c.sp + 4))] == 14 && memcmp(m + p(SS, get(m, SS, c.sp + 4) + 1u), "INSERT DISK B:", 14) == 0);
+    /* With 025D's retry budget at 0 the resume stops LIMIT at its 02B7 JE (nothing written on the way: the run below reuses m). */
+    {   pr_r0802_05cd_cpu r = c; pr_r0802_05cd_env tight = env; tight.retries = 0;
+        r.ip = (uint16_t)get(m, SS, r.sp); r.cs = (uint16_t)get(m, SS, r.sp + 2); r.sp = (uint16_t)(r.sp + 4u + 6u);
+        CHECK(pr_r0802_05cd(m, PR_R0802_05CD_RAM_SIZE, &r, &tight, &d) == PR_R0802_05CD_LIMIT);
+        CHECK(r.ip == 0x02B7 && r.cs == CS && d.site == 0x02B7 && (r.flags & 0x40) != 0 && reads == 0 && seeks == 0); }
     /* The prompt returns (RETF 6) with the disk in: 025D finds the file and returns to 065Ch; this body finishes. */
     c.ip = (uint16_t)get(m, SS, c.sp); c.cs = (uint16_t)get(m, SS, c.sp + 2); c.sp = (uint16_t)(c.sp + 4u + 6u); present = 1;
     CHECK(pr_r0802_05cd(m, PR_R0802_05CD_RAM_SIZE, &c, &env, &d) == PR_R0802_05CD_RETURNED && (c.ax & 0xFF) == 1);

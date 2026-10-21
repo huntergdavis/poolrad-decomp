@@ -176,3 +176,16 @@ The native harness reserves the fixed SYSTEM window in its synthetic COM
 image and checks its expected COM segment before copying code. DOSBox-X
 uses normal core / 386, disabled IRQs during execution, and synthetic input
 tables. No original game text, image or data table is checked in.
+
+## Correction, 2026-10-21: the FillChar LCALLs' segment is the live code word, not 0AF8h
+
+The C model entered SYSTEM FillChar with `CS := 0AF8h`, a constant, at its three LCALLs (`1022`, `1044`, `1088`), where the
+original's `9A` carries a segment word the loader relocates (`0AF8` only at the unrelocated base): the words at `1025`,
+`1047` and `108B`. FillChar's own model never looks at its entry CS, and the audit runs at the unrelocated base, so no
+differential could see the difference. Each site now enters at its own word, read from the caller's code. The catcher is a
+**link-wrapped spy** (`test_overlay_u7f_caller_1010_live_cs.c`, `-Wl,--wrap=pr_system_fillchar_16a8`): it records the CS
+FillChar is entered with and the pushed return IP (which names the site), the three sites get three different words in
+three sets (`0AF8` ×3; `1234`/`2345`/`3456`; `0001`/`FFF0`/`10F8`), all 256 type values are run, and all three sites must be
+reached (4,610 checks); it fails on the old model (`seen_cs[k]==sets[s][site]`) and passes on the new one. The dice call
+sites take their segment from the caller's `dice_cs` argument and were not affected. Body bytes, hash, identity and credit
+unchanged.
