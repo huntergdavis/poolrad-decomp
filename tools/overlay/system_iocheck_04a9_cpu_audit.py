@@ -283,7 +283,7 @@ ENTRY_REGS = dict(ax=0x1234, bx=0x3456, cx=0x5678, dx=0x789A, si=0x9ABC, di=0xBC
 
 def native_cases():
     """48 synthetic runs: InOutRes values 0 (RETURN) and non-zero (RUNERROR stop), under six flag images."""
-    values = (0, 1, 2, 0x67, 0x0100, 0x8000, 0xFFFF, 0x7FFF, 3, 0x00FF, 0x0200, 0x1234)
+    values = (0, 1, 2, 0x67, 0x0100, 0x8000, 0, 0xFFFF, 0x7FFF, 3, 0x00FF, 0x0200)
     return [dict(entry=0, arg=0, flags=n % len(NATIVE_FLAGS), writes=[(0x4426, values[n % len(values)])]) for n in range(NATIVE_CASES)]
 
 
@@ -407,9 +407,9 @@ def native_audit(span, function):
                                 pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)'),
                   cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE + 65536,
                   masked_ram_bytes=SIZE - WINDOW_SIZE - 65536, synthetic_frames=True, callee_stubs=len(stubs),
-                  callee_stub_kind='JMP FAR into the capture harness at each callee entry (00E2, RunError); it is not executed',
+                  callee_stub_kind='JMP FAR into the capture harness at 00E2 (RunError); it is not executed',
                   stops={names[k]: v for k, v in sorted(seen_status.items())}, com_segment=f'{segment:04x}')
-    print('01A5 native parity', json.dumps(report, sort_keys=True), flush=True)
+    print('04A9 native parity', json.dumps(report, sort_keys=True), flush=True)
     return report
 
 
