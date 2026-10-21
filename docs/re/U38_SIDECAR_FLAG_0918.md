@@ -77,7 +77,7 @@ behavior is exercised by the focused C composition and the byte-level
 callback contract. This is a strict full-C **candidate** for PM review;
 no new identity or count credit is claimed here.
 
-## Correction, 2026-10-22: the LCALL's segment is the live code word, not 00BAh
+## Correction, 2026-10-21: the LCALL's segment is the live code word, not 00BAh
 
 The C model entered the resident lookup with `CS := 00BAh`, a constant, where the original's `9A` at `092E` carries a segment
 word at `0931` that the loader relocates (`00BA` only at the unrelocated base). The original-byte parity (96 cases) and the
