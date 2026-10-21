@@ -28,6 +28,7 @@ typedef struct {
     uint16_t source_cs;
     int mode;
     unsigned calls;
+    uint16_t word;   /* the loader-relocated segment half of the LCALL at 0FDE (CS:0FE1) */
 } context;
 
 static int roll(void *opaque, uint8_t *ram, size_t size, pr_u7f_0fde_cpu *cpu)
@@ -36,7 +37,7 @@ static int roll(void *opaque, uint8_t *ram, size_t size, pr_u7f_0fde_cpu *cpu)
     uint32_t seed;
     uint8_t al;
     assert(size == PR_U7F_0FDE_RAM_SIZE);
-    assert(cpu->cs == 0x00B0u && cpu->ip == 0x0048u);
+    assert(cpu->cs == ctx->word && cpu->ip == 0x0048u);   /* entered at the code word's segment, not a constant 00B0 */
     assert(word(ram, cpu->ss, cpu->sp) == 0x0FE3u);
     assert(word(ram, cpu->ss, (uint16_t)(cpu->sp + 2u)) == ctx->source_cs);
     assert(word(ram, cpu->ss, (uint16_t)(cpu->sp + 4u)) == 20u);
@@ -66,6 +67,7 @@ static pr_u7f_0fde_cpu frame(uint8_t *ram, uint16_t sp)
     pr_u7f_0fde_cpu cpu = {0xA514u,0x3456u,0x5678u,0x789Au,0x9ABCu,
         0xBCDEu,0x7777u,sp,0x3000u,0x0FDEu,0x1000u,0x1111u,0x2000u,0x7202u};
     memset(ram, 0xA5, PR_U7F_0FDE_RAM_SIZE);
+    put(ram, cpu.cs, 0x0FE1u, 0x00B0u);
     put(ram, cpu.ss, sp, 20u);
     put(ram, cpu.ss, (uint16_t)(sp + 2u), 1u);
     put(ram, cpu.ds, 0x4428u, 0x5678u);
@@ -77,7 +79,7 @@ int main(void)
 {
     uint8_t *ram = malloc(PR_U7F_0FDE_RAM_SIZE);
     pr_u7f_0fde_cpu cpu, before;
-    context ctx = {0x3000u,0,0};
+    context ctx = {0x3000u,0,0,0x00B0u};
     assert(ram != NULL);
     cpu = frame(ram, 0x8000u);
     before = cpu;
@@ -107,11 +109,22 @@ int main(void)
     cpu = frame(ram, 0x8100u);
     ctx.mode = 1;
     assert(pr_u7f_roll_call_0fde(ram,PR_U7F_0FDE_RAM_SIZE,&cpu,roll,&ctx)==PR_U7F_0FDE_CALL_ABORT);
-    assert(cpu.cs==0x00B0u && cpu.ip==0x0048u && cpu.bx==0xDEADu);
+    assert(cpu.cs==ctx.word && cpu.ip==0x0048u && cpu.bx==0xDEADu);
     cpu = frame(ram, 0x8200u);
     ctx.mode = 2;
     assert(pr_u7f_roll_call_0fde(ram,PR_U7F_0FDE_RAM_SIZE,&cpu,roll,&ctx)==PR_U7F_0FDE_TRANSFER);
     assert(cpu.cs==0x3000u && cpu.ip==0xCAFEu && cpu.bx==0xBEEFu);
+    /* other load bases: the relocated word names another segment and the roll is entered there */
+    {
+        static const uint16_t words[] = {0x1234u, 0x0001u, 0xFFB0u, 0x10B0u};
+        for (unsigned k = 0; k < sizeof words / sizeof words[0]; ++k) {
+            cpu = frame(ram, 0x8000u);
+            put(ram, cpu.cs, 0x0FE1u, words[k]);
+            ctx.mode = 0; ctx.word = words[k];
+            assert(pr_u7f_roll_call_0fde(ram,PR_U7F_0FDE_RAM_SIZE,&cpu,roll,&ctx)==PR_U7F_0FDE_RETURNED);
+            assert(cpu.cs==0x3000u && cpu.ip==0x0FE3u);
+        }
+    }
     free(ram);
     return 0;
 }

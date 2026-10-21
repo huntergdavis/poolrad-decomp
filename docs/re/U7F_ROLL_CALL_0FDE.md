@@ -49,3 +49,12 @@ U7F +0F7E body ends at +0FD2 and pG's +0020 leaf is disjoint.
 
 No native game route, full U9E CPU composition, game identity, or strict
 full-C credit follows from this call boundary.
+
+## Correction, 2026-10-22: the LCALL's segment is the live code word, not 00B0h
+
+The C adapter entered the roll with `CS := 00B0h`, a constant, where the original's `9A` at `0FDE` carries a segment word at
+`0FE1` that the loader relocates (the overlay stub segment, `00B0` only at the unrelocated base). The 40 original-byte cases
+and the unit test ran at that base, where constant and word agree, and the unit test asserted the constant, so neither could
+see it. The adapter now enters at the word read from `CS:0FE1`; the unit test sets the word to `00B0`, `1234`, `0001`, `FFB0`
+and `10B0` and checks the roll is entered at it (fails on the old adapter: `cpu->cs == ctx->word`). The 40-case original-byte
+parity still passes. Body bytes, hash, identity and credit unchanged.
