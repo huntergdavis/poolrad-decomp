@@ -116,3 +116,24 @@ verified with the media absent.
     strict_candidate_queue.RUNTIME_COVERED_ENDPOINTS:  (0x0AF8, 0x1410): "system Reset (system_reset_1410_cpu, #<this PR>)"
 
 The nested Close is pending par-d's Close endpoint. Until both lines land, the composition through Close is the named stop.
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20278/i20284)
+
+`(0x0AF8, 0x1410): "system Reset (system_reset_1410_cpu, #1311)"` lands in `RUNTIME_COVERED_ENDPOINTS`. It is readiness only, never a credit.
+
+- **Composed end to end, which closes the CLOSE-stop gap.** This document's two-phase comparison resumes at `1445h` from the
+  ORIGINAL's post-Close state, so it did not show that our models chain. A reviewer harness now runs **Reset model →
+  par-d's Close `1491` model → Reset resumed at `1445h`, all C, with nothing taken from the original's post-Close state**,
+  against the original running both bodies. Over this audit's 68 cases it matches end to end on CPU14 and the full
+  1 MiB, **22 of them through the C Close model**.
+  - Negative control: skipping the Close model fails on the first open case (`open-then-reopen`, two RAM bytes).
+  - `RUNTIME_COVERED_STOP_CALLEES` now makes `load_queue` refuse a covered `1410` unless `1491` is covered, and a test
+    pins the refusal.
+- **Audit reproduced at `f902b02a`:**
+  - **Unicorn:** 68 cases, all `RETURN`; 22 go through the CLOSE stop and resume. Starts 40/40 (the Rewrite entry is
+    excluded as stated), outcomes 8/8, 63 independent checks, masks 0.
+  - **Native:** 33 cases (`CLOSE` 13, `RETURN` 20).
+- Native RESULT.BIN `98f2794b…` equals this document. The emulator is `/usr/bin/dosbox-x` 2026.01.02, not the pinned `5a9c7c53` build (a declared substitution). ASan/UBSan with `-Werror -Wpedantic`: 22 checks. `check_checker_builds RES_0AF8_1410 --require-current-main` passes.
+- **Measured delta** (regenerated exports, closure pricer): with `1410`, `1563` and `1593` covered, **0** rows become free
+  of uncovered SYSTEM endpoints (343 → 343). All 21 rows of the t29 prize are held by `14FB` alone (see the BlockRead
+  record).

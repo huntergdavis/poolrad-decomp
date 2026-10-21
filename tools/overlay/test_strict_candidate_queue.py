@@ -515,7 +515,25 @@ class StrictCandidateQueueTest(unittest.TestCase):
         """04A9's RUNERROR stop transfers into 00E2: covering 04A9 while 00E2 is
         undeclared would let every caller compose into an undeclared terminal."""
         inventory, ledger, classifications = fixture()
-        self.assertEqual(scq.RUNTIME_COVERED_TERMINALS, {(0x0AF8, 0x04A9): "RES_0AF8_00E2"})
+        self.assertEqual(scq.RUNTIME_COVERED_TERMINALS, {
+            (0x0AF8, 0x023F): "RES_0AF8_00E2", (0x0AF8, 0x0254): "RES_0AF8_00E2",
+            (0x0AF8, 0x04A9): "RES_0AF8_00E2", (0x0AF8, 0x0A76): "RES_0AF8_00E2",
+            (0x0AF8, 0x1186): "RES_0AF8_00E2", (0x0AF8, 0x119E): "RES_0AF8_00E2",
+            (0x0AF8, 0x1593): "RES_0AF8_00E2", (0x0AF8, 0x14FB): "RES_0AF8_00DF"})
+        # 14FB is covered only because RES_0AF8_00DF is declared; withdrawing 00DF must be refused.
+        self.assertIn((0x0AF8, 0x14FB), scq.RUNTIME_COVERED_ENDPOINTS)
+        no_00df = {k: v for k, v in scq.DECLARED_BOUNDARY_ENDPOINTS.items() if k != "RES_0AF8_00DF"}
+        with mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, no_00df, clear=True):
+            with self.assertRaises(ValueError) as held:
+                scq.load_queue(inventory, ledger, classifications, [], None)
+        self.assertIn("RES_0AF8_00DF", str(held.exception))
+        # Reset's CLOSE stop: 1410 is usable only while Close 1491 is covered.
+        self.assertEqual(scq.RUNTIME_COVERED_STOP_CALLEES, {(0x0AF8, 0x1410): (0x0AF8, 0x1491)})
+        without_close = {k: v for k, v in scq.RUNTIME_COVERED_ENDPOINTS.items() if k != (0x0AF8, 0x1491)}
+        with mock.patch.dict(scq.RUNTIME_COVERED_ENDPOINTS, without_close, clear=True):
+            with self.assertRaises(ValueError) as stop:
+                scq.load_queue(inventory, ledger, classifications, [], None)
+        self.assertIn("0AF8:1491", str(stop.exception))
         scq.load_queue(inventory, ledger, classifications, [], None)
         undeclared = {k: v for k, v in scq.DECLARED_BOUNDARY_ENDPOINTS.items() if k != "RES_0AF8_00E2"}
         with mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, undeclared, clear=True):

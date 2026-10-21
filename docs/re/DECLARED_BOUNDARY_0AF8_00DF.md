@@ -71,4 +71,22 @@ executes; the instructions after the `DIV` are dead code on that path. A model m
 
 ## Reviewer record (added by the review lane, not the author)
 
-(pending)
+**Registered** by par-e as `"RES_0AF8_00DF": "docs/re/DECLARED_BOUNDARY_0AF8_00DF.md"`. It lands in the same commit as
+BlockRead `14FB`'s coverage row. `RUNTIME_COVERED_TERMINALS` lists `14FB → RES_0AF8_00DF`, and a test shows that
+withdrawing this boundary makes `load_queue` refuse the covered `14FB` (VP i20284/i20294).
+
+- **Static audit reproduced at `d9000b50`:**
+  - entry SHA-256 `f5643d94…` and install SHA-256 `431bbe40…`;
+  - one INT 0 installer and 0 direct transfers;
+  - the continuation is `00E2`'s: 80 instructions, the one `RETF` at `013F`, and AH 25h/4Ch/06h.
+- **The premise was checked independently**, by a raw byte scan of the whole loader-expanded START image and of
+  GAME.OVR, confirmed by decoding each hit on an instruction boundary:
+  - **`B8 xx 25` (`MOV AX,25xx`):** exactly 8 in START. `AL=00` appears once (`0AFE2` = `0AF8:0062`, SYSTEM init),
+    `AL=08` twice (the 08AE timer install and uninstall), then `1B`, `3F` ×2, `23` and `24`. GAME.OVR has **no raw
+    `B8 xx 25` bytes at all**.
+  - **`B4 25` (`MOV AH,25h`):** one in START (`0AF8:015F`, the exit restore from the `01EE` table); none in GAME.OVR.
+  - **Transfers:** no near transfer to `00DF` in SYSTEM, and no far `CALL`/`JMP 0AF8:00DF` in START.
+- **What the scan cannot see** is exactly the premise list above: a computed AL, AH=25h through `Dos.Intr`, a direct
+  IVT write, and DOS or TSRs. The declaration names these, and they stand as its stated limit.
+- **Shared limit:** the same indirect `TextRec` Flush/Close calls are reached through `00E2`'s tail; see the
+  [00E2 reviewer record](DECLARED_BOUNDARY_0AF8_00E2.md).

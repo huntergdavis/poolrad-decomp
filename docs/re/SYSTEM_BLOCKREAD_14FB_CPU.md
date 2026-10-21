@@ -154,3 +154,39 @@ media access.
 ## Proposed coverage row (text only; the acceptance lands it)
 
     strict_candidate_queue.RUNTIME_COVERED_ENDPOINTS:  (0x0AF8, 0x14FB): "system BlockRead (system_blockread_14fb_cpu, #<this PR>)"
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20278/i20284/i20294)
+
+`(0x0AF8, 0x14FB): "system BlockRead (system_blockread_14fb_cpu, #1315)"` lands in `RUNTIME_COVERED_ENDPOINTS` in the
+same commit as [`RES_0AF8_00DF`](DECLARED_BOUNDARY_0AF8_00DF.md). The `DIVIDE` stop raises INT 0, SYSTEM sets INT 0's
+vector to `0AF8:00DF`, and the `00E2` declaration excludes `00DF`, so this row could not land before `00DF` was declared.
+`RUNTIME_COVERED_TERMINALS` records `14FB → RES_0AF8_00DF`. This is readiness only, never a credit.
+
+- **Audit reproduced at `f902b02a`:**
+  - **Unicorn:** 105 cases (`RETURN` 93, `DIVIDE` 11, `TRANSFER` 1). Starts 47/47 (43 in the body), outcomes 14/14,
+    90 independent checks, CPU14 + 1 MiB, masks 0.
+  - **Native:** 43 cases (`RETURN` 35, `DIVIDE` 8), RESULT.BIN `683c5493…` equal to this document.
+- **Composed:** par-d's shared `14B6` check is linked in.
+- **ASan/UBSan** with `-Werror -Wpedantic`: 32 checks.
+- **Checker build:** `check_checker_builds RES_0AF8_14FB --require-current-main` passes.
+
+**The t29 package delta, measured by the review lane** (regenerated exports and the closure pricer; dated: main
+`d9000b50` plus this PR):
+
+| State | Rows with no uncovered SYSTEM endpoint |
+| --- | ---: |
+| main, before the last four | 343 |
+| + `1410`, `1563`, `1593` | 343 (0 freed) |
+| + `14FB` (this commit) | **364 (+21)** |
+
+- **The freed set equals the VP's list** (i20278): 21 rows, none missing and none extra, matching par-b's independent
+  measurement.
+- **All 21 are held by `14FB` alone.** In the three-row state, each one's only uncovered SYSTEM endpoint is `0AF8:14FB`.
+- **Direct-callee queue:** 440 / 52 / 9 is unchanged. Three rows' direct targets turn `runtime_covered`, with no
+  composability flip.
+
+**What "free of SYSTEM endpoints" does NOT mean.** It does not mean one body from composing.
+- **Direct unready callees** per row: 1 for four rows (`0025_0341`, `0025_0411`, `0025_1A6F`, `03B9_05D9`), 2 for
+  seven, and 3 to 16 for the other ten.
+- **Closures:** every one of the 21 still holds 13 to 161 uncovered bodies, from 1,835 B (`0025_0341`) to 58,104 B
+  (`002F_01F6`).
