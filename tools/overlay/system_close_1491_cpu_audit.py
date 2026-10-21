@@ -461,8 +461,8 @@ def native_audit(span, function):
         status = function(ram, SIZE, ctypes.byref(cpu), SERVICE_FN(service), None)
         check(status == 0, f'C status {status} on native case {n}')
         seen_status[('INT' if calls else 'NOINT')] = seen_status.get('INT' if calls else 'NOINT', 0) + 1
-        if calls:                                                    # DOS-side: the INT frame it pushed below the INT-time SP (declared limit)
-            for k in range(1, 7):
+        if calls:                                                    # DOS-side: the 3-word INT frame and the stub saved BP below the INT-time SP (declared limit)
+            for k in range(1, 9):
                 ram[physical(segment, entry_sp - k)] = record[28 + (entry_sp - k - WINDOW_LOW)]
         for (reg, _), want in zip(Cpu._fields_, struct.unpack_from('<14H', record)):
             check(getattr(cpu, reg) == want, f'native case {n} {reg}: C={getattr(cpu, reg):04x}, DOS={want:04x}')
@@ -478,7 +478,7 @@ def native_audit(span, function):
     report = dict(dosbox_x=dict(path=binary, sha256=sha256(Path(binary).read_bytes()).hexdigest(), version=version[0] if version else '',
                                 pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)'),
                   cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE + 65536,
-                  masked_ram_bytes=SIZE - WINDOW_SIZE - 65536, synthetic_frames=True, callee_stubs=0, dos_service_stub='INT 21h AH=3Eh hook answering the case AX/CF by IRET; other functions chain to DOS', int_frame_bytes_excluded=6,
+                  masked_ram_bytes=SIZE - WINDOW_SIZE - 65536, synthetic_frames=True, callee_stubs=0, dos_service_stub='INT 21h AH=3Eh hook answering the case AX/CF by IRET; other functions chain to DOS', int_frame_bytes_excluded=8,
                   paths=seen_status, com_segment=f'{segment:04x}')
     print('1491 native parity', json.dumps(report, sort_keys=True), flush=True)
     return report
