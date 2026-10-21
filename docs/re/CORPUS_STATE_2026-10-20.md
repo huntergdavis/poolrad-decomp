@@ -49,6 +49,34 @@ Rows credited after an earlier version of this page was written are listed as su
 
 Each came from an export that was correct when written; nothing was wrong with how the labels are derived. The defect was that existence was treated as freshness: `price_candidates.py` regenerated only a *missing* export, and the other consumers read whatever file they were given. Even the reviewer's own 20:31 export was stale an hour later. Since #1272, every consumer calls `strict_candidate_queue.load_fresh_export`. It compares the export's recorded hashes of the six committed input tables with the tree and exits 2 on any difference, naming each changed input and printing the regeneration command. **Quote a queue count with its commit or timestamp, or not at all.**
 
+**Price by what the closure must BUY, not by size (VP i20215).** Measured by par-a on a strict-candidate export of main `04e5bc7b`: 440 rows, export sha256 `31f2c8916570…`, `strict_map` artifact `504fb77d5d0e…`, `price_row_closures.py` over every row. Tonight's two keystones were both found by counting reach:
+
+1. **The `0899` gateways.** `RES_0899_0059` is one body that is **necessary in 302 of 440** closures; with `0000`, 303.
+2. **The SYSTEM file-I/O cluster.** Six uncovered endpoints travel together:
+
+   | Endpoint | Rows reached |
+   | --- | ---: |
+   | `0AF8:1410` (Reset) | 82 |
+   | `0AF8:1491` (Close) | 82 |
+   | `0AF8:14FB` | 78 |
+   | `0AF8:1563` | 77 |
+   | `0AF8:04A9` | 77 |
+   | `0AF8:1593` | 77 |
+
+   82 rows reach at least one of the six, and 77 reach all six: about a fifth of the queue behind one package. For comparison, `0919`/`084A` reach 58 rows each, `0CBC` 30 and Val `13B1` 24 (all 24 also reach 0059).
+
+**Correction: sufficiency counted bodies only.** The earlier statement that the wall is "sufficient for exactly one row (`OVL_007F_0294`)" counted uncredited bodies only. That row still has the uncovered endpoint `0AF8:13B1` (Val longint) and the far target `0A32:000B` (Dos Intr). Counting endpoints, **the wall is sufficient for zero rows**.
+
+This is the pricer's fourth undercount of the night, and all four point the same way, making rows look cheaper than they are:
+- far targets outside SYSTEM collected but never printed (#1244);
+- `indirect_unresolved` missing from the unready set (#1264);
+- `OVL_006F_0010` quoted at a one-hop 5 endpoints when its closure has 11;
+- sufficiency computed on bodies alone.
+
+The one opposite error, the CRT walk behind declared boundaries (#1240), overstated every 08AE row by 1,161 B. Since this pass, `price_row_closures.py` lists uncovered SYSTEM endpoints **by name** in their own column, headed "unpriced, part of the price".
+
+**Rule: price a row by what its closure must buy, which is bodies plus uncovered endpoints (plus any far target outside the covered set), never by the row's own bytes.**
+
 ## 2. Evidence at the bar, **not credited** (author evidence only)
 
 | Row | PR | Cases / coverage | Status |
