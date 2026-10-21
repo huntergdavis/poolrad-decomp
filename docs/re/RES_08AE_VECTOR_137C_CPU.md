@@ -59,8 +59,7 @@ not modelled here.
 `pr_r08ae_vector_137c_cpu(ram, size, cpu, env)`: exactly 1 MiB of A20-off ordinary RAM, IP=137C,
 SP in [000C,FFFC], distinct CPU/RAM storage, immutable code, no MMIO, no interrupts or faults, no
 arbitrary-IP resume, and **the stack (all pushes, including both INT frames) must not overlap
-CS:1378..13B0 or the environment's vector-table entry**: an overlap would corrupt the live INT
-return frame when the environment stores the vector, which is the stack's fault, not the body's.
+CS:1378..13B0 or the environment's vector-table entry** (see the observed constraint below).
 Word accesses keep A20 wrapping. The two relocated segment words are read live.
 
 **Declared environment** (an input, scripted identically on both sides and not DOS or the PIT):
@@ -89,6 +88,17 @@ Named stops: RETURN (the original return), ENV_DOS, ENV_PORT, ARGUMENT (null/siz
 contract; CPU and RAM untouched). There are no conditional branches, so no successor accounting
 beyond straight-line starts.
 
+### Observed constraint: stack versus vector table (not a modelling choice)
+
+The `INT 21h` frame sits just below the live stack. When the AH=25h service stores the vector over a
+frame that overlaps the table entry, it overwrites the return address of that same `INT`. This was
+**observed**, not argued: a stack sweep reaching SS:SP=0000:002A (frame words over the entry-8 slot
+at physical 20h..23h) made the original bytes, under Unicorn, return to a garbage offset (`5240`)
+outside the span; the C model pops the same RAM words and would follow. The low-stack sweep in this
+checker therefore ends just above the entry (lowest frame word at physical 24h). **Do not widen it:**
+the failure would be a stack/table collision in the environment contract, not a defect in the body or
+the model.
+
 ## Evidence
 
 **Original-byte Unicorn differential: 318 cases, 0 mismatches**, comparing all **14 CPU words and
@@ -103,7 +113,7 @@ relocated table base.
 of BX at CS:1378, reversing the FLAGS/CS push order, dropping the handler's flags, and
 `MOV AL,AH` replaced by a no-op). One was **not** caught: popping into ES instead of DS at
 13A0. It is an equivalent mutant: the same stack word is consumed, ES is overwritten by the
-`POP ES` at 13AE and DS by the `POP DS` at 13AF, and neither register is used in between.
+`POP ES` at 13AE and DS by the `POP DS` at 13AF, and neither register is used in between. This is a statement about the code, not a gap in the checker: do not extend the checker to catch it, and do not treat its survival as a missing test.
 
 C test: **30 semantic checks**, clean under `-fsanitize=address,undefined` (manual build with
 `-Wall -Wextra -Wpedantic -Werror`) and 1/1 in the Debug CTest build.
