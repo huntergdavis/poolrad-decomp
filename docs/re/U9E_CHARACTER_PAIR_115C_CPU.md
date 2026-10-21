@@ -297,3 +297,18 @@ name (#1347). Evidence: this document's closure. Identity: par-a's verdict in
 - **Factor 2, spot-checked by me:** the memory operands include the claimed offsets: +101h, with the DS tables `[di+5582h]`/`[di+5588h]` indexed.
 - **Accepted, not re-derived:** the documentary meaning of each field (DOS_CHARACTER.md and the 115C document's 63-byte
   records).
+
+## Grant record: `RES_00BA_03A0` (added by the review lane, par-e, VP i20401)
+
+Member row: `RES_00BA_03A0`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity under the reviewed near-only
+name (#1347). Evidence: this document's closure. Identity: par-a's verdict in
+[NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md).
+
+- **Evidence reproduced** (`u9e_character_pair_115c_audit.py`, default run at `d0432662`): 3,441 cases, the whole 1 MiB,
+  masked flags 0, no missing starts or outcomes. This body is pinned in the closure with 52/52 starts and
+  13 outcomes covered, 141 B, and its SHA-256 equals the reviewed-alias table.
+- **Factor 1, verified by me from the media:** a linear decode of the credited spans `0BB8` [0BB8,1037) and `13AB`
+  [13AB,148B) finds the near `CALL 03A0` at exactly `0BB8+0F8B`, inside the credited caller's span.
+- **Factor 2, spot-checked by me:** the memory operands include the claimed offsets: +102h, +11Ch.
+- **Accepted, not re-derived:** the documentary meaning of each field (DOS_CHARACTER.md and the 115C document's 63-byte
+  records).
