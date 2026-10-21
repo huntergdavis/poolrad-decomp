@@ -23,7 +23,7 @@ typedef enum {
 typedef struct {
     size_t clear_loopbacks,rect_loopbacks,printer_loopbacks,glyph_loopbacks;
     uint64_t delay_loopbacks;
-    size_t resident_budget;     /* instruction budget handed to each 275B / 0BB8 invocation */
+    size_t resident_budget;     /* instruction budget of the 0BB8 call at 0344 (275B resets its own for its two resident calls) */
     unsigned heap_steps;        /* GetMem free-list walk cap */
     unsigned walk_limit;        /* taken backward jumps of the list walk */
 } pr_u23_0239_limits;

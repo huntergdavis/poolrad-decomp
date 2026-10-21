@@ -108,6 +108,24 @@ def source():
     return bodies, decoded, meta, literal
 
 
+def ownership():
+    """Segment-wide caller census of 0239, asserted: near `PUSH CS; CALL 0239` transfers inside unit 23h and relocated far calls
+    through its stub (0028:002A, public entry 2) from every unit. Found: two near sites in 0361 and one far site in unit 20h."""
+    exe = (ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes()
+    ovr = (ROOT / 'resources/DOS/POOLRAD/GAME.OVR').read_bytes()
+    units = find_units(exe[parse_mz(exe)['header_bytes']:], ovr)
+    unit = next(u for u in units if u['stub_para'] == UNIT)
+    code = ovr[unit['ovr_offset']:unit['ovr_offset'] + unit['code_size']]
+    near = [o for o in range(1, len(code) - 2) if code[o] == 0xE8 and (o + 3 + struct.unpack_from('<h', code, o + 1)[0]) & 0xFFFF == ENTRY]
+    check(near == [0x3DE, 0x427] and all(code[o - 1] == 0x0E for o in near), f'near callers of 0239: {[hex(o) for o in near]}')
+    stub = (unit['memory_segment'], 0x20 + 5 * unit['entries'].index(ENTRY))
+    far = [(u['stub_para'], f - 3) for u in units for f in u['fixups']
+           if ovr[u['ovr_offset'] + f - 3:u['ovr_offset'] + f - 2] == b'\x9a'
+           and struct.unpack_from('<HH', ovr, u['ovr_offset'] + f - 2) == (stub[1], stub[0])]
+    check(far == [(0x20, 0xC60)], f'far callers of 0239 through {stub[0]:04X}:{stub[1]:04X}: {far}')
+    return dict(near_sites=['23:03DE (in 0361)', '23:0427 (in 0361)'], far_sites=['20:0C60 (in 0C06)'], stub=f'{stub[0]:04X}:{stub[1]:04X}')
+
+
 def library(directory):
     path = directory / 'append0239.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include'),
@@ -538,10 +556,16 @@ def specs(bodies, dmap, literal, lib, quick=False):
     return out
 
 
-def differential(bodies, decoded, literal, lib, quick=False):
+SMOKE = ('append-0', 'append-2', 'append-15', 'count-16', 'weight-2-equal', 'weight-2-plus1', 'heap-fail-0', 'heap-fail-2', 'walk-3-limit-1',
+         'walk-3-limit-2', 'code-op-24d', 'code-off-300', 'stub-target', 'flags-append-e57', 'sp-append-201')
+
+
+def differential(bodies, decoded, literal, lib, quick=False, smoke=False):
     dmap = {(SEGMENTS[k], a): i for (k, a), i in decoded.items()}
     results = []
     for name, options in specs(bodies, dmap, literal, lib, quick):
+        if smoke and name not in SMOKE:
+            continue
         run_case(name, options, bodies, dmap, literal, lib, results)
         r = results[-1][1]
         print(name, STATUS[r['status']], r.get('over'), flush=True)
@@ -566,7 +590,7 @@ def differential(bodies, decoded, literal, lib, quick=False):
         members[name] = f'{len(keys & seen)}/{len(keys)}'
     report['closure_starts'] = members
     print(json.dumps(report, sort_keys=True))
-    check(not report['root_missing_starts'] and not report['root_missing_outcomes'], 'root coverage incomplete')
+    check(smoke or (not report['root_missing_starts'] and not report['root_missing_outcomes']), 'root coverage incomplete')
     return report
 
 
@@ -575,6 +599,7 @@ def main():
     p.add_argument('--compile-only', action='store_true')
     p.add_argument('--unicorn', action='store_true')
     p.add_argument('--quick', action='store_true')
+    p.add_argument('--smoke', action='store_true', help='the fifteen cases the mutation check runs')
     p.add_argument('--native', action='store_true')
     p.add_argument('--output', type=Path)
     a = p.parse_args()
@@ -584,9 +609,9 @@ def main():
             print('CHECKER_BUILD_OK')
             return
         bodies, decoded, meta, literal = source()
-        report = dict(target=meta)
+        report = dict(target=meta, ownership=ownership())
         if a.unicorn:
-            differential(bodies, decoded, literal, lib, a.quick)
+            differential(bodies, decoded, literal, lib, a.quick, a.smoke)
         if a.output:
             a.output.parent.mkdir(parents=True, exist_ok=True)
             a.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
