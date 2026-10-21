@@ -171,6 +171,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/dos_gettime_00a2_cpu.c
                                     src/recovered/system_paramstr_16bc_cpu.c
                                     src/recovered/system_val_13b1_cpu.c
+                                    src/recovered/overlay_u7f_number_0294_cpu.c
                                     src/recovered/crt_keypressed_02fd_cpu.c
                                     src/recovered/crt_readkey_030f_cpu.c
                                     src/recovered/dos_intr_000b_cpu.c
@@ -642,6 +643,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_system_val_13b1_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_system_val_13b1_cpu_tests
              COMMAND poolrad_system_val_13b1_cpu_tests)
+    add_executable(poolrad_overlay_u7f_number_0294_cpu_tests
+                   tests/recovered/test_overlay_u7f_number_0294_cpu.c)
+    target_link_libraries(poolrad_overlay_u7f_number_0294_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u7f_number_0294_cpu_tests
+             COMMAND poolrad_overlay_u7f_number_0294_cpu_tests)
     add_executable(poolrad_crt_keypressed_02fd_cpu_tests
                    tests/recovered/test_crt_keypressed_02fd_cpu.c)
     target_link_libraries(poolrad_crt_keypressed_02fd_cpu_tests PRIVATE poolrad_recovered)
