@@ -54,8 +54,8 @@ instruction substitution inside the body**.
 Current result, stated exactly:
 
 ```
-cases 46 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
-flag_masks 0 · substitutions 0 · stops: return 46 · both residents called in every case
+cases 49 · starts 45/45 (+0 excluded) · outcomes 8/10 (+2 excluded sides)
+flag_masks 0 · substitutions 0 · stops: return 49 · both residents called in every case
 ```
 
 **Correction, 2026-10-22 (found by composing this body under OVL_0023_0239, which calls it).** The C model stored the three
@@ -69,6 +69,16 @@ that BP survives for the same five values. With the old model the differential f
 (`bp 7F00 != original 7F01`) and the unit test at its first assertion. The body bytes, hash, identity and credit are
 unchanged; the native corroboration below still enters with `BP = 7F00`, so it cannot see this bug class and is not
 re-run here.
+
+**Second correction, same day (found by the 0239 boundary cases).** The model's last compare tested only the carry flag
+(`CF == 0` meant over capacity), but the original's `JBE` at `27CA` is `CF | ZF`: **equality is not over capacity**. At
+`S+P == R+1500` the model returned 1 and the original 0. The branch accounting had never been able to see this: both sides of
+`JBE` were taken, but only through `CF`, and no fixed fixture value makes the two operands equal. The differential now
+**measures** the operands from the original (a calibration run reads `AX = S+P` and `CX = R+1500` at `27C2`) and adds three cases
+from them, one below, equal and one above (3 more cases, 46 to 49; for the all-zero object `R+1500 = 1500`, so `1499`/`1500`
+return 0 and `1501` returns 1, asserted against the original's own result). The old model fails the equal case
+(`ax 0501 != original 0500`); the unit test carries the same three values. The compare's `JG`/`JL` half and the two excluded
+sides are unaffected. Body bytes, hash, identity and credit are unchanged.
 
 That is **not** "100% of reachable" and **not** "all outcomes": **no starts** are
 excluded (`EXCLUDED_STARTS` is empty) and **two** conditional sides are, for the

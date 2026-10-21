@@ -207,7 +207,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
         }
     } else {
         cmp16(c, c->ax, c->cx);                         /* cmp ax,cx */
-        if ((c->flags & 1) == 0) {                      /* jbe not taken -> flag */
+        if ((c->flags & 0x41u) == 0) {                  /* JBE is CF|ZF: taken (not over) when AX <= CX, so equal is not over */
             flag = 1;
             wr8(&m, c->ss, (uint16_t)(c->bp - 2), (uint8_t)flag);
         }
