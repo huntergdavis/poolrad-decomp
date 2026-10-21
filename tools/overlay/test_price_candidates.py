@@ -6,6 +6,7 @@ prerequisites exist, and otherwise stop with an actionable message and a
 distinct exit code — never a bare traceback.
 """
 import collections
+import hashlib
 import io
 import json
 import contextlib
@@ -137,6 +138,71 @@ class ReadinessVocabularyTest(unittest.TestCase):
                                     "raw_cpu_caveats": []}}
         self.assertEqual(pricer.sole_blockers([row]), collections.Counter())
 
+
+
+class ExportFreshnessTest(unittest.TestCase):
+    """A consumer must refuse an export written before a committed input changed.
+
+    On 2026-10-20 three figures were true of a file and false of the tree (453 rows,
+    455 rows, and a 578 B price for a row whose callee was credited at 12:47): each
+    came from an export that existed, so nothing regenerated it.
+    """
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        for name, relative in pricer.queue_rules.FRESHNESS_INPUTS.items():
+            path = self.root / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("id,evidence_doc\n")
+        strict = self.root / pricer.queue_rules.FRESHNESS_INPUTS["strict_map"]
+        strict.write_text("id,evidence_doc\nOVL_0001_0000,docs/re/A.md\n")
+        self.queue = self.root / "resources/strict-candidate-queue/queue.json"
+        self.queue.parent.mkdir(parents=True)
+        recorded = {name: hashlib.sha256((self.root / relative).read_bytes()).hexdigest()
+                    for name, relative in pricer.queue_rules.FRESHNESS_INPUTS.items()}
+        self.queue.write_text(json.dumps({"rows": [], "artifacts_sha256": recorded}))
+
+    def credit_one_more(self):
+        strict = self.root / pricer.queue_rules.FRESHNESS_INPUTS["strict_map"]
+        strict.write_text(strict.read_text() + "OVL_0002_0000,docs/re/B.md\n")
+
+    def refusal(self, call):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit) as stop:
+            call()
+        return stop.exception.code, err.getvalue()
+
+    def test_current_export_loads(self):
+        export = pricer.queue_rules.load_fresh_export(self.queue, self.root)
+        self.assertEqual(export["rows"], [])
+
+    def test_export_one_credit_behind_is_refused_naming_the_input(self):
+        self.credit_one_more()
+        code, message = self.refusal(lambda: pricer.queue_rules.load_fresh_export(self.queue, self.root))
+        self.assertEqual(code, pricer.queue_rules.STALE_EXIT)
+        self.assertIn("strict_map (docs/re/strict_full_c_addresses.csv)", message)
+        for other in ("identities", "driver_internal", "partial_models", "ledger", "classification"):
+            self.assertNotIn(f"  {other} (", message)   # only the input that changed is named
+        self.assertIn("strict_candidate_queue.py", message)   # and how to regenerate it
+
+    def test_export_without_recorded_hashes_is_refused(self):
+        self.queue.write_text(json.dumps({"rows": []}))
+        code, message = self.refusal(lambda: pricer.queue_rules.load_fresh_export(self.queue, self.root))
+        self.assertEqual(code, pricer.queue_rules.STALE_EXIT)
+        self.assertIn("not recorded", message)
+
+    def test_consumer_refuses_a_present_but_stale_export(self):
+        # The pricer regenerated only a MISSING file, so a stale one was silently preferred.
+        self.credit_one_more()
+        real = pricer.gate.missing_dependencies
+        pricer.gate.missing_dependencies = lambda: []
+        try:
+            code, message = self.refusal(lambda: pricer.main(["--root", str(self.root), "--queue", str(self.queue)]))
+        finally:
+            pricer.gate.missing_dependencies = real
+        self.assertEqual(code, pricer.queue_rules.STALE_EXIT)
+        self.assertIn("strict_map", message)
 
 if __name__ == "__main__":
     unittest.main()

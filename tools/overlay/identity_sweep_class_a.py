@@ -53,6 +53,7 @@ from pathlib import Path
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 
 from overlay_inventory import find_units, parse_mz
+import strict_candidate_queue as queue_rules
 
 ROOT = Path(__file__).resolve().parents[2]
 GAME = "game_verified"
@@ -145,6 +146,7 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--json", type=Path)
     args = parser.parse_args(argv)
+    queue_rules.load_fresh_export(args.root / "resources/strict-candidate-queue/queue.json", args.root)
     report = sweep(args.root)
     print(f"queue sha256 {report['queue_sha256']}")
     print(f"identity-blocked modelled rows: {report['blocked']}")

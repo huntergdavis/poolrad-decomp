@@ -28,6 +28,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 
 from function_queue import DIGESTS, check_inputs, number, overlay_rows
 
@@ -38,6 +39,22 @@ DEFAULT_STRICT = ROOT / "docs/re/strict_full_c_addresses.csv"
 DEFAULT_PARTIAL = ROOT / "docs/re/partial_callee_models.csv"
 DEFAULT_DRIVER_INTERNAL = ROOT / "docs/re/driver_internal_models.csv"
 DEFAULT_IDENTITIES = ROOT / "docs/re/reviewed_function_identities.csv"
+# Committed inputs an export records by hash. A consumer must refuse an export whose
+# recorded hash differs from the tree: a file that exists is not a file that is current.
+FRESHNESS_INPUTS = {
+    "ledger": "docs/re/overlay_function_ledger.csv",
+    "classification": "docs/re/overlay_classification.csv",
+    "strict_map": "docs/re/strict_full_c_addresses.csv",
+    "partial_models": "docs/re/partial_callee_models.csv",
+    "driver_internal": "docs/re/driver_internal_models.csv",
+    "identities": "docs/re/reviewed_function_identities.csv",
+}
+STALE_EXIT = 2
+REGENERATE = ("  python3 tools/overlay/strict_candidate_queue.py \\\n"
+              "      --inventory resources/function-accounting-current/inventory.json \\\n"
+              "      --callgraph resources/function-accounting-current/callgraph.json \\\n"
+              "      --near-calls resources/function-accounting-current/near.json \\\n"
+              "      --ovr resources/DOS/POOLRAD/GAME.OVR --repo . --json {json}")
 SOURCE_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
                "tools/overlay", "docs/re")
 BRANCH_DIRS = ("src/recovered", "include/poolrad/recovered", "tests/recovered",
@@ -830,6 +847,32 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    top_score=ranked[0]["score"] if ranked else None)
     return dict(schema_version=9, inputs=DIGESTS.copy(), git=git_view,
                 summary=summary, rows=ranked)
+
+
+def stale_inputs(export, root=ROOT):
+    """(name, path, recorded, current) for each committed input that differs from the export."""
+    recorded = export.get("artifacts_sha256") or {}
+    changed = []
+    for name, relative in sorted(FRESHNESS_INPUTS.items()):
+        path = Path(root) / relative
+        current = hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
+        if recorded.get(name) != current:
+            changed.append((name, relative, recorded.get(name), current))
+    return changed
+
+
+def load_fresh_export(path, root=ROOT):
+    """Read an export, refusing (exit 2) when any committed input changed since it was written."""
+    export = json.loads(Path(path).read_text())
+    changed = stale_inputs(export, root)
+    if changed:
+        lines = [f"STALE EXPORT: {path} was generated from inputs that differ from this tree; refusing to read it."]
+        lines += [f"  {name} ({relative}): export {(was or 'not recorded')[:12]}, tree {(now or 'missing')[:12]}"
+                  for name, relative, was, now in changed]
+        lines += ["Regenerate it, then rerun:", REGENERATE.format(json=path)]
+        print("\n".join(lines), file=sys.stderr)
+        raise SystemExit(STALE_EXIT)
+    return export
 
 
 def csv_rows(blob):
