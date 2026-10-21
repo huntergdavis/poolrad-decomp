@@ -109,6 +109,21 @@ means its callees on the path must be ready: that is a readiness question for th
 
 It prints the nine spans and hashes and exits non-zero if any census count or hash changes.
 
+## Ruling: the 0040 ground does not need a resolved writer (par-a, 2026-10-21, VP i20565)
+
+**A resolved writer is not required, and the reason is not that the writer sits in a game segment.** Residence in a game segment is co-location, which the standard rejects as identity. Two counterexamples: `RES_0709_0000` and `RES_0464_0000` sit in game segments and were refused ([NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md)).
+
+**The reason is the standard's own factor-2 clause:** game state may be established by a credited body's evidence. A cell's ownership is shown by its credited consumers as well as by its writer. A strict-credited scan of both files on main finds:
+- **`DS:4A1E`** (EGA flag) is read by six strict-credited bodies besides 0040: `OVL_006F_032F` (an overlay), `RES_03F1_0137` (`game_verified`), `RES_0464_2595`, `RES_0709_01DF`, `RES_0709_0CAB` and `RES_0709_0DD3`.
+- **`DS:25D5`** (attribute map) is read by strict-credited `RES_0709_01DF`.
+- 0040 branches on `4A1E` and maps its attribute through `25D5`, so **its factor 2 stands on two cells whose game ownership credited consumers establish**, independently of the unresolved writer `03F1:0444` (`RPRO_04354`).
+
+**The page bytes `DS:4A1A/4A1B` are not part of the ground.** No credited body other than 0040 reads them, and 0040 cannot vouch for itself. They are natively measured in [RESIDENT_VIDEO_INIT_4426.md](RESIDENT_VIDEO_INIT_4426.md) and are supporting only. Arguing `03F1:0444` would make them load-bearing, but nothing in 0040's grant waits on it.
+
+**Scope: the ground does not carry 0105, 0193 or 0175.** Decoded from the media, none of them has a DS memory operand; each reaches the display only by calling 0040. Their factor 2 is the argument-borne message, and "uses game-supplied arguments" is not sufficient alone (the 2A0D point). Each therefore needs the passed text documented for at least one direct-entry caller, as `OVL_03B0_01DA` had for `DS:05F0`. **Re-check that their rows name that text before the next grant in this family.**
+
+**Consequence:** the display family does not wait on an ownership argument. `03F1:0444` stays on the worklist as the weak link under `4A1A/4A1B`, not under 0040.
+
 ## FileRec and buffer subjects: the same checkable requirement, closed by existing documents (par-a, 2026-10-21, VP i20572)
 
 **The requirement is the same.** A FileRec or a buffer passed as an argument is an argument-borne subject, just like text. What is passed must be documented for at least one direct-entry caller. Decoded from the media, both 06E7 and 050F close with documents already merged.
