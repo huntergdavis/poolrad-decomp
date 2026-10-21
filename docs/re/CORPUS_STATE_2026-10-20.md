@@ -80,6 +80,8 @@ The far targets outside SYSTEM, the resident segments and 08AE (`0A32:000B`, `0A
 cheapest. Under the 08AE policy (§4) those rows cannot be credited by translation alone;
 the two that are 08AE-free are blocked by indirect dispatch and a held callee.
 
+**Bought blocker (VP i20006).** The two `0899` gateways (222 B: `0059` ReadKey-with-hotkeys and `0000` QUIT) are funded as their own task. They are **necessary** for 303 of 447 candidate rows, and **sufficient for one** (`OVL_007F_0294`); par-a regenerated both counts on `b3fd5718`. `0000` ends in Halt, so every path through it is a process exit. Numbers, costs and the cheapest enabled rows are in [IDENTITY_CLEARED_PRICING.md](IDENTITY_CLEARED_PRICING.md#bought-blocker-the-0899-gateways-vp-i20006-2026-10-20).
+
 ## 4. Policy-closed
 
 - **08AE band** (`RES_08AE_IDENTITY_POLICY.md`, VP i19467): closed by the owner's policy
