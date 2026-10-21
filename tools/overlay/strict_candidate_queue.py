@@ -99,6 +99,7 @@ DECLARED_BOUNDARY_ENDPOINTS = {
     "RES_0A40_02FD": "docs/re/DECLARED_BOUNDARY_0A40_02FD.md",
     "RES_0A40_030F": "docs/re/DECLARED_BOUNDARY_0A40_030F.md",
     "RES_0AF8_16BC": "docs/re/DECLARED_BOUNDARY_0AF8_16BC.md",
+    "RES_0AF8_00E9": "docs/re/DECLARED_BOUNDARY_0AF8_00E9.md",
 }
 
 # Reviewed unresolved dispatches omitted by the direct-call graph. Keep the
@@ -146,6 +147,7 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
     (0x0AF8, 0x182A): "system UpCase (system_runtime_leaves_cpu)",
     (0x0A32, 0x00A2): "Dos.GetTime (dos_gettime_00a2_cpu, #1245)",
+    (0x0A32, 0x000B): "Dos.Intr (dos_intr_000b_cpu, #1259)",
 }
 
 TOKEN = re.compile(

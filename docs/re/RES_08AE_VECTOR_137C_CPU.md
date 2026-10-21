@@ -164,3 +164,31 @@ this establishes neither natural reachability nor real DOS or PIT behaviour.
 
 Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and
 capture receipts stay under ignored `resources/`.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Member row: `RES_08AE_137C` in `driver_internal_models.csv`.
+
+Reproduced by par-e on main `7cf02cd7` (2026-10-20): Unicorn 318 cases (318 RETURN), 24/24 starts, 0 conditional edges,
+14 CPU words and all 1,048,576 RAM bytes with no mask, 1,590 environment events. Native: 32 cases, RESULT.BIN
+`606afefc…` (matches). C: 30 checks under strict `-Werror` ASan/UBSan. Checker gate passes on current main.
+
+**Declared environment services (driver_internal closure, VP i20129).** This body calls DOS only through these two
+services, each with AH set by a literal `MOV AX` immediately before the `INT`:
+- `INT 21h AH=35h` (get interrupt vector), at 1386 with AX=3508h: returns the old INT 08h vector in ES:BX.
+- `INT 21h AH=25h` (set interrupt vector), at 139E with AX=2508h: installs DS:DX = 08AE:13EA as the new INT 08h vector.
+
+Apart from these two declared DOS vector services, the closure is complete: the body makes no call and no jump.
+
+**08AE:13EA is not a closure member.** It is reachable **by data**: the body writes it into the interrupt vector table
+at runtime. It is not reached by control flow, so it is an installed handler rather than a callee, and no model of it
+is claimed. Two consequences:
+- **The installed vector is part of this body's documented output.** The body saves the old vector (the ES:BX that
+  AH=35h returned) at CS:1378..137B, and installs the new vector 08AE:13EA through AH=25h. The differential compares
+  both: the saved bytes and the vector-table entry the service writes.
+- **The ISR is not modelled.** Every differential involving 137C is therefore valid only where the timer interrupt is
+  not dispatched into 13EA. This is a limit on the evidence, not a gap in the body. No case enables interrupts after the
+  install, and the native harness writes a shadow table rather than the real IVT[08].
+
+**The pair's composed proof** is 13B1's round trip: the original bytes of 137C and then 13B1, 64 cases, with vector
+entry 8 restored. Membership is never a credit.

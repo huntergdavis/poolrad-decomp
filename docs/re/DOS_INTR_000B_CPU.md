@@ -154,3 +154,10 @@ access; it was verified with the media absent.
     strict_candidate_queue.RUNTIME_COVERED_ENDPOINTS:  (0x0A32, 0x000B): "Dos.Intr (dos_intr_000b_cpu, #<this PR>)"
 
 No strict, identity, manifest or driver_internal row is proposed.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `7cf02cd7` (2026-10-20): Unicorn 347 cases, 69/69 starts, 14 CPU words and all 1,048,576 RAM
+bytes, flag masks 0 (the declared single-bit split stays confined to the stub-C cases, as stated above). Native: 36 cases,
+RESULT.BIN `c4997fd5…` (matches). C: 26 checks under strict `-Werror` ASan/UBSan. The coverage row
+`(0x0A32, 0x000B)` lands with this record (VP i20176). Readiness only, never a credit.
