@@ -2,8 +2,6 @@
  * 1693, GetMem, Move and the character update 0BB8. See docs/re/OVL_0023_0239_CPU.md. */
 #include "poolrad/recovered/overlay_u23_append_0239_cpu.h"
 #include "poolrad/recovered/resident_00ba_character_0bb8_cpu.h"
-#include <stdio.h>
-#include <stdlib.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
 #define COPY(to,from) do { \
     (to).ax=(from).ax; (to).bx=(from).bx; (to).cx=(from).cx; (to).dx=(from).dx; \
@@ -117,7 +115,6 @@ static pr_u23_0239_status far_call(pr_bus *bus, pr_u23_0239_cpu *c, uint16_t sit
         d->status=(int)pr_res00ba_0bb8_cpu(bus->ram,PR_BUS_RAM_SIZE,&inner,&budget);
         COPY(*c,inner);break; }
     }
-    if(getenv("U23DBG"))fprintf(stderr,"site %04X si=%04X di=%04X es=%04X sp=%04X bp=%04X dx=%04X ax=%04X cx=%04X\n",site,c->si,c->di,c->es,c->sp,c->bp,c->dx,c->ax,c->cx);
     if(d->status!=0)return PR_U23_0239_CALLEE;
     if(c->cs!=caller || c->ip!=next)return PR_U23_0239_TRANSFER;
     return PR_U23_0239_OK;
@@ -132,9 +129,7 @@ pr_u23_0239_status pr_u23_append_0239_cpu(pr_bus *bus, size_t size, pr_u23_0239_
     if(bus==NULL || bus->ram==NULL || bus->ega==NULL || c==NULL || l==NULL || size!=PR_BUS_RAM_SIZE || c->ip!=0x0239u ||
        c->sp<0x0200u || c->sp>0xFFE0u || !ordinary(c->cs) || !ordinary(c->ds) || !ordinary(c->ss))
         return PR_U23_0239_ARGUMENT;
-    if(getenv("U23DBG"))fprintf(stderr,"entry sp=%04X bp=%04X ss=%04X\n",c->sp,c->bp,c->ss);
     push(bus,c,c->bp);c->bp=c->sp;                                          /* 0239..023A */
-    if(getenv("U23DBG"))fprintf(stderr,"after push sp=%04X bp=%04X\n",c->sp,c->bp);
     subtract16(c,c->sp,0x14u);c->sp=(uint16_t)(c->sp-0x14u);                /* 023C */
     push(bus,c,word(bus,c->ds,0x5D94u));push(bus,c,word(bus,c->ds,0x5D92u)); /* 023F..0243 */
     push(bus,c,word(bus,c->ss,local(c,0x0C)));push(bus,c,word(bus,c->ss,local(c,0x0A))); /* 0247..024A */
