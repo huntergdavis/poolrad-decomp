@@ -271,7 +271,7 @@ def audit_coverage(exe, ovr):
     granted = sum(REVIEWED_NEAR_ONLY[start] in GAME_SPECIFIC_TARGETS for start in reviewed)
     classes = Counter(row["classification"] for row in rows)
     require(len(rows) == 145 and classes == Counter(
-        game_verified=29 + granted, linked_crt_inferred=9, unresolved=107 - granted),
+        game_verified=30 + granted, linked_crt_inferred=9, unresolved=106 - granted),
         "candidate classification partition changed")
     return dict(inputs=prior["inputs"],
                 summary=dict(merged_overlay_called=86, merged_exact_prologues=84,

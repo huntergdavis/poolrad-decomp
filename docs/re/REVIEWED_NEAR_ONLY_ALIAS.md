@@ -1,7 +1,7 @@
 # Reviewed RES_ names for near-only resident bodies (t30; proposal for par-e, VP i20369)
 
 **Author: par-d. Reviewer and lander: par-e.** This is a naming and classification-path change. It grants no identity and
-no credit, so the accounting totals do not move. Basis: main `62871450`, owner media, a fresh export regenerated on this tree.
+no credit, so the accounting totals do not move. Basis: main `62871450` (re-measured on the merge with #1341, 02EB accepted), owner media, a fresh export regenerated on this tree.
 
 ## The gap
 
@@ -57,7 +57,7 @@ resident rows rather than the queue, which accepts the new alias (below).
 | `summary` block (grades, ownership, classes, credits, identities) | | identical to before |
 | rows that differ | | **6**, alias list only (`RES_IMAGE_08060, 08125, 081B3, 0852F, 085ED, 08707`) |
 | aliases checked by `function_alias_audit` | 2,200 | 2,206 |
-| strict / verified identities | 261 / 306 | 261 / 306 |
+| strict / verified identities | 262 / 307 (after #1341; measured 261 / 306 before it) | unchanged by this change |
 | resident ledger | 145 rows | 145 rows, six ids renamed |
 
 No other row's classification, ownership, grade or credit moved. The alias audit (independent registry) passes on the

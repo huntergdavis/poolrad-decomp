@@ -108,7 +108,7 @@ class AuditTest(unittest.TestCase):
         self.assertTrue(set(rc.REVIEWED_NEAR_ONLY.values()).isdisjoint(ri.GAME_SPECIFIC_TARGETS))
         for start in rc.REVIEWED_NEAR_ONLY:
             self.assertEqual(self.other()[start]["classification"], "unresolved")
-        self.assertEqual(self.base["summary"]["game_verified"], 29)
+        self.assertEqual(self.base["summary"]["game_verified"], 30)   # 29 + RES_0802_02EB (overlay-called, accepted in #1341)
 
     def test_ownership_comes_only_from_game_specific_targets(self):
         grant = ri.GAME_SPECIFIC_TARGETS | {(0x802, 0x0040)}
@@ -117,7 +117,7 @@ class AuditTest(unittest.TestCase):
         before, after = self.other(), self.other(changed)
         self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {0x8060})
         self.assertEqual(after[0x8060]["classification"], "game_verified")
-        self.assertEqual(changed["summary"]["game_verified"], 30)
+        self.assertEqual(changed["summary"]["game_verified"], 31)
         self.assertEqual(changed["summary"]["unresolved"], self.base["summary"]["unresolved"] - 1)
 
     def test_a_listing_without_an_argument_or_with_a_wrong_body_is_refused(self):
