@@ -109,3 +109,19 @@ manifest at U33 branch base 289f060aeb13d1621d5a2fff632c824d915533c8.
 `library()` build (`-std=c11 -Wall -Wextra -Wpedantic -Werror`) before any media access and prints `CHECKER_BUILD_OK`.
 Registration makes the row checkable; it is **not** a credit. This row is `game_evidenced`, so acceptance still needs a
 two-factor identity argument, which this document does not yet carry.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, VP i20127)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (sha `872964a3…`) and from the CSVs on main `eb3149ac`. Each listed site decodes as `0E` (push cs) followed by `E8` call to this entry, and lies inside its caller's `overlay.csv` bound. They are near calls, so the relocation clause does not apply (ruling i19576). This section is an argument, not a credit.
+
+1. **Reached from game code: PASS, from strict-credited callers.** There are 13 sites, and every caller is `game_verified` **and** in both `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`. That is the strongest factor-1 basis in the corpus; the call sites alone meet the old strict-only A1 reading.
+   - `+0BED` and `+0BFB` in `OVL_0033_0BDE` [0BDE,0D13);
+   - `+0D1E`, `+0D2C`, `+0D3A`, `+0D48`, `+0D56` and `+0E18` in `OVL_0033_0D13` [0D13,0E9E);
+   - `+0EB9`, `+0ECB`, `+0ED9`, `+0EEB` and `+115F` in `OVL_0033_0E9E` [0E9E,11B4).
+
+   The phrase above, "no natural caller was measured, synthetic native frames only", is about **native corroboration**, not ownership. The bar allows synthetic native frames when they are declared. A missing runtime capture does not weaken a statically decoded call site inside credited code.
+2. **Operates on documented game state: PASS.**
+   - The body reads the class byte `DS:465A`. Credited `OVL_0033_11B4`'s doc ([U33_GRID_DRIVER_11B4.md](U33_GRID_DRIVER_11B4.md)) defines it as "the class byte `DS:465A` that the generators' `+08A4` leaf reads": `DS:[3648h + 2Ch*second + first]`, from window bytes `+186h/+188h`.
+   - On the high-bit path it reads ECL **window 0** through the far pointer `DS:49D2/49D4`, at byte offset `+366h` (script address `0x4AB3`). [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md) field-ledgers that window: `GetMem(0x800)`, script addresses `0x4900..0x4CFF`.
+
+**Verdict: game code.**
