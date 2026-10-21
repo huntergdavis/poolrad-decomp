@@ -151,6 +151,7 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0A32, 0x00A2): "Dos.GetTime (dos_gettime_00a2_cpu, #1245)",
     (0x0A32, 0x000B): "Dos.Intr (dos_intr_000b_cpu, #1259)",
     (0x0AF8, 0x04A9): "system IOCheck (system_iocheck_04a9_cpu, #1306)",
+    (0x0AF8, 0x1491): "system Close (system_close_1491_cpu, #1309)",
 }
 
 # A covered endpoint whose model stops by transferring into a TERMINAL must not be
