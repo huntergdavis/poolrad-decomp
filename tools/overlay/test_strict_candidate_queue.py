@@ -501,6 +501,16 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(row2["callee_readiness"]["counts"], {"runtime_unmapped": 1})
         self.assertFalse(row2["callee_readiness"]["composable"])
 
+    def test_every_runtime_coverage_row_names_a_model_in_the_tree(self):
+        """A coverage row is only as good as the model it names: the label's
+        model must exist under src/recovered (a test-target name is not a model)."""
+        root = Path(__file__).resolve().parents[2]
+        for endpoint, label in scq.RUNTIME_COVERED_ENDPOINTS.items():
+            model = label.rsplit("(", 1)[1].split(",")[0].rstrip(")")
+            self.assertTrue((root / "src" / "recovered" / f"{model}.c").is_file(),
+                            f"{endpoint}: {model}.c")
+        self.assertIn((0x0AF8, 0x13B1), scq.RUNTIME_COVERED_ENDPOINTS)
+
     def test_declared_boundary_applies_to_runtime_and_transitive_targets(self):
         """Every readiness pass consults every product: a declared boundary is
         ready whether the graph resolves it as runtime or resident, both at the
