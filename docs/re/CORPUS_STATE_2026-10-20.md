@@ -91,6 +91,23 @@ the two that are 08AE-free are blocked by indirect dispatch and a held callee.
 
 So the honest pool is **13 rows with ownership evidence, or 17 counting the unresolved four**, not 58. The cheapest ownership-evidenced row is **`OVL_03B0_0C33` at 146 B**. The 22, 26 and 32 B rows are ownership-unresolved or helper candidates, not cheap credits. There is no cheap credit left in the queue; remaining work starts at 146 B. (The VP's first figures, 63/7/56/40/21, came from a different count and were not reproduced on this export.)
 
+**Proposed identity rows: four U3B0 rows (par-a, VP i20053; arguments in each evidence doc via #1262).** These are proposals in text. par-e lands them as one PR with four commits, in this order (cheapest first). Each commit lands identity, strict, accounting and the pin together. Columns follow `reviewed_function_identities.csv`; `reviewed_commit` is the author PR's head, as for `OVL_03B0_11F3`. Each body hash was recomputed from GAME.OVR.
+
+Factor 1 for all four rests on `game_evidenced` callers that are **not themselves credited**. That is the same basis as `OVL_03B0_11F3`: the two-factor standard accepts a call site inside a `game_evidenced` function, so the identity does not come from a chain of credits.
+
+| # | id | evidence_doc | review_pr | reviewed_commit | body_sha256 | body_bytes | Factor 1 (decoded `0E E8` near sites, inside the caller's extent) | Factor 2 |
+| --- | --- | --- | ---: | --- | --- | ---: | --- | --- |
+| 1 | `OVL_03B0_0C33` | `docs/re/U3B0_ENTRY_0C33_CPU.md` | 1209 | `7df3d1ea877f847844fd1e5031922168f1fbad19` | `c7cb3ab8625088a43a7c7d35f9fa21dde2252bdfa9132e2fc5592070489fe86a` | 146 | 4 in uncredited `game_evidenced` `0D9A`: `+1023`, `+1038`, `+1049`, `+1057` | the parent-frame slots and `G=DS:6B29` that credited 0CC5's doc defines |
+| 2 | `OVL_03B0_0A08` | `docs/re/U3B0_ENTRY_0A08_CPU.md` | 1204 | `1e7c1d7d897951e880a0da9f93b93c2fc999b5d1` | `1b6c5b1ac9f26c64572151759cc73a44003c4321870f36d907e4f3d7d32bbf86` | 251 | 1 in uncredited `game_evidenced` `0D9A`: `+0FEB` | node flag +29h (U86_STRING_NODE_028D), `DS:6B29`, list head defined in 0CC5's doc |
+| 3 | `OVL_03B0_07A4` | `docs/re/U3B0_ENTRY_07A4_CPU.md` | 1202 | `7628de350784a330ddb471edd13cdd96d35b86ab` | `b4d0d09d692e50b31125fa64fbedb3316385f9dd60dc1efb5c74605b2e669eef` | 307 | 2 in uncredited `game_evidenced` callers: `+0CBC` in `0C33`, `+0EE4` in `0D9A` | the 41-byte string node: +29h flag, +2Ah/+2Ch links (same basis as 11F3) |
+| 4 | `OVL_03B0_01DA` | `docs/re/U3B0_ENTRY_01DA_CPU.md` | 1216 | `db3caa0821377cf239b1c4b978a17cf4a9796ea5` | `8676c97ae6dcaa88c9f7d68d75c75f81e4936572b517bd84a7e19876c58d96ce` | 419 | 4 in uncredited `game_evidenced` `03BD`: `+048B`, `+05E2`, `+0606`, `+0685` | 03BD's copy of the menu key list, traced from the media (GAMEPLAY_PATH §2.4). **Limit: only the main-menu caller of 03BD is documented; the strings of its other 34 callers are not claimed.** |
+
+**Refused:** `OVL_03B0_06FB` fails factor 2. Its 13 instructions have no memory operand; it pushes constants and calls resident `0709:05EB`. It stays evidence-only, and its manifest `full` row stays a readiness declaration.
+
+**Ceiling:** if all four land, the count goes from 252 to at most **256**.
+
+**Ordering note:** row 1 (`0C33`) near-calls row 3 (`07A4`), which is already `modeled`. The export marks `0C33` composable today, so landing it before `07A4` needs no readiness change.
+
 ## 4. Policy-closed
 
 - **08AE band** (`RES_08AE_IDENTITY_POLICY.md`, VP i19467): closed by the owner's policy
