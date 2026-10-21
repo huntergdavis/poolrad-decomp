@@ -94,7 +94,7 @@ the A20-off aliases. Outcomes: **480 RETURN, 8 TIME**, plus separately asserted 
   `XOR DX,DX` was **not** caught, because both `XOR`s are followed by an `ADD`/`SUB` that
   rewrites every arithmetic flag before any read; that bit is unobservable, not unchecked.
 
-ASan/UBSan C test: **28 semantic checks**, 1/1 CTest, covering the exit paths, the 32-bit
+C test: **28 semantic checks**, clean under `-fsanitize=address,undefined` (manual build with `-Wall -Wextra -Wpedantic -Werror`) and 1/1 in the Debug CTest build, covering the exit paths, the 32-bit
 overflow loop, TIME with the frame state, LIMIT, the three CODE conditions at each site,
 the ARGUMENT rejections and a missing hook.
 
