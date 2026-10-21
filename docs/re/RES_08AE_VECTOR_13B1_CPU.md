@@ -176,6 +176,8 @@ closure is complete: the body makes no call and no jump.
 **Reviewer note on the native hash.** The native comparison passed on every run (32 cases, SF/ZF/PF masked as declared
 above). The RESULT.BIN hash is **not reproducible**, though: three runs gave `013c9de2…` (this document),
 `87ea827e…` and `c7f635b1…`. `IN AL,61h` reads live emulated hardware, and that byte enters the captured result, so the
-hash is a per-run receipt, not a fixed value. Quote it as such.
+hash is a per-run receipt, not a fixed value. Quote it as such. **The comparison passes on every run while the hash
+varies:** the instability lies in a value the environment supplies (the live port byte), not in the result, so the
+evidence itself is stable.
 
 Membership is never a credit.
