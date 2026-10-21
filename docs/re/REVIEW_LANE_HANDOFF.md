@@ -122,8 +122,12 @@ used to say that overlay manifest entries "confer nothing"; that was false.) In 
   gave identical results. All 13 dependent rows see `modeled` either way, no `callee_readiness` differs, and the totals
   are 447 candidates / 58 composable in both. The effect is **latent** because 06FB's own callees are already ready. It
   would matter the moment they were not.
-- **The 06FB row is deleted inside its acceptance commit** (VP i20048), so no manifest row outlives the credit that
-  replaced it.
+- **06FB is refused identity and stays evidence-only:** factor 2 fails because its 13 instructions have no memory
+  operand, so its subject is a display service and the 2A0D precedent applies (VP i20054).
+- **06FB's manifest `full` row remains a live readiness declaration and is deliberately kept.** Its endpoint shield is
+  latent, as measured above.
+- **The deletion path is the rule for a row that IS credited:** strict credit makes its manifest row redundant, so the
+  row is deleted inside that row's acceptance commit, with a measured zero readiness delta. Nothing is pending for 06FB.
 
 The manifest gate that makes `RES_00BA_1168`/`13AB` work is a **different, resident-only** mechanism (`resident_full`,
 `resident_covered`). The loader accepts it only for strict-credited residents, as measured for `RES_0464_1951`.
