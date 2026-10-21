@@ -43,6 +43,15 @@ These are the 12, in first-arrival order (run `hybrid-stage0-b`: 976 arrivals in
     `docs/re/RESIDENT_SIDECAR_LOOKUP.md`).
   - Where in the game these bodies are reached is not measured. A stage 0 run along a gameplay route would answer it.
 
+## Recorded with the result (VP i20594)
+
+- **Coverage is a finding, not a failure.** 258 credited IDs are not on the cold-start path to the menu, and the biggest
+  blocks are unit 0038 (69), segment 00BA (25) and unit 0025 (19). They run somewhere not yet measured. The VP's hypothesis,
+  not yet tested, is the game overlays during play; stage (b) exists to answer it.
+- **Arrival counts are kept in every report, not just reachability.** A single arrival (`OVL_03B0_00CB`, `OVL_03B0_01DA`)
+  proves a body is on the path. 824 arrivals (`RES_0709_01DF`, 84% of this run's 976) prove it matters. A body that runs
+  once and a body that runs a million times need different treatment, so future hybrid reports list both numbers per ID.
+
 ## The two unknowns, kept unknown (VP i20556)
 
 - **How often `RES_0709_0626` completes before escaping: UNKNOWN.** Stage 0 runs only the original bytes, so a model escape
