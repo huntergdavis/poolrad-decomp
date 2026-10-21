@@ -1695,6 +1695,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7f_caller_1010_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7f_caller_1010_tests
              COMMAND poolrad_overlay_u7f_caller_1010_tests)
+    add_executable(poolrad_overlay_u7f_caller_1010_live_cs_tests
+                   tests/recovered/test_overlay_u7f_caller_1010_live_cs.c)
+    target_link_libraries(poolrad_overlay_u7f_caller_1010_live_cs_tests PRIVATE poolrad_recovered)
+    target_link_options(poolrad_overlay_u7f_caller_1010_live_cs_tests PRIVATE -Wl,--wrap=pr_system_fillchar_16a8)
+    add_test(NAME poolrad_overlay_u7f_caller_1010_live_cs_tests
+             COMMAND poolrad_overlay_u7f_caller_1010_live_cs_tests)
 
     add_executable(poolrad_overlay_u7f_clear_0508_tests
                    tests/recovered/test_overlay_u7f_clear_0508.c)
