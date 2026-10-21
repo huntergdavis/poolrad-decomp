@@ -179,6 +179,19 @@ class DriverInternalTest(unittest.TestCase):
             pair = self.image((0x00DC, b"\xe8\x21\x01\xcb"), (0x0200, b"\xcb"))  # member calls member
             self.assertEqual(scq.load_driver_internal(rows, folder, image=pair), {"RES_08AE_00DC", "RES_08AE_0200"})
 
+    def test_near_call_to_offset_zero_is_a_direct_call(self):
+        # Capstone prints a zero target as "0", not "0x0"; that is a direct call, never "indirect" (006C -> 0000).
+        body = b"\xe8\x21\xff\xcb"                                              # CALL 0000 from +00DC, RETF
+        with tempfile.TemporaryDirectory() as folder:
+            rows = self.table(folder) + [dict(self.table(folder)[0], id="RES_08AE_0000")]
+            Path(folder, "docs/re/DRIVER_TEST.md").write_text(f"RES_08AE_00DC RES_08AE_0000 {self.SHA}\n")
+            image = self.image((0x00DC, body), (0x0000, b"\xcb"))
+            self.assertEqual(scq.load_driver_internal(rows, folder, image=image), {"RES_08AE_00DC", "RES_08AE_0000"})
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(self.table(folder), folder, image=image)
+            self.assertIn("RES_08AE_0000 is not a member or strict", str(caught.exception))
+            self.assertNotIn("indirect", str(caught.exception))
+
     def test_committed_members_are_closure_complete_on_the_media(self):
         exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
         if not exe.is_file():
@@ -189,6 +202,9 @@ class DriverInternalTest(unittest.TestCase):
         rows = list(csv.DictReader(path.read_text().splitlines()))
         self.assertEqual(scq.load_driver_internal(rows, self.ROOT, image=image),
                          frozenset({"RES_08AE_181A", "RES_08AE_0000"}))
+        # The real 006C calls 08AE:0000 twice (printed as "call 0"); with 0000 a member it has no gap at all.
+        self.assertEqual(scq.driver_internal_closure_gaps("RES_08AE_006C", image,
+                                                         {"RES_08AE_0000", "RES_08AE_006C"}), [])
         # The real 0000 body calls Dos.GetTime: withdraw that coverage and the member must be refused.
         with mock.patch.dict(scq.RUNTIME_COVERED_ENDPOINTS):
             del scq.RUNTIME_COVERED_ENDPOINTS[(0x0A32, 0x00A2)]

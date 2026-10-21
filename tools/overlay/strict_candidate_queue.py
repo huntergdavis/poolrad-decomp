@@ -345,22 +345,43 @@ DRIVER_INTERNAL_FIELDS = ("id", "evidence_doc", "review_pr", "reviewed_commit", 
 DRIVER_INTERNAL_ID = re.compile(r"RES_08AE_[0-9A-F]{4}")
 
 
+def _direct_near_target(ins):
+    """Target of a direct near branch or call: the instruction's single immediate operand; None if indirect."""
+    from capstone.x86 import X86_OP_IMM
+    operands = ins.operands
+    return operands[0].imm & 0xFFFF if len(operands) == 1 and operands[0].type == X86_OP_IMM else None
+
+
+def _direct_far_target(ins):
+    """(segment, offset) of a direct far call or jump: two immediate operands; None if indirect."""
+    from capstone.x86 import X86_OP_IMM
+    operands = ins.operands
+    if len(operands) == 2 and all(operand.type == X86_OP_IMM for operand in operands):
+        return operands[0].imm & 0xFFFF, operands[1].imm & 0xFFFF
+    return None
+
+
 def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset()):
     """Transfers out of a member body that are not ready; empty means closure-complete.
 
     The body runs from its entry to the first return that no earlier direct forward branch jumps past, decoded
     from the loader-expanded image. A far transfer must reach a runtime-covered endpoint, a declared boundary, a
     member or a strict resident; a near call, or a near jump leaving the body, must reach a member or a strict
-    resident in the same segment. Indirect transfers and interrupts are unresolved, so they are gaps.
+    resident in the same segment. Indirect transfers and interrupts are unresolved, so they are gaps. Directness
+    comes from the decoded operand types (an immediate target), never from how the disassembler prints them.
     """
     from capstone import CS_ARCH_X86, CS_MODE_16, Cs
     seg, entry = int(member[4:8], 16), int(member[9:13], 16)
     code = bytes(image[seg * 16 + entry:seg * 16 + entry + 0x1200])
+    decoder = Cs(CS_ARCH_X86, CS_MODE_16)
+    decoder.detail = True
     farthest, body, end = entry, [], None
-    for ins in Cs(CS_ARCH_X86, CS_MODE_16).disasm(code, entry):
+    for ins in decoder.disasm(code, entry):
         body.append(ins)
-        if (ins.mnemonic.startswith("j") or ins.mnemonic.startswith("loop")) and ins.op_str.startswith("0x"):
-            farthest = max(farthest, int(ins.op_str, 16))
+        if ins.mnemonic.startswith("j") or ins.mnemonic.startswith("loop"):
+            target = _direct_near_target(ins)
+            if target is not None:
+                farthest = max(farthest, target)
         if ins.mnemonic in ("ret", "retf", "iret") and ins.address + ins.size > farthest:
             end = ins.address + ins.size
             break
@@ -372,23 +393,23 @@ def driver_internal_closure_gaps(member, image, members, strict_ids=frozenset())
 
     gaps = []
     for ins in body:
-        where, mnemonic, operand = f"+{ins.address:04X} {ins.mnemonic} {ins.op_str}", ins.mnemonic, ins.op_str
+        where, mnemonic = f"+{ins.address:04X} {ins.mnemonic} {ins.op_str}", ins.mnemonic
         if mnemonic in ("int", "int3", "into"):
             gaps.append(f"{where}: interrupt (unresolved environment edge)")
         elif mnemonic in ("lcall", "ljmp"):
-            try:
-                far_seg, far_off = (int(part, 16) for part in operand.split(", "))
-            except ValueError:
+            target = _direct_far_target(ins)
+            if target is None:
                 gaps.append(f"{where}: indirect far transfer")
                 continue
+            far_seg, far_off = target
             if (far_seg, far_off) not in RUNTIME_COVERED_ENDPOINTS and not ready(f"RES_{far_seg:04X}_{far_off:04X}"):
                 gaps.append(f"{where}: {far_seg:04X}:{far_off:04X} is not runtime-covered, declared, strict or a member")
         elif mnemonic == "call" or mnemonic == "jmp" or mnemonic.startswith("j") or mnemonic.startswith("loop"):
-            if not operand.startswith("0x"):
+            target = _direct_near_target(ins)
+            if target is None:
                 if mnemonic in ("call", "jmp"):
                     gaps.append(f"{where}: indirect near transfer")
                 continue
-            target = int(operand, 16) & 0xFFFF
             if mnemonic == "call" or not entry <= target < end:
                 if not ready(f"RES_{seg:04X}_{target:04X}"):
                     gaps.append(f"{where}: RES_{seg:04X}_{target:04X} is not a member or strict")
