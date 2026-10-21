@@ -148,7 +148,7 @@ def main():
     p.add_argument("--exe", type=Path, required=True)
     p.add_argument("rows", nargs="*")
     a = p.parse_args()
-    pricer = Pricer(json.load(open(a.queue)), a.exe.read_bytes())
+    pricer = Pricer(sq.load_fresh_export(a.queue), a.exe.read_bytes())
     print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | Declared boundaries (terminals) "
           "| 08AE entries (gateway bodies) | Other far targets (calling bodies) | Dispatch |")
     print("| --- | ---: | ---: | ---: | --- | --- | --- | --- |")
