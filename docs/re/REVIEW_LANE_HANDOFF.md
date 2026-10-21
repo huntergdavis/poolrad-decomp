@@ -35,6 +35,17 @@ whole-game denominator is unknown — never state a completion percentage.
    `GAME_SPECIFIC_TARGETS` plus `strict_full_c_addresses.csv` and nowhere else;
    `reviewed_function_identities.csv` is overlay-only, and adding resident rows
    there double-counts the resident total.
+   `function_accounting_refresh.py --apply` refuses residents, so a resident
+   credit is done by hand, the RES_00BA_1693 way (b0cd541a; #1302 for 0899
+   +0000/+0059). Each commit carries six things:
+   - the identity;
+   - the pinned counts in `resident_inventory.collect()` and
+     `resident_callable_coverage.audit_coverage()`;
+   - the strict row;
+   - a resident manifest `full` row;
+   - the regenerated resident ledger, adopted only when exactly that row changed;
+   - the checkpoint and battle card, built with the refresh tool's own
+     `make_checkpoint`/`render_battle_card`.
 
 7. **No self-credit, no self-merge.** An acceptance PR records strict + identity
    + the schema-9 checkpoint together, quotes author caveats verbatim, and
