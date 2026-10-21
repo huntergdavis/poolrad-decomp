@@ -165,3 +165,32 @@ stated base. Accounting files are included only as read-only provenance.
 `library()` build (`-std=c11 -Wall -Wextra -Wpedantic -Werror`) before any media access and prints `CHECKER_BUILD_OK`.
 Registration makes the row checkable; it is **not** a credit. This row is `game_evidenced`, so acceptance still needs a
 two-factor identity argument, which this document does not yet carry.
+
+## Identity under the two-factor standard (par-a, 2026-10-20, VP i20127)
+
+The standard is in [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20). Everything below was re-derived from GAME.OVR (sha `872964a3…`) and from the CSVs on main `eb3149ac`. Each listed site decodes as `0E` (push cs) followed by `E8` call to this entry, and lies inside its caller's `overlay.csv` bound. They are near calls, so the relocation clause does not apply (ruling i19576). This section is an argument, not a credit.
+
+1. **Reached from game code: PASS.** There are 8 sites in five callers, all `game_evidenced` and **none credited**, which is the same basis as `OVL_03B0_11F3` and tonight's four U3B0 rows:
+   - `+0734` in `OVL_007D_0721` [0721,0871);
+   - `+08D1` in `OVL_007D_0871` [0871,0925);
+   - `+0993` in `OVL_007D_0925` [0925,09E7);
+   - `+0AB9` in `OVL_007D_09E7` [09E7,0B0A);
+   - `+0D13`, `+0D5E`, `+0DAD` and `+0E13` in `OVL_007D_0C9A` [0C9A,0E60).
+2. **Operates on documented game state: PASS.** The body reads a byte at `DS:[DI+6DC2h]` and the words `DS:6DC4` and `DS:6DC6`, all inside the seven-word array `DS:6DC2..6DCF`.
+   - The native oracle of credited `OVL_007D_03A3` ([U7D_UPDATE_03A3_NATIVE_ORACLE.md](U7D_UPDATE_03A3_NATIVE_ORACLE.md), 128 cases) rebuilds that array as game state, alongside the party list at `DS:5D96`. `03A3` is in both `strict_full_c_addresses.csv` and `reviewed_function_identities.csv`.
+
+**Limit:** the array's layout and its updater are documented, but no document names its gameplay meaning, and this section does not claim one.
+
+**Verdict: game code.**
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `c9d80b75` (2026-10-20). Unicorn: 93 cases (62 return, 8 CODE, 20 CALLEE, 3 LIMIT); caller 102/102 starts, 4/4 outcomes; closure 772/798 and 84/104; 983,040 ordinary RAM bytes + aperture write stream (24,217 OUTs, 45,580 VRAM operands); ASan/UBSan 27,955; CPU14, flag masks 0. Native: 31 cases, RESULT.BIN `44d42513…` (matches this document). Body 232 B, SHA-256
+`ac3eb0a915fa30d77b06b262429879f2400d3b8584b6e97ba413dde924709c7d`, from GAME.OVR. Identity: par-a's two-factor section above (#1282). Each factor-1 site was checked from the
+media: it decodes as `0E E8` and sits at an instruction boundary inside the caller extent par-a names.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
+did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
+differential. Native agreement is claimed for that binary only; native frames are synthetic, not a reached game caller.

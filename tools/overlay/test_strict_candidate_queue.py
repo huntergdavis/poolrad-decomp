@@ -135,7 +135,7 @@ class DriverInternalTest(unittest.TestCase):
             rows = list(reader)
             members = scq.load_driver_internal(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.DRIVER_INTERNAL_FIELDS)
-        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000"}))  # #1243, #1249; accepted by par-e
+        self.assertEqual(members, frozenset({"RES_08AE_181A", "RES_08AE_0000", "RES_08AE_1742", "RES_08AE_17AE"}))  # #1243, #1249, #1250, #1253; accepted by par-e
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -156,7 +156,8 @@ class DriverInternalTest(unittest.TestCase):
             "0AF8:0001 is not runtime-covered": b"\x9a\x01\x00\xf8\x0a" + retf,   # LCALL to an uncovered endpoint
             "indirect near transfer": b"\xff\x17" + retf,                         # CALL WORD [BX]
             "indirect far transfer": b"\xff\x1f" + retf,                          # LCALL DWORD [BX]
-            "interrupt": b"\xcd\x21" + retf,                                       # INT 21h
+            "AH not statically resolved": b"\xcd\x21" + retf,                      # INT 21h, AH unknown
+            "INT 10h is not a declared environment service": b"\xb4\x00\xcd\x10" + retf,  # INT 10h
             "RES_08AE_0200 is not a member or strict": b"\xe8\x21\x01" + retf,    # CALL 0200 (a non-member)
             "no return found": b"\x90" * 16,
         }
@@ -179,6 +180,43 @@ class DriverInternalTest(unittest.TestCase):
             pair = self.image((0x00DC, b"\xe8\x21\x01\xcb"), (0x0200, b"\xcb"))  # member calls member
             self.assertEqual(scq.load_driver_internal(rows, folder, image=pair), {"RES_08AE_00DC", "RES_08AE_0200"})
 
+    def test_declared_dos_services_are_the_only_allowed_interrupts(self):
+        # VP i20129: INT 21h is allowed only with AH set by a literal MOV in the same basic block, only for the
+        # declared services, and only when the evidence document declares each service it uses.
+        setvect = b"\xb8\x08\x25\xcd\x21\xcb"                                  # MOV AX,2508h; INT 21h; RETF
+        with tempfile.TemporaryDirectory() as folder:
+            declared = f"# RES_08AE_00DC\nbody {self.SHA}\nINT 21h AH=25h: DOS set interrupt vector\n"
+            self.assertEqual(scq.load_driver_internal(self.table(folder, doc_text=declared), folder,
+                                                      image=self.image((0x00DC, setvect))), {"RES_08AE_00DC"})
+            with self.assertRaises(Exception) as caught:          # the same body, but the doc does not declare it
+                scq.load_driver_internal(self.table(folder), folder, image=self.image((0x00DC, setvect)))
+            self.assertIn("does not declare INT 21h AH=25h", str(caught.exception))
+        refused = {
+            "INT 21h AH=4Ch is not a declared environment service": b"\xb4\x4c\xcd\x21\xcb",      # MOV AH,4Ch
+            "AH not statically resolved": b"\x8a\x27\xcd\x21\xcb",                              # MOV AH,[BX]
+            "AH not statically resolved ": b"\xb4\x25\x74\x00\xcd\x21\xcb",                      # JE between
+            "AH not statically resolved  ": b"\xb4\x25\xe8\x00\x00\xcd\x21\xcb",                 # CALL between
+        }
+        for message, body in refused.items():
+            with self.subTest(message), tempfile.TemporaryDirectory() as folder:
+                doc = f"# RES_08AE_00DC\nbody {self.SHA}\nINT 21h AH=25h INT 21h AH=4Ch\n"
+                with self.assertRaises(Exception) as caught:
+                    scq.load_driver_internal(self.table(folder, doc_text=doc), folder, image=self.image((0x00DC, body)))
+                self.assertIn(message.strip(), str(caught.exception))
+
+    def test_near_call_to_offset_zero_is_a_direct_call(self):
+        # Capstone prints a zero target as "0", not "0x0"; that is a direct call, never "indirect" (006C -> 0000).
+        body = b"\xe8\x21\xff\xcb"                                              # CALL 0000 from +00DC, RETF
+        with tempfile.TemporaryDirectory() as folder:
+            rows = self.table(folder) + [dict(self.table(folder)[0], id="RES_08AE_0000")]
+            Path(folder, "docs/re/DRIVER_TEST.md").write_text(f"RES_08AE_00DC RES_08AE_0000 {self.SHA}\n")
+            image = self.image((0x00DC, body), (0x0000, b"\xcb"))
+            self.assertEqual(scq.load_driver_internal(rows, folder, image=image), {"RES_08AE_00DC", "RES_08AE_0000"})
+            with self.assertRaises(Exception) as caught:
+                scq.load_driver_internal(self.table(folder), folder, image=image)
+            self.assertIn("RES_08AE_0000 is not a member or strict", str(caught.exception))
+            self.assertNotIn("indirect", str(caught.exception))
+
     def test_committed_members_are_closure_complete_on_the_media(self):
         exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
         if not exe.is_file():
@@ -188,7 +226,15 @@ class DriverInternalTest(unittest.TestCase):
         path = self.ROOT / "docs/re/driver_internal_models.csv"
         rows = list(csv.DictReader(path.read_text().splitlines()))
         self.assertEqual(scq.load_driver_internal(rows, self.ROOT, image=image),
-                         frozenset({"RES_08AE_181A", "RES_08AE_0000"}))
+                         frozenset({"RES_08AE_181A", "RES_08AE_0000", "RES_08AE_1742", "RES_08AE_17AE"}))
+        # The real 006C calls 08AE:0000 twice (printed as "call 0"); with 0000 a member it has no gap at all.
+        self.assertEqual(scq.driver_internal_closure_gaps("RES_08AE_006C", image,
+                                                         {"RES_08AE_0000", "RES_08AE_006C"}), [])
+        # The real 137C/13B1 use INT 21h AH=35h/25h, statically resolved: no gap, and exactly those services.
+        for body, expected in (("RES_08AE_137C", {(0x21, 0x35), (0x21, 0x25)}), ("RES_08AE_13B1", {(0x21, 0x25)})):
+            services = set()
+            self.assertEqual(scq.driver_internal_closure_gaps(body, image, {body}, frozenset(), services), [])
+            self.assertEqual(services, expected)
         # The real 0000 body calls Dos.GetTime: withdraw that coverage and the member must be refused.
         with mock.patch.dict(scq.RUNTIME_COVERED_ENDPOINTS):
             del scq.RUNTIME_COVERED_ENDPOINTS[(0x0A32, 0x00A2)]
