@@ -291,7 +291,7 @@ def native_audit(span, function):
           '    mov ax,word ptr [bx+4]', '    shl ax,1', '    mov si,ax', '    mov ax,word ptr [entry_table+si]', '    mov word ptr [target_far],ax',
           '    push cs', '    mov ax,offset returned', '    push ax', '    cmp word ptr [bx+6],0', '    je no_extra', '    mov ax,0x7777', '    push ax', 'no_extra:',
           '    xor ah,ah', '    mov al,byte ptr [bx]', '    shl ax,1', '    mov si,ax',
-          '    push word ptr [flags_table+si]', '    push cs', '    pop es', f'    mov ax,{DATA_N:#x}', '    mov ds,ax']
+          '    push word ptr [flags_table+si]', '    mov ax,cs', '    mov es,ax', f'    mov ax,{DATA_N:#x}', '    mov ds,ax']
     for reg, value in ENTRY_REGS.items():
         t.append(f'    mov {reg},{value:#x}')
     t += ['    popf', '    jmp dword ptr cs:[target_far]']
@@ -362,6 +362,7 @@ def native_audit(span, function):
         for value in (segment, returned) + ((0x7777,) if case['extra'] else ()):
             sp -= 2
             put16(memory, segment, sp, value)
+        put16(memory, segment, sp - 2, NATIVE_FLAGS[case['flags']])       # the harness' PUSHed flag word stays below the entry SP
         cpu = Cpu(*ENTRY_REGS.values(), sp, CALLER_N, ENTRIES[case['entry']], DATA_N, segment, segment, NATIVE_FLAGS[case['flags']])
         ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
         status = function(ram, SIZE, ctypes.byref(cpu))
