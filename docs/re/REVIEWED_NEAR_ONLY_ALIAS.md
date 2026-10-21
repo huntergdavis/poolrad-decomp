@@ -175,3 +175,8 @@ could therefore have been listed without the loader noticing. **No listed body w
 so a later pass supersedes an earlier BLOCKED and a mention in another row's text is not a verdict. Negative controls on the
 real page: `RES_0464_1509`, `1484`, `1596` and `RES_0709_0000` read FAIL and `RES_0464_007B` BLOCKED. This is the
 claim "the loader requires a PASS verdict" made true after the fact; until this change it was only true of the data.
+
+**Measured delta of the second door** (main `dc24b0d2`, fresh export before and after): 898 originals before and after;
+`summary` identical; exactly **1** row differs (`RES_IMAGE_07147`), alias list only (`RES_0709_00B7` added beside `RPRO_07147`);
+aliases 2,216 to 2,217; strict 262 and identities 307 unchanged; the independent alias audit passes (898 starts, 0 duplicate
+originals, 0 duplicate credits). Ledger: one id renamed; checkpoint: the same two values re-pinned, `function_queue_audit.py` rc 0.

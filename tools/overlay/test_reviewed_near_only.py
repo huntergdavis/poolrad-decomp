@@ -209,8 +209,8 @@ class AuditTest(unittest.TestCase):
         with self.assertRaises(SystemExit) as caught:
             rc.reviewed_residents(image, listing={0x8061: (0x802, 0x0040)})
         self.assertIn("body hash differs", str(caught.exception))
-        listing = dict(rc.REVIEWED_NEAR_ONLY); listing[0x8736] = (0x802, 0x0716)   # overlay-called, not a raw prologue
-        with mock.patch.object(rc, "REVIEWED_NEAR_ONLY", listing):
+        listing = dict(rc.REVIEWED_RESIDENTS); listing[0x8736] = (0x802, 0x0716)   # overlay-called, not a raw prologue
+        with mock.patch.object(rc, "REVIEWED_RESIDENTS", listing):
             with self.assertRaises(SystemExit):
                 rc.audit_coverage(self.exe, self.ovr)
 
