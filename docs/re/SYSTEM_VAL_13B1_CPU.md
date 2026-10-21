@@ -99,3 +99,26 @@ verified with the media absent.
 
 No strict, identity, manifest or driver_internal row is proposed. Per VP i20214, the rows it unlocks are to be reported as a
 delta once the row lands, never as a credit.
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20245)
+
+The row `(0x0AF8, 0x13B1): "system Val longint (system_val_13b1_cpu, #1303)"` lands in `RUNTIME_COVERED_ENDPOINTS`. It
+is readiness only, never a credit. It was reproduced at main `e7362e73`, not proofread.
+
+- **Unicorn: 108 cases, all `RETURN`.** Starts 96/96, conditional outcomes 44/44, 103 independent value checks, CPU14
+  plus all 1,048,576 RAM bytes, flag masks 0. The spans and the two SHA-256 values equal the table above.
+- **Native DOSBox-X: 47 cases equal.** CPU14, the 1 KiB stack and 272 string bytes, flag masks 0. RESULT.BIN
+  `cb5fed45…` equals this document's value; this one is not a per-run receipt, because no live port enters it. The
+  emulator is `/usr/bin/dosbox-x` 2026.01.02, SHA-256 `99d74601…`, not the pinned `5a9c7c53` build (a declared
+  substitution).
+- **ASan/UBSan with `-Werror`:** `test_system_val_13b1_cpu.c` passes 50 semantic checks.
+
+**Measured readiness delta** (candidate queue, before and after this row): 440 / 51 / 9 → 440 / **52** / 9.
+- `OVL_007F_0294` goes 1 → 0 unready and **becomes composable**. Its model is #1307.
+- Its callers `OVL_0077_2156` (7 → 6), `OVL_0077_24A7` (3 → 2) and `OVL_007F_0CEB` (4 → 3) each lose one blocker.
+- Composable is not credited. `0294` still needs its own acceptance. Its argument-borne factor 2
+  ([U7F_NUMBER_0294_CPU.md](U7F_NUMBER_0294_CPU.md)) is a claim for that review, not settled here.
+
+**Corrected in the same commit:** the `1254` and `1366` rows named `system_str_res1037_cpu`, which is a CTest target,
+not a model. The model is `src/recovered/system_str_1366_cpu.c`. A new test requires every coverage row's label to name
+a model source in the tree. It fails on the pre-fix table.
