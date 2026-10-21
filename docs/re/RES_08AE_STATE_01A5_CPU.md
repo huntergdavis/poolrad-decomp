@@ -104,7 +104,11 @@ the accepting review after the callees are:
 ## Checker, gates and reproduction
 
 `res08ae_state_01a5_cpu_audit.py` declares `CHECKER_ROWS=('RES_08AE_01A5',)` and implements `--compile-only` through the same `library()` build, printing `CHECKER_BUILD_OK` with no media.
-GATE_PENDING
+
+Gate results on current main (`a22cbfac`): `check_checker_builds.py RES_08AE_01A5 --require-current-main` PASS (1 actual checker build for 1 row); ASan/UBSan C test 45 checks, exit 0; focused CTest
+`poolrad_resident_08ae_state_01a5_cpu_tests` 1/1 passed; combined receipt `--unicorn --native`: 603 stopped or returned cases + 5 ARGUMENT, 18/18 starts, 6/6 outcomes, 225 reference-checked, 0 masked RAM bytes
+(Unicorn); native 48 runs, RESULT.BIN `1d501ffd...07a5`, 982,784 bytes omitted. The pairing gate is run on the committed change.
+
 
     PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 python3 tools/overlay/res08ae_state_01a5_cpu_audit.py --unicorn --native --output resources/01a5-evidence.json
     python3 tools/overlay/check_checker_builds.py RES_08AE_01A5 --require-current-main --output resources/01a5-checker-build.json
