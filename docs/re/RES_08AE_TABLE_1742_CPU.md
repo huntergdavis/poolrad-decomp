@@ -34,9 +34,13 @@ whole span, the single return, the instruction count, that the body contains no 
 conditional jumps and their targets, and that the **only loader relocation in the body is the data-segment immediate at `174B`**
 (`MOV SI,08AEh`), which the model reads live.
 
-Callers: the resident dispatcher `00DC` makes **four near calls** to this entry (`+0107`, `+0132`, `+0144`, `+0170`); a
-hash-locked scan of every overlay segment fixup finds **zero direct far calls** to it. Both facts are asserted by the checker.
-They establish use, not game-specific source identity.
+Callers: a scan of **every `E8` in the whole 08AE segment** whose target is `1742`, then decoded, finds **five near calls**: four in the
+resident dispatcher `00DC` (`+0107`, `+0132`, `+0144`, `+0170`) and one in the function at `017B` (`+0195`, which then calls `17AE` at `+019C`
+with argument 0, as it does `1742`). A hash-locked scan of every overlay segment fixup finds **zero direct far calls** to it. The checker asserts the
+raw candidate list and the decoded list equal this census. They establish use, not game-specific source identity.
+
+*Correction (this change):* the merged text and checker counted only the four `00DC` sites because the decode covered the `00DC` range only; the `017B`
+site at `+0195` was missed. The body, model, differential and native evidence are unchanged; only this use census and its assertion were incomplete.
 
 ## Behavior and contract
 
