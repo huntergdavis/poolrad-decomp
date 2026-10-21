@@ -62,7 +62,7 @@ The ReadKey hash matches the declaration's `10e41540…`. The audit asserts:
 ## Validation
 
 Receipt: 2026-10-20 20:42:44–20:45:17 PDT, run on the branch stacked on #1268 (main `decd4e16`), which
-then merged main `3a2b1bd0` with no change to these files.
+then merged main up to `e3dfa9eb` with no change to these files.
 
 **Declared stub, identical in every oracle.** For AH=00h the stub sets AX := the case's key word and leaves
 the flags as they were at the INT (IRET with the frame's flags). Natively the INT 16h vector is saved and
