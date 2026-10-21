@@ -101,3 +101,11 @@ in tools/overlay/u25_load_word_0e0c_native.py. Bounded deja searches for these
 addresses, the U33 classifier, and native interrupt isolation produced no
 completed prior-session finding. Neither U33 nor U77 appeared in the strict
 manifest at U33 branch base 289f060aeb13d1621d5a2fff632c824d915533c8.
+
+
+## Checker registration (review lane, 2026-10-20)
+
+`CHECKER_ROWS = ('OVL_0033_08A4',)` registers this audit with the handoff gate. `--compile-only` runs the audit's own
+`library()` build (`-std=c11 -Wall -Wextra -Wpedantic -Werror`) before any media access and prints `CHECKER_BUILD_OK`.
+Registration makes the row checkable; it is **not** a credit. This row is `game_evidenced`, so acceptance still needs a
+two-factor identity argument, which this document does not yet carry.
