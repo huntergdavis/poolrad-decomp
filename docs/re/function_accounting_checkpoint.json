@@ -5,7 +5,7 @@
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "e9a3e3577debf9334a7284914e5edcfd82813d2eede83048e4d86de1c9e40222",
+    "resident_audit": "a42cada18dcab8140dd5c7096425beb8c63579e5976b7ceb7150a839c3e00006",
     "reviewed_identities": "478431231f643d9a4f98f50af77ebb9212a89a39c1288af8d1bf880764170f8c"
   },
   "inputs": {
@@ -13,7 +13,7 @@
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "e62553e6fcc651e606514dd47e5c8cdb3a3891765c495a16587629f00e54740d",
+  "queue_sha256": "f4aec725fd01d8d417432451cf47210d8ed17f7de5d773138fb83f4b300309e9",
   "reviewed_change": {
     "approval_reference": "resident acceptance of RES_0899_0059 (VP i20209, reviewer par-e); follows the RES_00BA_1693 resident precedent",
     "approved_by": "PM",

@@ -564,7 +564,11 @@ def load_driver_internal(rows, root=ROOT, fields=None, image=None, strict_ids=fr
 def resident_ledger_ids(root=ROOT):
     """Ids of overlay-called resident entries (rows of resident_callable_ledger.csv)."""
     path = Path(root) / RESIDENT_LEDGER
-    return frozenset(row["id"] for row in csv.DictReader(path.read_text().splitlines())) if path.is_file() else frozenset()
+    if not path.is_file():
+        return frozenset()
+    # Only overlay-called rows: a reviewed near-only body also carries a RES_ name but is not an overlay-called entry.
+    return frozenset(row["id"] for row in csv.DictReader(path.read_text().splitlines())
+                     if row["kind"] == "overlay_called")
 
 
 def load_resident_runtime(rows, root=ROOT, fields=None, image=None, strict_ids=frozenset(), driver_internal=frozenset(),
