@@ -1164,6 +1164,11 @@ if(BUILD_TESTING)
     add_executable(poolrad_overlay_u3b9_bitmap_set_release_048f_cpu_tests
                    tests/recovered/test_overlay_u3b9_bitmap_set_release_048f_cpu.c)
     target_link_libraries(poolrad_overlay_u3b9_bitmap_set_release_048f_cpu_tests PRIVATE poolrad_recovered)
+    add_executable(poolrad_overlay_0077_275b_live_cs_tests
+                   tests/recovered/test_overlay_0077_275b_live_cs.c
+                   src/recovered/overlay_0077_275b_cpu.c)
+    target_include_directories(poolrad_overlay_0077_275b_live_cs_tests PRIVATE include)
+    add_test(NAME poolrad_overlay_0077_275b_live_cs_tests COMMAND poolrad_overlay_0077_275b_live_cs_tests)
     add_executable(poolrad_overlay_0077_275b_cpu_tests
                    tests/recovered/test_overlay_0077_275b_cpu.c)
     target_link_libraries(poolrad_overlay_0077_275b_cpu_tests PRIVATE poolrad_recovered)

@@ -2,7 +2,6 @@
 #include "poolrad/recovered/overlay_0077_275b_cpu.h"
 
 #define MASK (PR_U9E_10E4_RAM_SIZE - 1u)
-#define RESIDENT_CS 0x00BAu
 #define SEGMENT_0BB8 0x0BB8u
 #define SEGMENT_13AB 0x13ABu
 #define CONSTANT_1500 0x05DCu
@@ -135,7 +134,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     push(&m, caller_segment);
     return_offset = 0x276Cu;
     push(&m, return_offset);
-    c->cs = RESIDENT_CS;
+    c->cs = rd(&m, caller_segment, 0x276Au);   /* the loader-relocated segment word of the 9A LCALL at 2767 */
     c->ip = SEGMENT_0BB8;
     if (diag != NULL) diag->calls = 1u;
     *budget = RESIDENT_BUDGET;   /* fresh per resident call; LIMIT would be a CALLEE stop */
@@ -177,7 +176,7 @@ pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,
     push(&m, caller_segment);
     return_offset = 0x27ADu;
     push(&m, return_offset);
-    c->cs = RESIDENT_CS;
+    c->cs = rd(&m, caller_segment, 0x27ABu);   /* the loader-relocated segment word of the 9A LCALL at 27A8 */
     c->ip = SEGMENT_13AB;
     if (diag != NULL) diag->calls = 2u;
     *budget = RESIDENT_BUDGET;
