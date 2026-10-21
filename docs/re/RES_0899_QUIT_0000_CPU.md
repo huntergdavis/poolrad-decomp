@@ -165,7 +165,11 @@ modelled body is patched.
 - the BIOS mode byte;
 - the number of GetTime calls.
 
-RESULT.BIN SHA-256 `01182f30ace85c9018e4e257337382dfcc5251218ee07919a60f9637d3d69935`; IMAGE.BIN (relocated to 3000h)
+RESULT.BIN SHA-256 `01182f30ace85c9018e4e257337382dfcc5251218ee07919a60f9637d3d69935` is **a per-run receipt, not a
+fixed value to compare across runs**. RESULT.BIN records the live IN 61h port byte that DOSBox-X supplies, and that
+byte varies from run to run: par-e's reproduction got `74957ab9…`. The comparison passes on every run. Only the 20
+IN-61h-masked cases are affected, and they are otherwise fully unmasked. **The variation is in a value the environment
+supplies, not in the result.** IMAGE.BIN (relocated to 3000h)
 `02bac6e8cd3c3e6450f1f67d87ebc450bdaaf506261fcfca6537082e1507b2fe`. The binary is `/usr/bin/dosbox-x`, SHA-256 `99d74601…`,
 2026.01.02. It is **not** the pinned `5a9c7c53` build; the receipt's `dosbox_x` block records this.
 
