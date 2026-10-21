@@ -45,10 +45,30 @@ ACCOUNTING = ROOT / "resources/function-accounting-current"
 MEDIA = ROOT / "resources/DOS/POOLRAD"
 INPUT_EXIT = 4
 
-# Readiness states that leave a callee unusable as a dependency.
-UNREADY = {"untranslated", "resident_unmapped", "resident_callback",
-           "runtime_unmapped", "partial", "modeled_blocked", "verified",
-           "interface_caveat", "resident_interface_caveat"}
+# Every readiness state the queue can emit for a callee. UNREADY is derived from
+# this vocabulary instead of being hand-listed: a hand-written subset silently
+# omitted `indirect_unresolved`, so six rows with an indirect dispatch were
+# counted as carrying zero unready callees and a dispatcher priced as free.
+# Adding a state to the queue now requires adding it here, and the vocabulary
+# test fails if the queue emits something this module does not know.
+READINESS_STATES = {
+    "strict", "modeled", "resident_covered", "runtime_covered",
+    "declared_boundary", "untranslated", "resident_unmapped",
+    "resident_callback", "runtime_unmapped", "partial", "modeled_blocked",
+    "verified", "indirect_unresolved", "interface_caveat",
+    "resident_interface_caveat",
+}
+
+# States that remain usable as a dependency. `declared_boundary` is usable for
+# composition but can never be credited; that credit rule lives in
+# check_boundary_credits.py, not here.
+USABLE_DEPENDENCIES = {"strict", "modeled", "resident_covered",
+                       "runtime_covered", "declared_boundary"}
+
+# States that leave a callee unusable as a dependency. An indirect callee is
+# unready because its target set is unbounded, so no one-hop figure is a bound
+# for a row that contains one.
+UNREADY = READINESS_STATES - USABLE_DEPENDENCIES
 
 
 def media(root):
