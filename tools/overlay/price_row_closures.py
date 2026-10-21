@@ -8,7 +8,11 @@ START.EXE (first-return span that no earlier branch jumps past, instruction-deco
 near/far calls), SYSTEM endpoints against RUNTIME_COVERED_ENDPOINTS. Strict-credited
 resident bodies are terminals. Calls into the 08AE driver segment are recorded with the
 resident gateway body that makes them. Figures are floors: bodies are counted once,
-runtime_unmapped endpoints are listed and left unpriced.
+runtime_unmapped endpoints are listed and left unpriced. DECLARED boundary endpoints
+(strict_candidate_queue.DECLARED_BOUNDARY_ENDPOINTS) compose as ready dependencies, so
+they are terminals: listed in their own column, never walked or priced. Before
+2026-10-20 the walk entered 0A40:02FD/030F and added the CRT internals behind them
+(about 1,232 B) to every row that reached them.
 
     python3 tools/overlay/price_row_closures.py --queue resources/strict-candidate-queue/queue.json \
         --exe resources/DOS/POOLRAD/START.EXE [ROW ...]
@@ -26,7 +30,8 @@ import strict_candidate_queue as sq  # noqa: E402
 from resident_loader_map import unpack  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
-OK = ("strict", "resident_covered", "runtime_covered")
+OK = ("strict", "resident_covered", "runtime_covered", "declared_boundary")
+DECLARED = frozenset(sq.DECLARED_BOUNDARY_ENDPOINTS)
 RESIDENT_SEGMENTS = (0x464, 0x802, 0x899, 0x709, 0x3F1, 0xA40)
 DEFAULT_ROWS = ("OVL_0025_1684 OVL_006F_0482 OVL_0077_299C OVL_006F_0010 OVL_006F_22D5 OVL_0025_1CC3 "
                 "OVL_006F_1262 OVL_0025_0511 OVL_03CE_01C8 OVL_0025_0411").split()
@@ -64,6 +69,9 @@ class Pricer:
         rid = "RES_%04X_%04X" % (seg, offset)
         if rid in acc["bodies"] or rid in acc["strict"]:
             return
+        if rid in DECLARED:
+            acc["declared"].add(rid)
+            return
         if rid in self.strict:
             acc["strict"].add(rid)
             return
@@ -84,7 +92,9 @@ class Pricer:
                 except ValueError:
                     continue
                 if far_seg == 0xAF8:
-                    if (far_seg, far_off) not in self.covered:
+                    if "RES_%04X_%04X" % (far_seg, far_off) in DECLARED:
+                        acc["declared"].add("RES_%04X_%04X" % (far_seg, far_off))
+                    elif (far_seg, far_off) not in self.covered:
                         acc["unmapped"].add(far_off)
                 elif far_seg in RESIDENT_SEGMENTS:
                     self.resident(far_seg, far_off, acc)
@@ -108,6 +118,9 @@ class Pricer:
 
     def expand(self, row, acc):
         for t in row["callee_readiness"]["targets"]:
+            if t["readiness"] == "declared_boundary":
+                acc["declared"].add(t.get("id") or "%04X:%04X" % (t.get("seg") or 0, t.get("offset") or 0))
+                continue
             if t["readiness"] in OK:
                 continue
             if t["readiness"] == "indirect_unresolved":
@@ -118,7 +131,8 @@ class Pricer:
                 self.closure(t["id"], acc)
 
     def price(self, row_id):
-        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other=set(), bad=set(), dispatch=set())
+        acc = dict(bodies={}, strict=set(), unmapped=set(), driver={}, other=set(), bad=set(), dispatch=set(),
+                   declared=set())
         row = self.rows[row_id]
         acc["bodies"][row_id] = row["bytes"]
         self.expand(row, acc)
@@ -132,13 +146,15 @@ def main():
     p.add_argument("rows", nargs="*")
     a = p.parse_args()
     pricer = Pricer(json.load(open(a.queue)), a.exe.read_bytes())
-    print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | 08AE entries (gateway bodies) | Dispatch |")
-    print("| --- | ---: | ---: | ---: | --- | --- |")
+    print("| Row | Closure (B) | Bodies | Uncovered SYSTEM endpoints | Declared boundaries (terminals) "
+          "| 08AE entries (gateway bodies) | Dispatch |")
+    print("| --- | ---: | ---: | ---: | --- | --- | --- |")
     for row_id in a.rows or DEFAULT_ROWS:
         acc = pricer.price(row_id)
         driver = "; ".join("08AE:%04X <- %s" % (o, ", ".join(sorted(g))) for o, g in sorted(acc["driver"].items())) or "none"
-        print("| %s | %d | %d | %d | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
-              len(acc["unmapped"]), driver, ", ".join(sorted(acc["dispatch"])) or "none"))
+        print("| %s | %d | %d | %d | %s | %s | %s |" % (row_id, sum(acc["bodies"].values()), len(acc["bodies"]),
+              len(acc["unmapped"]), ", ".join(sorted(acc["declared"])) or "none", driver,
+              ", ".join(sorted(acc["dispatch"])) or "none"))
 
 
 if __name__ == "__main__":
