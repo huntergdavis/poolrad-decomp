@@ -28,7 +28,7 @@ SOURCES = ['resident_0802_05cd_cpu', 'resident_0802_025d_cpu', 'resident_0802_02
 FAR_SITES = [0x05E2, 0x05F5, 0x0605, 0x060F, 0x062C, 0x063B, 0x0640, 0x064A, 0x0670, 0x067A, 0x067F, 0x068D, 0x0692, 0x06AA,
              0x06AF, 0x06CA, 0x06CF]
 CONDITIONALS = {0x065E: (0x06DA, 0x0660)}
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'PROMPT', 3: 'RUNERROR', 4: 'DIVIDE', 5: 'SERVICE', 6: 'CALLEE'}
+STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'PROMPT', 3: 'RUNERROR', 4: 'DIVIDE', 5: 'SERVICE', 6: 'CALLEE', 7: 'LIMIT'}
 TERMINAL = ('RETURN', 'RUNERROR')
 SERVICE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(Cpu), ctypes.POINTER(Cpu))
 READ_FN, SEEK_FN = A716.READ_FN, A716.SEEK_FN
@@ -39,7 +39,8 @@ BLOB = bytes([0x34, 0x12]) + bytes(range(64))
 
 class Env(ctypes.Structure):
     _fields_ = [('open', SERVICE_FN), ('open_context', ctypes.c_void_p), ('close', SERVICE_FN), ('close_context', ctypes.c_void_p),
-                ('read', READ_FN), ('read_context', ctypes.c_void_p), ('seek', SEEK_FN), ('seek_context', ctypes.c_void_p)]
+                ('read', READ_FN), ('read_context', ctypes.c_void_p), ('seek', SEEK_FN), ('seek_context', ctypes.c_void_p),
+                ('retries', ctypes.c_uint)]                                  # 025D's retry budget; 65535 is never reached here
 
 
 class Diag(ctypes.Structure):
@@ -229,7 +230,7 @@ def run_c(f, cpu, ram_bytes, spec, fs_state):
     keep = (SERVICE_FN(service), READ_FN(read), SEEK_FN(lseek))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(ram_bytes); c = Cpu.from_buffer_copy(cpu); d = Diag()
     ctx = ctypes.cast(ram, ctypes.c_void_p)
-    env = Env(keep[0], ctx, keep[0], ctx, keep[1], None, keep[2], None)
+    env = Env(keep[0], ctx, keep[0], ctx, keep[1], None, keep[2], None, 65535)
     status = STATUS[f(ram, SIZE, ctypes.byref(c), ctypes.byref(env), ctypes.byref(d))]
     return status, c, bytes(ram), fs, sps
 

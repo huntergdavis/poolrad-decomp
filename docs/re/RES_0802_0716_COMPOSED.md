@@ -145,6 +145,38 @@ where the peek model and the canonical contract differ. **It is covered, by name
 **Not covered:** the 0193 and 0899:0059 audits standalone. Their scripts are all type-ahead (see above). A waited key reaches
 0193 and ReadKey only through the composed run and the 025D audit, which is where every prompt loop in this cluster lives.
 
+## Loop budgets (VP i20444, i20463)
+
+The driver has two loops. Both are bounded, but not by a budget:
+
+- The **seam loop** re-enters 0716 after each leaf. It is bounded because 0716 advances at every seam.
+- The **05CD loop** re-runs 05CD after each insert-disk prompt. It is bounded only by input: every re-prompt consumes one
+  scripted key, and ReadKey refuses when the script is empty.
+
+A structural bound is not a budget. A defective model can break the structure, and then the structural argument proves nothing. That is exactly what happened at 0768 (#1357), where a mutant removed the row increment and the model spun for 67 minutes. A budget is the only bound a bug cannot remove (VP i20444, i20463). The receipt above predates this change. Before it, both loops had no counter, and my report i20456 (08:06 PDT) claiming they
+did was wrong (corrected in i20457).
+
+Each loop now has a declared budget. Running past it stops **LIMIT** with nothing of the next step executed:
+
+| Budget | Counts | LIMIT state | Original stopped at |
+|---|---|---|---|
+| `max_seams` | leaf calls begun from 0716 | the leaf's entry; `seam` = the call site | the leaf entry whose previous instruction is one of 0716's eight call sites (`0775 084A 084D 08AD 08BC 091D 0935 0941`) |
+| `max_disk_prompts` | insert-disk prompts per 05CD seam | 0193's entry; seam `0775`, nested `02AA` | the arrival at `0193` with `[SP] = 02AD`, counted per 05CD seam |
+| `retries` | 025D's taken `02B7` loop-backs, via 05CD | IP `02B7`; seam `0775`, nested `02B7` | the taken `02B7` arrival, counted per 025D entry and per resume |
+
+**Re-run, 2026-10-21 08:20-08:22 PDT:** 87 cases. The 84 earlier cases are unchanged: RETURN 67 / RUNERROR 8 / EXIT 8 /
+STALLED 1, 0 non-architectural stops. There are 3 new budget cases, each LIMIT and equal to the original in CPU14, 1 MiB,
+file state, the DOS log and the environment log:
+
+- `budget-retries-0`: `0775/02B7`;
+- `budget-disk-prompts-1`: `0775/02AA`;
+- `budget-seams-3`: the fourth leaf, DECODE at `0935`.
+
+The audit fails if LIMIT appears anywhere other than the budget cases, or if a budget case does not stop LIMIT.
+
+**Mutation:** the seam budget off by one is caught in 152 s at `budget-seams-3` (`LIMIT at 0941, original 0935`). The
+source was restored byte-identical.
+
 ## Reproduction
 
 `CHECKER_ROWS = ('RES_0802_0716',)`: a second checker for the 0716 row, beside `res0802_0716_cpu_audit.py`.

@@ -43,7 +43,12 @@ class FileEnv(ctypes.Structure):
 
 class Env(ctypes.Structure):
     _fields_ = [('loader', A716.Env716), ('file', FileEnv), ('prompt', P.Env193), ('heap_steps', ctypes.c_uint),
-                ('decode_arrivals', ctypes.c_uint32)]
+                ('decode_arrivals', ctypes.c_uint32), ('retries', ctypes.c_uint), ('max_seams', ctypes.c_uint),
+                ('max_disk_prompts', ctypes.c_uint)]
+
+
+WIDE = 65535                                                          # a loop budget no ordinary case reaches
+CALL_SITES = (0x0775, 0x084A, 0x084D, 0x08AD, 0x08BC, 0x091D, 0x0935, 0x0941)   # 0716's eight leaf calls (RESUME - 3, QUIT 084D)
 
 
 class Diag(ctypes.Structure):
@@ -69,12 +74,14 @@ def stall_archive(block_id=40):
 
 
 def build(reloc, stub, o):
-    o = dict(o); extra = {k: o.pop(k) for k in ('appear_after', 'gone_from', 'seek_fail', 'keys', 'typeahead') if k in o}
+    o = dict(o); extra = {k: o.pop(k) for k in ('appear_after', 'gone_from', 'seek_fail', 'keys', 'typeahead', 'retries', 'max_seams',
+                                                'max_disk_prompts') if k in o}
     m, c, spec = A716.build(reloc, keys=extra.get('keys', (0x1C0D,)), **o)
     s = physical(STUB_SEG, 0); m[s:s + len(stub)] = stub         # the 0193 audit's logging INT 10h stub, in place of QUIT's
     put16(m, LOG_SEG, 0, 0)
     spec.update(appear_after=extra.get('appear_after'), gone_from=extra.get('gone_from'), seek_fail=extra.get('seek_fail', False),
-                typeahead=list(extra.get('typeahead', ())))
+                typeahead=list(extra.get('typeahead', ())), retries=extra.get('retries', WIDE), max_seams=extra.get('max_seams', WIDE),
+                max_disk_prompts=extra.get('max_disk_prompts', WIDE))
     return m, c, spec
 
 
@@ -92,7 +99,7 @@ def run_unicorn(name, m, c, spec, stop_at=None):
     uc.mem_map_ptr(0, SIZE, 7, ctypes.addressof(backing)); uc.mem_map_ptr(SIZE, SIZE, 7, ctypes.addressof(backing))
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
-    s = dict(stop=None, steps=0, arrivals=0, snap=None, after=None)
+    s = dict(stop=None, steps=0, arrivals=0, snap=None, after=None, last=None, seams=0, disk=0, retry=0, site=None)
     known = {base + v for v in Q.SEG.values()} | {cs0802, STUB_SEG, base + R.CRT}
 
     def cpu_now():
@@ -109,6 +116,26 @@ def run_unicorn(name, m, c, spec, stop_at=None):
         if (cs, ip) == (base + R.CRT, 0x014B):
             s['stop'] = 'BREAK'; return uc.emu_stop()
         check(cs in known, f'escape {name} {cs:04x}:{ip:04x}')
+        prev, s['last'] = s['last'], (cs, ip)
+        # The three loop budgets, counted on the arrivals the model counts; the refused step is not executed.
+        if prev is not None and prev[0] == cs0802 and prev[1] in CALL_SITES:      # a leaf begun from 0716
+            if s['seams'] >= spec['max_seams']:
+                s['stop'] = 'LIMIT'; s['site'] = prev[1]; return uc.emu_stop()
+            s['seams'] += 1
+            if prev[1] == 0x0775:
+                s['disk'] = 0                                         # disk prompts are counted per 05CD seam
+        if (cs, ip) == (cs0802, 0x025D):
+            s['retry'] = 0                                            # 025D's budget is fresh per entry ...
+        if (cs, ip) == (cs0802, 0x0193):
+            sp_, ss_ = uc.reg_read(RR.UC_X86_REG_SP), uc.reg_read(RR.UC_X86_REG_SS)
+            if struct.unpack('<H', bytes(backing[physical(ss_, sp_):physical(ss_, sp_) + 2]))[0] == 0x02AD:
+                if s['disk'] >= spec['max_disk_prompts']:
+                    s['stop'] = 'LIMIT'; s['site'] = 0x02AA; return uc.emu_stop()
+                s['disk'] += 1; s['retry'] = 0                        # ... and per resume after a prompt
+        if (cs, ip) == (cs0802, 0x02B7) and uc.reg_read(RR.UC_X86_REG_EFLAGS) & 0x40:
+            if s['retry'] >= spec['retries']:
+                s['stop'] = 'LIMIT'; s['site'] = 0x02B7; return uc.emu_stop()
+            s['retry'] += 1
         if stop_at is not None and (cs, ip) == (cs0802, 0x051F):
             s['arrivals'] += 1
             if s['arrivals'] == stop_at:
@@ -175,7 +202,8 @@ def run_unicorn(name, m, c, spec, stop_at=None):
     uc.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, RR.UC_X86_INS_IN)
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, RR.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=80000000)
-    check(s['stop'] in ('RETURN', 'RUNERROR', 'EXIT', 'BREAK', 'DIVIDE', 'STALLED'), f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in ('RETURN', 'RUNERROR', 'EXIT', 'BREAK', 'DIVIDE', 'STALLED', 'LIMIT'), f'original stop {name}: {s["stop"]}')
+    spec['limit_site'] = s['site']
     if s['stop'] == 'STALLED':
         check(s['after'] == s['snap'][1], f'{name}: RAM changed across {STALL_EXTRA} further 050F iterations')
         return s['stop'], s['snap'][0], s['snap'][1], fs, env
@@ -238,7 +266,7 @@ def run_c(f, m, c, spec):
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m); cpu = Cpu.from_buffer_copy(c); d = Diag()
     ctx = ctypes.cast(ram, ctypes.c_void_p)
     e = Env(A716.Env716(fns[1], None, fns[2], None, fns[2], None, 100000), FileEnv(fns[0], ctx, fns[0], ctx),
-            P.Env193(B.Env(video, None), ke), 100000, 1000000)
+            P.Env193(B.Env(video, None), ke), 100000, 1000000, spec['retries'], spec['max_seams'], spec['max_disk_prompts'])
     status = STATUS[f(ram, SIZE, ctypes.byref(cpu), ctypes.byref(e), ctypes.byref(d))]
     return status, cpu, bytes(ram), fs, env, d
 
@@ -251,7 +279,12 @@ def cases():
             ('insert-disk-through-05cd', dict(blob=synth, block_id=10, flag557c=0, appear_after=2, keys=(0x1C0D, 0x1C0D))),
             ('insert-disk-two-prompts', dict(blob=synth, block_id=11, flag557c=0, appear_after=3, keys=(0x1C0D, 0x1C0D, 0x1C0D))),
             ('insert-disk-typeahead-drained', dict(blob=synth, block_id=12, flag557c=0, appear_after=3, keys=(0x1C0D, 0x1C0D),
-                                                   typeahead=(0x1E61, 0x3062)))]
+                                                   typeahead=(0x1E61, 0x3062))),
+            # the three loop budgets (VP i20463), each against the original stopped at the same arrival
+            ('budget-retries-0', dict(blob=synth, block_id=10, flag557c=0, appear_after=2, keys=(0x1C0D, 0x1C0D), retries=0)),
+            ('budget-disk-prompts-1', dict(blob=synth, block_id=11, flag557c=0, appear_after=3, keys=(0x1C0D, 0x1C0D, 0x1C0D),
+                                           max_disk_prompts=1)),
+            ('budget-seams-3', dict(blob=synth, block_id=10, max_seams=3))]
     ecl1 = (ROOT / 'resources/DOS/POOLRAD/ECL1.DAX').read_bytes()
     first = A716.parse_dax(ecl1)[0][0][0]
     out += [(f'dirty-{fl:04x}', dict(blob=ecl1, block_id=first, flags=fl)) for fl in DIRTY_FLAGS]
@@ -261,24 +294,29 @@ def cases():
 
 
 def differential(reloc, stub, f):
-    stops, total_seams, total_prompts, cs_, non_architectural = {}, 0, 0, cases(), []
+    stops, total_seams, total_prompts, cs_, non_architectural, limits = {}, 0, 0, cases(), [], {}
     for index, (name, o) in enumerate(cs_):
         t0 = time.time()
         m, c, spec = build(reloc, stub, o)
         st, cpu, ram, cfs, cenv, d = run_c(f, m, c, spec)
         print(f'[{index + 1}/{len(cs_)}] {name}: start (C {st}, {d.seams_composed} seams, {d.prompts} prompts)', file=sys.stderr, flush=True)
-        if st in ('CALLEE', 'SERVICE', 'LIMIT'):
+        if st in ('CALLEE', 'SERVICE', 'LIMIT') and not name.startswith('budget-'):
             non_architectural.append((name, st, f'{d.seam:04x}', f'{d.nested:04x}', d.leaf_status))
         check(st != 'CALLEE', f'{name}: C CALLEE at seam {d.seam:04x} nested {d.nested:04x} leaf status {d.leaf_status}')
         ust, ucpu, uram, ufs, uenv = run_unicorn(name, m, c, spec, stop_at=d.decode_arrivals if st == 'STALLED' else None)
         check(st == ust, f'{name}: C {st} original {ust}')
+        check(name.startswith('budget-') == (st == 'LIMIT'), f'{name}: LIMIT only and always in the budget cases ({st})')
+        if st == 'LIMIT':
+            where = d.nested if d.nested else d.seam                  # 02AA / 02B7 inside 05CD, else the 0716 call site
+            check(where == spec['limit_site'], f'{name}: LIMIT at {where:04x}, original {spec["limit_site"]:04x}')
+            limits[name] = f'{d.seam:04X}/{d.nested:04X}'
         A716.compare_cpu(name, cpu, ucpu); A716.compare_ram(name, ram, uram)
         check(cfs.state() == ufs.state(), f'{name}: file state C {cfs.state()} original {ufs.state()}')
         check(cfs.log == ufs.log, f'{name}: file log differs')
         check(cenv.log == uenv.log, f'{name}: environment log differs')
         stops[st] = stops.get(st, 0) + 1; total_seams += d.seams_composed; total_prompts += d.prompts
         print(f'[{index + 1}/{len(cs_)}] {name}: {st}, {time.time() - t0:.1f}s', file=sys.stderr, flush=True)
-    return dict(cases=len(cs_), end_states=stops, non_architectural_stops=len(non_architectural), non_architectural=non_architectural, seams_composed=total_seams, prompts=total_prompts,
+    return dict(cases=len(cs_), end_states=stops, budget_limits=limits, non_architectural_stops=len(non_architectural), non_architectural=non_architectural, seams_composed=total_seams, prompts=total_prompts,
                 dirty_flags=[f'{x:04X}' for x in DIRTY_FLAGS], stall_iterations_confirmed=STALL_EXTRA * stops.get('STALLED', 0),
                 cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 

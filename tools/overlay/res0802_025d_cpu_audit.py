@@ -8,7 +8,7 @@ entry and the model resumes from the ORIGINAL's state at the return (the #1311 t
 audit's DOS file service (INT 21h 3Dh/3Eh) with an "insert disk" event (the file appears at the Nth open attempt), plus the
 prompt path's INT 16h keys, INT 10h stub, 2Ch/25h/35h and ports. Unicorn: CPU14 + full 1 MiB + file state + the ordered DOS
 log, per segment. Native (DOSBox-X): the C model against REAL DOS on the prompt-free paths. Media stay under ignored resources/."""
-import argparse, ctypes, json, os, random, struct, subprocess, sys, tempfile
+import argparse, ctypes, json, os, random, struct, subprocess, sys, tempfile, time
 from hashlib import sha256
 from pathlib import Path
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
@@ -23,7 +23,8 @@ SOURCES = ['resident_0802_025d_cpu', 'resident_0802_02eb_cpu', 'system_strstore_
            'system_runtime_leaves_cpu', 'system_reset_1410_cpu', 'system_close_1491_cpu', 'system_filecheck_14b6_cpu']
 CONDITIONALS = {0x0299: (0x02AD, 0x029B), 0x029F: (0x02AD, 0x02A1), 0x02B1: (0x02B9, 0x02B3), 0x02B7: (0x0289, 0x02B9),
                 0x02BD: (0x02DC, 0x02BF)}
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'PROMPT', 3: 'SERVICE', 4: 'CALLEE'}
+STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'PROMPT', 3: 'SERVICE', 4: 'CALLEE', 5: 'LIMIT'}
+WIDE = 65535                                                          # a retry budget no ordinary case reaches
 SERVICE_FN = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(Cpu), ctypes.POINTER(Cpu))
 
 
@@ -51,7 +52,8 @@ def library(directory):
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include')]
                    + [str(ROOT / f'src/recovered/{n}.c') for n in SOURCES] + ['-o', str(path)], check=True)
     f = ctypes.CDLL(str(path)).pr_r0802_025d
-    f.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.POINTER(Env), ctypes.POINTER(Diag)]
+    f.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.POINTER(Env), ctypes.c_uint,
+                  ctypes.POINTER(Diag)]
     f.restype = ctypes.c_int
     return f
 
@@ -64,7 +66,7 @@ def pstr(m, seg, off, text):
 
 def build(reloc, *, name=b'ECL1DAX', msg=b'INSERT DISK 2', flag=1, present=True, appear_after=None, keys=(0x1C0D,) * 8,
           typeahead=(),
-          ss=0x7000, sp=0xF000, flags=2, regs=None, base=BASE, ret=(0x9001, 0x7000), first_handle=5):
+          ss=0x7000, sp=0xF000, flags=2, regs=None, base=BASE, ret=(0x9001, 0x7000), first_handle=5, retries=WIDE):
     m = bytearray([0x5A]) * SIZE
     m[base * 16:base * 16 + len(reloc)] = reloc
     ds = base + Q.SEG['data']
@@ -83,7 +85,7 @@ def build(reloc, *, name=b'ECL1DAX', msg=b'INSERT DISK 2', flag=1, present=True,
     r = regs or (0x1234, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE, 0x7777)
     c = Cpu(*r, sp, base + 0x0802, ENTRY, ds, 0x1111, ss, flags)
     return m, c, dict(present=present, appear_after=appear_after, keys=list(keys), typeahead=list(typeahead), ret=ret, base=base,
-                      first_handle=first_handle)
+                      first_handle=first_handle, retries=retries)
 
 
 def file_service(spec):
@@ -99,7 +101,7 @@ def run_unicorn(name, m, c, spec, decoded):
     uc.mem_map_ptr(0, SIZE, 7, ctypes.addressof(backing)); uc.mem_map_ptr(SIZE, SIZE, 7, ctypes.addressof(backing))
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
-    s = dict(stop=None, prev=None, pending=False, steps=0); seen = set(); edges = set(); snaps = []
+    s = dict(stop=None, prev=None, pending=False, steps=0, retries=0); seen = set(); edges = set(); snaps = []
     known = {base + v for v in Q.SEG.values()} | {cs0802, STUB_SEG, base + 0x0A40}
 
     def snap(kind):
@@ -119,7 +121,11 @@ def run_unicorn(name, m, c, spec, decoded):
             if struct.unpack('<H', bytes(backing[physical(ss_, sp):physical(ss_, sp) + 2]))[0] == 0x02AD:
                 snap('PROMPT'); s['pending'] = True
         if cs == cs0802 and ip == 0x02AD and s['pending']:
-            snap('RESUME'); s['pending'] = False
+            snap('RESUME'); s['pending'] = False; s['retries'] = 0             # the model's budget is fresh per entry
+        if cs == cs0802 and ip == 0x02B7 and not s['pending'] and uc.reg_read(R.UC_X86_REG_EFLAGS) & 0x40:
+            if s['retries'] >= spec['retries']:                         # the taken loop-back the model refuses: JE not run
+                snap('LIMIT'); s['stop'] = 'LIMIT'; return uc.emu_stop()
+            s['retries'] += 1
         if cs == cs0802 and ENTRY <= ip < END and not s['pending']:
             check(ip in decoded, f'escape inside 025D {name} {ip:04x}'); seen.add(ip)
             if ip in CONDITIONALS:
@@ -167,7 +173,7 @@ def run_unicorn(name, m, c, spec, decoded):
     uc.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, R.UC_X86_INS_IN)
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, R.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=4000000)
-    check(s['stop'] == 'RETURN', f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in ('RETURN', 'LIMIT'), f'original stop {name}: {s["stop"]}')
     return snaps, fs, seen, edges
 
 
@@ -187,7 +193,9 @@ def run_c(f, cpu, ram_bytes, spec, fs_state):
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(ram_bytes); c = Cpu.from_buffer_copy(cpu); d = Diag()
     ctx = ctypes.cast(ram, ctypes.c_void_p)
     env = Env(keep, ctx, keep, ctx)
-    status = STATUS[f(ram, SIZE, ctypes.byref(c), ctypes.byref(env), ctypes.byref(d))]
+    status = STATUS[f(ram, SIZE, ctypes.byref(c), ctypes.byref(env), spec['retries'], ctypes.byref(d))]
+    if status == 'LIMIT':
+        check(d.site == 0x02B7 and d.callee_status == -1, f'LIMIT diagnostic {d.site:04x}/{d.callee_status}')
     return status, c, bytes(ram), fs, sps
 
 
@@ -202,7 +210,7 @@ def two_phase(name, m, c, spec, snaps, ofs, f):
         check(fs_c.state() == want['fs'], f'{name}#{len(seams)} file state')
         check(fs_c.log == ofs.log[log_from:want['log']], f'{name}#{len(seams)} DOS log C {fs_c.log} original {ofs.log[log_from:want["log"]]}')
         seams.append(status)
-        if status == 'RETURN':
+        if status in ('RETURN', 'LIMIT'):
             return seams, ram_c, actual
         nxt = snaps[k + 1]
         check(nxt['kind'] == 'RESUME', f'{name}: no resume after {status}')
@@ -230,7 +238,9 @@ def cases():
            ('insert-disk-flag-ff', dict(flag=0xFF00, appear_after=2)), ('flag-high-byte-only', dict(flag=0x0100, appear_after=2)),
            ('empty-name-flag1', dict(name=b'')), ('long-name', dict(name=b'N' * 60)), ('long-message', dict(flag=0, appear_after=2, msg=b'M' * 60)),
            ('empty-message', dict(flag=0, appear_after=2, msg=b'')),
-           ('typeahead-drained', dict(flag=0, appear_after=3, typeahead=(0x1E61, 0x3062, 0x2E63)))]
+           ('typeahead-drained', dict(flag=0, appear_after=3, typeahead=(0x1E61, 0x3062, 0x2E63))),
+           # the declared retry budget: the resume's taken 02B7 loop-back refused, against the original stopped at that arrival
+           ('retry-budget-0', dict(flag=0, appear_after=3, retries=0)), ('retry-budget-1', dict(flag=0, appear_after=3, retries=1))]
     out += [(f'flags{fl:x}', dict(flags=fl)) for fl in Q.FLAGS] + [(f'flags{fl:x}-prompt', dict(flags=fl, flag=0, appear_after=2)) for fl in Q.FLAGS]
     out += [(f'sp{sp:x}', dict(sp=sp)) for sp in (0x0200, 0x0400, 0x8001, 0xFFED, 0xFFEE)]
     out += [('ss-ds', dict(ss='ds', sp=0xE000))]
@@ -243,12 +253,17 @@ def cases():
 
 def differential(reloc, decoded, f):
     seen, edges, checked, segments, prompts_total = set(), set(), 0, 0, 0
-    for name, o in cases():
+    cs_, limits = cases(), {}
+    for index, (name, o) in enumerate(cs_):
+        t0 = time.time(); print(f'[{index + 1}/{len(cs_)}] {name}: start', file=sys.stderr, flush=True)
         m, c, spec = build(reloc, **o)
         snaps, ofs, v, e = run_unicorn(name, m, c, spec, decoded); seen |= v; edges |= e
         seams, ram, cpu = two_phase(name, m, c, spec, snaps, ofs, f)
         segments += len(seams); prompts = seams.count('PROMPT'); prompts_total += prompts
-        if not name.startswith(('random', 'sp', 'ss-ds', 'flag-high')):
+        print(f'[{index + 1}/{len(cs_)}] {name}: {"/".join(seams)}, {time.time() - t0:.1f}s', file=sys.stderr, flush=True)
+        if seams[-1] == 'LIMIT':
+            limits[name] = '/'.join(seams)
+        elif not name.startswith(('random', 'sp', 'ss-ds', 'flag-high')):
             want_al, want_prompts = expected(o, spec)
             check((cpu.ax & 0xFF, prompts) == (want_al, want_prompts), f'{name}: (AL, prompts) {(cpu.ax & 0xFF, prompts)} vs {(want_al, want_prompts)}')
             magic = ram[physical(NSEG, 0x202)] | ram[physical(NSEG, 0x203)] << 8
@@ -257,7 +272,7 @@ def differential(reloc, decoded, f):
     want = {(a, t) for a, ts in CONDITIONALS.items() for t in ts}
     check(seen == set(decoded), f'starts missing {sorted(hex(a) for a in set(decoded) - seen)}')
     check(edges == want, f'outcomes missing {sorted(want - edges)}')
-    return dict(cases=len(cases()), segments=segments, prompts=prompts_total, starts=len(seen), starts_total=len(decoded),
+    return dict(cases=len(cases()), limits=limits, segments=segments, prompts=prompts_total, starts=len(seen), starts_total=len(decoded),
                 conditional_outcomes=len(edges), conditional_outcomes_total=len(want), independent_checks=checked,
                 cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 

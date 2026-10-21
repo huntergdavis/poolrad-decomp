@@ -45,6 +45,8 @@ static pr_r0802_025d_cpu setup(uint8_t *m, unsigned flag, int is_present)
     return c;
 }
 
+#define WIDE 65535u                                                  /* a retry budget no case reaches */
+
 int main(void)
 {
     uint8_t *m = malloc(PR_R0802_025D_RAM_SIZE);
@@ -55,38 +57,44 @@ int main(void)
 
     /* Present, flag 1: FileExists (open + close), then Assign + Reset(f, 1): AL = 1, f open with recsize 1; RETF 0Eh. */
     c = setup(m, 1, 1);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_RETURNED && opens == 2 && closes == 1);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_RETURNED && opens == 2 && closes == 1);
     CHECK((c.ax & 0xFF) == 1 && get(m, N, 0x202) == 0xD7B3 && get(m, N, 0x200) == 6 && get(m, N, 0x204) == 1);
     CHECK(c.ip == 0x7000 && c.cs == 0x9001 && c.sp == 0xF012 && c.bp == 0x7777);
     /* Absent, flag 1: no prompt, no Reset, f untouched; AL = 0. */
     c = setup(m, 1, 0);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_RETURNED && opens == 1 && (c.ax & 0xFF) == 0);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_RETURNED && opens == 1 && (c.ax & 0xFF) == 0);
     CHECK(get(m, N, 0x202) == 0 && get(m, N, 0x200) == 0);
     /* Absent, flag 0: PROMPT(message [BP-53h], attribute 0Eh), CS and 02ADh pushed. */
     c = setup(m, 0, 0);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_PROMPT && c.ip == 0x0193 && d.site == 0x02AA);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_PROMPT && c.ip == 0x0193 && d.site == 0x02AA);
     CHECK(get(m, SS, c.sp) == 0x02AD && get(m, SS, c.sp + 2) == CS && get(m, SS, c.sp + 4) == (uint16_t)(c.bp - 0x53u));
     CHECK((get(m, SS, c.sp + 8) & 0xFF) == 0x0E && m[p(SS, c.bp - 0x53u)] == 11 && memcmp(m + p(SS, c.bp - 0x52u), "INSERT DISK", 11) == 0);
     /* The prompt returns (RETF 6) and the disk is now in: the retry finds the file -> Assign + Reset -> AL = 1. */
     c.ip = (uint16_t)get(m, SS, c.sp); c.cs = (uint16_t)get(m, SS, c.sp + 2); c.sp = (uint16_t)(c.sp + 4u + 6u); present = 1;
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_RETURNED && (c.ax & 0xFF) == 1 && opens == 3);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_RETURNED && (c.ax & 0xFF) == 1 && opens == 3);
     CHECK(get(m, N, 0x202) == 0xD7B3 && c.sp == 0xF012);
     /* Still absent after the prompt: the loop prompts again. */
     c = setup(m, 0, 0);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_PROMPT);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_PROMPT);
     c.ip = (uint16_t)get(m, SS, c.sp); c.cs = (uint16_t)get(m, SS, c.sp + 2); c.sp = (uint16_t)(c.sp + 4u + 6u);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_PROMPT && opens == 2);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_PROMPT && opens == 2);
+    /* The retry budget: the same resume with max_retries 0 stops LIMIT at the 02B7 JE (taken: ZF), before the second check. */
+    c = setup(m, 0, 0);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_PROMPT && opens == 1);
+    c.ip = (uint16_t)get(m, SS, c.sp); c.cs = (uint16_t)get(m, SS, c.sp + 2); c.sp = (uint16_t)(c.sp + 4u + 6u);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, 0, &d) == PR_R0802_025D_LIMIT);
+    CHECK(c.ip == 0x02B7 && c.cs == CS && d.site == 0x02B7 && d.callee_status == -1 && (c.flags & 0x40) != 0 && opens == 1);
     /* Flag 0 with the file present: no prompt. */
     c = setup(m, 0, 1);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_RETURNED && (c.ax & 0xFF) == 1);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_RETURNED && (c.ax & 0xFF) == 1);
 
     /* ARGUMENT: rejected before any change. */
     c = setup(m, 1, 1); before = c;
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, NULL, &d) == PR_R0802_025D_ARGUMENT);
-    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE - 1u, &c, &env, &d) == PR_R0802_025D_ARGUMENT);
-    c.sp = 0x01FF; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_ARGUMENT);
-    c.sp = 0xFFEF; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_ARGUMENT);
-    c.sp = 0xF000; c.ip = 0x0289; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, &d) == PR_R0802_025D_ARGUMENT);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, NULL, WIDE, &d) == PR_R0802_025D_ARGUMENT);
+    CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE - 1u, &c, &env, WIDE, &d) == PR_R0802_025D_ARGUMENT);
+    c.sp = 0x01FF; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_ARGUMENT);
+    c.sp = 0xFFEF; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_ARGUMENT);
+    c.sp = 0xF000; c.ip = 0x0289; CHECK(pr_r0802_025d(m, PR_R0802_025D_RAM_SIZE, &c, &env, WIDE, &d) == PR_R0802_025D_ARGUMENT);
     c.ip = 0x025D; CHECK(memcmp(&c, &before, sizeof c) == 0 && opens == 0);
 
     free(m);

@@ -94,6 +94,14 @@ The audit asserts the following, each derived from the decode (the cluster's cou
 reads its 2-byte header into 0716's variable, and positions the archive past it. When `[557C]` is 0, it asks for the disk
 through 025D.
 
+## Loop budget (2026-10-21)
+
+05CD has no loop of its own. It passes 025D's retry budget through, as `env.retries`, and reports 025D's LIMIT as
+**`PR_R0802_05CD_LIMIT`**, with IP `02B7h` and diagnostic site `02B7h` (see `RES_0802_025D_CPU.md`, "Loop budget"). The C
+test pins it: `retries = 0` on the resume stops LIMIT at `02B7`, with no read and no seek. The composed audit's
+`budget-retries-0` exercises the same path through 0716 against the original. This audit's own 50 cases are unchanged
+(budget 65535, never reached), and its re-run on 2026-10-21 passed.
+
 ## Evidence
 
 Receipt: 2026-10-21 01:19:44 PDT (`resources/0802-05cd/final.json`, sha `aa0f1a82…`), on a branch from main `6990130e`.
