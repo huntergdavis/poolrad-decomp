@@ -38,6 +38,25 @@ These are queue metadata, not credit or completion counts. The schema-8
 ranked tables, hashes and historical traps below remain dated snapshots;
 they are not a fresh authoring backlog.
 
+**"63 composable" is not a pool of bodies.** Readiness is necessary and not
+sufficient: a row also needs an owner, and most of the cheap ones have none.
+The breakdown, measured twice from different directions:
+
+- From the queue: **63** rows have every callee ready; **7** are already
+  credited; of the remaining **56**, **40 are five-byte callerless tails**
+  (`callers.points = 0`, no fixup caller, `helper_candidate`, prior status
+  `source_mention` or an inline mention) — fragments reached by nothing, which
+  crediting would make an address rather than a body. Requiring ownership
+  leaves **21**.
+- From par-a's measured export: **58** zero-unready (the export already
+  excludes strict rows, hence 58 rather than 63), **34** five-byte tails,
+  leaving **24** — **13 owned**, 4 with unresolved library ownership, 7
+  `helper_candidate`.
+
+The two agree on the only thing that matters: **about 13 owned rows, cheapest
+146 B**, not 58 bodies. Unready-byte cost is the wrong filter for pool size;
+ownership is the binding one.
+
 ## Method
 
 Inputs are the regenerated hash-pinned products (`inventory.json`,
