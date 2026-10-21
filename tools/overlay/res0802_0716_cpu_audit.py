@@ -2,7 +2,7 @@
 """RES_0802_0716, the game's ECL/DAX block loader (raw CPU), against the original bytes with every callee REAL.
 
 The whole loader-expanded START.EXE image is loaded at a test base with the loader's own relocation table applied; no byte is
-patched. The original runs end to end in Unicorn: this body, its 23 far calls into SYSTEM, and its 8 near calls into the
+patched. The original runs end to end in Unicorn: this body, its 23 far calls into SYSTEM, and its 7 near-call sites into the
 not-yet-modelled 0802 cluster (05CD open, 0193 prompt, 06E7 close, 0020 alloc, 050F decode, 0000 free). The C model composes
 the SYSTEM models and stops at each near call; each stop is compared with the original's state at the callee's entry, and the
 model is resumed from the ORIGINAL's state at the return (the two-phase seam of #1311), segment by segment.
@@ -157,6 +157,7 @@ def source(image):
     check(len(ins) == 242 and sum(i.size for i in ins) == len(body), 'decode covers 0716')
     check({i.address for i in ins if i.mnemonic.startswith('j') and i.mnemonic != 'jmp'} == set(CONDITIONALS), 'conditional sites')
     check(sum(1 for i in ins if i.mnemonic == 'lcall') == 23, '22 SYSTEM far calls + 0899:0000')
+    check({i.address + i.size: int(i.op_str, 16) for i in ins if i.mnemonic == 'call'} == RESUME, 'the 7 near-call sites')
     return body, {i.address: i for i in ins}
 
 

@@ -30,7 +30,7 @@
  *   0944 MOV SP,BP; POP BP; RETF 12h
  *
  * Composition. Of its 23 far calls, 22 go to SYSTEM models on main (StrStore 0B25, string load 0B0B, concat 0B98, BlockRead
- * 14FB, IOCheck 04A9, Str 1366, FilePos 1593, GetMem 023F, Seek 1563) and one to the credited 0899:0000, so this body's only unknowns are its 8 near calls.
+ * 14FB, IOCheck 04A9, Str 1366, FilePos 1593, GetMem 023F, Seek 1563) and one to the credited 0899:0000, so this body's only unknowns are its 7 near-call sites.
  * Each far-call segment word is read live from the code (loader relocations); each callee must return to the
  * instruction after its call, or the stop is CALLEE. The near callees (0802:05CD, 0193, 06E7, 0020, 050F, 0000, all
  * entered by PUSH CS; CALL and returning by RETF) are not yet modelled: each is a NAMED STOP with the call executed (CS
