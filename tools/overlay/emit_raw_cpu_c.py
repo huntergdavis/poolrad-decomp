@@ -105,6 +105,9 @@ class Emitter:
             return f'mul16(c,{self.rd(ops[0], i)});' + go
         if mn == 'cdq':  # 99h in 16-bit mode is CWD
             return 'c->dx=(c->ax&0x8000u)?0xFFFFu:0u;' + go
+        if mn == 'lea':  # effective offset only; no memory access, no flags
+            _, off = self.mem(ops[1], i)
+            return f'c->{R16[ops[0].reg]}={off};' + go
         if mn == 'les':
             seg, off = self.mem(ops[1], i)
             return (f'{{uint16_t o={off};size_t at=physical(c->{seg},o);c->{R16[ops[0].reg]}=word_at(b,at);'
