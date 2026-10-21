@@ -252,3 +252,18 @@ all acceptance and credit decisions.
 ## Identity of the nested near-only bodies (par-a, 2026-10-21)
 
 Eight bodies of this closure are near-only resident bodies: `+0000`, `+01FB`, `+0282`, `+03A0`, `+10E6`, `+11EA`, `+1282` and `+1325`. Their two-factor identity verdicts (all PASS) are in [NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md): direct near sites inside strict-credited `+0BB8`/`+13AB`, and the character object passed as an argument and used.
+
+## Grant record: `RES_00BA_0000` (added by the review lane, par-e, VP i20401)
+
+Member row: `RES_00BA_0000`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity under the reviewed near-only
+name (#1347). Evidence: this document's closure. Identity: par-a's verdict in
+[NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md).
+
+- **Evidence reproduced** (`u9e_character_pair_115c_audit.py`, default run at `d0432662`): 3,441 cases, the whole 1 MiB,
+  masked flags 0, no missing starts or outcomes. This body is pinned in the closure with 179/179 starts and
+  24 outcomes covered, 507 B, and its SHA-256 equals the reviewed-alias table.
+- **Factor 1, verified by me from the media:** a linear decode of the credited spans `0BB8` [0BB8,1037) and `13AB`
+  [13AB,148B) finds the near `CALL 0000` at exactly `0BB8+0ED4`, inside the credited caller's span.
+- **Factor 2, spot-checked by me:** the memory operands include the claimed offsets: +2Dh, +2Eh, +32h, +110h, +119h, +CCh, +F8h, +FCh.
+- **Accepted, not re-derived:** the documentary meaning of each field (DOS_CHARACTER.md and the 115C document's 63-byte
+  records).
