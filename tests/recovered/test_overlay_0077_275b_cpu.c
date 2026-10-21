@@ -109,6 +109,18 @@ int main(void)
         }
     }
 
+    /* The final compare is JBE (CF|ZF): S+P == R+1500 is NOT over capacity, one more is. For an all-zero object R is 0, so the
+     * threshold is 1500 (measured from the ORIGINAL bytes at 27C2 by the differential's calibration run: CX = 1500, AX = quantity
+     * with count 1 and an empty chain). A model that tested only CF returned 1 at equality. */
+    {
+        static const struct { uint16_t quantity; unsigned over; } edge[] = { {1499u, 0u}, {1500u, 0u}, {1501u, 1u} };
+        for (unsigned k = 0; k < sizeof edge / sizeof edge[0]; ++k) {
+            frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, edge[k].quantity, 1, 0);
+            assert(run() == PR_OVL0077_275B_RETURNED);
+            assert((cpu.ax & 0xFFu) == edge[k].over);
+        }
+    }
+
     /* Diagnostic may be NULL. */
     frame(0x3000, 0x0100, 0x4000, 0x0200, 0x0C, 4, 1, 0x0100);
     budget = 1u << 20;

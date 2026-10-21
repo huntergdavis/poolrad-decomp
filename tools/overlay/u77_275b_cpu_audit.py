@@ -298,6 +298,8 @@ def original(ram_in, cpu_in, lib):
                 and instruction.mnemonic != "jmp":
             state["pending"] = ip
         state["starts"].add(ip)
+        if ip == 0x27C2:   # AX = S+P, CX = R+1500, BX = its sign word: the operands of the final unsigned compare
+            state["compare"] = tuple(emulator.reg_read(r) for r in (UC_X86_REG_AX, UC_X86_REG_CX, UC_X86_REG_BX))
         if ip == FIRST_CALL:
             call_resident(0x0BB8, FIRST_RETURN, 1)
         elif ip == SECOND_CALL:
@@ -336,7 +338,7 @@ def compare(name, ram, cpu, lib):
                        enumerate(zip(produced, expected_ram)) if a != b]
         raise AssertionError(f"{name}: RAM differs at {differences[:8]} "
                             f"({len(differences)} bytes)")
-    return diagnostic, state["starts"], state["edges"]
+    return diagnostic, state["starts"], state["edges"], state.get("compare"), expected.ax & 0xFF
 
 
 def differential(lib):
@@ -344,12 +346,33 @@ def differential(lib):
     starts, edges = set(), set()
     for name, spec in cases():
         label, ram, cpu = case(name, **spec)
-        diagnostic, seen, taken = compare(label, ram, cpu, lib)
+        diagnostic, seen, taken, _, _ = compare(label, ram, cpu, lib)
         stops[name] = (diagnostic.first_status, diagnostic.second_status)
         reached.add(name)
         starts |= seen
         edges |= taken
         CASE_REACHED[name] = seen
+    # The unsigned compare at 27CA is JBE: skip when AX <= CX, so EQUALITY is not over capacity. Equality needs S+P to equal
+    # R+1500 exactly, which no fixed fixture value reaches, so the operands are MEASURED from the original (a calibration run
+    # with quantity 0 reads AX and CX at 27C2) and the boundary cases are built from them: one below, equal, one above.
+    _, ram, cpu = case("calibrate", quantity=0, count=1, base=0)
+    _, _, _, regs, _ = compare("calibrate", ram, cpu, lib)
+    check(regs is not None and regs[2] == 0 and regs[0] == 0 and 0 < regs[1] < 0xFFFF, f"boundary calibration premise: {regs}")
+    equal = regs[1]
+    verdicts = {}
+    for tag, quantity in (("minus1", equal - 1), ("equal", equal), ("plus1", equal + 1)):
+        for count, label in ((1, "count1"),):
+            name = f"boundary-{tag}-{label}"
+            _, ram, cpu = case(name, quantity=quantity, count=count, base=0)
+            diagnostic, seen, taken, compared, al = compare(name, ram, cpu, lib)
+            verdicts[tag] = al
+            check(compared[0] == (quantity * count) & 0xFFFF and compared[1] == equal, f"{name}: operands {compared}")
+            stops[name] = (diagnostic.first_status, diagnostic.second_status)
+            reached.add(name)
+            starts |= seen
+            edges |= taken
+            CASE_REACHED[name] = seen
+    check(verdicts == {"minus1": 0, "equal": 0, "plus1": 1}, f"the original's boundary verdicts: {verdicts}")
     expected_starts = {i.address for i in DECODED.values()} - set(EXCLUDED_STARTS)
     conditional = {i.address: i for i in DECODED.values()
                    if i.mnemonic.startswith("j") and i.mnemonic != "jmp"}
@@ -391,7 +414,7 @@ def differential(lib):
                           f" {branch_cases.get(address, []) or 'NONE'}")
         raise AssertionError("uncovered outcomes:\n  " + "\n  ".join(detail))
     return dict(cases=len(reached), cpu_words=14, ram_bytes=SIZE,
-                flag_masks=0, substitutions=0,
+                flag_masks=0, substitutions=0, boundary=dict(r_plus_1500=equal, verdicts=verdicts),
                 starts=f"{len(starts & expected_starts)}/{len(expected_starts)} "
                        f"(+{len(EXCLUDED_STARTS)} excluded: "
                        f"{', '.join(hex(a) for a in sorted(EXCLUDED_STARTS))})",
