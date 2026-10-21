@@ -144,13 +144,17 @@ class RealDisplayRowTest(unittest.TestCase):
 
     def test_0175_member_is_a_terminal_in_the_real_0193_walk(self):
         before, after = self.walk(()), self.walk({"RES_0802_0175"})
-        # 0040 is strict since its acceptance (par-e), so it is no longer priced on either side; only 0175's own 30 B leave.
-        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30, "RES_0802_0105": 112})
-        self.assertEqual(after["bodies"], {"RES_0802_0193": 90, "RES_0802_0105": 112})
+        # 0040 and 0105 are strict since their acceptances (par-e), so neither is priced on either side; only 0175's own
+        # 30 B leave.
+        self.assertEqual(before["bodies"], {"RES_0802_0193": 90, "RES_0802_0175": 30})
+        self.assertEqual(after["bodies"], {"RES_0802_0193": 90})
         self.assertEqual(after["runtime_residents"], {"RES_0802_0175"})
-        for key in ("strict", "unmapped", "bad", "declared"):
+        for key in ("unmapped", "bad", "declared"):
             self.assertEqual(before[key], after[key], key)
-        self.assertEqual(after["strict"], {"RES_0899_0059", "RES_0802_0040"})
+        # With 0105 strict the walk stops there, so 0040 is reached only through 0175: once 0175 is a terminal, 0040
+        # leaves the strict set the walk meets. That is the only other change.
+        self.assertEqual(before["strict"], {"RES_0899_0059", "RES_0802_0040", "RES_0802_0105"})
+        self.assertEqual(after["strict"], {"RES_0899_0059", "RES_0802_0105"})
 
 
 if __name__ == "__main__":
