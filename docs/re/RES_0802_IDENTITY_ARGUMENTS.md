@@ -17,8 +17,22 @@ E8/E9, relocated 9A/EA, overlay fixups; it also asserts each body hash is in its
 - **Derived through the entry (C):** the other six are near-called only from other bodies of this cluster (table below),
   which are `unresolved` residents, so a literal reading of the 0x7F verdict calls those callers circular. These six rest on
   **reachability**: every path to them starts at a direct entry (0716, 025D or 02EB) whose factor 1 is direct and
-  non-circular. This is the "t30 chain ruling" the evidence documents cite. **It is the one step I ask par-a to rule on
-  rather than assume.** A chain body takes identity only with its role line (factor 2), never from the chain alone.
+  non-circular. This is the "t30 chain ruling" the evidence documents cite. **Ruled allowed (below).** A chain body takes identity only with its role line (factor 2), never from the chain alone.
+
+## Rulings (VP i20361, 2026-10-21)
+
+1. **Derived factor 1 through the entry is ALLOWED** on the #1147 `+0BB8` precedent, under three conditions this page meets:
+   (a) the entry's identity is established **directly**: 0716 has 3 `game_verified` and 5 `game_evidenced` overlay callers;
+   (b) each nested body is reachable **only** through the entry, which is what the asserted census above makes a chain
+   rather than a claim; (c) each nested body carries a role line naming the game state it touches. The 0x7F reading would
+   call the chain circular only if the entry's identity were itself derived; it is not, because 0716 is called from three
+   `game_verified` functions in the media.
+2. **0040 passes factor 2.** It is not 06FB's shape: 06FB pushed constants at a display service, so no game state entered it.
+   0040 reads documented display state (`DS:4A16..4A1E` with the EGA flag, and `DS:25D5`) and its row, column, attribute
+   and character arguments come from the game. par-a may challenge this ruling.
+3. **`0802:[0213,025D)` is unreachable code**, not a gap: 74 B, a file-wait loop that calls the modelled 02EB, and nothing
+   calls it (asserted). It is not modelled for the cluster's sake. If a future closure reaches it through an indirect path,
+   the census assertion that nothing calls it is what fails.
 
 ## The asserted caller census (all transfers into each entry)
 
@@ -34,7 +48,7 @@ E8/E9, relocated 9A/EA, overlay fixups; it also asserts each body hash is in its
 | 0105 | 01CC in 0193 | 0 | 0 | C |
 | 0040 | 015F in 0105; 018C in 0175 (side ii) | 0 | 0 | C |
 
-**New finding:** a tenth resident, `0802:[0213,025D)` (74 B, a loop that calls 02EB, then the SYSTEM write calls and
+**Finding (ruled unreachable code):** a tenth resident, `0802:[0213,025D)` (74 B, a loop that calls 02EB, then the SYSTEM write calls and
 ReadKey `0899:0059` while the file is missing), is **not in the cluster, has no model, and nothing calls it** (no near, far
 or overlay transfer, asserted). It is the only 02EB caller outside the cluster; it does not affect 02EB's identity (the
 overlay callers carry it) but the cluster is not closed over 02EB's callers. Reported, not modelled.
@@ -70,7 +84,7 @@ Total 1,719 B (the cluster's 1,813 B less 0000/0020/0175, which are side ii).
 
 | # | Factor 1 | Factor 2 (role line, game state) | Limit |
 | ---: | --- | --- | --- |
-| 1 | C: 0105 and 0175 only, both under 0193 | draws a character run on the game's display pages through INT 10h, reading the display-state record `DS:4A16..4A1E` (pages `4A1A/4A1B`, EGA flag `4A1E`, documented in the COLD_START_CODEWORD_ROW14 docs) and the attribute map `DS:25D5`, writing the Dos register record `DS:4A02` | **The closest to the refused 06FB.** Unlike 06FB it has memory operands on documented game display state; it is still a display primitive. Par-a to rule. Text-mode path only (not the EGA graphics path) |
+| 1 | C: 0105 and 0175 only, both under 0193 | draws a character run on the game's display pages through INT 10h, reading the display-state record `DS:4A16..4A1E` (pages `4A1A/4A1B`, EGA flag `4A1E`, documented in the COLD_START_CODEWORD_ROW14 docs) and the attribute map `DS:25D5`, writing the Dos register record `DS:4A02` | Ruled to pass factor 2 (below): not 06FB's shape. Text-mode path only (not the EGA graphics path) |
 | 2 | C: 0193 only | writes the caller's status-line message through 0040's display state | argument-borne subject; same display limit as 1 |
 | 3 | C: 025D (02AA) and 0716 (084A), both direct entries | the game's status-line prompt: shows the message, waits for a key through ReadKey, clears row 24 | prompt path in text mode; ReadKey may not return (EXIT/BREAK) |
 | 4 | C: 0716 only (2 sites) | closes the two FileRecs of the game's ECL*.DAX archive that 0716 opened (`ECL_BLOCK_LOAD.md`) | none beyond the chain basis |
