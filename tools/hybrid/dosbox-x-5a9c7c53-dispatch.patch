@@ -311,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..53ed352
+index 0000000..d5520f1
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,412 @@
+@@ -0,0 +1,437 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -347,6 +347,7 @@ index 0000000..53ed352
 +#include "poolrad/recovered/overlay_u38_effects_install_31a2.h"
 +#include "poolrad/recovered/overlay_u3b0_item_split_00cb_cpu.h"
 +#include "poolrad/recovered/resident_0802_02eb_cpu.h"
++#include "poolrad/recovered/resident_0899_readkey_0059_cpu.h"
 +}
 +extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
@@ -372,8 +373,9 @@ index 0000000..53ed352
 +    {"OVL_0038_31A2", 0x0000, 0x31A2, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RAM-only, RETF */
 +    {"OVL_03B0_00CB", 0x0000, 0x00CB, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RAM-only, RETF 6; composes SYSTEM leaves */
 +    {"RES_0802_02EB", 0x0802, 0x02EB, 8, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; bus=2: DOS services replayed */
++    {"RES_0899_0059", 0x0899, 0x0059, 4, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF; bus=2: BIOS INT 16h replayed */
 +};
-+static const int NBODY = 11;
++static const int NBODY = 12;
 +/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
 + * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
 + * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
@@ -495,7 +497,9 @@ index 0000000..53ed352
 +static void begin(int b, uint16_t c) {
 +    Body &x = bodies[b];
 +    if (x.bus == 2) { svc.clear(); int_open = false; if (intram.size() != RAM) intram.resize(RAM); }
-+    if (x.bus == 1 && bus_mode == 1) { ++x.arrivals; cur = b; body_cs = c; route_now = true; return; }   /* no original run */
++    if ((x.bus == 1 || x.bus == 0) && bus_mode == 1) {       /* route: no original run (service bodies stay shadow-only) */
++        ++x.arrivals; cur = b; body_cs = c; sys_cs = (uint16_t)(c - x.seg + 0x0AF8u); route_now = true; return;
++    }
 +    if (x.bus == 1) { pr_rec::evs.clear(); pr_rec::on = true; }
 +    S = grab(); memcpy(&sram[0], MemBase, RAM);
 +    uint32_t top = ((uint32_t)S.ss << 4) + (uint16_t)S.esp;
@@ -557,7 +561,7 @@ index 0000000..53ed352
 +    Regs E = grab();
 +    pr_bus bus = {MemBase, &replay_ega, NULL, NULL, NULL};
 +    Cpu14 m = to14(E);
-+    int cls = run_bus(&bus, m);
++    int cls = x.bus == 1 ? run_bus(&bus, m) : run_c(m, false, false);
 +    if (cls == 1) { line("ROUTED_ARGUMENT", "nothing changed; the original runs"); cur = -1; return false; }
 +    put(from14(E, m));
 +    if (cls == 0) { ++x.returned_seen; ++routed_returned; }
@@ -580,6 +584,15 @@ index 0000000..53ed352
 +}
 +static int svc_open(void *ctx, const pr_reset_cpu *b, pr_reset_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
 +static int svc_close(void *ctx, const pr_system_close_cpu *b, pr_system_close_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++static int svc_kbd(void *ctx, const pr_crt_cpu *b, pr_crt_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++/* ReadKey's driver and quit paths (the 13h sound hotkey, the STING quit) are not on the recorded path: these refuse, so the
++ * C stops and the original's result is kept if either path is ever taken. */
++static std::string refused;
++static int no_vector(void *ctx, uint8_t *ram, pr_r08ae_driver_cpu *c, uint16_t *f) { (void)ctx; (void)ram; (void)c; (void)f; refused = "driver DOS vector"; return 1; }
++static int no_out(void *ctx, uint16_t port, uint8_t v) { (void)ctx; (void)port; (void)v; refused = "driver OUT"; return 1; }
++static int no_in(void *ctx, uint16_t port, uint8_t *v) { (void)ctx; (void)port; (void)v; refused = "driver IN"; return 1; }
++static int no_time(void *ctx, const pr_dos_gettime_cpu *b, pr_dos_gettime_cpu *a) { (void)ctx; (void)b; (void)a; refused = "GetTime"; return 1; }
++static int no_video(void *ctx, uint8_t *ram, const pr_dos_intr_cpu *b, pr_dos_intr_cpu *a) { (void)ctx; (void)ram; (void)b; (void)a; refused = "INT 10h"; return 1; }
 +/* A service body at the original's return: the C runs from S with the original's DOS calls replayed; registers and all
 + * 1 MiB must equal O. On any stop (including a service mismatch) the original's result is kept: a hand-back would make DOS
 + * execute the call twice. */
@@ -588,19 +601,31 @@ index 0000000..53ed352
 +    O = now; memcpy(&oram[0], MemBase, RAM);
 +    put(S); memcpy(MemBase, &sram[0], RAM);
 +    svc_cursor = 0; svc_mismatch.clear();
-+    pr_r0802_02eb_env env = {svc_open, NULL, svc_close, NULL};
-+    pr_r0802_02eb_diagnostic dg;
 +    Cpu14 m = to14(S);
-+    int st = pr_r0802_02eb(MemBase, RAM, (pr_r0802_02eb_cpu *)&m, &env, &dg);
-+    char tail[64]; snprintf(tail, sizeof tail, " [%u DOS calls]", (unsigned)svc.size());
-+    if (st != PR_R0802_02EB_RETURNED) {
++    int st; uint16_t site = 0; refused.clear();
++    if (!strcmp(x.id, "RES_0802_02EB")) {
++        pr_r0802_02eb_env env = {svc_open, NULL, svc_close, NULL};
++        pr_r0802_02eb_diagnostic dg;
++        st = pr_r0802_02eb(MemBase, RAM, (pr_r0802_02eb_cpu *)&m, &env, &dg); site = dg.site;
++        st = st == PR_R0802_02EB_RETURNED ? 0 : st;
++    } else {
++        pr_r0899_key_env env;
++        memset(&env, 0, sizeof env);
++        env.quit.driver.dos_vector = no_vector; env.quit.driver.port_out = no_out; env.quit.driver.port_in = no_in;
++        env.quit.driver.gettime = no_time; env.quit.video = no_video; env.keyboard = svc_kbd; env.drain_limit = 1u << 20;
++        pr_r0899_key_diagnostic kd;
++        st = pr_r0899_readkey_0059_cpu(MemBase, RAM, (pr_r0899_cpu *)&m, &env, &kd); site = kd.callee;
++        st = st == PR_R0899_KEY_RETURN ? 0 : st;
++    }
++    char tail[64]; snprintf(tail, sizeof tail, " [%u service calls]", (unsigned)svc.size());
++    if (st != 0) {
 +        ++x.stops_seen; put(O); memcpy(MemBase, &oram[0], RAM);
-+        char buf[96]; snprintf(buf, sizeof buf, "status %d site %04X; original result kept", st, dg.site);
++        char buf[128]; snprintf(buf, sizeof buf, "status %d site %04X%s%s; original result kept", st, site, refused.empty() ? "" : ", refused: ", refused.c_str());
 +        line("C_STOPPED_SHADOW", (svc_mismatch.empty() ? std::string(buf) : svc_mismatch) + tail); close_window(); return true;
 +    }
 +    ++x.returned_seen;
 +    if (svc_mismatch.empty() && svc_cursor != svc.size()) {
-+        char buf[96]; snprintf(buf, sizeof buf, "C made %u of the original's %u DOS calls", (unsigned)svc_cursor, (unsigned)svc.size()); svc_mismatch = buf;
++        char buf[96]; snprintf(buf, sizeof buf, "C made %u of the original's %u service calls", (unsigned)svc_cursor, (unsigned)svc.size()); svc_mismatch = buf;
 +    }
 +    put(from14(S, m));
 +    std::string d = diff(grab(), O, MemBase, &oram[0]);
@@ -685,7 +710,7 @@ index 0000000..53ed352
 +            SvcEv &e = svc.back(); e.after = to14(grab());
 +            for (size_t k = 0; k < RAM; ++k) if (MemBase[k] != intram[k]) e.delta.push_back(std::make_pair((uint32_t)k, MemBase[k]));
 +            int_open = false;
-+        } else if (!int_open && mem_readb_inline(here) == 0xCD && mem_readb_inline(here + 1u) == 0x21) {
++        } else if (!int_open && mem_readb_inline(here) == 0xCD && (mem_readb_inline(here + 1u) == 0x21 || mem_readb_inline(here + 1u) == 0x16)) {
 +            SvcEv e; e.before = to14(grab()); svc.push_back(e);
 +            memcpy(&intram[0], MemBase, RAM); int_ret_cs = c; int_ret_ip = (uint16_t)(ip + 2u); int_sp = reg_sp; int_open = true;
 +        }
