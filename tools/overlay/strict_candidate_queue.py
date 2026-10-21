@@ -100,6 +100,7 @@ DECLARED_BOUNDARY_ENDPOINTS = {
     "RES_0A40_030F": "docs/re/DECLARED_BOUNDARY_0A40_030F.md",
     "RES_0AF8_16BC": "docs/re/DECLARED_BOUNDARY_0AF8_16BC.md",
     "RES_0AF8_00E9": "docs/re/DECLARED_BOUNDARY_0AF8_00E9.md",
+    "RES_0AF8_00E2": "docs/re/DECLARED_BOUNDARY_0AF8_00E2.md",
 }
 
 # Reviewed unresolved dispatches omitted by the direct-call graph. Keep the
@@ -149,6 +150,14 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x182A): "system UpCase (system_runtime_leaves_cpu)",
     (0x0A32, 0x00A2): "Dos.GetTime (dos_gettime_00a2_cpu, #1245)",
     (0x0A32, 0x000B): "Dos.Intr (dos_intr_000b_cpu, #1259)",
+    (0x0AF8, 0x04A9): "system IOCheck (system_iocheck_04a9_cpu, #1306)",
+}
+
+# A covered endpoint whose model stops by transferring into a TERMINAL must not be
+# ready before that terminal is declared: otherwise every caller composes into an
+# undeclared terminal, laundering by order of merging (VP i20256). load_queue refuses it.
+RUNTIME_COVERED_TERMINALS = {
+    (0x0AF8, 0x04A9): "RES_0AF8_00E2",  # IOCheck RUNERROR stop: JMP 00E2 (RunError)
 }
 
 TOKEN = re.compile(
@@ -530,6 +539,10 @@ def require_not_declared_boundary(row_id):
 def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                partial_rows=None, driver_internal=frozenset(), identity_rows=()):
     """Validated join: reuse function_queue's overlay row construction."""
+    for endpoint, terminal in RUNTIME_COVERED_TERMINALS.items():
+        require(endpoint not in RUNTIME_COVERED_ENDPOINTS or terminal in DECLARED_BOUNDARY_ENDPOINTS,
+                f"runtime-covered {endpoint[0]:04X}:{endpoint[1]:04X} stops into {terminal}, "
+                "which is not a declared boundary")
     # Refuse any credit or manifest row naming a driver-internal member BEFORE anything
     # else, so an attempt to credit one fails on the class, not on some later check.
     for table, rows_ in (("reviewed_function_identities.csv", identity_rows),

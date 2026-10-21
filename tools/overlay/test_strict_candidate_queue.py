@@ -511,6 +511,18 @@ class StrictCandidateQueueTest(unittest.TestCase):
                             f"{endpoint}: {model}.c")
         self.assertIn((0x0AF8, 0x13B1), scq.RUNTIME_COVERED_ENDPOINTS)
 
+    def test_covered_endpoint_cannot_land_before_its_terminal(self):
+        """04A9's RUNERROR stop transfers into 00E2: covering 04A9 while 00E2 is
+        undeclared would let every caller compose into an undeclared terminal."""
+        inventory, ledger, classifications = fixture()
+        self.assertEqual(scq.RUNTIME_COVERED_TERMINALS, {(0x0AF8, 0x04A9): "RES_0AF8_00E2"})
+        scq.load_queue(inventory, ledger, classifications, [], None)
+        undeclared = {k: v for k, v in scq.DECLARED_BOUNDARY_ENDPOINTS.items() if k != "RES_0AF8_00E2"}
+        with mock.patch.dict(scq.DECLARED_BOUNDARY_ENDPOINTS, undeclared, clear=True):
+            with self.assertRaises(ValueError) as caught:
+                scq.load_queue(inventory, ledger, classifications, [], None)
+        self.assertIn("RES_0AF8_00E2", str(caught.exception))
+
     def test_declared_boundary_applies_to_runtime_and_transitive_targets(self):
         """Every readiness pass consults every product: a declared boundary is
         ready whether the graph resolves it as runtime or resident, both at the

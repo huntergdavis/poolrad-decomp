@@ -107,3 +107,32 @@ Gate results on current main (`0279abfd`): `check_checker_builds.py RES_0AF8_04A
     ctest --test-dir resources/build -R '^poolrad_system_iocheck_04a9_cpu_tests$' --output-on-failure
 
 Under the crew's host rule every step runs through `poolrad-heavy.sh`, one checker build at a time, after a load check. Media is read from ignored `resources/DOS/POOLRAD/`; no original or extracted bytes and no capture binaries are committed. The analysis tools need the `capstone` and `unicorn` Python modules.
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20250/i20256)
+
+`(0x0AF8, 0x04A9): "system IOCheck (system_iocheck_04a9_cpu, #1306)"` lands in `RUNTIME_COVERED_ENDPOINTS`, **together
+with** the [`RES_0AF8_00E2`](DECLARED_BOUNDARY_0AF8_00E2.md) declared boundary, in one commit. Landing the row first
+would let 77 rows compose into an undeclared terminal: laundering by order of merging. `RUNTIME_COVERED_TERMINALS`
+now refuses that state in code. This is readiness only, never a credit.
+
+- **Non-return, asserted on OUR model** by an independent reviewer harness, not the author's test:
+  - **Cases:** 65,535 non-zero `InOutRes` values × 4 DS (`0000`, `1234`, `0AF8`, `FFFF`) × 3 SP (`0000`, `0100`,
+    `FFFC`) × 3 flag images = **2,359,260**. Every one is `RUNERROR` with IP `00E2`; CS, SP, SS and DS unchanged;
+    the return frame (`BEEF:CAFE`) not popped and intact; and `AX = InOutRes`.
+  - **RAM:** 576 full 1 MiB compares are unchanged.
+  - **The other direction of the same branch:** all 36 zero cases are `RETURNED` through the frame with SP + 4. A test
+    of only the halting direction would also pass a model that never returns.
+  - **Build:** ASan/UBSan with `-Werror -Wpedantic`, 0 failures.
+  - **The harness itself is checked:** its body bytes equal the media span (`ed42ecda…`), and a mutated model
+    (IP `00E3`) fails all 2,359,260 cases.
+- **Audit reproduced** at `74d2d53f` (Unicorn and native), and the Unicorn run plus the static walk again at `2d85087b`,
+  after #1309 corrected the `0164` label and added its `AH=25h` assertion:
+  - **Unicorn:** 146 cases + 5 ARGUMENT (`RETURN` 19, `RUNERROR` 127), starts 5/5, outcomes 2/2, 116
+    reference-checked, CPU14 + 1 MiB, masks 0.
+  - **Native:** 48 runs (8 / 40), RESULT.BIN `3ab300ab…` equals the doc, 982,784 bytes omitted as declared.
+  - **Checker build:** `check_checker_builds RES_0AF8_04A9 --require-current-main` PASS.
+- **Measured delta:**
+  - **Direct-callee queue:** 440 / 52 / 9 → 440 / 52 / 9 and no row changes, because `04A9` has no direct overlay
+    caller; its 12 callers are resident.
+  - **Closure pricer over all 440 rows:** 77 rows lose uncovered `04A9`, which reproduces par-d's 77. 0 rows become
+    free of uncovered SYSTEM endpoints, and no composability flips.
