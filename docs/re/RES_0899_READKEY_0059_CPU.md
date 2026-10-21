@@ -125,9 +125,20 @@ the stop, and requires an identical ordered environment event log: every `INT 16
   | LongMul | 16/16 |
   | **017B** | **20/21** |
 
-  The one 017B instruction not executed is `JMP 01A3` at +018B. It runs only when [5372] = 2 at 017B's entry. 0059's call
-  site cannot produce that: at +009B it stores [5373], already tested IN {0,1}, into [5372] immediately before the call.
-  The instruction is infeasible from this caller, and 017B's own evidence covers it.
+  The one 017B instruction not executed is `JMP 01A3` at +018B. **It is infeasible from this caller; it is not
+  unreachable in the body.** Both halves matter (VP i20196):
+
+  - **From 0059 it cannot run.** The JMP needs [5372] = 2 at 017B's entry. 0059's only call to 017B is at +00A1, on the
+    muted path. There, the code at +009B stores [5373] into [5372] immediately before the call, and +0094/+0099 have
+    already tested [5373] IN {0,1}. So [5372] is 0 or 1 at 017B's entry. The **not-muted path never calls 017B**: it runs
+    `[5373] := [5372]; LCALL 08AE:00DC; [5372] := 2; JMP 00A6` (+0075…+0089), and the `JMP` skips past +00A1. The bytes
+    show exactly one `LCALL 08AE:017B` in 0059, at +00A1.
+    One qualification keeps this exact. The `LCALL` at +00A1 pushes CS and IP **before** 017B reads [5372]. A stack placed
+    so that the pushed CS word lands on DS:5372 would write CS's low byte there, and under some load segments that byte
+    is 02. So the claim is: *absent a stack aliasing DS:5372, this caller cannot produce [5372] = 2 at 017B's entry*.
+    No audit case builds that alias for this call. The SS = DS case places the stack far from 5372.
+  - **In 017B's body it is live.** A different caller that enters 017B with [5372] = 2 reaches it. That outcome is
+    covered by 017B's own evidence. This run does not exercise it, and nothing here claims it is dead code.
 - **Two kinds of fidelity** (VP i20175): each member's behaviour rests on that member's own evidence, and the
   composition rests on this run.
 - **Independent semantics.** In every case that does not use the break flag or SS = DS, the audit checks the original's
