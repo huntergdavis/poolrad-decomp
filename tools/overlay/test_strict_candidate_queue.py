@@ -14,6 +14,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import sys
 import tempfile
 from unittest import mock
@@ -339,6 +340,24 @@ class ResidentRuntimeTest(unittest.TestCase):
             members = scq.load_resident_runtime(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.RESIDENT_RUNTIME_FIELDS)
         self.assertEqual(members, frozenset())  # the class lands empty; t30's 0000/0020/0175 join with their bodies
+
+    def test_0175_is_refused_on_the_real_image_until_0040_is_ready(self):
+        """t30 side (ii): 0175's closure is 0040, a side (i) body not yet strict. The real image refuses it, so the
+        membership cannot slide in ahead of its callee (pinned: it must stop being refused when 0040 is ready)."""
+        exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
+        if not exe.is_file():
+            self.skipTest("owner media absent")
+        from resident_loader_map import unpack
+        image = bytes(unpack(exe.read_bytes())[0])
+        strict = {r["id"] for r in csv.DictReader((self.ROOT / "docs/re/strict_full_c_addresses.csv").open())}
+        doc = (self.ROOT / "docs/re/RES_0802_0175_CPU.md").read_text()
+        sha = re.search(r"`([0-9a-f]{64})`", doc).group(1)
+        rows = [dict(id="RES_0802_0175", evidence_doc="docs/re/RES_0802_0175_CPU.md", review_pr="1",
+                     reviewed_commit="c" * 40, body_sha256=sha, body_bytes="30")]
+        self.assertNotIn("RES_0802_0040", strict)
+        with self.assertRaises(Exception) as caught:
+            self.load(rows, self.ROOT, image=image, strict_ids=strict)
+        self.assertIn("RES_0802_0040 is not a member or strict", str(caught.exception))
 
     def test_valid_member_loads(self):
         with tempfile.TemporaryDirectory() as folder:

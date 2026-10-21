@@ -120,3 +120,17 @@ their three cheapest are still `OVL_0025_0341` 2,043 B, `OVL_006F_0EC4` 2,813 B 
 - Full `tools/overlay` suite: 206 tests, OK.
 - **Mutation-checked:** removing `driver_internal` from the ready set, disabling the member terminal, or disabling the
   near-only refusal each fails a test.
+
+## 0175 against the real 0193 row (t30 side ii, par-d)
+
+Measured on main `f9b145ef` with the owner media; pinned by `test_price_row_closures.RealDisplayRowTest` and
+`test_strict_candidate_queue.ResidentRuntimeTest.test_0175_is_refused_on_the_real_image_until_0040_is_ready`.
+- **Pricer, no change needed.** Walking the real `0802:0193` with `RES_0802_0175` as a member removes exactly 0175's 30 B:
+  bodies `{0193: 90, 0175: 30, 0105: 112, 0040: 197}` become `{0193: 90, 0105: 112, 0040: 197}` and 0175 is listed under
+  `runtime_residents`. 0040 stays priced because 0105 also reaches it. Strict (`0899:0059`), unmapped, bad and declared are
+  unchanged.
+- **Membership cannot land yet.** The real-image closure check refuses 0175: `+018C call 0x40: RES_0802_0040 is not a
+  member or strict`. 0175 calls 0040, a side (i) body that is evidence-only. The refusal is pinned; the test must be
+  updated when 0040 is ready.
+- **Proposed row (TEXT only, review fields blank):** `RES_0802_0175,docs/re/RES_0802_0175_CPU.md,<review_pr>,<reviewed_commit>,<body sha in the doc>,30`.
+  The committed table is untouched, so the empty-class pin stands.
