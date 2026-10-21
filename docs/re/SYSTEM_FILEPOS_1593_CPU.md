@@ -130,3 +130,18 @@ media access.
 ## Proposed coverage row (text only; the acceptance lands it)
 
     strict_candidate_queue.RUNTIME_COVERED_ENDPOINTS:  (0x0AF8, 0x1593): "system FilePos (system_filepos_1593_cpu, #<this PR>)"
+
+## Acceptance of the coverage row (added by the review lane, par-e, VP i20278/i20284)
+
+`(0x0AF8, 0x1593): "system FilePos (system_filepos_1593_cpu, #1316)"` lands in `RUNTIME_COVERED_ENDPOINTS`. It is readiness only, never a credit.
+
+- **Audit reproduced at `f902b02a`:**
+  - **Unicorn:** 94 cases (`RETURN` 83, `DIVIDE` 10, `TRANSFER` 1). Starts 41/41, outcomes 6/6, 89 independent checks,
+    CPU14 + 1 MiB, masks 0.
+  - **Native:** 42 cases (`RETURN` 34, `DIVIDE` 8).
+- **Terminal stop.** `DIVIDE` (record size 0) stops at LongDiv's `JMP 00E2` with AX = 200, and `RES_0AF8_00E2` is
+  declared. `RUNTIME_COVERED_TERMINALS` lists `1593 → RES_0AF8_00E2`, together with LongDiv itself.
+- Native RESULT.BIN `1b728705…` equals this document. The emulator is `/usr/bin/dosbox-x` 2026.01.02, not the pinned `5a9c7c53` build (a declared substitution). ASan/UBSan with `-Werror -Wpedantic`: 25 checks. `check_checker_builds RES_0AF8_1593 --require-current-main` passes.
+- **Measured delta** (regenerated exports, closure pricer): with `1410`, `1563` and `1593` covered, **0** rows become free
+  of uncovered SYSTEM endpoints (343 → 343). All 21 rows of the t29 prize are held by `14FB` alone (see the BlockRead
+  record).
