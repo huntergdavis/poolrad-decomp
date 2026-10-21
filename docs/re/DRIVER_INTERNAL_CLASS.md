@@ -1,12 +1,22 @@
 # Driver-internal bodies: a declared readiness class that is never a credit
 
-**Status: one member, `RES_08AE_181A`** (22 B; author PR #1243 at `df1dc4d8`, accepted by par-e and merged as #1247). Design approved in principle by the VP (i19925, after design i19920); the reviewer roles were ruled in i19927.
+**Status: nine members, one deferred.** Members on main after this change, in landing order:
+- `181A` (#1247);
+- `0000` (#1255);
+- `1742` and `17AE` (#1287);
+- `137C` and `13B1` (#1292);
+- `006C` and `00DC` (#1296);
+- `017B` (this change).
 
-**The first member bought no body and no credit.** Readiness delta is **zero**:
-- par-a regenerated the strict-candidate export on main `30b92e0a` twice, once with the committed table and once with a header-only table.
-- Both give 447 candidates and 58 composable.
-- No candidate's callee readiness differs, and no candidate targets `181A` directly. Its only callers are other 08AE bodies.
-- Strict and identity counts stay 252 / 298.
+`01A5` is **deferred**, and the reason is recorded below. Design was approved in principle by the VP (i19925, after design
+i19920), and the reviewer roles were ruled in i19927.
+
+**Members buy readiness, never credit.** Each acceptance measured the strict-candidate export with and without the
+row:
+- Every member left the totals unchanged (447/58 at the first; 440/51 at the last, after unrelated credits).
+- The only member that moved any row is `00DC`. Eleven rows that call `08AE:00DC` directly each lost exactly one unready
+  callee, and none became composable.
+- Strict and identity counts are untouched by every member.
 
 A member counts toward a row only when every other unready callee on that row's path is also ready.
 
@@ -22,14 +32,14 @@ It is a sibling of `declared_boundary`, not a reuse of it:
 | Class | What it is | Behaviour |
 | --- | --- | --- |
 | `declared_boundary` | a thin environment contract | partly supplied from outside (BIOS) |
-| `driver_internal` | a complete model held to the credited-body evidence bar | fully modelled |
+| `driver_internal` | a body whose **composed** run reproduces the original (definition below) | modelled, and composed end to end |
 
 The 08AE policy states that driver helpers "do not become environment endpoints eligible for declared_boundary merely by belonging to a driver".
 
 ## Membership: narrow, enforced in code (`strict_candidate_queue.load_driver_internal`)
 
 - **Where members live:** only ids listed in [`driver_internal_models.csv`](driver_internal_models.csv). The columns are `id, evidence_doc, review_pr, reviewed_commit, body_sha256, body_bytes`, with exactly that header.
-- **Every member moves a pinned set under review.** `test_committed_table_loads_with_exactly_the_reviewed_members` (`test_strict_candidate_queue.py`) asserts the exact member set, which is currently `{RES_08AE_181A}`. So a table row added without the matching test change fails CI.
+- **Every member moves a pinned set under review.** `test_committed_table_loads_with_exactly_the_reviewed_members` (`test_strict_candidate_queue.py`) asserts the exact member set, currently the nine members above. So a table row added without the matching test change fails CI.
   - Before #1247 that test asserted the table was empty. That was a vacuous truth written by par-a in #1241: it would have kept passing for as long as nobody added a member, and it proved nothing about the members.
   - par-e replaced it with the pinned set.
 - **Segment-scoped:** an id must match `RES_08AE_XXXX`. Widening the class to another segment is a policy change to this rule, never a table row.
@@ -50,8 +60,62 @@ The 08AE policy states that driver helpers "do not become environment endpoints 
 - An unmasked CPU14 + 1 MiB differential covers 100% of starts and every feasible outcome. Exclusions are argued and asserted, and stops are split and named.
 - Native corroboration, with any stub declared.
 - A `CHECKER_ROWS` registration whose checker runs on current main.
-- **Closure-complete:** every callee of a member is strict, runtime_covered, declared_boundary or driver_internal. The 08AE set exits to `0A32:00A2` (the Turbo Pascal DOS unit, which needs runtime coverage) and to SYSTEM LongMul `0AF8:0A5B` (already covered).
+- **Closure-complete, enforced by the loader, not by review memory:**
+  - With the loader-expanded START image, `load_driver_internal` decodes each member and refuses it unless every transfer
+    out of it is ready. A far transfer must reach a runtime-covered endpoint, a declared boundary, a member or a strict
+    resident. A near transfer must reach a member or a strict resident (#1255).
+  - Directness comes from the decoded operand types, never from printed text (#1283).
+  - Indirect transfers are refused.
+  - An interrupt is refused unless it is `INT 21h` with AH set by a literal `MOV` in the same basic block to a
+    `DECLARED_DOS_SERVICES` entry (`25h`, `35h`). The member's evidence document must then carry the exact marker,
+    for example `INT 21h AH=25h` (#1288, VP i20129).
+  - `strict_candidate_queue.py` refuses to run when the table has members but no hash-checked START.EXE.
+  - The 08AE set exits to `0A32:00A2` (Dos.GetTime) and `0A32:000B` (Dos.Intr), both runtime-covered, to SYSTEM LongMul
+    `0AF8:0A5B`, and through `0899:0000` to the terminal `Halt` boundary `RES_0AF8_00E9`.
 - **Roles (i19927):** an author lane writes each member, par-e accepts it, and par-a accepts the class and the end-to-end row.
+
+## Definition: a member is a composed body (VP i20169, i20176)
+
+**A member is a body for which a COMPOSED differential shows that its segment, its REAL callee members and the resume
+points together reproduce the original bytes' behaviour end to end.** Concretely:
+- the models are chained through their real interfaces (each CALL stop, each resume, each environment callback);
+- the result is compared against the original image executing the real bodies;
+- every chained callee is a member carrying its own evidence;
+- the run's per-member executed-start counts show that each one actually ran.
+
+A stop/resume or hook model qualifies only when such a composed checker drives the original bytes at each stop. The
+earlier wording, "a complete model held to the credited-body bar", read as end to end and was not.
+
+**Two kinds of fidelity are kept apart (i20175).** A member's own behaviour rests on its own evidence at the bar. The
+composition rests on the composed run, which does not replace any member's evidence. Composed runs cited so far:
+- `RES_0899_0000` (#1291): 0000, 006C, 00DC, 137C, 13B1, 1742, 17AE and 181A, each fully executed;
+- `RES_0899_0059` (#1295): additionally 017B at 20/21. The missing start is a branch infeasible from that caller and
+  covered by 017B's own 21/21.
+
+**How this was found:** by the review lane (par-e) checking what a member actually claims, not by a failure in the field.
+The loader's closure check asks whether each callee is ready, not whether the composition reproduces the original. A
+member that stops at a scripted hook and resumes from a scripted stub would have read as composable although nothing
+composable had been run. This was the second laundering path found in the class, one level below the first: the first
+was a member admitted with an unready callee, which led to the loader closure check in #1255.
+
+## Deferred member: `RES_08AE_01A5` (VP i20201)
+
+**Its evidence is complete, its composition is unprovable today, and the wall does not need it.**
+- Nothing in either composed run executes 01A5. 00DC's stops are 137C, 17AE, 1742, 181A, 006C and 13B1. 017B's stops are
+  137C, 1742, 17AE and 13B1. No member calls 01A5.
+- Its only callers are the resident function at image `2B8B`, which is not modelled, so no composed run can show 01A5
+  running until 2B8B is driven or modelled.
+- The wall is `0899:0059` → 00DC/017B → their six callee members. 01A5 is not on that path, so the deferral blocks no
+  credit.
+
+**Path to completion:** a composed run from 2B8B, the resident caller that reaches both 00DC and 01A5. This is a recorded
+decision, not an omission.
+
+## Reciprocity: resident `2B8B` calls the spine
+
+The resident function at image `2B8B` calls both `08AE:00DC` and `08AE:01A5` (par-d's census). So **any resident row
+that ever composes 2B8B needs both 00DC and 01A5 to be members first**. 00DC is a member; 01A5 is deferred, as above.
+Whoever composes 2B8B owns both the 2B8B composed run and 01A5's membership.
 
 ## How a consuming row declares it
 
