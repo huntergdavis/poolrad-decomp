@@ -128,6 +128,7 @@ RUNTIME_COVERED_ENDPOINTS = {
     (0x0AF8, 0x120F): "system seed step (system_seed_fullstate_120f)",
     (0x0AF8, 0x16A8): "system FillChar (system_runtime_leaves_cpu)",
     (0x0AF8, 0x182A): "system UpCase (system_runtime_leaves_cpu)",
+    (0x0A32, 0x00A2): "Dos.GetTime (dos_gettime_00a2_cpu, #1245)",
 }
 
 TOKEN = re.compile(
