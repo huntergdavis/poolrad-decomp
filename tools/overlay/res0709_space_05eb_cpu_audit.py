@@ -7,6 +7,7 @@ from hashlib import sha256
 from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from resident_loader_map import unpack
 from res0709_ega_reset_0000_cpu_audit import Cpu,Env,OUT_FN,IN_FN,ROOT,SIZE,EXE_SHA,REGISTERS,physical,put16,check
+CHECKER_ROWS=('RES_0709_05EB',)
 CS,DS,SS,SYS=0x8800,0x5000,0x2000,0x6000
 ENTRY,END=0x5EB,0x626
 LOOPS={0x2CA:0x279,0x351:0x300,0x381:0x267,0x45B:0x3BD,0x468:0x3B4,0x5BC:0x4B2,0x5C8:0x4A5,0x5D4:0x49C,0x5E2:0x235}
@@ -150,7 +151,11 @@ def differential(bodies,decoded,lib,quick=False):
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe','jb') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],
         chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    if a.compile_only:
+        # media-free: this gate runs on a tree without resources/DOS/POOLRAD, so nothing may read START.EXE here
+        with tempfile.TemporaryDirectory(prefix='space05eb-') as tmp:library(Path(tmp))
+        print('CHECKER_BUILD_OK');return
     bodies,decoded,meta=source();report=dict(target=meta)
     with tempfile.TemporaryDirectory(prefix='space05eb-') as tmp:
         lib=library(Path(tmp))
