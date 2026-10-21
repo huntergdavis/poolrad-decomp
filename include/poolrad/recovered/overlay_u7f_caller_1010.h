@@ -13,8 +13,10 @@ typedef enum {
  * Exact 1MiB A20-off RAM; separate CPU object; immutable loaded code and
  * bindings, synchronous access; writes must avoid modeled code. Wrapping far-return frames (including
  * alias-modified frames) are outside the contract. Initial
- * IP1010 and SP[0040,FFF6]. dice_cs binds U9E +0DE3; +0FD2 reads its loaded stub binding; SYSTEM
- * is fixed 0AF8. The stub must resolve to dice_cs:0DE3.
+ * IP1010 and SP[0040,FFF6]. The three FillChar LCALLs (1022, 1044, 1088) read their SYSTEM segment from
+ * the loader-relocated word at 1025, 1047 and 108B in the caller's code, live, not a constant. dice_cs is a
+ * DECLARED PARAMETER (the host binds U9E +0DE3), not a constant: it is correct by design and would be wrong only
+ * if a caller hard-coded it. +0FD2 reads its loaded stub binding, which must resolve to dice_cs:0DE3.
  * Positive caller budget is shared across taken loop-back entries 1608/181A/18AA.
  * Each dice call receives a fresh SYSTEM-call budget (zero is permitted).
  * LIMIT/CALLEE/TRANSFER preserve actual partial CPU14/RAM; ARGUMENT is
