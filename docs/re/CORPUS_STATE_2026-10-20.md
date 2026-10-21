@@ -62,8 +62,8 @@ regenerated pin (all callees transitively, bodies counted once, endpoints left u
 | `OVL_001C_0F08` | none sourced | 14,528 / 47 (10 uncovered SYSTEM endpoints) | yes (00DC, 017B) | no indirect dispatch in the closure. An earlier figure of ">= 3,176 B" quoted here does not reproduce from any product or document and is withdrawn; the id `RES_0464_0F08` was also wrong |
 | `OVL_006F_0482` | >= 2,934 | 7,468 / 24 | yes | chain PARKED by VP ruling; do not start 1E5C or 0111 |
 | `OVL_006F_1262` | >= 1,876 (>= 4,312 with 0482's callees) | 8,952 / 27 | yes | needs 0482 and 0EC4 |
-| `OVL_0077_299C` | >= 1,011 (>= 1,795 with 0D9A) | 7,610 / 17 | yes | needs 008A, 02E8 |
-| `OVL_006F_0010` | >= 627 + 5 unpriced endpoints | 956 / 6 | yes | `runtime_unmapped` callees |
+| `OVL_0077_299C` | >= 1,011 (>= 1,795 with 0D9A) | 7,610 / 17 | yes | needs 008A, 02E8; also reaches the unpriced far target `0428:002A` through `RES_03F1_0000` |
+| `OVL_006F_0010` | >= 627 (one-hop; it counted 5 endpoints) | 956 / 6 (**11** unpriced library endpoints: 9 uncovered SYSTEM, `0A32:000B` Intr via `RES_0899_0000`, and `0A32:00A2` behind the 08AE set) | yes | the endpoint count to use is the closure's 11, not the one-hop 5; see `DRIVER_INTERNAL_CLASS.md` |
 | `OVL_0025_0511` | >= 303 | 8,120 / 28 | yes | cheapest by one-hop floor, **not** buyable by translation alone |
 | `OVL_0025_0411` | >= 926 | 3,148 / 17 | yes | |
 | `OVL_0025_1684` | >= 1,499 | 5,908 / 14 | yes | |
@@ -71,6 +71,8 @@ regenerated pin (all callees transitively, bodies counted once, endpoints left u
 | `OVL_006F_22D5` | >= 2,404 | 8,989 / 21 | yes | |
 | `OVL_009E_0026` | >= 38 + dispatch closure | 314 / 1 | no | dispatch through itself (`indirect_unresolved`) |
 | `OVL_005E_0123` | >= 2,029 | 2,549 / 3 | no | dispatch via `OVL_009E_0160`; 009E_02FA is on hold (i19596) |
+
+The far targets outside SYSTEM, the resident segments and 08AE (`0A32:000B`, `0A32:00A2`, `0428:002A`) were found by a tool column that did not exist when this summary was written: before #1244, `price_row_closures.py` collected them and never printed them. That is why the 0010 and 299C entries changed after par-a's re-verification (i19957); the byte and body figures did not change.
 
 **Pricing conclusion.** Every priced row except `009E_0026` and `005E_0123` has
 `08AE:00DC` and `08AE:017B` in its closure, reached through the resident gateways
