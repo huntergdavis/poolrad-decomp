@@ -33,6 +33,11 @@ Three results the audit pins, each of which a plausible re-implementation would 
 - **A pending InOutRes survives.** Reset still opens and Close still closes, and neither clears it. IOResult then returns the
   stale value, so FileExists answers 0 for a file that exists.
 
+**The third result is a defect in the game, and the model keeps it on purpose.** With a stale InOutRes the model reproduces a
+**false negative for a file that exists**, and that is the correct behaviour for this project. A model that "fixed" it would
+pass every happy-path test and diverge exactly where the game misbehaves. A decomp reproduces the game's behaviour, not the
+behaviour it should have had (VP i20322).
+
 ## Composition and contract
 
 - The callees are StrStore `0B25`, Assign `13E2`, Reset `1410`, Close `1491` and IOResult `04A2`, each composed from its
