@@ -79,6 +79,17 @@ This is a **correction**, not a relaxation (VP inbox i19579). A body is game cod
 
 **Acceptance rule (from this finding).** A body that composes a stack-frame reader, i.e. any callee whose RETF or POP frame it reaches, must have its **entry-SP window stated at acceptance**. An ARGUMENT guard that checks the RAM, CPU, size and IP but **not the entry SP** is the pattern to flag: `1951` and `0E52` were accepted that way. Compute the callee's entry SP from the caller's stack delta at the call, and either bound the caller's entry SP so the callee cannot wrap, or state the limit.
 
+## A share of test cases is never a frequency of behaviour (VP i20118, 2026-10-20)
+
+Every x/y in an evidence doc is one of two things: a share of the **cases chosen** for coverage, or a
+measured **frequency of behaviour**. A reader cannot tell them apart unless the sentence says which. Write
+case shares as "(n/m cases by construction)". State a frequency only when it was measured, and give the
+measurement.
+
+Precedent: in ReadKey (`CRT_READKEY_030F_CPU.md`), BREAK is 25/92 Unicorn cases by construction. Its
+trigger in play is the user pressing Ctrl-Break; its frequency in play is not measured. A draft instruction
+to call it "a live outcome of ordinary keyboard state" was withdrawn for exactly this reason.
+
 ## Four false-prior classes (each has a filter and a regression test)
 
 1. **Boundary assertions** — `address + size == 0x…` end-of-previous-body and

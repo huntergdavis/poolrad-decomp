@@ -58,6 +58,11 @@ The ReadKey hash matches the declaration's `10e41540…`. The audit asserts:
 - Order matters, and the model follows it. The CALL's return word is written *before* +0143 reads [8502],
   so a stack placed over the flag can itself raise BREAK; two audit cases construct exactly that.
 - Stops: RETURNED, BREAK, ARGUMENT, SERVICE, ENV (unreachable here).
+- **How often BREAK happens is not claimed.** BREAK is fully reachable and exercised (25/92 cases by
+  construction); its frequency in play is not measured and is not claimed. In play, what raises it is **the
+  user pressing Ctrl-Break**: Crt's INT 1Bh handler records the press in DS:[8502], and the next ReadKey
+  takes the BREAK path. The 25/92 Unicorn and 15/50 native counts are shares of cases chosen for coverage,
+  not frequencies.
 
 ## Validation
 
