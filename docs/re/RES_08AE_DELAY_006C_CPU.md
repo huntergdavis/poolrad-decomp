@@ -146,3 +146,20 @@ nothing in it.
 Use the audit Python environment (Capstone, Unicorn). Compile-only builds, loads and binds
 the production symbol and needs no media. Original bytes, generated assembly/COM and capture
 receipts stay under ignored `resources/`.
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Member row: `RES_08AE_006C` in `driver_internal_models.csv`.
+
+**This body's own evidence**, reproduced by par-e on main `ab790918` (2026-10-20):
+- **Unicorn:** 488 cases (480 RETURN, 8 TIME) plus 4 ARGUMENT, 46/46 starts and 12/12 conditional outcomes, 14 CPU words and
+  all 1,048,576 RAM bytes with no mask.
+- **Native:** 32 cases, RESULT.BIN `9fd1ebb1…` (matches).
+- **C:** 28 checks under strict `-Werror` ASan/UBSan.
+
+**Composition evidence (VP i20169/i20176).** This document's model takes 08AE:0000 as a hook, which is the gap it states
+under "Not established". The composition is proven instead by the `RES_0899_0000` composed run (#1291,
+[RES_0899_QUIT_0000_CPU.md](RES_0899_QUIT_0000_CPU.md)). That run chains the members through their real interfaces,
+including this body with the real `RES_08AE_0000`, and compares the result against the original image executing the real
+bodies. Reproduced by par-e: 112 cases, all EXIT, CPU14 + 1 MiB, flag masks 0, with this body **46/46** starts executed
+and `RES_08AE_0000` **48/48**. Its closure callee `RES_08AE_0000` is a member. Never a credit.
