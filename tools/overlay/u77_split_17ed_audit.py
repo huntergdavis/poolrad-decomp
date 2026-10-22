@@ -367,10 +367,10 @@ def cases(literal, quick=False):
               ('heap-split', dict(blocks=((0x3900, 8, 8, 8),))),
               ('heap-limit', dict(blocks=((0x3900, 0, 1, 0),), heap_limit=0)),
               ('heap-skip', dict(blocks=((0x3900, 0, 1, 0), (0x3920, 0, 4, 0))))]
-    for off in (0, 8, 0x100, 0x400, 0xFFC0):
+    for off in (0, 8, 0xFFD5, 0xFFE0, 0xFFC0):
         specs.append((f'node-offset-{off:x}', dict(node=(0x1000, off))))
     for sp in (0x18C, 0x18D, 0x1000, 0x8001, 0xFFF8):
-        specs.append((f'sp-{sp:x}', dict(sp=sp)))
+        specs.append((f'sp-{sp:x}', dict(sp=sp, node_count=0 if sp == 0x18C else 2)))
     specs += [('ss-ds', dict(ss=base.DS, sp=0x6000)), ('ss-a20', dict(ss=0xFFFF)),
               ('clear-limit', dict(node_count=0, mode=0, clear_limit=0)),
               ('rect-limit', dict(node_count=0, rect_limit=0)),
