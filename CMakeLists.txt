@@ -423,6 +423,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_08ae_vector_137c_cpu.c
                                     src/recovered/resident_08ae_vector_13b1_cpu.c
                                     src/recovered/system_set_expand_0d12_cpu.c
+                                    src/recovered/system_text_write_cpu.c
                                     src/recovered/resident_0709_skip_spaces_0714_cpu.c
                                     src/recovered/resident_0709_printer_0768_cpu.c
                                     src/recovered/resident_0709_page_select_00a0_cpu.c
@@ -2501,6 +2502,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_ega_hw_tests tests/recovered/test_ega_hw.c)
     target_link_libraries(poolrad_ega_hw_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_ega_hw_tests COMMAND poolrad_ega_hw_tests)
+    add_executable(poolrad_system_text_write_cpu_tests tests/recovered/test_system_text_write_cpu.c)
+    target_link_libraries(poolrad_system_text_write_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_system_text_write_cpu_tests COMMAND poolrad_system_text_write_cpu_tests)
     add_executable(poolrad_resident_0464_video_mode_cpu_tests tests/recovered/test_resident_0464_video_mode_cpu.c)
     target_link_libraries(poolrad_resident_0464_video_mode_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_0464_video_mode_cpu_tests COMMAND poolrad_resident_0464_video_mode_cpu_tests)
