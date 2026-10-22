@@ -11,6 +11,15 @@ composes two merged models on each record:
 Both run on the same RAM and CPU words. The recall attempt for this lane
 found nothing to reuse.
 
+## Loaded-state precondition (inherited)
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. The credit is unchanged. `OVL_006A_0214`'s C
+composes `pr_u6a_link_high_clear_019c` (`OVL_006A_019C`), and that model does not read its overlay stubs. This credit therefore holds only
+under the same loaded-state precondition: every stub listed in [U6A_LINK_HIGH_CLEAR_019C.md](U6A_LINK_HIGH_CLEAR_019C.md#loaded-state-precondition)
+must hold its loaded far `JMP`. When one of those units is not resident, the original goes through the overlay
+manager and this C does not. This section covers only the composed model. It makes no claim about stubs this
+body calls directly.
+
 ## Exact original, callers and ownership
 
 | Artifact | Verified bound |

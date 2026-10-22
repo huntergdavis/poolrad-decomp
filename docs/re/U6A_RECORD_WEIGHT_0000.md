@@ -20,6 +20,25 @@ helpers, the [U9B composition pattern](U9B_ENTRY_ZERO_COMPOSITION.md)
 for internal calls, and the [U7F](U7F_STATE_FLAGS_0F7E.md) and
 [U6C](U6C_RECORD_TABLE_SUM_3F31.md) differential/native methods.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_006A_0000` | `0096:003E` | unit `0x86` entry 6 `+323D` | `+008A` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
 ## Exact original, callers and ownership
 
 | Artifact | Verified bound |
