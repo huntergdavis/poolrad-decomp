@@ -24,6 +24,16 @@ under the same rule.)
 
 The 64-byte tail's own hash: `8021972cf76a755834431c501f193e11523604afb0c59972173c9f964c451a00`.
 
+**Dated note (2026-10-28), because a reviewer and a free model both tripped on it:** the
+queue row carries three different numbers and only one of them is the body's file
+offset. For this row `ovr_offset` = **26410** (the body's file offset), `offset` =
+**4524** (= `0x11AC`, the in-unit address) and `unit` = **32** (= `0x20`, the unit
+index). The unit's own base is a fourth number, **21886**, and `21886 + 0x11AC =
+26410`. So "the queue's `ovr_offset` is the body's file offset" is true while
+"`ovr_offset` is the unit base" is also true in a different sense - of the *unit*,
+not of the row. Cite the field explicitly.
+
+
 ## Identity
 
 - `lcall 0078:002A` at `1239` -> the loaded stub `EA 91 32 <seg>` -> **U6C +3291**,
