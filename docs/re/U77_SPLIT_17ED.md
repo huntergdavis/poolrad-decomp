@@ -82,12 +82,39 @@ comparison. The exact emulator binary hash, version, source revision, and
 local source changes are recorded. `POOLRAD_DOSBOX` selects the executable;
 without it, the installed fallback is explicitly identified.
 
-The initial **43-case quick differential passed** with CPU14, full RAM,
-EGA state, OUT, and VRAM operands equal. It reached 63/63 caller starts and
-2/2 caller outcomes, including CODE, CALLEE, and TRANSFER stops. Twelve
-host guards also passed. This is a partial fixture set, not the 550-case
-result. Full differential, native, and handoff-build measurements are still
-pending the shared load/slot gate.
+The full **550-case differential passed** on 2026-10-22 with Capstone
+5.0.7 and Unicorn 2.1.4: CPU14, all 16 FLAGS bits, all 1,048,576 RAM bytes,
+and all 262,164 EGA state bytes equal per case. There were **zero masks or
+RAM exclusions**, 3,892 matching OUT records and 14,570 matching VRAM write
+operands. These fixtures performed zero EGA reads; they do not add read-mode
+coverage. All **63/63 caller starts and 2/2 feasible caller outcomes** were
+reached. The separately reported closure coverage is **728/1,101 starts and
+52/120 outcomes**; its missing starts/outcomes remain in the private JSON
+receipt and no full-closure coverage claim is made. Twelve host guards passed.
+
+Stops: 525 split returns, 5 message returns, 8 caller CODE stops (two at
+each call), 11 propagated callee stops, and one TRANSFER after Move overwrote
+its return frame. The callee stops include one GetMem RUNERROR, two custom
+HeapError boundaries, one heap walk LIMIT, and seven nested display stops.
+The wrapped-node and minimum-message-stack fixtures passed. The earlier
+43-case quick run was a partial fixture set and is superseded by this run.
+
+Native and handoff-build measurements are pending. The pinned emulator's
+version command writes its valid banner to stderr and exits 1; the harness
+now recognizes that informational response before executing the guest.
+
+## Claim table
+
+| Claim | Evidence | Limit |
+| --- | --- | --- |
+| Caller identity and extent | Hash-checked first-return span: 176 bytes, 63 instructions | Private DOS v1.3 media identity |
+| Raw composition parity | 550-case pass: CPU14, all RAM, EGA, OUT and VRAM operands | No masks; closure coverage remains partial |
+| Caller control-flow coverage | 63/63 starts and 2/2 conditional outcomes | Full closure coverage is not claimed |
+| Host argument behavior | 12 rejection/preservation/diagnostic checks | No original execution for host guards |
+| Native corroboration | Pending | Explicit stack/data/plane windows; other RAM and controller state excluded |
+| Registered checker handoff | Pending | Actual compile/load/bind check, not parity acceptance |
+| Naturally reached game route | Not established | All inputs are synthetic |
+| Credit or identity promotion | None requested | Accounting and manifest remain unchanged |
 
 ## Reuse and adversarial claim check
 

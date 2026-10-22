@@ -140,7 +140,11 @@ def native(bodies, literal, lib):
     source_rev = subprocess.run(['git', '-C', str(source_dir), 'rev-parse', 'HEAD'], capture_output=True, text=True)
     source_changes = subprocess.run(['git', '-C', str(source_dir), 'diff', '--stat'], capture_output=True, text=True)
     source_revision = source_rev.stdout.strip() if source_rev.returncode == 0 else None
-    version = subprocess.run([executable, '--version'], capture_output=True, text=True, check=True, timeout=20).stdout.strip()
+    probe = subprocess.run([executable, '--version'], capture_output=True, text=True, timeout=20)
+    version = (probe.stdout + probe.stderr).strip()
+    # The pinned CLI reports its version on stderr and exits 1.
+    check(probe.returncode in (0, 1) and 'DOSBox-X version ' in version,
+          f'emulator version probe failed: {probe.returncode} {version}')
     print(f'Native: {len(specs)} full-chain cases; {executable}', flush=True)
     with (directory / 'dosbox.log').open('w') as log:
         subprocess.run([executable, '-conf', str(cfg), '-fastlaunch', '-exit', '-noconsole'],
@@ -180,7 +184,7 @@ def native(bodies, literal, lib):
         masked.append((at, SIZE))
     ranges = lambda spans: [dict(start=f'{lo:05X}', end_exclusive=f'{hi:05X}', bytes=hi - lo) for lo, hi in spans]
     return dict(dosbox_binary_sha256=binary_digest, source_revision=source_revision,
-                source_modifications=source_changes.stdout.strip() if source_changes.returncode == 0 else None, dosbox_version=version,
+                source_modifications=source_changes.stdout.strip() if source_changes.returncode == 0 else None, dosbox_version=version, version_probe_exit=probe.returncode,
                 pinned_build_used=source_revision == '5a9c7c53481c2e933948039c33256776653f4faf',
                 build_selection='POOLRAD_DOSBOX override or installed fallback; binary hash identifies exact build',
                 cases=len(specs), stops=stops, native_captured_ranges=ranges(captured), native_masked_ranges=ranges(masked),
