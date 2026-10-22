@@ -23,7 +23,7 @@ The rendered status becomes **stale** if the repository commit changes.
 **The owner overview** (the default view) is one screen: four tiles and the line of truth (VP i20751). Code
 replaced and identities proven come from the accounting checkpoint and the census below. Unknown is the checkpoint's
 `unknown_ownership`. Running as our C comes from `hybrid_status.json`. Each of its numbers is shown only while its cited
-document (`docs/HYBRID_STAGE_A.md`, `docs/HYBRID_STAGE_B_OBSERVER.md`) still states it; otherwise the tile asks for
+document (`docs/HYBRID_GLUE_BATCH1.md`, `docs/HYBRID_STAGE_B_OBSERVER.md`) still states it; otherwise the tile asks for
 re-review. Everything else is on the second view (`dashboard.html#details`).
 
 The function cards read reviewed numerators from
