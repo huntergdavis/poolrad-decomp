@@ -14,6 +14,13 @@ It also records, where one exists, the C entry symbol an audit binds for the row
 What this registry CANNOT do yet: it carries no call shape, CPU struct, env or budgets (dispatch needs all four; stage 0
 only observes), and a body is identified by a prefix, not its whole span.
 
+With --all-ledgers (stage (b), VP i20735) it also takes every function start the ledgers enumerate
+(docs/re/overlay_function_ledger.csv, docs/re/resident_callable_ledger.csv), so the observer can count uncredited bodies
+too. The registry does not say which IDs are credited; that is read from strict_full_c_addresses.csv when the counts are
+analysed. RPRO_ and RNEAR_ rows (near-only resident starts) carry only an image offset; their IP is inferred from the highest
+resident segment base at or below it, so a wrong inference shows as no arrivals, never as a false one. Function starts
+no ledger enumerates (for example near-only residents) are still unobservable.
+
 Output (signatures are game bytes): resources/hybrid/registry.tsv, under the ignored resources/. Stdout: counts only."""
 import argparse, collections, csv, re, struct, sys
 from pathlib import Path
@@ -82,7 +89,9 @@ def doc_symbols(evidence, known):
 
 
 def main():
-    p = argparse.ArgumentParser(); p.add_argument('--out', type=Path, default=ROOT / 'resources/hybrid/registry.tsv'); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument('--out', type=Path, default=ROOT / 'resources/hybrid/registry.tsv')
+    p.add_argument('--all-ledgers', action='store_true', help='add every ledger function start, credited or not')
+    a = p.parse_args()
     exe = (ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes(); ovr = (ROOT / 'resources/DOS/POOLRAD/GAME.OVR').read_bytes()
     packed = exe[OI.parse_mz(exe)['header_bytes']:]
     units = {u['stub_para']: u for u in OI.find_units(packed, ovr)}
@@ -90,9 +99,20 @@ def main():
     codes = [ovr[u['ovr_offset']:u['ovr_offset'] + u['code_size']] for u in units.values()]
     table = list(csv.DictReader(open(ROOT / 'docs/re/strict_full_c_addresses.csv')))
     ids = [r['id'] for r in table]; evidence = {r['id']: r['evidence_doc'] for r in table}
+    if a.all_ledgers:
+        more = [f"OVL_{int(r['unit'], 16):04X}_{int(r['offset'], 16):04X}"
+                for r in csv.DictReader(open(ROOT / 'docs/re/overlay_function_ledger.csv'))]
+        more += [r['id'] for r in csv.DictReader(open(ROOT / 'docs/re/resident_callable_ledger.csv'))]
+        ids += sorted(set(more) - set(ids))
     syms, known = symbols(), declared(); rows = []; stats = collections.Counter()
+    res_segs = sorted({0} | {int(i.split('_')[1], 16) for i in ids if i.startswith('RES_')})   # 0: main program segment
     for n, ident in enumerate(ids):
-        kind, seg, off = ident.split('_'); seg, off = int(seg, 16), int(off, 16)
+        if ident.startswith(('RPRO_', 'RNEAR_')):                    # near-only start: image offset only. Its IP is
+            io = int(ident.split('_')[1], 16)                                  # inferred from the highest resident segment base
+            seg = max(s for s in res_segs if s * 16 <= io)           # at or below it; a wrong guess can only miss
+            kind, off = 'RES', io - seg * 16                          # arrivals (the signature is still checked)
+        else:
+            kind, seg, off = ident.split('_'); seg, off = int(seg, 16), int(off, 16)
         if kind == 'OVL':
             u = units.get(seg)
             if u is None:
@@ -111,7 +131,7 @@ def main():
         stats[f'sig_len_{len(sig)}'] += 1
         unique = count == 1
         stats['unique' if unique else 'scan_budget' if count is None else 'ambiguous' if count else 'not_found_in_code'] += 1
-        found = (syms.get(ident, set()) & known) or doc_symbols(evidence[ident], known)
+        found = (syms.get(ident, set()) & known) or (doc_symbols(evidence[ident], known) if ident in evidence else set())
         stats['symbols_per_row_' + ('0' if not found else '1' if len(found) == 1 else 'many')] += 1
         sym = ','.join(sorted(found)) or '-'
         stats['symbol_found' if sym != '-' else 'symbol_not_found'] += 1
@@ -123,7 +143,7 @@ def main():
         f.write('# id\tentry_ip\tsig_len\tsig_hex\tmask_hex\tuniqueness\tc_symbol\n')
         for r in rows:
             f.write('\t'.join(r) + '\n')
-    print(dict(ids=len(ids), **stats, out=str(a.out.relative_to(ROOT))))
+    print(dict(ids=len(ids), **stats, out=str(a.out.resolve().relative_to(ROOT))))
 
 
 if __name__ == '__main__':
