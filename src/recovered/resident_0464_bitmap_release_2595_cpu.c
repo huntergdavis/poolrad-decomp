@@ -43,7 +43,7 @@ static void add_ax(pr_r0464_2595_cpu *c,uint16_t b) {
 static void shr_ax(pr_r0464_2595_cpu *c) {
     uint16_t before=c->ax;c->ax>>=1;logic(c,c->ax);c->flags|=0x10;
     if(before&1)c->flags|=1;
-    if(before&0x8000)c->flags|=0x800;
+    if(before>0x8000u)c->flags|=0x800; /* pinned SHRw count 1: OF = (var1 > 8000h) */
 }
 static pr_r0464_2595_status release(machine *m,uint16_t site,uint16_t system,
     unsigned cap,pr_r0464_2595_diagnostic *d) {

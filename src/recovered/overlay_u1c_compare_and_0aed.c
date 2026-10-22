@@ -88,8 +88,9 @@ static void shift_di_one(pr_u1c_0aed_cpu *cpu)
 {
     uint16_t old = cpu->di;
     cpu->di = (uint16_t)(old << 1);
-    /* SHL leaves AF undefined. */
-    cpu->flags &= (uint16_t)~(ARITH_FLAGS & ~0x10u);
+    /* pinned DOSBox-X: SHL sets AF for a non-zero count. */
+    cpu->flags &= (uint16_t)~ARITH_FLAGS;
+    cpu->flags |= 0x10u;
     if (old & 0x8000u) cpu->flags |= 1u;
     if (((cpu->di >> 15) ^ (old >> 15)) & 1u) cpu->flags |= 0x800u;
     result_flags(cpu, cpu->di, 16u);

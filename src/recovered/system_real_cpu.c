@@ -116,7 +116,7 @@ static uint16_t shr1(pr_system_real_cpu *c, uint16_t v, unsigned bits)
     c->flags &= (uint16_t)~0x08D5u;
     c->flags |= 0x10;
     if (v & 1u) c->flags |= 0x01;
-    if (v & sign) c->flags |= 0x800;
+    if (v > sign) c->flags |= 0x800; /* pinned SHR count 1: OF = (var1 > sign mask) */
     szp(c, r, sign);
     return r;
 }

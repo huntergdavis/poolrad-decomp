@@ -97,8 +97,13 @@ static void mul16(pr_ovl0077_275b_state *c, uint16_t operand)
     uint32_t product = (uint32_t)c->ax * operand;
     c->ax = (uint16_t)product;
     c->dx = (uint16_t)(product >> 16);
-    c->flags &= (uint16_t)~0x801u;
-    if (c->dx) c->flags |= 0x801;
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = product;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        c->flags = (uint16_t)((c->flags & ~0x0845u) | (c->dx != 0u ? 0x0801u : 0u) |
+                                (c->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 pr_ovl0077_275b_status pr_ovl0077_275b_cpu(uint8_t *ram, size_t ram_size,

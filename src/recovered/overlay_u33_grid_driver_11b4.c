@@ -88,11 +88,13 @@ static void mul16(pr_u33_11b4_cpu *cpu, uint16_t source)
     uint32_t product = (uint32_t)cpu->ax * source;
     cpu->ax = (uint16_t)product;
     cpu->dx = (uint16_t)(product >> 16);
-    cpu->flags &= (uint16_t)~0x08D5u;
-    if (cpu->dx != 0u) cpu->flags |= 0x0801u;
-    if (cpu->ax == 0u) cpu->flags |= 0x0040u;
-    if ((cpu->ax & 0x8000u) != 0u) cpu->flags |= 0x0080u;
-    if (even_parity((uint8_t)cpu->ax)) cpu->flags |= 0x0004u;
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = product;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        cpu->flags = (uint16_t)((cpu->flags & ~0x0845u) | (cpu->dx != 0u ? 0x0801u : 0u) |
+                                (cpu->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 static void cmp8(pr_u33_11b4_cpu *cpu, uint8_t left, uint8_t right)
