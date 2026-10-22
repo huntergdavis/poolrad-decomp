@@ -24,6 +24,8 @@ from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, REGISTERS, physical, put16
 
+CHECKER_ROWS = ('RES_0709_0000',)
+
 R709, ENTRY, END, BODY_RETF = 0x0709, 0x0000, 0x0071, 0x0070
 DS, SS = 0x3000, 0x4000
 RET_CS, RET_IP = 0x9001, 0x7000
@@ -319,10 +321,16 @@ def native_audit(span, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-ega-") as temp:
+            library(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     target, span = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(span), instructions=len(target["starts"]), outs=len(target["outs"])))
     if args.unicorn or args.native:

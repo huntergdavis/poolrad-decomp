@@ -7,6 +7,7 @@ from hashlib import sha256
 from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from resident_loader_map import unpack
 from res0709_ega_reset_0000_cpu_audit import Cpu,Env,OUT_FN,IN_FN,ROOT,SIZE,EXE_SHA,REGISTERS,physical,put16,check
+CHECKER_ROWS=('RES_0709_00B7',)
 CS,DS,SS,SYS=0x8800,0x5000,0x2000,0x6000
 ENTRY,END=0xB7,0x171
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
@@ -148,10 +149,11 @@ def differential(bodies,decoded,lib,quick=False):
         unreachable_outcome='011A JA taken: XOR AX,AX; CMP AX,word, so unsigned zero is never above it',
         chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
-    bodies,decoded,meta=source();report=dict(target=meta)
+    p=argparse.ArgumentParser();p.add_argument('--compile-only',action='store_true');p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
     with tempfile.TemporaryDirectory(prefix='rect00b7-') as tmp:
         lib=library(Path(tmp))
+        if a.compile_only:print('CHECKER_BUILD_OK');return
+        bodies,decoded,meta=source();report=dict(target=meta)
         if a.unicorn:report['unicorn']=differential(bodies,decoded,lib,a.quick)
         if a.native:
             from res0709_rect_fill_00b7_cpu_native import native

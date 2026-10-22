@@ -36,6 +36,12 @@ evidence. The direct sources reused here are the
 bus/FillChar stage in #1047. The CPU arithmetic primitives follow the
 previous raw +0160 implementation.
 
+## Role (identity is not claimed)
+
+The role is **rectangle fill on the game's draw page**: it saves `DS:4A1A`, selects the requested page, fills the rectangle through EGA write mode 2 and `FillChar`, and restores the page byte.
+Ownership as measured in [NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md) (Pass 4): the body is loader-called only, through two relocated far calls (`03F1:01F1`, `03F1:020C`) inside
+`RES_03F1_0137`. This line states a role and cites the reviewer's verdict; it makes no identity claim. The two-factor test and any credit are the reviewer's.
+
 ## Behavior
 
 The six words after the far return pair are color, page, bottom, right,
@@ -139,6 +145,25 @@ The focused CTest passed **1/1** after rebasing onto
 Private resources/00b7-evidence.json pins code/header/audit hashes, reports,
 native artifacts, media, DOSBox-X binary and sanitizer/CTest logs.
 Receipt SHA-256: fbcac163d2008bcd7b16bd8fa14c421fb3efe42b7a469b4148f78cfd045a4b14.
+
+### Claim-to-check
+
+Each claim below names the check that pins it. A claim with no check is labelled as a reading of the listing.
+
+| Claim | Check |
+| --- | --- |
+| the three bodies and FillChar are the original bytes (identities, counts, hashes) | `source()` in `res0709_rect_fill_00b7_cpu_audit.py` asserts instruction count and SHA-256 of each span against the table above |
+| the C model equals the original on CPU14, 983,040 non-aperture RAM bytes, stop and diagnostic | the original-byte Unicorn differential, 202 cases, no masks |
+| ordered OUT events and every video-write (offset, value) are the original's | the same differential: 4,159 OUT events and 98,347 write operands compared in order |
+| the rectangle lands on the right plane bytes and nothing else changes | native DOSBox-X, 50 cases, all four planes plus the data segment and a stack window; and the C test's hand-predicted plane bytes and unchanged neighbours |
+| each OUT is the original's, with its CS:IP, port, value and width | the native single-step run, 1,100 OUT events |
+| the three conditional outcomes are all reached | the audit's start and outcome counts: 89/89 caller starts, 164/164 composed starts |
+| the loop limit stops before an exhausted JNE and preserves state | the three LIMIT cases of the differential and the C test's loop-limit checks |
+| a malformed `+0140` call stops CODE before any effect; a refused OUT stops PORT | two CODE cases and four own PORT refusals in the differential; the C test's refusal checks |
+| a page-global store can overwrite the helper's return IP and the model reports TRANSFER | the changed-return alias case in the differential (one TRANSFER) |
+| the JA at `+011A` can never be taken | **a reading of the listing** (`XOR AX,AX` precedes `CMP AX,word`); no check asserts it |
+| the checker detects a wrong model | **no mutation run is recorded for this body** |
+| the checker builds on current main | `CHECKER_ROWS` is registered in this audit (`RES_0709_00B7`) and in the 0000 and 00A0 audits (`RES_0709_0000`, `RES_0709_00A0`); `check_checker_builds.py --require-current-main` passes for the three rows, and `--compile-only` prints `CHECKER_BUILD_OK` |
 
 ## Reproduction
 
