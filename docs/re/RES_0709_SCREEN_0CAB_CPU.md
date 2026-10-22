@@ -157,3 +157,11 @@ START.EXE under resources/DOS/POOLRAD.
   Old ledger bounds are not executable extents. No self-credit, accounting
   edits or natural-game reachability claim. This does not close the
   unrelated +0BF5 keyboard/sound chain.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: `--compile-only` builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS` is declared. Proven in a worktree WITHOUT `resources/` (what CI has):
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_0709_0CAB --require-current-main
+```
