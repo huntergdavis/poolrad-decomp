@@ -83,6 +83,9 @@ def source(exe_path=None, ovr_path=None):
                       "seed":[origin[0xC18F]+0x200,origin[0xC1C4]+0x201]})
 
 
+CHECKER_ROWS = ('OVL_006C_4235',)
+
+
 def library(directory):
     path = directory / "u6c_4235.so"
     subprocess.run(["cc","-std=c11","-Wall","-Wextra","-Wpedantic","-Werror","-fPIC","-shared",
@@ -212,7 +215,14 @@ def main():
     parser.add_argument("--progress",action="store_true")
     parser.add_argument("--exe", type=Path, help="owner-provided START.EXE")
     parser.add_argument("--ovr", type=Path, help="owner-provided GAME.OVR")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded,meta = source(args.exe, args.ovr)
     visited,edges,count,transfers,rng_calls,thresholds = set(),set(),0,0,0,0
     bounded_original_cases = []

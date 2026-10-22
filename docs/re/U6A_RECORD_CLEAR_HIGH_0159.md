@@ -120,3 +120,11 @@ public-entry path and all parity counts were measured again on this branch.
 
 The branch began at main cc3b27f84d91ea7b8aeedea9a915c9d0d49a2dbe.
 U2F +122B is the disjoint follow-on reserved with PM, unimplemented here.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006A_0159 --require-current-main
+```

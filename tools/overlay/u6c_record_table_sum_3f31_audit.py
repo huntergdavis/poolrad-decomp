@@ -60,6 +60,9 @@ def source():
     return body,decoded,dict(caller_suffix=code[0x2FDF:0x2FEB])
 
 
+CHECKER_ROWS = ('OVL_006C_3F31',)
+
+
 def library(directory):
     path = directory / "u6c_3f31.so"
     subprocess.run(["cc","-std=c11","-Wall","-Wextra","-Wpedantic","-Werror",
@@ -145,7 +148,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quick",action="store_true")
     parser.add_argument("--output",type=Path)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     body,decoded,_ = source()
     visited,edges,count = set(),set(),0
     with tempfile.TemporaryDirectory(prefix="poolrad-u6c-3f31-") as tmp:

@@ -157,3 +157,11 @@ completed finding. Reused findings: [merged U9E ABI/seed pins](U9E_ENTRY8_ROLL.m
 [merged U6C CPU/offset conventions](U6C_RECORD_TABLE_SUM_3F31.md), and completed
 +3FB3/+408C separate-code/frame audit design. No unmerged symbol or accounting
 metadata is required by this branch.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006C_4235 --require-current-main
+```

@@ -119,3 +119,11 @@ match under the documented loaded-word, immutable-code, A20-off entry contract.
 Review_notes: installed callbacks are not executed; real reached game state
 is unmeasured; game identity and strict credit require PM's exact-head review.
 No identity or count promotion is included in this change.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_3413 --require-current-main
+```

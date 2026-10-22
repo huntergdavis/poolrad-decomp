@@ -52,6 +52,9 @@ def source(ovr):
     return bodies, instructions
 
 
+CHECKER_ROWS = ('OVL_0025_0136',)
+
+
 def library(directory):
     path = directory / "slot-value.so"
     files = ("overlay_u25_slot_value_0136.c", "overlay_u25_entry1_0136.c",
@@ -198,8 +201,18 @@ def run(bodies, instructions, lib):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--ovr", type=Path, required=True)
+    parser.add_argument("--ovr", type=Path,
+                        help="GAME.OVR path; not needed with --compile-only")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if not args.compile_only and args.ovr is None:
+        parser.error("--ovr is required unless --compile-only is given")
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, instructions = source(args.ovr)
     with tempfile.TemporaryDirectory(prefix="poolrad-u25-slot-") as folder:
         run(bodies, instructions, library(Path(folder)))
