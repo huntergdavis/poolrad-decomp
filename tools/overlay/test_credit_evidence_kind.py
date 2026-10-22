@@ -13,8 +13,8 @@ ROOT = cek.ROOT
 
 class CreditEvidenceKindTest(unittest.TestCase):
     def setUp(self):
-        self.table = list(csv.DictReader(open(ROOT / cek.TABLE)))
-        self.strict = [r["id"] for r in csv.DictReader(open(ROOT / cek.STRICT))]
+        self.table = list(csv.DictReader((ROOT / cek.TABLE).read_text().splitlines()))
+        self.strict = [r["id"] for r in csv.DictReader((ROOT / cek.STRICT).read_text().splitlines())]
 
     def test_every_credit_has_exactly_one_row(self):
         ids = [r["id"] for r in self.table]
@@ -23,7 +23,7 @@ class CreditEvidenceKindTest(unittest.TestCase):
 
     def test_labels_are_a_closed_set(self):
         self.assertTrue({r["kind"] for r in self.table} <= set(cek.KINDS))
-        self.assertEqual(tuple(csv.DictReader(open(ROOT / cek.TABLE)).fieldnames), cek.FIELDS)
+        self.assertEqual(tuple(csv.DictReader((ROOT / cek.TABLE).read_text().splitlines()).fieldnames), cek.FIELDS)
 
     def test_checker_equals_registered_credits(self):
         """'checker' is not an opinion: it is exactly the credits named in some CHECKER_ROWS."""

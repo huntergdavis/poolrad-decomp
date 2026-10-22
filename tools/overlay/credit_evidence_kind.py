@@ -84,7 +84,7 @@ def classify(root=ROOT):
         return sources[path]
 
     out = []
-    for row in csv.DictReader(open(root / STRICT)):
+    for row in csv.DictReader((root / STRICT).read_text().splitlines()):
         rid, doc = row["id"], row["evidence_doc"]
         if rid in reg:
             out.append((rid, "checker", ";".join(reg[rid])))
