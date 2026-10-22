@@ -65,22 +65,22 @@ class DashboardTest(unittest.TestCase):
         self.assertTrue(h["verified"])
         self.assertEqual({k: h[k] for k in ("running_as_c", "c_only", "shadow", "entries_before", "entries_after",
                                             "credited_on_route", "credited_off_route")},
-                         {"running_as_c": 12, "c_only": 10, "shadow": 2, "entries_before": 976,
-                          "entries_after": 155, "credited_on_route": 16, "credited_off_route": 261})
-        self.assertEqual(h["sources"], ["docs/HYBRID_STAGE_A.md", "docs/HYBRID_STAGE_B_OBSERVER.md"])
+                         {"running_as_c": 16, "c_only": 11, "shadow": 5, "entries_before": 2453,
+                          "entries_after": 937, "credited_on_route": 16, "credited_off_route": 261})
+        self.assertEqual(h["sources"], ["docs/HYBRID_GLUE_BATCH1.md", "docs/HYBRID_STAGE_B_OBSERVER.md"])
 
     def test_hybrid_tile_asks_for_review_when_a_source_changes(self):
         with tempfile.TemporaryDirectory() as temp:
             repo = Path(temp)
             (repo / "docs").mkdir()
-            for name in ("HYBRID_STAGE_A.md", "HYBRID_STAGE_B_OBSERVER.md"):
+            for name in ("HYBRID_GLUE_BATCH1.md", "HYBRID_STAGE_B_OBSERVER.md"):
                 body = (dashboard.DEFAULT_REPO / "docs" / name).read_text(encoding="utf-8")
                 (repo / "docs" / name).write_text(body.replace("not reached by the cold start: 261",
                                                                "not reached by the cold start: 262"), encoding="utf-8")
             h = dashboard.hybrid_status(repo)
             self.assertFalse(h["verified"])
             self.assertIsNone(h["credited_off_route"])
-            self.assertEqual(h["running_as_c"], 12)
+            self.assertEqual(h["running_as_c"], 16)
 
     def test_overview_is_four_tiles_and_the_verbatim_lines(self):
         body = dashboard.render(dashboard.DEFAULT_REPO).read_text(encoding="utf-8")

@@ -311,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..d5520f1
+index 0000000..88345f7
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,437 @@
+@@ -0,0 +1,478 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -335,6 +335,7 @@ index 0000000..d5520f1
 + * Log: <PR_HYBRID_LOG>.dispatch, one line per arrival, and a summary line per body at exit. */
 +#ifndef PR_HYBRID_DISPATCH_H
 +#define PR_HYBRID_DISPATCH_H
++#include <cstddef>
 +extern "C" {
 +#include "poolrad/recovered/resident_0899_idle_0104_cpu.h"
 +#include "poolrad/recovered/resident_0464_bitmap_release_2595_cpu.h"
@@ -348,6 +349,10 @@ index 0000000..d5520f1
 +#include "poolrad/recovered/overlay_u3b0_item_split_00cb_cpu.h"
 +#include "poolrad/recovered/resident_0802_02eb_cpu.h"
 +#include "poolrad/recovered/resident_0899_readkey_0059_cpu.h"
++#include "poolrad/recovered/resident_0802_025d_cpu.h"
++#include "poolrad/recovered/resident_0802_050f_cpu.h"
++#include "poolrad/recovered/resident_0802_05cd_cpu.h"
++#include "poolrad/recovered/resident_0802_06e7_cpu.h"
 +}
 +extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
@@ -357,6 +362,11 @@ index 0000000..d5520f1
 +static const size_t RAM = 1u << 20;
 +struct Regs { uint32_t eax, ebx, ecx, edx, esi, edi, ebp, esp, eip, flags; uint16_t cs, ds, es, ss, fs, gs; };
 +struct Cpu14 { uint16_t ax, bx, cx, dx, si, di, bp, sp, cs, ip, ds, es, ss, flags; };   /* both models' CPU layout */
++/* Every model CPU type the dispatch casts a Cpu14 to must have exactly this layout: a mismatch fails the build. */
++#define PR_SAME_LAYOUT(T) static_assert(sizeof(T) == sizeof(Cpu14) && offsetof(T, ip) == offsetof(Cpu14, ip) && \
++    offsetof(T, ss) == offsetof(Cpu14, ss) && offsetof(T, flags) == offsetof(Cpu14, flags), #T " is not the 14-word CPU")
++PR_SAME_LAYOUT(pr_r0802_02eb_cpu); PR_SAME_LAYOUT(pr_r0802_050f_cpu); PR_SAME_LAYOUT(pr_r0802_06e7_cpu);
++PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
 +    unsigned long long arrivals, equal, differ, interrupted, timeouts, mid_equal, mid_differ, back_equal, back_differ, stops_seen, returned_seen;
@@ -374,8 +384,12 @@ index 0000000..d5520f1
 +    {"OVL_03B0_00CB", 0x0000, 0x00CB, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RAM-only, RETF 6; composes SYSTEM leaves */
 +    {"RES_0802_02EB", 0x0802, 0x02EB, 8, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 4; bus=2: DOS services replayed */
 +    {"RES_0899_0059", 0x0899, 0x0059, 4, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF; bus=2: BIOS INT 16h replayed */
++    {"RES_0802_025D", 0x0802, 0x025D, 18, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 0Eh; DOS open/close replayed */
++    {"RES_0802_050F", 0x0802, 0x050F, 20, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 10h; RAM-only, arrival budget */
++    {"RES_0802_05CD", 0x0802, 0x05CD, 24, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 14h; DOS open/close/read/seek replayed */
++    {"RES_0802_06E7", 0x0802, 0x06E7, 12, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8; DOS close replayed */
 +};
-+static const int NBODY = 12;
++static const int NBODY = (int)(sizeof bodies / sizeof bodies[0]);
 +/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
 + * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
 + * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
@@ -534,6 +548,9 @@ index 0000000..d5520f1
 +        return st == PR_U86_3413_OK ? 0 : 1; }
 +    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m);
 +        return st == PR_U38_31A2_OK ? 0 : 1; }
++    if (!strcmp(x.id, "RES_0802_050F")) { pr_r0802_050f_diagnostic d;
++        int st = pr_r0802_050f(MemBase, RAM, (pr_r0802_050f_cpu *)&m, 1u << 24, &d);
++        return st == PR_R0802_050F_RETURNED ? 0 : st == PR_R0802_050F_ARGUMENT ? 1 : 2; }
 +    int cs_ = -1; int st = pr_u3b0_item_split_00cb_cpu(MemBase, RAM, (pr_u3b0_00cb_cpu *)&m, &cs_);
 +    return st == PR_U3B0_00CB_OK ? 0 : st == PR_U3B0_00CB_ARGUMENT ? 1 : 2;
 +}
@@ -584,6 +601,16 @@ index 0000000..d5520f1
 +}
 +static int svc_open(void *ctx, const pr_reset_cpu *b, pr_reset_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
 +static int svc_close(void *ctx, const pr_system_close_cpu *b, pr_system_close_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
++/* BlockRead hands the service a STAGING copy of DS:DX and writes it back over RAM afterwards, so the read bytes must reach
++ * the staging buffer: after the replay applies the recorded RAM delta, copy the destination from RAM into it. */
++static int svc_read(void *ctx, const pr_blockread_cpu *b, pr_blockread_cpu *a, uint8_t *buf, size_t len) {
++    (void)ctx;
++    if (svc_replay((const Cpu14 *)b, (Cpu14 *)a) != 0) return 1;
++    size_t base = ((size_t)b->ds << 4) + b->dx;
++    for (size_t k = 0; k < len; ++k) buf[k] = MemBase[(base + k) & (RAM - 1u)];
++    return 0;
++}
++static int svc_seek(void *ctx, const pr_seek_cpu *b, pr_seek_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
 +static int svc_kbd(void *ctx, const pr_crt_cpu *b, pr_crt_cpu *a) { (void)ctx; return svc_replay((const Cpu14 *)b, (Cpu14 *)a); }
 +/* ReadKey's driver and quit paths (the 13h sound hotkey, the STING quit) are not on the recorded path: these refuse, so the
 + * C stops and the original's result is kept if either path is ever taken. */
@@ -608,6 +635,20 @@ index 0000000..d5520f1
 +        pr_r0802_02eb_diagnostic dg;
 +        st = pr_r0802_02eb(MemBase, RAM, (pr_r0802_02eb_cpu *)&m, &env, &dg); site = dg.site;
 +        st = st == PR_R0802_02EB_RETURNED ? 0 : st;
++    } else if (!strcmp(x.id, "RES_0802_025D")) {
++        pr_r0802_02eb_env env = {svc_open, NULL, svc_close, NULL};
++        pr_r0802_025d_diagnostic dg;
++        st = pr_r0802_025d(MemBase, RAM, (pr_r0802_025d_cpu *)&m, &env, 64u, &dg); site = dg.site;
++        st = st == PR_R0802_025D_RETURNED ? 0 : st;
++    } else if (!strcmp(x.id, "RES_0802_05CD")) {
++        pr_r0802_05cd_env env = {{svc_open, NULL, svc_close, NULL}, svc_read, NULL, svc_seek, NULL, 64u};
++        pr_r0802_05cd_diagnostic dg;
++        st = pr_r0802_05cd(MemBase, RAM, (pr_r0802_05cd_cpu *)&m, &env, &dg); site = dg.site;
++        st = st == PR_R0802_05CD_RETURNED ? 0 : st;
++    } else if (!strcmp(x.id, "RES_0802_06E7")) {
++        pr_r0802_06e7_diagnostic dg;
++        st = pr_r0802_06e7(MemBase, RAM, (pr_r0802_06e7_cpu *)&m, svc_close, NULL, &dg); site = dg.site;
++        st = st == PR_R0802_06E7_RETURNED ? 0 : st;
 +    } else {
 +        pr_r0899_key_env env;
 +        memset(&env, 0, sizeof env);
