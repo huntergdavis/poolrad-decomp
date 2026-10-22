@@ -174,3 +174,27 @@ effect-entry tests passed`; CMake build has no warnings and `ctest` passes
   DOS oracle trace (issue #3) could show whether callers ever reach it.
 - The gameplay conditions under which a caller computes indices 6, 90, 98 or
   113 are not established.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_unit38_effects_next_tests
+ctest --test-dir build -R '^poolrad_overlay_unit38_effects_next_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0038_01C3` | entry 6: `pr_u38_entry6` (its row in the Tests table above) |
+| `OVL_0038_24D9` | entry 75: `pr_u38_entry75` (its row in the Tests table above) |
+| `OVL_0038_2700` | entry 82: `pr_u38_entry82` (its row in the Tests table above) |
+| `OVL_0038_2A28` | entry 97: `pr_u38_entry97` (its row in the Tests table above) |
+
+Measured on `ee07bd68`: `poolrad_overlay_unit38_effects_next_tests` passed (1/1 under ctest).

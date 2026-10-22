@@ -85,3 +85,34 @@ focused C test both ran at that base, where the constant and the word agree, and
 neither could see it. The model now enters at the word read from `CS:0931`; the unit test sets the word to `00BA` and to
 `1234`, `0001`, `10BA` and `FFF0` and checks the lookup is entered at it (fails on the old model: `cpu->cs == f->word`). The
 original-byte parity still passes (its code image holds the real word). Body bytes, hash, identity and credit unchanged.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tests/recovered/check_overlay_u38_sidecar_flag_0918.py
+```
+
+- `tests/recovered/check_overlay_u38_sidecar_flag_0918.py` covers `pr_u38_sidecar_flag_0918`. Measured on `ee07bd68`: 96 original-byte full-state cases passed.
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u38_sidecar_flag_0918_tests
+ctest --test-dir build -R '^poolrad_overlay_u38_sidecar_flag_0918_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0038_0918` | the whole `poolrad_overlay_u38_sidecar_flag_0918_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u38_sidecar_flag_0918_tests` passed (1/1 under ctest).

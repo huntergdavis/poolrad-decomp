@@ -248,3 +248,39 @@ more state: 6 (+0x01C3, 109 bytes), 75 (+0x24D9, 124), 81 (+0x268A, 118),
 Throughput: 25 minutes to survey and select, 20 to decode the sixteen
 routines and the dispatcher, 25 to identify the argument frame from the
 eleven callers, 45 to translate, test and document.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_unit38_effects_tests
+ctest --test-dir build -R '^poolrad_overlay_unit38_effects_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0038_010D` | entry 2: `pr_u38_entry2` (its row in the Tests table above) |
+| `OVL_0038_011D` | entry 3: `pr_u38_entry3` (its row in the Tests table above) |
+| `OVL_0038_013B` | entry 4: `pr_u38_entry4` (its row in the Tests table above) |
+| `OVL_0038_05D6` | entry 13: `pr_u38_entry13` (its row in the Tests table above) |
+| `OVL_0038_064E` | entry 16: `pr_u38_entry16` (its row in the Tests table above) |
+| `OVL_0038_06E4` | entry 18: `pr_u38_entry18` (its row in the Tests table above) |
+| `OVL_0038_0A3D` | entry 25: `pr_u38_entry25` (its row in the Tests table above) |
+| `OVL_0038_0BAC` | entry 28: `pr_u38_entry28` (its row in the Tests table above) |
+| `OVL_0038_0C26` | entry 32: `pr_u38_entry32` (its row in the Tests table above) |
+| `OVL_0038_10C1` | entry 36: `pr_u38_entry36` (its row in the Tests table above) |
+| `OVL_0038_1452` | entry 48: `pr_u38_entry48` (its row in the Tests table above) |
+| `OVL_0038_171F` | entry 59: `pr_u38_entry59` (its row in the Tests table above) |
+| `OVL_0038_2490` | entry 74: `pr_u38_entry74` (its row in the Tests table above) |
+| `OVL_0038_25A2` | entry 77: `pr_u38_entry77` (its row in the Tests table above) |
+| `OVL_0038_2A6D` | entry 98: `pr_u38_entry98` (its row in the Tests table above) |
+| `OVL_0038_2B63` | entry 102: `pr_u38_entry102` (its row in the Tests table above) |
+
+Measured on `ee07bd68`: `poolrad_overlay_unit38_effects_tests` passed (1/1 under ctest).

@@ -86,3 +86,24 @@ a sample); three 16-bit wrap cases on a 64 KiB view (`0xFF00` + `0x0353` wraps t
 read 3); the guards. About 2.9 million cases, 0.3 s, clean under AddressSanitizer
 and UndefinedBehaviorSanitizer. The restatement shares my reading of the decode;
 the byte-level correspondence is the table above, not a DOS replay.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u68_field_clear_0000_tests
+ctest --test-dir build -R '^poolrad_overlay_u68_field_clear_0000_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0068_0000` | the whole `poolrad_overlay_u68_field_clear_0000_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u68_field_clear_0000_tests` passed (1/1 under ctest).

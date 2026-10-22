@@ -168,3 +168,25 @@ walk-entry tests passed`; CMake build has no warnings; `ctest` passes 22 of
   translation's `node_limit` is a guard, not original behavior.
 - The gameplay conditions that compute dispatch indices 97 and 126 are not
   established.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_unit38_walk_tests
+ctest --test-dir build -R '^poolrad_overlay_unit38_walk_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0038_268A` | entry 81: `pr_u38_entry81` (its row in the Tests table above) |
+| `OVL_0038_2E37` | entry 110: `pr_u38_entry110` (its row in the Tests table above) |
+
+Measured on `ee07bd68`: `poolrad_overlay_unit38_walk_tests` passed (1/1 under ctest).

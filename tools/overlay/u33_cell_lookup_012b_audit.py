@@ -119,7 +119,7 @@ def source():
     return bodies, spans
 
 
-CHECKER_ROWS = ('OVL_0033_012B',)
+CHECKER_ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
 
 
 def library(directory):
