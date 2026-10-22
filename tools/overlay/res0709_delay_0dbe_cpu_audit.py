@@ -60,6 +60,9 @@ def source():
     return target, delay, wrap
 
 
+CHECKER_ROWS = ('RES_0709_0DBE',)
+
+
 def library(directory):
     path = directory / "delay.so"
     sources = ["resident_a40_delay_029c_cpu.c", "resident_0709_delay_wrapper_0dbe_cpu.c"]
@@ -337,10 +340,17 @@ def native_audit(delay, wrap, functions):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, delay, wrap = source()
     report = dict(delay=dict(sha256=target["delay_sha"], bytes=len(delay), instructions=19),
                   wrapper=dict(sha256=target["wrap_sha"], bytes=len(wrap), instructions=10))

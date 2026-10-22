@@ -64,6 +64,9 @@ def source():
     return targets, code, image, unit
 
 
+CHECKER_ROWS = ('OVL_0086_0729',)
+
+
 def library(directory):
     path = directory / "r26c2.so"
     sources = ["resident_00ba_class_value_26c2_cpu.c", "overlay_u86_entry3_0729.c"]
@@ -214,10 +217,17 @@ def differential(targets, code, image, functions):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     targets, code, image, unit = source()
     report = dict(targets={k: dict(sha256=t["sha"], bytes=len(t["body"]), instructions=len(t["decoded"])) for k, t in targets.items()})
     if args.unicorn or args.native:

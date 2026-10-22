@@ -99,3 +99,11 @@ and [append](RESIDENT_SIDECAR_APPEND.md) translations supplied the verified
 field, mapping, and list context reused here. The owner-supplied binaries
 remain ignored under `resources/`; no decoded game strings, saves, or
 executable bytes are committed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_00BA_2199 --require-current-main
+```
