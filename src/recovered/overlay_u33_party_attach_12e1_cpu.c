@@ -59,7 +59,7 @@ static uint16_t shr1(pr_u33_12e1_cpu *c,uint16_t v) {
     uint16_t result=(uint16_t)(v>>1u);
     c->flags&=(uint16_t)~0x08d5u;c->flags|=0x10u;
     if(v&1u)c->flags|=1u;
-    if(v>0x8000u)c->flags|=0x800u; /* pinned SHRw count 1: OF = (var1 > 8000h) */
+    if(v&0x8000u)c->flags|=0x800u;
     szp(c,result,16u);return result;
 }
 /* DOSBox-X normal/386 IDIVW: these architecturally undefined bits

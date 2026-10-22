@@ -102,8 +102,8 @@ static void shl_ax_eight(pr_u25_0136_cpu *cpu)
     if ((before & 0x0100u) != 0u) flags |= 0x0001u;
     if (result == 0u) flags |= 0x0040u;
     if ((result & 0x8000u) != 0u) flags |= 0x0080u;
-    /* pinned SHLw: AF = 1, OF = (result ^ var1) & 8000h even for count 8. */
-    if (((result ^ before) & 0x8000u) != 0u) flags |= 0x0800u;
+    /* pinned FillFlags SHLw: AF = 1, OF = MSB(result) ^ CF, also for count 8. */
+    if ((((result >> 15) ^ (flags & 1u)) & 1u) != 0u) flags |= 0x0800u;
     cpu->ax = result;
     cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~0x08D5u) | flags);
 }

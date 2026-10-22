@@ -284,7 +284,7 @@ static void shr_ax(pr_u5e_1bf8_cpu *c)
     logic16(c, c->ax);
     c->flags |= 0x10u; /* pinned: AF set for a non-zero count */
     if ((old & 1u) != 0u) c->flags |= 1u;
-    if (old > 0x8000u) c->flags |= 0x800u; /* pinned SHRw count 1: OF = (var1 > 8000h) */
+    if ((old & 0x8000u) != 0u) c->flags |= 0x800u; /* stored flags (FillFlags): SHRw count 1 OF = (var1 >= 8000h) */
 }
 
 static void candidate(context *x)
