@@ -48,6 +48,9 @@ def source():
     assert [(i.address,i.op_str) for (k,a),i in decoded.items() if k=='caller' and i.mnemonic=='lcall']==[(0x32F2,'0x3e0, 0x5c'),(0x32FE,'0x3e0, 0x61'),(0x3311,'0x3e0, 0x66'),(0x331F,'0x3db, 0x3e'),(0x3376,'0xaf8, 0xa3f')]
     return bodies,decoded
 
+CHECKER_ROWS = ('OVL_005E_32E6',)
+
+
 def library(directory):
     p=directory/'caller.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-shared','-fPIC','-I',str(ROOT/'include')]+[str(ROOT/'src/recovered'/(s+'.c')) for s in SOURCES]+['-o',str(p)],check=True)
@@ -159,7 +162,12 @@ def specifications(quick=False):
     return cases
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))

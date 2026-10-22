@@ -29,6 +29,9 @@ def source():
     return image,code,decoded,edges,digests
 class Diagnostic(ctypes.Structure):
     _fields_=[('callee',ctypes.c_int),('status',ctypes.c_int)]
+CHECKER_ROWS = ('OVL_007D_047A',)
+
+
 def library(directory):
     path=directory/'update.so';subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/s) for s in SOURCES],'-o',str(path)],check=True)
     f=ctypes.CDLL(str(path)).pr_u7d_update_047a_cpu;f.argtypes=[ctypes.POINTER(ctypes.c_uint8),ctypes.c_size_t,ctypes.POINTER(Cpu),ctypes.c_uint,ctypes.POINTER(Diagnostic)];f.restype=ctypes.c_int;return f
@@ -129,7 +132,13 @@ def differential(image,code,decoded,conditional,f):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args();image,code,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
+    image,code,decoded,conditional,digests=source();report=dict(target=digests)
     with tempfile.TemporaryDirectory(prefix='u7d-047a-') as tmp:
         f=library(Path(tmp))
         if a.unicorn:report['unicorn']=differential(image,code,decoded,conditional,f)

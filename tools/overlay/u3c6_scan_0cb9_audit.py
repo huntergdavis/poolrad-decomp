@@ -36,6 +36,9 @@ def source():
     return bodies,decoded
 
 
+CHECKER_ROWS = ('OVL_03C6_0CB9',)
+
+
 def library(directory):
     p=directory/'scan.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-fPIC','-shared','-I',str(ROOT/'include'),str(ROOT/'src/recovered/overlay_u3c6_0cb9_cpu.c'),'-o',str(p)],check=True)
@@ -123,7 +126,12 @@ def compare(label,initial,bodies,decoded,lib,policy=1,alias_stop=None):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');args=p.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded=source();visited,edges=set(),set();count=wrap_cases=wrap_returns=af_masks=0;statuses={};policies={}
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))

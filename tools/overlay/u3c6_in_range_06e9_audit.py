@@ -57,6 +57,9 @@ def source():
 
 
 
+CHECKER_ROWS = ('OVL_03C6_06E9',)
+
+
 def library(directory):
     path=directory/'u3c6_06e9.so';subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-fPIC','-shared','-I',str(ROOT/'include'),
         str(ROOT/'src/recovered/overlay_u3c6_in_range_06e9.c'),'-o',str(path)],check=True,capture_output=True,text=True)
@@ -106,7 +109,12 @@ def compare(label,memory,cpu,decoded,lib):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--quick',action='store_true');parser.add_argument('--output',type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--quick',action='store_true');parser.add_argument('--output',type=Path);parser.add_argument('--compile-only',action='store_true');args=parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     body,decoded,meta=source();visited,edges=set(),set();count,wraps=0,0
     with tempfile.TemporaryDirectory(prefix='poolrad-u3c6-06e9-') as tmp:
         lib=library(Path(tmp))

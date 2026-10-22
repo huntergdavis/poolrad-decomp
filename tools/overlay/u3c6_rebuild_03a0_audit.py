@@ -46,6 +46,9 @@ def source():
     assert [(i.address,i.op_str) for (kind,ip),i in decoded.items() if kind=='u3c6' and ENTRY<=ip<0x4BE and 'call' in i.mnemonic]==[(0x3B2,'0xaf8, 0x16a8'),(0x40C,'0')]
     return bodies,decoded
 
+CHECKER_ROWS = ('OVL_03C6_03A0',)
+
+
 def library(directory):
     p=directory/'rebuild.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-shared','-fPIC','-I',str(ROOT/'include')]+[str(ROOT/'src/recovered'/(s+'.c')) for s in SOURCES]+['-o',str(p)],check=True)
@@ -136,7 +139,12 @@ def specifications(quick=False):
     return cases
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))

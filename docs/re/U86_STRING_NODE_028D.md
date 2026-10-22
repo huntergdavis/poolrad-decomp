@@ -162,3 +162,11 @@ region and a larger allocation arena.
 - review_notes: synthetic native reach, conservative stack/nonwrapping
   return profile, immutable prefix data, explicit allocator error stops.
   Acceptance, classifier, accounting and credit remain with the reviewer.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_028D --require-current-main
+```

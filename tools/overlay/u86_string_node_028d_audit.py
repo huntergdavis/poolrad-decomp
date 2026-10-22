@@ -52,6 +52,9 @@ def source():
                 callers=refs,prefix_sha256=sha256(prefixes).hexdigest())
     print('U86 +028D:',target,flush=True);return image,code,decoded,target
 
+CHECKER_ROWS = ('OVL_0086_028D',)
+
+
 def library(directory):
     path=directory/'u86028d.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),
@@ -222,7 +225,12 @@ def differential(image,code,decoded,function):
     print('Original-chain:',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image,code,decoded,target=source();report=dict(target=target)
     with tempfile.TemporaryDirectory(prefix='u86-028d-') as tmp:
         f=library(Path(tmp))

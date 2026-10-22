@@ -127,3 +127,11 @@ captures stay under ignored resources. Acceptance ledgers are unchanged.
 - review_notes: do not treat hybrid RETF cases as exact Unicorn matches or
   contiguous LES seam cases as native parity. No author credit or gameplay
   reachability claim accompanies this change.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C6_071A --require-current-main
+```

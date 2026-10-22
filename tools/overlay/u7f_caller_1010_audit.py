@@ -51,6 +51,9 @@ def source():
     assert all(i.mnemonic not in ('call','lcall') or i.op_str in ('0xfd2','0xb0, 0x48','0xaf8, 0x16a8','0xaf8, 0x11c0','0x120f') for i in decoded.values())
     return bodies,decoded
 
+CHECKER_ROWS = ('OVL_007F_1010',)
+
+
 def library(directory):
     p=directory/'caller.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-shared','-fPIC','-I',str(ROOT/'include')]+[str(ROOT/'src/recovered'/(s+'.c')) for s in SOURCES]+['-o',str(p)],check=True)
@@ -149,7 +152,12 @@ def alias_specifications():
       ('three-rolls-limit',dict(kind=61,seed=0xFFFFFFFF,budgets=(1,256)))]
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--aliases-only',action='store_true');a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--aliases-only',action='store_true');p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))

@@ -54,6 +54,9 @@ def source():
     return bodies,decoded,data
 
 
+CHECKER_ROWS = ('OVL_005E_1BF8',)
+
+
 def library(directory):
     p=directory/'neighbor.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-fPIC','-shared','-I',str(ROOT/'include'),
@@ -186,7 +189,12 @@ def compare(label,initial,bodies,decoded,data,lib,budget=4096):
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--quick',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');args=p.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded,data=source();visited=set();edges=set();count=0;statuses={};stops={};results=set()
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))

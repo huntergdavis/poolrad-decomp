@@ -54,6 +54,9 @@ def source():
     return body,decoded,dict(caller_prefix=code[0x0241:0x0250],file_extent=[150723,150749])
 
 
+CHECKER_ROWS = ('OVL_007F_003A',)
+
+
 def library(directory):
     path=directory/'u7f_003a.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-fPIC','-shared','-I',str(ROOT/'include'),
@@ -101,7 +104,12 @@ def compare(label,memory,cpu,decoded,lib):
 
 
 def main():
-    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--quick',action='store_true');parser.add_argument('--output',type=Path);args=parser.parse_args()
+    parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--quick',action='store_true');parser.add_argument('--output',type=Path);parser.add_argument('--compile-only',action='store_true');args=parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     body,decoded,meta=source();visited=set();count=0
     with tempfile.TemporaryDirectory(prefix='poolrad-u7f-003a-') as tmp:
         lib=library(Path(tmp))

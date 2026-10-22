@@ -189,3 +189,11 @@ three sets (`0AF8` ×3; `1234`/`2345`/`3456`; `0001`/`FFF0`/`10F8`), all 256 typ
 reached (4,610 checks); it fails on the old model (`seen_cs[k]==sets[s][site]`) and passes on the new one. The dice call
 sites take their segment from the caller's `dice_cs` argument and were not affected. Body bytes, hash, identity and credit
 unchanged.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007F_1010 --require-current-main
+```

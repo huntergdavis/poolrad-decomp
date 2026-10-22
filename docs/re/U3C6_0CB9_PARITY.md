@@ -150,3 +150,11 @@ u3c6_step_071a_audit.py and u3c6_step_071a_native.py (PR #923); shared CPU/RAM
 helpers from u86_procvars_3413_audit.py. Local deja recall for
 "U3C6 0CB9 U3B0 0B03 next composable" returned no matches; no recalled session
 finding was reused.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C6_0CB9 --require-current-main
+```

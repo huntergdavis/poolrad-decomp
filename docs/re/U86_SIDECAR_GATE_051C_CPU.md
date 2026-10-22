@@ -131,3 +131,11 @@ test with -fsanitize=address,undefined -fno-omit-frame-pointer.
 - review_notes: inspect live pointer/local aliases, propagated diagnostics,
   visit-budget semantics, native footprint and synthetic reachability limit.
   No classifier, strict-map, identity, accounting or credit edits are included.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_051C --require-current-main
+```
