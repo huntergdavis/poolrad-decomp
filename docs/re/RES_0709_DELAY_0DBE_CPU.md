@@ -138,3 +138,11 @@ notes, and nothing else is reused.
 No classifier, queue or count ledger is changed. Crediting `RES_0709_0DBE`
 and recording `0A40:029C` as covered runtime are the verifying lane's
 calls.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_0709_0DBE --require-current-main
+```

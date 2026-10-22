@@ -68,6 +68,9 @@ def source():
     return image, spans
 
 
+CHECKER_ROWS = ('RES_00BA_1037',)
+
+
 def library(directory):
     path = directory / "str1037.so"
     sources = ["system_str_1366_cpu.c", "resident_00ba_byte_string_1037_cpu.c", "system_strstore_fullstate_0b25.c"]
@@ -383,10 +386,17 @@ def native_audit(spans, functions):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image, spans = source()
     spans["image"] = image
     report = dict(target={k: dict(bytes=v["bytes"], instructions=v["instructions"], sha256=v["sha256"]) for k, v in spans.items() if k in SPANS})

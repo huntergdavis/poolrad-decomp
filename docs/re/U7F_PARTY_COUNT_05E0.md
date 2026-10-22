@@ -153,3 +153,11 @@ captures, and the local Python environment stay under ignored `resources/`.
 The caller paths in units `0x1E`, `0x20`, and `0x23` are not translated by
 this change. A native trace at `+05E0` would close the remaining identity
 gap; the original-byte audit closes the local code-parity question.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007F_05E0 --require-current-main
+```
