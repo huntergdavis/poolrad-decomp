@@ -90,6 +90,9 @@ def source():
     return target, code
 
 
+CHECKER_ROWS = ('OVL_0033_0810',)
+
+
 def library(directory):
     import subprocess
     path = directory / "u33_0810.so"
@@ -243,11 +246,18 @@ def differential(target, code, function, quick=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(target["body"]), instructions=target["insns"]))
     if args.unicorn or args.native:

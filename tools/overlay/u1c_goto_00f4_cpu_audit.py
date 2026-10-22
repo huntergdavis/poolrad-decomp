@@ -76,6 +76,7 @@ def source():
     return target, code1c, code25, image
 
 
+CHECKER_ROWS = ('OVL_001C_00F4',)
 def library(directory):
     path = directory / "u1c00f4.so"
     sources = ["overlay_u1c_goto_00f4_cpu.c", "overlay_u25_loader_0000.c", "overlay_u25_string_cores.c"]
@@ -416,10 +417,17 @@ def native_audit(target, code1c, code25, image, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix="poolrad-u1c00f4-") as temp:
+            library(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     target, code1c, code25, image = source()
     report = dict(target=dict(sha256=target["sha"], bytes=29, instructions=13, file_offset=target["file_offset"]))
     if args.unicorn or args.native:

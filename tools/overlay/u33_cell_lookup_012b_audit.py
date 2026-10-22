@@ -119,6 +119,9 @@ def source():
     return bodies, spans
 
 
+CHECKER_ROWS = ('OVL_0033_012B',)
+
+
 def library(directory):
     import subprocess
     path = directory / "u33.so"
@@ -292,11 +295,18 @@ def differential(bodies, spans, key, functions, quick=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, spans = source()
     report = dict(targets={k: dict(sha256=v["sha"], bytes=len(v["body"]), instructions=v["insns"]) for k, v in bodies.items()},
                   leaf_031f=LEAF_SHA)
