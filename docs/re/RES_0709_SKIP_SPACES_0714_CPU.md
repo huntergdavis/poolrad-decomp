@@ -178,3 +178,30 @@ semaphore.
 - verdict: likely_match within the stated contract. Verification and credit
   are the review lane's. Not a ledger target (acceptance #24 recorded it as
   an internal closure leaf).
+
+## Grant record: `RES_0709_0714` (added by the review lane, par-e, VP i20406/i20573/i20671)
+
+Member row: `RES_0709_0714`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity under the reviewed near-only
+name (#1350). Ground: **the factor-2 clause in the 01DA shape (with its limit)**. Only the text of one game_verified
+caller is claimed.
+
+- **Evidence, reproduced by me on current main.**
+  - **Unicorn:** 163 cases, starts 19/19, outcomes 4/4, CPU14 + 1 MiB, masks 0. The SP `FFFE`/`FFFF` declared oracle
+    split is as stated above.
+  - **Native:** 32 synthetic cases, all equal (RESULT.BIN `052cd242…` equals this document). The SP-edge suite is 9/9
+    with 0 faults (`92d24721…`). The audit's `skipped: 10` means 10 of the 32 cases **skipped at least one blank**: it
+    is a behaviour count, NOT omitted cases (audit line 299).
+  - **ASan/UBSan:** **14 checks**, which matches this document.
+  - **Checker build:** passes; `CHECKER_ROWS = ("RES_0709_0714",)`.
+- **Factor 1 (chain), verified by me from the media:** the only near call is `0961`, inside the printer
+  `0709:[0768,09E3)`, and a raw `E8` scan finds no other site. `0768` has a direct PASS verdict.
+- **Factor 2: the clause, 01DA shape, verified by me from the media.**
+  - **What the body does:** it has no absolute-DS operand. It takes 0768's frame pointer (`[BP+6]`) and advances 0768's
+    index over blanks in **0768's local copy of its string argument**.
+  - **The text, for a game_verified caller:** `OVL_001C_0A09` pushes `MOV DI,70C8h; PUSH DS; PUSH DI` immediately
+    before `LCALL 0709:0768` at **both `+0A69` and `+0A91`**. That string is far `DS:0x70C8`, the ECL **string buffer
+    1**, documented in [U1C_PRINT_0A09.md](U1C_PRINT_0A09.md) (row `+0x0A52..+0x0A6E`) and
+    [FUNCTION_LEDGER.md](FUNCTION_LEDGER.md).
+  - **Limit, kept:** only that caller's text is claimed. Other callers of 0768 are not argued here.
+- **Role line:** skips the leading blanks of the message the printer `0768` is drawing; for the game_verified caller
+  `001C_0A09`, that message is the game's ECL string buffer 1 at `DS:70C8`.
