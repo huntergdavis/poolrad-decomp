@@ -2,6 +2,14 @@
 
 A flag computed by a helper is only as good as the rule it assumed; check the rule against the PINNED build, not a general x86 reference.
 
+**Two flag paths in the pinned build.** Lazy getters (`get_CF/AF/ZF/SF/OF/PF`, `flags.cpp:75-480`) are read only by
+conditional instructions (`TFLG_*`: Jcc, SETcc, CMOVcc). Every stored image (PUSHF, INT, any hook/stop/return snapshot)
+goes through `FillFlags` (`flags.cpp:~700-1100`, `DOFLAG_PF` at `:504`). The two differ: word PF is 16-bit parity in
+`get_PF` but low-byte in `FillFlags`; SHR-by-1 OF is `var1 > 8000h` lazily and `>= 8000h` stored; SHL OF for counts above 1
+is `(res ^ var1) & 8000h` lazily and `MSB(res) ^ CF` stored. A model that BRANCHES on a flag must take the branch from the lazy
+rule while its FLAGS image follows the stored rule. Models here follow the STORED rule; the "branched on?" column of
+`FLAG_SEMANTICS_CENSUS.tsv` says where that is not enough.
+
 Read from `src/cpu/instructions.h` (SHLW/SHRW/SHRB, MULW), `src/cpu/flags.cpp`
 (`get_AF`, `FillFlagsNoCFOF`, `parity_lookup`). Nothing here comes from a summary.
 
@@ -48,3 +56,12 @@ Match the pinned convention: overlay_u86_roll_value_07d6.c, resident_00ba_charac
 resident_00ba_character_0bb8_cpu.c, overlay_u3c6_04be_cpu.c, overlay_u3c6_0cb9_cpu.c,
 overlay_u5e_neighbor_1bf8.c `mul_dx`, overlay_u86_string_node_028d.c, and every `shl` that sets 0x10
 (U7F 1010/0A01/0508, U3C6, U3C2 0909, U5E 32E6, U9E 0160/0026, system_val_13b1, system_real, dos_intr_000b).
+
+## "branched on?" column (original bytes)
+
+`FLAG_SEMANTICS_CENSUS.tsv` last column: a capstone decode of the ORIGINAL bytes (GAME.OVR units via `overlay_inventory.find_units`
+function bounds; SYSTEM/resident routines from the entry to the first RET at or beyond the last forward jump) for JO/JNO, JP/JNP,
+JL/JGE/JLE/JG (read OF), and SETcc/CMOVcc forms. Every JL/JG-family site found follows a CMP, where the lazy and stored rules agree.
+Sites after any other flag-setter are listed by address and the preceding setter; they are decode-only (a data byte inside a function
+span can decode as a Jcc), so they are candidates, not confirmed branches. "not scanned" means no function or extent could be
+resolved from the model's name or header; it is NOT evidence of no branch.
