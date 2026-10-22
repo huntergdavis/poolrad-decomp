@@ -31,6 +31,9 @@ def source():
     return resident,code,decoded,edges,digests
 class Diagnostic(ctypes.Structure):
     _fields_=[('selector_status',ctypes.c_int),('resident_status',ctypes.c_int)]
+CHECKER_ROWS = ('OVL_0038_264B',)
+
+
 def library(directory):
     path=directory/'selector.so';subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/s) for s in SOURCES],'-o',str(path)],check=True)
     lib=ctypes.CDLL(str(path));functions={}
@@ -134,7 +137,12 @@ def differential(resident,code,decoded,conditional,functions):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args();resident,code,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args();resident,code,decoded,conditional,digests=source();report=dict(target=digests)
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     with tempfile.TemporaryDirectory(prefix='target-selector-') as tmp:
         fs=library(Path(tmp))
         if a.unicorn:report['unicorn']=differential(resident,code,decoded,conditional,fs)

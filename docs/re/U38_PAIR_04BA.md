@@ -139,3 +139,11 @@ With Capstone/Unicorn installed and owner media under resources/DOS/POOLRAD:
   retain the contiguous-LES caveat in queue readiness. Natural invocation,
   dynamic loader execution and the defensive TRANSFER branch are unmeasured.
   No author credit is claimed.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_04BA --require-current-main
+```

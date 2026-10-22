@@ -39,6 +39,9 @@ def source():
     bodies['overlay',ENTRY]=blob;decoded.update({('overlay',i.address):i for i in ins})
     meta['U1C:2B14']=dict(bytes=len(blob),instructions=len(ins),sha256=digest,file_offset=u['ovr_offset']+ENTRY)
     return bodies,decoded,meta
+CHECKER_ROWS = ('OVL_001C_2B14',)
+
+
 def library(directory):
     path=directory/'clear.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-fPIC','-shared','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/(s+'.c')) for s in SOURCES],'-o',str(path)],check=True)
@@ -186,7 +189,12 @@ def differential(bodies,decoded,lib,quick=False):
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],
         chain_starts=len(visited),out_events=out_count,vram_write_operands=write_count,cpu_words=14,ram_bytes=SIZE-65536,flag_masks=0)
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--quick',action='store_true');p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded,meta=source();report=dict(target=meta)
     with tempfile.TemporaryDirectory(prefix='u1c-2b14-') as tmp:
         lib=library(Path(tmp))

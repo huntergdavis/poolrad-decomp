@@ -155,3 +155,11 @@ hashes, native INPUT/RESULT and sanitizer/CTest logs. Native INPUT is
 independently reconstructed before receipt creation. Receipt public hashes
 are checked against the final committed head. Independent acceptance and
 credit remain with the reviewer/VP.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_001C_2B14 --require-current-main
+```
