@@ -5,6 +5,15 @@ record byte, then conditionally composes the full +263D direction chain.
 It returns its predicate in AL while preserving the original effects on
 AH, all other registers, flags and stack memory. It has no result callback.
 
+## Loaded-state precondition (inherited)
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. The credit is unchanged. `OVL_005E_2574`'s C
+composes `pr_u5e_direction_263d` (`OVL_005E_263D`), and that model does not read its overlay stubs. This credit therefore holds only
+under the same loaded-state precondition: every stub listed in [U5E_DIRECTION_263D.md](U5E_DIRECTION_263D.md#loaded-state-precondition)
+must hold its loaded far `JMP`. When one of those units is not resident, the original goes through the overlay
+manager and this C does not. This section covers only the composed model. It makes no claim about stubs this
+body calls directly.
+
 ## Identity and reuse
 
 | Artifact | Extent | SHA-256 |
