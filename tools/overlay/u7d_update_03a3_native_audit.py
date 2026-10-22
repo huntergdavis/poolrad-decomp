@@ -52,6 +52,9 @@ def source():
     return code
 
 
+CHECKER_ROWS = ('OVL_007D_03A3',)
+
+
 def library(directory):
     path = directory / "u7d03a3.so"
     sources = ["overlay_u7d_update_03a3.c", "overlay_u7d_carry_02f2.c"]
@@ -191,7 +194,14 @@ def native_audit(code, function):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     code = source()
     with tempfile.TemporaryDirectory(prefix="poolrad-u7d03a3-") as temp:
         report = dict(native=native_audit(code, library(Path(temp))))

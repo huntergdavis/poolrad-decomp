@@ -145,3 +145,11 @@ clearer with final +2C clear, called by U6A +0214/+090A; and OVL_002F_122B
 based on byte +10E equality, called twice by U2F +031A. No source/header/test/
 strict-credit collision was found. Their field meanings and game identity remain
 subject to independent review; neither is implemented or credited in this PR.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_31A2 --require-current-main
+```

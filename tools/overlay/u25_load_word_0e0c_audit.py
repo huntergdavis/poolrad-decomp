@@ -86,6 +86,9 @@ def source(ovr):
     return bodies, instructions
 
 
+CHECKER_ROWS = ('OVL_0025_0E0C',)
+
+
 def library(directory):
     path = directory / "load-word.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
@@ -242,7 +245,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ovr", type=Path, default=ROOT / "resources/DOS/POOLRAD/GAME.OVR")
     parser.add_argument("--quick", action="store_true")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, instructions = source(args.ovr)
     addresses = [0, 0xB1, 0xFB, 0xFC, 0x33D, 0x35F, 0x48FF, 0x4900, 0x49FD,
         0x4CFF, 0x4D00, 0x6AFF, 0x6B00, 0x6B18, 0x6B9B, 0x6BA0, 0x6BA5, 0x6BAC,

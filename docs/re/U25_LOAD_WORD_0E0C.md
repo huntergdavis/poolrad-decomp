@@ -119,3 +119,11 @@ resources. The audit reports counts, hashes, and mismatch addresses only.
 | score | Four checks passed: pinned CFG/ABI, focused C tests, 4,077 whole-RAM/register cases, 56 synthetic native cases; checklist, not a probability |
 | verdict | match for defined terminating routine behavior under the documented RAM/CPU contract |
 | review_notes | Immutable code; cyclic lists do not return; altered returns exposed as TRANSFER; AF not a DOS guarantee; no credit promotion |
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0025_0E0C --require-current-main
+```

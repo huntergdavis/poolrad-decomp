@@ -64,6 +64,9 @@ def source():
     return body,{**leaf_decoded,**decoded},dict(leaf=leaf,caller_suffix=code[0x2469:0x2475])
 
 
+CHECKER_ROWS = ('OVL_006C_408C',)
+
+
 def library(directory):
     path = directory / "u6c_408c.so"
     subprocess.run(["cc","-std=c11","-Wall","-Wextra","-Wpedantic","-Werror",
@@ -162,7 +165,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--quick",action="store_true")
     parser.add_argument("--output",type=Path)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     body,decoded,meta = source()
     visited,edges,count = set(),set(),0
     results = dict(returns=0,divide_errors=0,transfers=0,divisions=0,clamps=0)

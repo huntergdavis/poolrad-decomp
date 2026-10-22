@@ -135,3 +135,11 @@ yielded no completed prior-session finding. Reused repository findings are
 the cited resident record/table notes, the unit-38 installer role, the existing
 898-start inventory/ledger/callgraph and the U86 +3413 full-state/native oracle
 method. The search results are private metadata, not a whole-game denominator.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_323D --require-current-main
+```
