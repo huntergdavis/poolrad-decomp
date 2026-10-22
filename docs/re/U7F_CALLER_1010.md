@@ -6,6 +6,25 @@ FillChar. There is no caller-supplied callback, captured-output substitution,
 or emulator dependency in the C implementation. Independent verification
 and acceptance remain the reviewer's decision; this change edits no ledger.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_007F_1010` | `00B0:0048` | unit `0x9E` entry 8 `+0DE3` | `+10C7, +1596, +1611, +1630, +1649, +1662, +167E, +1692, +16AB, +170F, +174B, +17A1, +17E6` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
 ## Identity and source extent
 
 - target_function: OVL_007F_1010, U7F entry 13, stub 008F:0061 (entry slot 13).

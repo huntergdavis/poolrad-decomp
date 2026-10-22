@@ -10,6 +10,30 @@ accepts the node. It is the second half of the pair documented in
 [U6A_RECORD_WEIGHT_0000.md](U6A_RECORD_WEIGHT_0000.md); the recall
 attempt, branch search and reused work are recorded there.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_006A_019C` | `0096:003E` | unit `0x86` entry 6 `+323D` | `+01C3` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
+Measured consequence (par-b, i21375). In hybrid run `hybrid-b5-v1-route2`, `OVL_006A_0214` (which composes
+this body) was equal to the original on its first arrival. On its second it differed first at linear `0816E`
+(PSP:002E, where DOS saves the caller's SP on each `INT 21h`): C `D8`, original `68`. The original had taken the
+overlay-manager path. The hybrid now runs this C only when the stub is the loaded far `JMP`.
+
 ## Exact original, callers and ownership
 
 | Artifact | Verified bound |
