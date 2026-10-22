@@ -140,3 +140,11 @@ the fixture cannot overwrite its own helper return address.
 - verdict: likely_match within the documented profile.
 - review_notes: retain provisional classification, ordinary-RAM restrictions,
   closure gaps and synthetic-only native scope. No merge or self-credit.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03B0_0969 --require-current-main
+```

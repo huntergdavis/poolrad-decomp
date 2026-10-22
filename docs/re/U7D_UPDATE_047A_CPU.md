@@ -137,3 +137,11 @@ With the pinned private media and Capstone/Unicorn available:
   data; unbounded delegated termination precondition; one analytically
   unreachable branch retained in denominator; synthetic native scope;
   independent acceptance and any credit remain with the reviewer/VP.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007D_047A --require-current-main
+```
