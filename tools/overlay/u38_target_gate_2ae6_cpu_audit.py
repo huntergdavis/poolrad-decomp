@@ -139,12 +139,13 @@ def differential(resident,code,decoded,conditional,functions):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args();resident,code,decoded,conditional,digests=source();report=dict(target=digests)
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
     if a.compile_only:  # same compiler command and symbol binding as the audit; no media
         with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
             library(Path(_t))
         print('CHECKER_BUILD_OK')
         return
+    resident,code,decoded,conditional,digests=source();report=dict(target=digests)
     with tempfile.TemporaryDirectory(prefix='target-selector-') as tmp:
         fs=library(Path(tmp))
         if a.unicorn:report['unicorn']=differential(resident,code,decoded,conditional,fs)
