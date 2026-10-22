@@ -111,7 +111,7 @@ def source():
     return bodies, dict(code=code, dice=dice, system=system)
 
 
-CHECKER_ROWS = ('OVL_0033_0D13',)
+CHECKER_ROWS = ('OVL_0033_0D13', 'OVL_0033_0E9E')
 
 
 def library(directory):

@@ -94,3 +94,24 @@ first, the ignored high byte of the argument, `AX=0x00FF` versus a
 matched value byte `0xFF`, 16-bit offset wrap across `0xFFFF`, and
 host argument guards leaving the AX output untouched. No game data or
 decoded media is in the test.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u68_record_scan_tests
+ctest --test-dir build -R '^poolrad_overlay_u68_record_scan_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0068_05AB` | the whole `poolrad_overlay_u68_record_scan_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u68_record_scan_tests` passed (1/1 under ctest).

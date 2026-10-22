@@ -64,3 +64,34 @@ null link, preserve, both mask bits, and callback refusal.
 These are bounded prefix and synthetic callback checks. A natural game
 caller frame has not been reached, so game identity and strict function
 count remain provisional.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tests/recovered/check_overlay_u38_target_mask81_25bc.py
+```
+
+- `tests/recovered/check_overlay_u38_target_mask81_25bc.py` covers `pr_u38_target_mask81_25bc`. Measured on `ee07bd68`: 720 composed original-byte full-state cases passed.
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u38_target_mask81_25bc_tests
+ctest --test-dir build -R '^poolrad_overlay_u38_target_mask81_25bc_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0038_25BC` | the whole `poolrad_overlay_u38_target_mask81_25bc_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u38_target_mask81_25bc_tests` passed (1/1 under ctest).

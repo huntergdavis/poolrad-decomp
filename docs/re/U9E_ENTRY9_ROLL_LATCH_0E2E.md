@@ -85,3 +85,34 @@ remain an explicit callback obligation because the merged high-level
 entry-8 API exposes AL and seed, not its complete register/flag state.
 This is a strict full-C **candidate** for PM review; no identity or count
 credit is claimed here.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tests/recovered/check_overlay_u9e_entry9_roll_latch_0e2e.py
+```
+
+- `tests/recovered/check_overlay_u9e_entry9_roll_latch_0e2e.py` covers `pr_u9e_entry9_roll_latch_0e2e`. Measured on `ee07bd68`: 96 full-state cases plus 16 entry-8 AL/seed cases passed. On `ee07bd68` the script did not run at all: its library failed to load with `undefined symbol: pr_u9e_entry8_fullstate_compose_0de3`, because 08de57fb added `pr_u9e_roll_latch_0e2e_cpu` to the credited file. This PR adds that function's source closure to the script's `cc` list; the credited function `pr_u9e_entry9_roll_latch_0e2e` is unchanged.
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u9e_entry9_roll_latch_0e2e_tests
+ctest --test-dir build -R '^poolrad_overlay_u9e_entry9_roll_latch_0e2e_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_009E_0E2E` | the whole `poolrad_overlay_u9e_entry9_roll_latch_0e2e_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u9e_entry9_roll_latch_0e2e_tests` passed (1/1 under ctest).

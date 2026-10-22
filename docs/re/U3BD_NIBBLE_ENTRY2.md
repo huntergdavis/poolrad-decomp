@@ -178,3 +178,24 @@ main 2efba50 (the existing targets plus
   modelled.
 - The accounting documents are the integration lane's; this note claims
   one full translation for the PM to record.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u3bd_nibble_tests
+ctest --test-dir build -R '^poolrad_overlay_u3bd_nibble_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_03BD_047B` | the whole `poolrad_overlay_u3bd_nibble_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u3bd_nibble_tests` passed (1/1 under ctest).

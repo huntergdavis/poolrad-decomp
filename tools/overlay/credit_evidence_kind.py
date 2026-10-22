@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Label every strict credit with the kind of evidence a reader can actually re-run (VP i20849/i20915).
+"""Label every strict credit with the kind of evidence a reader can actually re-run (VP i20849/i20915/i21177).
 
 A credit's evidence can be a registered checker that CI builds, an audit that exists but is not
 registered, a C test, a cited shared tool, or prose. Those are different claims, and the ledger
 should say which one each credit rests on. This tool derives the label from the tree itself, so
 the table cannot drift from what is really there:
 
-  checker    the id is in some audit's CHECKER_ROWS; check_checker_builds proves it builds on
-             current main
+  checker    the id is in some CHECKER_ROWS that check_checker_builds discovers (the same registry
+             CI uses, under tools/overlay and tests/recovered); CI proves the checker builds
   audit      the evidence document cites an existing script whose SOURCE names this body (by id,
              or by unit/segment plus offset); not registered, so NOT machine-proven to run on main
-  unit-test  the document cites no script, but a C test or native script under tests/recovered
-             names the body (hand-derived checks, not an original-byte differential)
+  unit-test  the document cites a `ctest -R` command for a test registered in CMakeLists.txt:
+             hand-derived synthetic checks of the C, not an original-byte differential
   cites-tool the document cites only scripts that do not name this body (shared tooling)
-  document   nothing runnable names the body
-  stale      every script the document cites is missing from the tree
+  prose-only the document cites nothing runnable for this body
+  stale      every script the document cites is missing, or a cited ctest name is not registered
   missing-doc the evidence document itself is missing
 
 Static only: an 'audit' label means the script exists and names the body, not that it was run.
@@ -32,22 +32,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 STRICT = "docs/re/strict_full_c_addresses.csv"
 TABLE = "docs/re/credit_evidence_kind.csv"
-KINDS = ("checker", "audit", "unit-test", "cites-tool", "document", "stale", "missing-doc")
+KINDS = ("checker", "audit", "unit-test", "cites-tool", "prose-only", "stale", "missing-doc")
 FIELDS = ("id", "kind", "detail")
-CHECKER = re.compile(r"^CHECKER_ROWS\s*=\s*\(([^)]*)\)", re.M)
-ROW_ID = re.compile(r"['\"]([A-Z]+_[0-9A-F]{4}_[0-9A-F]{4})['\"]")
 SCRIPT = re.compile(r"(?<![\w/.-])((?:\.\./\.\./)?(?:tools/overlay|tests/recovered)/[A-Za-z0-9_.-]+\.py)")
+CTEST = re.compile(r"\bctest\b[^\n`]*?\s-R\s+['\"]?\^?(\w+)\$?['\"]?")
+ADD_TEST = re.compile(r"add_test\(\s*NAME\s+(\w+)")
 
 
 def registered(root):
-    """{credit id: [audit file names]} from every CHECKER_ROWS tuple under tools/overlay."""
-    rows = {}
-    for path in sorted((root / "tools/overlay").glob("*.py")):
-        match = CHECKER.search(path.read_text(errors="ignore"))
-        if match:
-            for rid in ROW_ID.findall(match.group(1)):
-                rows.setdefault(rid, []).append(path.name)
-    return rows
+    """{credit id: [checker file names]} from check_checker_builds' own discovery, so the
+    'checker' label cannot drift from the registry CI builds (#1411 scanned tools/overlay only
+    and missed the tests/recovered checkers for 12B2 and 25BC)."""
+    from check_checker_builds import discover
+    return {rid: [path.name for path in paths] for rid, paths in discover(root).items()}
+
+
+def ctest_names(root):
+    cmake = root / "CMakeLists.txt"
+    return set(ADD_TEST.findall(cmake.read_text())) if cmake.is_file() else set()
 
 
 def _tokens(rid):
@@ -74,7 +76,7 @@ def _names_in_source(text, rid):
 def classify(root=ROOT):
     """[(id, kind, detail)] for every strict credit, in the strict table's order."""
     reg = registered(root)
-    tests = sorted(p.name for p in (root / "tests/recovered").glob("*") if p.is_file())
+    known_tests = ctest_names(root)
     sources = {}
 
     def source(path):
@@ -93,19 +95,23 @@ def classify(root=ROOT):
         if not docfile.is_file():
             out.append((rid, "missing-doc", doc))
             continue
-        scripts = sorted({m.replace("../../", "") for m in SCRIPT.findall(docfile.read_text(errors="ignore"))})
+        text = docfile.read_text(errors="ignore")
+        scripts = sorted({m.replace("../../", "") for m in SCRIPT.findall(text)})
+        ctests = sorted(set(CTEST.findall(text)))
         existing = [s for s in scripts if (root / s).is_file()]
         naming = [s for s in existing
                   if _names_in_filename(Path(s).name, rid) or _names_in_source(source(s), rid)]
+        unknown = [name for name in ctests if name not in known_tests]
         if naming:
             out.append((rid, "audit", ";".join(naming)))
-        elif scripts and not existing:
-            out.append((rid, "stale", ";".join(scripts)))
+        elif (scripts and not existing) or unknown:
+            out.append((rid, "stale", ";".join([s for s in scripts if s not in existing] + unknown)))
+        elif ctests:
+            out.append((rid, "unit-test", ";".join(ctests)))
         elif existing:
             out.append((rid, "cites-tool", ";".join(existing[:3])))
         else:
-            test = [t for t in tests if _names_in_filename(t, rid)]
-            out.append((rid, "unit-test", ";".join(test)) if test else (rid, "document", ""))
+            out.append((rid, "prose-only", ""))
     return out
 
 
