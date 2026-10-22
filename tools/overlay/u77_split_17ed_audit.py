@@ -473,16 +473,20 @@ def main():
             return
         bodies, decoded, meta, literal = source()
         report = dict(target=meta, host_argument_guards=guards(lib))
+        def save():
+            if a.output:
+                a.output.parent.mkdir(parents=True, exist_ok=True)
+                a.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+        save()
         if a.unicorn:
             report['unicorn'] = differential(bodies, decoded, literal, lib, a.quick)
+            save()
         if a.native:
             from u77_split_17ed_native import native
             report['native'] = native(bodies, literal, lib)
-        if a.output:
-            a.output.parent.mkdir(parents=True, exist_ok=True)
-            a.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
+            save()
 
 
 if __name__ == '__main__':
-    sys.modules['u38_message_3134_cpu_audit'] = sys.modules[__name__]
+    sys.modules['u77_split_17ed_audit'] = sys.modules[__name__]
     main()

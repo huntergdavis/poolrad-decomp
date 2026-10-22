@@ -82,8 +82,12 @@ comparison. The exact emulator binary hash, version, source revision, and
 local source changes are recorded. `POOLRAD_DOSBOX` selects the executable;
 without it, the installed fallback is explicitly identified.
 
-Measurements are pending completion of the gated runs. No pass is asserted
-by this section until the measured result table is filled.
+The initial **43-case quick differential passed** with CPU14, full RAM,
+EGA state, OUT, and VRAM operands equal. It reached 63/63 caller starts and
+2/2 caller outcomes, including CODE, CALLEE, and TRANSFER stops. Twelve
+host guards also passed. This is a partial fixture set, not the 550-case
+result. Full differential, native, and handoff-build measurements are still
+pending the shared load/slot gate.
 
 ## Reuse and adversarial claim check
 
