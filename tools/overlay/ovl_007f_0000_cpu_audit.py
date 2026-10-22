@@ -102,7 +102,7 @@ def run_c(lib, state, budget):
     return STATUS[status], bytes(ram), out, left.value, diag
 
 
-def run_original(state, decoded, budget, entry=None):
+def run_original(state, decoded, budget, entry=None, frame_key=('res', 0x13AB)):
     """Original bytes in Unicorn. Counts one unit per executed instruction of the wrapper and the resident closure; stops at the entry frame's return address (RETURNED), at the
     unit after the budget (LIMIT, CPU at the next unexecuted instruction), or when a callee returns somewhere unexpected (TRANSFER)."""
     memory, cpu, info = state; backing = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
@@ -129,7 +129,7 @@ def run_original(state, decoded, budget, entry=None):
             status[0] = 'LIMIT'; uc.emu_stop(); return
         left[0] -= 1; seen.add(key)
         ins = decoded[key]
-        if key == ('res', 0x13AB):
+        if key == frame_key:
             sp = uc.reg_read(UC_X86_REG_SP); ss = uc.reg_read(UC_X86_REG_SS)
             frames.append(tuple(word(ss, sp + 2 * k) for k in range(4)))          # IP, CS, pointer offset, pointer segment as the resident sees them
         if ins.mnemonic in ('call', 'lcall'):

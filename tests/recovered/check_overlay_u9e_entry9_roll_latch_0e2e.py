@@ -272,6 +272,17 @@ def main():
                         "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
                         str(ROOT / "src/recovered/overlay_u9e_entry9_roll_latch_0e2e.c"),
                         str(ROOT / "src/recovered/overlay_u9e_entry8_roll.c"),
+                        # 08de57fb added pr_u9e_roll_latch_0e2e_cpu to the same file; the
+                        # library cannot load without that function's dice-chain closure.
+                        *(str(ROOT / "src/recovered" / name) for name in (
+                            "overlay_u9e_entry8_fullstate_compose_0de3.c",
+                            "overlay_u9e_entry8_fullstate_prefix_0de3.c",
+                            "overlay_u9e_entry8_system_call_0e0e.c",
+                            "overlay_u9e_entry8_fullstate_postcall_0e13.c",
+                            "overlay_u9e_entry8_fullstate_loop_0e05.c",
+                            "overlay_u9e_entry8_fullstate_tail_0e1f.c",
+                            "system_random_fullstate_11c0.c",
+                            "system_seed_fullstate_120f.c")),
                         "-o", str(library)], check=True)
         dll = ctypes.CDLL(str(library))
         model = dll.pr_u9e_entry9_roll_latch_0e2e

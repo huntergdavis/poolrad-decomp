@@ -60,6 +60,9 @@ def source():
     return image, code, decoded, provenance
 
 
+CHECKER_ROWS = ('OVL_006A_0E37',)
+
+
 def library(directory):
     path = directory / "u6a0e37.so"
     sources = ["overlay_u6a_string_node_0e37.c", "system_getmem_023f_cpu.c", "system_strstore_fullstate_0b25.c"]
@@ -222,7 +225,12 @@ def differential(image,code,decoded,function):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--unicorn",action="store_true");parser.add_argument("--native",action="store_true")
-    parser.add_argument("--output",type=Path);args=parser.parse_args()
+    parser.add_argument("--output",type=Path);parser.add_argument('--compile-only',action='store_true');args=parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image,code,decoded,provenance=source();report=dict(target=provenance)
     with tempfile.TemporaryDirectory(prefix="u6a-0e37-") as temp:
         function=library(Path(temp))

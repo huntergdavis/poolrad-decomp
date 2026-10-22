@@ -148,3 +148,11 @@ substantive composable row in the continuing schema-4 workflow.
   dependency returns, explicit allocator error stops. Queue composability
   retains these profiles. No classifier, acceptance, accounting or credit
   changes are included in this author PR.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_044E --require-current-main
+```

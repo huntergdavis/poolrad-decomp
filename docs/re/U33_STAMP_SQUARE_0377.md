@@ -63,3 +63,34 @@ run. The result SHA-256 and the commands are in
 
 No classifier or count ledger is changed. Identity and strict credit remain
 the verifying lane's decision.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tools/overlay/u33_stamp_02ba_audit.py --unicorn
+```
+
+- `tools/overlay/u33_stamp_02ba_audit.py` covers target `0377` (`pr_u33_stamp_square_0377`). Measured on `ee07bd68`: +0377: 158 original-byte cases passed with full RAM and CPU equal; 82/82 instruction starts; 2/2 conditional outcomes.
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u33_stamp_square_0377_tests
+ctest --test-dir build -R '^poolrad_overlay_u33_stamp_square_0377_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0033_0377` | the whole `poolrad_overlay_u33_stamp_square_0377_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u33_stamp_square_0377_tests` passed (1/1 under ctest).

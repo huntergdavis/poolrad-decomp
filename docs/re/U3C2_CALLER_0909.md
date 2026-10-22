@@ -210,3 +210,11 @@ reports, tool versions and native capture hashes.
 | score | Strong source identity and tested contract parity; separate incomplete transitive coverage and no natural-route evidence |
 | verdict | likely_match, pending independent review |
 | review_notes | Check argument order, signed coordinates, late reloads, explicit pair RETF policy, per-call line budget, shared caller budget, actual outer frame and stated native limits; no self-credit |
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C2_0909 --require-current-main
+```

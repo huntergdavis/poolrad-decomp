@@ -138,3 +138,11 @@ Owner START.EXE remains under resources/DOS/POOLRAD.
 - verdict: likely_match within contract.
 - review_notes: independent reviewer/VP decides verification and credit.
   No self-credit, ledger edits or dependency credit inflation.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_00BA_17E3 --require-current-main
+```

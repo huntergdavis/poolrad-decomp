@@ -99,3 +99,34 @@ commands are in the `+0000` note; the focused test target is
 
 No classifier or count ledger is changed. Identity and strict credit
 remain the PM's review decision.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tools/overlay/u6a_record_weight_0000_audit.py --unicorn
+```
+
+- `tools/overlay/u6a_record_weight_0000_audit.py` covers target `019c` (`pr_u6a_link_high_clear_019c`). Measured on `ee07bd68`: +019c: 507 original-byte cases passed with full RAM and CPU equal; 42/42 instruction starts; 6/6 conditional outcomes. One directed cyclic fixture exceeded the original's return budget, so the C was not invoked for it.
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u6a_link_high_clear_019c_tests
+ctest --test-dir build -R '^poolrad_overlay_u6a_link_high_clear_019c_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_006A_019C` | the whole `poolrad_overlay_u6a_link_high_clear_019c_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u6a_link_high_clear_019c_tests` passed (1/1 under ctest).

@@ -211,3 +211,11 @@ the native capture structure from u3c6_cell_04be_native.py; shared CPU/RAM
 helpers from u86_procvars_3413_audit.py. Local deja recall returned no
 matches; no recalled session finding was reused. No acceptance or credit
 ledger is changed; reviewer owns independent verification and credit.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_005E_1BF8 --require-current-main
+```

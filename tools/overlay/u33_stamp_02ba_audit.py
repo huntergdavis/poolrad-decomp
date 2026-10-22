@@ -81,7 +81,7 @@ def source():
     return bodies, code
 
 
-CHECKER_ROWS = ('OVL_0033_02BA',)
+CHECKER_ROWS = ('OVL_0033_02BA', 'OVL_0033_0377')
 
 
 def library(directory):
