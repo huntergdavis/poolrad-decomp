@@ -128,3 +128,26 @@ the stub guard declined, where the original ran with its overlay load.
 - **Dispatch list:** the batch-4 list, plus the 18 above.
 - **Route skip:** `PR_HYBRID_ROUTE_SKIP=RES_0802_0716` in route mode.
 - **Driver:** `WALK_EXTRA` for route 2.
+
+## After the rebase onto main `132e1ea1` (VP i21372)
+
+**Same binary.** The rebased tree builds a byte-identical binary (sha256 prefix `56bb27cda5da00b0`). The models
+object's 95-source closure is unchanged, and the sources main added are not in it.
+
+**V1 re-run on the rebased tree (`hybrid-b5rb-v1-r1`):**
+- on route, 180 IDs;
+- final frame with 0 differing pixels;
+- **0 non-equal results** (860 equal result lines);
+- the stub guard declined 1 arrival.
+
+**Route re-runs.** Four route runs on the rebased tree (`hybrid-b5rb-route-r1..r4`) all hit a random kobold encounter, so
+none is quoted:
+- **How each was caught:** r1 was caught only by its final frame (28,092 px), because the prompt read "PRESS ENTER TO
+  CONTINUE", not COMBAT. That run showed the COMBAT check was not enough, so `WALK_EXPECT` now requires each extra step to
+  settle on its expected screen, and r2 to r4 stopped at LOOK.
+- **Why this is timing, not a C result:**
+  - The same binary ran route 2 on route before the rebase (`hybrid-b5f-route-route2`), so the route numbers above stand
+    for these bytes.
+  - V1, which compares every arrival, passed on route.
+  - A wrong C result would diverge every time; these runs diverge only sometimes. The encounter roll depends on timing,
+    and route mode's C takes no emulated time.
