@@ -49,6 +49,12 @@ jobs:
       # build where one appears in a credit table, so a hand edit or bad merge fails.
       - name: Refuse declared boundary endpoints in credit tables
         run: python3 tools/overlay/check_boundary_credits.py
+      - name: Test credit evidence-kind table
+        run: python3 -m unittest discover -s tools/overlay -p 'test_credit_evidence_kind.py'
+      # Every strict credit carries one evidence-kind label derived from the tree. A
+      # credit, checker or doc change that moves a label must regenerate the table.
+      - name: Refuse a stale credit evidence-kind table
+        run: python3 tools/overlay/credit_evidence_kind.py --check
       - name: Test evidence-link guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_evidence_docs.py'
       # Proves each credited row links to a document that names it. It does NOT
