@@ -181,3 +181,11 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | Game identity has not been asserted. The node walk and the lookups loop forever on cyclic lists, which the host caps stop and the audit compares at the stop. Natural saved-game reach is unmeasured. |
 
 No classifier or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0025_1FB1 --require-current-main
+```

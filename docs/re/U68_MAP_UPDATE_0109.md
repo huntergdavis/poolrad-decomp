@@ -69,3 +69,11 @@ unchanged neighboring bytes, x/y row-stride order, the admitted 15,15
 edge with 16-bit offset wrap, all out-of-grid coordinate bytes,
 unsupported selectors, and a reached missing/short view. No original
 map bytes, decoded media, or private replay data are committed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0068_0109 --require-current-main
+```
