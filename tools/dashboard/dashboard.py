@@ -133,8 +133,9 @@ def function_progress(repo: Path) -> dict:
     identities = checkpoint["verified_game_identities"]
     if not all(type(value) is int and value >= 0 for value in (strict, identities)):
         raise ValueError("reviewed function counts must be nonnegative integers")
+    unknown = checkpoint.get("unknown_ownership")
     progress = {
-        "status": "pending", "strict_full_c": strict,
+        "status": "pending", "strict_full_c": strict, "unknown_ownership": unknown,
         "verified_identities": identities, "ceiling": None,
         "bound_kind": None, "strict_percent": None,
         "identity_percent": None, "evidence_doc": None,
@@ -176,6 +177,19 @@ def function_progress(repo: Path) -> dict:
         "evidence_doc": evidence_doc,
     })
     return progress
+
+
+def hybrid_status(repo: Path) -> dict:
+    """Tile 3 numbers, each shown only while its source document still states it."""
+    spec = read_json(HERE / "hybrid_status.json")
+    out = {}
+    for key, claim in spec["claims"].items():
+        path = repo / claim["source"]
+        body = path.read_text(encoding="utf-8") if path.is_file() else ""
+        out[key] = claim["value"] if re.search(claim["proof"], body) else None
+    out["sources"] = sorted({claim["source"] for claim in spec["claims"].values()})
+    out["verified"] = all(out[key] is not None for key in spec["claims"])
+    return out
 
 
 def verify(repo: Path) -> dict:
@@ -251,28 +265,51 @@ def render(repo: Path) -> Path:
             "function_progress": progress,
             "verification": verification, "published_comparisons": evidence, "local_diff": local_diff}
     write_json(STATE / "snapshot.json", data)
+    data["hybrid"] = hybrid_status(repo)
     owner_data = {key: data[key] for key in (
         "generated", "commit", "function_progress", "verification",
-        "published_comparisons", "local_diff")}
+        "published_comparisons", "local_diff", "hybrid")}
     payload = json.dumps(owner_data).replace("<", "\\u003c").replace(">", "\\u003e")
     page = """<!doctype html><html lang="en"><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Poolrad progress</title>
-<style>body{font:18px/1.5 system-ui;margin:0 auto;padding:1.5rem;max-width:980px;background:#101924;color:#f0f5f8}
-h1,h2{color:#faf2bb}h1{font-size:2.2rem}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}.card{background:#203141;border:1px solid #48617a;border-radius:8px;padding:1.2rem}
+<style>body{font:18px/1.5 system-ui;margin:0 auto;padding:1rem 16px;max-width:980px;background:#101924;color:#f0f5f8}
+h1,h2{color:#faf2bb}h1{font-size:2rem;margin:.2rem 0}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem}.card{background:#203141;border:1px solid #48617a;border-radius:8px;padding:1.2rem}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}@media(max-width:640px){.tiles{grid-template-columns:1fr}}
+.kicker{font-size:.8rem;font-weight:800;letter-spacing:.08em;color:#b9cbd8}.tiles .card{padding:.9rem 1.2rem}.big{font-size:3rem;font-weight:800;line-height:1.1}.pct{font-size:1.2rem;color:#a9db7d;font-weight:700}
 .num{font-size:2.6rem;font-weight:750}.label{font-weight:700}small,.muted{color:#b9cbd8}.track{height:12px;background:#0d1721;border-radius:8px;overflow:hidden;margin:.8rem 0}.fill{height:100%;background:#a9db7d}
-a{color:#92d5ff}details{margin-top:1.4rem}summary{cursor:pointer;font-weight:700;color:#faf2bb}.warning{color:#ffda86}</style>
+.truth{margin:1rem 0 .4rem;padding:.8rem 1.2rem;border-left:5px solid #faf2bb;background:#18263a;font-weight:700}
+a{color:#92d5ff}summary{cursor:pointer;font-weight:700;color:#faf2bb}.warning{color:#ffda86;font-weight:700}
+#details{display:none}#details:target{display:block}#details:target~#overview{display:none}nav{margin:.2rem 0 .7rem}#meta{margin:.2rem 0}</style>
 <h1>POOLRAD // PORT PROGRESS</h1><p id="meta" class="muted"></p>
-<div class="cards" id="cards"></div><p id="ceiling_note" class="muted"></p>
+<section id="details"><nav><a href="#">&larr; Overview</a></nav>
+<p id="ceiling_note" class="muted"></p>
 <h2>Playable game</h2><div class="card"><div class="label">First playable C demo: unverified</div><p>Next evidence gate: one reached game route with a same-state DOS/C full-frame comparison. Published row and crop comparisons do not establish that gate.</p></div>
-<details><summary>Evidence and limits</summary><h2>Build verification</h2><div class="card" id="verification"></div>
-<h2>DOS and C comparisons</h2><p>Each comparison has its own run and scope; they cannot be added into frame coverage.</p><div class="cards" id="comparisons"></div></details>
-<p class="muted">The long function candidate list is retained in the research snapshot. It is not the PM assignment queue and does not determine the percentages above.</p>
+<h2>Running inside the game</h2><div class="card" id="hybrid_detail"></div>
+<h2>Build verification</h2><div class="card" id="verification"></div>
+<h2>DOS and C comparisons</h2><p>Each comparison has its own run and scope; they cannot be added into frame coverage.</p><div class="cards" id="comparisons"></div>
+<p class="muted">The long function candidate list is retained in the research snapshot. It is not the PM assignment queue and does not determine the percentages above.</p></section>
+<section id="overview"><nav><a href="#details">Details and evidence &rarr;</a></nav>
+<div class="tiles" id="tiles"></div>
+<p class="truth">815 is a ceiling, not a denominator; a body counts only when a differential proves registers, flags and all 1 MiB of RAM equal.</p>
+<p class="muted">815 is an UPPER BOUND on callable starts, not a verified denominator. 800 was an earlier, looser figure; 815 is the current ceiling.</p></section>
 <script id="data" type="application/json">""" + payload + """</script><script>
-const d=JSON.parse(document.getElementById('data').textContent);const esc=s=>String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+const d=JSON.parse(document.getElementById('data').textContent);const esc=s=>String(s).replace(/[&<>\\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\\"':'&quot;',"'":'&#39;'}[c]));
 document.getElementById('meta').textContent=`Generated ${d.generated} | source commit ${d.commit.slice(0,12)}`;
-const p=d.function_progress,ready=p.status==='reviewed';
-const card=(percent,count,label)=>`<div class="card"><div class="num">${ready?(p.bound_kind==='upper_bound'?'≥':'')+esc(percent)+'%':'Unknown'}</div><div class="label">${esc(label)}</div><div class="track"><div class="fill" style="width:${ready?Math.max(0,Math.min(100,percent)):0}%"></div></div><small>${esc(count)} reviewed original game functions${ready?' / '+esc(p.ceiling)+' possible non-library bodies':''}</small></div>`;
-document.getElementById('cards').innerHTML=card(p.strict_percent,p.strict_full_c,'Translated into strict full C')+card(p.identity_percent,p.verified_identities,'Game functions identified');
+const p=d.function_progress,ready=p.status==='reviewed',h=d.hybrid;
+const pct=x=>ready?(p.bound_kind==='upper_bound'?'≥':'')+esc(x)+'% of the '+esc(p.ceiling)+' ceiling':'percentage awaits a reviewed census';
+const bar=x=>`<div class="track"><div class="fill" style="width:${ready?Math.max(0,Math.min(100,x)):0}%"></div></div>`;
+const tile=(kicker,big,body)=>`<div class="card"><div class="kicker">${kicker}</div><div class="big">${big}</div>${body}</div>`;
+const drop=h.verified?Math.round(100*(h.entries_before-h.entries_after)/h.entries_before):null;
+document.getElementById('tiles').innerHTML=
+ tile('CODE REPLACED',esc(p.strict_full_c),`<div class="pct">${pct(p.strict_percent)}</div>${bar(p.strict_percent)}<small>original game bodies rewritten in strict full C</small>`)+
+ tile('IDENTITIES PROVEN',esc(p.verified_identities),`<div class="pct">${pct(p.identity_percent)}</div>${bar(p.identity_percent)}<small>bodies proven to be the game's own code</small>`)+
+ (h.verified?tile('RUNNING AS OUR C',esc(h.running_as_c)+' <span class="pct">of '+esc(h.credited_on_route)+'</span>',
+   `<div>credited bodies on one cold start to the main menu run as our C inside the real game (${esc(h.c_only)} with the original bytes never executed, ${esc(h.shadow)} in shadow form)</div>`+
+   `<div class="pct">original's own entries ${esc(h.entries_before)} &rarr; ${esc(h.entries_after)} (&minus;${drop}%), all from one hot body</div>`+
+   `<div class="warning">${esc(h.credited_off_route)} credited bodies are NOT on that route yet.</div>`)
+  :tile('RUNNING AS OUR C','?','<div class="warning">A source document changed; re-review before quoting.</div>'))+
+ tile('UNKNOWN',p.unknown_ownership===null||p.unknown_ownership===undefined?'?':esc(p.unknown_ownership),`<div>starts with no ownership verdict yet (game or library)</div><div class="warning">So no percentage here is the whole game.</div>`);
+document.getElementById('hybrid_detail').innerHTML=h.verified?`One cold start to the main menu: ${esc(h.running_as_c)} credited bodies run as our C (${esc(h.c_only)} C-only, ${esc(h.shadow)} shadow, where the original still runs first and its result wins on any mismatch). The game reaches ${esc(h.credited_on_route)} credited bodies on that route; ${esc(h.credited_off_route)} credited bodies are not on it. Sources: `+h.sources.map(esc).join(', ')+'.':'Re-review: a cited number is no longer stated in '+h.sources.map(esc).join(', ')+'.';
 document.getElementById('ceiling_note').textContent=ready?'These are minimum function-coverage percentages: the PM-reviewed '+p.ceiling+' is an upper bound that includes bodies whose game ownership is unresolved. It is not a whole-game completion percentage. Numerators: '+p.accounting_source+'. Bound: '+p.evidence_doc+'.':'Function-coverage percentages await a PM-reviewed census of the same original binaries. Whole-game completion is unknown.';
 const v=d.verification;document.getElementById('verification').innerHTML=v?`<b>${esc(v.status)}</b> at ${esc(v.time)} on ${esc(v.commit.slice(0,12))}<br>`+v.steps.map(s=>`${esc(s.name)}: exit ${s.exit}`+(s.tests_total!==null?`, ${s.tests_total-s.tests_failed}/${s.tests_total} CTests`:'')).join('<br>'):'Not run on this dashboard. Use <code>python3 tools/dashboard/dashboard.py verify</code>.';
 let evidence=d.published_comparisons.map(x=>`<div class="card"><b>${esc(x.label)}</b><br>${esc(x.scope)}<br>${x.matched===null?'Source claim changed; re-review':`${x.matched}/${x.compared} matched`}<br><small>${esc(x.method)}</small><br><a href="${esc('state/reports/'+x.source.split('/').pop())}">source report</a></div>`);
