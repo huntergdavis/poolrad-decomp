@@ -268,3 +268,34 @@ Measured 2026-10-20 (11:14–11:22 PDT):
 - verdict: likely_match within the stated contract. Verification and credit
   are the review lane's. Not a ledger target (see the declaration note in
   the PR), and no ledger, manifest, checkpoint or strict-table edits here.
+
+## Grant record: `RES_0709_06A7` (added by the review lane, par-e, VP i20401/i20406/i20671)
+
+Member row: `RES_0709_06A7`, resident strict credit with `GAME_SPECIFIC_TARGETS` identity under the reviewed near-only
+name (#1350). Ground: **its own operands on game state written by credited code**. This is the strongest factor 2 in the
+near-only set, and the clause is not needed.
+
+- **Evidence, reproduced by me** on main `ea3773e5`. The run took 45 minutes on a loaded host and went through the
+  wrapper.
+  - **Unicorn:** **116 cases**; caller starts **41/41** and outcomes **4/4**. The composed closure (glyph `+01DF`,
+    SYSTEM UpCase, CRT Delay) reaches **468/471** starts and **66/68** outcomes; the remainder are the exclusions argued
+    in the table above, which the audit enforces fail-closed.
+  - **Compared:** CPU14, all 983,040 ordinary RAM bytes, the `A0000..AFFFF` aperture replayed byte-exact, 6,140 OUTs
+    and 11,554 EGA write operands, masks 0.
+  - **Native** (`machine=ega`, mode `0Dh`): 51 cases with all four planes, the 64 KiB DS and the font, and 3,876 traced
+    OUTs.
+  - **ASan/UBSan** with its six sources: **4,226 checks**, which matches this document.
+  - **Checker build:** passes; `CHECKER_ROWS=('RES_0709_06A7',)`.
+- **Factor 1 (chain), verified by me from the media.**
+  - **The sites:** the only near calls to `06A7` are `0952`, `09B4` and `09BB`. A raw `E8` scan of `0709:[0000,1000)`
+    finds no other site, and all three lie inside the printer `0709:[0768,09E3)`.
+  - **The entry:** `0768` has a direct PASS verdict (par-a pass 2), so this is the chain ruling's case. (a) The entry's
+    identity is direct. (b) This body is reachable only through it. (c) This record carries the role line.
+- **Factor 2, verified by me from the media.**
+  - **Operands:** the body's own absolute-DS operands are `49E2`, `4A00` and the **window cursor `DS:5E24/5E25`**.
+  - **Writers:** overlay code stores `5E24` 13 times and `5E25` 11 times. The writers include **game_verified**
+    `OVL_001C_1EF8`, `001C_0001`, `001C_0A09`, `001C_0F08` and `001C_2775`, and two **strict-credited** bodies,
+    `OVL_001C_2AEB` and `OVL_001C_2E7D`. Overlay code reads the cells too.
+  - **Callees:** the credited glyph `RES_0709_01DF` and the covered CRT Delay `0A40:029C`.
+- **Role line:** draws the next character of the printer `0768`'s message through the glyph `01DF` at the game's
+  window cursor `DS:5E24/5E25`, then advances the cursor.
