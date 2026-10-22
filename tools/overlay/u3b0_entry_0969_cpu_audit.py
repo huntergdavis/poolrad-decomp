@@ -50,6 +50,9 @@ def source():
     meta['target']=dict(file_offset=u['ovr_offset']+ENTRY,entry_slots=[i for i,a in enumerate(u['entries']) if a==ENTRY])
     print('Caller',meta['root:0969'],meta['target'],flush=True)
     return bodies,decoded,meta
+CHECKER_ROWS = ('OVL_03B0_0969',)
+
+
 def library(directory):
     path=directory/'u3b0entry.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/(s+'.c')) for s in SOURCES],'-o',str(path)],check=True)
@@ -218,7 +221,12 @@ def differential(bodies,decoded,lib):
         chain_starts=len(seen),chain_total=len(decoded),chain_outcomes=len(edges&expected),chain_outcomes_total=len(expected),
         missing_starts=sorted(set(decoded)-seen),missing_outcomes=sorted(expected-edges))
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded,meta=source();report=dict(identity=meta)
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))
