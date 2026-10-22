@@ -37,3 +37,17 @@ mov [bp-2],ax; mov ax,[bp-2]; mov sp,bp; pop bp; retf 4
 - The meaning of `+102h` and of the constant 1500 is not named.
 - Only `063A` and `0054` are shown comparing the result with `+102h`. `044C+045D` moves the result to DX before use, and that use is not traced here.
 - This is the first identity resting on a *derived* value rather than a read or dereference. If the VP rules that derived values do not count as use, the verdict becomes FAIL on the forwarding rule. Nothing else here would change.
+
+## `OVL_007F_0054` (84 B), the evidence PR is #1421 (merged)
+
+**Factor 1: PASS, through a relocated far call.** The `game_evidenced` function `OVL_0077_1CEE` (bound 612 B) far-calls `0054` through its stub at `+1E3C`: `lcall 008F:0025`, a fixup-backed site inside the caller's extent. 0054 also has near sites in the `game_evidenced` functions `0203`, `063A` (x2), `0A88` and `19B2` (x2).
+
+**Factor 2: PASS, by dereferencing a documented game record.** At `+1E28..+1E3C` the caller pushes `[5D94]:[5D92]`, the **active-character pointer** ([GAMEPLAY_PATH.md](GAMEPLAY_PATH.md); the standard's own 0x7F example). That pointer becomes 0054's record argument `[bp+0Ch]`. 0054 then:
+- dereferences it, `les di,[bp+0Ch]; mov ax,es:[di+102h]`, adds the amount argument `[bp+0Ah]`, and compares the sum with 0000's threshold;
+- when the sum is over, sets its flag and stores `0000(record) - record.+102h` through the out pointer `[bp+6]`; otherwise it stores 0.
+
+`+102h` is the character field that strict-credited 0BB8 also reads.
+
+**Role line:** decides whether adding an amount to the active character's `+102h` word passes the character-derived threshold. It returns the flag and stores the difference.
+
+**Consequence for 0000:** the record 0054 forwards to `0000` is the active character, so 0000's derived-value argument above has a documented subject on this path, independent of the 063A trace.
