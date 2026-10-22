@@ -15,6 +15,8 @@ STACK = 0x4000
 
 
 def selected(A):
+    if hasattr(A, 'native_cases'):
+        return A.native_cases()
     out = []
     for name, o in A.cases():
         number = o.get('number', 0x10)
@@ -29,8 +31,9 @@ def chunks(start, length):
         yield (start + k) >> 4, min(0x8000, length - k)
 
 
-def native(A, code, fixups, body_ips, f):
-    directory = ROOT / 'resources/ovl040c-015d/native'; directory.mkdir(parents=True, exist_ok=True)
+def native(A, code, fixups, body_ips, f, regions=REGIONS, directory=None):
+    REGIONS = regions
+    directory = directory or ROOT / 'resources/ovl040c-015d/native'; directory.mkdir(parents=True, exist_ok=True)
     image, sites = A.Q.load_image()
     image_reloc = A.Q.relocate(image, sites, A.BASE)
     (directory / 'IMAGE.BIN').write_bytes(image_reloc)

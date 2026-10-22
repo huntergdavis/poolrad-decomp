@@ -154,7 +154,8 @@ def build(image_reloc, code, fixups, *, number=0x10, flag=1, byte6=0x01, x=3, y=
     return m, c, env, list(keys), stubs
 
 
-def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE):
+def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE, body=None, extra=()):
+    """body: (segment, entry, end) of the routine whose starts and edges are recorded (default: 015D at CS)."""
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_INSN
     from unicorn import x86_const as R
     env = Q.Env(**envspec); script = list(keys)
@@ -163,8 +164,8 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE):
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
     s = dict(stop=None, steps=0, prev=None); seen = set(); edges = set()
-    ovseg = c.cs
-    known = {base + v for v in SEGS} | {STUB_SEG, ovseg}
+    ovseg, entry, end = body or (c.cs, ENTRY, END)
+    known = {base + v for v in SEGS} | {STUB_SEG, ovseg, c.cs} | set(extra)
 
     def code(em, address, size, user):
         cs = uc.reg_read(R.UC_X86_REG_CS); ip = uc.reg_read(R.UC_X86_REG_IP)
@@ -179,8 +180,10 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE):
             s['stop'] = 'RETURN'; return uc.emu_stop()
         if cs not in known:
             s['stop'] = 'TRANSFER'; return uc.emu_stop()
-        if cs == ovseg and ENTRY <= ip < END:
-            check(ip in body_ips, f'escape inside 015D {name} {ip:04x}'); seen.add(ip)
+        if bytes(uc.mem_read(address, 2)) == b'\xcd\x3f':      # an unloaded overlay stub: stop before the overlay manager
+            s['stop'] = 'OVERLAY'; return uc.emu_stop()
+        if cs == ovseg and entry <= ip < end:
+            check(ip in body_ips, f'escape inside the body {name} {ip:04x}'); seen.add(ip)
             if body_ips[ip].mnemonic.startswith('j') and body_ips[ip].mnemonic != 'jmp':
                 s['prev'] = ip
         s['steps'] += 1
@@ -224,7 +227,7 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, base=BASE):
     uc.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, R.UC_X86_INS_IN)
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, R.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=3500000)
-    check(s['stop'] in ('RETURN', 'EXIT', 'BREAK', 'TRANSFER'), f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in ('RETURN', 'EXIT', 'BREAK', 'TRANSFER', 'OVERLAY'), f'original stop {name}: {s["stop"]}')
     return uc, backing, env, s['stop'], seen, edges
 
 
