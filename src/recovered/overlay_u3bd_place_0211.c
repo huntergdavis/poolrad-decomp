@@ -144,7 +144,7 @@ static uint16_t dec16(pr_u3bd_0211_cpu *cpu, uint16_t value)
 static void xor_ah(pr_u3bd_0211_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    result_flags(cpu, 0u, 0x80u, LOGIC_FLAGS);
+    result_flags(cpu, 0u, 0x80u, LOGIC_FLAGS | 0x10u); /* pinned: XOR clears AF */
 }
 
 static void cbw(pr_u3bd_0211_cpu *cpu)

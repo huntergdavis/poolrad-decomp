@@ -49,7 +49,7 @@ static int writes_code(const pr_system_11c0_cpu *cpu)
 static uint16_t or_flags(uint16_t incoming, uint16_t value)
 {
     uint8_t parity = (uint8_t)value;
-    uint16_t flags = (uint16_t)(incoming & (uint16_t)~DEFINED_LOGIC_FLAGS);
+    uint16_t flags = (uint16_t)(incoming & (uint16_t)~(DEFINED_LOGIC_FLAGS | 0x0010u)); /* pinned: OR clears AF */
     parity ^= (uint8_t)(parity >> 4);
     parity ^= (uint8_t)(parity >> 2);
     parity ^= (uint8_t)(parity >> 1);

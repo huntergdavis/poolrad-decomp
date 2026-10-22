@@ -1,5 +1,7 @@
 # Flag-semantics census (pinned DOSBox-X 5a9c7c53)
 
+A flag computed by a helper is only as good as the rule it assumed; check the rule against the PINNED build, not a general x86 reference.
+
 Read from `src/cpu/instructions.h` (SHLW/SHRW/SHRB, MULW), `src/cpu/flags.cpp`
 (`get_AF`, `FillFlagsNoCFOF`, `parity_lookup`). Nothing here comes from a summary.
 

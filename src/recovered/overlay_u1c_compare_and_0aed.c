@@ -79,8 +79,8 @@ static void sub_flags(pr_u1c_0aed_cpu *cpu, uint16_t a,
 static void xor_ah_zero(pr_u1c_0aed_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    /* XOR clears CF/OF; AF is architecturally undefined. */
-    cpu->flags &= (uint16_t)~(ARITH_FLAGS & ~0x10u);
+    /* XOR clears CF/OF; pinned FillFlags also clears AF. */
+    cpu->flags &= (uint16_t)~ARITH_FLAGS;
     result_flags(cpu, 0u, 8u);
 }
 

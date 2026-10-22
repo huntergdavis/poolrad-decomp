@@ -131,6 +131,7 @@ static void inc_then_shr(pr_u33_0d13_cpu *cpu)
     if (cpu->ax == 0u) cpu->flags |= 0x0040u;
     if (cpu->ax & 0x8000u) cpu->flags |= 0x0080u;
     if ((before ^ cpu->ax) & 0x8000u) cpu->flags |= 0x0800u;
+    cpu->flags |= 0x0010u; /* pinned: SHR sets AF for a non-zero count */
 }
 
 /* CX := sign(column); AX := (sign(row) - delta) * 32h; ES:DI := grid + AX + CX. */

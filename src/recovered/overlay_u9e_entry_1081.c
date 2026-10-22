@@ -70,8 +70,8 @@ static void or_al_al(pr_u9e_1081_cpu *cpu)
     uint16_t flags = parity(al);
     if (al == 0u) flags |= 0x0040u;
     if ((al & 0x80u) != 0u) flags |= 0x0080u;
-    /* AF is undefined after OR; source convention retains its input bit. */
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) | flags);
+    /* pinned FillFlags: OR clears AF. */
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) | flags);
 }
 
 static pr_u9e_1081_status call_at(

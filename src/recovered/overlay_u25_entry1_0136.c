@@ -73,8 +73,8 @@ static void cmp_al(pr_u25_0136_cpu *cpu, uint8_t value)
 static void xor_ah_ah(pr_u25_0136_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    /* AF is undefined; retain its incoming bit by convention. */
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) |
+    /* pinned FillFlags: XOR clears AF. */
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) |
                             0x0044u);
 }
 

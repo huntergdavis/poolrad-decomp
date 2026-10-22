@@ -84,8 +84,8 @@ static void add_ax(pr_u5e_0123_cpu *cpu, uint16_t right)
 static void xor_ah_ah(pr_u5e_0123_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    /* AF is undefined after XOR; the source convention retains its bit. */
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) |
+    /* pinned FillFlags: XOR clears AF. */
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) |
                             0x0044u);
 }
 
