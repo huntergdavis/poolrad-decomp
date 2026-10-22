@@ -59,9 +59,12 @@ overlay_u5e_neighbor_1bf8.c `mul_dx`, overlay_u86_string_node_028d.c, and every 
 
 ## "branched on?" column (original bytes)
 
-`FLAG_SEMANTICS_CENSUS.tsv` last column: a capstone decode of the ORIGINAL bytes (GAME.OVR units via `overlay_inventory.find_units`
-function bounds; SYSTEM/resident routines from the entry to the first RET at or beyond the last forward jump) for JO/JNO, JP/JNP,
-JL/JGE/JLE/JG (read OF), and SETcc/CMOVcc forms. Every JL/JG-family site found follows a CMP, where the lazy and stored rules agree.
-Sites after any other flag-setter are listed by address and the preceding setter; they are decode-only (a data byte inside a function
-span can decode as a Jcc), so they are candidates, not confirmed branches. "not scanned" means no function or extent could be
-resolved from the model's name or header; it is NOT evidence of no branch.
+Last column of `FLAG_SEMANTICS_CENSUS.tsv`: a capstone recursive descent over the ORIGINAL bytes (GAME.OVR units via
+`overlay_inventory.find_units` function bounds; SYSTEM/resident routines from the entry to the first RET at or beyond the last
+forward jump), reporting JO/JNO, JP/JNP, JL/JGE/JLE/JG (read OF) and SETcc/CMOVcc forms reachable from the model's entry.
+JL/JG-family sites after CMP are omitted (lazy and stored rules agree). Sites after OR/AND/XOR/ADD/SUB/INC/DEC are listed as
+"identical in both paths". The only JP/JO sites outside those cases were disassembled and are ASCII text that the descent
+over-approximated into (strings after a routine's last RET); they are marked. No confirmed branch on PF, or on OF after a
+shift, MUL or NEG, was found in the scanned models. "not scanned" means no function or extent could be resolved from the model's
+name or header; it is NOT evidence of no branch. Entries are derived from the model's file name and header (`+XXXX`), so a model
+that covers a different span than it names may be mis-bounded.
