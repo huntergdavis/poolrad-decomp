@@ -111,6 +111,9 @@ def source():
     return bodies, dict(code=code, dice=dice, system=system)
 
 
+CHECKER_ROWS = ('OVL_0033_0D13',)
+
+
 def library(directory):
     path = directory / "u33_grid.so"
     sources = ["overlay_u33_grid_pair_0d13.c", "overlay_u33_grid_bands_0e9e.c", "overlay_u33_byte_flags_08a4.c",
@@ -269,11 +272,18 @@ def differential(bodies, code, key, functions, quick=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, code = source()
     report = dict(targets={k: dict(sha256=v["sha"], bytes=len(v["body"]), instructions=v["insns"]) for k, v in bodies.items()},
                   flags_08a4=FLAGS_SHA, dice_span=U9E_SHA)

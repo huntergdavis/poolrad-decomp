@@ -146,3 +146,11 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | `game_verified` (ECL opcode 01h): a strict-credit upgrade only. The new U25 `+06AF` entry adds no credit. The provisional wrapper stays as it is. Natural saved-game reach is unmeasured. |
 
 No classifier, queue or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_001C_00F4 --require-current-main
+```
