@@ -311,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..88345f7
+index 0000000..9da42e4
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,478 @@
+@@ -0,0 +1,504 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -353,6 +353,10 @@ index 0000000..88345f7
 +#include "poolrad/recovered/resident_0802_050f_cpu.h"
 +#include "poolrad/recovered/resident_0802_05cd_cpu.h"
 +#include "poolrad/recovered/resident_0802_06e7_cpu.h"
++#include "poolrad/recovered/overlay_u25_slot_value_0136.h"
++#include "poolrad/recovered/overlay_u25_loader_0000.h"
++#include "poolrad/recovered/overlay_u25_load_word_0e0c.h"
++#include "poolrad/recovered/resident_00ba_byte_string_1037_cpu.h"
 +}
 +extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
@@ -366,7 +370,8 @@ index 0000000..88345f7
 +#define PR_SAME_LAYOUT(T) static_assert(sizeof(T) == sizeof(Cpu14) && offsetof(T, ip) == offsetof(Cpu14, ip) && \
 +    offsetof(T, ss) == offsetof(Cpu14, ss) && offsetof(T, flags) == offsetof(Cpu14, flags), #T " is not the 14-word CPU")
 +PR_SAME_LAYOUT(pr_r0802_02eb_cpu); PR_SAME_LAYOUT(pr_r0802_050f_cpu); PR_SAME_LAYOUT(pr_r0802_06e7_cpu);
-+PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
++PR_SAME_LAYOUT(pr_u25_slot_value_cpu); PR_SAME_LAYOUT(pr_u25_0000_cpu); PR_SAME_LAYOUT(pr_u25_load_word_cpu);
++PR_SAME_LAYOUT(pr_res_1037_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
 +    unsigned long long arrivals, equal, differ, interrupted, timeouts, mid_equal, mid_differ, back_equal, back_differ, stops_seen, returned_seen;
@@ -388,6 +393,10 @@ index 0000000..88345f7
 +    {"RES_0802_050F", 0x0802, 0x050F, 20, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 10h; RAM-only, arrival budget */
 +    {"RES_0802_05CD", 0x0802, 0x05CD, 24, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 14h; DOS open/close/read/seek replayed */
 +    {"RES_0802_06E7", 0x0802, 0x06E7, 12, 2, -1, 0,0,0,0,0,0,0,0,0,0,0},   /* RETF 8; DOS close replayed */
++    {"OVL_0025_0136", 0x0000, 0x0136, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* batch 2: RETF 2, RAM-only */
++    {"OVL_0025_0000", 0x0000, 0x0000, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 2; needs SYSTEM's run-time CS */
++    {"RES_00BA_1037", 0x00BA, 0x1037, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 2; composes Str and StrStore */
++    {"OVL_0025_0E0C", 0x0000, 0x0E0C, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* RETF 2, RAM-only */
 +};
 +static const int NBODY = (int)(sizeof bodies / sizeof bodies[0]);
 +/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
@@ -508,18 +517,24 @@ index 0000000..88345f7
 +    fprintf(stderr, "PR_HYBRID bus mode: %s\n", bus_mode ? "route" : "v1-replay");
 +    fprintf(stderr, "PR_HYBRID dispatch armed: %d bodies (%s)\n", armed, list);
 +}
++/* SYSTEM's run-time code segment, learned from the first resident body's arrival (resident image segment + load
++ * base); an overlay body that needs it before any resident arrival gets 0, which its model rejects as ARGUMENT. */
++static uint16_t known_sys = 0;
 +static void begin(int b, uint16_t c) {
 +    Body &x = bodies[b];
 +    if (x.bus == 2) { svc.clear(); int_open = false; if (intram.size() != RAM) intram.resize(RAM); }
 +    if ((x.bus == 1 || x.bus == 0) && bus_mode == 1) {       /* route: no original run (service bodies stay shadow-only) */
-+        ++x.arrivals; cur = b; body_cs = c; sys_cs = (uint16_t)(c - x.seg + 0x0AF8u); route_now = true; return;
++        ++x.arrivals; cur = b; body_cs = c; sys_cs = x.seg ? (uint16_t)(c - x.seg + 0x0AF8u) : known_sys;
++        if (x.seg) known_sys = sys_cs;
++        route_now = true; return;
 +    }
 +    if (x.bus == 1) { pr_rec::evs.clear(); pr_rec::on = true; }
 +    S = grab(); memcpy(&sram[0], MemBase, RAM);
 +    uint32_t top = ((uint32_t)S.ss << 4) + (uint16_t)S.esp;
 +    ret_ip = (uint16_t)(MemBase[top & (RAM - 1)] | (MemBase[(top + 1) & (RAM - 1)] << 8));
 +    ret_cs = (uint16_t)(MemBase[(top + 2) & (RAM - 1)] | (MemBase[(top + 3) & (RAM - 1)] << 8));
-+    sp_after = (uint16_t)(S.esp + x.pop); body_cs = c; sys_cs = (uint16_t)(c - x.seg + 0x0AF8u);
++    sp_after = (uint16_t)(S.esp + x.pop); body_cs = c; sys_cs = x.seg ? (uint16_t)(c - x.seg + 0x0AF8u) : known_sys;
++    if (x.seg) known_sys = sys_cs;
 +    interrupted = false; steps = 0; ++x.arrivals; cur = b; state = ORIGINAL; irq0 = pr_hw_irqs;
 +}
 +static void match(int index, uint16_t c, uint16_t ip) {
@@ -548,6 +563,17 @@ index 0000000..88345f7
 +        return st == PR_U86_3413_OK ? 0 : 1; }
 +    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m);
 +        return st == PR_U38_31A2_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_0025_0136")) { int st = pr_u25_slot_value_0136(MemBase, RAM, (pr_u25_slot_value_cpu *)&m);
++        return st == PR_U25_SLOT_VALUE_OK ? 0 : st == PR_U25_SLOT_VALUE_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0025_0000")) {
++        if (!sys_cs) return 1;
++        int st = pr_u25_load_operands_0000(MemBase, RAM, (pr_u25_0000_cpu *)&m, sys_cs, 1u << 20, 1u << 20);
++        return st == PR_U25_0000_OK ? 0 : st == PR_U25_0000_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0025_0E0C")) { int st = pr_u25_load_word_0e0c(MemBase, RAM, (pr_u25_load_word_cpu *)&m);
++        return st == PR_U25_LOAD_WORD_OK ? 0 : st == PR_U25_LOAD_WORD_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "RES_00BA_1037")) { pr_res_1037_callee cal; int cst = -1;
++        int st = pr_res_00ba_1037_cpu(MemBase, RAM, (pr_res_1037_cpu *)&m, &cal, &cst);
++        return st == PR_RES_1037_OK ? 0 : st == PR_RES_1037_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_0802_050F")) { pr_r0802_050f_diagnostic d;
 +        int st = pr_r0802_050f(MemBase, RAM, (pr_r0802_050f_cpu *)&m, 1u << 24, &d);
 +        return st == PR_R0802_050F_RETURNED ? 0 : st == PR_R0802_050F_ARGUMENT ? 1 : 2; }
