@@ -14,6 +14,11 @@ On success the emulator gets its shutdown key (Ctrl+F9, quit warning off) after 
 the observer writes its final report; SIGTERM, then SIGKILL, are logged fallbacks (a killed run has no final report); on any budget miss it is stopped and the stage is named.
 With STOP=menu it stops at gate 2 instead (the cold start to the main menu, same keys up to there): the baseline that
 "not on the cold start" is measured against.
+Optional tail (route 2 and later): WALK_EXTRA="key key ..." (xdotool key names). After 14,4 each key is sent in turn,
+then the driver waits until the prompt line reads the same on two polls (budget EXTRA_BUDGET_S per key, default 120)
+and saves the frame as extraNN-<key>. The tail stops early, with the stage named, if a step's budget runs out, and with
+exit 8 ("route diverged") if a random-encounter prompt (COMBAT) appears, or if WALK_EXPECT is set and a step settles on
+a prompt containing none of its expected words: those runs are not the route.
 Usage: walk_driver.py RUN_DIR [STAGE_BUDGET_S=300] [TOTAL_BUDGET_S=1500] [STOP=walk|menu]
 """
 import os, signal, subprocess, sys, time
@@ -148,6 +153,29 @@ key("a")
 wait_for("at15_4", lambda s, l: "15,4" in s, ocr_digits)
 time.sleep(1); key("Up")
 wait_for("at14_4", lambda s, l: "14,4" in s, ocr_digits)
+extra = os.environ.get("WALK_EXTRA", "").split()
+expect = os.environ.get("WALK_EXPECT", "").split()        # per step: "WORD|WORD" the settled prompt must contain one of
+for k, name in enumerate(extra, 1):
+    time.sleep(1); key(name)
+    t = time.time(); last = None; done = False
+    while time.time() - t < int(os.environ.get("EXTRA_BUDGET_S", "120")):
+        if time.time() - T0 > TOTAL_BUDGET:
+            stop(4, f"total budget exhausted in extra step {k} ({name})")
+        time.sleep(2)
+        p = grab(f"extra{k:02d}-{name}")
+        txt = ocr_prompt(p)
+        log(f"extra {k} {name} poll: {txt!r}")
+        if "COMBAT" in txt:            # a random encounter: the route has diverged, so nothing after this is the route
+            stop(8, f"route diverged: encounter prompt {txt!r} at extra step {k} ({name})")
+        if txt == last:
+            done = True
+            break
+        last = txt
+    if not done:
+        stop(7, f"extra step {k} ({name}) never settled")
+    log(f"EXTRA {k} {name} settled: {last!r}")
+    if k <= len(expect) and not any(w in (last or "") for w in expect[k - 1].split("|")):
+        stop(8, f"route diverged: extra step {k} ({name}) settled on {last!r}, expected one of {expect[k - 1]}")
 time.sleep(SETTLE)
 grab("final")
-stop(0, "route complete: 15,4 -> 14,4 seen")
+stop(0, "route complete: 15,4 -> 14,4 seen" + (f", then {len(extra)} extra keys" if extra else ""))
