@@ -180,10 +180,10 @@ index 0000000..f880355
 +#endif
 diff --git a/src/cpu/pr_hybrid_observer.h b/src/cpu/pr_hybrid_observer.h
 new file mode 100644
-index 0000000..38102a2
+index 0000000..65c12f7
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_observer.h
-@@ -0,0 +1,125 @@
+@@ -0,0 +1,138 @@
 +/* Poolrad hybrid executor, STAGE 0: OBSERVER ONLY (docs/HYBRID_EXECUTOR_SCOPE.md in the poolrad-decomp repo, VP i20556).
 + *
 + * Counts arrivals at credited entry points. It never changes guest state: it reads guest bytes and writes host files.
@@ -202,6 +202,7 @@ index 0000000..38102a2
 +#include <cstdint>
 +#include <string>
 +#include <vector>
++#include <sys/time.h>
 +
 +namespace pr_obs {
 +struct Entry {
@@ -220,6 +221,7 @@ index 0000000..38102a2
 +static const uint64_t SEQ_CAP = 2000000;
 +static std::string log_base;
 +static FILE *seq = NULL;
++static FILE *draws = NULL;                    /* <log>.draws: every arrival of a DRAW_ row (the RandSeed step), never capped */
 +static void (*on_match)(int index, uint16_t cs, uint16_t ip) = NULL;   /* set by the one-body dispatch */
 +static int suppress_index = -1;               /* an entry whose re-arrival is a hand-back rerun, not a new arrival */
 +
@@ -280,6 +282,8 @@ index 0000000..38102a2
 +    log_base = lb && *lb ? lb : "pr_hybrid_observer";
 +    seq = fopen((log_base + ".seq").c_str(), "w");
 +    if (seq) fprintf(seq, "# n\tid\tcs:ip\tinstruction\n");
++    draws = fopen((log_base + ".draws").c_str(), "w");
++    if (draws) { fprintf(draws, "# n\tinstruction\twall_ms\tcs:ip\trandseed_before (DS:4428, read at the step's entry)\n"); fflush(draws); }
 +    state = 2;
 +    atexit(report);
 +    fprintf(stderr, "PR_HYBRID observer: %u entries, %u skipped\n", (unsigned)entries.size(), (unsigned)skipped.size());
@@ -299,6 +303,15 @@ index 0000000..38102a2
 +        if (!e.count) { e.first_insn = insns; e.first_cs = cs; }
 +        ++e.count; ++arrivals;
 +        if (seq && seq_lines < SEQ_CAP) { fprintf(seq, "%llu\t%s\t%04X:%04X\t%llu\n", (unsigned long long)arrivals, e.id.c_str(), cs, ip, (unsigned long long)insns); ++seq_lines; }
++        if (draws && e.id.compare(0, 5, "DRAW_") == 0) {
++            struct timeval tv; gettimeofday(&tv, NULL);
++            PhysPt d = SegPhys(ds) + 0x4428u;
++            uint32_t seed = (uint32_t)mem_readb_inline(d) | ((uint32_t)mem_readb_inline(d + 1) << 8) |
++                            ((uint32_t)mem_readb_inline(d + 2) << 16) | ((uint32_t)mem_readb_inline(d + 3) << 24);
++            fprintf(draws, "%llu\t%llu\t%llu\t%04X:%04X\t%08X\n", (unsigned long long)e.count, (unsigned long long)insns,
++                    (unsigned long long)tv.tv_sec * 1000ull + (unsigned long long)(tv.tv_usec / 1000), cs, ip, seed);
++            fflush(draws);
++        }
 +        if ((arrivals & 4095u) == 0) report();
 +    }
 +}
