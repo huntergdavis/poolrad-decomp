@@ -128,7 +128,7 @@ OVL_005E_0E52,audit,tools/overlay/u5e_half_0e52_audit.py
 OVL_005E_17F6,audit,tools/overlay/u5e_direction_gate_17f6_audit.py
 OVL_005E_1BF8,checker,u5e_neighbor_1bf8_audit.py
 OVL_005E_2574,audit,tools/overlay/u5e_direction_match_2574_audit.py
-OVL_005E_263D,audit,tools/overlay/u5e_direction_263d_audit.py
+OVL_005E_263D,checker,u5e_direction_263d_audit.py
 OVL_005E_2879,audit,tools/overlay/u5e_party_value_2879_audit.py
 OVL_005E_32E6,checker,u5e_caller_32e6_audit.py
 OVL_0068_0000,unit-test,poolrad_overlay_u68_field_clear_0000_tests
