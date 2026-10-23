@@ -22,21 +22,23 @@ W, R13 = 0x9100, 0x9500                        # unit 0x7F and the resident 13AB
 SEG = dict(D.SEGMENTS, w=W, res13=R13)
 KIND_OF = {v: k for k, v in SEG.items()}
 ENTRY_RET = (0x8000, 0x9000)                   # the entry frame's return address (not in any decoded body)
-SOURCES = list(dict.fromkeys(['overlay_u7f_0203_cpu', 'overlay_u7f_044c_cpu', 'overlay_u7f_0054_cpu', 'overlay_u7f_entry0_0000_cpu', 'resident_00ba_character_0bb8_cpu', 'resident_00ba_character_helpers_cpu',
+SOURCES = list(dict.fromkeys(['overlay_u7f_0203_cpu', 'overlay_u7f_0a88_cpu', 'overlay_u7f_044c_cpu', 'overlay_u7f_0054_cpu', 'overlay_u7f_entry0_0000_cpu', 'resident_00ba_character_0bb8_cpu', 'resident_00ba_character_helpers_cpu',
                               'overlay_u9e_entry16_10e4', 'overlay_u9e_entry17_110d', 'overlay_u7f_record_word_add_003a', 'overlay_u7f_record_subtract_0020', 'system_string_leaves_cpu',
                               'system_runtime_leaves_cpu'] + list(D.SOURCES) + ['memory_bus', 'ega_hw']))
 SPANS = {0x0020: ('0020', 26, 9, 'f1e091b372c0401a7b90dac9e6a32f12c64b898c8f0039a69df380669e24e13a'), 0x003A: ('003A', 26, 9, 'ef4d49e3fef030f2acc13a9d5f78563d091bb60ce167bb986143671b6e14059f'),
-         0x0203: ('0203', 145, 53, '7d0d7aaaf414d3b9ce3ef2999f2e7d7bade77e19029dd11405f0a65ed880a9d2'), 0x044C: ('044C', 188, 71, '1f9525dc814d360d5e1938b7d7fcaf1782ad65128922575603d402f4cad70a06')}
-CONSTS = {0x01DB: 39, 0x0441: 10}              # the two message strings, plain data (no relocation): length byte + text
-RELOC = {0x000F: R13, 0x022E: SEG['sys'], 0x0233: SEG['display'], 0x04FB: SEG['sys'], 0x0500: SEG['display']}   # the unit's relocation-backed segment words used by +0000, +0203 and +044C
+         0x0203: ('0203', 145, 53, '7d0d7aaaf414d3b9ce3ef2999f2e7d7bade77e19029dd11405f0a65ed880a9d2'), 0x044C: ('044C', 188, 71, '1f9525dc814d360d5e1938b7d7fcaf1782ad65128922575603d402f4cad70a06'),
+         0x0A88: ('0A88', 210, 87, '3e0eb89c3eb4beb862487bf9646c68f61bebcb70b203ce4578379c289759070a')}
+CONSTS = {0x01DB: 39, 0x0441: 10, 0x0A7D: 10}  # the three message strings, plain data (no relocation): length byte + text
+RELOC = {0x000F: R13, 0x022E: SEG['sys'], 0x0233: SEG['display'], 0x04FB: SEG['sys'], 0x0500: SEG['display'], 0x0AB1: SEG['sys'], 0x0AB6: SEG['display']}   # the unit's relocation-backed segment words used by +0000, +0203, +044C and +0A88
 SYSTEM_STRLOAD = (0x0B0B, 0x0B25, 12, None)
 
 
 SPLIT_ARRIVALS = [0]                         # states compared under the declared pinned-MULW split (the last FLAGS writer was a word MUL)
+SHIFT_SPLIT_ARRIVALS = [0]                   # states compared under the declared AF-after-shift split (the last FLAGS writer was a non-zero SHL, +0A88's index scaling)
 
 
 def source():
-    """Every body of the world, keyed (kind, ip): D's closure, the 13AB closure, the +0000/+0054 spans, the +0020/+003A/+0203/+044C spans, StrLoad, and the two constants."""
+    """Every body of the world, keyed (kind, ip): D's closure, the 13AB closure, the +0000/+0054 spans, the +0020/+003A/+0203/+044C/+0A88 spans, StrLoad, and the three constants."""
     b54, d54, meta54 = B54.source()
     bodies, decoded, meta = D.source()
     bodies = dict(bodies); decoded = dict(decoded)
@@ -54,7 +56,7 @@ def source():
     for off, ln in CONSTS.items():
         check(not [f for f in unit['fixups'] if off <= f < off + 1 + ln], f'constant at {off:04X} has no relocation')
         bodies[('data', off)] = ovr[base + off:base + off + 1 + ln]
-    check({f for f in unit['fixups'] if f in RELOC} == set(RELOC), 'the six relocation-backed segment words are the unit fixups')
+    check({f for f in unit['fixups'] if f in RELOC} == set(RELOC), 'the relocation-backed segment words are the unit fixups')
     with contextlib.redirect_stdout(io.StringIO()):
         image = bytes(unpack(exe)[0])
     blob = image[physical(0xAF8, 0x0B0B):physical(0xAF8, 0x0B25)]; ins = list(Cs(CS_ARCH_X86, CS_MODE_16).disasm(blob, 0x0B0B))
@@ -193,12 +195,15 @@ def compare_states(label, expected, actual, bodies, m, decoded=None):
     # MUL (in the 13AB closure): the model computes the PINNED MULW flags (tools/overlay/pinned_shift_flags.py, instructions.h:605-619: SF and AF kept, ZF from AX, PF over DX:AX, CF=OF=DX!=0); raw Unicorn leaves SF/ZF/AF/PF
     # at its own values. The split is declared, never masked: whenever the last FLAGS writer in the original is a word MUL, the C flags must equal Unicorn's outside the six arithmetic bits and the pinned value inside them;
     # on every other state the flags are compared exactly. Counted in SPLIT_ARRIVALS.
+    # SHL (in +0A88): the model sets AF after a non-zero shift as the pinned core does (get_AF = count & 1Fh); raw Unicorn leaves it clear. Declared the same way: when the last FLAGS writer
+    # is a non-zero shift, the C flags must equal Unicorn's with AF set. Counted in SHIFT_SPLIT_ARRIVALS.
     split = writer.rule == 'mul' and writer.division is not None
+    shift = writer.division is None and writer.shift_nonzero
     for name, _ in Cpu._fields_:
-        if name == 'flags' and split:
+        if name == 'flags' and (split or shift):
             problem = declared_flags_split(acpu.flags, ecpu.flags, writer)
             check(problem is None, f'{label}: {problem}')
-            SPLIT_ARRIVALS[0] += 1
+            (SPLIT_ARRIVALS if split else SHIFT_SPLIT_ARRIVALS)[0] += 1
             continue
         check(getattr(acpu, name) == getattr(ecpu, name), f'{label}: {name} C {getattr(acpu, name):04x} original {getattr(ecpu, name):04x}')
     if aram != eram:
