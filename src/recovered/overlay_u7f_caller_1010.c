@@ -86,10 +86,13 @@ static void multiply(pr_u7f_1010_cpu *c,uint16_t right)
 {
     uint32_t product=(uint32_t)c->ax*right;
     c->ax=(uint16_t)product;c->dx=(uint16_t)(product>>16u);
-    /* Only CF/OF are defined. Every exposed boundary after MUL has a
-     * later arithmetic/logic flag write; undefined bits do not escape. */
-    c->flags&=(uint16_t)~0x0801u;
-    if(c->dx!=0u)c->flags|=0x0801u;
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = product;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        c->flags = (uint16_t)((c->flags & ~0x0845u) | (c->dx != 0u ? 0x0801u : 0u) |
+                                (c->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 #define COPY_CPU(dst,src) do { (dst)->ax=(src)->ax; (dst)->bx=(src)->bx; (dst)->cx=(src)->cx; (dst)->dx=(src)->dx; (dst)->si=(src)->si; (dst)->di=(src)->di; (dst)->bp=(src)->bp; (dst)->sp=(src)->sp; (dst)->cs=(src)->cs; (dst)->ip=(src)->ip; (dst)->ds=(src)->ds; (dst)->es=(src)->es; (dst)->ss=(src)->ss; (dst)->flags=(src)->flags; } while (0)

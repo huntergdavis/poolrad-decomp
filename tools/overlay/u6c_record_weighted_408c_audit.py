@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Complete U6C +408C/+3F31 full-state parity and architectural boundaries."""
 
+from pinned_div_flags import division_flags, declared_split
 import argparse
 import ctypes
 from hashlib import sha256
@@ -106,7 +107,7 @@ def compare(label,memory,cpu,decoded,lib):
         original.reg_write(reg,getattr(cpu,name))
     code_start = physical(cpu.cs,0x3F31)
     expected_code = memory[code_start:code_start+END-0x3F31]
-    visited,edges,previous,stop,idiv = set(),set(),[None],[None],[False]
+    visited,edges,previous,stop,idiv = set(),set(),[None],[None],[False]  # idiv[0]: pinned six flags after a successful IDIV
 
     def on_instruction(uc,address,size,user):
         del size,user
@@ -134,7 +135,7 @@ def compare(label,memory,cpu,decoded,lib):
                 stop[0] = 2
                 uc.emu_stop()
             else:
-                idiv[0] = True
+                idiv[0] = division_flags(dividend - quotient * divisor, quotient)  # declared split, see pinned_div_flags
 
     hook = original.hook_add(UC_HOOK_CODE,on_instruction)
     original.emu_start(physical(cpu.cs,ENTRY),2*SIZE,count=3000)
@@ -155,10 +156,14 @@ def compare(label,memory,cpu,decoded,lib):
         raise ValueError(f"RAM differs {label}: {diffs[:8]}")
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):
         expected_word = original.reg_read(reg) & 0xFFFF
-        mask = (0xFFFF ^ 0x08D5) if name == "flags" and idiv[0] else 0xFFFF
-        if (getattr(cpu,name) ^ expected_word) & mask:
+        if name == "flags" and idiv[0] is not False:
+            problem = declared_split(getattr(cpu,name),expected_word,idiv[0])
+            if problem:
+                raise ValueError(f"{label}: {problem}")
+            continue
+        if (getattr(cpu,name) ^ expected_word) & 0xFFFF:
             raise ValueError(f"{name} differs {label}: {getattr(cpu,name):04X}/{expected_word:04X}")
-    return visited,edges,status,idiv[0]
+    return visited,edges,status,idiv[0] is not False
 
 
 def main():
@@ -237,7 +242,7 @@ def main():
                   covered_sites=len(visited),source_sites=len(decoded),conditional_edges=len(edges),
                   caller_sites=176,callee_sites=44,compared_ram_bytes=SIZE,compared_cpu_words=14,
                   infeasible_selector_default_edge=["4196","41AF"],
-                  undefined_arithmetic_flags_masked_only_after_idiv=True,**results,
+                  division_flags_declared_split=True,**results,
                   aligned_incoming_callers=["209F:+2472","209F:+2487","209F:+281E","209F:+2833"],
                   natural_game_route_measured=False)
     if args.output:

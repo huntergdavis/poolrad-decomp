@@ -123,6 +123,14 @@ static void divide_eight(pr_u5e_263d_cpu *c)
     c->cx = 8u;
     c->dx = (uint16_t)(value / 8);
     c->ax = (uint16_t)(value % 8);
+    /* IDIV CX. Pinned DIVW/IDIVW (instructions.h:655-673, 743-761) overwrite all six flags: AF=SF=OF=0,
+     * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+    {
+        uint16_t rem16 = (uint16_t)(value % 8), quo16 = (uint16_t)(value / 8), fold = (uint16_t)(rem16 ^ quo16);
+        fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+        c->flags = (uint16_t)((c->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 static int stack_code_alias(const pr_u5e_263d_cpu *c,

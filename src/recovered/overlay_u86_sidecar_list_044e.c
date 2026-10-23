@@ -74,13 +74,14 @@ static uint16_t step(pr_u86_044e_cpu *c,uint16_t v,unsigned bits,unsigned subtra
 }
 static void cl(pr_u86_044e_cpu *c,uint8_t v) { c->cx=(uint16_t)((c->cx&0xFF00u)|v); }
 static uint16_t shift4(pr_u86_044e_cpu *c,uint16_t v) {
-    uint16_t result=(uint16_t)(v<<4u),of=c->flags&0x800u;
-    (void)logic(c,result,16u);c->flags|=of;
+    uint16_t result=(uint16_t)(v<<4u);
+    (void)logic(c,result,16u);c->flags|=0x10u; /* pinned: AF set; SHL OF = MSB(result) ^ CF */
     if(v&0x1000u)c->flags|=1u;
+    if(((result>>15)^((v>>12)&1u))&1u)c->flags|=0x800u;
     return result;
 }
 static uint16_t shift1(pr_u86_044e_cpu *c,uint16_t v) {
-    uint16_t result=(uint16_t)(v<<1u);(void)logic(c,result,16u);
+    uint16_t result=(uint16_t)(v<<1u);(void)logic(c,result,16u);c->flags|=0x10u; /* pinned: SHL sets AF */
     if(v&0x8000u)c->flags|=1u;
     if((v^result)&0x8000u)c->flags|=0x800u;
     return result;

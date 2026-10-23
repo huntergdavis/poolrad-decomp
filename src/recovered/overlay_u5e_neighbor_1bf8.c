@@ -124,6 +124,7 @@ static void times_four(pr_u5e_1bf8_cpu *c)
         c->di = (uint16_t)(old << 1);
         c->flags = (uint16_t)((c->flags & (uint16_t)~ARITH) |
                               parity((uint8_t)c->di));
+        c->flags |= 0x10u; /* pinned: SHL sets AF for a non-zero count */
         if ((old & 0x8000u) != 0u) c->flags |= 1u;
         if (c->di == 0u) c->flags |= 0x40u;
         if ((c->di & 0x8000u) != 0u) c->flags |= 0x80u;
@@ -282,8 +283,9 @@ static void shr_ax(pr_u5e_1bf8_cpu *c)
     uint16_t old = c->ax;
     c->ax >>= 1;
     logic16(c, c->ax);
+    c->flags |= 0x10u; /* pinned: AF set for a non-zero count */
     if ((old & 1u) != 0u) c->flags |= 1u;
-    if ((old & 0x8000u) != 0u) c->flags |= 0x800u;
+    if ((old & 0x8000u) != 0u) c->flags |= 0x800u; /* stored flags (FillFlags): SHRw count 1 OF = (var1 >= 8000h) */
 }
 
 static void candidate(context *x)

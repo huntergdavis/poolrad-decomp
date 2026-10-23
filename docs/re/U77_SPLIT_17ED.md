@@ -184,3 +184,26 @@ python tools/overlay/check_checker_builds.py OVL_0077_17ED --require-current-mai
 
 Original media, literals, generated native guests, and raw snapshots remain
 under ignored `resources/`.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at evidence head `716560be` (2026-10-22), through `poolrad-heavy.sh`. Unicorn: 550 cases, CPU14 + all 16 FLAGS + all 1,048,576 RAM bytes + 262,164 EGA bytes, 0 flag masks, 0 RAM exclusions, 0 callee stubs; caller 63/63 starts, 2/2 outcomes; stops 525 split / 5 message / 8 CODE / 11 CALLEE / 1 TRANSFER. These match
+this document's numbers. Native: 28 full-chain cases passed. Body 176 B, SHA-256 `46c07cbe1120a95c2830f87199a1f5141a272b9dfba7df3f534e4168079e82e9`, re-derived from GAME.OVR
+(first `RETF 4` at `189A`, every branch in-span, not a public entry). CI `checker-builds` passed on #1430.
+
+Identity: par-a's two-factor argument in [U77_SPLIT_17ED_IDENTITY.md](U77_SPLIT_17ED_IDENTITY.md), as corrected in #1434.
+I re-derived both factors from the bytes. The sole near caller is `push cs; call 17ED` at `+1423` in `OVL_0077_0EF8`,
+from a sweep of every unit-0x77 ledger function. The argument is the node that 0EF8's menu (`OVL_03B0_0D9A`) selects
+through credited `OVL_03B0_0000` and writes to `[bp-35h]` (`+128A..128F`, `+1089..1092`). The first version of the
+identity document skipped that out-parameter and said the list head was passed; #1434 fixed it.
+
+Flag-semantics census ([FLAG_SEMANTICS_CENSUS.tsv](FLAG_SEMANTICS_CENSUS.tsv) on main `73dd0f5d`): no blocking row.
+`overlay_u77_split_17ed_cpu.c` has three rows. CMP byte agrees. The PF helper is unverified on its own. `SUB AX` word
+differs from DOSBox-X only on the lazy `get_PF` 16-bit path; it agrees on stored flags. For all three the census
+finds no PF- or OF-reading branch reachable (only the JL/JG family after CMP). The callee rows (GetMem, Move/string
+leaves, display 1693) agree, or carry the same lazy word-PF note.
+
+**Reviewer-added limit (native oracle):** the native run used `/usr/bin/dosbox-x` 2026.01.02, SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not this document's pinned `c05ce28a…` build.
+The native result corroborates on that binary only. The primary evidence is the full-state Unicorn differential.

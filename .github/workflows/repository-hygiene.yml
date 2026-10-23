@@ -18,10 +18,18 @@ jobs:
         run: python3 -m pip install capstone==5.0.7 unicorn==2.1.4
       - name: Test checker build failure gates
         run: python3 -m unittest discover -s tools/overlay -p 'test_checker_builds.py'
+      - name: Flag-semantics census covers every flag-writing helper
+        run: python3 -m unittest discover -s tools/overlay -p 'test_flag_census.py'
+      - name: Flag helpers in generated sources come from their emitters
+        run: python3 -m unittest discover -s tools/overlay -p 'test_emitters_reproduce_sources.py'
       - name: Test candidate pricer input handling
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
       - name: Compile, load and bind registered row checkers without media
         run: python3 tools/overlay/check_checker_builds.py --all
+      - name: Undefined-name gate tests (a hook reading an unbound name fails; bound names pass)
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_checker_names.py'
+      - name: Every global name a registered checker reads is bound (compiling is not running)
+        run: python3 tools/overlay/check_checker_names.py
   verify-public-tree:
     runs-on: ubuntu-latest
     steps:

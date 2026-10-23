@@ -99,7 +99,7 @@ static void set_logic_flags(pr_u77_189d_cpu *cpu, uint16_t value)
     parity ^= (uint8_t)(parity >> 4);
     parity ^= (uint8_t)(parity >> 2);
     parity ^= (uint8_t)(parity >> 1);
-    cpu->flags &= (uint16_t)~LOGIC_FLAGS;
+    cpu->flags &= (uint16_t)~(LOGIC_FLAGS | 0x10u); /* pinned: OR/AND/XOR clear AF */
     if (value & 0x8000u) cpu->flags |= 0x0080u;
     if (value == 0u) cpu->flags |= 0x0040u;
     if (!(parity & 1u)) cpu->flags |= 0x0004u;

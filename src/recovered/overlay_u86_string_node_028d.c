@@ -77,9 +77,10 @@ static void cbw(pr_u86_028d_cpu *c) { c->ax=(uint16_t)((c->ax&0x80u)?(c->ax|0xFF
 static void cl(pr_u86_028d_cpu *c,uint8_t v) { c->cx=(uint16_t)((c->cx&0xFF00u)|v); }
 static void dl(pr_u86_028d_cpu *c,uint8_t v) { c->dx=(uint16_t)((c->dx&0xFF00u)|v); }
 static uint16_t shift4(pr_u86_028d_cpu *c,uint16_t v) {
-    uint16_t result=(uint16_t)(v<<4u),of=c->flags&0x800u;
-    (void)logic(c,result,16u);c->flags|=of;
+    uint16_t result=(uint16_t)(v<<4u);
+    (void)logic(c,result,16u);c->flags|=0x10u; /* pinned: AF set; SHL OF = MSB(result) ^ CF */
     if(v&0x1000u)c->flags|=1u;
+    if(((result>>15)^((v>>12)&1u))&1u)c->flags|=0x800u;
     return result;
 }
 static void mul16(pr_u86_028d_cpu *c,uint16_t v) {

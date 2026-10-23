@@ -54,7 +54,7 @@ static pr_u7d_05f0_status call(machine *m,uint16_t site,uint16_t target,int near
 #define CALL(site,target,near,which) do { status=call(&m,site,target,near,which,l,d);if(status)return status; } while(0)
 static void twice_di(pr_u7d_05f0_cpu *c) {
     uint16_t v=c->di;arithmetic(c,v,v,16,0,0);c->di=(uint16_t)(v<<1);
-    c->flags&=(uint16_t)~0x10u; /* normal/386 SHL1 clears undefined AF. */
+    c->flags|=0x10u; /* pinned DOSBox-X: SHL sets AF for a non-zero count. */
 }
 static void push_local(machine *m,int displacement) {
     m->c->di=local(m,displacement);push(m,m->c->ss);push(m,m->c->di);

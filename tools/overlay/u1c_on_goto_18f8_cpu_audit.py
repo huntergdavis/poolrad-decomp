@@ -48,6 +48,9 @@ def source():
     print('U1C +18F8:',target,flush=True)
     return target,caller,callee,image
 
+CHECKER_ROWS = ('OVL_001C_18F8',)
+
+
 def library(directory):
     path=directory/'u1c18f8.so'
     subprocess.run(['cc','-std=c11','-O2','-Wall','-Wextra','-Wpedantic','-Werror','-shared','-fPIC','-I',str(ROOT/'include'),
@@ -184,7 +187,12 @@ def differential(target,caller,callee,image,function):
     print('Original-chain parity:',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);args=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');args=p.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target,caller,callee,image=source();report=dict(target=target)
     with tempfile.TemporaryDirectory(prefix='poolrad-u1c18f8-') as temp:
         f=library(Path(temp))

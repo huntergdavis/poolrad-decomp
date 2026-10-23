@@ -136,9 +136,14 @@ static int random_word(uint8_t *ram, pr_u6c_4235_cpu *cpu)
     cpu->flags &= (uint16_t)~0x0811u;
     if (cpu->bx != 0u) {
         uint16_t numerator = cpu->dx;
-        cpu->ax = (uint16_t)(numerator % cpu->bx);
-        cpu->dx = (uint16_t)(numerator / cpu->bx);
-        /* DIV's arithmetic FLAGS are undefined; retain preceding OR. */
+        uint16_t rem = (uint16_t)(numerator % cpu->bx), quo = (uint16_t)(numerator / cpu->bx), fold = (uint16_t)(rem ^ quo);
+        cpu->ax = rem;
+        cpu->dx = quo;
+        /* XCHG DX,AX; DIV BX; XCHG DX,AX. Pinned DIVW (instructions.h:655-673) overwrites all six flags:
+         * AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+        fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+        cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | ((rem == 0u && (quo & 1u)) ? 0x0040u : 0u) |
+                                (((rem & 3u) >= 1u && (rem & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
     }
     far_return(ram, cpu, 2u);
     return 1;

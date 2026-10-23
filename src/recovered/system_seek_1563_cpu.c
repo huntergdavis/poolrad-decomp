@@ -46,7 +46,7 @@ static void mul16(pr_seek_cpu *c, uint16_t operand)
 {
     uint32_t r = (uint32_t)c->ax * operand, x = r;
     c->ax = (uint16_t)r; c->dx = (uint16_t)(r >> 16u);
-    x ^= x >> 16u;
+    x ^= x >> 16u; x ^= x >> 8u; /* pinned MULW: PF is the even parity of all four bytes of DX:AX */
     c->flags = (uint16_t)((c->flags & ~(CF | OF | ZF | PF)) | (c->dx != 0u ? CF | OF : 0u) | (c->ax == 0u ? ZF : 0u) | parity(x));
 }
 static void to_check(pr_system_filecheck_cpu *h, const pr_seek_cpu *c)

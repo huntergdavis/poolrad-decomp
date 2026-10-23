@@ -32,6 +32,9 @@ def source():
     check(slots==[31,51,52,53],'caller dispatch slots')
 
     return caller,resident,dict(caller_sha256=sha256(caller).hexdigest(),resident_sha256=sha256(resident).hexdigest(),caller_bytes=22,caller_instructions=9,resident_bytes=70,resident_instructions=20,caller_file_start=u['ovr_offset']+ENTRY,resident_image_start=physical(0xBA,0x2637))
+CHECKER_ROWS = ('OVL_0038_133F',)
+
+
 def library(directory):
     p=directory/'reset.so';subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/s) for s in SOURCES],'-o',str(p)],check=True)
     lib=ctypes.CDLL(str(p));functions=[]
@@ -109,7 +112,12 @@ def differential(caller,resident,functions):
         report['resident' if direct else 'caller']=dict(cases=sum(stops.values()),stops=stops,starts=len(seen),cpu_words=14,ram_bytes=SIZE,flag_masks=0)
     return report
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     caller,resident,meta=source();report=dict(target=meta)
     with tempfile.TemporaryDirectory(prefix='u38-133f-') as tmp:
         fs=library(Path(tmp))

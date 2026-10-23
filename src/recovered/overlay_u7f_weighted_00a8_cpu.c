@@ -91,6 +91,10 @@ static uint16_t shl1(pr_u7f_00a8_cpu *cpu, uint16_t value)
 {
     uint16_t result = (uint16_t)(value << 1);
     cpu->flags &= (uint16_t)~0x08D5u;
+    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
+    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
+    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
+    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
     if (value & 0x8000u) cpu->flags |= 0x0001u;
     if (((result >> 15) ^ (value >> 15)) & 1u) cpu->flags |= 0x0800u;
     szp(cpu, result);

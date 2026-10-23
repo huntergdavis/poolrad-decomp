@@ -143,3 +143,11 @@ found. This readiness/ownership caveat was reported to the VP before work.
 - review_notes: eight unvisited allocator starts; synthetic native frames;
   fixed SYSTEM layout, bounded dependencies, nonwrapping return frames.
   No classifier, acceptance, accounting or credit changes.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_27D9 --require-current-main
+```

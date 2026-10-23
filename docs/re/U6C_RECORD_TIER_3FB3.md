@@ -64,10 +64,9 @@ These reuse the repository's architectural-boundary conventions from
 the [U9B caller](U9B_ENTRY_ZERO_COMPOSITION.md) and existing divide-error APIs.
 
 Clamp exits end with a defined word CMP; fault boundaries end with the
-defined pre-IDIV ADD. Every flag is compared on those paths. IDIV leaves
-all six arithmetic flags (08D5) undefined; only those bits are masked on
-successful division exits. The C chooses the preceding ADD's arithmetic
-flags. Non-arithmetic FLAGS remain exact on every path.
+defined pre-IDIV ADD. Every flag is compared on those paths. IDIV writes
+the pinned IDIVW flags, not the preceding ADD's: Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. The raw-Unicorn oracle still masks the six
+arithmetic bits (08D5) on successful division exits (a blanket mask on those exits; native is the authority and is not run for this body here). Non-arithmetic FLAGS remain exact on every path.
 
 ## Measured gates and reproduction
 

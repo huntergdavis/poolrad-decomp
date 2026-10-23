@@ -137,6 +137,7 @@ static void shift_ax(pr_u3c2_01a0_cpu *c)
     uint16_t old = c->ax;
     c->ax = (uint16_t)(old << 1);
     logic16(c, c->ax);
+    c->flags |= 0x10u; /* pinned: SHL sets AF for a non-zero count */
     if ((old & 0x8000u) != 0u) c->flags |= 1u;
     if (((old ^ c->ax) & 0x8000u) != 0u) c->flags |= 0x800u;
 }

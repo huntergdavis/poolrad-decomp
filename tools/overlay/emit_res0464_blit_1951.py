@@ -119,6 +119,7 @@ static uint16_t shift(pr_r0464_blit_cpu *c, uint16_t v, uint8_t n, unsigned bits
     pre = right ? ((uint32_t)v >> (n - 1u)) : (((uint32_t)v << (n - 1u)) & mask);
     res = right ? (pre >> 1u) : ((pre << 1u) & mask);
     c->flags &= (uint16_t)~0x08D5u;
+    c->flags |= 0x10u; /* pinned: AF = (count & 1Fh) != 0 */
     if (right ? (pre & 1u) : (pre & sign)) c->flags |= 1u;
     if ((pre ^ res) & sign) c->flags |= 0x800u;
     szp(c, (uint16_t)res, bits); return (uint16_t)res;
@@ -128,9 +129,13 @@ static void mul16(pr_r0464_blit_cpu *c, uint16_t src)
 {
     uint32_t p = (uint32_t)c->ax * src;
     c->ax = (uint16_t)p; c->dx = (uint16_t)(p >> 16u);
-    c->flags &= (uint16_t)~0x08D5u;
-    if (c->dx) c->flags |= 0x801u;
-    szp(c, c->ax, 16u);
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = p;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        c->flags = (uint16_t)((c->flags & ~0x0845u) | (c->dx != 0u ? 0x0801u : 0u) |
+                                (c->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 static int meets_aperture(uint16_t seg, uint16_t off, uint16_t count)
 {

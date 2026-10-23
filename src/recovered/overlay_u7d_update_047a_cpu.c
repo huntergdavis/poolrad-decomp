@@ -105,7 +105,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x04A5u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x04A7u;
             break;
         case 0x04A7u: /* mov dx, word ptr [di + 0x6dc2] */
@@ -160,7 +160,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x04C5u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x04C7u;
             break;
         case 0x04C7u: /* cmp word ptr [di + 0x6dc2], 0 */
@@ -304,7 +304,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x0519u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x051Bu;
             break;
         case 0x051Bu: /* dec word ptr [di + 0x6dc2] */
@@ -334,7 +334,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x0527u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x0529u;
             break;
         case 0x0529u: /* mov dx, word ptr [di + 0x363a] */
@@ -362,7 +362,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x0535u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x0537u;
             break;
         case 0x0537u: /* add word ptr [di + 0x6dc2], dx */
@@ -411,7 +411,7 @@ pr_u7d_047a_status pr_u7d_update_047a_cpu(
         case 0x0553u: /* shl di, 1 */
             v = c->di;
             c->di = alu(c, v, v, 16, 0);
-            c->flags &= (uint16_t)~16u;
+            c->flags |= 0x10u; /* SHL DI,1 via ADD DI,DI; pinned SHL sets AF (was cleared) */
             c->ip = 0x0555u;
             break;
         case 0x0555u: /* sub word ptr [di + 0x6dc2], dx */

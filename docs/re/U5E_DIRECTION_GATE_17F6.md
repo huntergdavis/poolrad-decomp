@@ -89,9 +89,7 @@ stack or pointer storage.
 - A non-OK callee result exposes its reached state. A changed nested return
   produces TRANSFER. OK means the outer RETF 8 executed, including when
   a data alias changed the outer return address.
-- Logical AF is chosen as zero; IDIV preserves its incoming flags, matching
-  the selected Unicorn profile. The native ISA leaves division flags
-  undefined. This profile is explicitly not a universal native FLAGS claim.
+- Logical AF is cleared (pinned FillFlags). IDIV does NOT preserve its incoming flags: Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. This profile is explicitly not a universal native FLAGS claim.
 
 ## Validation
 

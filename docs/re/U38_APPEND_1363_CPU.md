@@ -126,3 +126,11 @@ change canonical accounting, or mark issue #1019 complete.
 - review_notes: inspect trailing-data exclusion, AH in the pre-call frame,
   live return aliases, zero budgets and native capture footprint.
   Independent reviewer decides verification/credit; no self-credit.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_1363 --require-current-main
+```
