@@ -84,21 +84,78 @@ credit is inferred from executing synthetic stubs. U6A +0000 and +019C each
 retain one nonreturning original fixture outside the C comparison; +0214
 also checks two nonreturning originals against its existing C cap.
 
-The two uncredited sidecar audits, changed native harnesses, and final
-registered-checker handoff are pending. An initial sidecar host check stopped
+An initial sidecar host check stopped
 before C invocation because the shared fixture supplied a distinct ctypes
 CPU class; the host checks now use the same CPU conversion as the existing
 full comparison. No recovered C change was needed for that checker failure.
 
+Both uncredited sidecar audits subsequently passed: +0160 has 609 cases,
+140/140 caller starts and 22/22 caller outcomes; +02FA has 593 cases,
+911/911 caller starts and 40/40 caller outcomes. Their existing Unicorn
+profiles retain AF exceptions: +0160 has 294 pending and two binding
+exceptions; +02FA has 161 pending and two binding exceptions. These are
+not unmasked FLAGS parity claims. Each sidecar adds eight atomic host
+refusals, including one absent-unit fixture, bringing the total to 223
+unique host checks and 28 absent-unit fixtures. Their own rebound calls
+remain outside the shared-dependency guard scope.
+
 After rebasing onto main 574092a9, the affected audits are being rerun because
 PR #1433 changed arithmetic flag semantics in shared dependencies. U6A's
-507 + 507 full cases, U1C's 919 full cases, and the affected focused C tests
-passed again. U38's unchanged source closure retains its earlier result.
+507 + 507 full cases, U1C's 919 full cases, U3C2's 439 full cases, and the
+affected focused C tests passed again. U3C2 retains zero FLAGS masks, eight
+atomic host refusals, 297/297 caller sites and 34/34 caller branch outcomes;
+its deeper-chain coverage remains 1,281/1,283 sites and 185/192 outcomes.
+U38's unchanged source closure retains its earlier result.
+U5E +32E6 also passed all 440 full-state cases, with 32 atomic refusals and
+five absent-unit fixtures. U7F +1010 passed 2,338 full-state cases and eight
+alias cases, with 30 unique atomic refusals and one absent-unit fixture.
+Both retain zero FLAGS masks and their earlier coverage limits.
+U31 +0255 passed all 174 cases and eight atomic refusals again, with
+58/58 caller starts and 6/6 conditional outcomes.
 The U5E +263D `predicate-budget` case stopped with C FLAGS 7212 versus
 Unicorn 7202: main's `times_four` now sets AF under the pinned DOSBox-X
 profile. The failed receipt is retained. PM instruction i21568 assigns the
 declared profile split to par-d2; this branch adds no mask and will rerun the
 checker after that correction reaches main. Other audits continue separately.
+
+The continuation also retained these current-main failures; passing host
+refusals do not turn a failed original-byte audit into a pass:
+
+| Checker | First failing fixture | C FLAGS | Unicorn FLAGS |
+| --- | --- | --- | --- |
+| U5E +17F6 | `direction-0-heading-5` | 7203 | 7202 |
+| U5E +2574 | `predicate-limit`, budget 6 | 7212 | 7202 |
+| U5E +1BF8 | `code-alias-(24576, 7160)` | 0212 | 0202 |
+
+The +17F6 dependency now includes pinned IDIV flag behavior; +2574 inherits
+the +263D AF split. PM received these first two additional failures in
+message i21582 and the +1BF8 failure in i21585. Their profile corrections
+are outside this guard change.
+
+All five changed native harnesses passed with unmasked FLAGS under DOSBox-X
+normal core / 386, binary SHA-256
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`:
+
+| Native harness | Cases | Compared RAM in addition to CPU14 |
+| --- | ---: | --- |
+| U3C2 +0909 | 24 | 65,536 data bytes and 864 stack bytes |
+| U5E +32E6 | 27 | 65,536 data bytes and 1,888 stack bytes |
+| U7F +1010 | 37 | 65,536 data bytes and 864 stack bytes |
+| U9E +0160 | 113 | 65,536 DS bytes, 65,536 node bytes, 1,024 stack bytes |
+| U9E +02FA | 77 | 65,536 DS bytes, 65,536 node bytes, 1,024 stack bytes |
+
+These 278 native cases do not compare all RAM or establish a naturally
+reached game route. Sidecar captures use their existing far-JMP boundary
+traps; they are not full executions beyond those pending/binding stops.
+The +0160 result SHA-256 is
+`ae56a0ca8b57e07921f65e169aaf7fa24aa458fd54456c633df75239e1c77921`;
+the +02FA result is
+`d75264b1686c8b44f6a74f57416ad35586fdca9cdaa7a0a14d433bc64a89dbc6`.
+Per-case capture hashes for the other three harnesses remain in their
+ignored native reports. The registered-checker gate passed 12 actual
+compile/load/bind builds for all 13 credited rows on cfed00a1, including
+fetched main 574092a9. A final current-main handoff remains pending the
+upstream profile corrections and rebase.
 
 All compilation and audit runs use poolrad-heavy.sh, one at a time, with
 load1 at most 12 before starting work. Receipts and logs remain under ignored
@@ -113,8 +170,10 @@ compile/load/bind operations against current main.
   loaded-stub preflights; no arithmetic body replacement.
 - signals: original descriptor/call-site mapping, live call and EA operands,
   existing loaded-state oracles, explicit absent-unit refusal and atomicity.
-- score: pending execution of the updated checkers.
-- verdict: unclear until the updated validation packet completes.
+- score: not assigned while four current-main original-byte audits fail.
+- verdict: current-main handoff remains blocked on the reported flag-profile
+  differences; atomic guard checks, the other original-byte audits, native
+  comparisons within their stated regions, and checker builds have passed.
 - review_notes: entry rejection can conservatively refuse a branch that would
   not actually call the absent unit. This matches the existing all-listed-units
   loaded contract. A valid EA does not prove arbitrary body bytes match the
