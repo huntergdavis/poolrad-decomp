@@ -127,6 +127,21 @@ class CodexPoolrad2Fixtures(unittest.TestCase):
                                         f"{name}: {f} not observed at {address:04X}: {r['flags'][f[0]]['observed']}")
 
 
+class EntryLiveness(unittest.TestCase):
+    def test_arrival_flags_killed_before_any_read(self):
+        # cld; mov bx,sp; xor ah,ah; jz x; x: ret: CLD and MOV keep the arriving flags, XOR kills all six first.
+        ins = L.decode(bytes.fromhex("fc" "89e3" "30e4" "7400" "c3"), 0)
+        r = L.entry_liveness(ins, 0)
+        self.assertEqual(r["verdict"], "DEAD")
+        self.assertTrue(all(v["killed"] == ["xor@0003"] for v in r["flags"].values()))
+
+    def test_arrival_flags_read_at_entry(self):
+        # adc ax,0 at the entry reads the arriving CF; the stop list is checked before the entry instruction too.
+        ins = L.decode(bytes.fromhex("83d000" "c3"), 0)
+        self.assertEqual(L.entry_liveness(ins, 0)["flags"]["C"]["observed"], ["read:adc@0000"])
+        self.assertEqual(L.entry_liveness(ins, 0, stops=[0])["flags"]["Z"]["observed"], ["stop:@0000"])
+
+
 class FailClosed(unittest.TestCase):
     def test_unlisted_instruction_raises(self):
         with self.assertRaises(NotImplementedError):

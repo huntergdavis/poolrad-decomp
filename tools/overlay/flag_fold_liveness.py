@@ -88,6 +88,60 @@ def reads(i):
     return frozenset(READS.get(mn, ''))
 
 
+def _walk(by, nxt, prev, start, flag, stops):
+    """Follow one live flag from address `start` (that instruction not yet executed). Returns (killed, observed)."""
+    killed, observed, seen, work = set(), set(), set(), [start]
+    while work:
+        a = work.pop()
+        if a in seen:
+            continue
+        seen.add(a)
+        i = by.get(a)
+        if i is None:
+            observed.add(f'leaves@{a:04X}'); continue
+        if a in stops:
+            observed.add(f'stop:@{a:04X}'); continue
+        mn = i.mnemonic
+        if flag in reads(i):
+            observed.add(f'{"jcc" if mn in JCC else "read"}:{mn}@{a:04X}')
+        if mn in BOUNDARY:
+            observed.add(f'{"return" if mn.startswith("ret") or mn == "iret" else "call"}:@{a:04X}'); continue
+        if flag in writes(i, prev[a]):
+            killed.add(f'{mn}@{a:04X}'); continue
+        if mn in UNCONDITIONAL:
+            work.append(int(i.op_str, 16))
+        elif mn in JCC:
+            work += [int(i.op_str, 16), nxt[a]]
+        else:
+            work.append(nxt[a])
+    return sorted(killed), sorted(observed)
+
+
+def _index(instructions):
+    by = {i.address: i for i in instructions}
+    order = [i.address for i in instructions]
+    prev = {a: (by[order[k - 1]] if k else None) for k, a in enumerate(order)}
+    nxt = {i.address: i.address + i.size for i in instructions}
+    return by, nxt, prev
+
+
+def _verdict(flags):
+    kinds = {o.split(':')[0] for r in flags.values() for o in r['observed']}
+    return 'DEAD' if not kinds else 'BRANCH' if kinds == {'jcc'} else 'EXPOSED'
+
+
+def entry_liveness(instructions, entry, stops=()):
+    """Flags that are live on ARRIVAL at `entry` (e.g. a caller's folded flags reaching a callee): follow all six from
+    the entry instruction itself, before it executes. Same result shape and verdicts as liveness()."""
+    by, nxt, prev = _index(instructions)
+    flags = {}
+    for flag in FLAGS:
+        killed, observed = _walk(by, nxt, prev, entry, flag, set(stops))
+        flags[flag] = dict(killed=killed, observed=observed)
+    return dict(site=f'{entry:04X}', instruction=f'(arrival at {by[entry].mnemonic} {by[entry].op_str})', flags=flags,
+                verdict=_verdict(flags))
+
+
 def liveness(instructions, site, stops=()):
     """Follow every flag `site` writes. Returns {flag: {'killed': [...], 'observed': [...]}} plus 'verdict'.
 
@@ -181,6 +235,30 @@ PRESETS = {'u31': [
     (('unit', 0x3B0), (0x00CB, 0x01BA), 'overlay_u3b0_item_split_00cb_cpu.c:238', [0x0118]),
     (('unit', 0x3B0), (0x00CB, 0x01BA), '(computed by the model: SUB SP, ADD DI, XOR at the SET call, final pair_index)',
      [0x00CE, 0x00E7, 0x011E, 0x019B, 0x019D, 0x01A2]),
+], 'slice5': [
+    (('unit', 0x38), (0x1490, 0x14EB), 'overlay_u38_helper_cluster_cpu.c:166', [0x1493]),
+    (('unit', 0x38), (0x1490, 0x14EB), 'overlay_u38_helper_cluster_cpu.c:179', [0x14B4]),
+    (('unit', 0x38), (0x1490, 0x14EB), 'overlay_u38_helper_cluster_cpu.c:198', [0x14B1]),
+    (('unit', 0x38), (0x1490, 0x14EB), 'overlay_u38_helper_cluster_cpu.c:202', [0x14D0]),
+    (('unit', 0x31), (0x128D, 0x13CA), 'overlay_u31_table_value_128d_cpu.c:111', [0x12E2, 0x12E4, 0x12FA, 0x12FC, 0x134A, 0x134C, 0x1371, 0x1373]),
+    (('unit', 0x31), (0x128D, 0x13CA), 'overlay_u31_table_value_128d_cpu.c:135', [0x129A]),
+    (('unit', 0x31), (0x128D, 0x13CA), 'overlay_u31_table_value_128d_cpu.c:168', [0x12C0, 0x12C2]),
+    (('unit', 0x3B0), (0x0B03, 0x0C33), 'overlay_u3b0_step_scan_0b03_cpu.c:140', [0x0B5A, 0x0B5E, 0x0BF5, 0x0BF9]),
+    (('unit', 0x3B0), (0x0B03, 0x0C33), 'overlay_u3b0_step_scan_0b03_cpu.c:148', [0x0B7F, 0x0C0B, 0x0C1F]),
+    (('unit', 0x3B0), (0x0B03, 0x0C33), 'overlay_u3b0_step_scan_0b03_cpu.c:196', [0x0B06]),
+    (('unit', 0x3C2), (0x002E, 0x01A0), 'overlay_u3c2_record_sort_002e_cpu.c:90',
+     [0x0078, 0x007E, 0x0080, 0x008C, 0x0092, 0x0094, 0x00A0, 0x00A6, 0x00A8, 0x00B1, 0x00B7, 0x00B9, 0x00C6, 0x00CC, 0x00CE,
+      0x00D7, 0x00DD, 0x00DF, 0x0118, 0x011E, 0x0120, 0x0139, 0x013F, 0x0141, 0x014C, 0x0152, 0x0154, 0x016D, 0x0173, 0x0175]),
+    (('unit', 0x3C2), (0x002E, 0x01A0), 'overlay_u3c2_record_sort_002e_cpu.c:269', [0x0072]),
+    (('unit', 0x3C2), (0x002E, 0x01A0), 'overlay_u3c2_record_sort_002e_cpu.c:279', [0x0056]),
+    (('unit', 0x3C6), (0x0068, 0x00E3), 'overlay_u3c6_slot_offsets_0068.c:67',
+     [0x0091, 0x0095, 0x0097, 0x009E, 0x00A5, 0x00BB, 0x00BF, 0x00C1, 0x00C8, 0x00CF]),
+    (('unit', 0x3C6), (0x0068, 0x00E3), 'overlay_u3c6_slot_offsets_0068.c:99', [0x006B]),
+    (('unit', 0x3C6), (0x0068, 0x00E3), 'overlay_u3c6_slot_offsets_0068.c:126', [0x0080]),
+    (('segment', 0x0AF8), (0x04F7, 0x053C), 'system_textassign_insert_cpu.c:78', [0x0529]),
+    (('segment', 0x0AF8), (0x0C68, 0x0CBC), 'system_textassign_insert_cpu.c:145', [0x0C6B]),
+    (('segment', 0x0AF8), (0x0C68, 0x0CBC), 'system_textassign_insert_cpu.c:152', [0x0C81]),
+    (('segment', 0x0AF8), (0x0B57, 0x0B98), 'Copy 0B57, the callee at 0C84/0CA3: flags arriving at its entry', [('entry', 0x0B57)]),
 ], 'u77': [
     (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:154', [0x28C1]),
     (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:157', [0x28C4]),
@@ -215,7 +293,7 @@ def main():
     if a.preset:
         for (kind, source), (lo, hi), row, sites in PRESETS[a.preset]:
             ins = span_instructions(source, kind, lo, hi)
-            rows += [dict(row=row, **liveness(ins, s)) for s in sites]
+            rows += [dict(row=row, **(entry_liveness(ins, s[1]) if isinstance(s, tuple) else liveness(ins, s))) for s in sites]
     else:
         lo, hi = (int(x, 16) for x in a.span.split(':'))
         ins = span_instructions(a.unit if a.unit is not None else a.segment, 'unit' if a.unit is not None else 'segment', lo, hi)
