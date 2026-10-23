@@ -37,136 +37,172 @@ Eleven far call sites (`lcall 00B0:0025`) and five near ones (inside unit 0x9E).
 
 **The 53 not-credited handlers carry closures from 55 B to 20,654 B: 6 are at most 1,000 B, 17 are 1,000 to 3,000 B, 30 are above 3,000 B.** The pricer lists an `OVL_009E_*` dispatch (`0026`, `0160` or `175D`) for **34 of the 53**; `0026` and `0160` are documented to dispatch through `OVL_009E_0000` itself (`STRICT_CANDIDATE_QUEUE.md`, `IDENTITY_CLEARED_PRICING.md`), so those handler closures are **cyclic**: the dispatcher is part of its own handlers' closures. Closures overlap heavily (9 to 20 KB shared sub-closures), so the sum over handlers (424,482 B) is **not** a cost; the union was not computed here.
 
-| slot(s) | stub | function | own B | status | closure B (bodies) | 009E dispatch in the closure |
-| --- | --- | --- | ---: | --- | ---: | --- |
-| 1 | 0041:002A | OVL_0038_010D | 16 | strict-credited | - | - |
-| 2 | 0041:002F | OVL_0038_011D | 30 | strict-credited | - | - |
-| 3 | 0041:0034 | OVL_0038_013B | 68 | strict-credited | - | - |
-| 4 | 0041:0039 | OVL_0038_017F | 68 | not credited | 1335 (5) | no |
-| 5,13,19,24,27,60,63,92,127 | 0041:0264 | OVL_0038_319B | 7 | strict-credited | - | - |
-| 6 | 0041:003E | OVL_0038_01C3 | 112 | strict-credited | - | - |
-| 7 | 0041:0043 | OVL_0038_0233 | 324 | not credited | 1591 (5) | no |
-| 8,45 | 0041:0048 | OVL_0038_0377 | 53 | strict-credited | - | - |
-| 9,46 | 0041:004D | OVL_0038_03AC | 53 | strict-credited | - | - |
-| 10 | 0041:0052 | OVL_0038_03E1 | 31 | strict-credited | - | - |
-| 11 | 0041:0057 | OVL_0038_0400 | 186 | not credited | 186 (1) | no |
-| 12,38 | 0041:005C | OVL_0038_04BA | 284 | strict-credited | - | - |
-| 14 | 0041:0061 | OVL_0038_05D6 | 21 | strict-credited | - | - |
-| 15 | 0041:0066 | OVL_0038_05EB | 92 | not credited | 15137 (38) | yes |
-| 16 | 0041:006B | OVL_0038_0647 | 7 | strict-credited | - | - |
-| 17 | 0041:0070 | OVL_0038_064E | 43 | strict-credited | - | - |
-| 18 | 0041:0075 | OVL_0038_0679 | 107 | strict-credited | - | - |
-| 20 | 0041:007A | OVL_0038_06E4 | 43 | strict-credited | - | - |
-| 21 | 0041:007F | OVL_0038_070F | 102 | not credited | 1369 (5) | no |
-| 22 | 0041:0084 | OVL_0038_0775 | 107 | not credited | 13344 (31) | yes |
-| 23 | 0041:0089 | OVL_0038_07E0 | 312 | not credited | 1579 (5) | no |
-| 25 | 0041:008E | OVL_0038_0918 | 47 | strict-credited | - | - |
-| 26 | 0041:0093 | OVL_0038_0947 | 121 | strict-credited | - | - |
-| 28 | 0041:0098 | OVL_0038_09C0 | 125 | not credited | 1706 (6) | yes |
-| 29 | 0041:009D | OVL_0038_0A3D | 40 | strict-credited | - | - |
-| 30 | 0041:00A2 | OVL_0038_0A65 | 182 | not credited | 2929 (10) | no |
-| 31,51,52,53 | 0041:00F7 | OVL_0038_133F | 22 | strict-credited | - | - |
-| 32 | 0041:00A7 | OVL_0038_0B1B | 145 | not credited | 13382 (31) | yes |
-| 33 | 0041:00AC | OVL_0038_0BAC | 35 | strict-credited | - | - |
-| 34 | 0041:00B1 | OVL_0038_0BCF | 55 | not credited | 55 (1) | no |
-| 35 | 0041:00B6 | OVL_0038_0C06 | 15 | strict-credited | - | - |
-| 36 | 0041:00BB | OVL_0038_0C15 | 17 | strict-credited | - | - |
-| 37 | 0041:00C0 | OVL_0038_0C26 | 37 | strict-credited | - | - |
-| 39 | 0041:00C5 | OVL_0038_0C4B | 120 | not credited | 1387 (5) | no |
-| 40 | 0041:00CA | OVL_0038_0CC3 | 745 | not credited | 745 (1) | no |
-| 41 | 0041:00CF | OVL_0038_1086 | 59 | not credited | 1659 (7) | no |
-| 42 | 0041:00D4 | OVL_0038_10C1 | 29 | strict-credited | - | - |
-| 43 | 0041:00D9 | OVL_0038_10DE | 138 | not credited | 1405 (5) | no |
-| 44 | 0041:00DE | OVL_0038_1168 | 145 | not credited | 15190 (38) | yes |
-| 47 | 0041:00E3 | OVL_0038_11F9 | 125 | strict-credited | - | - |
-| 48 | 0041:00E8 | OVL_0038_1276 | 60 | strict-credited | - | - |
-| 49 | 0041:00ED | OVL_0038_12B2 | 73 | strict-credited | - | - |
-| 50 | 0041:00F2 | OVL_0038_12FB | 68 | not credited | 2320 (10) | yes |
-| 54 | 0041:00FC | OVL_0038_1355 | 7 | strict-credited | - | - |
-| 55 | 0041:0101 | OVL_0038_135C | 7 | strict-credited | - | - |
-| 56 | 0041:0106 | OVL_0038_1363 | 31 | strict-credited | - | - |
-| 57 | 0041:010B | OVL_0038_1399 | 185 | not credited | 13422 (31) | yes |
-| 58 | 0041:0110 | OVL_0038_1452 | 32 | strict-credited | - | - |
-| 59 | 0041:0115 | OVL_0038_1472 | 30 | strict-credited | - | - |
-| 61 | 0041:011A | OVL_0038_1490 | 91 | strict-credited | - | - |
-| 62 | 0041:011F | OVL_0038_14EB | 90 | not credited | 2342 (10) | yes |
-| 64 | 0041:0124 | OVL_0038_165D | 20 | not credited | 13551 (33) | yes |
-| 65 | 0041:0129 | OVL_0038_1671 | 20 | not credited | 13551 (33) | yes |
-| 66 | 0041:012E | OVL_0038_1685 | 20 | not credited | 13551 (33) | yes |
-| 67 | 0041:0133 | OVL_0038_1699 | 34 | not credited | 8945 (21) | yes |
-| 68 | 0041:0138 | OVL_0038_16BB | 43 | not credited | 8954 (21) | yes |
-| 69 | 0041:013D | OVL_0038_16E6 | 37 | not credited | 8948 (21) | yes |
-| 70 | 0041:0142 | OVL_0038_170B | 20 | not credited | 13551 (33) | yes |
-| 71 | 0041:0147 | OVL_0038_171F | 17 | strict-credited | - | - |
-| 72 | 0041:014C | OVL_0038_1730 | 46 | strict-credited | - | - |
-| 73 | 0068:008E | OVL_005E_39D2 | 180 | not credited | 20565 (49) | yes |
-| 74 | 0068:0093 | OVL_005E_3A86 | 269 | not credited | 20654 (49) | yes |
-| 75 | 0041:0151 | OVL_0038_176F | 326 | not credited | 14763 (35) | yes |
-| 76 | 0041:0156 | OVL_0038_18B5 | 128 | not credited | 128 (1) | no |
-| 77 | 0041:015B | OVL_0038_1935 | 164 | not credited | 1431 (5) | no |
-| 78 | 0041:0160 | OVL_0038_19D9 | 64 | not credited | 9297 (23) | no |
-| 79 | 0041:0165 | OVL_0038_1A19 | 51 | not credited | 14488 (35) | yes |
-| 80 | 0041:016A | OVL_0038_1A4C | 94 | not credited | 14531 (35) | yes |
-| 81 | 0041:016F | OVL_0038_1AAA | 254 | not credited | 9628 (22) | yes |
-| 82 | 0041:0174 | OVL_0038_1BA8 | 261 | not credited | 9635 (22) | yes |
-| 83 | 0041:0179 | OVL_0038_1CAD | 458 | not credited | 15749 (37) | yes |
-| 84 | 0041:017E | OVL_0038_1E77 | 395 | not credited | 11472 (24) | yes |
-| 85 | 0041:0183 | OVL_0038_23A4 | 30 | not credited | 13914 (33) | yes |
-| 86 | 0041:0188 | OVL_0038_23C2 | 42 | not credited | 13926 (33) | yes |
-| 87 | 0041:018D | OVL_0038_23EC | 164 | not credited | 1431 (5) | no |
-| 88 | 0096:015B | OVL_0086_30D9 | not read | not credited | 17602 (42) | see the closure listing |
-| 89 | 0041:0192 | OVL_0038_2490 | 73 | strict-credited | - | - |
-| 90 | 0041:0197 | OVL_0038_24D9 | 125 | strict-credited | - | - |
-| 91 | 0041:019C | OVL_0038_2556 | 76 | not credited | 1343 (5) | no |
-| 93 | 0041:01A1 | OVL_0038_25A2 | 26 | strict-credited | - | - |
-| 94 | 0041:01A6 | OVL_0038_25BC | 73 | strict-credited | - | - |
-| 95 | 0041:01AB | OVL_0038_2610 | 59 | not credited | 13296 (31) | yes |
-| 96 | 0041:01B0 | OVL_0038_264B | 63 | strict-credited | - | - |
-| 97 | 0041:01B5 | OVL_0038_268A | 118 | strict-credited | - | - |
-| 98 | 0041:01BA | OVL_0038_2700 | 48 | strict-credited | - | - |
-| 99 | 0041:01BF | OVL_0038_2730 | 169 | not credited | 9716 (24) | yes |
-| 100 | 0041:01C4 | OVL_0038_27D9 | 59 | strict-credited | - | - |
-| 101 | 0041:01C9 | OVL_0038_2814 | 82 | strict-credited | - | - |
-| 102 | 0041:01CE | OVL_0038_2866 | 89 | not credited | 9322 (23) | no |
-| 103 | 0041:01D3 | OVL_0038_28BF | 66 | not credited | 9671 (25) | yes |
-| 104 | 0041:01D8 | OVL_0038_2901 | 20 | not credited | 1620 (7) | no |
-| 105 | 0041:01DD | OVL_0038_2976 | 14 | strict-credited | - | - |
-| 106 | 0041:01E2 | OVL_0038_2984 | 14 | strict-credited | - | - |
-| 107 | 0041:01E7 | OVL_0038_2992 | 36 | strict-credited | - | - |
-| 108 | 0041:01EC | OVL_0038_29B6 | 21 | strict-credited | - | - |
-| 109 | 0041:01F1 | OVL_0038_29CB | 14 | strict-credited | - | - |
-| 110 | 0041:01F6 | OVL_0038_29D9 | 23 | strict-credited | - | - |
-| 111 | 0041:01FB | OVL_0038_29F0 | 33 | strict-credited | - | - |
-| 112 | 0041:0200 | OVL_0038_2A11 | 23 | strict-credited | - | - |
-| 113 | 0041:0205 | OVL_0038_2A28 | 69 | strict-credited | - | - |
-| 114 | 0041:020A | OVL_0038_2A6D | 26 | strict-credited | - | - |
-| 115 | 0041:020F | OVL_0038_2A87 | 95 | strict-credited | - | - |
-| 116 | 0041:0214 | OVL_0038_2AE6 | 58 | strict-credited | - | - |
-| 117 | 0041:0219 | OVL_0038_2B20 | 67 | strict-credited | - | - |
-| 118 | 0041:021E | OVL_0038_2B63 | 26 | strict-credited | - | - |
-| 119 | 0041:0223 | OVL_0038_2B7D | 75 | strict-credited | - | - |
-| 120 | 0041:0228 | OVL_0038_2BC8 | 84 | not credited | 1684 (7) | no |
-| 121 | 0041:022D | OVL_0038_2C1C | 284 | not credited | 16543 (38) | yes |
-| 122 | 0041:0232 | OVL_0038_2D38 | 80 | strict-credited | - | - |
-| 123 | 0041:0237 | OVL_0038_2D88 | 92 | strict-credited | - | - |
-| 124 | 0041:023C | OVL_0038_2DE4 | 36 | strict-credited | - | - |
-| 125 | 0041:0241 | OVL_0038_2E08 | 47 | strict-credited | - | - |
-| 126 | 0041:0246 | OVL_0038_2E37 | 163 | strict-credited | - | - |
-| 128,129,130,133,134,136,138,139 | 0041:024B | OVL_0038_2EDA | 113 | not credited | 427 (2) | yes |
-| 131 | 0041:0250 | OVL_0038_2F57 | 334 | not credited | 1915 (6) | yes |
-| 132 | 0041:0255 | OVL_0038_30A5 | 143 | not credited | 14852 (37) | yes |
-| 135 | 0041:025A | OVL_0038_3134 | 70 | strict-credited | - | - |
-| 137 | 0041:025F | OVL_0038_317A | 33 | not credited | 347 (2) | yes |
+### Slot by slot (the VP's condition 1: every slot of the 256-slot domain has a verdict)
 
-(`own B` is the ledger bound. A credited handler needs no new body, only composition. The `OVL_0038_2EDA` row is the dispatch boundary of `u38_dispatch_boundary_2eda_audit.py`.)
+Verdicts: **modelled with credited handler X** (the handler is strict-credited, so the composed body can run its model); **named gap: uncredited handler Y** (the handler has no strict model; the bounded body stops with a stop that names the slot and Y); **non-handler** (not a function pointer; the body refuses). The 139 slots 1..139 split into **78 modelled slots** (64 distinct credited handlers; some handlers occupy several slots) and **61 named-gap slots** (54 distinct uncredited handlers: the 53 stored by `31A2` plus `OVL_0086_30D9` at slot 88). Slot 0 and slots 140..255 are non-handlers.
 
-## What this means for the ruling
+| slot | address | stub | handler | verdict | closure B (bodies) |
+| ---: | --- | --- | --- | --- | ---: |
+| 0 | 6828h | - | - | **non-handler** (the far-pointer variable 6826h:6828h; REFUSED) | - |
+| 1 | 682Ch | 0041:002A | OVL_0038_010D | modelled with credited handler OVL_0038_010D | - |
+| 2 | 6830h | 0041:002F | OVL_0038_011D | modelled with credited handler OVL_0038_011D | - |
+| 3 | 6834h | 0041:0034 | OVL_0038_013B | modelled with credited handler OVL_0038_013B | - |
+| 4 | 6838h | 0041:0039 | OVL_0038_017F | **named gap: uncredited handler OVL_0038_017F** | 1335 (5) |
+| 5 | 683Ch | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 6 | 6840h | 0041:003E | OVL_0038_01C3 | modelled with credited handler OVL_0038_01C3 | - |
+| 7 | 6844h | 0041:0043 | OVL_0038_0233 | **named gap: uncredited handler OVL_0038_0233** | 1591 (5) |
+| 8 | 6848h | 0041:0048 | OVL_0038_0377 | modelled with credited handler OVL_0038_0377 | - |
+| 9 | 684Ch | 0041:004D | OVL_0038_03AC | modelled with credited handler OVL_0038_03AC | - |
+| 10 | 6850h | 0041:0052 | OVL_0038_03E1 | modelled with credited handler OVL_0038_03E1 | - |
+| 11 | 6854h | 0041:0057 | OVL_0038_0400 | **named gap: uncredited handler OVL_0038_0400** | 186 (1) |
+| 12 | 6858h | 0041:005C | OVL_0038_04BA | modelled with credited handler OVL_0038_04BA | - |
+| 13 | 685Ch | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 14 | 6860h | 0041:0061 | OVL_0038_05D6 | modelled with credited handler OVL_0038_05D6 | - |
+| 15 | 6864h | 0041:0066 | OVL_0038_05EB | **named gap: uncredited handler OVL_0038_05EB** | 15137 (38) |
+| 16 | 6868h | 0041:006B | OVL_0038_0647 | modelled with credited handler OVL_0038_0647 | - |
+| 17 | 686Ch | 0041:0070 | OVL_0038_064E | modelled with credited handler OVL_0038_064E | - |
+| 18 | 6870h | 0041:0075 | OVL_0038_0679 | modelled with credited handler OVL_0038_0679 | - |
+| 19 | 6874h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 20 | 6878h | 0041:007A | OVL_0038_06E4 | modelled with credited handler OVL_0038_06E4 | - |
+| 21 | 687Ch | 0041:007F | OVL_0038_070F | **named gap: uncredited handler OVL_0038_070F** | 1369 (5) |
+| 22 | 6880h | 0041:0084 | OVL_0038_0775 | **named gap: uncredited handler OVL_0038_0775** | 13344 (31) |
+| 23 | 6884h | 0041:0089 | OVL_0038_07E0 | **named gap: uncredited handler OVL_0038_07E0** | 1579 (5) |
+| 24 | 6888h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 25 | 688Ch | 0041:008E | OVL_0038_0918 | modelled with credited handler OVL_0038_0918 | - |
+| 26 | 6890h | 0041:0093 | OVL_0038_0947 | modelled with credited handler OVL_0038_0947 | - |
+| 27 | 6894h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 28 | 6898h | 0041:0098 | OVL_0038_09C0 | **named gap: uncredited handler OVL_0038_09C0** | 1706 (6) |
+| 29 | 689Ch | 0041:009D | OVL_0038_0A3D | modelled with credited handler OVL_0038_0A3D | - |
+| 30 | 68A0h | 0041:00A2 | OVL_0038_0A65 | **named gap: uncredited handler OVL_0038_0A65** | 2929 (10) |
+| 31 | 68A4h | 0041:00F7 | OVL_0038_133F | modelled with credited handler OVL_0038_133F | - |
+| 32 | 68A8h | 0041:00A7 | OVL_0038_0B1B | **named gap: uncredited handler OVL_0038_0B1B** | 13382 (31) |
+| 33 | 68ACh | 0041:00AC | OVL_0038_0BAC | modelled with credited handler OVL_0038_0BAC | - |
+| 34 | 68B0h | 0041:00B1 | OVL_0038_0BCF | **named gap: uncredited handler OVL_0038_0BCF** | 55 (1) |
+| 35 | 68B4h | 0041:00B6 | OVL_0038_0C06 | modelled with credited handler OVL_0038_0C06 | - |
+| 36 | 68B8h | 0041:00BB | OVL_0038_0C15 | modelled with credited handler OVL_0038_0C15 | - |
+| 37 | 68BCh | 0041:00C0 | OVL_0038_0C26 | modelled with credited handler OVL_0038_0C26 | - |
+| 38 | 68C0h | 0041:005C | OVL_0038_04BA | modelled with credited handler OVL_0038_04BA | - |
+| 39 | 68C4h | 0041:00C5 | OVL_0038_0C4B | **named gap: uncredited handler OVL_0038_0C4B** | 1387 (5) |
+| 40 | 68C8h | 0041:00CA | OVL_0038_0CC3 | **named gap: uncredited handler OVL_0038_0CC3** | 745 (1) |
+| 41 | 68CCh | 0041:00CF | OVL_0038_1086 | **named gap: uncredited handler OVL_0038_1086** | 1659 (7) |
+| 42 | 68D0h | 0041:00D4 | OVL_0038_10C1 | modelled with credited handler OVL_0038_10C1 | - |
+| 43 | 68D4h | 0041:00D9 | OVL_0038_10DE | **named gap: uncredited handler OVL_0038_10DE** | 1405 (5) |
+| 44 | 68D8h | 0041:00DE | OVL_0038_1168 | **named gap: uncredited handler OVL_0038_1168** | 15190 (38) |
+| 45 | 68DCh | 0041:0048 | OVL_0038_0377 | modelled with credited handler OVL_0038_0377 | - |
+| 46 | 68E0h | 0041:004D | OVL_0038_03AC | modelled with credited handler OVL_0038_03AC | - |
+| 47 | 68E4h | 0041:00E3 | OVL_0038_11F9 | modelled with credited handler OVL_0038_11F9 | - |
+| 48 | 68E8h | 0041:00E8 | OVL_0038_1276 | modelled with credited handler OVL_0038_1276 | - |
+| 49 | 68ECh | 0041:00ED | OVL_0038_12B2 | modelled with credited handler OVL_0038_12B2 | - |
+| 50 | 68F0h | 0041:00F2 | OVL_0038_12FB | **named gap: uncredited handler OVL_0038_12FB** | 2320 (10) |
+| 51 | 68F4h | 0041:00F7 | OVL_0038_133F | modelled with credited handler OVL_0038_133F | - |
+| 52 | 68F8h | 0041:00F7 | OVL_0038_133F | modelled with credited handler OVL_0038_133F | - |
+| 53 | 68FCh | 0041:00F7 | OVL_0038_133F | modelled with credited handler OVL_0038_133F | - |
+| 54 | 6900h | 0041:00FC | OVL_0038_1355 | modelled with credited handler OVL_0038_1355 | - |
+| 55 | 6904h | 0041:0101 | OVL_0038_135C | modelled with credited handler OVL_0038_135C | - |
+| 56 | 6908h | 0041:0106 | OVL_0038_1363 | modelled with credited handler OVL_0038_1363 | - |
+| 57 | 690Ch | 0041:010B | OVL_0038_1399 | **named gap: uncredited handler OVL_0038_1399** | 13422 (31) |
+| 58 | 6910h | 0041:0110 | OVL_0038_1452 | modelled with credited handler OVL_0038_1452 | - |
+| 59 | 6914h | 0041:0115 | OVL_0038_1472 | modelled with credited handler OVL_0038_1472 | - |
+| 60 | 6918h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 61 | 691Ch | 0041:011A | OVL_0038_1490 | modelled with credited handler OVL_0038_1490 | - |
+| 62 | 6920h | 0041:011F | OVL_0038_14EB | **named gap: uncredited handler OVL_0038_14EB** | 2342 (10) |
+| 63 | 6924h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 64 | 6928h | 0041:0124 | OVL_0038_165D | **named gap: uncredited handler OVL_0038_165D** | 13551 (33) |
+| 65 | 692Ch | 0041:0129 | OVL_0038_1671 | **named gap: uncredited handler OVL_0038_1671** | 13551 (33) |
+| 66 | 6930h | 0041:012E | OVL_0038_1685 | **named gap: uncredited handler OVL_0038_1685** | 13551 (33) |
+| 67 | 6934h | 0041:0133 | OVL_0038_1699 | **named gap: uncredited handler OVL_0038_1699** | 8945 (21) |
+| 68 | 6938h | 0041:0138 | OVL_0038_16BB | **named gap: uncredited handler OVL_0038_16BB** | 8954 (21) |
+| 69 | 693Ch | 0041:013D | OVL_0038_16E6 | **named gap: uncredited handler OVL_0038_16E6** | 8948 (21) |
+| 70 | 6940h | 0041:0142 | OVL_0038_170B | **named gap: uncredited handler OVL_0038_170B** | 13551 (33) |
+| 71 | 6944h | 0041:0147 | OVL_0038_171F | modelled with credited handler OVL_0038_171F | - |
+| 72 | 6948h | 0041:014C | OVL_0038_1730 | modelled with credited handler OVL_0038_1730 | - |
+| 73 | 694Ch | 0068:008E | OVL_005E_39D2 | **named gap: uncredited handler OVL_005E_39D2** | 20565 (49) |
+| 74 | 6950h | 0068:0093 | OVL_005E_3A86 | **named gap: uncredited handler OVL_005E_3A86** | 20654 (49) |
+| 75 | 6954h | 0041:0151 | OVL_0038_176F | **named gap: uncredited handler OVL_0038_176F** | 14763 (35) |
+| 76 | 6958h | 0041:0156 | OVL_0038_18B5 | **named gap: uncredited handler OVL_0038_18B5** | 128 (1) |
+| 77 | 695Ch | 0041:015B | OVL_0038_1935 | **named gap: uncredited handler OVL_0038_1935** | 1431 (5) |
+| 78 | 6960h | 0041:0160 | OVL_0038_19D9 | **named gap: uncredited handler OVL_0038_19D9** | 9297 (23) |
+| 79 | 6964h | 0041:0165 | OVL_0038_1A19 | **named gap: uncredited handler OVL_0038_1A19** | 14488 (35) |
+| 80 | 6968h | 0041:016A | OVL_0038_1A4C | **named gap: uncredited handler OVL_0038_1A4C** | 14531 (35) |
+| 81 | 696Ch | 0041:016F | OVL_0038_1AAA | **named gap: uncredited handler OVL_0038_1AAA** | 9628 (22) |
+| 82 | 6970h | 0041:0174 | OVL_0038_1BA8 | **named gap: uncredited handler OVL_0038_1BA8** | 9635 (22) |
+| 83 | 6974h | 0041:0179 | OVL_0038_1CAD | **named gap: uncredited handler OVL_0038_1CAD** | 15749 (37) |
+| 84 | 6978h | 0041:017E | OVL_0038_1E77 | **named gap: uncredited handler OVL_0038_1E77** | 11472 (24) |
+| 85 | 697Ch | 0041:0183 | OVL_0038_23A4 | **named gap: uncredited handler OVL_0038_23A4** | 13914 (33) |
+| 86 | 6980h | 0041:0188 | OVL_0038_23C2 | **named gap: uncredited handler OVL_0038_23C2** | 13926 (33) |
+| 87 | 6984h | 0041:018D | OVL_0038_23EC | **named gap: uncredited handler OVL_0038_23EC** | 1431 (5) |
+| 88 | 6988h | 0096:015B | OVL_0086_30D9 (unit 0x86 entry 63, stored by U86 +37A7) | **named gap: uncredited handler OVL_0086_30D9** | 17602 (42) |
+| 89 | 698Ch | 0041:0192 | OVL_0038_2490 | modelled with credited handler OVL_0038_2490 | - |
+| 90 | 6990h | 0041:0197 | OVL_0038_24D9 | modelled with credited handler OVL_0038_24D9 | - |
+| 91 | 6994h | 0041:019C | OVL_0038_2556 | **named gap: uncredited handler OVL_0038_2556** | 1343 (5) |
+| 92 | 6998h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 93 | 699Ch | 0041:01A1 | OVL_0038_25A2 | modelled with credited handler OVL_0038_25A2 | - |
+| 94 | 69A0h | 0041:01A6 | OVL_0038_25BC | modelled with credited handler OVL_0038_25BC | - |
+| 95 | 69A4h | 0041:01AB | OVL_0038_2610 | **named gap: uncredited handler OVL_0038_2610** | 13296 (31) |
+| 96 | 69A8h | 0041:01B0 | OVL_0038_264B | modelled with credited handler OVL_0038_264B | - |
+| 97 | 69ACh | 0041:01B5 | OVL_0038_268A | modelled with credited handler OVL_0038_268A | - |
+| 98 | 69B0h | 0041:01BA | OVL_0038_2700 | modelled with credited handler OVL_0038_2700 | - |
+| 99 | 69B4h | 0041:01BF | OVL_0038_2730 | **named gap: uncredited handler OVL_0038_2730** | 9716 (24) |
+| 100 | 69B8h | 0041:01C4 | OVL_0038_27D9 | modelled with credited handler OVL_0038_27D9 | - |
+| 101 | 69BCh | 0041:01C9 | OVL_0038_2814 | modelled with credited handler OVL_0038_2814 | - |
+| 102 | 69C0h | 0041:01CE | OVL_0038_2866 | **named gap: uncredited handler OVL_0038_2866** | 9322 (23) |
+| 103 | 69C4h | 0041:01D3 | OVL_0038_28BF | **named gap: uncredited handler OVL_0038_28BF** | 9671 (25) |
+| 104 | 69C8h | 0041:01D8 | OVL_0038_2901 | **named gap: uncredited handler OVL_0038_2901** | 1620 (7) |
+| 105 | 69CCh | 0041:01DD | OVL_0038_2976 | modelled with credited handler OVL_0038_2976 | - |
+| 106 | 69D0h | 0041:01E2 | OVL_0038_2984 | modelled with credited handler OVL_0038_2984 | - |
+| 107 | 69D4h | 0041:01E7 | OVL_0038_2992 | modelled with credited handler OVL_0038_2992 | - |
+| 108 | 69D8h | 0041:01EC | OVL_0038_29B6 | modelled with credited handler OVL_0038_29B6 | - |
+| 109 | 69DCh | 0041:01F1 | OVL_0038_29CB | modelled with credited handler OVL_0038_29CB | - |
+| 110 | 69E0h | 0041:01F6 | OVL_0038_29D9 | modelled with credited handler OVL_0038_29D9 | - |
+| 111 | 69E4h | 0041:01FB | OVL_0038_29F0 | modelled with credited handler OVL_0038_29F0 | - |
+| 112 | 69E8h | 0041:0200 | OVL_0038_2A11 | modelled with credited handler OVL_0038_2A11 | - |
+| 113 | 69ECh | 0041:0205 | OVL_0038_2A28 | modelled with credited handler OVL_0038_2A28 | - |
+| 114 | 69F0h | 0041:020A | OVL_0038_2A6D | modelled with credited handler OVL_0038_2A6D | - |
+| 115 | 69F4h | 0041:020F | OVL_0038_2A87 | modelled with credited handler OVL_0038_2A87 | - |
+| 116 | 69F8h | 0041:0214 | OVL_0038_2AE6 | modelled with credited handler OVL_0038_2AE6 | - |
+| 117 | 69FCh | 0041:0219 | OVL_0038_2B20 | modelled with credited handler OVL_0038_2B20 | - |
+| 118 | 6A00h | 0041:021E | OVL_0038_2B63 | modelled with credited handler OVL_0038_2B63 | - |
+| 119 | 6A04h | 0041:0223 | OVL_0038_2B7D | modelled with credited handler OVL_0038_2B7D | - |
+| 120 | 6A08h | 0041:0228 | OVL_0038_2BC8 | **named gap: uncredited handler OVL_0038_2BC8** | 1684 (7) |
+| 121 | 6A0Ch | 0041:022D | OVL_0038_2C1C | **named gap: uncredited handler OVL_0038_2C1C** | 16543 (38) |
+| 122 | 6A10h | 0041:0232 | OVL_0038_2D38 | modelled with credited handler OVL_0038_2D38 | - |
+| 123 | 6A14h | 0041:0237 | OVL_0038_2D88 | modelled with credited handler OVL_0038_2D88 | - |
+| 124 | 6A18h | 0041:023C | OVL_0038_2DE4 | modelled with credited handler OVL_0038_2DE4 | - |
+| 125 | 6A1Ch | 0041:0241 | OVL_0038_2E08 | modelled with credited handler OVL_0038_2E08 | - |
+| 126 | 6A20h | 0041:0246 | OVL_0038_2E37 | modelled with credited handler OVL_0038_2E37 | - |
+| 127 | 6A24h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B | - |
+| 128 | 6A28h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 129 | 6A2Ch | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 130 | 6A30h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 131 | 6A34h | 0041:0250 | OVL_0038_2F57 | **named gap: uncredited handler OVL_0038_2F57** | 1915 (6) |
+| 132 | 6A38h | 0041:0255 | OVL_0038_30A5 | **named gap: uncredited handler OVL_0038_30A5** | 14852 (37) |
+| 133 | 6A3Ch | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 134 | 6A40h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 135 | 6A44h | 0041:025A | OVL_0038_3134 | modelled with credited handler OVL_0038_3134 | - |
+| 136 | 6A48h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 137 | 6A4Ch | 0041:025F | OVL_0038_317A | **named gap: uncredited handler OVL_0038_317A** | 347 (2) |
+| 138 | 6A50h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 139 | 6A54h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
+| 140..255 | 6A58h..6C27h | - | - | **non-handler** (other game state; every index REFUSED) | - |
 
-1. **The literal ruling is a program, not a body.** 54 uncredited handlers (the 53 plus slot 88), mostly with 9 to 20 KB closures that overlap and, for 34 of them, **loop back through this dispatcher**: a fixed-point composition, not a leaf-by-leaf build.
-2. **A bounded, honest first body exists:** model `OVL_009E_0000` with the **64 credited handlers composed**, and give **each of the 54 uncredited handlers (and slot 0, and slots 140..255) its own named stop** (a stop class that carries the slot and the handler id, never a silent stop at the `LCALL`). That satisfies "a named gap per handler" at the cost of one 38-byte body plus a table of 64 compositions; it does **not** make the 54 modelled.
-3. **The domain needs a declared contract:** index in 1..139 (and 88 via unit 0x86); outside that the original calls a non-handler. The three data-dependent callers make this a precondition, not a proven range.
+The closure column is `tools/overlay/price_row_closures.py` (bytes and bodies, floors; `own B` per handler is in `docs/re/overlay_function_ledger.csv`). **34 of the 53 stored uncredited handlers list a 009E dispatch** (`0026`, `0160` or `175D`; `0026` and `0160` dispatch through `OVL_009E_0000` itself), so their closures are cyclic and the sum over handlers (424,482 B) is not a cost.
 
-**Decision wanted (the VP's): (a) the bounded body in point 2 with the 54 named gaps; (b) fund the 54 handlers first (priced above; a fixed-point build); or (c) hold.** Nothing was built.
+## VP ruling i21758: option (A), with four conditions that are part of the deliverable
+
+The ruling is the bounded body: `OVL_009E_0000` with the **credited handlers composed** and **a named stop for every uncredited handler and every non-handler slot**. Its four conditions, and where each lives:
+
+1. **Named per slot:** the table above (condition 1).
+2. **The credit is scoped to the modelled slots.** Any credit for `OVL_009E_0000` would cover **only the 78 slots whose handlers are credited** (the table). **An index outside that set is NOT covered**: a named-gap slot (61 slots, 54 handlers), slot 0 and slots 140..255 are outside the claim, and **no sentence in this document or in the body's doc may say or imply that the dispatcher is fully modelled.** The body can only be called "the dispatcher for the credited-handler slots".
+3. **The domain precondition is declared and will be asserted:** the index byte must be **1..139, or 88 via unit 0x86**; **anything else (0 and 140..255) is REFUSED, never guessed, with CPU and RAM untouched** (a refusal stop in the model's contract, checked in its C test and by a fixture, never a call through the slot). A named-gap slot inside 1..139 stops with a CALLEE-class stop that carries the slot and the handler id and also leaves CPU and RAM as they were at the `LCALL`.
+4. **A fixture for each of the three data-dependent far callers** (the sites that pass a record byte: unit 0x38 `+2F30` reading `[rec+3Dh]`, unit 0x77 `+1533` and `+164F` reading `[rec+3Eh]`): the fixture runs the **original caller bytes** up to its `LCALL 00B0:0025` with the record byte set out of range (0 and 140, 255), enters the dispatcher model with the live frame, and proves the refusal fires with CPU and RAM unchanged. These are part of the body's deliverable, not built here.
+
+What the bounded body is **not**: it does not model the 54 uncredited handlers, it does not make the 34 cyclic closures finite, and it does not claim the three data-dependent callers stay in range (that is a game invariant, not something the bytes prove).
+
+## Price of the composed build (009E_0000 + the 64 credited handlers), before starting
+
+Measured counts: the dispatcher is 38 bytes; the 64 credited handlers are **3,506 own bytes** in 30 evidence documents; **32 of them have raw-CPU-state models** (`*_CPU.md`, the same API family the dispatcher composes with directly) and **32 have semantic or ledger models** (`pr_u38_*` state-struct APIs and the 16 `OVERLAY_UNIT38_EFFECT_ENTRIES` translations), which need a stack-frame-to-struct adapter per handler and a **full-RAM comparison they were not built against**; a semantic model that does not reproduce every RAM byte the original touches is a defect the composition would expose.
+
+Estimate (judgement, not a measurement): **about 3 to 5 lane-days.** The dispatcher model and its Unicorn world are about half a day; the 32 raw-CPU compositions about half a day; the 32 semantic adapters, each with a full-RAM differential against the original bytes, are the variance (about 1 to 3 days, more if they expose model defects); the three caller fixtures about half a day; the doc, mutants and the C test about half a day. **No build starts until the PM has seen this price.**
 
 ## Reproduction
 
