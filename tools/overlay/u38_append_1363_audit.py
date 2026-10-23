@@ -44,6 +44,9 @@ def source():
         queue_bytes=54,trailing_data_bytes=23,slot=46,dispatch_type=56,append_sha256=append['sha'])
     print('U38 +1363:',target,flush=True);return image,code38,code9e,decoded,target
 
+CHECKER_ROWS = ('OVL_0038_1363',)
+
+
 def library(directory):
     path=directory/'u381363.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/s) for s in SOURCES],'-o',str(path)],check=True)
@@ -158,7 +161,12 @@ def differential(image,code38,code9e,decoded,function):
     print('Original-chain:',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image,code38,code9e,decoded,target=source();report=dict(target=target)
     with tempfile.TemporaryDirectory(prefix='u38-1363-') as tmp:
         f=library(Path(tmp))

@@ -125,3 +125,11 @@ implementation; none is inferred or reused.
 | score | Five evidence categories: identity, structure, differential, native, contract checks; no probabilistic score |
 | verdict | likely_match within the declared profile, pending independent verification |
 | review_notes | Explicit normal/386 AF convention, immutable code/nonwrapping reached frames, exact partial stops, synthetic native scope, zero-size edge retained in denominator; no self-credit |
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_001C_0A9F --require-current-main
+```

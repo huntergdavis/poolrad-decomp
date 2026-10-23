@@ -146,3 +146,11 @@ are linked unchanged, as are the loader/string cores and full slot accessor.
   nonwrapping dependency-return profiles; explicit allocator error stops;
   queue extent correction for the independent lane. No classifier,
   acceptance, accounting, or credit is changed by this author PR.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_001C_18F8 --require-current-main
+```

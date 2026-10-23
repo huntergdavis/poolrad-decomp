@@ -158,3 +158,11 @@ ctest --test-dir resources/build \
   scope is bounded; TRANSFER/nested ARGUMENT unexercised; provisional identity;
   queue metadata lags the actual raw ABI. Independent verification and credit
   remain with the reviewer/VP. No self-credit.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_264B --require-current-main
+```
