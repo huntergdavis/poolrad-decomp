@@ -91,6 +91,24 @@ non-zero**; the decision belongs to the VP and the PM.
 | walk `hybrid-pin2-walk-a` vs `-b` | 30,532 / 30,532, seed sequences **different** | 1 / 1, **identical** | 5 / 5, identical | **0 px** apart, and 0 px vs the reference walk frame |
 | route 3 `hybrid-pin2-r3-a` vs `-b` | 30,532 / 30,532, seed sequences **different** | 1,447 / 1,447, **identical** | 132 / 132, identical | **0 px** apart |
 
+**The poke's exact point.** It happens at the instruction start of the first `+120F` arrival (the seed step's `MOV
+AX,[4428]`) after `observer.pin` exists. In every run here that was arrival 30,533, the step onto 14,4. The four bytes
+are written before that instruction executes, so the step reads the pinned value. The `# PINNED` line records the
+arrival and the instruction count.
+
+**OFF by default:** with `PR_HYBRID_SEED_PIN` unset nothing is written, and the observer stays read-only. **Pinned
+runs are TEST-HARNESS runs. They are never quoted as natural game behaviour.**
+
+**Equality as hashes.** The ordered post-pin RandSeed column, plus the draw count, and the final frame's raw RGB
+pixels. The instruction counter is excluded, because it counts idle-loop instructions while the game waits for keys.
+
+| Run | Post-pin draws | RandSeed sequence SHA-256 (16) | Final pixels SHA-256 (16) |
+| --- | --- | --- | --- |
+| `hybrid-pin2-walk-a` | 1 | `ef797c8118f02dfb` | `955fa8ff76c1db2c` |
+| `hybrid-pin2-walk-b` | 1 | `ef797c8118f02dfb` | `955fa8ff76c1db2c` |
+| `hybrid-pin2-r3-a` | 1,447 | `ad42d362af555a51` | `1a371fdb1dc6a17b` |
+| `hybrid-pin2-r3-b` | 1,447 | `ad42d362af555a51` | `1a371fdb1dc6a17b` |
+
 **What it shows:**
 - Start-up draws the same number of times in every run, from a different clock seed: the same counts, different
   values. This is the benign cause behind the walk run that met an encounter on the 14,4 step.
