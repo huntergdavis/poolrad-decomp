@@ -36,9 +36,9 @@ static uint16_t arith16(cpu_t *c, uint16_t a, uint16_t b, int subtract)
     c->flags = (uint16_t)((c->flags & ~0x08D5u) | f);
     return r;
 }
-static uint16_t shl1(cpu_t *c, uint16_t a)                                              /* SHL AX,1: CF = old bit 15, OF = CF xor the new bit 15, SF/ZF/PF of the result, AF 0 (undefined; Unicorn clears it) */
+static uint16_t shl1(cpu_t *c, uint16_t a)                                              /* SHL AX,1: CF = old bit 15, OF = CF xor the new bit 15, SF/ZF/PF of the result, AF 1 (pinned; raw Unicorn leaves it clear: a declared splits it) */
 {
-    uint16_t r = (uint16_t)(a << 1u), f = parity((uint8_t)r);
+    uint16_t r = (uint16_t)(a << 1u), f = (uint16_t)(parity((uint8_t)r) | 0x0010u);   /* the PINNED rule: AF is set after a non-zero shift (get_AF = count & 1Fh) */
     if (a & 0x8000u) f |= 0x0001u;
     if (!r) f |= 0x0040u;
     if (r & 0x8000u) f |= 0x0080u;

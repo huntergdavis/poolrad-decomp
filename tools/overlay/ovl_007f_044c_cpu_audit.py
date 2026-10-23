@@ -248,6 +248,7 @@ MUTANTS = (
     ('the destination word gets a SUB', [("c->ax = arith16(c, c->ax, bp16(ram, c, 8), 0); AT(0x04C6u);", "c->ax = arith16(c, c->ax, bp16(ram, c, 8), 1); AT(0x04C6u);")]),
     ('INDEX is zero-extended, not sign-extended (first use)', [("STEP(); cbw(c); AT(0x0478u);", "STEP(); c->ax &= 0x00FFu; AT(0x0478u);")]),
     ('the first SHL AX,1 is skipped', [("STEP(); c->ax = shl1(c, c->ax); AT(0x047Au);", "STEP(); AT(0x047Au);")]),
+    ('SHL does not set AF (the pinned rule)', [("f = (uint16_t)(parity((uint8_t)r) | 0x0010u);", "f = (uint16_t)(parity((uint8_t)r));")]),
     ('SHL leaves OF clear', [("if (((a >> 15u) ^ (r >> 15u)) & 1u) f |= 0x0800u;", "")]),
     ('+0020 gets INDEX instead of EXTRA', [("STEP(); push(ram, c, bp16(ram, c, 8)); AT(0x04ACu);", "STEP(); push(ram, c, bp16(ram, c, 6)); AT(0x04ACu);")]),
     ('+003A is given P instead of Q', [("STEP(); les_bp(ram, c, 0x0E); AT(0x04DEu);", "STEP(); les_bp(ram, c, 0x0A); AT(0x04DEu);")]),
