@@ -14,6 +14,8 @@ import u7d_two_digits_0565_cpu_audit as number
 from res0709_ega_reset_0000_cpu_audit import Cpu,Env,OUT_FN,IN_FN,ROOT,SIZE,EXE_SHA,REGISTERS,physical,put16,check
 from u86_procvars_3413_audit import OVR_SHA
 from res03f1_clear_0137_cpu_audit import Ega,Bus,WRITE_FN
+from pinned_shift_flags import LastFlagWriter,SPLIT_BY_RULE,declared_flags_split,split_used
+SPLIT_ARRIVALS=[0]
 CS,DS,SS,SYS,GLYPH,FONT,DATA=0x9000,0x1800,0x2800,0x4000,0x8800,0x7000,0x6000
 ENTRY,END,RETF=0x5F0,0x6D8,0x6D5
 RES=0x8400
@@ -103,6 +105,7 @@ def compare(name,state,bodies,decoded,lib,caller_limit=65536,printer_limit=65536
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for (n,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,n))
     st=dict(stop=None,ret=False,root_return=False,previous=None,executing=None)
+    writer=LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
     d=[-1]*8;calls=[];seen=set();edges=set();events=[];writes=[];loops=dict(caller=0,printer=0,glyph=0)
     kinds={CS:"root",SYS:"sys",GLYPH:"video",RES:"res"}
     def stop(v):st['stop']=v;uc.emu_stop()
@@ -160,6 +163,7 @@ def compare(name,state,bodies,decoded,lib,caller_limit=65536,printer_limit=65536
         if ins.mnemonic in ('ret','retf'):
             if key==('root',RETF):st['root_return']=True
             else:st['ret']=True
+        writer.step(em,address)
     def out(em,port,size,value,user):events.append((port,value,size,uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)))
     protected=[(physical(SEGMENTS[k],a),physical(SEGMENTS[k],a)+len(b)) for (k,a),b in bodies.items()]
     def write(em,access,address,size,value,user):
@@ -172,11 +176,16 @@ def compare(name,state,bodies,decoded,lib,caller_limit=65536,printer_limit=65536
     uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_INSN,out,None,1,0,R.UC_X86_INS_OUT);uc.hook_add(UC_HOOK_MEM_WRITE,write)
     uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=4000000)
     check(st['stop'] is not None,f'instruction ceiling {name}')
+    writer.finish(uc)
     actual=Cpu.from_buffer_copy(c);status,ram,mine,stores,ega,diag=run_c(lib,m,actual,caller_limit,printer_limit,glyph_limit,refuse)
     check(status==st['stop'],f'status {name}: {status}/{st}')
     check([getattr(diag,n) for n in NAMES]==d,f'diagnostic {name}: {[getattr(diag,n) for n in NAMES]}/{d}')
     for (n,_),reg in zip(Cpu._fields_,REGISTERS):
-        want=uc.reg_read(reg)&65535;check(getattr(actual,n)==want,f'CPU {name}/{n}: C {getattr(actual,n):04X}, original {want:04X}')
+        want=uc.reg_read(reg)&65535
+        if n=='flags':
+            problem=declared_flags_split(actual.flags,want,writer);check(problem is None,f'CPU {name}/flags: {problem}')
+            SPLIT_ARRIVALS[0]+=split_used(actual.flags,want,writer);continue
+        check(getattr(actual,n)==want,f'CPU {name}/{n}: C {getattr(actual,n):04X}, original {want:04X}')
     check(mine==events,f'OUTs {name}: {len(mine)}/{len(events)}')
     check(stores==writes,f'VRAM operands {name}: {len(stores)}/{len(writes)}')
     expected=bytes(backing);a=ram[:0xA0000]+ram[0xB0000:];b=expected[:0xA0000]+expected[0xB0000:]
@@ -211,7 +220,7 @@ def differential(bodies,decoded,lib):
         seen|=s;edges|=e;outs+=o;stores+=w;stops[status]=stops.get(status,0)+1;print(name,status,flush=True)
     expected={((k,a),(k,v)) for (k,a),i in decoded.items() if i.mnemonic.startswith('j') and i.mnemonic!='jmp' for v in (a+i.size,int(i.op_str,16))}
     caller={k for k in decoded if k[0]=='root' and k[1]>=ENTRY};ce={e for e in expected if e[0] in caller}
-    return dict(cases=len(allcases),stops=stops,cpu_words=14,ordinary_ram_bytes=SIZE-65536,flag_masks=0,out_events=outs,vram_write_operands=stores,
+    return dict(cases=len(allcases),stops=stops,cpu_words=14,ordinary_ram_bytes=SIZE-65536,flag_masks=0,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),out_events=outs,vram_write_operands=stores,
         caller_starts=len(seen&caller),caller_total=len(caller),caller_outcomes=len(edges&ce),caller_outcomes_total=len(ce),
         chain_starts=len(seen),chain_total=len(decoded),chain_outcomes=len(edges&expected),chain_outcomes_total=len(expected),
         missing_starts=sorted(set(decoded)-seen),missing_outcomes=sorted(expected-edges))
