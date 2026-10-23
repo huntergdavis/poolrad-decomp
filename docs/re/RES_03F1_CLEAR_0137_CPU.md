@@ -171,3 +171,11 @@ START.EXE stays under resources/DOS/POOLRAD.
 - verdict: likely_match within contract; EGA-only native hardware evidence.
 - review_notes: no self-credit/accounting edits. Independent reviewer/VP
   decides verification and credit. No natural-game reachability claim.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: `--compile-only` builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS` is declared. Proven in a worktree WITHOUT `resources/` (what CI has):
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_03F1_0137 --require-current-main
+```
