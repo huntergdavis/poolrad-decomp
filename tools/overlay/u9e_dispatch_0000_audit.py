@@ -35,7 +35,9 @@ CALLER_CS, DISP_CS, DS, SS = 0x3800, 0x4800, 0x1800, 0x2800     # unit 0x38 code
 ENTRY_RET = (0x8000, 0x9000)
 SP_MIN, SP_MAX = 0x0200, 0xFFEE
 STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'LIMIT', 6: 'CALLEE', 7: 'TRANSFER'}
-KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap'}
+KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
+COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
+ADAPTED = {0x010D}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
 RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
@@ -93,7 +95,7 @@ def source():
         elif ident in strict and strict[ident].endswith("_CPU.md"):
             v["kind"] = 4 if v["entry"] in RAW_DEFERRED else 1
         elif ident in strict:
-            v["kind"] = 2
+            v["kind"] = 5 if v["entry"] in ADAPTED and v["unit"] == 0x38 else 2
         else:
             v["kind"] = 3
         v["id"] = (v["unit"] << 16) | v["entry"]
@@ -261,7 +263,7 @@ def run_original(src, memory, cpu, budget):
         if counted:
             if not left[0]:
                 status[0] = 'LIMIT'; uc.emu_stop(); return
-            if ip == 0x1E and kinds.get(idx, 0) != 1:
+            if ip == 0x1E and kinds.get(idx, 0) not in COMPOSED:
                 status[0] = 'GAP'; uc.emu_stop(); return
             left[0] -= 1
             seen.add(ip)
@@ -453,12 +455,12 @@ def cases(src, per_slot=16, quick=False):
 
     def add(name, idx, **kw):
         out.append((name, idx, kw, BUDGET))
-    raw = [s for s in range(1, 140) if src["slots"][s]["kind"] == 1]
+    raw = [s for s in range(1, 140) if src["slots"][s]["kind"] in COMPOSED]
     for s in raw:
         for k in range(2 if quick else per_slot):
             add(f"slot{s:03d}-random{k}", s, lists=src["slots"][s]["entry"] in LIST_ENTRIES)
     for s in range(1, 140):
-        if src["slots"][s]["kind"] != 1:
+        if src["slots"][s]["kind"] not in COMPOSED:
             add(f"gap{s:03d}-{KIND[src['slots'][s]['kind']]}", s)
             add(f"gap{s:03d}-limit0", s, budget=13)               # the budget ends at the LCALL: LIMIT beats GAP
     for idx in (0, 140, 141, 160, 200, 255):
@@ -467,6 +469,10 @@ def cases(src, per_slot=16, quick=False):
         add(f"refused-random{k}", rng.choice([0] + list(range(140, 256))))
     # TRANSFER: slot 31 is +133F, whose resident zeroes target+3, +0, +7, +6 where target is the far pointer stored at character+108h. Aim that target at the dispatcher's frames:
     #   the ENTRY return slot (sp): CS's high byte (sp+3) is zeroed, so the dispatcher's final RETF goes to 0000:9000; the handler's return slot (sp-16): its return IP/CS bytes are zeroed.
+    # phase 2, slot 1 (+010D, ADD byte [6825],5 then INC byte [6822]): the byte values that reach every flag outcome of both instructions
+    for v25 in (0x00, 0x0A, 0x0B, 0x7A, 0x7B, 0x7F, 0x80, 0xFA, 0xFB, 0xFF):
+        for v22 in (0x00, 0x0F, 0x7F, 0x80, 0xFF):
+            add(f"adapt010d-{v25:02x}-{v22:02x}", 1, poke=[(DS, 0x6825, bytes([v25])), (DS, 0x6822, bytes([v22]))])
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -506,7 +512,10 @@ def differential(src, lib, base, only=None, keep_going=False):
 
 
 # ---------------------------------------------------------------------------------------------------- mutation
-EQUIVALENT = {}      # a survivor named here carries a written proof
+EQUIVALENT = {      # a survivor named here carries a written proof
+    '+010D ADD computes AF from the wrong operand': 'the INC byte [6822] that follows the ADD (no instruction between them) overwrites AF, OF, SF, ZF and PF; only the ADD\'s CF reaches the return. The ADD\'s non-CF flags are therefore dead at the handler\'s return in the original and in the model, and any change to how add8_flags computes them is unobservable (also: b is always 5, whose bit 4 is 0)',
+    '+010D ADD tests AF at bit 5, not bit 4': 'the same proof: the ADD\'s AF is overwritten by the following INC before the return, so no AF rule inside add8_flags is observable',
+}
 
 MUTANTS = (
     ('REFUSED lets index 140 through', [("if (idx == 0u || idx >= 140u)", "if (idx == 0u || idx >= 141u)")]),
@@ -530,9 +539,16 @@ MUTANTS = (
     ('+2976 is routed to +2984', [("{0x2976, h_2976}", "{0x2976, h_2984}")]),
     ('+2A87 uses the Unicorn shift profile', [("pr_u38_target_index_gate_2a87_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg)", "pr_u38_target_index_gate_2a87_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_UNICORN, &dg)")]),
     ('+1363 gets no heap budget', [("l.max_heap_steps = m->lim->heap_steps; l.max_links = m->lim->links; COPY(&x, m->cpu);\n    s = (int)pr_u38_append_1363_cpu", "l.max_heap_steps = 0; l.max_links = m->lim->links; COPY(&x, m->cpu);\n    s = (int)pr_u38_append_1363_cpu")]),
+    ('+010D adds 4, not 5, to [6825]', [("pr_u38_entry2(&st) != PR_U38_OK) return 1;\n    store_state(m->ram, m->cpu, &st);\n    add8_flags(m->cpu, a6825, 5u);", "pr_u38_entry2(&st) != PR_U38_OK) return 1;\n    st.b6825 = (uint8_t)(st.b6825 - 1u);\n    store_state(m->ram, m->cpu, &st);\n    add8_flags(m->cpu, a6825, 5u);")]),
+    ('+010D INC clears CF instead of preserving it', [("c->flags = (uint16_t)((c->flags & ~(ARITH & ~0x0001u)) | f);   /* CF is preserved */", "c->flags = (uint16_t)((c->flags & ~ARITH) | f);")]),
+    ('+010D ADD computes AF from the wrong operand', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
+    ('+010D ADD tests AF at bit 5, not bit 4', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ b ^ r) & 0x20u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
+    ('+010D leaves the saved BP unwritten (no PUSH BP write)', [("static void frame_enter(call_t *m) { push(m->ram, m->cpu, m->cpu->bp); m->cpu->bp = m->cpu->sp; }", "static void frame_enter(call_t *m) { m->cpu->sp = (uint16_t)(m->cpu->sp - 2u); m->cpu->bp = m->cpu->sp; }")]),
+    ('+010D pops 8 argument bytes, not 0Ah', [("frame_leave(m, 0x0Au);\n    return 0;\n}\n\ntypedef", "frame_leave(m, 0x08u);\n    return 0;\n}\n\ntypedef")]),
+    ('+010D skips the semantic model (the DS bytes stay)', [("if (pr_u38_entry2(&st) != PR_U38_OK) return 1;", "(void)pr_u38_entry2;")]),
     ('the gap kind of an uncredited slot is reported as semantic', [("sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC :", "sl->kind != K_RAW ? PR_U9E_0000_GAP_SEMANTIC :")]),
 )
-MUTANT_CASES_EXTRA = ('transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
+MUTANT_CASES_EXTRA = ('adapt010d-', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
 
 
 def c_test_verdict(tmp, mutant_path):
@@ -549,7 +565,7 @@ def c_test_verdict(tmp, mutant_path):
 
 def mutation_check(src, base, libdir, only_mutants=None):
     out = []; text0 = (ROOT / 'src/recovered/overlay_u9e_dispatch_0000_cpu.c').read_text()
-    raw = [s for s in range(1, 140) if src['slots'][s]['kind'] == 1]
+    raw = [s for s in range(1, 140) if src['slots'][s]['kind'] in COMPOSED]
     first = {}
     for s in raw:
         first.setdefault(src['slots'][s]['entry'], s)
@@ -587,7 +603,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     for flag in ('--compile-only', '--unicorn', '--callers', '--quick', '--mutate', '--native', '--keep-going'):
         p.add_argument(flag, action='store_true')
-    p.add_argument('--only', nargs='*')
+    p.add_argument('--only', nargs='*'); p.add_argument('--mutant-filter', help='run only the mutants whose name contains this text (the per-adapter PRs)')
     p.add_argument('--libdir', type=Path); p.add_argument('--output', type=Path); a = p.parse_args()
     if a.compile_only:
         for f in ('source', 'library', 'verify_table', 'build_world', 'fixture', 'run_original', 'run_c', 'compare', 'cases', 'differential'):
@@ -604,7 +620,8 @@ def main():
         if a.callers:
             report['callers'] = caller_fixtures(src, lib, base, tries=60)
         if a.mutate:
-            report['mutation'] = mutation_check(src, base, libdir)
+            only = None if not a.mutant_filter else {k for k, (n, _) in enumerate(MUTANTS) if a.mutant_filter in n}
+            report['mutation'] = mutation_check(src, base, libdir, only_mutants=only)
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(report, sort_keys=True, indent=2, default=str) + '\n')
     print(json.dumps(report, sort_keys=True, default=str)[:3000])

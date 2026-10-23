@@ -20,6 +20,7 @@
 #include "poolrad/recovered/overlay_u38_target_index_gate_2a87.h"
 #include "poolrad/recovered/overlay_u38_target_reset_133f_cpu.h"
 #include "poolrad/recovered/overlay_u38_target_reset_2b7d.h"
+#include "poolrad/recovered/overlay_unit38_effects.h"
 #include <string.h>
 
 #define MASK (PR_U9E_0000_RAM_SIZE - 1u)
@@ -28,14 +29,14 @@
 #define LCALL_IP 0x001Eu
 typedef pr_u9e_0000_cpu cpu_t;
 
-enum { K_REFUSED = 0, K_RAW = 1, K_GAP_SEMANTIC = 2, K_GAP_UNCREDITED = 3, K_GAP_DEFERRED = 4 };
+enum { K_REFUSED = 0, K_RAW = 1, K_GAP_SEMANTIC = 2, K_GAP_UNCREDITED = 3, K_GAP_DEFERRED = 4, K_ADAPTED = 5 };   /* K_ADAPTED: a credited SEMANTIC model composed through a hand adapter (phase 2) */
 typedef struct { uint8_t kind; uint16_t stub_off, stub_seg, entry; uint32_t id; } slot_t;
 
 /* Generated from the media by tools/overlay/u9e_dispatch_0000_audit.py (the audit re-derives this table from 31A2's operands, the unit stub table and
  * strict_full_c_addresses.csv and asserts it equal): slots 1..139 are 31A2's installs (slot 88 is U86 +37A7's); 0 and 140..255 are not handlers. */
 static const slot_t SLOTS[256] = {
     {K_REFUSED, 0, 0, 0, 0},
-    {K_GAP_SEMANTIC, 0x002A, 0x0041, 0x010D, 0x00380000u | 0x010Du},
+    {K_ADAPTED, 0x002A, 0x0041, 0x010D, 0x00380000u | 0x010Du},
     {K_GAP_SEMANTIC, 0x002F, 0x0041, 0x011D, 0x00380000u | 0x011Du},
     {K_GAP_SEMANTIC, 0x0034, 0x0041, 0x013B, 0x00380000u | 0x013Bu},
     {K_GAP_UNCREDITED, 0x0039, 0x0041, 0x017F, 0x00380000u | 0x017Fu},
@@ -394,11 +395,67 @@ static int h_2814_t(call_t *m)
     s = (int)pr_u38_lookup_append_2814_cpu(m->ram, m->size, &x, &l, &d); COPY(m->cpu, &x); m->status_raw = d.status; return s;
 }
 
+/* ---- phase 2: adapters for credited SEMANTIC models (the PM's bar: full CPU14, FLAGS and RAM equal at the handler's return into 009E) ----
+ * The semantic model supplies the engine-state effect (pr_u38_state); the adapter supplies what the model's contract leaves out: the frame (PUSH BP / POP BP, RETF 0Ah), the registers and the FLAGS of the
+ * handler's last writer, computed by the pinned stored rule (byte ADD/INC here). Every one of those is compared against the original bytes by the composed differential. */
+static uint8_t ds8(const uint8_t *ram, const cpu_t *c, uint16_t off) { return ram[physical(c->ds, off)]; }
+static void ds_set8(uint8_t *ram, const cpu_t *c, uint16_t off, uint8_t v) { ram[physical(c->ds, off)] = v; }
+static void load_state(const uint8_t *ram, const cpu_t *c, pr_u38_state *st)
+{
+    st->b6816 = ds8(ram, c, 0x6816); st->b6818 = ds8(ram, c, 0x6818); st->b6819 = ds8(ram, c, 0x6819); st->b681a = ds8(ram, c, 0x681A); st->b681b = ds8(ram, c, 0x681B);
+    st->b681d = ds8(ram, c, 0x681D); st->b681e = ds8(ram, c, 0x681E); st->b6822 = ds8(ram, c, 0x6822); st->b6825 = ds8(ram, c, 0x6825); st->b6de3 = ds8(ram, c, 0x6DE3);
+    st->scratch_6826.offset = rd16(ram, c->ds, 0x6826u); st->scratch_6826.segment = rd16(ram, c->ds, 0x6828u);
+}
+static void store_state(uint8_t *ram, const cpu_t *c, const pr_u38_state *st)
+{
+    ds_set8(ram, c, 0x6816, st->b6816); ds_set8(ram, c, 0x6818, st->b6818); ds_set8(ram, c, 0x6819, st->b6819); ds_set8(ram, c, 0x681A, st->b681a); ds_set8(ram, c, 0x681B, st->b681b);
+    ds_set8(ram, c, 0x681D, st->b681d); ds_set8(ram, c, 0x681E, st->b681e); ds_set8(ram, c, 0x6822, st->b6822); ds_set8(ram, c, 0x6825, st->b6825); ds_set8(ram, c, 0x6DE3, st->b6de3);
+    wr16(ram, c->ds, 0x6826u, st->scratch_6826.offset); wr16(ram, c->ds, 0x6828u, st->scratch_6826.segment);
+}
+/* byte ADD r/m8,imm8 and INC r/m8 with the pinned stored FillFlags rule: CF carry (INC keeps CF), AF=(a^b^r)&10h, ZF, SF at bit 7, OF, PF = low-byte parity */
+static void add8_flags(cpu_t *c, uint8_t a, uint8_t b)
+{
+    uint8_t r = (uint8_t)(a + b); uint16_t f = parity(r);
+    if (r < a) f |= 0x0001u;
+    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x80u) f |= 0x0080u;
+    if ((uint8_t)(~(a ^ b) & (a ^ r)) & 0x80u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void inc8_flags(cpu_t *c, uint8_t a)
+{
+    uint8_t r = (uint8_t)(a + 1u); uint16_t f = parity(r);
+    if ((a ^ 1u ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x80u) f |= 0x0080u;
+    if (a == 0x7Fu) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~(ARITH & ~0x0001u)) | f);   /* CF is preserved */
+}
+static void frame_enter(call_t *m) { push(m->ram, m->cpu, m->cpu->bp); m->cpu->bp = m->cpu->sp; }
+static void frame_leave(call_t *m, uint16_t pops)
+{
+    cpu_t *c = m->cpu;
+    c->bp = pop(m->ram, c); c->ip = pop(m->ram, c); c->cs = pop(m->ram, c); c->sp = (uint16_t)(c->sp + pops);
+}
+/* +010D: PUSH BP; MOV BP,SP; ADD byte [6825],5; INC byte [6822]; POP BP; RETF 0Ah (pr_u38_entry2) */
+static int h_010d(call_t *m)
+{
+    pr_u38_state st; uint8_t a6825, a6822;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a6825 = st.b6825; a6822 = st.b6822;
+    if (pr_u38_entry2(&st) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    add8_flags(m->cpu, a6825, 5u); inc8_flags(m->cpu, a6822);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},
@@ -450,7 +507,7 @@ pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9
     if (*budget == 0u) return PR_U9E_0000_LIMIT;                                                      /* 001E LCALL [DI+6828h]: the budget is read before the slot's verdict */
     off = rd16(ram, c->ds, (uint16_t)(c->di + 0x6828u)); seg = rd16(ram, c->ds, (uint16_t)(c->di + 0x682Au));
     d->stub_off = off; d->stub_seg = seg;
-    if (sl->kind != K_RAW) {                                                                          /* a NAMED gap: stop at the LCALL, nothing pushed, nothing called */
+    if (sl->kind != K_RAW && sl->kind != K_ADAPTED) {                                                 /* a NAMED gap: stop at the LCALL, nothing pushed, nothing called */
         d->handler_id = sl->id;
         d->gap = sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC : sl->kind == K_GAP_DEFERRED ? PR_U9E_0000_GAP_DEFERRED : PR_U9E_0000_GAP_UNCREDITED;
         return PR_U9E_0000_GAP;

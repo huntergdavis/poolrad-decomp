@@ -187,7 +187,9 @@ TOKEN = re.compile(
     r"|(?<![0-9a-f])u([0-9a-f]{2,3})_([0-9a-f]{4})(?![0-9a-f])"
     r"|\+0x([0-9a-f]{4})(?![0-9a-f])"
     r"|\+([0-9a-f]{4})(?![0-9a-f])"
-    r"|(?<![0-9a-f])0x([0-9a-f]{4})(?![0-9a-f])")
+    r"|(?<![0-9a-f])0x([0-9a-f]{4})(?![0-9a-f])"
+    # SEG:OFF with no '+' or '0x' ('007F:0A88', or an overlay stub '0041:00CA'), as sources write far calls (par-b, PM i22086)
+    r"|(?<![0-9a-f:])([0-9a-f]{4}):([0-9a-f]{4})(?![0-9a-f:])")
 UNIT_TOKEN = re.compile(r"(?<![0-9a-f])u([0-9a-f]{2,3})(?![0-9a-f])")
 HEX4 = re.compile(r"(?<![0-9a-f])([0-9a-f]{4})(?![0-9a-f])")
 
@@ -232,8 +234,14 @@ def candidate_key(row):
     return int(unit, 16), int(offset, 16)
 
 
-def resolve_match(match, line_low, path_units, candidates, by_offset):
+def resolve_match(match, line_low, path_units, candidates, by_offset, stubs=None):
     """Return (candidate id, kind) for a TOKEN match, or (None, None)."""
+    if match.group(10) is not None:
+        seg, off = int(match.group(10), 16), int(match.group(11), 16)
+        if (seg, off) in candidates:                      # unit:offset
+            return candidates[(seg, off)], "seg_off"
+        cid = (stubs or {}).get((seg, off))               # an overlay stub paragraph:entry offset
+        return (cid, "stub_seg_off") if cid else (None, None)
     if match.group(1) is not None:
         key = (int(match.group(1), 16), int(match.group(2), 16))
     elif match.group(3) is not None:
@@ -247,6 +255,17 @@ def resolve_match(match, line_low, path_units, candidates, by_offset):
                 return candidates[(unit, offset)], "offset"
         return None, None
     return candidates.get(key), "id"
+
+
+def stub_index(state):
+    """(stub paragraph, entry offset) -> candidate id, from the rows' STUB_pppp_oooo aliases."""
+    candidate_ids = set(state["candidates"].values())
+    index = {}
+    for alias, row in state["aliases"].items():
+        m = re.fullmatch(r"STUB_([0-9A-F]{4})_([0-9A-F]{4})", alias)
+        if m and row["id"] in candidate_ids:
+            index[(int(m.group(1), 16), int(m.group(2), 16))] = row["id"]
+    return index
 
 
 def offset_index(candidates):
@@ -271,8 +290,9 @@ def scan_main_files(root, known_ids):
     return {key: sorted(set(value)) for key, value in result.items()}
 
 
-def scan_mentions(root, candidates):
-    """Find address mentions in the main tree, bucketed source/tooling/docs."""
+def scan_mentions(root, candidates, stubs=None):
+    """Find address mentions in the main tree, bucketed source/tooling/docs. `stubs` maps an overlay
+    stub (paragraph, entry offset) to its candidate id, for the SEG:OFF form."""
     by_offset = offset_index(candidates)
     result = {cid: {"source": [], "tooling": [], "docs": []} for cid in candidates.values()}
     for base in SOURCE_DIRS:
@@ -293,7 +313,7 @@ def scan_mentions(root, candidates):
             for lineno, line in enumerate(text.splitlines(), 1):
                 low = line.lower()
                 for match in TOKEN.finditer(low):
-                    cid, kind = resolve_match(match, low, path_units, candidates, by_offset)
+                    cid, kind = resolve_match(match, low, path_units, candidates, by_offset, stubs)
                     if cid is None or (cid, lineno, kind) in seen:
                         continue
                     seen.add((cid, lineno, kind))
@@ -710,8 +730,11 @@ SPAN_HASH = re.compile(
 NEXT_PROLOGUE = re.compile(r"next\s+prologue|prologue\s+is\s+\+?0x", re.IGNORECASE)
 # A comment describing an address RANGE (e.g. "+2A87..+2AE6 (95 original bytes)")
 # names this routine only as the end of its neighbour's extent.
-# An IP REDIRECT (`c->ip = 0x07BCu`) is the loader handing control to an
-# address, and a bare comment mention only names it; neither models the body.
+# An IP REDIRECT (`c->ip = 0x....u`) hands control to an address and a bare
+# comment only names it; by themselves neither models the body. The exception is
+# a span the covering routine's own registered checker pins by hash (SPAN_PIN
+# below): +0E0C's `c->ip = 0x07BCu` is followed by a full model of +07BC, which
+# u25_load_word_0e0c_audit.py executes against the original bytes.
 IP_REDIRECT = re.compile(r"->\s*ip\s*=\s*(?:0x[0-9a-fA-F]+|\d+)|\bip\s*=\s*0x[0-9a-fA-F]+u?")
 COMMENT_ONLY = re.compile(r"^\s*(?:/\*|\*|//)")
 RANGE_COMMENT = re.compile(
@@ -721,31 +744,65 @@ INLINE_MODEL_WORD = re.compile(r"\bcalls?\b|\bcalled\b|invoke|inline|\bmodel\b|p
 INLINE_EVIDENCE_KEYWORD = re.compile(r"call|invoke|entry|patch|model", re.IGNORECASE)
 
 
+def boundary_rule(mention):
+    """The name of the rule that makes a mention boundary-only (not inline-model evidence), or None."""
+    text = (mention.get("text") or "").strip()
+    for name, hit in (("CALLSITE_MAP", CALLSITE_MAP.match(text)), ("SPAN_HASH", SPAN_HASH.match(text)),
+                      ("BOUNDARY_ASSERTION", BOUNDARY_ASSERTION.search(text)), ("RANGE_COMMENT", RANGE_COMMENT.search(text)),
+                      ("IP_REDIRECT", IP_REDIRECT.search(text)), ("COMMENT_ONLY", COMMENT_ONLY.match(text))):
+        if hit:
+            return None if INLINE_MODEL_WORD.search(text) else name
+    return "NEXT_PROLOGUE" if NEXT_PROLOGUE.search(text) else None
+
+
 def is_boundary_mention(mention):
     """True when a mention of this address is not evidence of an inline model."""
-    text = (mention.get("text") or "").strip()
-    structural = bool(CALLSITE_MAP.match(text)
-                      or SPAN_HASH.match(text)
-                      or BOUNDARY_ASSERTION.search(text)
-                      or RANGE_COMMENT.search(text)
-                      or IP_REDIRECT.search(text)
-                      or COMMENT_ONLY.match(text))
-    if structural:
-        return not INLINE_MODEL_WORD.search(text)
-    return bool(NEXT_PROLOGUE.search(text))
+    return boundary_rule(mention) is not None
 
 
-def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
+# A span the covering routine's registered checker pins by SHA-256 is translated
+# there: `(0x07BC, 0x0A74, "6ec8...")` in u25_load_word_0e0c_audit.py is +0E0C's
+# checker executing +07BC's original bytes against its C. A redirect or a bare
+# comment in that routine's model then names a body it models, not a boundary.
+SPAN_PIN = re.compile(r"\(\s*0x(?P<start>[0-9a-fA-F]{3,5})\s*,\s*0x[0-9a-fA-F]{3,5}\s*,\s*[\"'][0-9a-f]{64}[\"']\s*\)")
+
+
+def pinned_spans(repo):
+    """Row id -> span start offsets that one of its registered checkers pins by hash (the CI registry, both folders)."""
+    from check_checker_builds import discover
+    pinned = {}
+    for row, paths in discover(Path(repo)).items():
+        for path in paths:
+            text = (Path(repo) / path).read_text(errors="ignore")
+            pinned.setdefault(row, set()).update(int(m.group("start"), 16) for m in SPAN_PIN.finditer(text))
+    return pinned
+
+
+def pinned_by(cid, covered_by, pinned):
+    """True when covered_by's checker pins the span that starts at cid's offset in the same unit."""
+    if not pinned or covered_by is None or cid[:8] != covered_by[:8]:
+        return False
+    return int(cid[-4:], 16) in pinned.get(covered_by, ())
+
+
+def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids, pinned=None):
     own = main_files.get(cid, [])
-    flags, inline = set(), []
+    flags, inline, discarded = set(), [], []
     if own:
         flags.add("main_model")
     for mention in mentions["source"]:
         covered_by = routine_of(mention["file"], known_ids)
         if covered_by is None or covered_by == cid:
+            discarded.append(dict(mention, rule="NO_SINGLE_ROUTINE" if covered_by is None else "OWN_ROUTINE", covered_by=covered_by))
             continue
-        if is_boundary_mention(mention):
-            continue
+        rule = boundary_rule(mention)
+        if rule is not None:
+            if not pinned_by(cid, covered_by, pinned):
+                discarded.append(dict(mention, rule=rule, covered_by=covered_by))
+                continue
+            mention = dict(mention, pinned_span=True, rescued_from=rule)
+        if covered_by not in strict_overlay and covered_by not in main_files:
+            discarded.append(dict(mention, rule="COVERING_ROUTINE_UNMODELLED", covered_by=covered_by))
         if covered_by in strict_overlay:
             inline.append(dict(mention, covered_by=covered_by))
             flags.add("inline_in_strict")
@@ -767,7 +824,7 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
         penalty = PRIOR_PENALTY[status]
     return dict(status=status, penalty=min(penalty, 60), main_files=own,
                 inline=inline[:MENTION_LIMIT], branches=branches, commits=commits,
-                mentions=mentions)
+                mentions=mentions, discarded=discarded)
 
 
 def runtime_readiness(seg, off):
@@ -992,7 +1049,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
-                               state["all_ids"])
+                               state["all_ids"], state.get("pinned_spans"))
         size_bytes = number(entry["bound"])
         size_points = (12 if size_bytes <= 48 else 8 if size_bytes <= 128 else
                        4 if size_bytes <= 256 else 2 if size_bytes <= 512 else 0)
@@ -1013,6 +1070,13 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             else len(callers["aligned_push_cs"]),
             callee_readiness=callees, callers=callers, prior_translation=prior,
             score=sum(terms.values()), score_terms=terms))
+    discards = []
+    for item in ranked:          # every rejected source mention goes to the discard report; the row keeps the count
+        rejected = item["prior_translation"].pop("discarded", [])
+        item["prior_translation"]["discarded_mentions"] = len(rejected)
+        discards += [dict(row=item["id"], file=d.get("file"), line=d.get("line"), rule=d["rule"],
+                          covered_by=d.get("covered_by"), text=d.get("text")) for d in rejected]
+    discards.sort(key=lambda d: (d["row"], d["file"] or "", d["line"] or 0, d["rule"]))
     ranked.sort(key=lambda item: (-item["score"], item["id"]))
     for index, item in enumerate(ranked, 1):
         item["rank"] = index
@@ -1035,9 +1099,13 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    fixup_backed_callers=sum(item["callers_fixup_backed"] for item in ranked),
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
-                   top_score=ranked[0]["score"] if ranked else None)
+                   top_score=ranked[0]["score"] if ranked else None,
+                   discarded_mentions=len(discards),
+                   discarded_by_rule=counts(d["rule"] for d in discards),
+                   pinned_span_rescues=sum(1 for item in ranked for m in item["prior_translation"]["inline"]
+                                           if m.get("pinned_span")))
     return dict(schema_version=9, inputs=DIGESTS.copy(), git=git_view,
-                summary=summary, rows=ranked)
+                summary=summary, rows=ranked, discards=discards)
 
 
 def stale_inputs(export, root=ROOT):
@@ -1093,6 +1161,7 @@ def main():
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
     parser.add_argument("--json", required=True)
+    parser.add_argument("--discards", help="write the detector's discard report (every rejected mention, its rule) here")
     args = parser.parse_args()
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
@@ -1146,9 +1215,10 @@ def main():
                            csv_rows(blobs["partial_models"]), driver_internal,
                            csv_rows(blobs["identities"]), resident_runtime)
         main_files = scan_main_files(repo, state["all_ids"])
+        state["pinned_spans"] = pinned_spans(repo)
         for identifier, evidence in sorted(state["full_models"].items()):
             main_files.setdefault(identifier, []).append(evidence)
-        mentions = scan_mentions(repo, state["candidates"])
+        mentions = scan_mentions(repo, state["candidates"], stub_index(state))
         if args.no_git:
             branch_hits, commit_hits, git_view = {}, {}, None
         else:
@@ -1165,7 +1235,17 @@ def main():
         parser.exit(2, f"strict candidate queue refused: {error}\n")
     result["artifacts_sha256"] = {name: hashlib.sha256(blob).hexdigest()
                                   for name, blob in sorted(blobs.items())}
-    Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
+    discards = result.pop("discards")
+    export = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    Path(args.json).write_text(export)
+    if args.discards:          # a snapshot: it names the tree and the export it was measured at
+        head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        Path(args.discards).write_text(json.dumps(dict(
+            schema_version=2, kind="pinned measurement of the strict queue detector's discards, not a live list",
+            pin=dict(tree_commit=head or None, export_sha256=hashlib.sha256(export.encode()).hexdigest()),
+            artifacts_sha256=result["artifacts_sha256"], git=result["git"],
+            count=len(discards), by_rule=result["summary"]["discarded_by_rule"], discards=discards),
+            indent=1, sort_keys=True) + "\n")
     print(json.dumps(result["summary"], sort_keys=True))
 
 

@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Complete U5E +32E6 with raw U3C6 slot accessors.
  * Memory/arithmetic primitives adapted from accepted U3C2 +0909;
  * slot composition follows accepted U5E +1BF8. See U5E_CALLER_32E6.md. */
@@ -119,6 +120,13 @@ pr_u5e_32e6_status pr_u5e_caller_32e6(
        limits->slot_iterations==0u || limits->chain_iterations==0u ||
        limits->line_iterations==0u || limits->sort_loopbacks==0u ||
        limits->copy_iterations==0u)return PR_U5E_32E6_ARGUMENT;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_overlay_stub_matches(ram, c->cs, 0x32F2u, 0x005Cu, 0x0BE7u, layout->slots_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x32FEu, 0x0061u, 0x0C0Fu, layout->slots_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x3311u, 0x0066u, 0x0C37u, layout->slots_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x331Fu, 0x003Eu, 0x0909u, layout->chain_cs) &&
+          pr_u3c2_0909_stubs_loaded(ram, layout->chain_cs, layout->slots_cs)))
+        return PR_U5E_32E6_ARGUMENT;
     code_segment=c->cs;remaining=limits->copy_iterations;
     for (;;) {
         if(c->cs!=code_segment)return PR_U5E_32E6_TRANSFER;

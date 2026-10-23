@@ -27,9 +27,9 @@ def assembly(paths,case,decoded):
     a+=['mov ax,word ptr cs:[output]','mov word ptr cs:[dispatch+2],ax','mov es,ax']
     for (kind,ip),ins in decoded.items():
         if kind=='u7f' and ins.mnemonic=='lcall' and ins.op_str=='0xb0, 0x48':
-            a += [f'mov word ptr es:[{ip+1}],{0x48 if ip==0xFDE else 0xDE3}',
+            a += [f'mov word ptr es:[{ip+1}],{0x48}',
                   'mov ax,word ptr cs:[output+2]']
-            if ip==0xFDE:a+=['add ax,0x100']
+            a+=['add ax,0x100']
             a += [f'mov word ptr es:[{ip+3}],ax']
     a += ['mov ax,word ptr cs:[output+2]','add ax,0x100','mov es,ax',
           'mov byte ptr es:[0x48],0xea','mov word ptr es:[0x49],0xde3',

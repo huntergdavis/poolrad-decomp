@@ -61,6 +61,7 @@ overlay_u1c_vertical_menu_prefix_0f08.c,flat,no,no
 overlay_u1c_vertical_menu_two_node_0f73.c,flat,no,no
 overlay_u20_list_walk_11ac_cpu.c,flat,no,no
 overlay_u20_party_award_0355_cpu.c,flat,no,no
+overlay_u23_append_0239_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_alloc_1951_cpu.c,flat,no,no
 overlay_u25_entry13_1684.c,flat,no,no
 overlay_u25_entry14_1788.c,flat,no,no

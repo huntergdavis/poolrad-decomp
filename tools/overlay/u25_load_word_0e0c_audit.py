@@ -98,8 +98,9 @@ def library(directory):
         str(ROOT / "src/recovered/overlay_u25_party_index_0756.c"), "-o", str(path)],
         check=True, capture_output=True, text=True)
     lib = ctypes.CDLL(str(path))
-    lib.pr_u25_load_word_0e0c.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu)]
-    lib.pr_u25_load_word_0e0c.restype = ctypes.c_int
+    for entry in (lib.pr_u25_load_word_0e0c, lib.pr_u25_load_hook_07bc):  # the +07BC hook is public too (its own audit)
+        entry.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu)]
+        entry.restype = ctypes.c_int
     return lib
 
 
@@ -126,7 +127,7 @@ def make_case(bodies, address, *, sp=0x8000, ds=0x1000, ss=0x2000):
 SPLIT_ARRIVALS = [0]
 
 
-def compare(label, ram, initial, bodies, instructions, lib, visited):
+def compare(label, ram, initial, bodies, instructions, lib, visited, entry="pr_u25_load_word_0e0c"):
     for start, body in bodies.items():
         at = physical(initial.cs, start)
         require(ram[at:at + len(body)] == body, "case overlaps immutable code")
@@ -179,7 +180,7 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
     writer.finish(uc)
     candidate_ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(baseline)
     candidate = Cpu.from_buffer_copy(initial)
-    status = lib.pr_u25_load_word_0e0c(candidate_ram, SIZE, ctypes.byref(candidate))
+    status = getattr(lib, entry)(candidate_ram, SIZE, ctypes.byref(candidate))
     require(status == expected_status, f"status mismatch {label}: {status}/{expected_status}")
     expected, actual = bytes(original_ram), bytes(candidate_ram)
     if expected != actual:

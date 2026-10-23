@@ -210,6 +210,11 @@ def main():
     bodies,decoded,data=source();visited=set();edges=set();count=0;statuses={};stops={};results=set()
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        m,c,l,stub=fixture();install(m,c,l,stub,bodies,data)
+        stub_guards=verify_refusals(m,c,lambda ram,state: lib.pr_u5e_neighbor_1bf8(ram,SIZE,ctypes.byref(state),ctypes.byref(l),4096),
+                                    [(c.cs,p) for p in (0x1C1D,0x1C3C,0x1C67)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         def run(label,budget=4096,**kw):
             nonlocal count
             v,e,s,c=compare(label,fixture(**kw),bodies,decoded,data,lib,budget)
@@ -257,7 +262,7 @@ def main():
                 flags=rng.choice((0x202,0xED7,0x47,0xA93)))
     required={(key,(key[0],dest)) for key,ins in decoded.items() if ins.mnemonic.startswith('j') and ins.mnemonic!='jmp'
               for dest in (ins.address+ins.size,int(ins.op_str,16))}
-    report=dict(target='OVL_005E_1BF8',cases=count,whole_ram_bytes=SIZE,cpu_words=14,source_sites=len(decoded),covered_sites=len(visited),
+    report=dict(loaded_stub_guards=stub_guards,target='OVL_005E_1BF8',cases=count,whole_ram_bytes=SIZE,cpu_words=14,source_sites=len(decoded),covered_sites=len(visited),
                 conditional_edges=len(edges),required_edges=len(required),missing_sites=sorted(set(decoded)-visited),missing_edges=sorted(required-edges),
                 status_counts=statuses,stop_counts=stops,returned_al=sorted(results),masked_flags=0,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),emulator_state_substitutions=0,
                 native_route_measured=False)

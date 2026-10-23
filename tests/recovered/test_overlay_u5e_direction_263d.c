@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u5e_direction_263d.h"
 
 #include <stdio.h>
@@ -35,6 +36,11 @@ static pr_u5e_263d_cpu setup(uint8_t x, uint8_t y)
     };
     unsigned i;
     memset(ram, 0xA5, sizeof ram);
+    test_loaded_stub(ram, c.cs, 0x2649u, (uint16_t)(layout.slots_cs + 0x100u), 0x005Cu, layout.slots_cs, 0x0BE7u);
+    test_loaded_stub(ram, c.cs, 0x2657u, (uint16_t)(layout.slots_cs + 0x100u), 0x0061u, layout.slots_cs, 0x0C0Fu);
+    test_loaded_stub(ram, c.cs, 0x2665u, (uint16_t)(layout.slots_cs + 0x100u), 0x005Cu, layout.slots_cs, 0x0BE7u);
+    test_loaded_stub(ram, c.cs, 0x2673u, (uint16_t)(layout.slots_cs + 0x100u), 0x0061u, layout.slots_cs, 0x0C0Fu);
+    test_loaded_stub(ram, c.cs, 0x2693u, (uint16_t)(layout.predicate_cs + 0x100u), 0x0034u, layout.predicate_cs, 0x057Bu);
     put16(c.ss, c.sp, 0x7000u);
     put16(c.ss, c.sp + 2u, c.cs);
     put16(c.ss, c.sp + 4u, 0x0200u);

@@ -36,6 +36,10 @@ typedef enum {
  * source order. A cyclic list does not return, as in DOS. The entry
  * cpu->ip is the body's load offset (0 in the game); the far call pushes
  * the return offset relative to it. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u6a_0000_status pr_u6a_record_weight_0000(
     uint8_t *ram, size_t ram_size, pr_u6a_0000_cpu *cpu);
 

@@ -29,6 +29,10 @@ typedef enum {
  * or unexpected return state; TRANSFER retains direct changed-return state.
  * Nonwrapping return frames only; writes may alias data/stack but not code.
  * See docs/re/U5E_CALLER_32E6.md for measured coverage and limitations. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u5e_32e6_status pr_u5e_caller_32e6(uint8_t *ram,size_t size,
     pr_u5e_32e6_cpu *cpu,const pr_u5e_32e6_layout *layout,
     const pr_u5e_32e6_limits *limits);

@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Complete U38 +04BA, composed with U9E +110D and +10E4. */
 #include "poolrad/recovered/overlay_u38_pair_04ba.h"
 #include "poolrad/recovered/overlay_u9e_entry17_110d.h"
@@ -88,6 +89,11 @@ pr_u38_04ba_status pr_u38_pair_04ba(uint8_t *ram, size_t ram_size,
     pr_u38_04ba_status status;
     if (!ram || !c || ram_size!=PR_U9E_10E4_RAM_SIZE || c->ip!=0x04BAu ||
         stack_code_alias(c,u9e_cs)) return PR_U38_04BA_ARGUMENT;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_overlay_stub_matches(ram, c->cs, 0x04DDu, 0x0075u, 0x110Du, u9e_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x0552u, 0x0075u, 0x110Du, u9e_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x05B0u, 0x0070u, 0x10E4u, u9e_cs)))
+        return PR_U38_04BA_ARGUMENT;
     cs=c->cs;
     /* +04BA..04CA: reject a source with its high attribute bit set. */
     push(ram,c,c->bp); c->bp=c->sp; c->sp=sub(c,c->sp,12u,16u);

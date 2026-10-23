@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """U9E +0160 raw partial-chain parity; original media/captures stay private."""
+from loaded_stub_fixtures import install_stub, loaded_sites
 import argparse,ctypes,json,random,struct,subprocess,tempfile
 from hashlib import sha256
 from pathlib import Path
@@ -66,7 +67,11 @@ def install(m,c,l,bodies,decoded):
         blob=bytearray(data)
         for (k,ip),ins in decoded.items():
             if k==kind and start<=ip<start+len(data) and ins.mnemonic=='lcall' and ip!=0x1E:
-                target,off=call_target(k,ip,ins);blob[ip-start+1:ip-start+5]=struct.pack('<HH',off,segs[target])
+                target,off=call_target(k,ip,ins)
+                if k=='chain' and target=='slots':
+                    install_stub(m,blob,start,ins,segs[target],off)
+                else:
+                    blob[ip-start+1:ip-start+5]=struct.pack('<HH',off,segs[target])
         for j,v in enumerate(blob):m[physical(segs[kind],start+j)]=v
 def build(bodies,decoded,*,key=0x15,direct=(),members=((0x15,),),selected=2,combat=5,party=((10,10,1),(12,12,1)),
           party_cycle=False,lookup_cycle=False,map_alias=False,ss=SS,sp=0x8000,flags=0x602,seed=0,writes=(),**options):
@@ -102,6 +107,7 @@ def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
     m,c,l=state;segs=segments(c,l);del segs['data'];backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
     uc=Uc(UC_ARCH_X86,UC_MODE_16);uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for (n,_),r in zip(Cpu._fields_,REGISTERS):uc.reg_write(r,getattr(c,n))
+    stubs=loaded_sites(m,segs,decoded)
     visited,edges=set(),set();calls=[];remaining=list(budgets)
     s=dict(stop=None,previous=None,last=None,stepping=False,callee=-1,nested=-1)
     def halt(status,nested=None):
@@ -112,6 +118,7 @@ def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
         del em,size,user
         if s['stepping']:return
         cs,ip=uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)
+        if (cs,ip) in stubs:return
         kind=next((k for k,v in segs.items() if v==cs),None);key=kind,ip
         check(key in decoded,f'original escape {label}: {cs:04x}:{ip:04x}')
         if key==('caller',0x1E):return halt(5)
@@ -224,6 +231,12 @@ def main():
     bodies,decoded,meta=source();report=dict(target=meta)
     with tempfile.TemporaryDirectory(prefix='u9e0160-') as tmp:
         f=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        memory,cpu,layout=build(bodies,decoded)
+        limits=Limits(*DEFAULT);diagnostic=Diagnostic()
+        report['loaded_stub_guards']=verify_refusals(memory,Cpu.from_buffer_copy(cpu),
+            lambda ram,state: f(ram,SIZE,ctypes.byref(state),ctypes.byref(layout),ctypes.byref(limits),ctypes.byref(diagnostic)),
+            [(layout.chain_cs,p) for p in (0x92A,0x9D8)])
         if a.unicorn:report['unicorn']=differential(bodies,decoded,f,a.quick)
         if a.native:
             from u9e_sidecar_0160_cpu_native import native

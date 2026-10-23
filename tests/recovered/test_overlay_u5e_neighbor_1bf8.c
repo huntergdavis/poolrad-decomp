@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u5e_neighbor_1bf8.h"
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +23,9 @@ static pr_u5e_1bf8_cpu setup(uint16_t sp, uint8_t occupant)
                        sp,0x6000,0x1BF8,0x1000,0x1111,0x2000,0x202};
     unsigned i;
     memset(ram,0xA5,sizeof ram);
+    test_loaded_stub(ram, c.cs, 0x1C1Du, (uint16_t)(0x7000u + 0x100u), 0x005Cu, 0x7000u, 0x0BE7u);
+    test_loaded_stub(ram, c.cs, 0x1C3Cu, (uint16_t)(0x7000u + 0x100u), 0x0061u, 0x7000u, 0x0C0Fu);
+    test_loaded_stub(ram, c.cs, 0x1C67u, (uint16_t)(0x7000u + 0x100u), 0x003Eu, 0x7000u, 0x04BEu);
     for(i=0;i<1250u;++i) {
         ram[phys(0x1000,(uint16_t)(0x60DBu+i))]=occupant;
         ram[phys(0x4000,(uint16_t)(0x107u+i))]=0u;

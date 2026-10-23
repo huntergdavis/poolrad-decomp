@@ -29,10 +29,9 @@ strict credit are the verifying lane's decision.
 ## Loaded-state precondition (inherited)
 
 Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. The credit is unchanged. `OVL_0031_0255`'s C
-composes `pr_u3c2_caller_0909` (`OVL_03C2_0909`), and that model does not read its overlay stubs. This credit therefore holds only
-under the same loaded-state precondition: every stub listed in [U3C2_CALLER_0909.md](U3C2_CALLER_0909.md#loaded-state-precondition)
-must hold its loaded far `JMP`. When one of those units is not resident, the original goes through the overlay
-manager and this C does not. This section covers only the composed model. It makes no claim about stubs this
+composes `pr_u3c2_caller_0909` (`OVL_03C2_0909`), and the outer C now checks its inherited loaded bindings before mutation. This credit retains
+the same loaded-state precondition: every stub listed in [U3C2_CALLER_0909.md](U3C2_CALLER_0909.md#loaded-state-precondition)
+must hold its loaded far `JMP`. If one is absent or malformed, **the C refuses with `ARGUMENT` before changing CPU14 or RAM**. The original overlay-manager path remains outside the C model. This section covers only the composed model. It makes no claim about stubs this
 body calls directly.
 
 ## Exact original
@@ -263,3 +262,5 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_0031_0255 --require-current-main
 ```
+
+Updated refusal/parity validation: [guard work report](../LOADED_STUB_GUARDS.md); measurements pending.

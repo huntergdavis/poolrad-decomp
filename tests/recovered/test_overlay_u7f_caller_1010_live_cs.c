@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 /* U7F +1010: the SYSTEM segment of each FillChar LCALL is the loader-relocated word in the caller's code, not a constant 0AF8h.
  * FillChar is wrapped at link time (-Wl,--wrap) so the test records the CS it is entered with and the pushed return IP, which names
  * the call site; each site gets its own word, so a model that read the wrong word, or a constant, fails. All other callees are the
@@ -26,6 +27,19 @@ static pr_u7f_1010_cpu setup(uint8_t *m,unsigned type,unsigned w1,unsigned w2,un
     pr_u7f_1010_cpu c={0x1234,0x3456,0x5678,0x789A,0x9ABC,0xBCDE,
         0x7777,0xF000,0x3000,0x1010,0x5000,0x1111,0x2000,0x602};
     unsigned i;memset(m,0xA5,PR_U7F_1010_RAM_SIZE);
+    test_loaded_stub(m, c.cs, 0x10C7u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1596u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1611u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1630u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1649u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1662u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x167Eu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1692u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x16ABu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x170Fu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x174Bu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x17A1u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x17E6u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
     put(m,c.ss,c.sp,0x9000);put(m,c.ss,c.sp+2u,0xA000);
     put(m,c.ss,c.sp+4u,0x8000);put(m,c.ss,c.sp+6u,0x5000);put(m,c.ss,c.sp+8u,type);
     for(i=0;i<512u;++i)put(m,c.ds,0x970u+2u*i,i*317u+19u);

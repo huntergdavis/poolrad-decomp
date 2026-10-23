@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* U9E +0160 with a precise pending dynamic-dispatch boundary.
  * Primitives: accepted U3C6 getter / U5E +32E6 engines.
  * See docs/re/U9E_SIDECAR_0160_CPU.md. */
@@ -117,6 +118,9 @@ pr_u9e_0160_status pr_u9e_sidecar_0160_cpu(uint8_t *ram,size_t size,pr_u9e_0160_
     if(ram==NULL || c==NULL || layout==NULL || l==NULL || size!=PR_U9E_0160_RAM_SIZE ||
        c->ip!=0x160u || c->sp<0x186u || c->sp>0xFFF6u ||
        l->chain_iterations==0u || l->line_iterations==0u || l->sort_loopbacks==0u)
+        return PR_U9E_0160_ARGUMENT;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_u3c2_0909_stubs_loaded(ram, layout->chain_cs, layout->slots_cs)))
         return PR_U9E_0160_ARGUMENT;
     caller=c->cs;
     for(;;) {

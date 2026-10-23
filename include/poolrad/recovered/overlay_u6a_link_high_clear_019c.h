@@ -32,6 +32,10 @@ typedef enum {
  * callee executed on the same RAM/CPU, RETF frame checked. The entry
  * cpu->ip is the body's load offset (0x019C in the game); the far call
  * pushes the return offset relative to it. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u6a_019c_status pr_u6a_link_high_clear_019c(
     uint8_t *ram, size_t ram_size, pr_u6a_019c_cpu *cpu);
 
