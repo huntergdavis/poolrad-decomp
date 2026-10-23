@@ -91,7 +91,7 @@ Placed at `BP+k` for `k = -30h..+0Eh` in steps of 2, each on the above and not-a
 
 ## Evidence
 
-**Original-byte Unicorn differential on the composed closure, re-run on the rebased tree (main `328ed22c`): 880 cases, 0 mismatches among 877 compared; 3 outside the contract (above).** Every body is the original bytes at its own segment; relocated segment words are installed from the unit's fixup table; the 1693 world is the 1693 audit's, with the independent Python EGA behind A0000..AFFFF. After every compared case, **unmasked** (one declared exception below): CPU14, **all 1,048,576 RAM bytes**, the EGA planes, latches and registers, the ordered OUT events, the ordered VRAM operands, the stop and the remaining budget.
+**Original-byte Unicorn differential on the composed closure, re-run on the tree rebased onto main `328ed22c` (main has since moved only by one unrelated C test file, `test_overlay_u7f_roll_composed_0fd2.c`): 880 cases, 0 mismatches among 877 compared; 3 outside the contract (above).** Every body is the original bytes at its own segment; relocated segment words are installed from the unit's fixup table; the 1693 world is the 1693 audit's, with the independent Python EGA behind A0000..AFFFF. After every compared case, **unmasked** (one declared exception below): CPU14, **all 1,048,576 RAM bytes**, the EGA planes, latches and registers, the ordered OUT events, the ordered VRAM operands, the stop and the remaining budget.
 
 Outcomes: **614 RETURNED, 259 LIMIT, 4 TRANSFER**. **Starts: 71/71 in this body (1,117 across the composed closure).** **Non-architectural stops: 0.**
 
