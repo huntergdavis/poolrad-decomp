@@ -144,3 +144,17 @@ Limits, stated: includes nested deeper than one level are not read; `#ifdef` bra
 re-keyed 279 rows (388 of 854 helpers name a macro) with **no classification changed**, no row split and no merge.
 `test_flag_census.py` shows that a changed `#define`, in the file or in a directly included header, moves the hash.
 
+## Uncredited disagreements fixed (2026-10-23)
+
+The seven stored-path disagreements in uncredited bodies from the inline census are fixed to the pinned rules:
+`overlay_u9e_entry8_fullstate_loop_0e05`, `overlay_u3b0_0883_xor_ah`, `overlay_u3b0_089f_xor_ah` (XOR clears AF);
+`overlay_u3bd_leaf_call_07f9` (OR clears AF); `resident_loader_0553` (`SHR AX,CL` with CL=4 sets AF and clears OF);
+`overlay_u7d_list_timer_0000_cpu` (`SHL DI,1` sets AF; `MUL` sets ZF from AX and PF over DX:AX); and
+`slot_a_u6f_1937_precall` (`MUL DX` sets ZF from AX and PF over DX:AX). Their C tests pass with asserts enabled;
+three of them (0883, 089F, `loader_0553`) had encoded the old AF and now expect the pinned value. The Unicorn checks that
+compile 0E05 (`0e2e`: 16 cases, `2b20`: 54 cases) and the `u7d_list_timer_0000` audit pass unchanged. Limit:
+`resident_loader_0553_audit.py` needs a native capture that is absent on this host and was not run.
+
+Tooling note: `--carry-from` did not carry the rows of non-static body functions (here u7d_list_timer_0000 and 0E05;
+earlier 0BDE and 0DBE `_cpu`); they were carried by hand. Fixing the matcher is a follow-up.
+

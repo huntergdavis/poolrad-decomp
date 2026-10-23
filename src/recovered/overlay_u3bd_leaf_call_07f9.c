@@ -84,7 +84,7 @@ int pr_u3bd_leaf_call_07f9(uint8_t *ram, size_t ram_size,
 
     /* +0808 OR AL,AL: CF/OF clear; ZF/PF set iff the leaf returned zero.
      * AF is architecturally undefined for OR and is left host supplied. */
-    frame->flags = (uint16_t)((frame->flags & (uint16_t)~0x08C5u) |
+    frame->flags = (uint16_t)((frame->flags & (uint16_t)~0x08D5u) |   /* OR clears AF in pinned DOSBox-X (flags.cpp:629-643) */
                               (result == 0u ? 0x0044u : 0u));
     *ip = 0x080Au;
     return 1;

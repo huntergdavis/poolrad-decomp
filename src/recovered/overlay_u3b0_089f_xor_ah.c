@@ -1,7 +1,7 @@
 /* DOS v1.3 GAME.OVR U3B0 +089F: 30 E4. AF is undefined. */
 #include "poolrad/recovered/overlay_u3b0_089f_xor_ah.h"
 
-#define DEFINED_LOGIC_FLAGS 0x08C5u /* OF SF ZF PF CF; excludes undefined AF */
+#define DEFINED_LOGIC_FLAGS 0x08D5u /* OF SF ZF AF PF CF: pinned XOR clears AF (flags.cpp:684-691) */
 
 pr_u3b0_089f_xor_ah_status pr_u3b0_089f_xor_ah(
     uint8_t *ram, size_t ram_size, pr_u3b0_cpu *cpu)
