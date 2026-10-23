@@ -19,6 +19,8 @@ import struct
 import subprocess
 import tempfile
 
+from pinned_shift_flags import LastFlagWriter, declared_flags_split, split_used
+
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
@@ -140,6 +142,8 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
     seen = {k: set() for k in ("body", *LEAVES)}
     edges = {k: set() for k in seen}
 
+    writer = LastFlagWriter()  # declared split (pinned_shift_flags): AF after a non-zero shift, DIV's six bits, else exact
+
     def note(kind, here, conditional):
         seen[kind].add(here)
         if state["previous"] is not None and state["previous"][0] == kind and state["previous"][1] in conditional and state["previous"][1] != here:
@@ -165,12 +169,14 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
                 return halt(emulator, CODE)
             state["expected"] = sites[address][0]
         if body[0] <= address < body[1]:
+            writer.step(emulator, address)
             note("body", address - origin, target["conditional"])
             if address - origin == BODY_RETF:
                 state["returning"] = True
             return None
         for name, (start, end) in ranges.items():
             if start <= address < end:
+                writer.step(emulator, address)
                 leaf = target["leaves"][name]
                 here = address - start + leaf["start"]
                 note(name, here, leaf["conditional"])
@@ -190,6 +196,7 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
     if high:
         original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(body[0], 2 * SIZE, count=budget)
+    writer.finish(original)
     check(state["stop"] is not None, f"original did not stop: {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
@@ -203,8 +210,16 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
         raise ValueError(f"RAM mismatch {label}: {[(hex(d), actual[d], expected[d]) for d in differences[:6]]} ({len(differences)} bytes)")
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         mine, want = getattr(cpu, name), original.reg_read(register) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(mine, want, writer)
+            check(problem is None, f"flags mismatch {label}: {problem}")
+            SPLITS[0] += split_used(mine, want, writer)
+            continue
         check(mine == want, f"{name} mismatch {label}: C={mine:04x}, original={want:04x}")
     return state["stop"], seen, edges
+
+
+SPLITS = [0]   # arrivals where C's pinned flags differ from raw Unicorn under the declared split
 
 
 def cases(rng):
@@ -260,6 +275,7 @@ def differential(target, code, image, function):
         report[kind] = dict(starts=len(seen[kind]), instructions=len(decoded), outcomes=len(edges[kind]), reachable_outcomes=len(reachable))
         print(f"  {kind}: {len(seen[kind])}/{len(decoded)} instruction starts, {len(edges[kind])}/{len(reachable)} conditional outcomes")
     check(all(stops[k] for k in (CODE, CALLEE, TRANSFER)), f"a stop kind was not exercised: {stops}")
+    print(f"U77 +28BE: declared flags split used at {SPLITS[0]} arrivals (pinned AF after the second SHL at a +28FD CODE stop, or pinned DIV flags)")
     print(f"U77 +28BE: {sum(stops.values())} original-byte cases passed ({stops[OK]} returns, {stops[CODE]} CODE, {stops[CALLEE]} CALLEE, "
           f"{stops[TRANSFER]} TRANSFER); full 1 MiB RAM and all 14 CPU words equal")
     report["stops"] = {NAMES[k]: v for k, v in stops.items()}
