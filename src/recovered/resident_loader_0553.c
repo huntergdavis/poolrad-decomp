@@ -4,7 +4,7 @@
 
 #define RAM_MASK (PR_HANDLER_02E6_RAM_SIZE - 1u)
 #define ADD_FLAGS 0x08D5u /* OF SF ZF AF PF CF */
-#define SHR_DEFINED_FLAGS 0x00C5u /* SF ZF PF CF, count=4 */
+#define SHR_DEFINED_FLAGS 0x08D5u /* all six: pinned SHR count 4 sets AF and clears OF (flags.cpp:763-771) */
 
 static size_t physical(uint16_t segment, uint16_t offset)
 {
@@ -63,6 +63,7 @@ pr_loader_0553_status pr_resident_loader_0553(
 
     result = (uint16_t)(sum >> 4u);
     flags = (uint16_t)(cpu->flags & ~SHR_DEFINED_FLAGS);
+    flags |= 0x0010u;   /* pinned: AF = (count & 1Fh) != 0 */
     if ((sum & 0x0008u) != 0u)
         flags |= 0x0001u;
     if (even_parity((uint8_t)result))

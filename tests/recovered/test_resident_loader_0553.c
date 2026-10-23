@@ -56,7 +56,7 @@ static int zero_size(void)
     CHECK(pr_resident_loader_0553(ram, sizeof ram, &cpu) ==
           PR_LOADER_0553_RETURNED);
     CHECK(cpu.ax == 0u && cpu.cx == 4u);
-    CHECK(cpu.flags == 0x7247u); /* SHR CF/PF/ZF; ADD AF clear. */
+    CHECK(cpu.flags == 0x7257u); /* SHR CF/PF/ZF; pinned SHR sets AF (count 4) and clears OF. */
     return 0;
 }
 

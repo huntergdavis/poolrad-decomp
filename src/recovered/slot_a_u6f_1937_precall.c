@@ -87,12 +87,18 @@ pr_slot_a_u6f_1937_status pr_slot_a_u6f_1937_step(
         return PR_SLOT_A_U6F_1937_OK;
     case 0x194du: s->cpu.dx = 0x0029u; s->cpu.ip = 0x1950u;
                   return PR_SLOT_A_U6F_1937_OK;
-    case 0x1950u: /* MUL DX; undefined flags normalized from native run. */
+    case 0x1950u: /* MUL DX: pinned MULW (SF/AF kept, ZF from AX alone, PF over DX:AX, CF=OF=(DX!=0)) */
         product = (uint32_t)s->cpu.ax * s->cpu.dx;
         s->cpu.ax = (uint16_t)product;
         s->cpu.dx = (uint16_t)(product >> 16);
-        s->cpu.flags &= (uint16_t)~ARITH_FLAGS;
-        if (s->cpu.dx) s->cpu.flags |= 0x0801u;
+        {
+            uint16_t w = (uint16_t)(s->cpu.ax ^ s->cpu.dx);
+            w ^= (uint16_t)(w >> 8); w ^= (uint16_t)(w >> 4); w ^= (uint16_t)(w >> 2); w ^= (uint16_t)(w >> 1);
+            s->cpu.flags &= (uint16_t)~0x0845u;
+            if (s->cpu.dx) s->cpu.flags |= 0x0801u;
+            if (s->cpu.ax == 0u) s->cpu.flags |= 0x0040u;
+            if ((w & 1u) == 0u) s->cpu.flags |= 0x0004u;
+        }
         s->cpu.ip = 0x1952u;
         return PR_SLOT_A_U6F_1937_OK;
     case 0x1952u: s->cpu.di = s->cpu.ax; s->cpu.ip = 0x1954u;

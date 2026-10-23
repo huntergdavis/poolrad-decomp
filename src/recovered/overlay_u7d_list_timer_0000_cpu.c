@@ -374,6 +374,7 @@ pr_u7d_0000_status pr_u7d_list_timer_0000_cpu(uint8_t *ram, size_t ram_size, pr_
         cpu->ax = (uint16_t)(int16_t)(int8_t)byte;
         cpu->di = cpu->ax;                                                /* 0076 MOV DI,AX; SHL DI,1 */
         cpu->flags &= (uint16_t)~0x08D5u;
+        cpu->flags |= 0x0010u;                                            /* pinned SHL: AF set for a non-zero count */
         if (cpu->di & 0x8000u) cpu->flags |= 0x0001u;
         if ((cpu->di ^ (uint16_t)(cpu->di << 1)) & 0x8000u) cpu->flags |= 0x0800u;
         cpu->di = (uint16_t)(cpu->di << 1);
@@ -383,8 +384,14 @@ pr_u7d_0000_status pr_u7d_list_timer_0000_cpu(uint8_t *ram, size_t ram_size, pr_
         product_low = (uint16_t)product;
         cpu->ax = product_low;
         cpu->dx = (uint16_t)(product >> 16);
-        cpu->flags &= (uint16_t)~0x0801u;
-        if (cpu->dx != 0u) cpu->flags |= 0x0801u;
+        {   /* pinned MULW: SF/AF kept, ZF from AX alone, PF over DX:AX, CF = OF = (DX != 0) */
+            uint16_t w = (uint16_t)(cpu->ax ^ cpu->dx);
+            w ^= (uint16_t)(w >> 8); w ^= (uint16_t)(w >> 4); w ^= (uint16_t)(w >> 2); w ^= (uint16_t)(w >> 1);
+            cpu->flags &= (uint16_t)~0x0845u;
+            if (cpu->dx != 0u) cpu->flags |= 0x0801u;
+            if (cpu->ax == 0u) cpu->flags |= 0x0040u;
+            if ((w & 1u) == 0u) cpu->flags |= 0x0004u;
+        }
         lwr16(&m, -5, cpu->ax);                                           /* 0081 MOV [BP-5],AX */
         before = lrd8(&m, -1);                                            /* 0084 MOV AL,[BP-1]; DEC AL; MOV [BP-1],AL */
         byte = (uint8_t)(before - 1u);
