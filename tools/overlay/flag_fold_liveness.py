@@ -181,6 +181,14 @@ PRESETS = {'u31': [
     (('unit', 0x3B0), (0x00CB, 0x01BA), 'overlay_u3b0_item_split_00cb_cpu.c:238', [0x0118]),
     (('unit', 0x3B0), (0x00CB, 0x01BA), '(computed by the model: SUB SP, ADD DI, XOR at the SET call, final pair_index)',
      [0x00CE, 0x00E7, 0x011E, 0x019B, 0x019D, 0x01A2]),
+], 'u77': [
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:154', [0x28C1]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:157', [0x28C4]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:163', [0x28D9, 0x28DE]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:180', [0x2902, 0x2905]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:185', [0x2908]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:187', [0x28D2]),
+    (('unit', 0x77), (0x28BE, 0x2939), '(other writers, not in the TSV)', [0x28E5, 0x28F1, 0x28F3, 0x2914, 0x2917]),
 ]}
 
 

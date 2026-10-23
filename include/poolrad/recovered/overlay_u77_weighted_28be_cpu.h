@@ -39,8 +39,9 @@ typedef enum {
  * and the divisor may alias the frame; j and the sum have no writer but
  * this routine, so the loop always runs five times. Flags: the final flags
  * are the divide's; at a CODE stop they are the second SHL DI,1's (AF
- * clear, as Unicorn leaves it) or ADC DX,0's for the two sites in order;
- * every other write is overwritten first and is folded. Offsets wrap at 16
+ * set, as pinned DOSBox-X has it) or ADC DX,0's for the two sites in order;
+ * every other write is overwritten before any branch, call, stop or return
+ * and is folded (docs/re/FLAG_FOLDED_U77_28BE.md). Offsets wrap at 16
  * bits, physical addresses at 1 MiB; the LES pairs, POP and this routine's
  * RETF frame are read physically contiguous, and each callee keeps its own
  * contract. *callee_status (may be NULL) receives the last callee's status,
