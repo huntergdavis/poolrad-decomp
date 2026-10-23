@@ -32,6 +32,18 @@ exact outcome on the real tree.
 `+0C77` is not credited, though, and no registered checker pins `+0A74`, so the rule does not count it. It is listed here
 as a known residual, not hidden.
 
+## Follow-up (PM i22091)
+
+- **SEG:OFF mentions.** Sources also write far calls as `SEG:OFF` with no `+` or `0x`; par-b found `00BA:23B7` inside
+  `overlay_u31_candidate_check_0255_cpu.c` (PM i22086). The mention scan now reads `pppp:oooo` as a unit:offset
+  (`007F:0A88`) or as an overlay stub paragraph:entry (`0041:00CA`, from the rows' `STUB_pppp_oooo` aliases), with kinds
+  `seg_off` and `stub_seg_off`. A resident `SEG:OFF` such as `00BA:23B7` names no overlay candidate, because this queue
+  ranks overlays only, so for residents the pre-claim grep is the check. `test_seg_off_mentions_are_found` pins both forms
+  and the non-matches.
+- **CI.** `test_strict_candidate_queue.py` runs media-free (two media cases skip). It now runs in the `checker-builds` job.
+- **Pin.** `strict_queue_discards.json` carries `pin` (tree commit and export sha256) and `kind`: a pinned measurement,
+  not a live list. A regeneration with `--discards` writes both.
+
 ## The discard report
 
 Every source mention the detector rejects is reported with its row, file, line, rule and text. A regeneration writes it
@@ -67,6 +79,8 @@ function queue has 898 originals.
 **1 of 439 offered candidates was already translated inside a credited body:** `OVL_0025_07BC`, host
 `src/recovered/overlay_u25_load_word_0e0c.c` (`OVL_0025_0E0C`, strict), pinned by `tools/overlay/u25_load_word_0e0c_audit.py`.
 
+**Precision of the flag:** this signal fired 30 times on 439 candidates; 29 were inspected and were false (neighbour end markers, en-route hashes, call-site comments, coincident constants); 1 was real.
+
 The detector's own flags are wider, and **wrong**. On this export, 30 rows carry inline evidence that names a strict-credited
 routine; 25 of them have `inline_in_strict` as their status. All of these flags predate this change. Each mention was read,
 and 29 of the 30 are not translations:
@@ -96,6 +110,24 @@ the unknown set) must not be subtracted: 29 are false.
 There are two more cases this measurement does not count:
 - bodies translated inside **uncredited** models, such as `OVL_0025_0A74` in `+0C77`;
 - bodies that a credited routine executes without a span pin.
+
+## From 483 unknown rows to 439 candidates
+
+This section reads the same exports, at the same pin: c6be5156; function queue `d52ae347…`, the same as the committed
+checkpoint; candidate export `555cf161…`. The candidate queue offers **every overlay original that is not strict-credited**:
+673 overlay rows − 234 strict = 439. Unknown ownership is a different cut, over both domains, so the two sets differ in two
+ways:
+
+| | Rows | Why |
+| --- | ---: | --- |
+| unknown ownership | 483 | 395 overlay + 88 resident |
+| − unknown but not offered | −88 | **all 88 are resident-image rows.** The strict candidate queue ranks overlay originals only (`load_queue`: candidates are overlay rows minus strict credits). These 88 are tracked in the resident inventories, not here |
+| + offered but not unknown | +44 | **all 44 are `game_verified` overlay rows without strict credit.** Their ownership is known, and they are still offered |
+| = offered candidates | **439** | 483 − 88 + 44; the 395 unknown overlay rows are all offered (no unknown row is strict) |
+
+Unknown, not offered (88, resident): `RES_IMAGE_00FE2`, `RES_IMAGE_01307`, `RES_IMAGE_0148F`, `RES_IMAGE_01513`, `RES_IMAGE_01583`, `RES_IMAGE_01713`, `RES_IMAGE_01C13`, `RES_IMAGE_01C4D`, `RES_IMAGE_0202B`, `RES_IMAGE_0228C`, `RES_IMAGE_02432`, `RES_IMAGE_0257E`, `RES_IMAGE_025C9`, `RES_IMAGE_02B8B`, `RES_IMAGE_02DC8`, `RES_IMAGE_02EEA`, `RES_IMAGE_02FD3`, `RES_IMAGE_030FB`, `RES_IMAGE_03226`, `RES_IMAGE_032CA`, `RES_IMAGE_03379`, `RES_IMAGE_034AB`, `RES_IMAGE_036FE`, `RES_IMAGE_03728`, `RES_IMAGE_037E8`, `RES_IMAGE_03AF7`, `RES_IMAGE_03C3E`, `RES_IMAGE_03DA0`, `RES_IMAGE_03ED0`, `RES_IMAGE_03F10`, `RES_IMAGE_041F8`, `RES_IMAGE_04277`, `RES_IMAGE_04354`, `RES_IMAGE_04640`, `RES_IMAGE_046BB`, `RES_IMAGE_0470F`, `RES_IMAGE_0473F`, `RES_IMAGE_04751`, `RES_IMAGE_048E5`, `RES_IMAGE_04F14`, `RES_IMAGE_053B1`, `RES_IMAGE_05AC4`, `RES_IMAGE_05B49`, `RES_IMAGE_05BD6`, `RES_IMAGE_05C07`, `RES_IMAGE_05F91`, `RES_IMAGE_06192`, `RES_IMAGE_0649C`, `RES_IMAGE_06ACE`, `RES_IMAGE_06C72`, `RES_IMAGE_0704D`, `RES_IMAGE_0708A`, `RES_IMAGE_07090`, `RES_IMAGE_07101`, `RES_IMAGE_07130`, `RES_IMAGE_07147`, `RES_IMAGE_0720C`, `RES_IMAGE_077F8`, `RES_IMAGE_07A73`, `RES_IMAGE_07BF6`, `RES_IMAGE_07C85`, `RES_IMAGE_07CCF`, `RES_IMAGE_07DF8`, `RES_IMAGE_08012`, `RES_IMAGE_08020`, `RES_IMAGE_08040`, `RES_IMAGE_08195`, `RES_IMAGE_08232`, `RES_IMAGE_08376`, `RES_IMAGE_08445`, `RES_IMAGE_0896A`, `RES_IMAGE_0897D`, `RES_IMAGE_08988`, `RES_IMAGE_08AB2`, `RES_IMAGE_08ACC`, `RES_IMAGE_08AE0`, `RES_IMAGE_08B4C`, `RES_IMAGE_08BBC`, `RES_IMAGE_08C5B`, `RES_IMAGE_08C85`, `RES_IMAGE_08CB2`, `RES_IMAGE_09E5C`, `RES_IMAGE_09E91`, `RES_IMAGE_0A222`, `RES_IMAGE_0A28E`, `RES_IMAGE_0A2FA`, `RES_IMAGE_0A310`, `RES_IMAGE_0AA20`.
+
+Offered, not unknown (44, game_verified and not strict): `OVL_001C_0001`, `OVL_001C_0126`, `OVL_001C_01A3`, `OVL_001C_0234`, `OVL_001C_0292`, `OVL_001C_02E0`, `OVL_001C_03B4`, `OVL_001C_0450`, `OVL_001C_0817`, `OVL_001C_0856`, `OVL_001C_0951`, `OVL_001C_0994`, `OVL_001C_0A09`, `OVL_001C_0BD1`, `OVL_001C_0C74`, `OVL_001C_0DEF`, `OVL_001C_0E5E`, `OVL_001C_0EBC`, `OVL_001C_0F08`, `OVL_001C_10D1`, `OVL_001C_12C6`, `OVL_001C_1435`, `OVL_001C_1629`, `OVL_001C_16C9`, `OVL_001C_179B`, `OVL_001C_19B0`, `OVL_001C_1DB1`, `OVL_001C_1EF8`, `OVL_001C_25CB`, `OVL_001C_2775`, `OVL_001C_2AA2`, `OVL_001C_2AC1`, `OVL_001C_2B33`, `OVL_001C_2B7E`, `OVL_001C_2C03`, `OVL_001C_2CCF`, `OVL_001C_2E10`, `OVL_001C_2F2D`, `OVL_001C_3171`, `OVL_0025_0A74`, `OVL_0025_0C77`, `OVL_0036_002D`, `OVL_03BD_0E08`, `OVL_03BD_10C7`.
 
 ## Reproduction
 
