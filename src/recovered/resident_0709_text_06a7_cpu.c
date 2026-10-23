@@ -130,7 +130,7 @@ pr_r0709_text_cpu_status pr_r0709_text_06a7_cpu(pr_bus *ram,size_t size,
         case 0x06F2: al(c,(uint8_t)(pr_bus_read8(ram,physical(c->ds,(uint16_t)(18914)))));c->ip=0x06F5u;break;
         case 0x06F5: c->ax=(uint16_t)((c->ax&255u)|((uint16_t)(uint8_t)(logic(c,(uint16_t)((uint8_t)(c->ax>>8u)^(uint8_t)(c->ax>>8u)),8u))<<8u));c->ip=0x06F7u;break;
         case 0x06F7: c->dx=0x000Au;c->ip=0x06FAu;break;
-        case 0x06FA: {uint32_t v=(uint32_t)c->ax*c->dx;c->ax=(uint16_t)v;c->dx=(uint16_t)(v>>16u);c->flags&=(uint16_t)~0x8D5u;if(c->dx)c->flags|=0x801u;result_flags(c,c->ax,0x8000u);}c->ip=0x06FCu;break;
+        case 0x06FA: {uint32_t v=(uint32_t)c->ax*c->dx;c->ax=(uint16_t)v;c->dx=(uint16_t)(v>>16u);{uint16_t w=(uint16_t)(c->ax^c->dx);w^=(uint16_t)(w>>8u);w^=(uint16_t)(w>>4u);w^=(uint16_t)(w>>2u);w^=(uint16_t)(w>>1u);/* pinned MULW: SF/AF kept, ZF from AX alone, PF = even parity of DX:AX, CF=OF=(DX!=0) */c->flags=(uint16_t)((c->flags&~0x0845u)|(c->dx?0x0801u:0u)|(c->ax==0u?0x0040u:0u)|((w&1u)?0u:0x0004u));}}c->ip=0x06FCu;break;
         case 0x06FC: push(ram,c,c->ax);c->ip=0x06FDu;break;
         case 0x06FD: if(pr_bus_read8(ram,physical(c->cs,c->ip))!=0x9A || read_word(ram,c->cs,0x6FEu)!=0x029Cu)return PR_R0709_TEXT_CPU_CODE;push(ram,c,c->cs);push(ram,c,0x0702u);c->cs=read_word(ram,c->cs,0x700u);c->ip=0x029Cu;d->callee=1;d->status=delay(ram,c,delay_loopbacks);if(d->status!=0)return PR_R0709_TEXT_CPU_CALLEE;if(c->cs!=caller || c->ip!=0x0702u)return PR_R0709_TEXT_CPU_TRANSFER;break;
         case 0x0702: c->di=read_word(ram,c->ss,(uint16_t)(c->bp+6));c->ip=0x0705u;break;

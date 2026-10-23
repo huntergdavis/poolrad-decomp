@@ -146,3 +146,11 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py RES_0709_0DBE --require-current-main
 ```
+
+## Pinned MULW flags: model fixed (2026-10-23, census #1464 family 3)
+
+Pinned DOSBox-X `MULW` (`instructions.h:605-619`) keeps SF and AF (`FillFlagsNoCFOF`), sets ZF from AX **alone**, PF to the even parity of **all four bytes of DX:AX** (`FLAG_PF` is the constant mask 4), and CF = OF = (DX != 0). The model took PF from AL only and SF from AX bit 15. Fix: the model follows pinned MULW.
+
+- **Did the evidence depend on these flags?** Only at the audit's artificial code-check stop right after the MUL, where the old model agreed with Unicorn rather than with pinned. `res0709_delay_0dbe_cpu_audit.py --unicorn` now uses the shared declared split (MULW rule): it passes, with the split used at **1** stop. The DOSBox-X native run passes (32 cases, all 14 CPU words, no mask), but it compares at returns, after `OR DX,DX`, so it cannot see this bit. The C test asserted the AL-only PF at the call site (`0x7202` for AX=`01C2h`); it now asserts the pinned `0x7206` and passes with asserts on.
+- **Caller-observable?** No. The `MUL` is followed immediately by `LCALL 0A40:029C`, whose `OR DX,DX` at `+02A2` overwrites ZF, PF, SF and AF before any instruction reads them (walked over the original bytes). At every real return these flags are already gone.
+- **Evidence for the verdict (par-e decides):** the difference is not observable, and the evidence now holds the model to pinned, so we expect the credit to stand.

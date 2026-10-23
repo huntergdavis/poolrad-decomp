@@ -46,5 +46,62 @@ class CensusTest(unittest.TestCase):
         self.assertEqual((missing, pending), ([], []), "run tools/overlay/flag_census.py --regen, classify the new rows, commit")
 
 
+
+class InlineDetectorTest(unittest.TestCase):
+    def test_non_static_body_with_inline_flags_is_found(self):
+        found = {(name, function) for name, function, _, _ in census.helpers()}
+        self.assertIn(("overlay_u5e_half_0e52.c", "pr_u5e_half_0e52"), found)   # the PM i21766 miss
+
+
+class MacroHashTest(unittest.TestCase):
+    """A flag rule that lives in a #define must move the hash (OVL_0025_0756's fix was a #define edit)."""
+
+    def digests(self, mask, header_mask="0x0010u"):
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            src, inc = Path(tmp) / "src/recovered", Path(tmp) / "include"
+            src.mkdir(parents=True); inc.mkdir()
+            (inc / "flags.h").write_text(f"#define AF_BIT {header_mask}\n")
+            (src / "a.c").write_text(f'#include "flags.h"\n#define KEEP {mask}\n'
+                                     "static void f(unsigned *flags) { *flags &= ~KEEP; }\n"
+                                     "static void g(unsigned *flags) { *flags |= AF_BIT; }\n"
+                                     "static void h(unsigned *flags) { *flags = 0u; }\n")
+            found = {fn: (body, d) for _, fn, body, d in census.helpers(tmp)}
+            plain = hashlib.md5(census.normalize(found["h"][0]).encode()).hexdigest()
+            return {fn: d for fn, (_, d) in found.items()}, plain
+
+    def test_define_change_moves_the_hash(self):
+        a, _ = self.digests("0x08C5u")
+        b, _ = self.digests("0x08D5u")
+        self.assertNotEqual(a["f"], b["f"])          # the #define in the same file
+        self.assertEqual(a["h"], b["h"])             # a macro-free body is untouched
+
+    def test_included_define_counts_one_level_deep(self):
+        a, _ = self.digests("0x08C5u", "0x0010u")
+        b, _ = self.digests("0x08C5u", "0x0000u")
+        self.assertNotEqual(a["g"], b["g"])
+
+    def test_macro_free_body_keeps_its_old_hash(self):
+        found, plain = self.digests("0x08C5u")
+        self.assertEqual(found["h"], plain)
+
+
+class CarryFromTest(unittest.TestCase):
+    """--carry-from computes the OLD tree's hashes; they must match the committed rows for bodies that name header macros."""
+
+    HAND_CARRIED = {   # the four rows --carry-from missed before it archived include/ (par-d2, 2026-10-23)
+        ("overlay_u33_grid_diagonal_0bde.c", "pr_u33_grid_diagonal_0bde"),
+        ("resident_0709_delay_wrapper_0dbe_cpu.c", "pr_r0709_delay_wrapper_0dbe_cpu"),
+        ("overlay_u7d_list_timer_0000_cpu.c", "pr_u7d_list_timer_0000_cpu"),
+        ("overlay_u9e_entry8_fullstate_loop_0e05.c", "pr_u9e_entry8_fullstate_loop_0e05"),
+    }
+
+    def test_rev_digests_match_committed_rows_for_the_hand_carried_four(self):
+        old = census.rev_digests("HEAD")
+        rows = census.read_rows()
+        self.assertTrue(self.HAND_CARRIED <= set(old), sorted(self.HAND_CARRIED - set(old)))
+        unmatched = {key for key in self.HAND_CARRIED if old[key] not in rows}
+        self.assertEqual(unmatched, set())
+
 if __name__ == "__main__":
     unittest.main()

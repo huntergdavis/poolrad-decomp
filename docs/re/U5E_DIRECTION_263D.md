@@ -154,3 +154,12 @@ of RAM equal, the split used in **1** case; caller coverage 41/41.
 **What the split cannot see:** a model that reverted to AF = 0 would match Unicorn and pass. Pinning AF = 1 itself is
 the job of the pinned-rule census (`FLAG_SEMANTICS_CENSUS.tsv`, shift-AF rows) and of DOSBox-X native runs. The credit
 and its evidence are otherwise unchanged.
+
+## Registered checker (2026-10-23, no claim moves)
+
+The audit now has a `--compile-only` path. Without media, it builds and binds the C library with the audit's own
+compiler command, prints `CHECKER_BUILD_OK`, and exits. It also declares `CHECKER_ROWS = ("OVL_005E_263D",)`, so CI
+builds it on every change (VP i21672).
+
+`credit_evidence_kind.csv` is regenerated in the same change. **The credit and its evidence are unchanged.** The full
+media run is unchanged too: predicate 506/506, chain 307/307, the declared AF split used in 1 case.

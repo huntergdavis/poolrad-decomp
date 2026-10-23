@@ -95,3 +95,11 @@ ctest --test-dir build -R '^poolrad_overlay_u38_target_mask81_25bc_tests$' --out
 | `OVL_0038_25BC` | the whole `poolrad_overlay_u38_target_mask81_25bc_tests` executable |
 
 Measured on `ee07bd68`: `poolrad_overlay_u38_target_mask81_25bc_tests` passed (1/1 under ctest).
+
+## Pinned AF after SHR: plain model fixed (2026-10-23, census #1464 family 2)
+
+The plain (non-`_cpu`) model ran `SHR AX,1` through `logic16`, which clears AF; pinned DOSBox-X sets AF after a non-zero shift (`get_AF` = `count & 1Fh`, `flags.cpp:172-177`; stored `763-771`). The `_cpu` variant already had both behaviours behind an explicit `shift_profile` (`PR_TARGET_SHIFT_UNICORN` AF=0, `PR_TARGET_SHIFT_DOSBOX386` AF=1). Fix: the plain model sets AF after the SHR.
+
+- **Did the evidence depend on AF?** Yes. The credit's check `check_overlay_u38_target_mask81_25bc.py` compares the **plain** model with Unicorn, and both left AF=0, so it agreed with Unicorn rather than with pinned. The check now uses the shared declared split (`pinned_shift_flags`: AF set after a non-zero shift, every other bit exact): **720 cases pass, the split used at 378 stops**; the old model fails (`C=0247`, split expects `0257`).
+- **Caller-observable?** Possibly. The SHR flags reach `RETF 0Ah` unchanged, and this body is a **public entry** reached only through the unit's entry table (no direct near or far call to it exists in any unit or in resident code), so the consumer is an indirect dispatcher and cannot be walked statically.
+- **Evidence for the verdict (par-e decides):** the evidence depended on AF only by agreeing with Unicorn; with the split, it now holds the model to pinned. Because the caller is an indirect dispatcher, we suggest that the credit stand with a dated caveat that caller-observability of AF is unverified.

@@ -2,7 +2,7 @@
 #include "poolrad/recovered/overlay_u9e_entry8_fullstate_loop_0e05.h"
 
 #define MASK (PR_U9E_ENTRY8_LOOP_RAM_SIZE - 1u)
-#define LOGIC_FLAGS 0x08C5u /* XOR AH,AH leaves AF undefined. */
+#define LOGIC_FLAGS 0x08D5u /* XOR AH,AH clears AF in pinned DOSBox-X (flags.cpp:684-691). */
 #define AF 0x0010u
 
 static size_t physical(uint16_t segment, uint16_t offset)

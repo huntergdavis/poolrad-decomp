@@ -101,3 +101,62 @@ re-run is what settles it. `overlay_u33_party_attach_12e1_cpu.c` already modelle
 text, so a fold with no comment is not listed). Each is an unverified deadness claim: show from the ORIGINAL bytes that no branch,
 PUSHF, INT, hook/stop point or return observes the folded flags, or compute them. `classified_by` in the census TSV says whether a
 row was read only by a sub-agent ("agent only") or also by hand when fixed.
+
+## Inline FLAGS writes in non-static bodies (2026-10-23)
+
+The detector scanned only `static` helpers, so a flag computation written inline in a body function was invisible:
+OVL_005E_0E52 cleared AF after its final SHR and no row existed (PM i21766; fixed in #1461). `flag_census.py` now
+also scans unindented non-static definitions. Static bodies keep their exact normalization (no existing hash or
+classification changed; the one row the regen dropped was 28BE's, merged into 00A8's identical SHL row by #1458).
+
+**137 new rows** (59 in credited bodies). Verdicts were drafted by read-only agents against the pinned source, as
+for the first census. par-d2 then hand-confirmed the mechanism of 11 of the disagreements in the C source (marked
+`agent; mechanism hand-confirmed (par-d2)`), linted every agree row for an AF-keeping `08C5h` mask or an AF-less
+shift (7 credited hits, all folded shifts with no live flags, which are t44's scope), and classified 0E52 by hand.
+
+**17 rows disagree on the stored path** (real model-vs-pinned differences; fixes are separate work, credited first):
+- AF kept across OR/XOR (mask `08C5h`; pinned OR/XOR clear AF, `flags.cpp:629-691`): OVL_0025_0756 (credited),
+  OVL_009E_0DE3 (credited), OVL_009E_0E05, OVL_03BD_07F9, `overlay_u3b0_0883_xor_ah`, `overlay_u3b0_089f_xor_ah`.
+- AF cleared after SHR (pinned sets AF = `count & 1Fh`): OVL_0038_2A87, OVL_0038_2AE6, OVL_0038_25BC (credited; their
+  files already set AF under `PR_TARGET_SHIFT_DOSBOX386` in a sibling function), OVL_0033_0BDE (credited),
+  OVL_005E_0E52 (credited; FIXED in #1461), `resident_loader_0553` (with OF).
+- MULW ZF/PF/SF (pinned: SF/AF kept, ZF from AX alone, PF over DX:AX, `instructions.h:605-619`): RES_0709_0DBE
+  (credited; both files), RES_0709_06A7 (credited), OVL_007D_0000, `slot_a_u6f_1937_precall`.
+Several are reported unobservable (a later instruction overwrites the bit before any read); each row's `detail` says
+which. A further 11 agent disagreements are the established word-op PF path split (stored path agrees).
+
+**Detector false positives (2):** `pr_rec_res_00ba_2e8b` (a game-data byte named `flags`) and `pr_u3b9_0708_show`
+(a comment), marked `n/a (no FLAGS write)`.
+
+**Pinned path split found while classifying:** for SHR by 1, stored OF is `var1 >= 8000h` (`flags.cpp:767`) but lazy
+`get_OF` is `var1 > 8000h` (`flags.cpp:401-404`; bytes `> 80h`). They differ only for an input of exactly 8000h/80h,
+and only a JO/JNO reads the lazy path. No row here depends on it.
+
+## The row hash covers macro definitions (2026-10-23)
+
+A flag rule can live in a `#define` (OVL_0025_0756's AF fix in #1465 edited only `DEFINED_OR_FLAGS`), and a hash of the
+body text alone could not see it: the row did not move and had to be marked FIXED by hand. The hash now covers the
+normalized body **plus the definition of every macro the body names**, taken from the file and from every file it
+`#include`s directly (**one level deep**). A body that names no macro keeps exactly the hash it had before.
+
+Limits, stated: includes nested deeper than one level are not read; `#ifdef` branches are not evaluated (every
+`#define` in the read files counts, and the last one wins); a function the body calls has its own row. The migration
+re-keyed 279 rows (388 of 854 helpers name a macro) with **no classification changed**, no row split and no merge.
+`test_flag_census.py` shows that a changed `#define`, in the file or in a directly included header, moves the hash.
+
+## Uncredited disagreements fixed (2026-10-23)
+
+The seven stored-path disagreements in uncredited bodies from the inline census are fixed to the pinned rules:
+`overlay_u9e_entry8_fullstate_loop_0e05`, `overlay_u3b0_0883_xor_ah`, `overlay_u3b0_089f_xor_ah` (XOR clears AF);
+`overlay_u3bd_leaf_call_07f9` (OR clears AF); `resident_loader_0553` (`SHR AX,CL` with CL=4 sets AF and clears OF);
+`overlay_u7d_list_timer_0000_cpu` (`SHL DI,1` sets AF; `MUL` sets ZF from AX and PF over DX:AX); and
+`slot_a_u6f_1937_precall` (`MUL DX` sets ZF from AX and PF over DX:AX). Their C tests pass with asserts enabled;
+three of them (0883, 089F, `loader_0553`) had encoded the old AF and now expect the pinned value. The Unicorn checks that
+compile 0E05 (`0e2e`: 16 cases, `2b20`: 54 cases) and the `u7d_list_timer_0000` audit pass unchanged. Limit:
+`resident_loader_0553_audit.py` needs a native capture that is absent on this host and was not run.
+
+Tooling note: `--carry-from` did not carry the rows of non-static body functions (here u7d_list_timer_0000 and 0E05;
+earlier 0BDE and 0DBE `_cpu`); they were carried by hand. Fixing the matcher is a follow-up.
+**Fixed (2026-10-23):** the cause was that `--carry-from` archived only `src/recovered` from the old revision, so bodies naming a
+macro from `include/` hashed differently there; it now archives `include/` too (`rev_digests`), and a test pins the four rows by name.
+

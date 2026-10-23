@@ -26,6 +26,9 @@ TSV = ROOT / "docs/re/FLAG_SEMANTICS_CENSUS.tsv"
 COLUMNS = ["hash", "n_helpers", "files", "instruction", "assumed_rule", "pinned_rule_and_citation", "agent_verdict",
            "stored_flags_verdict(FillFlags)", "detail", "classified_by", "branched_on"]
 FUNCTION = re.compile(r"^static\s+[A-Za-z0-9_ \*]+?\b([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{", re.M)
+# Non-static definitions too: a body function that computes FLAGS inline (OVL_005E_0E52, PM i21766) was invisible
+# to a static-only scan. Unindented, not a declaration, not a control statement.
+PUBLIC = re.compile(r"^(?!static\b)(?:[A-Za-z_][A-Za-z0-9_]*[ \t\*]+)+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;{)]*)\)\s*\{", re.M)
 WRITES_FLAGS = re.compile(r"\bflags\s*(?:&=|\|=|\^=|=(?!=))")
 UNCLASSIFIED = "UNCLASSIFIED"
 
@@ -36,21 +39,60 @@ def normalize(body):
     n = re.sub(r"\b(cpu|c|st|state|m|h)->", "X->", n)
     n = re.sub(r"pr_[a-z0-9_]+|cpu_t|machine", "T", n)
     n = re.sub(r"^static [^\(]*\(", "static F(", n)
+    n = re.sub(r"^(?!static )[^\(]*\(", "public F(", n)   # non-static bodies: own prefix, static hashes unchanged
     return re.sub(r"\s+", "", n)
 
 
+DEFINE = re.compile(r"^[ \t]*#[ \t]*define[ \t]+([A-Za-z_][A-Za-z0-9_]*)(\([^)]*\))?[ \t]*((?:[^\n\\]|\\\n|\\.)*)", re.M)
+INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"]([^>"]+)[>"]', re.M)
+IDENT = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+
+
+def macro_env(path, root=ROOT):
+    """#define name -> normalized definition, from the file and every file it #includes directly (one level deep).
+
+    The census hash covers these definitions for the macros a body names, because a flag rule can live in a macro:
+    OVL_0025_0756's AF fix was a #define edit that the body text never showed (census #1464 family 1). Limits: only
+    one include level, no conditional compilation (#ifdef branches are all read), and a later #define wins."""
+    root = Path(root)
+    texts = [path.read_text()]
+    for name in INCLUDE.findall(texts[0]):
+        for base in (path.parent, root / "include"):
+            candidate = base / name
+            if candidate.is_file():
+                texts.append(candidate.read_text())
+                break
+    env = {}
+    for text in texts:
+        for m in DEFINE.finditer(text):
+            value = re.sub(r"/\*.*?\*/", "", (m.group(2) or "") + m.group(3), flags=re.S)
+            env[m.group(1)] = re.sub(r"\s+", "", re.sub(r"//.*", "", value.replace("\\\n", " ")))
+    return env
+
+
+def digest_of(body, env):
+    """md5 of the normalized body; a body that names macros also covers their definitions (macro-free bodies keep
+    exactly the hash they had before macros were covered)."""
+    used = sorted(set(IDENT.findall(re.sub(r"/\*.*?\*/", "", body, flags=re.S))) & set(env))
+    key = normalize(body)
+    if used:
+        key += "|" + ";".join(f"{name}={env[name]}" for name in used)
+    return hashlib.md5(key.encode()).hexdigest()
+
+
 def helpers(root=ROOT):
-    """Yield (file name, function name, body, hash) for every flag-writing static function."""
+    """Yield (file name, function name, body, hash) for every flag-writing function (static or not)."""
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text()
-        for m in FUNCTION.finditer(text):
+        env = macro_env(path, root)
+        for m in sorted(list(FUNCTION.finditer(text)) + list(PUBLIC.finditer(text)), key=lambda x: x.start()):
             i, depth = m.end(), 1
             while depth and i < len(text):
                 depth += (text[i] == "{") - (text[i] == "}")
                 i += 1
             body = text[m.start():i]
             if WRITES_FLAGS.search(body):
-                yield path.name, m.group(1), body, hashlib.md5(normalize(body).encode()).hexdigest()
+                yield path.name, m.group(1), body, digest_of(body, env)
 
 
 def groups(root=ROOT):
@@ -100,16 +142,30 @@ def regen(root=ROOT, path=TSV):
     return len(out), dropped, sum(1 for r in out.values() if r["agent_verdict"] == UNCLASSIFIED)
 
 
+def rev_digests(rev, root=ROOT):
+    """{(file, function): hash} for every flag-writing helper as of `rev`.
+
+    The archive must include `include/` as well as `src/recovered`: since the hash covers the #defines a body names,
+    from its file and its direct includes, an old tree without the headers gives bodies that name a header macro a
+    different hash, and `--carry-from` silently skipped their rows (four non-static rows were carried by hand)."""
+    import subprocess
+    import tarfile
+    import io
+    import tempfile
+    blob = subprocess.run(["git", "-C", str(root), "archive", rev, "src/recovered", "include"], check=True,
+                          capture_output=True).stdout
+    with tempfile.TemporaryDirectory() as tmp:
+        tarfile.open(fileobj=io.BytesIO(blob)).extractall(tmp)
+        return {(f, fn): d for f, fn, _, d in helpers(Path(tmp))}
+
+
 def carry_from(rev, root=ROOT, path=TSV):
     """Move rows whose helper body changed since `rev` onto the new hash (matched by file and function)."""
     import subprocess
     import tarfile
     import io
     import tempfile
-    blob = subprocess.run(["git", "-C", str(root), "archive", rev, "src/recovered"], check=True, capture_output=True).stdout
-    with tempfile.TemporaryDirectory() as tmp:
-        tarfile.open(fileobj=io.BytesIO(blob)).extractall(tmp)
-        old = {(f, fn): d for f, fn, _, d in helpers(Path(tmp))}
+    old = rev_digests(rev, root)
     new = {(f, fn): d for f, fn, _, d in helpers(root)}
     rows, moved = read_rows(path), 0
     for key, od in old.items():

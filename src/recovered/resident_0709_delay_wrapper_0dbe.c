@@ -54,11 +54,18 @@ pr_r0709_delay_status pr_r0709_delay_wrapper_0dbe(
     cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) |
                          ram[physical(cpu->ds, 0x49E2u)]); /* +0DC1 MOV AL */
     cpu->ax &= 0x00FFu;                     /* +0DC4 XOR AH,AH */
+    cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | 0x0044u); /* XOR: ZF PF set; CF OF AF SF clear (pinned) */
     cpu->dx = 0x00E1u;                      /* +0DC6 MOV DX,00E1 */
-    argument = (uint16_t)(cpu->ax * cpu->dx); /* +0DC9 MUL DX */
+    argument = (uint16_t)(cpu->ax * cpu->dx); /* +0DC9 MUL DX: AL*E1h <= DB1Fh, so DX = 0 */
     cpu->ax = argument;
     cpu->dx = 0u;
-    cpu->flags &= (uint16_t)~0x0801u;       /* defined MUL CF/OF = 0 */
+    {   /* pinned DOSBox-X MULW: SF/AF kept (both 0 after the XOR), ZF from AX alone, PF = even parity of DX:AX, CF=OF=0 */
+        uint16_t w = (uint16_t)(argument ^ (argument >> 8));
+        w ^= (uint16_t)(w >> 4); w ^= (uint16_t)(w >> 2); w ^= (uint16_t)(w >> 1);
+        cpu->flags &= (uint16_t)~0x0845u;
+        if (argument == 0u) cpu->flags |= 0x0040u;
+        if ((w & 1u) == 0u) cpu->flags |= 0x0004u;
+    }
     report->argument = argument;
 
     push_word(ram, cpu, argument);           /* +0DCB PUSH AX */

@@ -59,7 +59,7 @@ static void test_call(uint8_t *ram, uint8_t *expected, uint16_t sp,
     assert(memcmp(ram, expected, PR_U9E_ENTRY8_PREFIX_RAM_SIZE) == 0);
     assert(cpu.ax == 0x0013u && cpu.bp == bp &&
            cpu.sp == (uint16_t)(sp - 8u) && cpu.ip == 0x0E0Eu &&
-           cpu.flags == 0x7256u);
+           cpu.flags == 0x7246u);   /* XOR AH,AH clears AF in pinned DOSBox-X (census #1464) */
     assert(cpu.bx == before.bx && cpu.cx == before.cx &&
            cpu.dx == before.dx && cpu.si == before.si &&
            cpu.di == before.di && cpu.cs == before.cs &&

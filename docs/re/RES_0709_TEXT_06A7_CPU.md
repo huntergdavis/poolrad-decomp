@@ -299,3 +299,11 @@ near-only set, and the clause is not needed.
   - **Callees:** the credited glyph `RES_0709_01DF` and the covered CRT Delay `0A40:029C`.
 - **Role line:** draws the next character of the printer `0768`'s message through the glyph `01DF` at the game's
   window cursor `DS:5E24/5E25`, then advances the cursor.
+
+## Pinned MULW flags: model fixed (2026-10-23, census #1464 family 3)
+
+Pinned DOSBox-X `MULW` (`instructions.h:605-619`) keeps SF and AF (`FillFlagsNoCFOF`), sets ZF from AX **alone**, PF to the even parity of **all four bytes of DX:AX** (`FLAG_PF` is the constant mask 4), and CF = OF = (DX != 0). The model took ZF/SF/PF from AX's low byte via `result_flags`. Fix: the MUL at `+06FA` follows pinned MULW.
+
+- **Did the evidence depend on these flags?** Only at the audit's code-check stop right after the MUL. `res0709_text_06a7_cpu_audit.py --unicorn` now uses the shared declared split: **116 cases** pass, with the split used at **1** stop. The C test passes with asserts on.
+- **Caller-observable?** No. The `MUL` is followed immediately by `LCALL 0A40:029C`, whose `OR DX,DX` at `+02A2` overwrites ZF, PF, SF and AF before any instruction reads them (walked over the original bytes). At every real return these flags are already gone.
+- **Evidence for the verdict (par-e decides):** we expect the credit to stand.

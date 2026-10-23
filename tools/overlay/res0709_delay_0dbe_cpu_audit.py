@@ -21,6 +21,8 @@ import tempfile
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, REGISTERS, physical, put16
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
+SPLIT_ARRIVALS = [0]
 
 A40, DELAY, DELAY_END, DELAY_RETF = 0x0A40, 0x029C, 0x02C9, 0x02BA
 R709, WRAP, WRAP_END, WRAP_RETF, SITE = 0x0709, 0x0DBE, 0x0DD3, 0x0DD2, 0x0DCC
@@ -108,6 +110,7 @@ def compare(label, mode, memory, cpu, high, target, functions, cap):
     final = (A40, DELAY_RETF) if mode == "delay" else (R709, WRAP_RETF)
     state = dict(stop=None, returned=False, previous=None, loopbacks=0, illegal=None)
     visited, edges = set(), set()
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def hook(emulator, address, size, user):
         del size, user
@@ -128,6 +131,7 @@ def compare(label, mode, memory, cpu, high, target, functions, cap):
         if here == (R709, SITE) and bytes(emulator.mem_read(address, 3)) != b"\x9a\x9c\x02":
             state["stop"] = CODE
             return emulator.emu_stop()
+        writer.step(emulator, address)
         visited.add(here)
         if previous in target["conditional"] and previous != here:
             edges.add((previous, here))
@@ -145,6 +149,7 @@ def compare(label, mode, memory, cpu, high, target, functions, cap):
     if high:
         original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(physical(cpu.cs, cpu.ip), 2 * SIZE, count=20000000)
+    writer.finish(original)
     check(state["illegal"] is None and state["stop"] is not None, f"original did not stop cleanly ({state['illegal']}): {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
@@ -163,6 +168,11 @@ def compare(label, mode, memory, cpu, high, target, functions, cap):
         raise ValueError(f"RAM mismatch {label}: {[(hex(d), actual[d], expected[d]) for d in differences[:6]]} ({len(differences)} bytes)")
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         mine, value = getattr(cpu, name), original.reg_read(register) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(mine, value, writer)
+            check(problem is None, f"flags mismatch {label}: {problem} ({NAMES[state['stop']]})")
+            SPLIT_ARRIVALS[0] += split_used(mine, value, writer)
+            continue
         check(mine == value, f"{name} mismatch {label}: C={mine:04x}, original={value:04x} ({NAMES[state['stop']]})")
     return state["stop"], visited, edges, state["loopbacks"]
 
@@ -205,8 +215,9 @@ def differential(target, delay, wrap, functions):
         visited |= v; edges |= e
     reachable = {(s, (s[0], o)) for s, outs in target["conditional"].items() for o in outs}
     missing = sorted(f"{s:04X}:{a:04X}" for s, a in target["starts"] if (s, a) not in visited)
+    print(f"Declared pinned flag splits used at {SPLIT_ARRIVALS[0]} stops {SPLIT_BY_RULE} (MULW: SF/AF kept, ZF from AX, PF over DX:AX)")
     print(f"Delay 029C + 0709:0DBE: {sum(stops.values())} original-byte cases ({', '.join(f'{v} {NAMES[k]}' for k, v in stops.items())}); "
-          f"full 1 MiB RAM and all 14 CPU words equal, no mask; {len(visited)}/{len(target['starts'])} instruction starts, "
+          f"full 1 MiB RAM and 13 CPU words equal, FLAGS through the declared split above (no mask); {len(visited)}/{len(target['starts'])} instruction starts, "
           f"{len(edges & reachable)}/{len(reachable)} conditional outcomes; up to {most} loop-backs in one case")
     check(not missing and reachable <= edges, f"coverage incomplete: {missing} {sorted(reachable - edges)}")
     check(stops[OK] and stops[CODE] and stops[LIMIT], f"a stop kind was not exercised: {stops}")

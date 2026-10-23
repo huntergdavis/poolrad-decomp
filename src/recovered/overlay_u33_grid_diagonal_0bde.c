@@ -377,6 +377,7 @@ pr_u33_0bde_status pr_u33_grid_diagonal_0bde(
                 set_al(cpu, (uint8_t)(count >> 1));
                 cpu->flags &= (uint16_t)~ARITH_FLAGS;
                 if (count & 1u) cpu->flags |= 0x0001u;
+                cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF set after SHR AL,1 */
                 if (even_parity((uint8_t)cpu->ax)) cpu->flags |= 0x0004u;
                 if ((uint8_t)cpu->ax == 0u) cpu->flags |= 0x0040u;
                 if (count & 0x80u) cpu->flags |= 0x0800u;

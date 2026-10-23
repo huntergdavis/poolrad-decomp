@@ -54,3 +54,11 @@ Unicorn or natural caller frame was run under the host native hold.
 The +0E13..+0E1E post-call path and +0E1F..+0E2D shared tail are separate
 PM-gated follow-ons. A full-state callback still requires an independently
 verified nested SYSTEM return frame and U9E `RETF 4` completion.
+
+## Pinned AF after OR/XOR: model fixed (2026-10-23, census #1464 family 1)
+
+The model kept the incoming AF across `XOR AH,AH` at `+0E0B` (mask `08C5h`, 'AF undefined'). Pinned DOSBox-X clears AF after XOR (`flags.cpp:684-691`). Fix: the mask is `08D5h`.
+
+- **Did the evidence depend on AF?** The prefix C test did: it asserted `flags == 7256h` (AF kept) at the `+0E0E` exit. It now asserts the pinned `7246h`. NOTE: that assertion is an `assert()`, which a Release (`NDEBUG`) build compiles away; built with asserts enabled, the prefix and composition tests pass on the fixed model, and the prefix test fails on the old one. The byte audit makes no flag claim.
+- **Caller-observable?** No. After `XOR AH,AH` the body runs `PUSH AX` and calls SYSTEM `0AF8:11C0`, which enters `+120F`; its `MUL` at `+1218` keeps AF (pinned `MULW`), and `SHL CX,1` at `+121D` overwrites it, before any instruction reads AF. On return, `INC AX` at `+0E13` writes AF again.
+- **Evidence for the verdict (par-e decides):** the difference is not observable, and the C test now pins the corrected value, so we expect the credit to stand.

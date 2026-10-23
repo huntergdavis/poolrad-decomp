@@ -113,3 +113,12 @@ verified identity and one strict full-C original for `+0x0756` (inbox i2886).
 The [accounting refresh](FUNCTION_ACCOUNTING_REFRESH.md) records that decision
 and its regenerated checkpoint. Natural unedited-script reachability remains
 unmeasured. The blocked `+0x1EA6` entry still receives no full-C credit.
+
+## Pinned AF after OR/XOR: model fixed (2026-10-23, census #1464 family 1)
+
+The model kept the incoming AF across its final `OR` (mask `08C5h`, 'AF undefined'). Pinned DOSBox-X clears AF after OR (`flags.cpp:629-643`, lazy and stored), and so does Unicorn. Fix: the mask is `08D5h`, so AF is cleared.
+
+- **Did the evidence depend on AF?** No. The Unicorn differential masked AF on the null (OR) path (`0xFFEF`), and no case entered with AF set, so the old model passed only because the bit was never compared. The check now compares **full FLAGS** on both paths and adds two cases entering with AF=1 (`entry-AF-empty`, `entry-AF-missing`): **16/16 pass**; the old mask fails at `entry-AF-empty` (`C=7256 DOS=7246`).
+- **Caller-observable?** No. Both callers in the load hook (`+0981`, `+099A`) execute `XOR AH,AH` immediately after the return, which overwrites AF before any read (walked over the original bytes with pinned semantics).
+- **Evidence for the verdict (par-e decides):** the evidence did not depend on AF and the difference is not observable, so we expect the credit to stand.
+- **Limit:** the check's one captured case needs `resources/oracle-runs/u9b-entry-zero-runtime-002/u9b-pre-0255-ram.bin`, which is absent on this host; the other 16 cases ran.

@@ -142,6 +142,20 @@ class EntryLiveness(unittest.TestCase):
         self.assertEqual(L.entry_liveness(ins, 0, stops=[0])["flags"]["Z"]["observed"], ["stop:@0000"])
 
 
+class ShiftCountSites(unittest.TestCase):
+    def test_unknown_count_shift_site_is_analysed_not_vacuous(self):
+        # shl ax,cl (count unknown) at the site; ret: its possible flags reach RET, so EXPOSED, never a vacuous DEAD.
+        r = run("d3e0" "c3")
+        self.assertEqual(r["verdict"], "EXPOSED")
+        self.assertEqual(set(r["flags"]), set("CPAZSO"))
+
+    def test_mov_cx_sets_the_count(self):
+        # sub ax,1; mov cx,4; shl ax,cl; ret: MOV CX,4 gives CL = 4, so the SHL kills SUB's flags.
+        self.assertEqual(run("83e801" "b90400" "d3e0" "c3")["verdict"], "DEAD")
+        # mov cx,100h (CL = 0): the shift writes nothing and SUB's flags reach RET.
+        self.assertEqual(run("83e801" "b90001" "d3e0" "c3")["verdict"], "EXPOSED")
+
+
 class FailClosed(unittest.TestCase):
     def test_unlisted_instruction_raises(self):
         with self.assertRaises(NotImplementedError):
