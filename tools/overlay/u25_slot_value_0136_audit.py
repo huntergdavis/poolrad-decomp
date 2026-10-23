@@ -21,6 +21,7 @@ from unicorn.x86_const import (
     UC_X86_REG_CS, UC_X86_REG_IP, UC_X86_REG_DS, UC_X86_REG_ES,
     UC_X86_REG_SS, UC_X86_REG_EFLAGS,
 )
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 from u25_load_word_0e0c_audit import (Cpu, REGS, SIZE, source as load_sources,
     make_case as load_fixture, cases as load_cases, physical, put16, word, require)
@@ -82,6 +83,9 @@ def slot(ram, cpu, address, *, index=1, tag=1):
 def make_case(bodies, address, *, index=1, tag=1, **kwargs):
     return slot(*load_fixture(bodies, address, **kwargs), address, index=index, tag=tag)
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, ram, initial, bodies, instructions, lib, visited):
     for start, body in bodies.items():
         at = physical(initial.cs, start)
@@ -95,9 +99,10 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         uc.reg_write(reg, getattr(initial, name))
     calls, stopped, stepping = [], [], [False]
     count = [0]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def hook(emulator, at, length, user):
-        del at, length, user
+        del length, user
         if stepping[0]:
             return
         ip = emulator.reg_read(UC_X86_REG_IP)
@@ -106,6 +111,7 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         visited.add(ip)
         count[0] += 1
         require(count[0] <= 100000, "original exceeded bounded audit execution")
+        writer.step(emulator, at)
         mnemonic, size = instructions[ip]
         if mnemonic == "call":
             calls.append((cs, (ip + size) & 0xFFFF))
@@ -130,6 +136,7 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         if actual != target:
             expected_status = 2
             break
+    writer.finish(uc)
     candidate_ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(baseline)
     candidate = Cpu.from_buffer_copy(initial)
     status = lib.pr_u25_slot_value_0136(candidate_ram, SIZE, ctypes.byref(candidate))
@@ -140,6 +147,11 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         raise ValueError(f"RAM mismatch {label}: physical offsets {offsets}")
     for (name, _), reg in zip(Cpu._fields_, REGS):
         value = uc.reg_read(reg) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(candidate.flags, value, writer)
+            require(problem is None, f"register mismatch {label} flags: {problem}")
+            SPLIT_ARRIVALS[0] += split_used(candidate.flags, value, writer)
+            continue
         require(getattr(candidate, name) == value,
                 f"register mismatch {label} {name}: {getattr(candidate, name):04x}/{value:04x}")
     return status
@@ -189,8 +201,8 @@ def run(bodies, instructions, lib):
             for tag in (0, 1, 2, 0xFF):
                 case(f"far-frame-{sp:04X}-{ss:04X}-{tag:02X}",
                      *make_case(bodies, 0xC04F, sp=sp, ss=ss, tag=tag))
-    print(f"Compared: {total} slot-value cases; all 14 CPU words/all {SIZE} RAM bytes equal; "
-          f"internal transfers={transfers}")
+    print(f"Compared: {total} slot-value cases; 13 CPU words/all {SIZE} RAM bytes equal; FLAGS equal except the "
+          f"declared pinned splits at {SPLIT_ARRIVALS[0]} stops {SPLIT_BY_RULE}; internal transfers={transfers}")
     for start, body in sorted(bodies.items()):
         offsets = {i.address for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(body, start)}
         print(f"Coverage u25:{start:04X}: {len(offsets & visited)}/{len(offsets)}")

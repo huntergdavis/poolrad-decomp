@@ -6,6 +6,8 @@ from pathlib import Path
 from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu,ROOT,SIZE,EXE_SHA,OVR_SHA,REGISTERS,physical,put16
+from pinned_shift_flags import LastFlagWriter,SPLIT_BY_RULE,declared_flags_split,split_used
+SPLIT_ARRIVALS=[0]
 from u7d_update_03a3_native_audit import source as unit_source
 CS,SYSTEM,ENTRY,END=0x5000,0x0AF8,0x047A,0x0563
 DS,SS,HEAP=0x1800,0x2800,0x3000
@@ -77,8 +79,9 @@ def compare(label,m,c,decoded,conditional,f,cap=10000,system=SYSTEM):
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):u.reg_write(reg,getattr(c,name))
     state=dict(stop=None,inner=-1,callee=-1,previous=None,returned=False,returning=None,calls=[],steps=0,unexpected=None)
     seen,edges=set(),set()
+    writer=LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
     def hook(emulator,address,size,user):
-        del address,size,user
+        del size,user
         cs,ip=emulator.reg_read(UC_X86_REG_CS),emulator.reg_read(UC_X86_REG_IP);key=(SYSTEM if cs==system else cs,ip)
         def stop(s,inner=None):
             state['stop']=s
@@ -103,6 +106,7 @@ def compare(label,m,c,decoded,conditional,f,cap=10000,system=SYSTEM):
         if ins.mnemonic in ('ret','retf'):
             if key==(CS,0x560):state['returned']=True
             else:state['returning']=key
+        writer.step(emulator,address)
         state['previous']=key
     def mirror(emulator,access,address,size,value,user):
         del access,user
@@ -111,12 +115,17 @@ def compare(label,m,c,decoded,conditional,f,cap=10000,system=SYSTEM):
     u.hook_add(UC_HOOK_CODE,hook);u.hook_add(UC_HOOK_MEM_WRITE,mirror)
     u.emu_start(physical(CS,ENTRY),2*SIZE,count=2000000)
     check(state['unexpected'] is None and state['stop'] is not None,f'original did not stop: {label} {state}')
+    writer.finish(u)
     r=(ctypes.c_uint8*SIZE).from_buffer_copy(m);inner=Diagnostic(-999,-999);s=f(r,SIZE,ctypes.byref(c),cap,ctypes.byref(inner))
     check((s,inner.callee,inner.status)==(state['stop'],state['callee'],state['inner']),f'{label}: status {(s,inner.callee,inner.status)} vs {state}')
     want=bytes(u.mem_read(0,SIZE));actual=bytes(r)
     if actual!=want:
         diff=[(hex(i),a,b) for i,(a,b) in enumerate(zip(actual,want)) if a!=b];raise ValueError(f'{label}: {len(diff)} RAM mismatches {diff[:8]}')
-    for (name,_),reg in zip(Cpu._fields_,REGISTERS):check(getattr(c,name)==u.reg_read(reg)&65535,f'{label}: {name} C{getattr(c,name):04X} DOS{u.reg_read(reg)&65535:04X}')
+    for (name,_),reg in zip(Cpu._fields_,REGISTERS):
+        if name=='flags':
+            problem=declared_flags_split(c.flags,u.reg_read(reg)&65535,writer);check(problem is None,f'{label}: {problem}')
+            SPLIT_ARRIVALS[0]+=split_used(c.flags,u.reg_read(reg)&65535,writer);continue
+        check(getattr(c,name)==u.reg_read(reg)&65535,f'{label}: {name} C{getattr(c,name):04X} DOS{u.reg_read(reg)&65535:04X}')
     return s,inner.status,seen,edges
 
 def differential(image,code,decoded,conditional,f):
@@ -128,7 +137,7 @@ def differential(image,code,decoded,conditional,f):
         if not label.startswith(('random-','prefix-')):print(label,name,flush=True)
     caller={k for k in decoded if k[0]==CS and ENTRY<=k[1]<END};ce={(a,b) for a,pair in conditional.items() if a in caller for b in pair}
     check(caller<=seen,'caller starts incomplete')
-    report=dict(cases=sum(stops.values()),stops=stops,cpu_words=14,ram_bytes=SIZE,caller_starts=len(caller&seen),caller_total=len(caller),caller_outcomes=len(ce&edges),caller_outcomes_total=len(ce),closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_starts=[f'{s:04X}:{i:04X}' for s,i in sorted(set(decoded)-seen)],missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)])
+    report=dict(cases=sum(stops.values()),stops=stops,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),cpu_words=14,ram_bytes=SIZE,caller_starts=len(caller&seen),caller_total=len(caller),caller_outcomes=len(ce&edges),caller_outcomes_total=len(ce),closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_starts=[f'{s:04X}:{i:04X}' for s,i in sorted(set(decoded)-seen)],missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)])
     print('Original parity',report,flush=True);return report
 
 def main():

@@ -180,3 +180,5 @@ The audit now declares the split through the shared `tools/overlay/pinned_shift_
 Run (PR #1446, `--unicorn`): **231** original-byte cases (222 returns, 5 CODE, 3 CALLEE, 1 TRANSFER), full 1 MiB RAM and 13 CPU words equal; the split was used at **2** stops, both after a shift. The DOSBox-X native run compares against the pinned core and needs no split.
 
 **Per-credit sentence (OVL_007F_00A8): evidence did not depend on AF after a shift**; those 2 stops hold C to AF=1 and every other stop is exact. Credit stands.
+
+Its audit now also calls the helper's `finish()` after emulation (2026-10-23), so a word divide that is the very last instruction before a stop has its pinned bits settled; re-run: 231 cases, unchanged.

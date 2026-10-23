@@ -104,7 +104,7 @@ fix), with FLAGS unmasked in the native run (i21533).
 
 Native 1,029/1,029 cases (1,026 returns plus 3 divide-error exits; 953 divisions), `flags_masked = 0`. Unicorn audit rc 0 on 3,265 cases (3,071 returns, 188 divide errors, 6 transfers, 2,893 divisions) under the declared division split.
 
-Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) for every
+Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) (kept in par-d2's worktree at `resources/evidence-par-d2/flags2/`, a lane-local, git-ignored path; moved there from `/tmp` on 2026-10-23) for every
 number above. par-e also confirmed that this body's C source, header, audit and native script, and the SYSTEM sources,
 are byte-identical between `23acc5bf` and main `5af0fb2e`. par-e did not re-run these checkers. The logs' `source_sha256`
 is the original body's hash, not the C's, so the source identity above comes from the git diff.

@@ -142,3 +142,13 @@ python3 tools/overlay/u3c2_line_init_01a0_audit.py \
   native saved-route reachability remain separate gates. +0422 still needs
   its callback composition wired and audited; this PR supplies its missing
   initializer rather than claiming that caller's completion.
+
+## Pinned flag split after #1433 (2026-10-23, no claim moves)
+
+After #1433 the model sets AF after a non-zero shift per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `coordinates-0` (`flags C=7256, original=7246`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py` (#1446): it tracks the last FLAGS-writing instruction the original executed and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set**. A model that reverted to the Unicorn value fails. Nothing is masked.
+
+Run (`--exe/--ovr`): **2,889** full CPU/RAM cases (all returns); the split was used at **all 2,889** stops, every one after a shift (the body ends in one).
+
+**Per-credit sentence (OVL_03C2_01A0): evidence did not depend on AF after a shift**; every stop holds C to AF=1 and all other bits are exact. Credit stands.

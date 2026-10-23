@@ -79,3 +79,5 @@ The audit now declares the split through the shared `tools/overlay/pinned_shift_
 Run (PR #1446): **120** composed full-RAM/14-CPU cases; the split was used at **42** stops, all after a shift.
 
 **Per-credit sentence (OVL_0038_2D88): evidence did not depend on AF after a shift**; those 42 stops hold C to AF=1 and every other stop is exact. Credit stands.
+
+Its check now also calls the helper's `finish()` after emulation (2026-10-23), so a word divide that is the very last instruction before a stop has its pinned bits settled; re-run: 120 cases, 42 split stops, unchanged.

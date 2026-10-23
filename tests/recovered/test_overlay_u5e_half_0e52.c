@@ -54,7 +54,8 @@ int main(void)
             CHECK(cpu.ds == 0x1000 && cpu.ss == 0x2000);
             CHECK((cpu.flags & 1u) == (adjusted % 2u));
             CHECK(((cpu.flags & 0x40u) != 0u) == (result == 0u));
-            CHECK((cpu.flags & 0x0890u) == 0u);
+            CHECK((cpu.flags & 0x0880u) == 0u);   /* OF, SF clear: AH was zeroed before the SHR */
+            CHECK((cpu.flags & 0x0010u) != 0u);   /* pinned DOSBox-X: AF set after a non-zero SHR */
             CHECK((cpu.flags & (uint16_t)~0x08D5u) ==
                   (0x0ED7u & (uint16_t)~0x08D5u));
             CHECK(ram[physical(cpu.ss, 0x7FFC)] == adjusted);

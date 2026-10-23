@@ -170,3 +170,13 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_0086_028D --require-current-main
 ```
+
+## Pinned flag split after #1433 (2026-10-23, no claim moves)
+
+After #1433 a composed shift sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `code-31f` (`flags: C=0612, original=0602`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py` (#1446): it tracks the last FLAGS-writing instruction the original executed and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set**. A model that reverted to the Unicorn value fails. Nothing is masked.
+
+Run (`--unicorn`): **303** cases; the split was used at **1** stop, after a shift.
+
+**Per-credit sentence (OVL_0086_028D): evidence did not depend on AF after a shift**; that stop holds C to AF=1 and every other stop is exact. Credit stands.
