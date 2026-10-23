@@ -20,7 +20,7 @@ def loaded_sites(memory, segments, decoded):
     """Actual fixture stub PCs, for executing their EA without body coverage credit."""
     result = set()
     for (kind, ip), ins in decoded.items():
-        if ins.mnemonic != "lcall" or kind not in segments:
+        if ins.mnemonic != "lcall" or kind not in segments or "," not in ins.op_str:
             continue
         source_seg = int(ins.op_str.split(",")[0].strip(), 16)
         if source_seg not in (0x2B, 0x96, 0xB0, 0x3DB, 0x3E0):

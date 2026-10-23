@@ -59,3 +59,19 @@ Validation is pending. All compilation and audit runs use poolrad-heavy.sh,
 one at a time, with load1 at most 12 before starting work. Receipts and logs
 remain under ignored resources/stub-guards. The registered checker handoff
 will use actual compile/load/bind operations against current main.
+
+## Adversarial parity assessment
+
+- target_function: the nine listed direct callers, four inherited composers,
+  and two uncredited sidecars' shared dependency path.
+- source_candidates: their existing recovered C entries with read-only
+  loaded-stub preflights; no arithmetic body replacement.
+- signals: original descriptor/call-site mapping, live call and EA operands,
+  existing loaded-state oracles, explicit absent-unit refusal and atomicity.
+- score: pending execution of the updated checkers.
+- verdict: unclear until the updated validation packet completes.
+- review_notes: entry rejection can conservatively refuse a branch that would
+  not actually call the absent unit. This matches the existing all-listed-units
+  loaded contract. A valid EA does not prove arbitrary body bytes match the
+  recovered function; loaded body identity and immutable code remain required.
+  No overlay-loader recovery, naturally reached route, or new credit is claimed.
