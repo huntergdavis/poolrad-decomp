@@ -99,9 +99,35 @@ HeapError boundaries, one heap walk LIMIT, and seven nested display stops.
 The wrapped-node and minimum-message-stack fixtures passed. The earlier
 43-case quick run was a partial fixture set and is superseded by this run.
 
-Native and handoff-build measurements are pending. The pinned emulator's
-version command writes its valid banner to stderr and exits 1; the harness
-now recognizes that informational response before executing the guest.
+The **28-case native run passed**: 24 actual full-chain returns and four
+caller CODE captures. CPU14 with all FLAGS bits, **197,632 backing-RAM bytes**
+(1,024 stack plus three complete segments), and **262,144 EGA plane bytes**
+matched per case. There are zero flag masks and zero successful-callee stubs.
+Native capture excludes **850,944 backing-RAM bytes** and does not capture
+EGA controller/latch state. Captured physical ranges are
+`[16D40,17140)`, `[40000,50000)`, `[50000,60000)`, and
+`[70000,80000)`. These exclusions do not apply to the full differential.
+
+The native build is DOSBox-X 2026.01.02 SDL2, normal/386, EGA mode 0Dh:
+source revision `5a9c7c53481c2e933948039c33256776653f4faf`,
+binary SHA-256
+`c05ce28a60258c320c5a209a477603d91fb2b7558c0cc03919e518ddd99eb457`.
+The source tree has local instrumentation changes in `src/cpu/core_normal.cpp`,
+`src/cpu/cpu.cpp`, and `src/debug/debug.cpp` (111 additions, 8 removals);
+this is not a pristine-source build claim. The 12,874,546-byte native result
+has SHA-256
+`42de4ed345000587a9dac0d5926b2725b489e2e0d4ee4a83129393355f771601`.
+The pinned version command writes its valid banner to stderr and exits 1;
+the harness recognizes that informational response before executing the guest.
+The registered checker passed its actual compile/load/bind gate with
+`CHECKER_BUILD_OK` on source head
+`a31466f8a55861a506a4f95471de9dce6f9bbb69` against current main
+`7a46913325bfd4ce98cee78ea7179c596eb369c9`. Only this evidence document
+changes after that checked head. Checker SHA-256 is
+`357e1d5eb1144b0acc483e5768668e84a9905df0e9dd7eaf0c821d0ab553f381`.
+Private receipts are `resources/u77-17ed-evidence/results.json` (full
+Unicorn), `native-results.json`, `checker-build.json`, and their combined
+`packet-final.json`.
 
 ## Claim table
 
@@ -111,8 +137,8 @@ now recognizes that informational response before executing the guest.
 | Raw composition parity | 550-case pass: CPU14, all RAM, EGA, OUT and VRAM operands | No masks; closure coverage remains partial |
 | Caller control-flow coverage | 63/63 starts and 2/2 conditional outcomes | Full closure coverage is not claimed |
 | Host argument behavior | 12 rejection/preservation/diagnostic checks | No original execution for host guards |
-| Native corroboration | Pending | Explicit stack/data/plane windows; other RAM and controller state excluded |
-| Registered checker handoff | Pending | Actual compile/load/bind check, not parity acceptance |
+| Native corroboration | 28-case pass, CPU14, 197,632 RAM bytes, 262,144 plane bytes | Explicit stack/data/plane windows; other RAM and controller state excluded |
+| Registered checker handoff | PASS against current main; actual CHECKER_BUILD_OK | Actual compile/load/bind check, not parity acceptance |
 | Naturally reached game route | Not established | All inputs are synthetic |
 | Credit or identity promotion | None requested | Accounting and manifest remain unchanged |
 
@@ -133,7 +159,14 @@ Recall is a pointer to that work, not an execution result.
 - `signals`: media/body identity, instruction and branch boundaries, four
   relocated call sites, 63-byte layout and count/link offsets, real stack
   cleanup, observable error paths, full differential state, and native windows.
-- `score` / `verdict`: pending measured runs and author checker pass.
+- `score`: raw candidate high confidence within its declared contract:
+  source/body identity, four actual callee bindings, 550 full-state cases,
+  28 native windows, all caller starts/outcomes, and named error boundaries.
+  Legacy candidate has insufficient evidence for raw-composition parity;
+  its separate callback profile remains outside this raw claim.
+- `verdict`: `match` for the new raw candidate within the documented
+  contract and measured scope; author evidence, not independent acceptance.
+  `unclear` for deriving raw-composition parity from the legacy callbacks.
 - `review_notes`: the legacy callback profile's string/report cleanup and
   substituted effects do not establish raw callee parity. Full caller
   coverage does not imply full closure coverage. Synthetic inputs do not
