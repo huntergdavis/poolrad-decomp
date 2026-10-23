@@ -710,8 +710,11 @@ SPAN_HASH = re.compile(
 NEXT_PROLOGUE = re.compile(r"next\s+prologue|prologue\s+is\s+\+?0x", re.IGNORECASE)
 # A comment describing an address RANGE (e.g. "+2A87..+2AE6 (95 original bytes)")
 # names this routine only as the end of its neighbour's extent.
-# An IP REDIRECT (`c->ip = 0x07BCu`) is the loader handing control to an
-# address, and a bare comment mention only names it; neither models the body.
+# An IP REDIRECT (`c->ip = 0x....u`) hands control to an address and a bare
+# comment only names it; by themselves neither models the body. The exception is
+# a span the covering routine's own registered checker pins by hash (SPAN_PIN
+# below): +0E0C's `c->ip = 0x07BCu` is followed by a full model of +07BC, which
+# u25_load_word_0e0c_audit.py executes against the original bytes.
 IP_REDIRECT = re.compile(r"->\s*ip\s*=\s*(?:0x[0-9a-fA-F]+|\d+)|\bip\s*=\s*0x[0-9a-fA-F]+u?")
 COMMENT_ONLY = re.compile(r"^\s*(?:/\*|\*|//)")
 RANGE_COMMENT = re.compile(
@@ -721,18 +724,20 @@ INLINE_MODEL_WORD = re.compile(r"\bcalls?\b|\bcalled\b|invoke|inline|\bmodel\b|p
 INLINE_EVIDENCE_KEYWORD = re.compile(r"call|invoke|entry|patch|model", re.IGNORECASE)
 
 
+def boundary_rule(mention):
+    """The name of the rule that makes a mention boundary-only (not inline-model evidence), or None."""
+    text = (mention.get("text") or "").strip()
+    for name, hit in (("CALLSITE_MAP", CALLSITE_MAP.match(text)), ("SPAN_HASH", SPAN_HASH.match(text)),
+                      ("BOUNDARY_ASSERTION", BOUNDARY_ASSERTION.search(text)), ("RANGE_COMMENT", RANGE_COMMENT.search(text)),
+                      ("IP_REDIRECT", IP_REDIRECT.search(text)), ("COMMENT_ONLY", COMMENT_ONLY.match(text))):
+        if hit:
+            return None if INLINE_MODEL_WORD.search(text) else name
+    return "NEXT_PROLOGUE" if NEXT_PROLOGUE.search(text) else None
+
+
 def is_boundary_mention(mention):
     """True when a mention of this address is not evidence of an inline model."""
-    text = (mention.get("text") or "").strip()
-    structural = bool(CALLSITE_MAP.match(text)
-                      or SPAN_HASH.match(text)
-                      or BOUNDARY_ASSERTION.search(text)
-                      or RANGE_COMMENT.search(text)
-                      or IP_REDIRECT.search(text)
-                      or COMMENT_ONLY.match(text))
-    if structural:
-        return not INLINE_MODEL_WORD.search(text)
-    return bool(NEXT_PROLOGUE.search(text))
+    return boundary_rule(mention) is not None
 
 
 # A span the covering routine's registered checker pins by SHA-256 is translated
@@ -762,17 +767,22 @@ def pinned_by(cid, covered_by, pinned):
 
 def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids, pinned=None):
     own = main_files.get(cid, [])
-    flags, inline = set(), []
+    flags, inline, discarded = set(), [], []
     if own:
         flags.add("main_model")
     for mention in mentions["source"]:
         covered_by = routine_of(mention["file"], known_ids)
         if covered_by is None or covered_by == cid:
+            discarded.append(dict(mention, rule="NO_SINGLE_ROUTINE" if covered_by is None else "OWN_ROUTINE", covered_by=covered_by))
             continue
-        if is_boundary_mention(mention):
+        rule = boundary_rule(mention)
+        if rule is not None:
             if not pinned_by(cid, covered_by, pinned):
+                discarded.append(dict(mention, rule=rule, covered_by=covered_by))
                 continue
-            mention = dict(mention, pinned_span=True)
+            mention = dict(mention, pinned_span=True, rescued_from=rule)
+        if covered_by not in strict_overlay and covered_by not in main_files:
+            discarded.append(dict(mention, rule="COVERING_ROUTINE_UNMODELLED", covered_by=covered_by))
         if covered_by in strict_overlay:
             inline.append(dict(mention, covered_by=covered_by))
             flags.add("inline_in_strict")
@@ -794,7 +804,7 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
         penalty = PRIOR_PENALTY[status]
     return dict(status=status, penalty=min(penalty, 60), main_files=own,
                 inline=inline[:MENTION_LIMIT], branches=branches, commits=commits,
-                mentions=mentions)
+                mentions=mentions, discarded=discarded)
 
 
 def runtime_readiness(seg, off):
@@ -1040,6 +1050,13 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
             else len(callers["aligned_push_cs"]),
             callee_readiness=callees, callers=callers, prior_translation=prior,
             score=sum(terms.values()), score_terms=terms))
+    discards = []
+    for item in ranked:          # every rejected source mention goes to the discard report; the row keeps the count
+        rejected = item["prior_translation"].pop("discarded", [])
+        item["prior_translation"]["discarded_mentions"] = len(rejected)
+        discards += [dict(row=item["id"], file=d.get("file"), line=d.get("line"), rule=d["rule"],
+                          covered_by=d.get("covered_by"), text=d.get("text")) for d in rejected]
+    discards.sort(key=lambda d: (d["row"], d["file"] or "", d["line"] or 0, d["rule"]))
     ranked.sort(key=lambda item: (-item["score"], item["id"]))
     for index, item in enumerate(ranked, 1):
         item["rank"] = index
@@ -1062,9 +1079,13 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                    fixup_backed_callers=sum(item["callers_fixup_backed"] for item in ranked),
                    aligned_push_cs_callers=sum(item["callers_aligned_push_cs"] or 0
                                                for item in ranked),
-                   top_score=ranked[0]["score"] if ranked else None)
+                   top_score=ranked[0]["score"] if ranked else None,
+                   discarded_mentions=len(discards),
+                   discarded_by_rule=counts(d["rule"] for d in discards),
+                   pinned_span_rescues=sum(1 for item in ranked for m in item["prior_translation"]["inline"]
+                                           if m.get("pinned_span")))
     return dict(schema_version=9, inputs=DIGESTS.copy(), git=git_view,
-                summary=summary, rows=ranked)
+                summary=summary, rows=ranked, discards=discards)
 
 
 def stale_inputs(export, root=ROOT):
@@ -1120,6 +1141,7 @@ def main():
     parser.add_argument("--repo", default=str(ROOT), help="repository for read-only history scans")
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
     parser.add_argument("--json", required=True)
+    parser.add_argument("--discards", help="write the detector's discard report (every rejected mention, its rule) here")
     args = parser.parse_args()
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
@@ -1193,6 +1215,12 @@ def main():
         parser.exit(2, f"strict candidate queue refused: {error}\n")
     result["artifacts_sha256"] = {name: hashlib.sha256(blob).hexdigest()
                                   for name, blob in sorted(blobs.items())}
+    discards = result.pop("discards")
+    if args.discards:
+        Path(args.discards).write_text(json.dumps(dict(
+            schema_version=1, artifacts_sha256=result["artifacts_sha256"], git=result["git"],
+            count=len(discards), by_rule=result["summary"]["discarded_by_rule"], discards=discards),
+            indent=1, sort_keys=True) + "\n")
     Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result["summary"], sort_keys=True))
 
