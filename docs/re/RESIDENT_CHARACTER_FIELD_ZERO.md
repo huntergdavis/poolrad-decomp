@@ -87,3 +87,14 @@ and [party-counter evidence](RESIDENT_PARTY_COUNT.md) to locate the
 record and candidate; checked the target and caller paths against the
 locked executables. No media, saves, strings, or executable bytes are
 committed.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_23B7` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```

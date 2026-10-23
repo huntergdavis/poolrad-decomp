@@ -104,3 +104,14 @@ work independently checked the entry, provenance, 33 fixup-backed
 calls, near call, full decode, and the cited overlay instructions.
 No original executable, save, extracted text, media, or decoded bytes
 enter Git.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_2637` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```

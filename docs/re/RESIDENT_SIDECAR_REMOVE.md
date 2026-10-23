@@ -104,3 +104,14 @@ SYSTEM heap manager, and synthetic tests cannot prove DOS execution parity
 for invalid/cyclic pointers. Those dependencies and host-only failures are
 explicit, while every branch and externally visible effect of this resident
 routine on valid lists is included.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_1509` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```
