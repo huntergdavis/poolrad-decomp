@@ -90,3 +90,8 @@ DIV/IDIV sites now written to the pinned values (six flags overwritten): `overla
 `overlay_u68_movement_flag_04df_cpu.c`, `overlay_u33_cell_pair_01ad.c`, `overlay_u31_step_gate_0675.c` (IDIV CX). The last
 carried the claim "IDIV leaves the flags alone in both tested engines", which contradicts `instructions.h:745-761`; its checker
 re-run is what settles it. `overlay_u33_party_attach_12e1_cpu.c` already modelled IDIVW.
+
+`FLAG_FOLDED_SITES.tsv` lists every folded-flags site by file and line (109 sites in 54 files at this commit, found by comment
+text, so a fold with no comment is not listed). Each is an unverified deadness claim: show from the ORIGINAL bytes that no branch,
+PUSHF, INT, hook/stop point or return observes the folded flags, or compute them. `classified_by` in the census TSV says whether a
+row was read only by a sub-agent ("agent only") or also by hand when fixed.

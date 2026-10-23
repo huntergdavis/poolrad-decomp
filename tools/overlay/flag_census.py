@@ -10,7 +10,8 @@ so a copy of an already classified helper needs no new row and a CHANGED body ne
                            function against REV's tree) and mark disagree rows FIXED; then run --regen
   flag_census.py --regen   refresh the files/n_helpers columns, drop rows no helper matches, add UNCLASSIFIED rows
 
-The verdict columns are written by a person after reading the PINNED DOSBox-X source (stored FillFlags rule; see
+The classified_by column says who read the helper against the pinned source ("agent only" = a read-only sub-agent; "agent + body
+hand-read when fixed" = the body was also read and edited by hand). The verdict columns are written by a person after reading the PINNED DOSBox-X source (stored FillFlags rule; see
 docs/re/FLAG_SEMANTICS_CENSUS.md). The branched_on column needs the original bytes (resources/) and is kept as data.
 """
 import argparse
@@ -23,7 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 TSV = ROOT / "docs/re/FLAG_SEMANTICS_CENSUS.tsv"
 COLUMNS = ["hash", "n_helpers", "files", "instruction", "assumed_rule", "pinned_rule_and_citation", "agent_verdict",
-           "stored_flags_verdict(FillFlags)", "detail", "branched_on"]
+           "stored_flags_verdict(FillFlags)", "detail", "classified_by", "branched_on"]
 FUNCTION = re.compile(r"^static\s+[A-Za-z0-9_ \*]+?\b([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{", re.M)
 WRITES_FLAGS = re.compile(r"\bflags\s*(?:&=|\|=|\^=|=(?!=))")
 UNCLASSIFIED = "UNCLASSIFIED"
@@ -66,7 +67,7 @@ def read_rows(path=TSV):
 
 def write_rows(rows, path=TSV):
     with open(path, "w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n")
+        writer = csv.DictWriter(handle, fieldnames=COLUMNS, delimiter="\t", lineterminator="\n", restval="")
         writer.writeheader()
         for digest in sorted(rows, key=lambda d: (rows[d]["files"], d)):
             writer.writerow(rows[digest])
@@ -89,6 +90,7 @@ def regen(root=ROOT, path=TSV):
         if not row["agent_verdict"]:
             row.update(agent_verdict=UNCLASSIFIED, **{"stored_flags_verdict(FillFlags)": UNCLASSIFIED,
                                                        "branched_on": "not scanned (new row)"})
+        row["classified_by"] = row.get("classified_by") or "agent only"
         row.update(hash=digest, n_helpers=str(len(members)), files=" ".join(sorted({f for f, _ in members})))
         if not row["instruction"]:
             row["instruction"] = ", ".join(sorted({fn for _, fn in members}))[:80]
