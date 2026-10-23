@@ -55,6 +55,10 @@ overlay_u7d_entry_05f0_cpu.c,pr_u7d_two_digits_0565_cpu,no,-,-,no-pointer,yes
 overlay_u7f_0054_cpu.c,pr_u7f_entry0_0000_cpu,no,-,-,no-pointer,yes
 overlay_u7f_0203_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,no
 overlay_u7f_0203_cpu.c,pr_u7f_record_word_add_003a,no,-,-,no-pointer,no
+overlay_u7f_044c_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,no
+overlay_u7f_044c_cpu.c,pr_u7f_entry0_0000_cpu,no,-,-,no-pointer,no
+overlay_u7f_044c_cpu.c,pr_u7f_record_subtract_0020,no,-,-,no-pointer,no
+overlay_u7f_044c_cpu.c,pr_u7f_record_word_add_003a,no,-,-,no-pointer,no
 overlay_u7f_0a88_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,no
 overlay_u7f_0a88_cpu.c,pr_u7f_record_word_add_003a,no,-,-,no-pointer,no
 overlay_u7f_number_0294_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,no
