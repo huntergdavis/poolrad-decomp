@@ -85,5 +85,23 @@ class MacroHashTest(unittest.TestCase):
         found, plain = self.digests("0x08C5u")
         self.assertEqual(found["h"], plain)
 
+
+class CarryFromTest(unittest.TestCase):
+    """--carry-from computes the OLD tree's hashes; they must match the committed rows for bodies that name header macros."""
+
+    HAND_CARRIED = {   # the four rows --carry-from missed before it archived include/ (par-d2, 2026-10-23)
+        ("overlay_u33_grid_diagonal_0bde.c", "pr_u33_grid_diagonal_0bde"),
+        ("resident_0709_delay_wrapper_0dbe_cpu.c", "pr_r0709_delay_wrapper_0dbe_cpu"),
+        ("overlay_u7d_list_timer_0000_cpu.c", "pr_u7d_list_timer_0000_cpu"),
+        ("overlay_u9e_entry8_fullstate_loop_0e05.c", "pr_u9e_entry8_fullstate_loop_0e05"),
+    }
+
+    def test_rev_digests_match_committed_rows_for_the_hand_carried_four(self):
+        old = census.rev_digests("HEAD")
+        rows = census.read_rows()
+        self.assertTrue(self.HAND_CARRIED <= set(old), sorted(self.HAND_CARRIED - set(old)))
+        unmatched = {key for key in self.HAND_CARRIED if old[key] not in rows}
+        self.assertEqual(unmatched, set())
+
 if __name__ == "__main__":
     unittest.main()
