@@ -52,5 +52,38 @@ class InlineDetectorTest(unittest.TestCase):
         found = {(name, function) for name, function, _, _ in census.helpers()}
         self.assertIn(("overlay_u5e_half_0e52.c", "pr_u5e_half_0e52"), found)   # the PM i21766 miss
 
+
+class MacroHashTest(unittest.TestCase):
+    """A flag rule that lives in a #define must move the hash (OVL_0025_0756's fix was a #define edit)."""
+
+    def digests(self, mask, header_mask="0x0010u"):
+        import hashlib
+        with tempfile.TemporaryDirectory() as tmp:
+            src, inc = Path(tmp) / "src/recovered", Path(tmp) / "include"
+            src.mkdir(parents=True); inc.mkdir()
+            (inc / "flags.h").write_text(f"#define AF_BIT {header_mask}\n")
+            (src / "a.c").write_text(f'#include "flags.h"\n#define KEEP {mask}\n'
+                                     "static void f(unsigned *flags) { *flags &= ~KEEP; }\n"
+                                     "static void g(unsigned *flags) { *flags |= AF_BIT; }\n"
+                                     "static void h(unsigned *flags) { *flags = 0u; }\n")
+            found = {fn: (body, d) for _, fn, body, d in census.helpers(tmp)}
+            plain = hashlib.md5(census.normalize(found["h"][0]).encode()).hexdigest()
+            return {fn: d for fn, (_, d) in found.items()}, plain
+
+    def test_define_change_moves_the_hash(self):
+        a, _ = self.digests("0x08C5u")
+        b, _ = self.digests("0x08D5u")
+        self.assertNotEqual(a["f"], b["f"])          # the #define in the same file
+        self.assertEqual(a["h"], b["h"])             # a macro-free body is untouched
+
+    def test_included_define_counts_one_level_deep(self):
+        a, _ = self.digests("0x08C5u", "0x0010u")
+        b, _ = self.digests("0x08C5u", "0x0000u")
+        self.assertNotEqual(a["g"], b["g"])
+
+    def test_macro_free_body_keeps_its_old_hash(self):
+        found, plain = self.digests("0x08C5u")
+        self.assertEqual(found["h"], plain)
+
 if __name__ == "__main__":
     unittest.main()
