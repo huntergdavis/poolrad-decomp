@@ -276,6 +276,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u6f_vector_merge_032f.c
                                     src/recovered/overlay_u77_weighted_28be.c
                                     src/recovered/overlay_u77_split_17ed.c
+                                    src/recovered/overlay_u77_split_17ed_cpu.c
                                     src/recovered/overlay_u1c_sprite_off_2aa2.c
                                     src/recovered/overlay_u1c_clear_box_2b14.c
                                     src/recovered/overlay_u1c_clock_2ac1.c
