@@ -187,7 +187,9 @@ TOKEN = re.compile(
     r"|(?<![0-9a-f])u([0-9a-f]{2,3})_([0-9a-f]{4})(?![0-9a-f])"
     r"|\+0x([0-9a-f]{4})(?![0-9a-f])"
     r"|\+([0-9a-f]{4})(?![0-9a-f])"
-    r"|(?<![0-9a-f])0x([0-9a-f]{4})(?![0-9a-f])")
+    r"|(?<![0-9a-f])0x([0-9a-f]{4})(?![0-9a-f])"
+    # SEG:OFF with no '+' or '0x' ('007F:0A88', or an overlay stub '0041:00CA'), as sources write far calls (par-b, PM i22086)
+    r"|(?<![0-9a-f:])([0-9a-f]{4}):([0-9a-f]{4})(?![0-9a-f:])")
 UNIT_TOKEN = re.compile(r"(?<![0-9a-f])u([0-9a-f]{2,3})(?![0-9a-f])")
 HEX4 = re.compile(r"(?<![0-9a-f])([0-9a-f]{4})(?![0-9a-f])")
 
@@ -232,8 +234,14 @@ def candidate_key(row):
     return int(unit, 16), int(offset, 16)
 
 
-def resolve_match(match, line_low, path_units, candidates, by_offset):
+def resolve_match(match, line_low, path_units, candidates, by_offset, stubs=None):
     """Return (candidate id, kind) for a TOKEN match, or (None, None)."""
+    if match.group(10) is not None:
+        seg, off = int(match.group(10), 16), int(match.group(11), 16)
+        if (seg, off) in candidates:                      # unit:offset
+            return candidates[(seg, off)], "seg_off"
+        cid = (stubs or {}).get((seg, off))               # an overlay stub paragraph:entry offset
+        return (cid, "stub_seg_off") if cid else (None, None)
     if match.group(1) is not None:
         key = (int(match.group(1), 16), int(match.group(2), 16))
     elif match.group(3) is not None:
@@ -247,6 +255,17 @@ def resolve_match(match, line_low, path_units, candidates, by_offset):
                 return candidates[(unit, offset)], "offset"
         return None, None
     return candidates.get(key), "id"
+
+
+def stub_index(state):
+    """(stub paragraph, entry offset) -> candidate id, from the rows' STUB_pppp_oooo aliases."""
+    candidate_ids = set(state["candidates"].values())
+    index = {}
+    for alias, row in state["aliases"].items():
+        m = re.fullmatch(r"STUB_([0-9A-F]{4})_([0-9A-F]{4})", alias)
+        if m and row["id"] in candidate_ids:
+            index[(int(m.group(1), 16), int(m.group(2), 16))] = row["id"]
+    return index
 
 
 def offset_index(candidates):
@@ -271,8 +290,9 @@ def scan_main_files(root, known_ids):
     return {key: sorted(set(value)) for key, value in result.items()}
 
 
-def scan_mentions(root, candidates):
-    """Find address mentions in the main tree, bucketed source/tooling/docs."""
+def scan_mentions(root, candidates, stubs=None):
+    """Find address mentions in the main tree, bucketed source/tooling/docs. `stubs` maps an overlay
+    stub (paragraph, entry offset) to its candidate id, for the SEG:OFF form."""
     by_offset = offset_index(candidates)
     result = {cid: {"source": [], "tooling": [], "docs": []} for cid in candidates.values()}
     for base in SOURCE_DIRS:
@@ -293,7 +313,7 @@ def scan_mentions(root, candidates):
             for lineno, line in enumerate(text.splitlines(), 1):
                 low = line.lower()
                 for match in TOKEN.finditer(low):
-                    cid, kind = resolve_match(match, low, path_units, candidates, by_offset)
+                    cid, kind = resolve_match(match, low, path_units, candidates, by_offset, stubs)
                     if cid is None or (cid, lineno, kind) in seen:
                         continue
                     seen.add((cid, lineno, kind))
@@ -1198,7 +1218,7 @@ def main():
         state["pinned_spans"] = pinned_spans(repo)
         for identifier, evidence in sorted(state["full_models"].items()):
             main_files.setdefault(identifier, []).append(evidence)
-        mentions = scan_mentions(repo, state["candidates"])
+        mentions = scan_mentions(repo, state["candidates"], stub_index(state))
         if args.no_git:
             branch_hits, commit_hits, git_view = {}, {}, None
         else:
@@ -1216,12 +1236,16 @@ def main():
     result["artifacts_sha256"] = {name: hashlib.sha256(blob).hexdigest()
                                   for name, blob in sorted(blobs.items())}
     discards = result.pop("discards")
-    if args.discards:
+    export = json.dumps(result, indent=2, sort_keys=True) + "\n"
+    Path(args.json).write_text(export)
+    if args.discards:          # a snapshot: it names the tree and the export it was measured at
+        head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
         Path(args.discards).write_text(json.dumps(dict(
-            schema_version=1, artifacts_sha256=result["artifacts_sha256"], git=result["git"],
+            schema_version=2, kind="pinned measurement of the strict queue detector's discards, not a live list",
+            pin=dict(tree_commit=head or None, export_sha256=hashlib.sha256(export.encode()).hexdigest()),
+            artifacts_sha256=result["artifacts_sha256"], git=result["git"],
             count=len(discards), by_rule=result["summary"]["discarded_by_rule"], discards=discards),
             indent=1, sort_keys=True) + "\n")
-    Path(args.json).write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     print(json.dumps(result["summary"], sort_keys=True))
 
 
