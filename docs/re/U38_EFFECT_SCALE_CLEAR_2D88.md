@@ -69,3 +69,13 @@ null, preserve, halve, clear, and callback refusal.
 These checks establish bounded behavior with a synthetic resident stub.
 No natural game caller or item-123 dispatch has been measured. No strict
 identity or function-count credit is claimed.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the composed model sets AF after a non-zero shift per the pinned rule; raw Unicorn leaves it clear, so `tests/recovered/check_overlay_u38_effect_scale_clear_2d88.py` failed on main (`flags 0x213` vs `0x203`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446): **120** composed full-RAM/14-CPU cases; the split was used at **42** stops, all after a shift.
+
+**Per-credit sentence (OVL_0038_2D88): evidence did not depend on AF after a shift**; those 42 stops hold C to AF=1 and every other stop is exact. Credit stands.

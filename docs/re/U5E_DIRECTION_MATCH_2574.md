@@ -151,3 +151,13 @@ python3 tools/overlay/u5e_direction_match_2574_audit.py \
   dependency add ownership signals, but classification and strict-ledger
   credit are left to independent review. Native saved-route reachability
   remains open. This work does not claim whole-game executability.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the composed `times_four` (263D) sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `predicate-limit` (`flags C=7212, original=7202`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446): **2,301** full CPU/RAM cases (2,297 returns, 4 budget stops), 64/64 instructions; the split was used at **1** stop (after a shift; 0 after a divide).
+
+**Per-credit sentence (the credited bodies this audit composes, OVL_005E_263D): evidence did not depend on AF after a shift**; that one stop holds C to AF=1 and every other stop is exact. Credit stands.
