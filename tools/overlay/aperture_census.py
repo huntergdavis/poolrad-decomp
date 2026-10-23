@@ -34,6 +34,8 @@ POINTER_CALLEES = re.compile(r"strload|strstore|strcopy|strcat|strcmp|charstr|_s
 SOURCES = {
     "overlay_u1c_clear_box_2b14.c": ("none", "read", "callback with box coordinates; no data pointer (name matches only)"),
     "overlay_u1c_text_2e7d_cpu.c": ("global", "header", "script operand reads through the DS script pointer; FillChar target is the operand cell"),
+    "overlay_u25_entry4_0341_cpu.c": ("global+local+code-literal", "read", "the buffer far pointer DS:[49DE] (FillChar, Move; the body never dereferences it); Str/StrCat/StrLoad operands are body-frame slots or CS literals"),
+    "overlay_u40c_tile_015d_cpu.c": ("global+caller-argument", "read", "Move of a tile-set row (the caller's tile set) into the DS:5E4E object; the model STOPS (CONTRACT) when either operand meets A0000 and an EGA is attached"),
     "overlay_u25_entry5_0411_cpu.c": ("callee-returned+caller-argument", "read", "GetMem's block and the caller's record variable: the 0411 defect (par-c) was a flat wrapper deref"),
     "overlay_u38_message_3134_cpu.c": ("code-literal+local", "read", "StrLoad: source is the CS literal, destination a body-built local"),
     "overlay_u3b0_entry_01da_cpu.c": ("code-literal", "read", "set membership against the 32-byte set at CS:01BA"),
@@ -43,10 +45,12 @@ SOURCES = {
     "overlay_u3b0_entry_0c33_cpu.c": ("caller-argument+global", "header", "node pointers and the list head DS:6B29"),
     "overlay_u6f_entry6_0ec4_cpu.c": ("caller-argument+global+callee-returned", "header", "record, blocks, heap and string windows: every access is flat by declaration"),
     "overlay_u77_party_0901_cpu.c": ("local+code-literal+caller-argument", "header", "strings built in locals from literals; the party record pointer is an argument"),
+    "overlay_u77_split_17ed_cpu.c": ("caller-argument+callee-returned", "header", "the far node pointer handed in, GetMem's block and the Move operands; the host guard refuses CS/DS/SS inside A0000..AFFFF (docs/re/U77_SPLIT_17ED.md: flat runtime operands exclude the aperture)"),
     "overlay_u7d_entry_05f0_cpu.c": ("code-literal", "header", "StrLoad of a CS literal"),
     "overlay_u7f_number_0294_cpu.c": ("caller-argument+local", "read", "StrStore reads the caller's far prompt string ([BP+8]); the other Str*/Val operands are body-built locals"),
     "resident_00ba_display_1693_cpu.c": ("caller-argument", "read", "StrStore reads the caller's far source string"),
     "resident_00ba_display_1816_cpu.c": ("code-literal", "header", "StrLoad of a CS literal into a local"),
+    "resident_0464_compose_08d4_cpu.c": ("caller-argument", "read", "Move operands are the caller's tile pointers; the model STOPS (CONTRACT) when either meets A0000 and an EGA is attached"),
     "resident_0464_blit_1951_cpu.c": ("caller-argument", "read", "Move source and destination are the caller's bitmap pointers; the model STOPS (CONTRACT) when one meets A0000"),
     "resident_0709_msgbox_0bf5_cpu.c": ("caller-argument", "header", "StrStore of the caller's far string"),
     "resident_0709_printer_0626_cpu.c": ("caller-argument", "read", "StrStore of the caller's far string"),
@@ -56,6 +60,12 @@ SOURCES = {
 
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
+    ("overlay_u77_split_17ed_cpu.c", "pr_system_strload_0b0b"): ("code-literal", "header", "StrLoad of the 188D literal in the caller's own segment"),
+    ("overlay_u25_entry4_0341_cpu.c", "pr_system_fillchar_16a8"): ("global", "read", "FillChar of the 1E00h buffer at DS:[49DE]; the declared limit in OVL_0025_0341_CPU.md (the --demo shows the aperture divergence)"),
+    ("overlay_u25_entry4_0341_cpu.c", "pr_system_move_1685"): ("global", "read", "Move into the buffer at DS:[49DE]; same declared limit"),
+    ("overlay_u25_entry4_0341_cpu.c", "pr_system_str_1366"): ("local", "read", "Str into a body-frame string slot"),
+    ("overlay_u25_entry4_0341_cpu.c", "pr_system_strcat_0b98"): ("local", "read", "StrCat on body-frame string slots"),
+    ("overlay_u25_entry4_0341_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of CS literals (cs:0322/0338/033C) into body-frame slots"),
     ("overlay_u7f_number_0294_cpu.c", "pr_system_charstr_0c3b"): ("local", "read", "builds the one-character string in a body-built local"),
     ("overlay_u7f_number_0294_cpu.c", "pr_system_str_1366"): ("local", "read", "Str(max) into a body-built local"),
     ("overlay_u7f_number_0294_cpu.c", "pr_system_strcat_0b98"): ("local", "read", "text := text + key, both body-built"),

@@ -68,6 +68,7 @@ overlay_u25_entry1_0136.c,flat,no,no
 overlay_u25_entry20_1cc3.c,flat,no,no
 overlay_u25_entry20_1cc3_cpu.c,flat,no,no
 overlay_u25_entry23_1fb1.c,flat,no,no
+overlay_u25_entry4_0341_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_entry5_0411.c,flat,no,no
 overlay_u25_entry5_0411_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_entry7_0511.c,flat,no,no
@@ -88,6 +89,7 @@ overlay_u2f_record_link_clear_122b.c,flat,no,no
 overlay_u31_candidate_check_0255_cpu.c,flat,no,no
 overlay_u31_step_gate_0675.c,flat,no,no
 overlay_u31_table_value_128d_cpu.c,flat,no,no
+overlay_u33_0b97_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u33_both_outside_1403.c,flat,no,no
 overlay_u33_byte_flags_08a4.c,flat,no,no
 overlay_u33_cell_claim_1434.c,flat,no,no
@@ -255,6 +257,7 @@ overlay_u3c6_table_pair_0000.c,flat,no,no
 overlay_u3ce_bitmap_pair_release_014e_cpu.c,flat,no,no
 overlay_u3ce_entry4_01c8.c,flat,no,no
 overlay_u40c_group3_tile_plane.c,flat,no,no
+overlay_u40c_tile_015d_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u40c_tile_plane.c,flat,no,no
 overlay_u5e_caller_32e6.c,flat,no,no
 overlay_u5e_direction_263d.c,flat,no,no
@@ -279,6 +282,7 @@ overlay_u68_record_scan.c,flat,no,no
 overlay_u68_roll_gate_0294.c,flat,no,no
 overlay_u68_tile_step_0818.c,flat,no,no
 overlay_u68_up_preflight.c,flat,no,no
+overlay_u6a_0824_raw_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u6a_link_high_clear_019c.c,flat,no,no
 overlay_u6a_party_after_1601.c,flat,no,no
 overlay_u6a_party_before_14a9.c,flat,no,no
@@ -317,6 +321,7 @@ overlay_u77_active_select_27df.c,flat,no,no
 overlay_u77_party_0901_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u77_spell_299c.c,flat,no,no
 overlay_u77_split_17ed.c,flat,no,no
+overlay_u77_split_17ed_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u77_stack_189d.c,flat,no,no
 overlay_u77_weighted_28be.c,flat,no,no
 overlay_u77_weighted_28be_cpu.c,flat,no,no
@@ -328,11 +333,13 @@ overlay_u7d_two_digits_0565_cpu.c,flat,no,no
 overlay_u7d_update_03a3.c,flat,no,no
 overlay_u7d_update_047a_cpu.c,flat,no,no
 overlay_u7d_zero.c,flat,no,no
+overlay_u7f_0054_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u7f_caller_1010.c,flat,no,no
 overlay_u7f_clear_0508.c,flat,no,no
 overlay_u7f_coin_type_0b93_cpu.c,flat,no,no
 overlay_u7f_div5.c,flat,no,no
 overlay_u7f_div5_dwords.c,flat,no,no
+overlay_u7f_entry0_0000_cpu.c,flat,no,yes
 overlay_u7f_number_0294_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_party_count_05e0.c,flat,no,no
 overlay_u7f_record_subtract_0020.c,flat,no,no
@@ -390,9 +397,12 @@ resident_00ba_display_1693_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_display_1816_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_sidecar_lookup_2199_cpu.c,flat,no,no
 resident_00ba_target_reset_2637_cpu.c,flat,no,no
+resident_03f1_box_0000_cpu.c,bus,yes-with-ega-oracle,no
 resident_03f1_clear_0137_cpu.c,bus,yes-with-ega-oracle,yes
 resident_0464_bitmap_release_2595_cpu.c,flat,no,no
 resident_0464_blit_1951_cpu.c,bus,yes-with-ega-oracle,yes
+resident_0464_compose_08d4_cpu.c,bus,yes-with-ega-oracle,yes
+resident_0464_video_mode_cpu.c,flat,no,no
 resident_0709_clear_0dd3_cpu.c,bus,yes-with-ega-oracle,yes
 resident_0709_delay_wrapper_0dbe.c,flat,no,no
 resident_0709_delay_wrapper_0dbe_cpu.c,flat,no,no
@@ -544,6 +554,7 @@ system_str_1366_cpu.c,flat,no,no
 system_string_leaves_cpu.c,flat,no,no
 system_string_move_leaves_cpu.c,flat,no,no
 system_strstore_fullstate_0b25.c,flat,no,no
+system_text_write_cpu.c,flat,no,no
 system_textassign_insert_cpu.c,flat,no,no
 system_val_13b1_cpu.c,flat,no,no
 u19_row14_cpu_sources.c,flat,no,no
