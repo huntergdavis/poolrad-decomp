@@ -42,7 +42,7 @@ this entry's SP guard, `[0004h,FFF8h]`, `BP+6` is at most FFFCh, so the wrap its
 
 | Stop | Pinned by |
 | --- | --- |
-| RETURNED | Unicorn 243/243; native NATIVE_N |
+| RETURNED | Unicorn 243/243; native 24/24 |
 | TRANSFER (`RETF 4` popped another return address) | a guard; the body writes no return word |
 | ARGUMENT | C test (asserts on): CPU and RAM untouched |
 
@@ -78,7 +78,9 @@ covers **CPU14 and all 1 MiB, with flags unmasked at the RETF**.
 - the top SP edge;
 - atomic argument rejection.
 
-**Native:** `tools/overlay/res00ba_zero_test_23b7_native.py`, DOSBox-X normal/386. NATIVE_RESULT
+**Native:** `tools/overlay/res00ba_zero_test_23b7_native.py`, DOSBox-X normal/386 (the host's packaged build, sha256 `99d74601…0df3`), with no masks and IF cleared. **24 of 24
+cases pass, comparing 7,864,992 bytes.** They cover field values 00h/01h/80h/FFh/03h, the +10Eh offset wrap, four
+incoming-flag values on both outcomes, the SP edges, and the field byte on each frame byte.
 
 ## `+0255` after the carve-out
 
