@@ -92,3 +92,28 @@ remains with PM review.
 | `score` | Five corroborating signals; no contradiction in the tested frames |
 | `verdict` | `match` for the complete executable body under the tested synthetic frames |
 | `review_notes` | Unicorn cannot decide SP `FFFE`/`FFFF` here; DOSBox-X covers those placements. Native saved-game reach remains unmeasured. The native oracle compares all CPU words and affected stack bytes, while the Unicorn oracle compares full RAM. |
+
+## Explicit CF := 0 at +10FE (t44 follow-up, 2026-10-23)
+
+The model now writes the carry left by `XOR AH,AH` at `+10FE` explicitly. Before this change, the folded value happened
+to be right, as explained below.
+
+- **Why it matters.** On the `[BP+8] = 12h` arm, `XOR AH,AH` leaves CF = 0. The following `INC AX` keeps CF, so that
+  CF reaches `RETF 4` (`flag_fold_liveness.py`; [FLAG_FOLDED_SLICE6.md](FLAG_FOLDED_SLICE6.md)).
+- **Why the old value was already correct.** The arm runs only when `CMP BYTE [BP+8],12h` at `+10F5` compared equal,
+  and an equal compare leaves CF = 0. The model carried that CF through `inc16_ax`, so the returned FLAGS were already
+  right.
+- **The change.** `cpu->flags &= ~CF` is now written before `inc16_ax`, with that reasoning in the comment, as the PM
+  asked (i21812). The output is unchanged.
+- **Census.** The census row for the function's inline flag write is classified by hand against pinned 5a9c7c53:
+  `XOR`'s CF is false, and the lazy and stored values agree.
+
+Re-run on this change through `poolrad-heavy.sh`:
+
+```sh
+python3 tests/recovered/check_overlay_u9e_entry16_10e4.py   # 72 original-byte cases PASS, full RAM and 14 registers
+python3 tools/overlay/u9e_entry16_10e4_native.py           # DOSBox-X: PASS
+```
+
+There is no C-test claim. The model compiles under `-Wconversion -Wsign-conversion -Wshadow -Werror`, and the build
+has asserts on (no `CMAKE_BUILD_TYPE`, no `-DNDEBUG`).
