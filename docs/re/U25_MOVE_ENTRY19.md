@@ -121,3 +121,37 @@ No original save or executable bytes enter the test or repository.
 | `score` | 9/10 for the isolated routine on defined map-buffer inputs; no CPU-level differential oracle yet |
 | `verdict` | `match` for the isolated function's defined path; `unclear` for the full Up-to-time route |
 | `review_notes` | The C API reports missing host map memory instead of attempting the original far-pointer access; unmatched facing passes entry 2's unwritten frame byte as an explicit input. The slot-A script contains the conditionally matching `CALL`, but Up-to-`0x9945` reachability has not been proved. No time writer or complete native ECL effects are claimed. |
+
+## Reproduce (original-byte checker)
+
+`OVL_0025_19DB` is checked against the original bytes by the registered checker `tools/overlay/u25_move_original_audit.py`.
+It replaces the cited shared tool, `callgraph.py`, as this body's re-runnable evidence (VP i21878, PM i21879).
+
+**Original side.** The original `+19DB` runs under Unicorn. Its two far calls go through overlay stub `03D5` (unit
+`3BDh`) in its loaded state: entries 4 (`+057A`, cell) and 2 (`+047B`, nibble) hold `JMP FAR` to the unit's segment, as
+the overlay manager writes them. Units `25h` and `3BDh` load at their own segments with every fixup applied, and the
+relocated START.EXE supplies the stub and data segments.
+
+**C side.** `pr_u25_entry19` runs, composing the translated 3BD entries, through `u25_move_original_shim.c`.
+
+**Compared, per call:**
+
+- the five state bytes: `[6AAD]` x, `[6AAE]` y, `[6AAF]` facing, `[6AB1]` cell, `[6AB0]` nibble;
+- the whole 64 KiB data segment, which must change in exactly those bytes;
+- the model's status: OK for every matched facing; UNSPECIFIED only for an unmatched facing that reaches entry 2's
+  selector dispatch.
+
+**The one supplied value.** On the unmatched path, entry 2 returns its unwritten `[BP-1]` stack byte. The model declares
+that byte as a host input (`nibble_frame_residue`). The checker reads it from the original at the instruction that loads
+it (`3BD:+0571`) and passes the same value in. Nothing else is supplied, and nothing is masked.
+
+**Result.** All 3,000 cases pass: 2,030 with status OK and 970 UNSPECIFIED, the unmatched-facing residue path.
+
+**Fixtures.** Random x and y, with the edges 0, 15, 16, 7Fh, 80h and FFh. Facing is one of 0/2/4/6 or an unmatched
+value. The map id and the 1 KiB map buffer at far `[6A5C]` are random.
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
+  python3 tools/overlay/u25_move_original_audit.py --output resources/u25-19db-audit/report.json
+python3 tools/overlay/u25_move_original_audit.py --compile-only   # CHECKER_BUILD_OK, no media
+```
