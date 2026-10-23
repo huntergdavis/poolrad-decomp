@@ -60,6 +60,9 @@ SOURCES = {
 
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
+    ("overlay_u23_append_0239_cpu.c", "pr_system_getmem_023f"): ("callee-returned", "read", "GetMem(3Fh) at 0297..029B and 02FC..0300 takes only the size; the block it returns is the pointer"),
+    ("overlay_u23_append_0239_cpu.c", "pr_system_move_0a3f"): ("caller-argument+callee-returned", "read", "Move from ITEM (the far pointer at SS:[BP+0Ah]) into the GetMem block at [BP-4] or [BP-8] (02A6..02B4, 030B..0319)"),
+    ("overlay_u23_append_0239_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-character literal at CS:022E into the body-frame temporary SS:[BP-13h] (0256..0260)"),
     ("overlay_u7f_0a88_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0A7D into a body-frame temporary (docs/re/OVL_007F_0A88_CPU.md)"),
     ("overlay_u7f_0203_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 39-byte message at CS:01DB into the body-frame temporary [BP-2Ah]"),
     ("overlay_u7f_044c_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0441 into the body-frame temporary [BP-0Bh]"),
