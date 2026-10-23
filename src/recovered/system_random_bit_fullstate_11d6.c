@@ -48,7 +48,7 @@ static int writes_code(const pr_system_11d6_cpu *cpu)
 static uint16_t and_flags(uint16_t incoming, uint8_t high_dx)
 {
     uint8_t parity = high_dx;
-    uint16_t flags = (uint16_t)(incoming & (uint16_t)~DEFINED_LOGIC_FLAGS);
+    uint16_t flags = (uint16_t)(incoming & (uint16_t)~(DEFINED_LOGIC_FLAGS | 0x0010u)); /* pinned: AND clears AF */
     parity ^= (uint8_t)(parity >> 4);
     parity ^= (uint8_t)(parity >> 2);
     parity ^= (uint8_t)(parity >> 1);

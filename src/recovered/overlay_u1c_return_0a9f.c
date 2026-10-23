@@ -50,8 +50,8 @@ static void inc_pc(pr_u1c_0a9f_cpu *cpu, uint16_t before,
 
 static void or_head_flags(pr_u1c_0a9f_cpu *cpu, uint16_t result)
 {
-    /* AF is undefined after OR and excluded by the differential audit. */
-    cpu->flags &= (uint16_t)~(ARITH_FLAGS & ~0x0010u);
+    /* pinned FillFlags: OR clears AF (as well as CF/OF). */
+    cpu->flags &= (uint16_t)~ARITH_FLAGS;
     parity(cpu, (uint8_t)result);
     if (result == 0u) cpu->flags |= 0x0040u;
     if (result & 0x8000u) cpu->flags |= 0x0080u;

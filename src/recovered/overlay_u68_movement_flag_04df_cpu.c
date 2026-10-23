@@ -250,6 +250,14 @@ pr_u68_04df_status pr_u68_movement_flag_04df_cpu(uint8_t *ram, size_t ram_size, 
         dividend = (int16_t)cpu->ax;                                      /* DX:AX is AX sign-extended, so a 16-bit IDIV is exact */
         cpu->ax = (uint16_t)(int16_t)(dividend % 8);
         cpu->dx = (uint16_t)(int16_t)(dividend / 8);
+        /* IDIV CX. Pinned DIVW/IDIVW (instructions.h:655-673, 745-761) overwrite all six flags: AF=SF=OF=0,
+         * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+        {
+            uint16_t rem16 = (uint16_t)(dividend % 8), quo16 = (uint16_t)(dividend / 8), fold = (uint16_t)(rem16 ^ quo16);
+            fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+            cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                    (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+        }
         push16(ram, cpu, cpu->ax);
         status = mark(ram, ram_size, cpu, 0x059Bu, callee_status);
         if (status != PR_U68_04DF_OK)

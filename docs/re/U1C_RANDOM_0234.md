@@ -70,7 +70,7 @@ At `+0x11C0`, `+0x120F` first advances the seed as
 `(seed * 0x08088405 + 1) mod 2^32`. With a nonzero WORD range,
 `DX:AX = 0:high16(new_seed)` is divided unsigned by that range; after
 `xchg DX,AX`, **AX is the remainder** and **DX is the quotient**.
-`div` leaves arithmetic flags undefined. With range zero, division is
+`div` writes the pinned DIVW flags (via the shared SYSTEM random model). Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. With range zero, division is
 skipped: seed still advances, AX=0, DX=high16(new seed), and the preceding
 `or bx,bx` cleared carry. This also holds for a large WORD range such as
 `0xFFFF`: the result is `high16(new_seed) mod range`.

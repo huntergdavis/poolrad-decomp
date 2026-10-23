@@ -71,11 +71,11 @@ The composed calls leave their registers in place: AH, DX, ES:DI, BX, CX
 and SI carry the last callee's values or this body's later loads. The final
 flags are the last `CMP`'s, at `+06DF`, `+06EF`, `+070F` or `+07C4`.
 
-These flag writes are folded: `XOR AH,AH`, `SHL`, `ADD`, `IDIV`, `SHR`,
+These flag writes are folded: `XOR AH,AH`, `SHL`, `ADD`, `SHR`,
 `MUL`, `INC` and `OR AL,AL`. Each is overwritten before any flag is read
 or the routine returns, either by a later `CMP` or by a callee's prologue
 `SUB` (`+0CB9` opens `SUB SP,0Ch` and `RES_00BA_2199` opens `SUB SP,2`).
-`SHR`'s carry selects the factor directly.
+`SHR`'s carry selects the factor directly. The `IDIV CX` at +06BC is no longer folded: the model writes the pinned IDIVW flags. Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values.
 
 Every operand is reread from RAM in source order, including R, X, Y, the
 DS tables and every frame byte. Offsets wrap at 16 bits and physical

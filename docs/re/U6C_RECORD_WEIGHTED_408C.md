@@ -66,9 +66,9 @@ BP and far CS:IP, with RETF 4 advancing entry SP eight bytes overall.
 DIVIDE_ERROR preserves exact state before faulting IDIV at +41FF/+4221;
 no CPU vector frame is synthesized. TRANSFER exposes an altered internal
 callee return instead of inventing continuation. Clamp and pre-fault flags
-are defined and compared exactly. Successful IDIV leaves arithmetic FLAGS
-08D5 undefined; only those six bits are masked there. The C chooses the
-preceding ADD's arithmetic flags. All other FLAGS remain exact.
+are defined and compared exactly. Successful IDIV writes the pinned IDIVW FLAGS,
+not the preceding ADD's: Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. The raw-Unicorn oracle still masks those six bits (08D5) there (a blanket mask on successful division exits;
+native is the authority and is not run for this body here). All other FLAGS remain exact.
 
 Locals, both arguments, DS globals/table and frames share A20-off 1 MiB
 RAM. Every original reload/store remains ordered. Offsets/SP wrap at 16 bits,
@@ -149,7 +149,7 @@ feasible-edge parity with separate records and boundaries; original-caller
 native parity and distinct-record/fault captures. score: 4/4 listed checks,
 a checklist rather than a probability. verdict: match under immutable-code,
 A20-off, entry-frame and explicit boundary contracts. review_notes:
-undefined IDIV flags, infeasible default edge, native return landing and
+IDIV flags (pinned values; Unicorn-masked), infeasible default edge, native return landing and
 fault-frame normalization are explicit; field meanings/natural reach remain
 unmeasured; PM independently reviews identity and strict credit.
 

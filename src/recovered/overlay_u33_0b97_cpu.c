@@ -48,7 +48,13 @@ static void mul_dx(cpu_t *c)                                                    
 {
     uint32_t p = (uint32_t)c->ax * c->dx;
     c->ax = (uint16_t)p; c->dx = (uint16_t)(p >> 16u);
-    c->flags = (uint16_t)((c->flags & ~0x0801u) | (c->dx ? 0x0801u : 0u));
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = p;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        c->flags = (uint16_t)((c->flags & ~0x0845u) | (c->dx != 0u ? 0x0801u : 0u) |
+                                (c->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 static void cbw(cpu_t *c) { c->ax = (uint16_t)(int16_t)(int8_t)(uint8_t)c->ax; }
 static void mov_al(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }

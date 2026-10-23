@@ -81,7 +81,7 @@ static void parity_flags(pr_u77_27df_cpu *cpu, uint8_t result)
 static void or16(pr_u77_27df_cpu *cpu, uint16_t operand)
 {
     cpu->ax = (uint16_t)(cpu->ax | operand);
-    cpu->flags &= (uint16_t)~LOGIC_FLAGS;
+    cpu->flags &= (uint16_t)~(LOGIC_FLAGS | 0x10u); /* pinned: OR clears AF */
     parity_flags(cpu, (uint8_t)cpu->ax);
     if (cpu->ax == 0u) cpu->flags |= 0x0040u;
     if (cpu->ax & 0x8000u) cpu->flags |= 0x0080u;

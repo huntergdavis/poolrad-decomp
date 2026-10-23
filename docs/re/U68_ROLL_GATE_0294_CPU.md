@@ -91,7 +91,7 @@ after the real prefix and argument push. Neither stop unwinds the stack.
 The shared dice prefix leaves undefined XOR AF unchanged. Only at its
 LIMIT boundary this new adapter clears AF to match the measured Unicorn
 profile. Shared dependency implementations remain untouched. Undefined
-DIV/IDIV/shift flags retain the existing dependency profile; this is not
+shift and DIV/IDIV flags follow the pinned stored profile (see FLAG_SEMANTICS_CENSUS.md): shifts set AF, DIV/IDIV write the pinned values. Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. This is not
 a claim across arbitrary CPUs. Native partial-stop flags are not measured.
 
 ## Author evidence

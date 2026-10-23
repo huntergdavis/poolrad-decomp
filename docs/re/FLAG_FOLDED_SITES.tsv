@@ -1,0 +1,110 @@
+file	line	instructions_named	comment
+overlay_u1c_compare_and_0aed_cpu.c	226		cpu->ax = read8(&m, cpu->ss, (uint16_t)(cpu->bp - 9u));           /* (XOR and SHL flags folded) */
+overlay_u1c_return_0a9f_cpu.c	26	INC flags are overwritten by OR before any observable stop. */	/* INC flags are overwritten by OR before any observable stop. */
+overlay_u1c_text_2e7d_cpu.c	92		al(c,rb(&m,c->ss,local(&m,-5)));c->ax&=255u; /* XOR AH flags are overwritten by ADD. */
+overlay_u20_party_award_0355_cpu.c	141	ADD AX,[BP+6]	/* v := X div 10 + X (ADD AX,[BP+6]; ADC DX,[BP+8], flags folded), stored in [BP-8]/[BP-6]. */
+overlay_u25_alloc_1951_cpu.c	179		cpu->di = cpu->ax;                                                    /*      MOV AL,[DI+7085h]; PUSH AX (flags folded) */
+overlay_u25_entry23_1fb1.c	204		* shift flags are dead before the next CMP. */
+overlay_u25_step_probe_0482.c	98	DEC byte [bp+disp]; CMP at +04B1 follows	/* INC/DEC byte [bp+disp]; the flags are dead (CMP at +04B1 follows). */
+overlay_u25_store_string_0f53.c	239		* les di,[ptr]; add di,ax. The ADD AX and SHL flags are dead; ADD DI's
+overlay_u31_candidate_check_0255_cpu.c	196	PUSH BP; MOV BP,SP; SUB SP	push16(m, cpu->bp);                                                   /* 23B7 PUSH BP; MOV BP,SP; SUB SP,2 (flags folded) */
+overlay_u31_candidate_check_0255_cpu.c	230	PUSH BP; MOV BP,SP; SUB SP	push16(&m, cpu->bp);                                                  /* +0255 PUSH BP; MOV BP,SP; SUB SP,4 (flags folded) */
+overlay_u31_candidate_check_0255_cpu.c	239	SHL DI,CL (flags folded	cpu->di = (uint16_t)(cpu->ax << 4);                                   /*       SHL DI,CL (flags folded) */
+overlay_u31_candidate_check_0255_cpu.c	266	SHL DI,1; ADD DI,SI (flags folded	cpu->si = cpu->ax;                                            /*       SHL DI,1; ADD DI,SI (flags folded) */
+overlay_u31_candidate_check_0255_cpu.c	269	SHL DI,1; SHL DI,1 (flags folded	cpu->di = (uint16_t)(cpu->ax << 2);                           /*       SHL DI,1; SHL DI,1 (flags folded) */
+overlay_u31_candidate_check_0255_cpu.c	273		write8(&m, cpu->ss, (uint16_t)(cpu->bp - 1u), 1u);        /*       (flags folded) */
+overlay_u31_step_gate_0675.c	82	XOR AH,AH	/* MOV AL,byte; XOR AH,AH (XOR's flags folded). */
+overlay_u31_step_gate_0675.c	185	PUSH BP; MOV BP,SP; SUB SP; CMP or a callee	/* +0675..+0678: PUSH BP; MOV BP,SP; SUB SP,0Ah (SUB's flags are overwritten by the first CMP or a callee). */
+overlay_u31_step_gate_0675.c	193		/* +0686..+06A5: DX := c; ES:DI := Y; DI := 5 * Y[15h] + c (SHL/ADD flags folded). */
+overlay_u31_step_gate_0675.c	211	IDIV cannot fault	* word, so the quotient always fits and IDIV cannot fault; its undefined flags are folded. */
+overlay_u31_step_gate_0675.c	302	OR AL,AL	if ((uint8_t)cpu->ax != 0u)                       /* OR AL,AL; JNE +07B8 (OR's flags folded) */
+overlay_u31_step_gate_0675.c	308	INC AX (flags folded	cpu->ax = (uint16_t)(cpu->ax + 1u);                /* INC AX (flags folded) */
+overlay_u31_table_value_128d_cpu.c	111	XOR AH,AH; ADD AX,DX	/* MOV AL,[BP-2]; XOR AH,AH; ADD AX,DX; MOV [BP-2],AL (flags folded) */
+overlay_u31_table_value_128d_cpu.c	135	XOR AH,AH	cpu->ax = read8(ram, cpu->es, (uint16_t)(cpu->di + 0x2Eu));           /* +129A XOR AH,AH (flags folded) */
+overlay_u31_table_value_128d_cpu.c	168	MUL DX (flags folded	product = (uint32_t)cpu->ax * cpu->dx;                            /* MUL DX (flags folded) */
+overlay_u33_cell_pair_01ad.c	140	IDIV leaves	* XOR and ADD flags are overwritten inside the first call; IDIV leaves
+overlay_u33_neighbourhood_0810.c	164		/* +0810..+0813: frame and ten local bytes (SUB's flags are overwritten by +01AD). */
+overlay_u33_stamp_block_02ba.c	114	PUSH BP; MOV BP,SP; SUB SP	/* PUSH BP; MOV BP,SP; SUB SP,2 (its flags are overwritten before they are observed) */
+overlay_u33_stamp_square_0377.c	109	PUSH BP; MOV BP,SP; SUB SP	/* PUSH BP; MOV BP,SP; SUB SP,2 (its flags are overwritten before they are observed) */
+overlay_u38_gated_append_001f_cpu.c	28	SUB SP flags are overwritten by CMP before any observable stop. */	/* SUB SP flags are overwritten by CMP before any observable stop. */
+overlay_u38_helper_cluster_cpu.c	166	SUB SP	cpu->sp = (uint16_t)(cpu->sp - 2u);                               /* +1493 SUB SP,2 (flags folded) */
+overlay_u38_helper_cluster_cpu.c	179	CMP AL	/* +14B4 SUB BYTE [6818],2 (flags folded); MOV AL,[6818]; CMP AL,[681C]; JAE +14C8. */
+overlay_u38_helper_cluster_cpu.c	198	INC BYTE [BP-1] (flags folded	write8(ram, cpu->ss, (uint16_t)(cpu->bp - 1u),            /* +14B1 INC BYTE [BP-1] (flags folded) */
+overlay_u38_helper_cluster_cpu.c	202		write8(ram, cpu->ds, 0x6816u, (uint8_t)(read8(ram, cpu->ds, 0x6816u) + 4u)); /* +14D0 (flags folded) */
+overlay_u38_roll_gate_2915_cpu.c	182		cpu->dx = cpu->ax;                                                    /* +292C..+293B: DX := 5 * (11 - r) (flags folded) */
+overlay_u38_target_index_gate_2a87.c	264	CMP or AND/OR before observation. */	/* CL=4; flags are overwritten by subsequent CMP or AND/OR before observation. */
+overlay_u38_target_index_gate_2a87.c	298	CMP or AND/OR before observation. */	/* CL=4; flags are overwritten by subsequent CMP or AND/OR before observation. */
+overlay_u38_target_mask81_25bc.c	254		/* CL=4; flags are overwritten by subsequent AND/OR before observation. */
+overlay_u3b0_cursor_step_0cc5_cpu.c	102	PUSH BP; MOV BP,SP; SUB SP	push16(ram, cpu, cpu->bp);                                            /* +0CC5 PUSH BP; MOV BP,SP; SUB SP,8 (flags folded) */
+overlay_u3b0_dispose_11f3_cpu.c	26		/* SUB flags are overwritten by OR before any observable stop. */
+overlay_u3b0_item_split_00cb_cpu.c	109	XOR AH,AH; SHL AX,1; ADD DI,AX (flags folded unless `live`	/* MOV AL,[BP-2Ah]; XOR AH,AH; SHL AX,1; MOV DI,[BP+6]; ADD DI,AX (flags folded unless `live`): DI := L + 2k. */
+overlay_u3b0_item_split_00cb_cpu.c	156		/* +0132..+018B for a member byte: open the first item, or close item k at i - 2 and open item k + 1 at i (flags folded). */
+overlay_u3b0_item_split_00cb_cpu.c	219	CMP AL	set_al(cpu, 1u);                                                      /* +0109 MOV AL,1; CMP AL,[BP-2Eh]; JBE +0113 (flags folded) */
+overlay_u3b0_item_split_00cb_cpu.c	235	CMP AL	set_al(cpu, frame8(&m, (uint16_t)-0x2Bu));                    /* +018D MOV AL,[BP-2Bh]; CMP AL,[BP-2Eh]; JNE +0118 (flags folded) */
+overlay_u3b0_item_split_00cb_cpu.c	238	INC BYTE [BP-2Bh] (flags folded	set_frame8(&m, (uint16_t)-0x2Bu, (uint8_t)(frame8(&m, (uint16_t)-0x2Bu) + 1u)); /* +0118 INC BYTE [BP-2Bh] (flags folded) */
+overlay_u3b0_space_scan_cpu.c	180	INC BYTE [BP-2Bh] (flags folded	write8(ram, cpu->ss, (uint16_t)(cpu->bp - 0x2Bu),                  /* +090F INC BYTE [BP-2Bh] (flags folded) */
+overlay_u3b0_space_scan_cpu.c	205	DEC BYTE [BP-2Bh] (flags folded	write8(ram, cpu->ss, (uint16_t)(cpu->bp - 0x2Bu),                  /* +0955 DEC BYTE [BP-2Bh] (flags folded) */
+overlay_u3b0_step_scan_0b03_cpu.c	140	ADD AX,SS:[DI-59h]; DEC AX	/* AX := DS:[6B29] + L[-59h] - 1 (MOV AX,[6B29h]; MOV DI,[BP+6]; ADD AX,SS:[DI-59h]; DEC AX; flags folded). */
+overlay_u3b0_step_scan_0b03_cpu.c	148	DEC AX (flags folded	/* MOV DI,[BP+6]; MOV AX,SS:[DI-56h]; DEC AX (flags folded). */
+overlay_u3b0_step_scan_0b03_cpu.c	196	PUSH BP; MOV BP,SP; SUB SP	push16(&m, cpu->bp);                                                  /* +0B03 PUSH BP; MOV BP,SP; SUB SP,2 (flags folded) */
+overlay_u3b4_case_maps.c	64	PUSH BP; MOV BP,SP; SUB SP	/* PUSH BP; MOV BP,SP; SUB SP,2 (its flags are overwritten by the first CMP); MOV AL,[BP+8]. */
+overlay_u3b9_bitmap_set_release_048f_cpu.c	63		/* SHL's flags are overwritten by ADD before any observable stop. */
+overlay_u3b9_bitmap_set_release_048f_cpu.c	74	INC byte keeps CF	/* INC byte keeps CF; its other flags are overwritten before CALL. */
+overlay_u3c2_record_sort_002e_cpu.c	90	XOR AH,AH; SHL DI,1; ADD DI,SI (flags folded	/* MOV AL,[BP-below]; XOR AH,AH; MOV DI,AX; MOV SI,DI; SHL DI,1; ADD DI,SI (flags folded): DI := 3k, SI := k. */
+overlay_u3c2_record_sort_002e_cpu.c	269	INC BYTE [BP-2] (flags folded	set_local8(&m, 2u, (uint8_t)(local8(&m, 2u) + 1u));       /* +0072 INC BYTE [BP-2] (flags folded) */
+overlay_u3c2_record_sort_002e_cpu.c	279	INC BYTE [BP-1] (flags folded	set_local8(&m, 1u, (uint8_t)(local8(&m, 1u) + 1u));               /* +0056 INC BYTE [BP-1] (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	140	XOR AH,AH; SHL DI,1; SHL DI,1: DI := 4s (flags folded unless `live`: then the last SHL's	/* MOV AL,[BP-2]; XOR AH,AH; MOV DI,AX; SHL DI,1; SHL DI,1: DI := 4s (flags folded unless `live`: then the last SHL's,
+overlay_u3c6_caller_10a7_cpu.c	160	XOR AH,AH; MUL DX	/* MOV AL,[BP-3]; XOR AH,AH; MOV DX,7; MUL DX; MOV DI,AX: DI := 7k, DX := 0 (flags folded: a later CMP, OR or ADD
+overlay_u3c6_caller_10a7_cpu.c	181	PUSH BP; MOV BP,SP; SUB SP	push16(m, cpu->bp);                                                   /* 0C5F PUSH BP; MOV BP,SP; SUB SP,4 (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	188	INC BYTE [BP-3] (flags folded	set_local8(m, (uint16_t)-3, (uint8_t)(local8(m, (uint16_t)-3) + 1u)); /* 0C71 INC BYTE [BP-3] (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	194		set_local8(m, (uint16_t)-2, 1u);                              /* 0C91 MOV BYTE [BP-2],1 (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	313	CMP BYTE [DI+66DCh]	entry_index(m);                                           /* +11A0 CMP BYTE [DI+66DCh],1Fh; JE +11C6 (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	342	INC BYTE [BP-3] (flags folded	set_local8(m, (uint16_t)-3, (uint8_t)(local8(m, (uint16_t)-3) + 1u)); /* +117F INC BYTE [BP-3] (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	355		cpu->ax = read16(m, cpu->ds, (uint16_t)(cpu->di + 0x66D6u));  /*       (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	376	INC BYTE [BP-3] (flags folded	set_local8(m, (uint16_t)-3, (uint8_t)(local8(m, (uint16_t)-3) + 1u)); /* +1202 INC BYTE [BP-3] (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	386		cpu->dx = 0u;                                                     /*       (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	412	PUSH BP; MOV BP,SP; SUB SP	push16(&m, cpu->bp);                                                  /* +10A7 PUSH BP; MOV BP,SP; SUB SP,8 (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	427		set_al(cpu, (uint8_t)(read8(&m, cpu->es, (uint16_t)(cpu->di + 0x6Cu)) & 0x7Fu)); /* MOV DL,AL (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	449	CMP BYTE [BP-4]	fail = local8(&m, (uint16_t)-4) != 0u;                            /* +111D CMP BYTE [BP-4],0; JNE +113B (flags folded) */
+overlay_u3c6_caller_10a7_cpu.c	451	CMP BYTE [BP-5]	fail = local8(&m, (uint16_t)-5) == 0u;                        /* +1123 CMP BYTE [BP-5],0; JE +113B (flags folded) */
+overlay_u3c6_slot_offsets_0068.c	67	CMP before they are observed. */	* MOV [DI+target],DL. The XOR/SHL/SUB flags are overwritten by the pass-end CMP before they are observed. */
+overlay_u3c6_slot_offsets_0068.c	99		/* +0068..+0071: frame, two local bytes; [BP-2] := DS:5F2A (SUB's flags are overwritten by the CMP). */
+overlay_u3c6_slot_offsets_0068.c	126	INC BYTE [BP-1] (its flags are overwritten by the next pass-end CMP	/* +0080: INC BYTE [BP-1] (its flags are overwritten by the next pass-end CMP). */
+overlay_u3ce_bitmap_pair_release_014e_cpu.c	36		/* XOR/SHL flags are overwritten by OR or ADD before any visible stop. */
+overlay_u6a_record_weight_0000.c	111		* MUL's flags are overwritten by the two ADDs before any observation. */
+overlay_u6f_party_insert_1446_cpu.c	239	PUSH BP; MOV BP,SP; SUB SP	push16(&m, cpu->bp);                                                  /* +1446 PUSH BP; MOV BP,SP; SUB SP,10h (flags folded) */
+overlay_u6f_party_insert_1446_cpu.c	331		cpu->flags &= (uint16_t)~0x08D5u;                                     /* loop C's flags are folded: either exit (JAE, or JE */
+overlay_u77_weighted_28be_cpu.c	154	PUSH BP; MOV BP,SP; SUB SP	push16(&m, cpu->bp);                                                  /* +28BE PUSH BP; MOV BP,SP; SUB SP,0Ah (flags folded) */
+overlay_u77_weighted_28be_cpu.c	157	XOR AX,AX	cpu->ax = 0u;                                                         /* +28C4 XOR AX,AX (flags folded); sum := 0; j := 0 */
+overlay_u77_weighted_28be_cpu.c	163	SHL AX,1; ADD DI,AX (flags folded	load_j(&m);                                                       /* +28D5 SHL AX,1; LES DI,[BP+6]; ADD DI,AX (flags folded) */
+overlay_u77_weighted_28be_cpu.c	180		old = read16(&m, cpu->ss, (uint16_t)(cpu->bp - 8u));              /* +2902 ADD [BP-8],AX; ADC [BP-6],DX (flags folded) */
+overlay_u77_weighted_28be_cpu.c	185	CMP BYTE [BP-9]	if (ram[physical(cpu->ss, (uint16_t)(cpu->bp - 9u))] == 4u)      /* +2908 CMP BYTE [BP-9],4; JNE +28D2 (flags folded) */
+overlay_u77_weighted_28be_cpu.c	187	INC BYTE [BP-9] (flags folded	at = physical(cpu->ss, (uint16_t)(cpu->bp - 9u));                 /* +28D2 INC BYTE [BP-9] (flags folded) */
+overlay_u7f_weighted_00a8_cpu.c	196	XOR AX,AX	cpu->ax = 0u;                                                         /* +00C1 XOR AX,AX (flags folded); sum := 0; j := 0 */
+overlay_u7f_weighted_00a8_cpu.c	210		old = read16(&m, cpu->ss, (uint16_t)(cpu->bp - 0x24u));           /* +00F9 ADD [BP-24h],AX; ADC [BP-22h],DX (flags folded) */
+overlay_u7f_weighted_00a8_cpu.c	215	CMP BYTE [BP-25h]	if (ram[physical(cpu->ss, (uint16_t)(cpu->bp - 0x25u))] == 4u)   /* +00FF CMP BYTE [BP-25h],4; JNE +00CF (flags folded) */
+overlay_u7f_weighted_00a8_cpu.c	217	INC BYTE [BP-25h] (flags folded	at = physical(cpu->ss, (uint16_t)(cpu->bp - 0x25u));              /* +00CF INC BYTE [BP-25h] (flags folded) */
+overlay_u86_entry3_0729.c	67	XOR AH,AH; SHL DI,CL (flags folded	/* MOV AL,[BP+6]; XOR AH,AH; MOV DI,AX; MOV CL,4; SHL DI,CL (flags folded): AX = k, DI = 16k, CL = 4. */
+overlay_u86_entry3_0729.c	75	XOR AH,AH	/* index16, then MOV AL,[DI+table]; XOR AH,AH (flags folded). */
+overlay_u9e_entry16_10e4.c	86	PUSH BP; MOV BP,SP; SUB SP	/* PUSH BP; MOV BP,SP; SUB SP,2. Their interim flags are overwritten. */
+resident_00ba_byte_string_1037_cpu.c	78	PUSH BP; MOV BP,SP; SUB SP	push16(ram, cpu, cpu->bp);                                            /* 1037 PUSH BP; MOV BP,SP; SUB SP,100h (flags folded) */
+resident_00ba_class_value_26c2_cpu.c	46	XOR AH,AH; SHL DI,CL (flags folded	/* MOV AL,[BP+6]; XOR AH,AH; MOV DI,AX; MOV CL,4; SHL DI,CL (flags folded). */
+resident_00ba_sidecar_lookup_2199_cpu.c	91	PUSH BP; MOV BP,SP; SUB SP	/* 2199..219C: PUSH BP; MOV BP,SP; SUB SP,2 (its flags are overwritten by the OR before any exit). */
+resident_03f1_clear_0137_cpu.c	96	CMP before any observable	/* MUL/SHL result flags are overwritten by ADD/CMP before any observable
+resident_0709_clear_0dd3_cpu.c	96	CMP before any observable	/* MUL/SHL result flags are overwritten by ADD/CMP before any observable
+resident_0709_glyph_01df_cpu.c	3	IDIV result flags are dead before any returned/stopped	* MUL, shifts and IDIV result flags are dead before any returned/stopped
+resident_0802_05cd_cpu.c	187	MUL DX: its flags are dead (ADD below	{   uint32_t p = (uint32_t)c->ax * c->dx;                         /* 0622 MUL DX: its flags are dead (ADD below) */
+resident_character_target_select.c	214		/* CL=4; flags are overwritten by subsequent AND/OR before observation. */
+system_freemem_0254_cpu.c	103	AND AX	/* CALL 0491 from03F9; intermediate flags are overwritten by AND AX,8. */
+system_getmem_023f_cpu.c	103	ADD AX,DI; ADD DX,SI; ADD AL,0F0h; AND AL	/* ADD AX,DI; ADD DX,SI; ADD AL,0F0h; ADC DX,0; AND AL,0Fh: DX:AX := the normalized sum (flags folded but AND's). */
+system_ioresult_assign_cpu.c	84	CMP AL	length = ram[physical(cpu->ds, cpu->si)];                             /* 13FC LODSB; CMP AL,4Fh; JBE; MOV AL,4Fh (flags folded) */
+system_longdiv_0a76_cpu.c	98		{                                                                     /* 0AA3 MOV BP,21h; 33 restoring steps (flags folded) */
+system_longmul_0a5b_cpu.c	62	MUL CX (flags folded	product = (uint32_t)cpu->ax * cpu->cx;                                /* 0A5F MUL CX (flags folded); PUSH AX; PUSH DX */
+system_longmul_0a5b_cpu.c	75	ADD DX,BX (flags folded; ADD DX,CX */	cpu->dx = (uint16_t)(cpu->dx + cpu->bx);                              /* 0A71 ADD DX,BX (flags folded); ADD DX,CX */
+system_str_1366_cpu.c	119		cpu->cx = cpu->di;                                                    /* 12A0 MOV CX,DI; POP DI; SUB CX,DI (flags folded) */
+system_str_1366_cpu.c	130	PUSH BP; MOV BP,SP; SUB SP	push16(ram, cpu, cpu->bp);                                            /* 1366 PUSH BP; MOV BP,SP; SUB SP,20h (flags folded) */
+system_string_move_leaves_cpu.c	95	XOR AH,AH	cpu->ax = ram[physical(cpu->ds, cpu->si)];                            /* 0B64 MOV AL,[SI]; XOR AH,AH (flags folded) */
+system_strstore_fullstate_0b25.c	34	CMP AL	if (length > (uint8_t)cpu->cx)                                        /* 0B37 CMP AL,CL; JBE; MOV AL,CL (flags folded) */
+system_textassign_insert_cpu.c	78	CMP AL	length = ram[physical(cpu->ds, cpu->si)];                             /* 0528 LODSB; CMP AL,4Fh; JBE; MOV AL,4Fh (flags folded) */
+system_textassign_insert_cpu.c	145	PUSH BP; MOV BP,SP; SUB SP	push16(ram, cpu, cpu->bp);                                            /* 0C68 PUSH BP; MOV BP,SP; SUB SP,200h (flags folded) */
+system_textassign_insert_cpu.c	152	DEC AX (flags folded	cpu->ax = (uint16_t)(read16_at(ram, physical(cpu->ss, (uint16_t)(cpu->bp + 6u))) - 1u);  /* MOV AX,[BP+6]; DEC AX (flags folded) */

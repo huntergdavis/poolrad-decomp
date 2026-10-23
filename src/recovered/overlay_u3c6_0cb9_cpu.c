@@ -176,7 +176,7 @@ static uint16_t shl16(cpu_t *c, uint16_t a, unsigned n)
     if ((a >> (16u - n)) & 1u) f |= F_CF;
     if (r == 0u) f |= F_ZF;
     if (r & 0x8000u) f |= F_SF;
-    if ((r ^ a) & 0x8000u) f |= F_OF;
+    if (((r >> 15) ^ ((f & F_CF) ? 1u : 0u)) & 1u) f |= F_OF; /* pinned FillFlags SHLw: OF = MSB(result) ^ CF */
     put_arith(c, f);
     return r;
 }

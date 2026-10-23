@@ -115,7 +115,8 @@ pr_u38_2d88_status pr_u38_effect_scale_clear_2d88(
                 cpu->ax = amount; /* MOV AL; XOR AH,AH */
                 logic16(cpu, 0u);
                 cpu->ax = (uint16_t)(amount >> 1);
-                logic16(cpu, cpu->ax); /* SHR AX,1; AF is undefined */
+                logic16(cpu, cpu->ax); /* SHR AX,1 */
+                cpu->flags |= 0x10u; /* pinned DOSBox-X: AF set for a non-zero count */
                 if (amount & 1u) cpu->flags |= 1u;
                 write8(ram, cpu->ds, 0x6818u, (uint8_t)cpu->ax);
                 goto result;

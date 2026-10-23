@@ -73,8 +73,8 @@ static void cmp_al(pr_u25_0136_cpu *cpu, uint8_t value)
 static void xor_ah_ah(pr_u25_0136_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    /* AF is undefined; retain its incoming bit by convention. */
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) |
+    /* pinned FillFlags: XOR clears AF. */
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) |
                             0x0044u);
 }
 
@@ -98,13 +98,14 @@ static void shl_ax_eight(pr_u25_0136_cpu *cpu)
 {
     uint16_t before = cpu->ax;
     uint16_t result = (uint16_t)(before << 8);
-    uint16_t flags = even_parity((uint8_t)result);
+    uint16_t flags = (uint16_t)(even_parity((uint8_t)result) | 0x0010u); /* pinned: AF set for a non-zero count */
     if ((before & 0x0100u) != 0u) flags |= 0x0001u;
     if (result == 0u) flags |= 0x0040u;
     if ((result & 0x8000u) != 0u) flags |= 0x0080u;
-    /* AF/OF are undefined for this eight-bit count; retain inputs. */
+    /* pinned FillFlags SHLw: AF = 1, OF = MSB(result) ^ CF, also for count 8. */
+    if ((((result >> 15) ^ (flags & 1u)) & 1u) != 0u) flags |= 0x0800u;
     cpu->ax = result;
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~0x00C5u) | flags);
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~0x08D5u) | flags);
 }
 
 static pr_u25_0136_status call_local(

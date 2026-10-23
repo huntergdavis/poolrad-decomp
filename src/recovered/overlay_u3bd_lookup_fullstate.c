@@ -96,7 +96,8 @@ static void logic8(pr_u3bd_lookup_cpu *cpu, uint8_t result)
 }
 
 /* SHR AX,CL with CL in 2..6: CF is the last bit shifted out, OF follows
- * the penultimate and final sign bits (zero here), AF undefined as zero. */
+ * the penultimate and final sign bits (zero here). AF is architecturally undefined;
+ * pinned DOSBox-X (get_AF, t_SHRw) sets AF = (count & 1Fh) != 0, so it is set here. */
 static void shr16(pr_u3bd_lookup_cpu *cpu, unsigned count)
 {
     uint16_t before = (uint16_t)(cpu->ax >> (count - 1u));
@@ -107,6 +108,7 @@ static void shr16(pr_u3bd_lookup_cpu *cpu, unsigned count)
     if (result == 0u) cpu->flags |= 0x0040u;
     if (result & 0x8000u) cpu->flags |= 0x0080u;
     if ((before ^ result) & 0x8000u) cpu->flags |= 0x0800u;
+    if (count & 0x1Fu) cpu->flags |= 0x0010u;
     cpu->ax = result;
 }
 

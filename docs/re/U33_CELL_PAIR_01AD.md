@@ -40,8 +40,11 @@ first result `[BP-2]` and the returned byte `[BP-1]`.
 It zero-extends facing, adds 4, sign-extends into DX:AX with `CWD`,
 divides by CX = 8 with signed `IDIV`, exchanges so AX holds the
 remainder, and stores its low byte as the opposite facing. (The XOR and
-ADD flags are overwritten inside the first call; `IDIV` leaves the flags
-alone in both tested engines.) It pushes x, y, facing and its own BP as
+ADD flags are overwritten inside the first call, and so are the `IDIV` flags: they are never observed at +01AD. The pinned
+normal/386 `IDIVW` does NOT leave the flags alone; it writes all six (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF
+over rem:quo, `instructions.h:743-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV
+checkpoints, all FLAGS bits unmasked). The model writes those values; an earlier version of this sentence said the flags were left alone
+in both tested engines, which was never measured here and is wrong.) It pushes x, y, facing and its own BP as
 live AX words and calls `+012B`, storing AL. It then forms
 `sign(x) + sign(DS:[2736+facing])` and `sign(y) + sign(DS:[273F+facing])`
 with facing zero-extended into DI, pushes those words, the opposite

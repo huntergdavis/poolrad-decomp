@@ -183,8 +183,14 @@ pr_u6c_408c_status pr_u6c_record_weighted_408c(
         }
         cpu->ax = (uint16_t)quotient;
         cpu->dx = (uint16_t)(dividend % divisor);
-        /* IDIV leaves arithmetic FLAGS undefined; choose preceding ADD's
-         * values. The defined non-arithmetic FLAGS remain unchanged. */
+        /* IDIV. Pinned DIVW/IDIVW (instructions.h:655-673, 745-761) overwrite all six flags: AF=SF=OF=0,
+         * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+        {
+            uint16_t rem16 = (uint16_t)(dividend % divisor), quo16 = (uint16_t)(quotient), fold = (uint16_t)(rem16 ^ quo16);
+            fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+            cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                    (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+        }
         ram[local_at(cpu, 3u)] = (uint8_t)cpu->ax;
     }
     cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | ram[local_at(cpu, 3u)]);
