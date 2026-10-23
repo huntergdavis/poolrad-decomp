@@ -153,7 +153,7 @@ class EvidenceNoteTest(unittest.TestCase):
             "UNPAIRED BODY: no evidence document under docs/re/ is part of this change (bodies: 1, checkers: 0)",
             f"UNPAIRED BODY: Evidence-note path closed: {PAIRED} is paired on the base but no "
             "'Evidence-note: <id>: <why>' line in this change's commit messages names it "
-            "(accepted ids: overlay_u9e_entry16_10e4)"])
+            "(accepted ids: 10E4, OVL_009E_10E4, overlay_u9e_entry16_10e4, overlay_u9e_entry16_10e4.c)"])
 
     def test_paired_body_edit_with_a_note_passes_exactly(self):
         self.write(PAIRED, "new body")
@@ -168,14 +168,78 @@ class EvidenceNoteTest(unittest.TestCase):
         code, unpaired, _ = self.run_gate([PAIRED], self.paired_body_base(), "Evidence-note: OVL_009E_10E4: explicit CF write, same behaviour\n")
         self.assertEqual((code, unpaired), (0, []))
 
-    def test_a_note_naming_another_file_or_too_short_covers_nothing(self):
+    def test_a_note_too_short_or_indented_is_not_a_note(self):
         self.write(PAIRED, "new body")
-        for message in ("Evidence-note: overlay_u9e_entry17_110d: a different body entirely\n",
-                        "Evidence-note: overlay_u9e_entry16_10e4: short\n",
+        for message in ("Evidence-note: overlay_u9e_entry16_10e4: short\n",
                         "  Evidence-note: overlay_u9e_entry16_10e4: indented, so not a trailer line\n"):
             code, unpaired, _ = self.run_gate([PAIRED], self.paired_body_base(), message)
             self.assertEqual(code, 1, message)
             self.assertEqual(len(unpaired), 2, message)
+
+    def test_a_note_naming_another_body_is_refused_as_unknown(self):
+        self.write(PAIRED, "new body")
+        code, unpaired, _ = self.run_gate([PAIRED], self.paired_body_base(), "Evidence-note: overlay_u9e_entry17_110d: a different body entirely\n")
+        self.assertEqual(code, 1)
+        self.assertEqual(unpaired[2:], ["UNPAIRED BODY: Evidence-note path closed: Evidence-note id 'overlay_u9e_entry17_110d' "
+                                        "names no changed body or checker: a typo or a blanket note is refused"])
+
+    # The VP's four (i21982), on the body the hole was reproduced against.
+    U6F = "src/recovered/overlay_u6f_entry6_0ec4_cpu.c"
+
+    def u6f_base(self):
+        return {self.U6F: "old", "docs/re/U6F_ENTRY6_0EC4.md": "OVL_006F_0EC4 is modelled by overlay_u6f_entry6_0ec4_cpu.\n",
+                "docs/re/CORPUS.md": "OVL_0001_0000 OVL_007F_0203 and overlay_u6f_entry6_0ec4_cpu and many more\n"}
+
+    def u6f_gate(self, ident):
+        self.write(self.U6F, "new")
+        return self.run_gate([self.U6F], self.u6f_base(), f"Evidence-note: {ident}: an explicit flag write, behaviour unchanged\n")
+
+    def test_vp_a_a_one_character_id_is_refused(self):
+        """The exact hole: '0' occurs inside '0EC4' and inside the docs, and must cover nothing."""
+        for ident in ("0", "a", "E"):
+            code, unpaired, _ = self.u6f_gate(ident)
+            self.assertEqual(code, 1, ident)
+            self.assertEqual(unpaired[1:], [
+                f"UNPAIRED BODY: Evidence-note path closed: {self.U6F} is paired on the base but no 'Evidence-note: <id>: <why>' line in this "
+                "change's commit messages names it (accepted ids: 0EC4, OVL_006F_0EC4, overlay_u6f_entry6_0ec4_cpu, overlay_u6f_entry6_0ec4_cpu.c)",
+                f"UNPAIRED BODY: Evidence-note path closed: Evidence-note id '{ident}' names no changed body or checker: a typo or a blanket note is refused"], ident)
+
+    def test_vp_b_the_bodys_own_id_passes(self):
+        for ident in ("0EC4", "OVL_006F_0EC4", "overlay_u6f_entry6_0ec4_cpu"):
+            code, unpaired, ok = self.u6f_gate(ident)
+            self.assertEqual((code, unpaired), (0, []), ident)
+            self.assertEqual(ok[0], f"EVIDENCE-NOTE: {self.U6F} - {ident}: an explicit flag write, behaviour unchanged")
+
+    def test_vp_c_a_body_not_in_the_table_is_refused(self):
+        code, unpaired, _ = self.u6f_gate("overlay_u6f_entry9_9999_cpu")
+        self.assertEqual(code, 1)
+        self.assertEqual(unpaired[-1], "UNPAIRED BODY: Evidence-note path closed: Evidence-note id 'overlay_u6f_entry9_9999_cpu' "
+                                       "names no changed body or checker: a typo or a blanket note is refused")
+
+    def test_vp_d_a_prefix_does_not_match(self):
+        for ident in ("0EC", "OVL_006F_0EC", "overlay_u6f_entry6_0ec4"):
+            code, unpaired, _ = self.u6f_gate(ident)
+            self.assertEqual(code, 1, ident)
+            self.assertIn(f"Evidence-note id '{ident}' names no changed body or checker", unpaired[-1], ident)
+
+    def test_a_row_from_an_unrelated_doc_is_refused(self):
+        """CORPUS.md names the stem and OVL_0001_0000 together; that row is not this body's."""
+        for ident in ("OVL_0001_0000", "OVL_007F_0203", "0203"):
+            code, unpaired, _ = self.u6f_gate(ident)
+            self.assertEqual(code, 1, ident)
+            self.assertIn(f"Evidence-note id '{ident}' names no changed body or checker", unpaired[-1], ident)
+
+    def test_one_generic_note_may_not_cover_two_bodies(self):
+        other = "src/recovered/overlay_u6f_entry6_0ec4.c"
+        self.write(self.U6F, "new")
+        self.write(other, "new")
+        base = {**self.u6f_base(), other: "old", "docs/re/U6F_0EC4_FIXTURE.md": "overlay_u6f_entry6_0ec4 for OVL_006F_0EC4\n"}
+        code, unpaired, _ = self.run_gate([self.U6F, other], base, "Evidence-note: 0EC4: one note for both bodies, not allowed\n")
+        self.assertEqual(code, 1)
+        self.assertEqual(unpaired[1:], [f"UNPAIRED BODY: Evidence-note path closed: Evidence-note id '0EC4' covers 2 files ({other}, {self.U6F}): write one note per file"])
+        code, unpaired, _ = self.run_gate([self.U6F, other], base,
+                                          "Evidence-note: overlay_u6f_entry6_0ec4_cpu: the cpu body's own note\nEvidence-note: overlay_u6f_entry6_0ec4: the fixture body's own note\n")
+        self.assertEqual((code, unpaired), (0, []))
 
     def test_new_body_is_refused_even_with_a_note(self):
         """The non-negotiable half: a new body needs its document in the same change."""

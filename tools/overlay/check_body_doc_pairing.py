@@ -35,9 +35,12 @@ a new document when a commit message in the change carries one line per file:
 
     Evidence-note: <id>: <what changed and why the evidence stands, ten+ chars>
 
-`<id>` names the file: its path, basename or stem; for a checker, one of its
-CHECKER_ROWS; for a body, a row id that a base `docs/re/*.md` names together
-with the body's stem. "Already paired on the base" is measured, not assumed: the
+`<id>` names the file, matched as a whole id, never a substring: its path,
+basename or stem; for a checker, one of its CHECKER_ROWS; for a body, its own
+row id (the stem carries the row's unit and offset, and a base `docs/re/*.md`
+names both as whole tokens) or that row's four-digit offset. Each changed file
+needs its own note; a note whose id names no changed file is refused (a typo or
+a blanket note), and so is one id covering two files unless it is a full row id. "Already paired on the base" is measured, not assumed: the
 file exists at the merge-base, a base `docs/re/*.md` names its stem (or, for a
 checker, its basename or one of its rows), and a checker declares CHECKER_ROWS
 there. The note path is closed - the change is refused even with notes - when it
@@ -146,15 +149,57 @@ def notes(messages):
     return {m.group("id"): m.group("why").strip() for m in NOTE.finditer(messages or "")}
 
 
+ROW_ID = re.compile(r"^(?P<kind>OVL|RES)_(?P<unit>[0-9A-F]{4})_(?P<off>[0-9A-F]{4})$")
+ROW_TOKEN = re.compile(r"\b(?:OVL|RES)_[0-9A-F]{4}_[0-9A-F]{4}\b")
+
+
+def token(word, text):
+    """True when `word` occurs in `text` as a whole token (never inside a longer identifier)."""
+    return re.search(r"(?<![A-Za-z0-9_])" + re.escape(word) + r"(?![A-Za-z0-9_])", text) is not None
+
+
+def stem_of(path):
+    return path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+
+
+def own_row(row, stem):
+    """True when a row id is this body's by name: the stem carries its offset as an underscore token and its
+    unit as `u<unit>` or the four-digit unit (overlay_u6f_entry6_0ec4_cpu <- OVL_006F_0EC4)."""
+    m = ROW_ID.match(row)
+    parts = stem.lower().split("_")
+    if not m or m.group("off").lower() not in parts:
+        return False
+    unit = m.group("unit").lower()
+    return "u" + (unit.lstrip("0") or "0") in parts or unit in parts
+
+
+def ids_of(path, kind, base):
+    """Every id an Evidence-note may use for one changed file: its path, basename and stem; a checker's base
+    CHECKER_ROWS; a body's own row ids that a base docs/re/*.md names (whole tokens) together with its stem, and
+    the four-digit offset of such a row. Matching is exact on whole ids, never a substring."""
+    stem = stem_of(path)
+    ids = {path, path.rsplit("/", 1)[-1], stem}
+    if kind == "checker":
+        return ids | checker_rows(base.text(path))
+    for text in base.doc_texts().values():
+        if token(stem, text):
+            for row in ROW_TOKEN.findall(text):
+                if own_row(row, stem):
+                    ids |= {row, row[-4:]}
+    return ids
+
+
 def note_problems(bodies, checkers, paths, root, base):
     """Why an edit without a new document may not land on Evidence-notes, or an empty list.
-    Every changed body and checker must be already paired on the base and named by a note."""
+    Every changed body and checker must be already paired on the base and named by its own note;
+    every note must name exactly one changed file (a full row id may name that row's body and checker)."""
     found, given, docs = [], notes(base.messages), base.docs()
     for table in CREDIT_TABLES:
         if table in paths:
             found.append(f"{table} is a credit table; an Evidence-note never covers it")
+    vocab = {}
     for path in bodies + checkers:
-        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        stem = stem_of(path)
         before, after = base.text(path), read(path, root)
         kind = "checker" if path in checkers else "body"
         if before is None:
@@ -169,34 +214,33 @@ def note_problems(bodies, checkers, paths, root, base):
             found.append(f"{path} changes CHECKER_ROWS ({sorted(rows_before)} -> {sorted(rows_after)}):"
                          " a registration change needs its evidence document")
             continue
-        names = {path, path.rsplit("/", 1)[-1], stem} | rows_before
         if kind == "checker" and not rows_before:
             found.append(f"{path} is not paired on the base: it declares no CHECKER_ROWS there")
             continue
-        if not (stem in docs or (kind == "checker" and any(n in docs for n in names - {path}))):
+        names = [stem, path.rsplit("/", 1)[-1]] + (sorted(rows_before) if kind == "checker" else [])
+        if not any(token(n, docs) for n in names):
             found.append(f"{path} is not paired on the base: no docs/re/*.md there names it")
             continue
-        ids = [i for i in given if i in names or (kind == "body" and i in docs and _together(i, stem, base))]
-        if not ids:
+        vocab[path] = ids_of(path, kind, base)
+        if not any(i in vocab[path] for i in given):
             found.append(f"{path} is paired on the base but no 'Evidence-note: <id>: <why>' line in "
-                         f"this change's commit messages names it (accepted ids: {stem}"
-                         + (f", {', '.join(sorted(rows_before))}" if rows_before else "") + ")")
+                         f"this change's commit messages names it (accepted ids: {', '.join(sorted(vocab[path] - {path}))})")
+    for ident in sorted(given):
+        covered = sorted(p for p, ids in vocab.items() if ident in ids)
+        if not covered and vocab:
+            found.append(f"Evidence-note id '{ident}' names no changed body or checker: a typo or a blanket note is refused")
+        elif len(covered) > 1 and not ROW_ID.match(ident):
+            found.append(f"Evidence-note id '{ident}' covers {len(covered)} files ({', '.join(covered)}): write one note per file")
     return found
-
-
-def _together(row, stem, base):
-    """True when one base docs/re/*.md names both a row id and a body's stem."""
-    return any(row in t and stem in t for t in base.doc_texts().values())
 
 
 def accepted_notes(bodies, checkers, base):
     """(path, id, reason) for each note that covers a changed file, for the report."""
     out, given = [], notes(base.messages)
     for path in bodies + checkers:
-        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
-        names = {path, path.rsplit("/", 1)[-1], stem} | checker_rows(base.text(path))
-        for i, why in given.items():
-            if i in names or (path in bodies and _together(i, stem, base)):
+        ids = ids_of(path, "checker" if path in checkers else "body", base)
+        for i, why in sorted(given.items()):
+            if i in ids:
                 out.append((path, i, why))
                 break
     return out
