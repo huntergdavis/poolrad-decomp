@@ -171,6 +171,7 @@ OVL_007F_0054,checker,ovl_007f_0054_cpu_audit.py
 OVL_007F_00A8,checker,u7f_weighted_00a8_audit.py
 OVL_007F_0130,unit-test,poolrad_overlay_u7f_div5_tests
 OVL_007F_0185,unit-test,poolrad_overlay_u7f_div5_dwords_tests
+OVL_007F_0203,checker,ovl_007f_0203_cpu_audit.py
 OVL_007F_0508,checker,u7f_clear_0508_audit.py
 OVL_007F_05E0,checker,u7f_party_count_05e0_audit.py
 OVL_007F_0A01,audit,tools/overlay/u7f_resource_subtract_0a01_audit.py
