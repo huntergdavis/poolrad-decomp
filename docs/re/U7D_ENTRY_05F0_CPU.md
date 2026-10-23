@@ -194,3 +194,13 @@ media: it decodes as `0E E8` and sits at an instruction boundary inside the call
 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, not the pinned `5a9c7c53` build. This document
 did not name the binary and gives no insulation argument for it. The primary evidence is the full-1 MiB Unicorn
 differential. Native agreement is claimed for that binary only; native frames are synthetic, not a reached game caller.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 a composed shift sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `bad-root-674` (`flags: C 0012, original 0002`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` (or word `MUL`) the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to the Unicorn value fails. Nothing is masked; the audit reports how many stops used the split, by rule.
+
+Run (PR #1446, `--unicorn`): **93** cases, registered dependency closure 772/798 starts (unchanged from the documented figure); the split was used at **2** stops, both after a shift.
+
+**Per-credit sentence (OVL_007D_05F0): evidence did not depend on AF after a shift**; those 2 stops hold C to AF=1 and every other stop is exact. Credit stands.

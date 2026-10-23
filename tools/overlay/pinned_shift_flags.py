@@ -25,19 +25,24 @@ class LastFlagWriter:
         self._cache = {}
         self.shift_nonzero = False
         self.last = None            # (address, mnemonic) of the last FLAGS writer, for messages
-        self.division = None        # pinned six flags of the last DIV/IDIV when it is the last writer
+        self.division = None        # pinned six arithmetic bits when the last writer is a word DIV/IDIV or MUL
+        self.rule = None            # "div" or "mul": which pinned rule produced self.division
         self._pending_div = None
+        self._pending_mul = None    # FLAGS before a word MUL (pinned MULW keeps SF and AF from them)
 
     def reset(self):
         self.shift_nonzero = False
-        self.last = self.division = self._pending_div = None
+        self.last = self.division = self.rule = self._pending_div = self._pending_mul = None
 
     def _settle(self, uc):
         """Read a word divide's quotient (AX) and remainder (DX) once it has executed."""
         if self._pending_div is not None:
             from pinned_div_flags import division_flags
             self.division = division_flags(uc.reg_read(U.UC_X86_REG_DX), uc.reg_read(U.UC_X86_REG_AX))
-            self._pending_div = None
+            self.rule, self._pending_div = "div", None
+        if self._pending_mul is not None:
+            self.division = multiply_flags(self._pending_mul, uc.reg_read(U.UC_X86_REG_DX), uc.reg_read(U.UC_X86_REG_AX))
+            self.rule, self._pending_mul = "mul", None
 
     def finish(self, uc):
         """Call once emulation stops, so a divide that was the very last instruction is settled."""
@@ -63,10 +68,13 @@ class LastFlagWriter:
             return
         if mnemonic in SHIFTS and ((uc.reg_read(U.UC_X86_REG_CL) & 0x1F) if count[0] == "cl" else count[1]) == 0:
             return
-        self.last, self.division = (address, mnemonic), None
-        if mnemonic in ("div", "idiv"):
+        self.last, self.division, self.rule = (address, mnemonic), None, None
+        if mnemonic in ("div", "idiv", "mul"):
             insn_bytes = bytes(uc.mem_read(address, 2))
-            self._pending_div = mnemonic if insn_bytes[0] == 0xF7 else None  # word form only (F7 /6, /7)
+            if insn_bytes[0] == 0xF7 and mnemonic == "mul":       # word MUL only (F7 /4): pinned MULW
+                self._pending_mul = uc.reg_read(U.UC_X86_REG_EFLAGS) & 0xFFFF
+            elif insn_bytes[0] == 0xF7 and mnemonic != "mul":     # word DIV/IDIV only (F7 /6, /7)
+                self._pending_div = mnemonic
         if mnemonic in SHIFTS:
             n = (uc.reg_read(U.UC_X86_REG_CL) & 0x1F) if count[0] == "cl" else count[1]
             if n == 0:
@@ -74,6 +82,20 @@ class LastFlagWriter:
             self.shift_nonzero = True
         else:
             self.shift_nonzero = False
+
+
+def multiply_flags(before, dx, ax):
+    """Pinned MULW (instructions.h:605-619) six arithmetic bits: FillFlagsNoCFOF keeps SF and AF from `before`;
+    ZF=(AX==0); PF=PARITY16(AX)^PARITY16(DX)^FLAG_PF (FLAG_PF is the mask 4) = even parity of DX:AX; CF=OF=(DX!=0)."""
+    dx, ax = dx & 0xFFFF, ax & 0xFFFF
+    flags = before & 0x0090
+    if ax == 0:
+        flags |= 0x0040
+    if bin(dx ^ ax).count("1") % 2 == 0:
+        flags |= 0x0004
+    if dx:
+        flags |= 0x0801
+    return flags
 
 
 def shift_af_split(c_flags, unicorn_flags, shift_nonzero):
@@ -96,7 +118,7 @@ def declared_flags_split(c_flags, unicorn_flags, writer):
     return None if problem is None else problem + where
 
 
-SPLIT_BY_RULE = {"div": 0, "shift": 0}
+SPLIT_BY_RULE = {"div": 0, "mul": 0, "shift": 0}
 
 
 def split_used(c_flags, unicorn_flags, writer):
@@ -106,7 +128,7 @@ def split_used(c_flags, unicorn_flags, writer):
     if c_flags == unicorn_flags:
         return False
     if writer.division is not None:
-        SPLIT_BY_RULE["div"] += 1
+        SPLIT_BY_RULE[writer.rule] += 1
         return True
     if writer.shift_nonzero:
         SPLIT_BY_RULE["shift"] += 1
