@@ -29,11 +29,35 @@ menu's two-colour hot letters OCR badly (`NHOVE WIEN AIN USE adich DOE`), so the
 encounter at seek step 4, six Quick presses, back on the area menu. Each earlier prototype stopped, by design, on a
 screen it did not yet know.
 
-**Route 3 is not reproducible from run to run.** The encounter comes at a different seek step, the fight follows the
-game's timer-seeded dice, and the post-combat screen shows party hit points. So the pixel-identical final-frame bar is
-measured on the **walk** with the same build, which is reproducible: 0 px in every build below. Route 3 runs count only
-when the route completes (driver_rc 0); a run that stops on an unknown screen or finds no encounter is discarded.
-Choosing between this and making route 3 deterministic was put to the PM (i21644).
+**The bar on route 3 (ruled: PM i21645 and i21648, VP i21647):** "on route 3 the global bar is COMPLETION, not pixels".
+
+Route 3 is not reproducible from run to run:
+- the encounter comes at a different seek step;
+- the fight follows the game's dice, which are timer-seeded (`RandSeed` at `DS:4428`, seeded once by `Randomize` from
+  the DOS clock);
+- the post-combat screen shows party hit points.
+
+A pixel mismatch there would only measure the RNG. So:
+- **Per run.** Every route-3 run must complete: driver_rc 0, every key on its gated screen. A run that stops on an
+  unknown screen, or finds no encounter, is **discarded and counted as discarded**.
+- **Per body.** V1 shadow equality on **every** compared arrival. A body counts as glued from route 3 only if it had at
+  least one V1-compared arrival on route 3 itself.
+- **Pixels.** Pixel identity stays on the reproducible **walk** regression, re-run with every batch-7 build: 0 px in all
+  three.
+
+**Both halves of the limit:**
+- This validates each body **per arrival**: the full CPU14 + 1 MiB state equal after each call. That is stronger than
+  "the frame looked right".
+- It is **weaker than "the final state matched"**: no two route-3 runs reach the same final state, so no end-of-route
+  state comparison is possible.
+
+A seed pin, poking `RandSeed` at the gated save-load point, is priced in i21893 as the cheaper road to a reproducible
+route 3.
+
+**Discarded route-3 runs:**
+- `hybrid-b7b-route-r3`: stalled on the credits screen, driver_rc 6;
+- `hybrid-b7c-route-r3`: no encounter in 60 steps, driver_rc 9.
+The six observer-only prototypes `a`..`f` were for learning the screens and are not counted.
 
 ## Reach (observer-only `hybrid-r3-proto-g`)
 
@@ -48,32 +72,37 @@ Choosing between this and making route 3 deterministic was put to the PM (i21644
 Builds: group 1 `d0953359`, group 2 `203a380e`, group 3 `cd314c3d`. The V1 counts are from route 3 with the final
 build (`hybrid-b7c-v1-r3`) unless marked otherwise.
 
-| Body | C entry | V1 c_equal / compared | Route-mode returns (`hybrid-b7d-route-r3-a`) |
+Per-batch table. **Arrivals** come from the observer; they count every entry, including calls made inside another
+glued body. **Own** counts the arrivals the dispatcher saw as this body's own; calls inside a glued parent run as part
+of that parent's shadow. **Equal** counts the V1-compared own arrivals that matched, and every compared arrival matched;
+the gap to Own is IRQ-interrupted windows, which are not compared.
+
+| Body | C entry | Route-3 V1, final build (`hybrid-b7c-v1-r3`): arrivals / own / equal | Route-mode returns (`hybrid-b7d-route-r3-a`) |
 | --- | --- | --- | --- |
-| `OVL_03C2_057B` | raw | 831/831 (b7a: 4,509/4,509) | 345 |
-| `OVL_0033_0221` | raw | 0 arrivals this run; **b7a: 2,282/2,282** | 0 |
-| `OVL_03C2_01A0` | raw | 7/7 | 5 |
-| `OVL_0033_012B` | raw, reads its 0x3BD stubs | **0 own arrivals in any run**: every call came inside `01AD`, which composes it | 0 |
-| `OVL_03C2_0422` | raw, composed line check | 29/29 (b7a: 1,257/1,257) | 18 |
-| `OVL_03C6_06E9` | raw | 533/533 | 219 |
-| `OVL_0033_01AD` | raw | 206/206 (+1 IRQ-interrupted) | 207 |
-| `OVL_0033_0615` | raw | 64/64 (+1) | 65 |
-| `OVL_0033_040F` | raw | 65/65 | 65 |
-| `OVL_0033_0377` | raw | 65/65 | 65 |
-| `OVL_0033_02BA` | raw | 65/65 | 65 |
-| `OVL_03C2_002E` | raw | **0 own arrivals in any run**: every call came inside `0909` | 0 |
-| `OVL_03C6_03A0` | raw, takes SYSTEM CS | 47/47 (+3) | 26 |
-| `OVL_0031_128D` | raw | 22/22 | 14 |
-| `OVL_0033_1434` | raw | 42/42 | 42 |
-| `OVL_0031_0675` | raw, reads its 03E0:0070 stub | 74/74 | 12 |
-| `OVL_002F_0131` | raw | 38/38 | 17 |
-| `OVL_03C6_0068` | raw | 25/25 | 16 |
-| `OVL_03C2_0909` | raw; **stub-guarded in the glue** | 159/159 (+41) | 69 |
-| `OVL_009E_0DE3` | raw full-state composer | 928/928 | 841 |
-| `OVL_03C6_071A` | raw | 766/766 (+2) | 350 |
-| `OVL_03C6_04BE` | raw, SS-wrapped RETF policy | 404/404 | 174 |
-| `RES_0709_06A7` | bus | 315/315 (+11) | 167 |
-| `OVL_03C6_0CB9` | raw, SS-wrapped RETF policy | 60/60 (+1) | 22 |
+| `OVL_03C2_057B` | raw | 7,142 / 831 / 831 (b7a: 4,513 / 4,513 / 4,509) | 345 |
+| `OVL_0033_0221` | raw | 2,282 / 0 / 0: every call nested in its glued composers (`02BA`/`0377`/`0615`/`040F`); **b7a: 2,282 / 2,282 / 2,282** | 0 |
+| `OVL_03C2_01A0` | raw | 3,777 / 7 / 7 (the rest nested in `0422`) | 5 |
+| `OVL_0033_012B` | raw, reads its 0x3BD stubs | 854 / 0 / 0. **No own arrival in any run**: every call comes inside `01AD`. **Not counted as glued from route 3** (PM i21645) | 0 |
+| `OVL_03C2_0422` | raw, composed line check | 1,885 / 29 / 29 (b7a: 1,267 / 1,267 / 1,257) | 18 |
+| `OVL_03C6_06E9` | raw | 1,301 / 533 / 533 | 219 |
+| `OVL_0033_01AD` | raw | 427 / 207 / 206 | 207 |
+| `OVL_0033_0615` | raw | 65 / 65 / 64 | 65 |
+| `OVL_0033_040F` | raw | 65 / 65 / 65 | 65 |
+| `OVL_0033_0377` | raw | 65 / 65 / 65 | 65 |
+| `OVL_0033_02BA` | raw | 65 / 65 / 65 | 65 |
+| `OVL_03C2_002E` | raw | 200 / 0 / 0. **No own arrival in any run**: every call comes inside `0909`. **Not counted as glued from route 3** | 0 |
+| `OVL_03C6_03A0` | raw, takes SYSTEM CS | 50 / 50 / 47 | 26 |
+| `OVL_0031_128D` | raw | 22 / 22 / 22 | 14 |
+| `OVL_0033_1434` | raw | 42 / 42 / 42 | 42 |
+| `OVL_0031_0675` | raw, reads its 03E0:0070 stub | 74 / 74 / 74. **Glued from the pre-#1449 model**; no arrival reached the CODE stop #1449 fixes. A V1 re-run on the post-#1449 model is owed | 12 |
+| `OVL_002F_0131` | raw | 38 / 38 / 38 | 17 |
+| `OVL_03C6_0068` | raw | 25 / 25 / 25 | 16 |
+| `OVL_03C2_0909` | raw; **stub-guarded in the glue** | 200 / 200 / 159 | 69 |
+| `OVL_009E_0DE3` | raw full-state composer | 1,384 / 928 / 928 | 841 |
+| `OVL_03C6_071A` | raw | 768 / 768 / 766 | 350 |
+| `OVL_03C6_04BE` | raw, SS-wrapped RETF policy | 551 / 404 / 404 | 174 |
+| `RES_0709_06A7` | bus | 326 / 326 / 315 | 167 |
+| `OVL_03C6_0CB9` | raw, SS-wrapped RETF policy | 147 / 61 / 60 | 22 |
 | **`OVL_005E_0E52`** | raw | **0/269: all 269 differ in AF only. STOP reported (i21765); pulled from the dispatch list** | — |
 
 **The 0909 stub guard.** `0909` far-calls U3C6 +0000 through stub `03E0:0025` and takes U3C6's segment as an argument,
@@ -97,6 +126,28 @@ Per i21416 the fix belongs to the flag bundle, so 0E52 stays pulled until it lan
   which passed the code gate. **The cause is not known.**
 - **`01A0` and `0422` declare "SHL AF chosen zero".** No divergence appeared in 7 + 29 compared arrivals here, or 5 +
   1,257 in b7a, so that AF is dead on these paths. This is not a general claim.
+
+**Counted as glued from route 3: 22.** These are the 24 above minus `012B` and `002E`, which never had an own arrival.
+Their glue is in place for any standalone call.
+
+## Cross-batch counts (VP sharpening 3: a drop is a finding)
+
+Same route, three builds: b7a `d0953359`, b7b `203a380e`, b7c `cd314c3d`. Each cell is **observer arrivals / own**.
+
+| Body | b7a | b7b | b7c | Why the own count moves |
+| --- | --- | --- | --- | --- |
+| `03C2_057B` | 4,513 / 4,513 | 9,126 / 1,332 | 7,142 / 831 | **Not a reach drop**: the observer count rose. From b7b `0909` is glued, and it composes `+057B`: grep of `src/recovered`, which also finds the unglued `263D` |
+| `03C2_0422` | 1,267 / 1,267 | 2,339 / 51 | 1,885 / 29 | Same cause: from b7b `0909` composes `+0422` (its header: "each +0422 call receives a fresh line budget") |
+| `0033_0221` | 2,282 / 2,282 | 2,264 / 0 | 2,282 / 0 | From b7b `02BA`, `0377`, `0615` and `040F` are glued; grep shows all four compose the clipped writer |
+| `03C2_01A0` | 2,539 / 5 | 4,682 / 4 | 3,777 / 7 | Nested in `0422` in every build (grep: `0422` is its only composer) |
+| `03C6_06E9` | 861 / 861 | 1,925 / 1,925 | 1,301 / 533 | From b7c `071A`, which composes it, is glued (grep: `overlay_u3c6_step_071a.c` is its only composer) |
+| `0033_01AD` | 427 / 427 | 430 / 207 | 427 / 207 | From b7b `0615` and `040F`, its composers, are glued (grep; the unglued `0810` and `1577` also compose it) |
+
+**Observer totals move with the fight.** b7a has 1.28 G instructions, b7b 1.29 G and b7c 0.89 G; the fight's length
+and the encounter step differ. Every arrival count is therefore route-run specific.
+
+**No body's observer arrivals fell to zero in any build.** Every own-count drop above coincides with a newly glued
+parent that a grep of the model sources shows composing that body.
 
 ## Reached credited bodies NOT glued (PM i21589: listed separately, with arrivals from `hybrid-r3-proto-g`)
 
