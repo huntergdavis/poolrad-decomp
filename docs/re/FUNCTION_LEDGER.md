@@ -917,3 +917,15 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_recovered_tests COMMAND poolrad_recovered_tests)
 endif()
 ```
+
+## Reproduce (original-byte checker)
+
+Eleven credited translations in this ledger are checked against the original bytes by the registered checker
+`tools/overlay/ecl_helpers_original_audit.py`: `OVL_001C_2AEB`, `OVL_0025_06AF`, `OVL_0025_06D3`, `OVL_0025_06FB`,
+`OVL_0025_1815`, `OVL_0025_18EB`, `OVL_0038_0377`, `OVL_0038_03AC`, `OVL_0038_03E1`, `OVL_0038_0C06` and `OVL_0038_0C15`.
+What it compares and the case counts are in [ECL_HELPERS_ORIGINAL_AUDIT.md](ECL_HELPERS_ORIGINAL_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/ecl_helpers_original_audit.py --output resources/ecl-helpers-audit/report.json
+```

@@ -21,7 +21,7 @@ exit 8 ("route diverged") if a random-encounter prompt (COMBAT) appears, or if W
 a prompt containing none of its expected words: those runs are not the route.
 Optional combat route (route 3, PM i21589): WALK_COMBAT=1. After 14,4 the party paces Down/Up until the encounter menu
 (COMBAT/WAIT/FLEE) settles (budget SEEK_STEPS steps, default 60; exit 9 if none), presses c (Combat), then, until the area
-menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500): q (Quick: the computer fights for that
+menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500; an unreadable prompt may last COMBAT_IDLE_S, default 300): q (Quick: the computer fights for that
 character) on every character's combat menu, Return on every PRESS ENTER/RETURN screen, e (Exit) then y on the treasure
 menu. A settled prompt matching none of these stops with exit 10 and the frame saved, so the route never presses a key
 for a screen it does not know. Every key is logged with the prompt it answered.
@@ -42,7 +42,8 @@ n = 0
 
 
 def log(msg):
-    print(f"t={time.time() - T0:6.1f}s {msg}", flush=True)
+    now = time.time()
+    print(f"t={now - T0:6.1f}s {msg} @ms={int(now * 1000)}", flush=True)
 
 
 def grab(tag):
@@ -153,10 +154,20 @@ if STOP == "menu":
     time.sleep(SETTLE)
     grab("final")
     stop(0, "cold start complete: main menu seen")
+IDLE = int(os.environ.get("WALK_IDLE_S", "0"))   # optional idle windows (seed-pin stage 1): no key for IDLE seconds
+
+
+def idle(where):
+    if IDLE:
+        log(f"IDLE {where} start"); time.sleep(IDLE); log(f"IDLE {where} end")
+
+
+idle("menu")
 time.sleep(1); key("l")
 wait_for("slots", lambda s, l: "FUNCTION" not in s and s == l, ocr_prompt)
 key("a")
 wait_for("at15_4", lambda s, l: "15,4" in s, ocr_digits)
+log("SAVE LOADED")
 time.sleep(1); key("Up")
 wait_for("at14_4", lambda s, l: "14,4" in s, ocr_digits)
 extra = os.environ.get("WALK_EXTRA", "").split()
@@ -218,6 +229,7 @@ CONTINUE = ("ENTER", "RETURN", "CONTINUE")
 # so match the fragments that survive.
 COMBAT_MENU = ("QUICK", "GUARD", "AIM", "MOVE", "OVE", "USE", "DONE", "DOE", "AIN")
 if os.environ.get("WALK_COMBAT"):
+    idle("at14_4")
     found = None
     for step in range(int(os.environ.get("SEEK_STEPS", "60"))):
         k = "Down" if step % 2 == 0 else "Up"
@@ -267,8 +279,8 @@ if os.environ.get("WALK_COMBAT"):
         elif not readable(txt) or has(txt, "BATTLE"):
             # the prompt bar is empty while monsters act (OCR reads noise): wait, but not for ever on one screen
             unknown_since = unknown_since or time.time()
-            if time.time() - unknown_since > 120:
-                stop(10, f"combat: unreadable prompt unchanged for 120 s: {txt!r}")
+            if time.time() - unknown_since > int(os.environ.get("COMBAT_IDLE_S", "300")):   # V1 shadowing slows the computer's turns
+                stop(10, f"combat: unreadable prompt unchanged for {os.environ.get('COMBAT_IDLE_S', '300')} s: {txt!r}")
             continue
         else:
             stop(10, f"combat: unknown settled prompt {txt!r}")

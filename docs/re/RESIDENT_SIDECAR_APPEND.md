@@ -110,3 +110,14 @@ The merged [callable coverage](RESIDENT_CALLABLE_COVERAGE.md),
 and [PR #37's removal note](RESIDENT_SIDECAR_REMOVE.md) supplied the
 classification, mapping, field, and inverse-operation evidence reused here.
 No Claude ECL helper file was edited.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_15F7` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```

@@ -105,3 +105,14 @@ source span, all six fixup-backed calls, caller use, branch graph,
 and side effects were independently checked against the hash-matched
 files. No original executable, media, save, extracted text, or
 decoded bytes enter Git.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_2E8B` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```
