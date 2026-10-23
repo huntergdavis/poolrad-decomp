@@ -69,3 +69,11 @@ null, both halving branches, preserve, and callback refusal.
 These are bounded behavior checks with a synthetic resident stub. No
 natural game caller or item-115 dispatch has been measured. No strict
 identity or function-count credit is claimed.
+
+## Pinned AF after SHR: plain model fixed (2026-10-23, census #1464 family 2)
+
+The plain (non-`_cpu`) model ran `SHR AX,1` through `logic16`, which clears AF; pinned DOSBox-X sets AF after a non-zero shift (`get_AF` = `count & 1Fh`, `flags.cpp:172-177`; stored `763-771`). The `_cpu` variant already had both behaviours behind an explicit `shift_profile` (`PR_TARGET_SHIFT_UNICORN` AF=0, `PR_TARGET_SHIFT_DOSBOX386` AF=1). Fix: the plain model sets AF after the SHR.
+
+- **Did the evidence depend on AF?** No. The credit rests on `u38_target_index_gate_2a87_cpu_audit.py`, which exercises the `_cpu` variant with an explicit profile (Unicorn: AF=0, against Unicorn) plus native runs; the plain model is used only by its C unit test, which passes with asserts enabled after the fix.
+- **Caller-observable?** Possibly. The SHR flags reach `RETF 0Ah` unchanged, and this body is a **public entry** reached only through the unit's entry table (no direct near or far call to it exists in any unit or in resident code), so the consumer is an indirect dispatcher and cannot be walked statically.
+- **Evidence for the verdict (par-e decides):** the evidence did not depend on the plain model's AF, and the plain model now matches pinned; we expect the credit to stand.

@@ -126,6 +126,7 @@ pr_u38_25bc_status pr_u38_target_mask81_25bc(
             cpu->ax = (uint16_t)(amount >> 1);
             logic16(cpu, cpu->ax); /* SHR AX,1: OF=0 for zero-extended AX */
             if (amount & 1u) cpu->flags |= 1u;
+            cpu->flags |= 0x10u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 after SHR */
             write8(ram, cpu->ds, 0x6818u, (uint8_t)cpu->ax);
         }
     }
