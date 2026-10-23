@@ -34,7 +34,7 @@ static void add_ax(pr_u3b0_01da_cpu *c,uint16_t v) { arithmetic(c,c->ax,v,16,0,0
 static void sub_ax(pr_u3b0_01da_cpu *c,uint16_t v) { arithmetic(c,c->ax,v,16,1,0);c->ax=(uint16_t)(c->ax-v); }
 static void selection(machine *m) {
     al(m->c,rb(m,m->c->ss,local(m,8)));zero_ah(m->c);
-    arithmetic(m->c,m->c->ax,m->c->ax,16,0,0);m->c->ax=(uint16_t)(m->c->ax<<1);m->c->flags&=(uint16_t)~0x10u;
+    arithmetic(m->c,m->c->ax,m->c->ax,16,0,0);m->c->ax=(uint16_t)(m->c->ax<<1);m->c->flags|=0x10u; /* SHL AX,1 via ADD AX,AX; pinned SHL sets AF */
     link(m);add_di(m);
 }
 static void character(machine *m) {

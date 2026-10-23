@@ -61,6 +61,7 @@ static uint16_t shift(pr_r0464_blit_cpu *c, uint16_t v, uint8_t n, unsigned bits
     pre = right ? ((uint32_t)v >> (n - 1u)) : (((uint32_t)v << (n - 1u)) & mask);
     res = right ? (pre >> 1u) : ((pre << 1u) & mask);
     c->flags &= (uint16_t)~0x08D5u;
+    c->flags |= 0x10u; /* pinned: AF = (count & 1Fh) != 0 */
     if (right ? (pre & 1u) : (pre & sign)) c->flags |= 1u;
     if ((pre ^ res) & sign) c->flags |= 0x800u;
     szp(c, (uint16_t)res, bits); return (uint16_t)res;

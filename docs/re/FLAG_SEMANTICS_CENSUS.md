@@ -68,3 +68,19 @@ over-approximated into (strings after a routine's last RET); they are marked. No
 shift, MUL or NEG, was found in the scanned models. "not scanned" means no function or extent could be resolved from the model's
 name or header; it is NOT evidence of no branch. Entries are derived from the model's file name and header (`+XXXX`), so a model
 that covers a different span than it names may be mis-bounded.
+
+## Keeping the census complete (regenerable)
+
+`python3 tools/overlay/flag_census.py --check` fails when a flag-writing `static` function in `src/recovered` has no row in
+`FLAG_SEMANTICS_CENSUS.tsv`, or its row is still `UNCLASSIFIED`; `tools/overlay/test_flag_census.py` runs it in CI
+(repository-hygiene). Rows are keyed by the md5 of the helper's normalized body, so a copy of a classified helper needs no new
+row, and any CHANGE to a helper body needs a fresh verdict. Workflow for a new or edited model:
+
+1. `flag_census.py --carry-from <rev>` after editing a helper (keeps its row, marks a `disagree` row FIXED), then
+2. `flag_census.py --regen` adds `UNCLASSIFIED` rows for new bodies,
+3. read the pinned STORED rule (`FillFlags`, `flags.cpp`; also `instructions.h` for MUL/DIV) and fill the row's verdict columns.
+
+Scope boundary: the census covers helpers that WRITE a flags value. A model that FOLDS flags (comments such as "flags folded",
+"IDIV's flags are undefined") computes none and asserts they are dead before the next observation; those are deadness claims, not
+rules, and are NOT verified here. Pinned `DIVW/IDIVW/DIVB` store explicit values (AF=SF=OF=0, ZF=(rem==0 && quo&1), CF=((rem&3) in 1..2),
+PF over rem:quo, `instructions.h:655-673`), so a folded DIV is only safe when nothing observes those flags.

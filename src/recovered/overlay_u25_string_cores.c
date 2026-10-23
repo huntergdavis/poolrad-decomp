@@ -114,9 +114,9 @@ static uint16_t shift(pr_u25_strings_cpu *cpu, uint16_t value, unsigned count, i
         value = (uint16_t)(right ? value >> 1 : (uint32_t)value << 1);
     }
     logical(cpu, value, 16u);
-    if (count == 1u)
-        overflow = (right ? old & 0x8000u : (old ^ value) & 0x8000u) ? 0x800u : 0u;
-    cpu->flags |= (uint16_t)(carry | overflow);
+    /* pinned FillFlags: AF = (count & 1Fh) != 0; SHL OF = MSB(result) ^ CF; SHR OF = (count == 1 && var1 >= 8000h). */
+    overflow = right ? ((count == 1u && (old & 0x8000u)) ? 0x800u : 0u) : ((((value >> 15) ^ carry) & 1u) ? 0x800u : 0u);
+    cpu->flags |= (uint16_t)(carry | overflow | 0x0010u);
     return value;
 }
 
