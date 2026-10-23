@@ -154,10 +154,11 @@ The +0160 result SHA-256 is
 the +02FA result is
 `d75264b1686c8b44f6a74f57416ad35586fdca9cdaa7a0a14d433bc64a89dbc6`.
 Per-case capture hashes for the other three harnesses remain in their
-ignored native reports. The registered-checker gate passed 12 actual
-compile/load/bind builds for all 13 credited rows on cfed00a1, including
-fetched main 574092a9. A final current-main handoff remains pending the
-upstream profile corrections and rebase.
+ignored native reports. After rebasing onto main 9d55a9b0, the gate passed
+12 actual compile/load/bind builds for all 13 credited rows on ef83017e.
+The checker-name gate and all six evidence-kind table tests passed too;
+PR #1445's CI is green on that head. Acceptance remains pending the
+upstream profile corrections and affected full-checker reruns.
 
 All compilation and audit runs use poolrad-heavy.sh, one at a time, with
 load1 at most 12 before starting work. Receipts and logs remain under ignored
