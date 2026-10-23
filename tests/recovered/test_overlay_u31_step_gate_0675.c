@@ -170,6 +170,18 @@ int main(void)
     CHECK((cpu.ax & 0xFFu) == 1u && local(ram, -0x0A) == 0u);
     returned(&cpu);
 
+    /* t44: OR AL,AL's flags reach the next lookup call (they equal a missed lookup's return flags by construction; see
+     * docs/re/FLAG_FOLDED_U31_0255_0675.md). The +0758 lookup misses (AL = 0), so a non-original +076F stops
+     * with CODE at +076F (AL = 1Eh from +0767) holding OR's flags: ZF = PF = 1, CF = OF = AF = SF = 0 (the entry flags set
+     * CF, AF and SF). */
+    cpu = world(ram, 0x1Eu, 3u, 0u, 10u, 2u);
+    sidecars(ram, kmiss, 2u, 0);
+    place_w8(ram, PLACE_CS, 0x076Fu, 0x90u);
+    cpu.flags = 0x0293u;
+    CHECK(pr_u31_step_gate_0675(ram, PLACE_RAM, &cpu, 254u, &callee) == PR_U31_0675_CODE);
+    CHECK(callee.site == 0x0758u && callee.status == PR_RES_2199_OK && cpu.ip == 0x076Fu && (cpu.ax & 0xFFu) == 0x1Eu);
+    CHECK((cpu.flags & 0x08D5u) == 0x0044u && (cpu.flags & 0x0200u));
+
     /* A cyclic sidecar list without any key: the first lookup's model stops at its cap (CALLEE, LIMIT at 21B9). */
     cpu = world(ram, 0x1Eu, 3u, 0u, 10u, 2u);
     sidecars(ram, kmiss, 2u, 1);
