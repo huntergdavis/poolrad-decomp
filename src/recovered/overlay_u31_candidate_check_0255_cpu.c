@@ -3,6 +3,7 @@
  * test 00BA:23B7); docs/re/U31_CANDIDATE_CHECK_0255_CPU.md. */
 #include "poolrad/recovered/overlay_u31_candidate_check_0255_cpu.h"
 #include "poolrad/recovered/overlay_u3c2_caller_0909.h"
+#include "poolrad/recovered/resident_00ba_zero_test_23b7_cpu.h"
 
 #include <string.h>
 
@@ -178,12 +179,12 @@ static int u3c2_call(machine *m)
     return 1;
 }
 
-/* +02A9 LCALL 00BA:23B7 (the active character pushed): the resident zero test, translated here in full state. */
+/* +02A9 LCALL 00BA:23B7 (the active character pushed): the resident zero test, through its one shared raw entry
+ * pr_res_00ba_zero_test_23b7_cpu (full pinned flags at its RETF; carved out of this file, PM i22084). */
 static int resident_call(machine *m)
 {
     pr_u31_0255_cpu *cpu = m->cpu;
     uint16_t at = here(m, 0x02A9u), return_ip = (uint16_t)(at + 5u), caller_cs = cpu->cs, segment;
-    uint8_t value;
     cpu->ip = at;
     if (read8(m, cpu->cs, at) != 0x9Au || read16(m, cpu->cs, (uint16_t)(at + 1u)) != RESIDENT_ENTRY) {
         m->stop = PR_U31_0255_CODE;
@@ -194,16 +195,18 @@ static int resident_call(machine *m)
     push16(m, return_ip);
     cpu->cs = segment;
     cpu->ip = RESIDENT_ENTRY;
-    push16(m, cpu->bp);                                                   /* 23B7 PUSH BP; MOV BP,SP; SUB SP,2 (flags folded) */
-    cpu->bp = cpu->sp;
-    cpu->sp = (uint16_t)(cpu->sp - 2u);
-    les(m, cpu->ss, (uint16_t)(cpu->bp + 6u));                            /* 23BD LES DI,[BP+6]; CMP BYTE ES:[DI+10Eh],0; JNE 23CE */
-    value = read8(m, cpu->es, (uint16_t)(cpu->di + 0x010Eu));
-    cmp8_flags(cpu, value, 0u);
-    write8(m, cpu->ss, (uint16_t)(cpu->bp - 1u), value == 0u ? 1u : 0u);  /* 23C8 MOV BYTE [BP-1],1 or 23CE MOV BYTE [BP-1],0 */
-    set_al(cpu, read8(m, cpu->ss, (uint16_t)(cpu->bp - 1u)));             /* 23D2 MOV AL,[BP-1] */
-    leave_retf(m, 4u);                                                    /* 23D5 MOV SP,BP; POP BP; RETF 4 */
-    note(m, PR_U31_0255_RESIDENT, 0);
+    {
+        pr_res_23b7_cpu r;
+        pr_res_23b7_status st;
+        COPY_CPU(&r, cpu);
+        st = pr_res_00ba_zero_test_23b7_cpu(m->ram, m->size, &r);          /* 23B7..23D8, RETF 4 */
+        COPY_CPU(cpu, &r);
+        note(m, PR_U31_0255_RESIDENT, (int)st);
+        if (st == PR_RES_23B7_ARGUMENT) {                                 /* nothing changed by it: the CPU is at 23B7 with the frame pushed */
+            m->stop = PR_U31_0255_CALLEE;
+            return 0;
+        }
+    }
     if (cpu->ip != return_ip || cpu->cs != caller_cs) {
         m->stop = PR_U31_0255_TRANSFER;
         return 0;

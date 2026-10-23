@@ -14,7 +14,7 @@ typedef struct {
 typedef enum {
     PR_U31_0255_NO_CALLEE = -1,
     PR_U31_0255_U3C2 = 0,        /* U3C2 entry 6 (+0909), the merged pr_u3c2_caller_0909 */
-    PR_U31_0255_RESIDENT         /* the resident zero test 00BA:23B7, translated here */
+    PR_U31_0255_RESIDENT         /* the resident zero test 00BA:23B7, through pr_res_00ba_zero_test_23b7_cpu (its status in *callee_status) */
 } pr_u31_0255_callee;
 
 typedef enum {
