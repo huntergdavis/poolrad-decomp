@@ -3,7 +3,7 @@
 #include "poolrad/recovered/overlay_u25_party_index_0756.h"
 
 #define RAM_MASK (PR_U25_0756_RAM_SIZE - 1u)
-#define DEFINED_OR_FLAGS 0x08C5u /* OF SF ZF PF CF; AF is undefined */
+#define DEFINED_OR_FLAGS 0x08D5u /* OF SF ZF AF PF CF: pinned DOSBox-X OR clears AF (flags.cpp:629-643) */
 #define ARITH_FLAGS 0x08D5u      /* OF SF ZF AF PF CF */
 
 static size_t physical(uint16_t segment, uint16_t offset)

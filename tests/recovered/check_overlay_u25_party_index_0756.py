@@ -133,10 +133,9 @@ def compare_case(label, memory, cpu, source, library):
         observed = original.reg_read(register) & 0xFFFF
         candidate = getattr(cpu, name)
         if name == "flags":
-            # The found path ends in CMP (AF defined); the null path ends
-            # in OR (AF undefined). Compare every defined flag bit.
-            mask = 0xFFFF if expected[found_address] else 0xFFEF
-            check(((candidate ^ observed) & mask) == 0,
+            # Full FLAGS on both paths: the null path ends in OR, which clears
+            # AF in pinned DOSBox-X and in Unicorn alike, and the model now does too.
+            check(candidate == observed,
                   f"flags mismatch {label}: C={candidate:04x} DOS={observed:04x}")
         else:
             check(candidate == observed,
@@ -241,6 +240,12 @@ def main():
         memory, cpu = make_case(source, 1, None, sp=0x0007)
         compare_case("LES-local-offset-wrap", memory, cpu,
                      source, library)
+        # Entry AF=1 on the null (OR) path: pinned DOSBox-X and Unicorn both clear AF after OR,
+        # so a model that keeps the incoming AF fails here (census #1464, PM i21821).
+        for label, length in (("entry-AF-empty", 0), ("entry-AF-missing", 3)):
+            memory, cpu = make_case(source, length, None)
+            cpu.flags |= 0x0010
+            compare_case(label, memory, cpu, source, library)
         memory, cpu = make_case(source, 0, None)
         # First link aliases the live far argument in the caller's frame.
         put_word(memory, cpu.ds, 0x5D96, 0x7F00)
