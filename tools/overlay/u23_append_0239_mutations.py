@@ -2,7 +2,7 @@
 """Mutation check of the 0239 C composition: each deliberate change must be caught by the smoke subset of the differential.
 
 Every mutant is a one-line text change to src/recovered/overlay_u23_append_0239_cpu.c, built into a temporary library and run
-against the original-byte closure on the fifteen smoke cases; a mutant that survives is reported and fails the run. Mutants
+against the original-byte closure on the sixteen smoke cases; a mutant that survives is reported and fails the run. Mutants
 that cannot differ on any input would be named as equivalent; none is claimed here.
 """
 # NOT_A_ROW_CHECKER: drives the 0239 audit with mutated copies of its C source; it registers and checks no row of its own
@@ -39,7 +39,9 @@ def main():
             mutated.write_text(original.replace(old, new, 1))
             sources = [str(mutated if s == 'overlay_u23_append_0239_cpu' else A.ROOT / 'src/recovered' / (s + '.c')) for s in A.SOURCES]
             so = Path(tmp) / 'm.so'
-            built = subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(A.ROOT / 'include'),
+            # A mutation that skips a call or a jump can leave a label or helper unused; that is the mutant, not a build fault.
+            built = subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-Wno-unused-label', '-Wno-unused-function',
+                                    '-O2', '-fPIC', '-shared', '-I', str(A.ROOT / 'include'),
                                     *sources, '-o', str(so)], capture_output=True, text=True)
             if built.returncode:
                 print(f'NOT BUILT (replace this mutant): {label}: {built.stderr[-200:]}')

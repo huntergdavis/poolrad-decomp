@@ -420,7 +420,9 @@ def contract(name, state, r, literal):
     rseg, roff = spec['result']
     if not 0xA0000 <= physical(rseg, roff) < 0xB0000 and not spec.get('result_alias'):
         check(ram[physical(rseg, roff)] == int(over), f'{name}: RESULT byte')
-    base_chain = [node_at(i) for i in range(len(nodes))]
+    # the list as the fixture built it, walked from the pre-call RAM (independent of both models; equals the node_at layout
+    # except where a case relinks it, e.g. walk-zero-offset-link)
+    base_chain = chain(m, rd16(m, CHAR_SEG, CHAR_OFF + 0xCA), rd16(m, CHAR_SEG, CHAR_OFF + 0xC8))
     char_head = chain(ram, rd16(ram, CHAR_SEG, CHAR_OFF + 0xCA), rd16(ram, CHAR_SEG, CHAR_OFF + 0xC8))
     if over:
         check(cap['order'] == ['check', 'strload', 'display'], f'{name}: over-capacity call order {cap["order"]}')
@@ -513,6 +515,11 @@ def specs(bodies, dmap, literal, lib, quick=False):
     for sp in (0x200, 0x201, 0x8001, 0xFFDF, 0xFFE0):
         out.append((f'sp-append-{sp:x}', dict(nodes=N(2), sp=sp)))
         out.append((f'sp-over-{sp:x}', dict(nodes=N(16), sp=sp)))
+    # a link whose OFFSET word is 0 but whose segment is not: still a node (the walk ORs both words); a segment-blind walk
+    # would stop at node 0. Node 0's link is redirected to a fresh node at 1E00:0000 (clear of the nodes, heap, ITEM and RESULT).
+    zero_node = bytes(0x37) + struct.pack('<H', 1) + bytes([1]) + bytes(0x3F - 0x3A)
+    out.append(('walk-zero-offset-link', dict(nodes=N(2), writes=((0x1E00, 0x0000, zero_node),
+                                                                  (NODE_SEG, 0x2000 + 0x2A, struct.pack('<HH', 0x0000, 0x1E00)))))) 
     out += [('ss-ds-alias', dict(nodes=N(2), ss=DS, alias=True, sp=0x6000)), ('a20-stack', dict(nodes=N(2), ss=0xFFFF)),
             ('a20-stack-over', dict(nodes=N(16), ss=0xFFFF))]
     # RESULT pointer: wrap, aperture, and aliases of live data (the contract skips the cases whose effect it cannot state)
@@ -583,7 +590,7 @@ def specs(bodies, dmap, literal, lib, quick=False):
 
 
 SMOKE = ('append-0', 'append-2', 'append-15', 'count-16', 'weight-2-equal', 'weight-2-plus1', 'heap-fail-0', 'heap-fail-2', 'walk-3-limit-1',
-         'walk-3-limit-2', 'code-op-24d', 'code-off-300', 'stub-target', 'flags-append-e57', 'sp-append-201')
+         'walk-3-limit-2', 'code-op-24d', 'code-off-300', 'stub-target', 'flags-append-e57', 'sp-append-201', 'walk-zero-offset-link')
 
 
 def differential(bodies, decoded, literal, lib, quick=False, smoke=False):
@@ -625,7 +632,7 @@ def main():
     p.add_argument('--compile-only', action='store_true')
     p.add_argument('--unicorn', action='store_true')
     p.add_argument('--quick', action='store_true')
-    p.add_argument('--smoke', action='store_true', help='the fifteen cases the mutation check runs')
+    p.add_argument('--smoke', action='store_true', help='the sixteen cases the mutation check runs')
     p.add_argument('--native', action='store_true')
     p.add_argument('--output', type=Path)
     a = p.parse_args()
@@ -639,6 +646,7 @@ def main():
         if a.unicorn:
             report['unicorn'] = differential(bodies, decoded, literal, lib, a.quick, a.smoke)
         if a.native:
+            sys.modules.setdefault('u23_append_0239_cpu_audit', sys.modules[__name__])   # one module, so ctypes classes match
             from u23_append_0239_native import native
             report['native'] = native(bodies, literal, library(Path(tmp), native=True))
         if a.output:

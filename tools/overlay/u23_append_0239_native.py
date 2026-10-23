@@ -33,8 +33,9 @@ def specifications():
     out += [dict(nodes=N(16), over=1, factor=f) for f in (0, 1)]
     out += [dict(nodes=N(16), over=1, pages=(0xA000, 0xA000)), dict(nodes=N(16), over=1, writes=((DS, 0x5E20, bytes(4)),))]
     out += [dict(nodes=N(n), over=o, result=(0xA000, 0x0100)) for n, o in ((2, 0), (16, 1))]
-    out += [dict(nodes=N(2), over=0, result=(A.RESULT_SEG, 0xFFFF)), dict(nodes=N(2), over=0, sp=0x201)]
-    out += [dict(nodes=N(2), over=0, heap_mode='fail'), dict(nodes=N(0), over=0, heap_mode='fail')]
+    # Unicorn-only (not here): SP 0201h, because the oracle always enters with SP = TOP in its own segment; and GetMem failure,
+    # because SYSTEM's RunError (0AF8:00E2) runs Halt's exit chain, which a bare oracle cannot survive (it hung the first run).
+    out += [dict(nodes=N(2), over=0, result=(A.RESULT_SEG, 0xFFFF))]
     out += [dict(nodes=N(2), over=0, item=dict(weight=0xFFFF, quantity=255))]
     out += [dict(nodes=N(2), over=0, stop=(OVERLAY, s)) for s in (0x24D, 0x29B, 0x300, 0x344)] + [dict(nodes=N(16), over=1, stop=(OVERLAY, 0x260))]
     for n, c in enumerate(out):
@@ -166,7 +167,7 @@ def native(bodies, literal, lib, directory=None):
     with (directory / 'dosbox.log').open('w') as log:
         subprocess.run(['dosbox-x', '-conf', str(cfg), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'),
-                       stdout=log, stderr=subprocess.STDOUT, check=True, timeout=1800)
+                       stdout=log, stderr=subprocess.STDOUT, check=True, timeout=900)
     result = output.read_bytes()
     check(len(result) == 6 + len(specs) * (RECORD + 1), f'native output length {len(result)} (expected {6 + len(specs) * (RECORD + 1)})')
     segment, returned, count = struct.unpack_from('<3H', result)
