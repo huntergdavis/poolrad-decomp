@@ -9,10 +9,9 @@ There are no result callbacks or host substitutions for callees.
 ## Loaded-state precondition (inherited)
 
 Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. The credit is unchanged. `OVL_005E_17F6`'s C
-composes `pr_u5e_direction_263d` (`OVL_005E_263D`), and that model does not read its overlay stubs. This credit therefore holds only
-under the same loaded-state precondition: every stub listed in [U5E_DIRECTION_263D.md](U5E_DIRECTION_263D.md#loaded-state-precondition)
-must hold its loaded far `JMP`. When one of those units is not resident, the original goes through the overlay
-manager and this C does not. This section covers only the composed model. It makes no claim about stubs this
+composes `pr_u5e_direction_263d` (`OVL_005E_263D`), and the outer C now checks its inherited loaded bindings before mutation. This credit retains
+the same loaded-state precondition: every stub listed in [U5E_DIRECTION_263D.md](U5E_DIRECTION_263D.md#loaded-state-precondition)
+must hold its loaded far `JMP`. If one is absent or malformed, **the C refuses with `ARGUMENT` before changing CPU14 or RAM**. The original overlay-manager path remains outside the C model. This section covers only the composed model. It makes no claim about stubs this
 body calls directly.
 
 ## Identity and reuse
@@ -155,3 +154,5 @@ The audit now declares the split through the shared `tools/overlay/pinned_shift_
 Run (PR #1446): **2,794** full CPU/RAM cases (2,790 returns, 4 budget stops), 53/53 instructions; the split was used at **2,308** stops: **2,307** with an IDIV as the last writer (C equals the pinned formula on the original's own remainder and quotient, so C's `rem` and CF are right) and **1** after a shift.
 
 **Per-credit sentence (OVL_005E_17F6): evidence did not depend on the IDIV flags or on AF after a shift**; at every such stop C is held to the pinned value, and every other stop is exact. Credit stands.
+
+Updated refusal/parity validation: [guard work report](../LOADED_STUB_GUARDS.md); measurements pending.

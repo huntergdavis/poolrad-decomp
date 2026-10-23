@@ -58,6 +58,8 @@ def source(exe, ovr):
     return bodies, decoded
 
 
+CHECKER_ROWS = ('OVL_005E_17F6',)
+
 def build(root, directory):
     output = directory / 'u5e17f6.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror',
@@ -226,13 +228,25 @@ def run(bodies, decoded, library, random_cases):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--exe', type=Path, required=True)
-    parser.add_argument('--ovr', type=Path, required=True)
+    parser.add_argument('--exe', type=Path, default=Path(__file__).resolve().parents[2] / "resources/DOS/POOLRAD/START.EXE")
+    parser.add_argument('--ovr', type=Path, default=Path(__file__).resolve().parents[2] / "resources/DOS/POOLRAD/GAME.OVR")
     parser.add_argument('--random-cases', type=int, default=200)
+    parser.add_argument('--compile-only', action='store_true')
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as directory:
+            build(Path(__file__).resolve().parents[2], Path(directory))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, decoded = source(args.exe, args.ovr)
     with tempfile.TemporaryDirectory(prefix='poolrad-u5e-17f6-') as directory:
         library = build(Path(__file__).resolve().parents[2], Path(directory))
+        from loaded_stub_checks import verify_refusals
+        memory,cpu,layout=fixture()
+        dep.install(memory,cpu,layout,bodies,0)
+        stub_guards=verify_refusals(memory,cpu,lambda ram,state: library.pr_u5e_direction_gate_17f6(ram,dep.RAM_SIZE,ctypes.byref(state),ctypes.byref(layout),2048),
+                                    [(cpu.cs,p) for p in (0x2649,0x2657,0x2665,0x2673,0x2693)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         run(bodies, decoded, library, args.random_cases)
 
 

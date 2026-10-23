@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* GAME.OVR U5E [263D,26B0); see docs/re/U5E_263D_RECON.md.
  * Slot-reader semantics also documented by overlay_u3c6_1298_cpu.c.
  * All source data, including stack locals, remains in shared RAM. */
@@ -245,6 +246,9 @@ pr_u5e_263d_status pr_u5e_direction_263d(
         max_iterations == 0u || c->sp < 34u || c->sp > 0xFFF4u)
         return PR_U5E_263D_ARGUMENT;
     if (stack_overlaps_code(c, layout)) return PR_U5E_263D_CODE_ALIAS;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_u5e_263d_stubs_loaded(ram, c->cs, layout->slots_cs, layout->predicate_cs)))
+        return PR_U5E_263D_ARGUMENT;
     state.ram = ram;
     state.c = c;
     state.remaining = max_iterations;

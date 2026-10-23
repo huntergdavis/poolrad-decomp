@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* U9E +02FA: grouped sidecar dispatch with the inherited pending boundary.
  * Primitives and callee contract: overlay_u9e_sidecar_0160_cpu.c. */
 #include "poolrad/recovered/overlay_u9e_sidecar_groups_02fa_cpu.h"
@@ -74,6 +75,9 @@ pr_u9e_0160_status pr_u9e_sidecar_groups_02fa_cpu(uint8_t *ram,size_t size,
        size!=PR_U9E_0160_RAM_SIZE || c->ip!=0x02FAu ||
        c->sp<0x0196u || c->sp>0xFFF6u ||
        limits->chain_iterations==0 || limits->line_iterations==0 || limits->sort_loopbacks==0)
+        return PR_U9E_0160_ARGUMENT;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_u3c2_0909_stubs_loaded(ram, layout->chain_cs, layout->slots_cs)))
         return PR_U9E_0160_ARGUMENT;
     caller=c->cs;
     for(;;) {

@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u7f_caller_1010.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +15,19 @@ static pr_u7f_1010_cpu setup(uint8_t *m,unsigned type,unsigned seg,unsigned off)
     pr_u7f_1010_cpu c={0x1234,0x3456,0x5678,0x789A,0x9ABC,0xBCDE,
         0x7777,0xF000,0x3000,0x1010,0x5000,0x1111,0x2000,0x602};
     unsigned i;memset(m,0xA5,PR_U7F_1010_RAM_SIZE);
+    test_loaded_stub(m, c.cs, 0x10C7u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1596u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1611u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1630u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1649u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1662u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x167Eu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x1692u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x16ABu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x170Fu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x174Bu, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x17A1u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
+    test_loaded_stub(m, c.cs, 0x17E6u, (uint16_t)(0x4000u + 0x100u), 0x0048u, 0x4000u, 0x0DE3u);
     put(m,c.ss,c.sp,0x9000);put(m,c.ss,c.sp+2u,0xA000);
     put(m,c.ss,c.sp+4u,off);put(m,c.ss,c.sp+6u,seg);put(m,c.ss,c.sp+8u,type);
     for(i=0;i<512u;++i)put(m,c.ds,0x970u+2u*i,i*317u+19u);
@@ -66,8 +80,9 @@ int main(void)
     CHECK(pr_u7f_caller_1010(m,PR_U7F_1010_RAM_SIZE,&c,0x4000,1024,256)==PR_U7F_1010_TRANSFER);
     CHECK(c.cs==0 && c.ip==0 && c.sp==0xEFF4);
     c=setup(m,1,0x5000,0x8000);m[physical(0x4100,0x48)]=0;
-    CHECK(pr_u7f_caller_1010(m,PR_U7F_1010_RAM_SIZE,&c,0x4000,1024,256)==PR_U7F_1010_CALLEE);
-    CHECK(c.cs==0x3000 && c.ip==0xFDE);
+    before=c;memcpy(copy,m,PR_U7F_1010_RAM_SIZE);
+    CHECK(pr_u7f_caller_1010(m,PR_U7F_1010_RAM_SIZE,&c,0x4000,1024,256)==PR_U7F_1010_ARGUMENT);
+    CHECK(memcmp(&before,&c,sizeof c)==0 && memcmp(copy,m,PR_U7F_1010_RAM_SIZE)==0);
     c=setup(m,0,0x5000,0x8000);before=c;memcpy(copy,m,PR_U7F_1010_RAM_SIZE);
     CHECK(pr_u7f_caller_1010(NULL,PR_U7F_1010_RAM_SIZE,&c,0x4000,1024,256)==PR_U7F_1010_ARGUMENT);
     CHECK(pr_u7f_caller_1010(m,PR_U7F_1010_RAM_SIZE,NULL,0x4000,1024,256)==PR_U7F_1010_ARGUMENT);

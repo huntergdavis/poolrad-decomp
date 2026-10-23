@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u1c_if_0b52.h"
 #include <stdio.h>
 #include <string.h>
@@ -22,6 +23,12 @@ static pr_u1c_0b52_cpu setup(uint8_t opcode, const uint8_t *stream, size_t lengt
         0x7777, 0x8000, 0x5000, 0x0B52, 0x1000, 0x3333, 0x2000, 0x7602
     };
     memset(ram, 0xA5, sizeof ram);
+    test_loaded_stub(ram, c.cs, 0x0B67u, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
+    test_loaded_stub(ram, c.cs, 0x0B79u, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
+    test_loaded_stub(ram, c.cs, 0x0B8Bu, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
+    test_loaded_stub(ram, c.cs, 0x0B9Du, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
+    test_loaded_stub(ram, c.cs, 0x0BAFu, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
+    test_loaded_stub(ram, c.cs, 0x0BC1u, (uint16_t)(0x3000u + 0x100u), 0x008Eu, 0x3000u, 0x1EA6u);
     word(c.ss, c.sp, 0x7000); word(c.ss, c.sp + 2, c.cs);
     ram[p(0x6300, 0x1000)] = opcode;
     word(c.ds, 0x49DE, 0x1000); word(c.ds, 0x49E0, 0x6300);

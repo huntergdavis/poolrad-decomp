@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u9e_sidecar_groups_02fa_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,6 +17,8 @@ static pr_u9e_0160_cpu setup(uint8_t *m,unsigned group,unsigned key,unsigned dir
         {0x1EC,0x2199,0x9800},{0x21C,0xBE7,0x3000},{0x22A,0xC0F,0x3000},{0x242,0xC37,0x3000},
         {0x250,0x909,0x4000},{0x274,0xC5F,0x3000},{0x2CF,0x1685,0x6000}};
     unsigned i;memset(m,0xA5,PR_U9E_0160_RAM_SIZE);
+    test_loaded_stub(m, layout.chain_cs, 0x092Au, (uint16_t)(layout.slots_cs + 0x100u), 0x0025u, layout.slots_cs, 0x0000u);
+    test_loaded_stub(m, layout.chain_cs, 0x09D8u, (uint16_t)(layout.slots_cs + 0x100u), 0x0025u, layout.slots_cs, 0x0000u);
     for(i=0;i<10u;++i){m[p(c.cs,calls[i][0])]=0x9A;put(m,c.cs,calls[i][0]+1u,calls[i][1]);put(m,c.cs,calls[i][0]+3u,calls[i][2]);}
     m[p(c.cs,0x2F1)]=0xE8;put(m,c.cs,0x2F2,0xFD0C);
     memset(m+p(c.cs,0x140),0,32);

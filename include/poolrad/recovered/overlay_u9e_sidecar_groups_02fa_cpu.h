@@ -14,6 +14,10 @@
  * checked before execution. Data/stack aliases remain live.
  * ARGUMENT leaves RAM/CPU unchanged and resets optional diagnostic.
  * This is partial composition, not full-chain closure or a credit claim. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u9e_0160_status pr_u9e_sidecar_groups_02fa_cpu(uint8_t *ram,size_t size,
     pr_u9e_0160_cpu *cpu,const pr_u9e_0160_layout *layout,
     const pr_u9e_0160_limits *limits,pr_u9e_0160_diagnostic *diagnostic);

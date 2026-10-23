@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* GAME.OVR U5E [1BF8,1E16); docs/re/U5E_NEIGHBOR_1BF8.md.
  * Full-state slot helpers reused from overlay_u5e_direction_263d.c.
  * All frame/table/output accesses remain live and source ordered. */
@@ -381,6 +382,11 @@ pr_u5e_1bf8_status pr_u5e_neighbor_1bf8(
         if (protected_byte(x, physical(c->ss, (uint16_t)(c->sp - i))))
             return PR_U5E_1BF8_CODE_ALIAS;
 
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_overlay_stub_matches(ram, c->cs, 0x1C1Du, 0x005Cu, 0x0BE7u, layout->slots_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x1C3Cu, 0x0061u, 0x0C0Fu, layout->slots_cs) &&
+          pr_overlay_stub_matches(ram, c->cs, 0x1C67u, 0x003Eu, 0x04BEu, layout->slots_cs)))
+        return PR_U5E_1BF8_ARGUMENT;
     push(x, c->bp);                                                    /* 1BF8 */
     c->bp = c->sp;
     c->sp = arithmetic(c, c->sp, 14u, 16u, 1);

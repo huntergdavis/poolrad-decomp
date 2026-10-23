@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u5e_caller_32e6.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +14,12 @@ static pr_u5e_32e6_cpu setup(uint8_t *m,unsigned count,unsigned sp,unsigned ss)
     static const unsigned dx[9]={0,1,1,1,0,255,255,255,0},dy[9]={255,255,0,1,1,1,0,255,0};
     unsigned i,j;unsigned frame[5]={0x9000,0xA000,0xE000,0x1020,0x7000};
     memset(m,0xA5,PR_U5E_32E6_RAM_SIZE);
+    test_loaded_stub(m, c.cs, 0x32F2u, (uint16_t)(0x3000u + 0x100u), 0x005Cu, 0x3000u, 0x0BE7u);
+    test_loaded_stub(m, c.cs, 0x32FEu, (uint16_t)(0x3000u + 0x100u), 0x0061u, 0x3000u, 0x0C0Fu);
+    test_loaded_stub(m, c.cs, 0x3311u, (uint16_t)(0x3000u + 0x100u), 0x0066u, 0x3000u, 0x0C37u);
+    test_loaded_stub(m, c.cs, 0x331Fu, (uint16_t)(0x4000u + 0x100u), 0x003Eu, 0x4000u, 0x0909u);
+    test_loaded_stub(m, 0x4000u, 0x092Au, (uint16_t)(0x3000u + 0x100u), 0x0025u, 0x3000u, 0x0000u);
+    test_loaded_stub(m, 0x4000u, 0x09D8u, (uint16_t)(0x3000u + 0x100u), 0x0025u, 0x3000u, 0x0000u);
     for(i=0;i<256u;++i)for(j=0;j<8u;++j)m[p(c.ds,0x2844u+8u*i+j)]=(uint8_t)shape[j];
     for(i=0;i<9u;++i){m[p(c.ds,0x2736u+i)]=(uint8_t)dx[i];m[p(c.ds,0x273Fu+i)]=(uint8_t)dy[i];m[p(c.ds,0x25C0u+i)]=0;}
     for(i=0;i<64u;++i){m[p(c.ds,0x2745u+4u*i)]=0;m[p(c.ds,0x2746u+4u*i)]=0;}
