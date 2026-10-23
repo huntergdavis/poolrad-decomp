@@ -176,6 +176,7 @@ OVL_007F_044C,checker,ovl_007f_044c_cpu_audit.py
 OVL_007F_0508,checker,u7f_clear_0508_audit.py
 OVL_007F_05E0,checker,u7f_party_count_05e0_audit.py
 OVL_007F_0A01,audit,tools/overlay/u7f_resource_subtract_0a01_audit.py
+OVL_007F_0A88,checker,ovl_007f_0a88_cpu_audit.py
 OVL_007F_0B93,checker,u7f_coin_type_0b93_audit.py
 OVL_007F_0F7E,audit,tools/overlay/u7f_state_flags_0f7e_audit.py
 OVL_007F_0FD2,checker,u7f_roll_class_0fd2_cpu_audit.py

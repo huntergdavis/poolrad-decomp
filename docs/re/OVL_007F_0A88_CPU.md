@@ -243,3 +243,21 @@ The host's **packaged `/usr/bin/dosbox-x`** (SHA-256 `99d7460153175d13a21036fb4b
     ctest --test-dir resources/build7f0a88 -R '^poolrad_overlay_u7f_0a88_cpu_tests$' --output-on-failure
 
 Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and capture receipts stay under ignored `resources/`.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `6fac2396` (2026-10-23), through `poolrad-heavy.sh`, with
+`--unicorn --native --mutate`. Unicorn: 732 cases, 87/87 body starts, 1,159 closure starts; 382 returned / 343 LIMIT / 7 TRANSFER; MULW split 2, shift-AF split 34; all 1,048,576 RAM bytes and 14 CPU words, flag masks 0. Mutation: 20/22 caught; survivors 'SHL without OF' and 'OR AL,AL tests 16 bits' are equivalent (every SHL operand is a fresh CBW of a byte; AL from +0054 is 0/1; both checked in the bytes).
+Native: 37 cases. Body 210 B, SHA-256 `3e0eb89c3eb4beb862487bf9646c68f61bebcb70b203ce4578379c289759070a`, from GAME.OVR.
+
+Identity: par-a's two-factor argument in [U7F_IDENTITY_ARGUMENTS.md](U7F_IDENTITY_ARGUMENTS.md) (at `7806e3a8`). I re-derived
+every factor-1 site from the media: each near site decodes as `0E E8` at an instruction boundary inside a `game_evidenced`
+caller, and each far site is a fixup-backed `LCALL 008F:slot` that resolves to this entry.
+
+**Reviewer-added limit (native oracle):** the native run used /usr/bin/dosbox-x 2026.01.02 (SHA-256 99d74601...), not the pinned 5a9c7c53 build. Native agreement is claimed for that binary only.
+The primary evidence is the full-1 MiB Unicorn differential.
+
+**0A88-specific.** The credited span is the 210-byte code body `[0A88,0B5A)`. The ledger bound (267 B) runs to the next
+routine and includes 57 bytes of Pascal strings (`Gems`, `Gold`, `Platinum`, `electrum`, `silver`, `Copper`, `Jewelry`)
+that are not executed.
