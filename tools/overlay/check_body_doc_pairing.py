@@ -30,15 +30,35 @@ never satisfies the registration requirement for a real checker.
 Tests are exempt in shape only: `tests/` is not scanned, because a body without
 its model is not a body.
 
+An edit to a body or checker that is ALREADY PAIRED on the base may land without
+a new document when a commit message in the change carries one line per file:
+
+    Evidence-note: <id>: <what changed and why the evidence stands, ten+ chars>
+
+`<id>` names the file: its path, basename or stem; for a checker, one of its
+CHECKER_ROWS; for a body, a row id that a base `docs/re/*.md` names together
+with the body's stem. "Already paired on the base" is measured, not assumed: the
+file exists at the merge-base, a base `docs/re/*.md` names its stem (or, for a
+checker, its basename or one of its rows), and a checker declares CHECKER_ROWS
+there. The note path is closed - the change is refused even with notes - when it
+adds a checker or a body, deletes one, changes a checker's CHECKER_ROWS set, or
+touches a credit table (CREDIT_TABLES). A new body or checker therefore still
+needs its document and CHECKER_ROWS in the same change.
+
 Exit status: 0 when every changed body/checker is paired, 1 otherwise.
 """
 import argparse
+import ast
 import re
 import subprocess
 import sys
 
 CHECKER_SUFFIXES = ("_audit.py", "_native.py")
 EXEMPTION = re.compile(r"^# NOT_A_ROW_CHECKER: (?P<reason>\S.{9,})$", re.MULTILINE)
+NOTE = re.compile(r"^Evidence-note: (?P<id>[^\s:]+): (?P<why>\S.{9,})$", re.MULTILINE)
+ROWS = re.compile(r"^CHECKER_ROWS\s*=\s*(?P<value>.+)$", re.MULTILINE)
+CREDIT_TABLES = ("docs/re/credit_evidence_kind.csv", "docs/re/strict_full_c_addresses.csv",
+                 "docs/re/reviewed_function_identities.csv")
 
 
 def exemption(text):
@@ -54,6 +74,132 @@ def changed_paths(base, root="."):
     if done.returncode:
         raise SystemExit(f"cannot diff against {base}: {done.stderr.strip()}")
     return [line for line in done.stdout.splitlines() if line]
+
+
+def git(root, *args):
+    done = subprocess.run(["git", "-C", root, *args], capture_output=True, text=True)
+    return done.stdout if done.returncode == 0 else None
+
+
+class Base:
+    """The merge-base side of the change: file texts, the docs/re/*.md corpus, and the
+    commit messages of the change. Tests build one directly instead of from git."""
+
+    def __init__(self, files=None, messages=""):
+        self.files = dict(files or {})
+        self.messages = messages
+        self._docs = None
+
+    @classmethod
+    def from_git(cls, base, root="."):
+        merge = (git(root, "merge-base", base, "HEAD") or "").strip()
+        if not merge:
+            raise SystemExit(f"cannot find the merge-base of {base} and HEAD")
+        base_obj = cls(messages=git(root, "log", "--format=%B", f"{merge}..HEAD") or "")
+        base_obj.rev, base_obj.root = merge, root
+        return base_obj
+
+    def text(self, path):
+        """The file at the merge-base, or None when it does not exist there."""
+        if path in self.files:
+            return self.files[path]
+        rev = getattr(self, "rev", None)
+        return git(self.root, "show", f"{rev}:{path}") if rev else None
+
+    def doc_texts(self):
+        """path -> text of every docs/re/*.md at the merge-base (one `git cat-file --batch`)."""
+        if self._docs is None:
+            rev = getattr(self, "rev", None)
+            if rev:
+                names = [n for n in (git(self.root, "ls-tree", "--name-only", rev, "docs/re/") or "").split()
+                         if n.endswith(".md")]
+                done = subprocess.run(["git", "-C", self.root, "cat-file", "--batch"], capture_output=True,
+                                      input="".join(f"{rev}:{n}\n" for n in names).encode())
+                out, at, self._docs = done.stdout, 0, {}
+                for n in names:
+                    end = out.index(b"\n", at)
+                    size = int(out[at:end].split()[2])
+                    self._docs[n] = out[end + 1:end + 1 + size].decode(errors="ignore")
+                    at = end + 1 + size + 1
+            else:
+                self._docs = {p: t for p, t in self.files.items() if p.startswith("docs/re/") and p.endswith(".md")}
+        return self._docs
+
+    def docs(self):
+        return "\n".join(self.doc_texts().values())
+
+
+def checker_rows(text):
+    """The CHECKER_ROWS ids a file declares (empty when it declares none or it is not a literal)."""
+    match = ROWS.search(text or "")
+    if not match:
+        return set()
+    try:
+        value = ast.literal_eval(match.group("value").split("#")[0].strip())
+    except (ValueError, SyntaxError):
+        return {match.group("value").strip()}
+    return {value} if isinstance(value, str) else {str(v) for v in value}
+
+
+def notes(messages):
+    """id -> reason for every Evidence-note line in the change's commit messages."""
+    return {m.group("id"): m.group("why").strip() for m in NOTE.finditer(messages or "")}
+
+
+def note_problems(bodies, checkers, paths, root, base):
+    """Why an edit without a new document may not land on Evidence-notes, or an empty list.
+    Every changed body and checker must be already paired on the base and named by a note."""
+    found, given, docs = [], notes(base.messages), base.docs()
+    for table in CREDIT_TABLES:
+        if table in paths:
+            found.append(f"{table} is a credit table; an Evidence-note never covers it")
+    for path in bodies + checkers:
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        before, after = base.text(path), read(path, root)
+        kind = "checker" if path in checkers else "body"
+        if before is None:
+            found.append(f"{path} is a new {kind}: it needs its evidence document"
+                         + (" and CHECKER_ROWS" if kind == "checker" else "") + " in this change")
+            continue
+        if not after:
+            found.append(f"{path} is deleted: a deletion needs its evidence document")
+            continue
+        rows_before, rows_after = checker_rows(before), checker_rows(after)
+        if kind == "checker" and rows_before != rows_after:
+            found.append(f"{path} changes CHECKER_ROWS ({sorted(rows_before)} -> {sorted(rows_after)}):"
+                         " a registration change needs its evidence document")
+            continue
+        names = {path, path.rsplit("/", 1)[-1], stem} | rows_before
+        if kind == "checker" and not rows_before:
+            found.append(f"{path} is not paired on the base: it declares no CHECKER_ROWS there")
+            continue
+        if not (stem in docs or (kind == "checker" and any(n in docs for n in names - {path}))):
+            found.append(f"{path} is not paired on the base: no docs/re/*.md there names it")
+            continue
+        ids = [i for i in given if i in names or (kind == "body" and i in docs and _together(i, stem, base))]
+        if not ids:
+            found.append(f"{path} is paired on the base but no 'Evidence-note: <id>: <why>' line in "
+                         f"this change's commit messages names it (accepted ids: {stem}"
+                         + (f", {', '.join(sorted(rows_before))}" if rows_before else "") + ")")
+    return found
+
+
+def _together(row, stem, base):
+    """True when one base docs/re/*.md names both a row id and a body's stem."""
+    return any(row in t and stem in t for t in base.doc_texts().values())
+
+
+def accepted_notes(bodies, checkers, base):
+    """(path, id, reason) for each note that covers a changed file, for the report."""
+    out, given = [], notes(base.messages)
+    for path in bodies + checkers:
+        stem = path.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        names = {path, path.rsplit("/", 1)[-1], stem} | checker_rows(base.text(path))
+        for i, why in given.items():
+            if i in names or (path in bodies and _together(i, stem, base)):
+                out.append((path, i, why))
+                break
+    return out
 
 
 def read(path, root="."):
@@ -73,8 +219,9 @@ def exempt_generators(paths, root="."):
     return exempt
 
 
-def problems(paths, root="."):
-    """Why this change set is not reviewable, or an empty list."""
+def problems(paths, root=".", base=None):
+    """Why this change set is not reviewable, or an empty list. With `base` (the
+    merge-base side), an edit without a new document may pass on Evidence-notes."""
     bodies = [p for p in paths if p.startswith("src/recovered/") and p.endswith(".c")]
     exempt = exempt_generators(paths, root)
     checkers = [p for p in paths
@@ -87,15 +234,17 @@ def problems(paths, root="."):
             found.append(f"{p} declares NOT_A_ROW_CHECKER and CHECKER_ROWS; "
                          "a file is a row checker or it is not")
     if (bodies or checkers) and not docs:
-        found.append("no evidence document under docs/re/ is part of this change"
-                     f" (bodies: {len(bodies)}, checkers: {len(checkers)})")
+        refused = note_problems(bodies, checkers, paths, root, base) if base is not None else ["no base given"]
+        if refused:
+            found.append("no evidence document under docs/re/ is part of this change"
+                         f" (bodies: {len(bodies)}, checkers: {len(checkers)})")
+            if base is not None:
+                found.extend(f"Evidence-note path closed: {line}" for line in refused)
     if checkers:
         registered = [p for p in checkers if "CHECKER_ROWS" in read(p, root)]
         if not registered:
             found.append("no changed checker declares CHECKER_ROWS "
                          f"(checkers: {', '.join(checkers)})")
-    for body in bodies:
-        pass  # pairing is at the change-set level, not per-file: keep it simple
     return found
 
 
@@ -108,18 +257,29 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         paths = args.changed if args.changed is not None else changed_paths(args.base, args.root)
+        base = Base.from_git(args.base, args.root) if args.changed is None else None
     except SystemExit as error:
         print(error)
         return 1
-    found = problems(paths, args.root)
+    return report(paths, args.root, base)
+
+
+def report(paths, root=".", base=None):
+    found = problems(paths, root, base)
     if found:
         for line in found:
             print(f"UNPAIRED BODY: {line}")
         print(f"REFUSED: {len(found)} reason(s) - a body or checker lands with its "
               f"evidence document and CHECKER_ROWS, or it does not land")
         return 1
-    for path, reason in sorted(exempt_generators(paths, args.root).items()):
+    for path, reason in sorted(exempt_generators(paths, root).items()):
         print(f"EXEMPT (not a row checker): {path} - {reason}")
+    if base is not None and not [p for p in paths if p.startswith("docs/re/") and p.endswith(".md")]:
+        exempt = exempt_generators(paths, root)
+        bodies = [p for p in paths if p.startswith("src/recovered/") and p.endswith(".c")]
+        checkers = [p for p in paths if p.startswith("tools/overlay/") and p.endswith(CHECKER_SUFFIXES) and p not in exempt]
+        for path, ident, why in accepted_notes(bodies, checkers, base):
+            print(f"EVIDENCE-NOTE: {path} - {ident}: {why}")
     print(f"OK: {len(paths)} changed path(s); every body/checker is paired "
           f"with evidence and registration")
     return 0
