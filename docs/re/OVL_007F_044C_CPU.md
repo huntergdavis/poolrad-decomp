@@ -98,7 +98,7 @@ Outcomes: **614 RETURNED, 259 LIMIT, 4 TRANSFER**. **Starts: 71/71 in this body 
 Cases: boundary cases for three class bytes x four values of W x {V-1, V, V+1, V+8000h} (48), INDEX values 0, 1, 5, 7Fh, 80h, FFh, 41h on both branches (14), five array-word pairs x three amounts (15), three Q-word values, the four display modes, three active pages, three delay settings, record offsets and segments that wrap (18), six entry SPs on both branches (12), ten flag images, the alias families above (330 `*-at-bp*` cases plus the offset and segment placements), **two budget sweeps (0 to 179 on the above branch, 0 to 199 on the not-above branch)** (380), and 40 random cases.
 **The independent statement** (172 cases): the branch, the array words, Q's `+0020` effect, SP, BP and CS:IP are recomputed from V (the original `+0000` alone), W, EXTRA, INDEX and the initial words on returning cases whose records do not overlap the stack or the world's data and do not straddle FFFFh.
 
-**The one declared exception (MUL), shared with `+0000`, `+0054` and `+0203`:** MUL (in the 13AB closure) leaves SF, ZF, AF and PF undefined; at a LIMIT arrival on the instruction right after it those bits (`00D4`) are not compared; **2 arrivals of the 880 cases were masked**, counted and reported. No completed call exposes them.
+**The one declared split (pinned MULW), shared with `+0000`, `+0054` and `+0203`:** the C models compute the pinned MULW flags (`instructions.h:605-619`: SF and AF kept, ZF from AX alone, PF over DX:AX, CF=OF=DX!=0); raw Unicorn leaves SF, ZF, AF and PF at its own values. The checker uses the shared `tools/overlay/pinned_shift_flags.py` (`LastFlagWriter`, `declared_flags_split`): whenever the last FLAGS writer in the original is a word MUL the C flags must equal Unicorn's outside the six arithmetic bits and the pinned value inside them; every other state is compared exactly. **2 states of the 880 cases were compared under the split**, counted and reported; there is no mask.
 
 ### Claim-to-check
 
@@ -163,4 +163,4 @@ The host's **packaged `/usr/bin/dosbox-x` 2026.01.02** (SHA-256 `99d7460153175d1
     cmake --build resources/build7f044c --target poolrad_overlay_u7f_044c_cpu_tests
     ctest --test-dir resources/build7f044c -R '^poolrad_overlay_u7f_044c_cpu_tests$' --output-on-failure
 
-Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and capture receipts stay under ignored `resources/`. The Unicorn run took 413 s.
+Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and capture receipts stay under ignored `resources/`. The Unicorn run took 588 s.

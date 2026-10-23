@@ -220,7 +220,7 @@ def differential(bodies, decoded, lib, b54, quick=False, only=None):
             stated += statements(name, kw, st, expected, vcache, b54)
     w044 = {k for k in seen_all if k[0] == 'w' and 0x44C <= k[1] < 0x506}
     check(only is not None or len(w044) == 71, f'every +044C instruction start was reached ({len(w044)}/71)')
-    return dict(cases=len(cs), end_states=stops, starts_044c=f'{len(w044)}/71', starts_total=len(seen_all), independent_statements_checked=stated, mul_undefined_flag_arrivals=WD.MASKED_ARRIVALS[0], cases_whose_stores_reached_code=len(code_writes), code_write_cases=code_writes,
+    return dict(cases=len(cs), end_states=stops, starts_044c=f'{len(w044)}/71', starts_total=len(seen_all), independent_statements_checked=stated, declared_mulw_split_states=WD.SPLIT_ARRIVALS[0], cases_whose_stores_reached_code=len(code_writes), code_write_cases=code_writes,
                 cpu_words=14, ram_bytes=SIZE, flag_masks=0, seconds=round(time.time() - t0, 1))
 
 
