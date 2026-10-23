@@ -135,3 +135,22 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn \
 
 Only source, synthetic tests, counts, addresses, and hashes are public.
 Original bytes, disassembly, and private oracle artifacts stay ignored.
+
+## Declared AF split (2026-10-22, no claim moves)
+
+After #1433, the model follows the pinned DOSBox-X rule that `SHL` with a non-zero count sets AF (`times_four`). Unicorn
+leaves AF clear. One budget case (`predicate-budget`) stops while the last arithmetic-flag writer is `times_four`'s
+`SHL DI,1`, so the audit failed on main with `flags C=7212, original=7202` (VP i21571).
+
+The audit now declares that split, and nothing else:
+- FLAGS may differ in **bit 4 only**;
+- **only** when the last flag writer the original executed before the stop is a shift with a non-zero count (decoded
+  from the original bytes at run time);
+- **only** with C's AF = 1.
+
+Every other bit and case is compared exactly. The run: predicate 506/506; chain 307/307, all 14 CPU words and all 1 MiB
+of RAM equal, the split used in **1** case; caller coverage 41/41.
+
+**What the split cannot see:** a model that reverted to AF = 0 would match Unicorn and pass. Pinning AF = 1 itself is
+the job of the pinned-rule census (`FLAG_SEMANTICS_CENSUS.tsv`, shift-AF rows) and of DOSBox-X native runs. The credit
+and its evidence are otherwise unchanged.

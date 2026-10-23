@@ -148,3 +148,13 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_0033_012B --require-current-main
 ```
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the composed `03BD` lookup (`shr16`) sets AF after a non-zero shift per the pinned rule; raw Unicorn leaves it clear, so `u33_cell_lookup_012b_audit --unicorn` failed on main at `+0350` (`C=7212, original=7202`, AF), as #1433's own description recorded.
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` (or word `MUL`) the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to the Unicorn value fails. Nothing is masked; the audit reports how many stops used the split, by rule.
+
+Run (PR #1446, `--unicorn`), per body: `+012B` **1,212** cases, split used at **0** stops; `+01AD` **1,212**, **0**; `+0350` **3,268**, **366** (all after a shift); `+047B` **3,268**, **264** (all after a shift). Every body: full 1 MiB RAM and 13 CPU words equal, all instruction starts and conditional outcomes covered.
+
+**Per-credit sentences: OVL_0033_012B and OVL_0033_01AD never needed the split** (their evidence is exact). **OVL_03BD_0350 and OVL_03BD_047B: evidence did not depend on AF after a shift**; those stops hold C to AF=1 and every other stop is exact. All four credits stand.

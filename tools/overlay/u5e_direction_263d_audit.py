@@ -41,6 +41,30 @@ def check(value, message):
         raise AssertionError(message)
 
 
+# Declared AF split (#1433 pinned rule; VP i21571). DOSBox-X 5a9c7c53 sets AF after SHL/SHR/SAR with a non-zero count
+# (src/cpu/flags.cpp get_AF: `count & 1Fh`), and the model follows it (times_four). Unicorn leaves AF clear. So FLAGS may differ
+# in AF (bit 4) ONLY when the last arithmetic-flag writer the original executed before the stop was such a shift, and then
+# the C must have AF = 1; every other bit, and every other case, is compared exactly. The audit counts the cases that use it.
+FLAG_WRITERS = {"add", "adc", "sub", "sbb", "cmp", "and", "or", "xor", "test", "inc", "dec", "neg",
+                "shl", "sal", "shr", "sar", "rol", "ror", "rcl", "rcr", "mul", "imul", "div", "idiv", "cmpsb", "cmpsw",
+                "scasb", "scasw", "popf", "sahf", "iret"}
+DECODER = Cs(CS_ARCH_X86, CS_MODE_16)
+AF_SPLIT_USED = [0]
+
+
+def last_writer_is_nonzero_shift(uc, address, size, state):
+    """Called before each original instruction: remember whether the last flag writer is a shift with a non-zero count."""
+    ins = next(DECODER.disasm(bytes(uc.mem_read(address, size)), address), None)
+    if ins is None or ins.mnemonic not in FLAG_WRITERS:
+        return
+    if ins.mnemonic in ("shl", "sal", "shr", "sar"):
+        operand = ins.op_str.split(",")[-1].strip()
+        count = (uc.reg_read(uc_regs.UC_X86_REG_CL) if operand == "cl" else int(operand, 0)) & 0x1F
+        state[0] = count != 0
+    else:
+        state[0] = False
+
+
 def physical(segment, offset):
     return ((segment << 4) + (offset & 0xFFFF)) & (RAM_SIZE - 1)
 
@@ -174,10 +198,11 @@ def compare(label, memory, cpu, layout, bodies, library, coverage, emulator, *, 
         emulator.reg_write(register, getattr(cpu, name))
     remaining = [budget]
     stop = [None]
+    shift_last = [False]
     segments = {cpu.cs: 0x5E, layout.slots_cs: 0x3C6, layout.predicate_cs: 0x3C2}
 
     def instruction(uc, address, size, user):
-        del size, user
+        del user
         cs = uc.reg_read(uc_regs.UC_X86_REG_CS)
         ip = uc.reg_read(uc_regs.UC_X86_REG_IP) & 0xFFFF
         if cs == cpu.cs and ip == 0x7000:
@@ -192,6 +217,7 @@ def compare(label, memory, cpu, layout, bodies, library, coverage, emulator, *, 
                 uc.emu_stop()
             else:
                 remaining[0] -= 1
+        last_writer_is_nonzero_shift(uc, address, size, shift_last)
 
     hook = emulator.hook_add(UC_HOOK_CODE, instruction)
     emulator.emu_start(physical(cpu.cs, cpu.ip), RAM_SIZE, count=2000000)
@@ -209,6 +235,9 @@ def compare(label, memory, cpu, layout, bodies, library, coverage, emulator, *, 
         raise AssertionError(f"{label}: RAM mismatch at {[hex(i) for i in different[:12]]}")
     for name, register in zip(NAMES, REGISTERS):
         got, want = getattr(c_cpu, name), emulator.reg_read(register) & 0xFFFF
+        if name == "flags" and got != want and shift_last[0] and got == want | 0x10:
+            AF_SPLIT_USED[0] += 1          # the declared split: pinned AF=1 after a shift, Unicorn 0; nothing else differs
+            continue
         check(got == want, f"{label}: {name} C={got:04x}, original={want:04x}")
     return status, c_cpu.ax & 255
 
@@ -270,7 +299,8 @@ def run(bodies, decoded, library, random_cases):
     caller_starts = {i.address for i in decoded[(0x5E, 0x263D)]}
     reached = {ip for unit, ip in coverage if unit == 0x5E}
     check(caller_starts <= reached, f"uncovered caller instructions: {sorted(caller_starts - reached)}")
-    print(f"PASS: {total} original-chain/C cases; all 14 CPU words and all {RAM_SIZE} RAM bytes equal")
+    print(f"PASS: {total} original-chain/C cases; all 14 CPU words and all {RAM_SIZE} RAM bytes equal "
+          f"(FLAGS through the declared AF split in {AF_SPLIT_USED[0]} case(s): last flag writer a non-zero shift, C AF=1 pinned, Unicorn 0)")
     print(f"Caller coverage {len(caller_starts & reached)}/{len(caller_starts)} instructions; "
           f"returned direction bytes {sorted(results)}; budget stops compared at exact boundaries")
 
