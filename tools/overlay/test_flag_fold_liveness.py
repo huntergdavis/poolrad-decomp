@@ -3,7 +3,7 @@ import importlib.util
 from pathlib import Path
 import unittest
 
-TOOL = Path(__file__).resolve().parents[2] / "tools/overlay/flag_fold_liveness.py"
+TOOL = Path(__file__).resolve().parent / "flag_fold_liveness.py"
 SPEC = importlib.util.spec_from_file_location("flag_fold_liveness", TOOL)
 L = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(L)
@@ -96,6 +96,35 @@ class PathsAndObservers(unittest.TestCase):
 
     def test_closed_loop_without_exit_is_dead(self):
         self.assertEqual(run("83e801" "ebfe")["verdict"], "DEAD")
+
+
+# codex-poolrad2's synthetic regressions (inbox i21658, from its u3c6 10A7 slice), copied verbatim: (name, hex, base,
+# site, host stops, first-exposure witnesses [(address, flags)], verdict). A witness requires each named flag to be
+# observed at that address; the set of observed flags must equal the witnesses' union, so a wrong kill fails either way.
+CODEX_POOLRAD2 = [
+    ('mul_preserves_prior_af_sf', '01d8f7e1e80000cb', 0x0000, 0x0000, [], [(4, ['AF', 'SF'])], 'exposed'),
+    ('inc_preserves_carry_before_ja', '01d84077009c', 0x0000, 0x0000, [], [(3, ['CF'])], 'exposed'),
+    ('branch_split_taken_path_exposes_carry', '01d840740239c09c', 0x0000, 0x0000, [], [(7, ['CF'])], 'exposed'),
+    ('full_overwrite_before_return_dead', '4039c0cb', 0x0000, 0x0000, [], [], 'dead'),
+    ('host_stop_before_partial_overwrite', '39c040cb', 0x117d, 0x117d, [4479], [(4479, ['AF', 'CF', 'OF', 'PF', 'SF', 'ZF'])], 'exposed'),
+    ('host_stop_before_full_overwrite', '39c031c0cb', 0x11dd, 0x11dd, [4575], [(4575, ['AF', 'CF', 'OF', 'PF', 'SF', 'ZF'])], 'exposed'),
+    ('mul_then_full_overwrite_dead', '01d8f7e139c0cb', 0x0000, 0x0000, [], [], 'dead'),
+    ('adc_reads_carry_before_overwrite', '01d811d8cb', 0x0000, 0x0000, [], [(2, ['CF'])], 'exposed')
+]
+
+
+class CodexPoolrad2Fixtures(unittest.TestCase):
+    def test_fixtures(self):
+        for name, hexbytes, base, site, stops, witnesses, verdict in CODEX_POOLRAD2:
+            with self.subTest(name):
+                r = L.liveness(L.decode(bytes.fromhex(hexbytes), base), site, stops)
+                self.assertEqual(r["verdict"], verdict.upper(), name)
+                observed = {f for f, v in r["flags"].items() if v["observed"]}
+                self.assertEqual(observed, {f[0] for _, flags in witnesses for f in flags}, name)
+                for address, flags in witnesses:
+                    for f in flags:
+                        self.assertTrue(any(o.endswith(f"@{address:04X}") for o in r["flags"][f[0]]["observed"]),
+                                        f"{name}: {f} not observed at {address:04X}: {r['flags'][f[0]]['observed']}")
 
 
 class FailClosed(unittest.TestCase):
