@@ -90,7 +90,14 @@ pr_system_11c0_status pr_system_random_fullstate_11c0(
         remainder = (uint16_t)(cpu->dx % cpu->bx);
         cpu->ax = remainder;
         cpu->dx = quotient;
-        /* DIV's arithmetic FLAGS are architecturally undefined. */
+        /* DIV BX. Pinned DIVW/IDIVW (instructions.h:655-673, 745-761) overwrite all six flags: AF=SF=OF=0,
+         * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+        {
+            uint16_t rem16 = (uint16_t)(remainder), quo16 = (uint16_t)(quotient), fold = (uint16_t)(rem16 ^ quo16);
+            fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+            cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                    (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+        }
     }
 
     /* +11D3 RETF 2 reads the two words at separately wrapped SS offsets. */

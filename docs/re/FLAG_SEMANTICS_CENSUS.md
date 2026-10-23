@@ -84,3 +84,9 @@ Scope boundary: the census covers helpers that WRITE a flags value. A model that
 "IDIV's flags are undefined") computes none and asserts they are dead before the next observation; those are deadness claims, not
 rules, and are NOT verified here. Pinned `DIVW/IDIVW/DIVB` store explicit values (AF=SF=OF=0, ZF=(rem==0 && quo&1), CF=((rem&3) in 1..2),
 PF over rem:quo, `instructions.h:655-673`), so a folded DIV is only safe when nothing observes those flags.
+
+DIV/IDIV sites now written to the pinned values (six flags overwritten): `overlay_u6c_record_roll_sum_4235.c`,
+`system_random_fullstate_11c0.c` (DIV BX), `overlay_u6c_record_tier_3fb3.c`, `overlay_u6c_record_weighted_408c.c`,
+`overlay_u68_movement_flag_04df_cpu.c`, `overlay_u33_cell_pair_01ad.c`, `overlay_u31_step_gate_0675.c` (IDIV CX). The last
+carried the claim "IDIV leaves the flags alone in both tested engines", which contradicts `instructions.h:745-761`; its checker
+re-run is what settles it. `overlay_u33_party_attach_12e1_cpu.c` already modelled IDIVW.
