@@ -150,3 +150,7 @@ rejection.
 - **TRANSFER is unreached by construction**; it is kept as a guard.
 - **The stub precondition does not apply.** The body calls no other overlay unit, only its own `+031F` near.
 - **Not yet glued into the hybrid.**
+
+## Evidence kind (2026-10-22)
+
+Registering `CHECKER_ROWS = ('OVL_03BD_057A',)` moves this row in `docs/re/credit_evidence_kind.csv` from `unit-test` to `checker`, regenerated with `credit_evidence_kind.py --write`. **The credit count does not move**; only the recorded kind of evidence gets stronger.
