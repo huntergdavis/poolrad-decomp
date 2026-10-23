@@ -171,9 +171,47 @@ static int test_guards(void)
     return 0;
 }
 
+/* +07BC entered on its own: frame [SP] IP, [SP+2] CS, [SP+4]/[SP+6] the flag pointer, [SP+8] the address; RETF 6. */
+static pr_u25_load_word_status hook(uint16_t address, pr_u25_load_word_cpu *c)
+{
+    *c = cpu();
+    c->ip = 0x07BCu;
+    put(c->ss, 0x7FFCu, 0xBEEFu);                  /* the result local [BP-2] at entry SP 8000h */
+    put(c->ss, c->sp, 0x1111u);
+    put(c->ss, (uint16_t)(c->sp + 2u), 0x7000u);
+    put(c->ss, (uint16_t)(c->sp + 4u), 0x0040u);
+    put(c->ss, (uint16_t)(c->sp + 6u), 0x7800u);
+    put(c->ss, (uint16_t)(c->sp + 8u), address);
+    ram[at(0x7800u, 0x0040u)] = 0x77u;
+    return pr_u25_load_hook_07bc(ram, sizeof ram, c);
+}
+
+static int test_hook_entry(void)
+{
+    pr_u25_load_word_cpu c;
+    setup();
+    ram[at(0x5000u, 0x0114u)] = 0x9Cu;             /* record +14h, key 18h: zero-extended */
+    CHECK(hook(0x6B18u, &c) == PR_U25_LOAD_WORD_OK && c.ax == 0x009Cu && ram[at(0x7800u, 0x0040u)] == 1u);
+    CHECK(c.bp == 0x4321u && c.sp == 0x800Au && c.cs == 0x7000u && c.ip == 0x1111u);
+    ram[at(0x5000u, 0x0173u)] = 0x9Cu;             /* record +73h, key A0h: sign-extended */
+    CHECK(hook(0x6BA0u, &c) == PR_U25_LOAD_WORD_OK && c.ax == 0xFF9Cu);
+    CHECK(hook(0x6C0Du, &c) == PR_U25_LOAD_WORD_OK && c.ax == 0xBEEFu && ram[at(0x7800u, 0x0040u)] == 1u);   /* key 10Dh: flag stays 1, local unwritten */
+    CHECK(hook(0x9900u, &c) == PR_U25_LOAD_WORD_OK && c.ax == 0xBEEFu && ram[at(0x7800u, 0x0040u)] == 0u);   /* not found: flag cleared, local unwritten */
+    ram[at(0x5000u, 0x0115u)] = 0x0Au;             /* key 2CFh: class 0Ah (8..0Ch) gives 25 */
+    CHECK(hook(0x6DCFu, &c) == PR_U25_LOAD_WORD_OK && c.ax == 25u);
+    c = cpu();
+    c.ip = 0x0E0Cu;
+    CHECK(pr_u25_load_hook_07bc(ram, sizeof ram, &c) == PR_U25_LOAD_WORD_ARGUMENT && c.sp == 0x8000u);
+    c.ip = 0x07BCu;
+    CHECK(pr_u25_load_hook_07bc(ram, sizeof ram - 1u, &c) == PR_U25_LOAD_WORD_ARGUMENT);
+    CHECK(pr_u25_load_hook_07bc(NULL, sizeof ram, &c) == PR_U25_LOAD_WORD_ARGUMENT);
+    CHECK(pr_u25_load_hook_07bc(ram, sizeof ram, NULL) == PR_U25_LOAD_WORD_ARGUMENT);
+    return 0;
+}
+
 int main(void)
 {
-    if (test_pseudo_addresses() || test_windows_and_hook() || test_guards())
+    if (test_pseudo_addresses() || test_windows_and_hook() || test_guards() || test_hook_entry())
         return 1;
     puts("u25 load word synthetic tests passed");
     return 0;

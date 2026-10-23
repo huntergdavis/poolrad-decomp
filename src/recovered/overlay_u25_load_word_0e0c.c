@@ -1,4 +1,5 @@
-/* DOS v1.3 unit 25 load word +0E0C, classifier +06FB, load hook +07BC.
+/* DOS v1.3 unit 25 load word +0E0C, classifier +06FB, load hook +07BC
+ * (the hook is also public as its own entry, pr_u25_load_hook_07bc).
  * Source order matters: arguments, globals, records and frame locals may
  * alias in the caller-owned RAM. Evidence: docs/re/U25_LOAD_WORD_0E0C.md. */
 #include "poolrad/recovered/overlay_u25_load_word_0e0c.h"
@@ -369,6 +370,15 @@ static void window(uint8_t *ram, pr_u25_load_word_cpu *c,
     c->di = arithmetic(c, c->di, c->ax, 16u, 0);
     c->ax = r16(ram, c->es, (uint16_t)(c->di + bias));
     result(ram, c, c->ax);
+}
+
+pr_u25_load_word_status pr_u25_load_hook_07bc(
+    uint8_t *ram, size_t ram_size, pr_u25_load_word_cpu *c)
+{
+    if (ram == NULL || ram_size < PR_U25_0756_RAM_SIZE ||
+        c == NULL || c->ip != 0x07BCu)
+        return PR_U25_LOAD_WORD_ARGUMENT;
+    return load_hook(ram, ram_size, c);
 }
 
 pr_u25_load_word_status pr_u25_load_word_0e0c(
