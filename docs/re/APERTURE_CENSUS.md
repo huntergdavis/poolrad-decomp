@@ -9,46 +9,36 @@ added without a row. Same discipline as naming an incomplete audit as zero cover
 
 ## The census (tools/overlay/aperture_census.py)
 
-| | models |
-| --- | ---: |
-| recovered model sources | 548 |
-| **bus-aware** (take `pr_bus`; an aperture pointer reads what the machine reads, observable against an EGA oracle) | 32 |
-| **flat** (aperture **not observable in their audits**, marked in the CSV) | 516 |
-| flat models whose header or opening comment states an aperture exclusion | 4 |
+**The counts are not carried in this document** (a number true of a file and false of the tree is the failure this avoids). Run `python3 tools/overlay/aperture_census.py` for the current totals: recovered model sources, bus-aware (take `pr_bus`; an aperture pointer reads what the machine reads, observable against an EGA oracle), flat (aperture **not observable in their audits**, marked in the CSV), and flat models whose header or opening comment states an aperture exclusion. `--write` regenerates the CSVs; the test fails on a stale CSV.
 
-The subject is not the 516 in isolation but the **pair**, because 0411's shape is a bus-aware body handing a pointer to a FLAT callee:
-`aperture_pairs.csv` lists every (bus-aware caller, flat callee) pair: **71 pairs**, of which **46 take a data pointer** (StrLoad, StrStore,
-StrCopy, StrCat, Str, Val, Move, FillChar, set membership/expansion, GetMem/FreeMem, node and operand readers). For each of the 46 the
+The subject is not the flat models in isolation but the **pair**, because 0411's shape is a bus-aware body handing a pointer to a FLAT callee:
+`aperture_pairs.csv` lists every (bus-aware caller, flat callee) pair: every pair, of which those that take a data pointer are the subject (StrLoad, StrStore,
+StrCopy, StrCat, Str, Val, Move, FillChar, set membership/expansion, GetMem/FreeMem, node and operand readers). For each of those the
 pointer's **source** is classified, because only a caller **argument**, a **global** (DS:5D92, the script pointer) or a pointer the callee
 **returns** can be corrupt; a body-built **local** or a **code literal** (a string in the caller's own segment) cannot reach the aperture
 except through stack aliasing, which the headers exclude.
 
-| Pointer source | pairs |
-| --- | ---: |
-| can reach the window under a corrupt pointer (caller argument / global / callee-returned) | **27** |
-| of those, the caller's header **declares** the exclusion (a precondition) | 25 |
-| of those, **not declared anywhere** | **2** |
-| unreachable by construction (code literal or body-built local) | 19 |
+The per-class counts (can reach the window under a corrupt pointer: caller argument / global / callee-returned; of those, declared by the caller's header and not declared anywhere; unreachable by construction: code literal or body-built local) are the `pointer_source`, `reach` and `caller_declares_exclusion` columns of `aperture_pairs.csv`; count them there.
 
-**The two undeclared, reachable pairs (the finding):** `overlay_u7f_number_0294` (0294, the numeric line editor) and
+**The undeclared, reachable pairs (the finding; the rows with `caller_declares_exclusion = no` and `reach = can-reach-under-a-corrupt-pointer` in the CSV, two when this was written):** `overlay_u7f_number_0294` (0294, the numeric line editor) and
 `resident_0709_printer_0768` (the text-window printer) each hand **StrStore a caller-supplied far string** (`[BP+8]` and `[SP+4]`) with no
 statement that it must lie outside A0000..AFFFF. A pointer into the aperture would be read flat by StrStore while the machine reads the
 planes. Both are bus-aware bodies with the EGA oracle, so the case is observable: an aperture string pointer that must DISAGREE with the oracle
 (a negative control) and a header precondition are the fix; neither model is changed here (a fix ships with its case).
-The other 25 reachable pairs carry the declaration ("windows exclude A0000..AFFFF because the callee reads flat RAM"), which is a
+The other reachable pairs carry the declaration ("windows exclude A0000..AFFFF because the callee reads flat RAM"), which is a
 **precondition, not a proof**: 0464's blit alone turns it into a stop (`CONTRACT` when a Move meets A0000).
 
 ## What this does not yet measure
 
-- **The classification is by reading, partly by header.** 19 of the 46 pairs were classified from the caller's call sites (`classified_by = read`),
-  27 from the header's argument description (`header`); a pair misclassified as unreachable would be a defect hidden by the table, so the
+- **The classification is by reading, partly by header.** The pairs marked `read` were classified from the caller's call sites (`classified_by = read`),
+  the pairs marked `header` from the header's argument description; a pair misclassified as unreachable would be a defect hidden by the table, so the
   `header` ones are the next to read.
-- **"Can reach" is static.** How many of the 27 actually diverge from the EGA oracle under a corrupt pointer is a fixture result, not a
+- **"Can reach" is static.** How many of the reachable pairs actually diverge from the EGA oracle under a corrupt pointer is a fixture result, not a
   count of sites: the adversarial fixture is a caller-supplied pointer placed (a) in the aperture and (b) inside a block the body returns,
   frees or rewrites. **0239** carries both kinds (alias cases inside the GetMem block, and `hole-item-in-aperture`/`hole-character-in-aperture`
   negative controls that must disagree with the oracle); its report states the measured result. The other pairs' fixtures are pending.
 - **A flat audit cannot reproduce a machine read of the aperture.** For a flat callee the only real evidence is a bus-aware CALLER audit with a
-  pointer in the aperture compared against the EGA oracle, and that exists only for the 32 callers that own the oracle.
+  pointer in the aperture compared against the EGA oracle, and that exists only for the bus-aware callers that own the oracle.
 
 ## Reading the files
 
