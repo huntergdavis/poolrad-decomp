@@ -168,6 +168,7 @@ wait_for("slots", lambda s, l: "FUNCTION" not in s and s == l, ocr_prompt)
 key("a")
 wait_for("at15_4", lambda s, l: "15,4" in s, ocr_digits)
 log("SAVE LOADED")
+open(os.path.join(RUN, "observer.pin"), "w").close()   # seed-pin stage 2: the observer pins RandSeed at the next draw if PR_HYBRID_SEED_PIN is set
 time.sleep(1); key("Up")
 wait_for("at14_4", lambda s, l: "14,4" in s, ocr_digits)
 extra = os.environ.get("WALK_EXTRA", "").split()
