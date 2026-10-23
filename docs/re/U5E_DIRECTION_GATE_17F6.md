@@ -145,3 +145,13 @@ python3 tools/overlay/u5e_direction_gate_17f6_audit.py \
   direction-chain dependency add ownership evidence but do not change the
   classifier or strict ledger here. Native saved-route execution, division
   FLAGS characterization and strict-credit review remain separate gates.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the model writes the pinned IDIVW flags in `divide_eight` and the pinned AF after the composed shift; raw Unicorn writes neither, so the audit failed on main at `direction-0-heading-5` (`flags C=7203, original=7202`, CF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446): **2,794** full CPU/RAM cases (2,790 returns, 4 budget stops), 53/53 instructions; the split was used at **2,308** stops: **2,307** with an IDIV as the last writer (C equals the pinned formula on the original's own remainder and quotient, so C's `rem` and CF are right) and **1** after a shift.
+
+**Per-credit sentence (OVL_005E_17F6): evidence did not depend on the IDIV flags or on AF after a shift**; at every such stop C is held to the pinned value, and every other stop is exact. Credit stands.

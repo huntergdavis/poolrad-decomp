@@ -22,6 +22,8 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_flag_census.py'
       - name: Flag helpers in generated sources come from their emitters
         run: python3 -m unittest discover -s tools/overlay -p 'test_emitters_reproduce_sources.py'
+      - name: Declared AF-after-shift split allows AF alone, only after a non-zero shift
+        run: python3 -m unittest discover -s tools/overlay -p 'test_pinned_shift_flags.py'
       - name: Test candidate pricer input handling
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
       - name: Compile, load and bind registered row checkers without media

@@ -170,3 +170,13 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_007F_00A8 --require-current-main
 ```
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the model's `shl1` sets AF per the pinned rule; raw Unicorn leaves it clear, so the Unicorn audit failed on main (`flags mismatch +00A8 code-00f4-1: C=0256, original=0246`, AF). Model edit in the same PR: #1433 had written the AF line four times and left the comment 'AF clear as Unicorn leaves it'; it is now written once and the comment states the pinned rule (no behaviour change; census row carried).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446, `--unicorn`): **231** original-byte cases (222 returns, 5 CODE, 3 CALLEE, 1 TRANSFER), full 1 MiB RAM and 13 CPU words equal; the split was used at **2** stops, both after a shift. The DOSBox-X native run compares against the pinned core and needs no split.
+
+**Per-credit sentence (OVL_007F_00A8): evidence did not depend on AF after a shift**; those 2 stops hold C to AF=1 and every other stop is exact. Credit stands.
