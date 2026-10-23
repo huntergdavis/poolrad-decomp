@@ -64,3 +64,41 @@ mov [bp-2],ax; mov ax,[bp-2]; mov sp,bp; pop bp; retf 4
 **Role line:** decides whether adding an amount to the active character's `+102h` word passes the character-derived threshold. It returns the flag and stores the difference.
 
 **Consequence for 0000:** the record 0054 forwards to `0000` is the active character, so 0000's derived-value argument above has a documented subject on this path, independent of the 063A trace.
+
+## `OVL_007F_0203` (145 B), evidence PR #1440
+
+**Factor 1: PASS, through near calls from a `game_evidenced` caller.** It has two sites, `+1ED4` and `+2227`, both `0E E8` to `+0203`, inside `OVL_007F_19B2`, which is `game_evidenced` and uncredited (the 11F3 basis).
+
+**Factor 2: PASS. The body DEREFERENCES the active-character record itself.** At `+0238..+023C` and `+0276..+027A` it does `les di,[5D92h]; add es:[di+90h],ax`: a read-modify-write of the active character's `+90h` word through the pointer `DS:5D92/5D94` ([GAMEPLAY_PATH.md](GAMEPLAY_PATH.md)). It passes the same pointer to `0054` (`+0209..+021A`; see 0054 above) to test the cap. When the cap is hit, the excess goes to the 32-bit global `DS:6804/6806` and a message is shown through `1693`.
+
+**Role line:** adds an amount to the active character's `+90h` word, capped by 0054's threshold test. The excess goes to the global accumulator `DS:6804`, with a message.
+
+**Limits:**
+- the meaning of `+90h` and of `DS:6804/6806` is not named, and no document defines `DS:6804`;
+- the identity rests on the active-character dereference, not on 6804.
+
+## `OVL_007F_044C` (188 B), evidence PR #1453
+
+**Factor 1: PASS, through a relocated far call.** The site is `0077_2156+2410` (`lcall 008F:0043`, fixup-backed), inside `game_evidenced` `OVL_0077_2156`'s extent.
+
+**Factor 2: PASS. It dereferences the active-character record, passed as an argument.**
+
+The caller's pushes (`+23FE..+240F`), in 044C's frame:
+
+| 044C slot | What 2156 passes |
+| --- | --- |
+| `[bp+0Eh]` | `ds:5D92`, a far pointer to the active-character pointer cell |
+| `[bp+0Ah]` | `ss:&[bp-4]`, 2156's local |
+| `[bp+8]` | an amount word |
+| `[bp+6]` | an index byte |
+
+- 2156's `[bp-4]` is loaded from the global `DS:471A/471C` (`+215D..+2167`) and **then passed as an out parameter** to resident `00BA:2C48` (`+2182..+2187`). It is null-checked and written back to `471A`. So it holds a record chosen by that resident.
+- 044C dereferences `[bp+0Eh]` twice (`les di,[bp+0Eh]; les di,es:[di]`) to reach the **active character**, and subtracts the amount from its word `+88h + 2*index` (`+047A..+049A`).
+- It adds the amount to the same word of the record at `[bp+0Ah]` (`+04B6..+04D6`).
+- That happens only after the cap test, which compares the destination's `+102h` plus the amount with `0000`'s threshold (`+0452..+0472`).
+
+**Role line:** moves an amount of the active character's `+88h[index]` word to the record selected through `2C48`, capped by the destination's 0000 threshold, with a message through `1693` when capped.
+
+**Limits:**
+- the destination record is taken as a character object from its use of `+88h` and `+102h` (the 285-byte layout), not traced through `2C48`;
+- the meanings of `+88h[index]` and `+102h` are not named.
