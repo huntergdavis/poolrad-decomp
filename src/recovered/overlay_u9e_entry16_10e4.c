@@ -95,6 +95,9 @@ pr_u9e_10e4_status pr_u9e_entry16_10e4(
     cmp8_12(cpu, read8(ram, cpu->ss, (uint16_t)(cpu->bp + 8u)));
     if (second == 0x12u) {
         cpu->ax = read8(ram, cpu->ss, (uint16_t)(cpu->bp + 6u));
+        /* +10FE XOR AH,AH: its CF (0) reaches the RETF through INC AX, which keeps CF. This arm runs only when the
+         * CMP BYTE [BP+8],12h at +10F5 compared equal, so CF was already 0; it is written explicitly (t44, PM i21812). */
+        cpu->flags = (uint16_t)(cpu->flags & ~0x0001u);
         inc16_ax(cpu);
         write8(ram, cpu->ss, (uint16_t)(cpu->bp - 1u), (uint8_t)cpu->ax);
     }
