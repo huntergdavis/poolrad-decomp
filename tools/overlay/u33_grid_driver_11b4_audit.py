@@ -22,6 +22,7 @@ import tempfile
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 U33_BASE, U9E_BASE = 0xC5D1, 0x2AEEA
 U9E_SPAN = (0x0DE3, 0x0E52)
@@ -186,6 +187,9 @@ def fixture(bodies, code, key, *, seed=0x12345678, class_byte=0, window_word=0x0
     return memory, cpu
 
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, memory, cpu, bodies, key, function, budget=12000000):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     target = bodies[key]
@@ -202,11 +206,13 @@ def compare(label, memory, cpu, bodies, key, function, budget=12000000):
         (physical(STUB_PARAGRAPH, STUB_OFFSET), physical(STUB_PARAGRAPH, STUB_OFFSET + 5))]
     returned, previous, visited, edges = [False], [None], set(), set()
     conditional = target["conditional"]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def instruction(emulator, address, size, user):
         del size, user
         if returned[0]:
             emulator.emu_stop(); return
+        writer.step(emulator, address)
         linear = address & (2 * SIZE - 1)
         if start <= linear < body_end:
             here = linear - start + target["entry"]
@@ -228,6 +234,7 @@ def compare(label, memory, cpu, bodies, key, function, budget=12000000):
 
     original.hook_add(UC_HOOK_CODE, instruction); original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(start, 2 * SIZE, count=budget)
+    writer.finish(original)
     check(returned[0], f"original did not return within {budget} instructions: {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
@@ -240,6 +247,11 @@ def compare(label, memory, cpu, bodies, key, function, budget=12000000):
         raise ValueError(f"RAM mismatch {label}: {[hex(d) for d in differences[:8]]} ({len(differences)} bytes)")
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         got, want = getattr(cpu, name), original.reg_read(register) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(got, want, writer)
+            check(problem is None, f"flags mismatch {label}: {problem}")
+            SPLIT_ARRIVALS[0] += split_used(got, want, writer)
+            continue
         check(got == want, f"{name} mismatch {label}: C={got:04x}, original={want:04x}")
     return visited, edges
 
@@ -317,7 +329,8 @@ def differential(bodies, code, key, functions, quick=False):
     missing_edges = {(s, o) for s, outs in target["conditional"].items() for o in outs} - edges
     check(not missing_sites, f"+{key} unvisited instruction starts: {[hex(x) for x in missing_sites]}")
     check(missing_edges == target["infeasible"], f"+{key} untaken conditional outcomes: {sorted((hex(a), hex(b)) for a, b in missing_edges)}")
-    print(f"+{key}: {count} original-byte cases passed, full 1 MiB RAM and all 14 CPU words equal; "
+    print(f"+{key}: {count} original-byte cases passed, full 1 MiB RAM and 13 CPU words equal, FLAGS through the declared "
+          f"pinned splits at {SPLIT_ARRIVALS[0]} stops so far {SPLIT_BY_RULE}; "
           f"{len(visited)}/{len(target['decoded'])} instruction starts, {len(edges)}/{2 * len(target['conditional'])} conditional outcomes")
     return dict(returning=count)
 

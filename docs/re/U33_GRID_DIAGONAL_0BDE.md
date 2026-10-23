@@ -140,3 +140,17 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 
 No classifier or count ledger is changed. Identity and strict credit
 remain the PM's review decision.
+
+## Pinned AF after SHR AL,1: model fixed (2026-10-23, census #1464 family 2)
+
+The model cleared AF after `SHR AL,1` at `+0CA8` (the arithmetic-flag mask cleared it and only CF/PF/ZF/OF were set). Pinned
+DOSBox-X sets AF after a non-zero shift (`get_AF` = `count & 1Fh`, `flags.cpp:172-177`; stored `763-771`). Fix: the model sets AF.
+
+- **Did the evidence depend on AF?** No. The credit rests on `u33_grid_driver_11b4_audit.py`, which composes this body under Unicorn
+  (AF=0 after SHR). It now uses the shared declared split (`pinned_shift_flags`): the `+0BDE` part passes **122 cases** with the split
+  used at **0** stops, because the SHR's AF never reaches a compared stop.
+- **Caller-observable?** No. On the `JAE` path, `INC BYTE [BP-4]` at `+0CB9` overwrites AF; on the fall-through path, the call to
+  `+0B97` overwrites it with `ADD DI,AX` at `+0BAD`. Both were walked over the original bytes with pinned semantics.
+- **Evidence for the verdict (par-e decides):** the evidence did not depend on AF and the difference is not observable, so we expect
+  the credit to stand.
+

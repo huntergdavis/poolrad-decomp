@@ -83,7 +83,12 @@ def make_case(wrapper, callee, label):
     return ram, cpu
 
 
+AF_SPLIT_ARRIVALS = [0]
+
+
 def compare(label, model, callback_type, wrapper, callee):
+    from pinned_shift_flags import LastFlagWriter, shift_af_split  # tools/overlay, on sys.path via source()
+    writer = LastFlagWriter()  # declared AF split after a non-zero shift (census family 2)
     memory, cpu = make_case(wrapper, callee, label)
     original = Uc(UC_ARCH_X86, UC_MODE_16)
     original.mem_map(0, helper.RAM_SIZE)
@@ -114,10 +119,12 @@ def compare(label, model, callback_type, wrapper, callee):
         else:
             assert (0xF101D <= address < 0xF1086 or
                     0xF25BC <= address < 0xF2605), (label, hex(address))
+            writer.step(emu, address)
 
     original.hook_add(UC_HOOK_CODE, on_code)
     original.emu_start(helper.physical(0xF000, 0x25BC), helper.RAM_SIZE,
                        count=130)
+    writer.finish(original)
     assert reached[0] and len(expected_calls) == (label[0] != 0), label
     expected_ram = bytes(original.mem_read(0, helper.RAM_SIZE))
     ram = (ctypes.c_uint8 * helper.RAM_SIZE).from_buffer_copy(memory)
@@ -140,6 +147,11 @@ def compare(label, model, callback_type, wrapper, callee):
                                             expected_calls)
     for (name, _), reg in zip(helper.Cpu._fields_, helper.REGISTERS):
         actual, expected = getattr(cpu, name), original.reg_read(reg) & 0xFFFF
+        if name == "flags":
+            problem = shift_af_split(actual, expected, writer.shift_nonzero)
+            assert problem is None, (label, problem)
+            AF_SPLIT_ARRIVALS[0] += writer.shift_nonzero and actual != expected
+            continue
         assert actual == expected, (label, name, hex(actual), hex(expected))
 
 
@@ -193,7 +205,8 @@ def main():
                                 (0xF123, 0xE000, 0x0002))]
         for label in cases:
             compare(label, model, callback_type, wrapper, callee)
-    print(f"u38:+25bc composed original-byte full-state parity: {len(cases)} cases")
+    print(f"u38:+25bc composed original-byte full-state parity: {len(cases)} cases; FLAGS differ only by the "
+          f"declared pinned AF after a non-zero shift, at {AF_SPLIT_ARRIVALS[0]} arrivals")
 
 
 if __name__ == "__main__":
