@@ -23,12 +23,13 @@ from u33_place_search_1577_audit import U3C6_SPANS
 CALLER_N, SCAN_N, STUB_N, RES_N, DATA_DS, OUT_SEG = 0x8800, 0x8A00, 0x8C00, 0x8C10, 0x1900, 0x9400
 CHUNKS = ((0x1900, 0x0000, 0x8600), (0x2332, 0x0000, 0x0200), (0x8000, 0x0000, 0x04F0), (0x5010, 0x0000, 0x0400),
           (0x6020, 0x0000, 0x0810), (0x7000, 0x0000, 0x0200), (0x6810, 0x0000, 0x0100))
-MAIN_AT, CASES_AT, UNIT31_AT, SPANS_AT, STUB_AT, RES_AT = 0x0300, 0x0C00, 0x1000, 0x3000, 0x3300, 0x3310
+MAIN_AT, CASES_AT, UNIT31_AT, SPANS_AT, STUB_AT, RES_AT = 0x0300, 0x0C00, 0x1400, 0x3400, 0x3700, 0x3710
 HEADER, STACK_TOP, FRAME_LOW, FRAME_SIZE = 0x0A00, 0xF000, 0xEF00, 0x100
 RECORD_BYTES = 28 + FRAME_SIZE + sum(c[2] for c in CHUNKS)
 FLAGS = (0x0002, 0x00D7, 0x08D7, 0x0402, 0x0893, 0x0003)
 ENTRY_REGS = dict(ax=0x1234, bx=0x3456, cx=0x5678, dx=0x789A, si=0x9ABC, di=0xBCDE, bp=0x7777)
-CASE_SIZE = 14
+CASE_SIZE = 16
+STOP_SITES = (0x06DA, 0x0758, 0x076F, 0x0786, 0x079D)
 
 
 def check(condition, message):
@@ -76,6 +77,10 @@ def assembly(code_blocks, cases):
     text += ["    cli", f"    mov sp,{STACK_TOP:#x}", "    cld", "    push cs", "    pop es",
              "    mov al,0xa5", f"    mov di,{FRAME_LOW:#x}", f"    mov cx,{FRAME_SIZE:#x}", "    rep stosb",
              "    mov ax,word ptr [index]", f"    mov bx,{CASE_SIZE}", "    mul bx", "    add ax,offset cases", "    mov si,ax",
+             # t44 CODE-stop cases: JMP FAR (EAh, the LCALL's five bytes) over the call site to stopcap; no flag or stack effect
+             "    mov bx,word ptr [si+14]", "    mov word ptr [stop_site],bx", "    or bx,bx", "    jz no_patch",
+             f"    mov ax,{CALLER_N:#x}", "    mov es,ax", "    mov byte ptr es:[bx],0xea", "    mov word ptr es:[bx+1],offset stopcap",
+             "    mov word ptr es:[bx+3],cs", "    push cs", "    pop es", "no_patch:",
              "    push word ptr [si+10]", "    push word ptr [si+8]", "    push word ptr [si+6]", "    push word ptr [si+4]",
              "    mov ax,word ptr [si+2]", "    or ax,ax", "    jnz have_segment", "    mov ax,cs", "have_segment:",
              "    push ax", "    push word ptr [si]",
@@ -87,9 +92,16 @@ def assembly(code_blocks, cases):
     for i, reg in enumerate("ax bx cx dx si di bp sp cs".split()):
         text.append(f"    mov word ptr cs:[record+{2 * i}],{reg}")
     text += ["    mov word ptr cs:[record+18],offset returned", "    mov word ptr cs:[record+20],ds",
-             "    mov word ptr cs:[record+22],es", "    mov word ptr cs:[record+24],ss",
+             "    mov word ptr cs:[record+22],es", "    mov word ptr cs:[record+24],ss", "    jmp common", "stopcap:"]
+    for i, reg in enumerate("ax bx cx dx si di bp sp".split()):
+        text.append(f"    mov word ptr cs:[record+{2 * i}],{reg}")
+    text += ["    mov word ptr cs:[record+20],ds", "    mov word ptr cs:[record+22],es", "    mov word ptr cs:[record+24],ss",
+             f"    mov word ptr cs:[record+16],{CALLER_N:#x}", "    mov ax,word ptr cs:[stop_site]", "    mov word ptr cs:[record+18],ax",
+             "common:",
              f"    mov sp,{STACK_TOP + 0x800:#x}", "    pushf", "    pop ax", "    mov word ptr cs:[record+26],ax",
              "    push cs", "    pop ds", "    cld",
+             "    mov bx,word ptr [stop_site]", "    or bx,bx", "    jz no_restore", f"    mov ax,{CALLER_N:#x}", "    mov es,ax",
+             "    mov si,offset unit31", "    add si,bx", "    mov di,bx", "    mov cx,5", "    rep movsb", "no_restore:",
              f"    mov ax,{OUT_SEG:#x}", "    mov es,ax", "    xor di,di", "    mov si,offset record", "    mov cx,28", "    rep movsb",
              f"    mov si,{FRAME_LOW:#x}", f"    mov cx,{FRAME_SIZE:#x}", "    rep movsb"]
     for segment, offset, length in CHUNKS:
@@ -104,13 +116,13 @@ def assembly(code_blocks, cases):
              "    mov ax,0x4c00", "    int 0x21",
              "failure:", "    mov ax,0x4c01", "    int 0x21",
              'filename: .asciz "RESULT.BIN"', 'worlds_name: .asciz "WORLDS.BIN"', "handle: .word 0", "world_handle: .word 0",
-             "index: .word 0", f"target_far: .word 0x0675, {CALLER_N:#x}",
+             "index: .word 0", "stop_site: .word 0", f"target_far: .word 0x0675, {CALLER_N:#x}",
              "flags_table: .word " + ",".join(f"{f:#x}" for f in FLAGS), "record: .fill 28, 1, 0",
              f".org {CASES_AT - 0x100:#x}", "cases:"]
     for n, case in enumerate(cases):
         w = case["words"]
         r_seg = 0 if case["r_in_frame"] else w[1]
-        text.append(f"    .word {w[0]:#x},{r_seg:#x},{w[2]:#x},{w[3]:#x},{w[4]:#x},{w[5]:#x},{n % len(FLAGS)}")
+        text.append(f"    .word {w[0]:#x},{r_seg:#x},{w[2]:#x},{w[3]:#x},{w[4]:#x},{w[5]:#x},{n % len(FLAGS)},{case.get('stop', 0):#x}")
     for label, _, _, data, at in code_blocks:
         text += [f".org {at - 0x100:#x}", f"{label}:"]
         for i in range(0, len(data), 16):
@@ -127,6 +139,11 @@ def native_cases():
              ("class-1e-none-ff", dict(p6_force=0x1E, y6=0xFF, keys=[], open_cells=True, weight=1, steer=True))]
     spec += [(f"class-{v:02x}", dict(p6_force=v)) for v in (0x00, 0x02, 0x80)]
     spec += [("result-in-frame", dict(r_in_frame=True, sp=0xEFF0 + 0x30 - 0x30))]
+    # t44: CODE stops at each far call (the flags there: IDIV's at +06DA, CMP's at +0758, OR AL,AL's at +076F/+0786/+079D)
+    for k in range(3):
+        spec.append((f"code-06da-{k}", dict(stop=0x06DA)))
+        for site in STOP_SITES[1:]:
+            spec.append((f"code-{site:04x}-{k}", dict(stop=site, p6_force=0x1E, y6=0xFF - k, keys=[], open_cells=True, weight=1 + k, steer=True)))
     return spec
 
 
@@ -137,7 +154,9 @@ def native_audit(target, code31, code3c6, image, function, Callee):
     rng = random.Random(0x3106750)
     worlds, cases = bytearray(), []
     for label, options in native_cases():
+        options = dict(options); stop = options.pop("stop", 0)
         memory, _, info = fixture(code31, code3c6, image, rng, **options)
+        info["stop"] = stop
         if info["r_in_frame"]:
             info["words"][0] = (STACK_TOP - 12 - 4 - 0x30) & 0xFFFF
         for k, (segment, offset, length) in enumerate(CHUNKS):
@@ -165,12 +184,14 @@ def native_audit(target, code31, code3c6, image, function, Callee):
     segment, returned, count, _ = struct.unpack_from("<4H", result)
     check(count == len(cases) and 0x10000 + 16 * segment <= 16 * DATA_DS, "native header or COM placement differs")
     world_size = sum(c[2] for c in CHUNKS)
-    lookups = 0
+    lookups = stops = 0
     for n, case in enumerate(cases):
         record = result[8 + n * RECORD_BYTES:8 + (n + 1) * RECORD_BYTES]
         memory = bytearray(SIZE)
         for _, seg, off, data, _ in code_blocks:
             at = physical(seg, off); memory[at:at + len(data)] = data
+        if case["stop"]:
+            memory[physical(CALLER_N, case["stop"])] = 0xEA          # the oracle's JMP FAR patch: not the original LCALL
         offset = n * world_size
         for seg, off, length in CHUNKS:
             at = physical(seg, off); memory[at:at + length] = worlds[offset:offset + length]; offset += length
@@ -184,8 +205,9 @@ def native_audit(target, code31, code3c6, image, function, Callee):
         ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
         callee = Callee()
         status = function(ram, SIZE, ctypes.byref(cpu), 1000, ctypes.byref(callee))
-        check(status == 0, f"C status {status} on native case {n} ({case['label']})")
-        lookups += callee.site != 0x06DA
+        check(status == (2 if case["stop"] else 0), f"C status {status} on native case {n} ({case['label']})")
+        stops += bool(case["stop"])
+        lookups += callee.site not in (0, 0x06DA)
         for (name, _), want in zip(Cpu._fields_, struct.unpack_from("<14H", record)):
             check(getattr(cpu, name) == want, f"native case {n} ({case['label']}) {name}: C={getattr(cpu, name):04x}, DOS={want:04x}")
         offset = 28
@@ -199,4 +221,5 @@ def native_audit(target, code31, code3c6, image, function, Callee):
     print(f"DOSBox-X normal-core/386 synthetic cases passed: {len(cases)} ({lookups} reaching RES_00BA_2199); all 14 CPU words, "
           f"{FRAME_SIZE} stack bytes and {world_size} data bytes per case; no mask")
     print(f"native result SHA-256 {digest}; COM segment {segment:04x}; WORLDS.BIN SHA-256 {sha256(bytes(worlds)).hexdigest()[:16]}...")
-    return dict(cases=len(cases), lookups=lookups, result_sha256=digest)
+    print(f"  of which CODE stops at the five far-call sites: {stops}")
+    return dict(cases=len(cases), code_stops=stops, lookups=lookups, result_sha256=digest)
