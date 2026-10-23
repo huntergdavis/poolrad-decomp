@@ -187,7 +187,9 @@ overlay_u3b9_bitmap_set_release_048f_cpu.c,flat,no,no
 overlay_u3b9_entry7_0708.c,flat,no,no
 overlay_u3b9_entry7_0708_cpu.c,flat,no,no
 overlay_u3bd_cell.c,flat,no,no
+overlay_u3bd_cell_057a_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u3bd_dual_wall.c,flat,no,no
+overlay_u3bd_entry1_0155_cpu.c,flat,no,no
 overlay_u3bd_field.c,flat,no,no
 overlay_u3bd_first_call_07e9.c,flat,no,no
 overlay_u3bd_first_wall.c,flat,no,no
@@ -282,6 +284,7 @@ overlay_u68_record_scan.c,flat,no,no
 overlay_u68_roll_gate_0294.c,flat,no,no
 overlay_u68_tile_step_0818.c,flat,no,no
 overlay_u68_up_preflight.c,flat,no,no
+overlay_u68_up_preflight_068d_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u6a_0824_raw_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u6a_link_high_clear_019c.c,flat,no,no
 overlay_u6a_party_after_1601.c,flat,no,no
