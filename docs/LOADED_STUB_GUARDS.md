@@ -40,6 +40,63 @@ U9E's existing synthetic direct-call rebinding profile remains unchanged;
 this change protects its shared U3C2 dependency and makes no loader claim
 for its own rebound calls.
 
+## Closure of the live missing-overlay defect class
+
+> the class that produced 006A_0214's first differing byte at PSP:002E is now guarded, and the guard refuses rather than passes.
+
+The [stub-precondition census](HYBRID_STUB_PRECONDITION_CENSUS.md#result-main-435c6f65)
+found 42 crossing models at main 435c6f65, with 10 missing-runtime-guard defects:
+six declared the loaded-unit precondition without checking it, and four did
+neither. These guards fix that class within the direct and inherited binding
+scope above: absent or malformed required stubs cause refusal before CPU/RAM
+mutation. The owner's count does not move because this is a correctness guard,
+not a new body. The original overlay loader, naturally reached route parity,
+and the U9E sidecars' own synthetic rebound calls remain outside this claim.
+
+## U5E +263D: all 22 atomic refusal cases
+
+On code head 51f7edea (including main 6fac2396), the repeated +263D audit passed
+307 original-chain CPU14/full-1-MiB comparisons, with the existing declared AF
+split in one case; 506 standalone predicate cases; and the following 22 atomic
+host refusals. Caller instruction coverage was 41/41; standalone predicate
+coverage was 410/410. The AF-split case ends after a non-zero shift: pinned C
+AF=1 and Unicorn AF=0; all other compared flag bits match.
+
+These are the exact labels constructed by
+[verify_refusals](../tools/overlay/loaded_stub_checks.py), using the default
+[+263D fixture and install functions](../tools/overlay/u5e_direction_263d_audit.py).
+Each row starts with a fresh valid fixture and applies only the named mutation.
+The fixture has caller CS=3000, U3C6 slots CS=4000, and U3C2 predicate CS=5000.
+Stub labels contain the five-digit physical address, not a segment.
+Every row returned ARGUMENT (1), preserved all 14 CPU words, and preserved all
+1 MiB of RAM relative to that row's deliberately altered input. These refusal
+checks are host tests, not original-DOS executions or new native evidence.
+
+| Exact case name | Binding and refused precondition |
+| --- | --- |
+| `call-3000:2649-opcode` | Call to U3C6 stub 03E0:005C -> +0BE7: opcode 9A changed to 90; required LCALL absent. |
+| `call-3000:2649-offset` | Call to U3C6 stub 03E0:005C -> +0BE7: slot offset 005C changed to 005D; required stub slot mismatched. |
+| `call-3000:2657-opcode` | Call to U3C6 stub 03E0:0061 -> +0C0F: opcode 9A changed to 90; required LCALL absent. |
+| `call-3000:2657-offset` | Call to U3C6 stub 03E0:0061 -> +0C0F: slot offset 0061 changed to 0060; required stub slot mismatched. |
+| `call-3000:2665-opcode` | Call to U3C6 stub 03E0:005C -> +0BE7: opcode 9A changed to 90; required LCALL absent. |
+| `call-3000:2665-offset` | Call to U3C6 stub 03E0:005C -> +0BE7: slot offset 005C changed to 005D; required stub slot mismatched. |
+| `call-3000:2673-opcode` | Call to U3C6 stub 03E0:0061 -> +0C0F: opcode 9A changed to 90; required LCALL absent. |
+| `call-3000:2673-offset` | Call to U3C6 stub 03E0:0061 -> +0C0F: slot offset 0061 changed to 0060; required stub slot mismatched. |
+| `call-3000:2693-opcode` | Call to U3C2 stub 03DB:0034 -> +057B: opcode 9A changed to 90; required LCALL absent. |
+| `call-3000:2693-offset` | Call to U3C2 stub 03DB:0034 -> +057B: slot offset 0034 changed to 0035; required stub slot mismatched. |
+| `stub-03DE4-unit-absent` | U3C2 stub 03DB:0034: first bytes changed to CD 3F (INT 3Fh); unit absent/cold trap, not a loaded EA jump. |
+| `stub-03DE4-opcode` | U3C2 stub 03DB:0034: EA changed to 90; required loaded far JMP absent. |
+| `stub-03DE4-entry` | U3C2 stub 03DB:0034: jump entry 057B changed to 057A; required callee entry mismatched. |
+| `stub-03DE4-segment` | U3C2 stub 03DB:0034: jump segment 5000 changed to 5001; target differs from the explicit layout segment. |
+| `stub-03E5C-unit-absent` | U3C6 stub 03E0:005C: first bytes changed to CD 3F (INT 3Fh); unit absent/cold trap, not a loaded EA jump. |
+| `stub-03E5C-opcode` | U3C6 stub 03E0:005C: EA changed to 90; required loaded far JMP absent. |
+| `stub-03E5C-entry` | U3C6 stub 03E0:005C: jump entry 0BE7 changed to 0BE6; required callee entry mismatched. |
+| `stub-03E5C-segment` | U3C6 stub 03E0:005C: jump segment 4000 changed to 4001; target differs from the explicit layout segment. |
+| `stub-03E61-unit-absent` | U3C6 stub 03E0:0061: first bytes changed to CD 3F (INT 3Fh); unit absent/cold trap, not a loaded EA jump. |
+| `stub-03E61-opcode` | U3C6 stub 03E0:0061: EA changed to 90; required loaded far JMP absent. |
+| `stub-03E61-entry` | U3C6 stub 03E0:0061: jump entry 0C0F changed to 0C0E; required callee entry mismatched. |
+| `stub-03E61-segment` | U3C6 stub 03E0:0061: jump segment 4000 changed to 4001; target differs from the explicit layout segment. |
+
 ## Evidence and reuse
 
 The source mappings come from each entry's Loaded-state precondition section
