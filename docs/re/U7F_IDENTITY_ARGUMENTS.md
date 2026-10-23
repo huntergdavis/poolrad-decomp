@@ -31,6 +31,19 @@ mov [bp-2],ax; mov ax,[bp-2]; mov sp,bp; pop bp; retf 4
   The record each caller passes is therefore the character object; `+102h` is read by credited 0BB8 ([NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md)).
 - **Why this is not 1484/1596's refusal:** those transformed pixel values that were never game state. Here the transformed operand is the output of credited code over documented game state, and the result is compared against a documented field of the same record.
 
+**The derivation, link by link** (VP ruling i21629: a derived value is identity evidence only when each link is stated and evidenced):
+
+| # | Link | Evidenced by |
+| ---: | --- | --- |
+| 1 | `0077_1CEE` far-calls `0054` at `+1E3C` through stub `008F:0025` | the fixup-backed site, decoded from GAME.OVR; inside 1CEE's ledger extent; 1CEE is `game_evidenced` |
+| 2 | that caller pushes `[5D94]:[5D92]`, the active-character pointer, as 0054's record argument | the decoded pushes at `+1E28..+1E2C`; the pointer is documented in [GAMEPLAY_PATH.md](GAMEPLAY_PATH.md) |
+| 3 | 0054 passes the same record unchanged to `0000` (`+005A..+0061`, `push [bp+0Eh]; push [bp+0Ch]; call 0000`) | the decoded body of 0054 (above) |
+| 4 | 0000 passes the record to `RES_00BA_13AB` and adds `5DCh` to its result | the decoded body of 0000 (above); 13AB is strict-credited ([U9E_CHARACTER_PAIR_115C_CPU.md](U9E_CHARACTER_PAIR_115C_CPU.md)) |
+| 5 | 13AB computes its result from the character object through `11EA`'s `+10h/+16h` fields | 13AB's and 11EA's credited evidence (115C doc; [NEAR_ONLY_GAME_SEGMENT_IDENTITY.md](NEAR_ONLY_GAME_SEGMENT_IDENTITY.md)) |
+| 6 | the caller compares 0000's return with the character's `+102h` word (`0054+0069..+0071`) | the decoded body of 0054; `+102h` is read by credited 0BB8 |
+
+**Limit:** a derived value is only as good as its weakest link. Here that is link 5: 13AB's result is credited as computed, but its gameplay meaning, like that of the constant 1500 and of `+102h`, is not named.
+
 **Role line:** returns a character-derived threshold, credited 13AB's value over the character record plus 1500, which the 007F callers compare with character `+102h`.
 
 **Limits:**
