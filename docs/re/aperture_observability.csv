@@ -337,6 +337,8 @@ overlay_u7d_update_03a3.c,flat,no,no
 overlay_u7d_update_047a_cpu.c,flat,no,no
 overlay_u7d_zero.c,flat,no,no
 overlay_u7f_0054_cpu.c,bus,yes-with-ega-oracle,yes
+overlay_u7f_0203_cpu.c,bus,yes-with-ega-oracle,no
+overlay_u7f_044c_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_caller_1010.c,flat,no,no
 overlay_u7f_clear_0508.c,flat,no,no
 overlay_u7f_coin_type_0b93_cpu.c,flat,no,no
