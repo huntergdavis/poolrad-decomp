@@ -38,6 +38,9 @@ def source():
     return code, {i.address: i for i in ins}
 
 
+CHECKER_ROWS = ('OVL_03C6_04BE',)
+
+
 def library(directory):
     p = directory/'cell.so'
     subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror',
@@ -131,7 +134,12 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--quick', action='store_true')
     p.add_argument('--output', type=Path)
-    args = p.parse_args()
+    p.add_argument('--compile-only',action='store_true');args=p.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     code, decoded = source()
     visited, edges = set(), set()
     count = wrapped = 0

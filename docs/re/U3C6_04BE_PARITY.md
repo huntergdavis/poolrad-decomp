@@ -160,3 +160,11 @@ native observer approach in u3c6_scan_0cb9_audit.py and
 u3c6_scan_0cb9_native.py (PR #933); shared CPU/RAM helpers from
 u86_procvars_3413_audit.py. Local deja recall timed out; deja-health --repair
 started an index rebuild. No recalled session finding was reused.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: `--compile-only` builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS` is declared. Proven in a worktree WITHOUT `resources/` (what CI has):
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C6_04BE --require-current-main
+```

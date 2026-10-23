@@ -1,138 +1,210 @@
 #!/usr/bin/env python3
-"""Forward flag liveness over ORIGINAL bytes for folded-flags sites (task t44, docs/re/FLAG_FOLDED_SITES.tsv).
+"""Forward flag liveness over ORIGINAL bytes, for folded-flags proofs (task t44, docs/re/FLAG_FOLDED_SITES.tsv).
 
-For each folded instruction, every flag it writes is followed along every successor path of the routine until it is
-  - overwritten by a later writer (pinned DOSBox-X rules, docs/re/FLAG_SEMANTICS_CENSUS.md: logical ops write all six with
-    AF = 0, shifts with a non-zero count write all six with AF = 1, MUL writes CF/OF/ZF/PF and keeps SF/AF, DIV/IDIV write
-    all six, INC/DEC keep CF), or
-  - read by an observer (Jcc/SETcc/LOOPcc, ADC/SBB/RCL/RCR/CMC, PUSHF/LAHF, INT/INTO, DAA/DAS/AAA/AAS), or
-  - exposed at a boundary: a CALL/LCALL (the callee's entry, and the model's stop before or inside that call) or a
-    RET/RETF (the caller sees the returned FLAGS).
-A Jcc read is reported separately: a model that takes that branch from the same condition consumes it without a FLAGS image.
+A model "folds" an instruction's flags when it does not compute them. That is sound only if nothing observes them. For
+each flag the site writes, liveness(...) follows every successor path, PER FLAG BIT, until that flag is
+  - KILLED by a later writer of that bit (pinned DOSBox-X rules, docs/re/FLAG_SEMANTICS_CENSUS.md / flags.cpp):
+      ADD/ADC/SUB/SBB/CMP/NEG, AND/OR/XOR/TEST (AF = 0), DIV/IDIV, a shift by a non-zero count (AF = 1): all six;
+      INC/DEC: all but CF; MUL (MULW/MULB: FillFlagsNoCFOF first): CF/OF/ZF/PF only, SF and AF survive;
+      ROL/ROR: CF/OF; RCL/RCR: CF/OF (they also READ CF); CLC/STC/CMC: CF (CMC reads it); SAHF: SZAPC; POPF: all;
+    a shift or rotate by CL with an unknown count kills nothing (a zero count writes no flag);
+  - OBSERVED: by a reader (Jcc/LOOPcc: their condition bits; ADC/SBB/RCL/RCR/CMC: CF; PUSHF/INT/INTO/INT3: all;
+    LAHF: SZAPC; DAA/DAS: CF/AF; AAA/AAS: AF), at a CALL/LCALL (the callee's entry and the model's stop around it),
+    at a RET/RETF/IRET (the caller sees the stored FLAGS), when control leaves the span, or at a caller-given HOST STOP:
+    an address where the model can stop BEFORE executing that instruction (checked before the instruction's own effect).
+Any instruction whose flag effect is not listed above raises NotImplementedError (fail closed).
 
-python3 tools/overlay/flag_fold_liveness.py [--json]   (needs the owner START.EXE and GAME.OVR under resources/)"""
-import json, sys
+Library: decode(code, base) -> instructions; liveness(instructions, site, stops=()) -> per-flag result.
+CLI:  flag_fold_liveness.py (--unit 0x31 | --segment 0x00BA) --span 0255:02EB --site 0258 [--site ...] [--stop 117F ...] [--json]
+      flag_fold_liveness.py --preset u31        (the t44 slice-2 table, docs/re/FLAG_FOLDED_U31_0255_0675.md)
+Needs the owner START.EXE / GAME.OVR under resources/ for the CLI; the library takes any bytes."""
+import argparse, json, sys
 from pathlib import Path
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from overlay_inventory import find_units, parse_mz
-from resident_loader_map import unpack
 
-ROOT = Path(__file__).resolve().parents[2]
-ALL = frozenset('CPAZSO')
+FLAGS = 'CPAZSO'
+ALL = frozenset(FLAGS)
 JCC = {'je': 'Z', 'jne': 'Z', 'jb': 'C', 'jae': 'C', 'jbe': 'CZ', 'ja': 'CZ', 'jl': 'SO', 'jge': 'SO', 'jle': 'ZSO', 'jg': 'ZSO',
-       'js': 'S', 'jns': 'S', 'jp': 'P', 'jnp': 'P', 'jo': 'O', 'jno': 'O'}
-READERS = {'adc': 'C', 'sbb': 'C', 'rcl': 'C', 'rcr': 'C', 'cmc': 'C', 'salc': 'C', 'pushf': ALL, 'lahf': 'SZAPC', 'int': ALL,
-           'into': ALL, 'int3': ALL, 'daa': 'CA', 'das': 'CA', 'aaa': 'A', 'aas': 'A', 'loope': 'Z', 'loopne': 'Z'}
-QUIET = {'mov', 'push', 'pop', 'les', 'lds', 'lea', 'xchg', 'cdq', 'cwde', 'cwd', 'cbw', 'nop', 'jmp', 'loop', 'jcxz',
-         'cld', 'std', 'cli', 'sti', 'movsb', 'movsw', 'stosb', 'stosw', 'lodsb', 'lodsw', 'rep movsb', 'rep movsw',
-         'rep stosb', 'rep stosw'}
+       'js': 'S', 'jns': 'S', 'jp': 'P', 'jnp': 'P', 'jo': 'O', 'jno': 'O', 'loope': 'Z', 'loopne': 'Z'}
+UNCONDITIONAL = {'jmp'}
+READS = {'adc': 'C', 'sbb': 'C', 'rcl': 'C', 'rcr': 'C', 'cmc': 'C', 'salc': 'C', 'pushf': FLAGS, 'lahf': 'SZAPC',
+         'int': FLAGS, 'into': FLAGS, 'int3': FLAGS, 'daa': 'CA', 'das': 'CA', 'aaa': 'A', 'aas': 'A'}
+BOUNDARY = {'call', 'lcall', 'ret', 'retf', 'iret'}
+QUIET = {'mov', 'movzx', 'movsx', 'push', 'pop', 'les', 'lds', 'lea', 'xchg', 'cdq', 'cwde', 'cwd', 'cbw', 'nop', 'not',
+         'cld', 'std', 'cli', 'sti', 'loop', 'jcxz', 'xlatb', 'in', 'out', 'hlt',
+         'movsb', 'movsw', 'stosb', 'stosw', 'lodsb', 'lodsw'}
+FULL = {'add', 'adc', 'sub', 'sbb', 'cmp', 'neg', 'and', 'or', 'xor', 'test', 'div', 'idiv', 'popf'}
+SHIFTS = {'shl', 'sal', 'shr', 'sar'}
+ROTATES = {'rol', 'ror', 'rcl', 'rcr'}
 
 
-def writes(i, previous):
-    """The set of flags instruction i writes (pinned), or None when it writes none."""
+def decode(code, base):
+    return list(Cs(CS_ARCH_X86, CS_MODE_16).disasm(bytes(code), base))
+
+
+def _count(i, previous):
+    """The shift/rotate count when it is known and non-zero, else None."""
+    ops = i.op_str.split(', ')
+    if len(ops) == 1:
+        return 1
+    c = ops[1]
+    if c == 'cl':
+        if previous is not None and previous.mnemonic == 'mov' and previous.op_str.startswith('cl, '):
+            n = int(previous.op_str.split(', ')[1], 0) & 0x1F
+            return n or None
+        return None
+    n = int(c, 0) & 0x1F
+    return n or None
+
+
+def writes(i, previous=None):
+    """Flags instruction i writes under the pinned rules (frozenset, possibly empty)."""
     mn = i.mnemonic
-    if mn in ('add', 'sub', 'cmp', 'adc', 'sbb', 'neg', 'and', 'or', 'xor', 'test', 'div', 'idiv'):
+    if mn.startswith('rep'):
+        return frozenset()
+    if mn in FULL:
         return ALL
     if mn in ('inc', 'dec'):
         return frozenset('PAZSO')
     if mn == 'mul':
         return frozenset('COZP')
-    if mn in ('shl', 'shr', 'sar', 'sal'):
-        ops = i.op_str.split(', ')
-        if len(ops) == 1 or ops[1] == '1' or (ops[1].startswith('0x') and int(ops[1], 16) & 0x1F) or ops[1].isdigit() and int(ops[1]) & 0x1F:
-            return ALL
-        if ops[1] == 'cl' and previous is not None and previous.mnemonic == 'mov' and previous.op_str.startswith('cl, ') \
-                and int(previous.op_str.split(', ')[1], 0) & 0x1F:
-            return ALL                                       # MOV CL,n (n & 1Fh non-zero) just before
-        return None                                          # a count that may be zero writes nothing
-    if mn in QUIET or mn in JCC or mn in READERS or mn in ('call', 'lcall', 'ret', 'retf'):
-        return None
-    raise NotImplementedError(f'{i.address:04X} {mn} {i.op_str}')
+    if mn in SHIFTS:
+        return ALL if _count(i, previous) else frozenset()
+    if mn in ROTATES:
+        return frozenset('CO') if _count(i, previous) else frozenset()
+    if mn in ('clc', 'stc', 'cmc'):
+        return frozenset('C')
+    if mn == 'sahf':
+        return frozenset('SZAPC')
+    if mn in QUIET or mn in JCC or mn in UNCONDITIONAL or mn in READS or mn in BOUNDARY:
+        return frozenset()
+    raise NotImplementedError(f'no pinned flag rule for {i.address:04X} {mn} {i.op_str}')
 
 
-def walk(ins, start, live):
-    """Follow `live` flags from the instruction after `start`. Returns (overwritten_at, observers, boundaries, jcc_reads)."""
-    by = {i.address: i for i in ins}; order = [i.address for i in ins]
-    prev = {order[k]: by[order[k - 1]] if k else None for k in range(len(order))}
-    nxt = {i.address: i.address + i.size for i in ins}
-    seen, work = set(), [(nxt[start], frozenset(live))]
-    overwritten, observers, boundaries, jcc = set(), set(), set(), set()
-    while work:
-        a, fl = work.pop()
-        if not fl or (a, fl) in seen:
-            continue
-        seen.add((a, fl))
-        i = by.get(a)
-        if i is None:
-            boundaries.add(f'leaves span at {a:04X} with {"".join(sorted(fl))}'); continue
-        mn = i.mnemonic
-        if mn in JCC and set(JCC[mn]) & fl:
-            jcc.add(f'{mn}@{a:04X} reads {"".join(sorted(set(JCC[mn]) & fl))}')
-        if mn in READERS and set(READERS[mn]) & fl:
-            observers.add(f'{mn}@{a:04X} reads {"".join(sorted(set(READERS[mn]) & fl))}')
-        if mn in ('call', 'lcall', 'ret', 'retf'):
-            boundaries.add(f'{mn}@{a:04X} with {"".join(sorted(fl))} live'); continue
-        w = writes(i, prev[a])
-        if w:
-            hit = fl & w
-            if hit:
-                overwritten.add(f'{mn}@{a:04X}')
-            fl = fl - w
-        if mn == 'jmp':
-            work.append((int(i.op_str, 16), fl))
-        elif mn in JCC:
-            work += [(int(i.op_str, 16), fl), (nxt[a], fl)]
-        else:
-            work.append((nxt[a], fl))
-    return sorted(overwritten), sorted(observers), sorted(boundaries), sorted(jcc)
+def reads(i):
+    mn = i.mnemonic
+    if mn in JCC:
+        return frozenset(JCC[mn])
+    return frozenset(READS.get(mn, ''))
 
 
-def sources():
+def liveness(instructions, site, stops=()):
+    """Follow every flag `site` writes. Returns {flag: {'killed': [...], 'observed': [...]}} plus 'verdict'.
+
+    'observed' entries are 'jcc:<mn>@<addr>' (a conditional branch reading it), 'read:<mn>@<addr>', 'call:@<addr>',
+    'return:@<addr>', 'stop:@<addr>' (a host stop before that instruction) or 'leaves@<addr>'. Verdict: DEAD when no flag
+    is observed anywhere, BRANCH when the only observers are conditional branches (a model that takes the branch from the
+    same condition consumes them without a FLAGS image), else EXPOSED."""
+    by = {i.address: i for i in instructions}
+    order = [i.address for i in instructions]
+    prev = {a: (by[order[k - 1]] if k else None) for k, a in enumerate(order)}
+    nxt = {i.address: i.address + i.size for i in instructions}
+    stops = set(stops)
+    start = by[site]
+    result = {}
+    for flag in sorted(writes(start, prev[site])):
+        killed, observed, seen, work = set(), set(), set(), [nxt[site]]
+        while work:
+            a = work.pop()
+            if a in seen:
+                continue
+            seen.add(a)
+            i = by.get(a)
+            if i is None:
+                observed.add(f'leaves@{a:04X}'); continue
+            if a in stops:
+                observed.add(f'stop:@{a:04X}'); continue
+            mn = i.mnemonic
+            if flag in reads(i):
+                observed.add(f'{"jcc" if mn in JCC else "read"}:{mn}@{a:04X}')
+            if mn in BOUNDARY:
+                observed.add(f'{"return" if mn.startswith("ret") or mn == "iret" else "call"}:@{a:04X}'); continue
+            if flag in writes(i, prev[a]):
+                killed.add(f'{mn}@{a:04X}'); continue
+            if mn in UNCONDITIONAL:
+                work.append(int(i.op_str, 16))
+            elif mn in JCC:
+                work += [int(i.op_str, 16), nxt[a]]
+            else:
+                work.append(nxt[a])
+        result[flag] = dict(killed=sorted(killed), observed=sorted(observed))
+    kinds = {o.split(':')[0] for r in result.values() for o in r['observed']}
+    result_verdict = 'DEAD' if not kinds else 'BRANCH' if kinds == {'jcc'} else 'EXPOSED'
+    return dict(site=f'{site:04X}', instruction=f'{start.mnemonic} {start.op_str}', flags=result, verdict=result_verdict)
+
+
+# ---- media loading (CLI only) ------------------------------------------------------------------------------------------
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def unit_code(unit):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from overlay_inventory import find_units, parse_mz
     exe = (ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes(); ovr = (ROOT / 'resources/DOS/POOLRAD/GAME.OVR').read_bytes()
-    u = {u['stub_para']: u for u in find_units(exe[parse_mz(exe)['header_bytes']:], ovr)}[0x31]
-    u31 = ovr[u['ovr_offset']:u['ovr_offset'] + u['code_size']]
-    image = bytes(unpack(exe)[0])
-    md = Cs(CS_ARCH_X86, CS_MODE_16)
-    return {'u31 +0255': list(md.disasm(u31[0x0255:0x02EB], 0x0255)), 'u31 +0675': list(md.disasm(u31[0x0675:0x07D6], 0x0675)),
-            '00BA:23B7': list(md.disasm(image[0xBA * 16 + 0x23B7:0xBA * 16 + 0x23DB], 0x23B7))}
+    u = {u['stub_para']: u for u in find_units(exe[parse_mz(exe)['header_bytes']:], ovr)}[unit]
+    return ovr[u['ovr_offset']:u['ovr_offset'] + u['code_size']]
 
 
-# (body, TSV file:line, folded instruction addresses)
-SITES = [
-    ('00BA:23B7', 'overlay_u31_candidate_check_0255_cpu.c:196', [0x23BA]),
-    ('u31 +0255', 'overlay_u31_candidate_check_0255_cpu.c:230', [0x0258]),
-    ('u31 +0255', 'overlay_u31_candidate_check_0255_cpu.c:239', [0x026A, 0x0270]),
-    ('u31 +0255', 'overlay_u31_candidate_check_0255_cpu.c:266', [0x02B3, 0x02B9, 0x02BB]),
-    ('u31 +0255', 'overlay_u31_candidate_check_0255_cpu.c:269', [0x02C1, 0x02C5, 0x02C7]),
-    ('u31 +0255', 'overlay_u31_candidate_check_0255_cpu.c:273', [0x02D2]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:82', [0x0689, 0x0699, 0x06B1, 0x06B8, 0x06FB, 0x072A, 0x0736, 0x073D, 0x07B2]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:185', [0x0678]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:193', [0x069F, 0x06A1, 0x06A3, 0x06A5]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:211', [0x06C0]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:302', [0x075D, 0x0774, 0x078B, 0x07A2]),
-    ('u31 +0675', 'overlay_u31_step_gate_0675.c:308', [0x07B4]),
-    ('u31 +0675', '(header: SHR, MUL)', [0x071F, 0x073F]),
-]
+def segment_code(segment):
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from resident_loader_map import unpack
+    image = bytes(unpack((ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes())[0])
+    return image[segment * 16:segment * 16 + 0x10000]
+
+
+def span_instructions(source, kind, lo, hi):
+    code = unit_code(source) if kind == 'unit' else segment_code(source)
+    return decode(code[lo:hi], lo)
+
+
+# The t44 slice-2 rows: (unit or segment, span, TSV row, folded instruction addresses).
+PRESETS = {'u31': [
+    (('segment', 0x00BA), (0x23B7, 0x23DB), 'overlay_u31_candidate_check_0255_cpu.c:196', [0x23BA]),
+    (('unit', 0x31), (0x0255, 0x02EB), 'overlay_u31_candidate_check_0255_cpu.c:230', [0x0258]),
+    (('unit', 0x31), (0x0255, 0x02EB), 'overlay_u31_candidate_check_0255_cpu.c:239', [0x026A, 0x0270]),
+    (('unit', 0x31), (0x0255, 0x02EB), 'overlay_u31_candidate_check_0255_cpu.c:266', [0x02B3, 0x02B9, 0x02BB]),
+    (('unit', 0x31), (0x0255, 0x02EB), 'overlay_u31_candidate_check_0255_cpu.c:269', [0x02C1, 0x02C5, 0x02C7]),
+    (('unit', 0x31), (0x0255, 0x02EB), 'overlay_u31_candidate_check_0255_cpu.c:273', [0x02D2]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:82', [0x0689, 0x0699, 0x06B1, 0x06B8, 0x06FB, 0x072A, 0x0736, 0x073D, 0x07B2]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:185', [0x0678]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:193', [0x069F, 0x06A1, 0x06A3, 0x06A5]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:211', [0x06C0]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:302', [0x075D, 0x0774, 0x078B, 0x07A2]),
+    (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:308', [0x07B4]),
+    (('unit', 0x31), (0x0675, 0x07D6), '(header: SHR, MUL)', [0x071F, 0x073F]),
+]}
+
+
+def show(rows, as_json):
+    if as_json:
+        print(json.dumps(rows, indent=1)); return
+    for r in rows:
+        killers = sorted({k for f in r['flags'].values() for k in f['killed']})
+        observers = sorted({o for f in r['flags'].values() for o in f['observed']})
+        live = ''.join(f for f in FLAGS if r['flags'].get(f, {}).get('observed'))
+        print(f"{r.get('row', ''):44} {r['site']} {r['instruction']:24} {r['verdict']:8} observed-flags={live or '-'} "
+              f"killed-by={','.join(killers) or '-'} observers={';'.join(observers) or '-'}")
 
 
 def main():
-    bodies = sources(); rows = []
-    for body, where, addrs in SITES:
-        ins = bodies[body]; by = {i.address: i for i in ins}
-        order = [i.address for i in ins]
-        for a in addrs:
-            i = by[a]; k = order.index(a)
-            w = writes(i, by[order[k - 1]] if k else None)
-            ow, obs, bnd, jcc = walk(ins, a, w)
-            rows.append(dict(body=body, tsv=where, site=f'{a:04X}', instruction=f'{i.mnemonic} {i.op_str}', folded=''.join(sorted(w)),
-                             overwritten_by=ow, observers=obs, boundaries=bnd, jcc_reads=jcc,
-                             verdict='DEAD' if not obs and not bnd else 'EXPOSED'))
-    if '--json' in sys.argv:
-        print(json.dumps(rows, indent=1)); return
-    for r in rows:
-        print(f"{r['body']:10} {r['site']} {r['instruction']:24} {r['folded']:6} {r['verdict']:8} over={','.join(r['overwritten_by'])} "
-              f"jcc={';'.join(r['jcc_reads'])} obs={';'.join(r['observers'])} bnd={';'.join(r['boundaries'])}  [{r['tsv']}]")
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    g = p.add_mutually_exclusive_group(required=True)
+    g.add_argument('--unit', type=lambda s: int(s, 16)); g.add_argument('--segment', type=lambda s: int(s, 16))
+    g.add_argument('--preset', choices=sorted(PRESETS))
+    p.add_argument('--span'); p.add_argument('--site', action='append', default=[]); p.add_argument('--stop', action='append', default=[])
+    p.add_argument('--json', action='store_true')
+    a = p.parse_args()
+    rows = []
+    if a.preset:
+        for (kind, source), (lo, hi), row, sites in PRESETS[a.preset]:
+            ins = span_instructions(source, kind, lo, hi)
+            rows += [dict(row=row, **liveness(ins, s)) for s in sites]
+    else:
+        lo, hi = (int(x, 16) for x in a.span.split(':'))
+        ins = span_instructions(a.unit if a.unit is not None else a.segment, 'unit' if a.unit is not None else 'segment', lo, hi)
+        stops = [int(s, 16) for s in a.stop]
+        rows = [liveness(ins, int(s, 16), stops) for s in a.site]
+    show(rows, a.json)
 
 
 if __name__ == '__main__':

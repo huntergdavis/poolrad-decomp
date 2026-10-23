@@ -6,7 +6,7 @@ the ORIGINAL bytes: GAME.OVR unit `31h`, and START.EXE `00BA:23B7` for the resid
 
 ## Method
 
-`tools/overlay/flag_fold_liveness.py` regenerates the table from the bytes. For every flag a folded instruction writes,
+`tools/overlay/flag_fold_liveness.py --preset u31` (#1451) regenerates the table from the bytes. For every flag a folded instruction writes,
 it walks every successor path of the routine until one of three things happens:
 
 - **Overwritten.** A later instruction writes the flag. The pinned DOSBox-X rules from

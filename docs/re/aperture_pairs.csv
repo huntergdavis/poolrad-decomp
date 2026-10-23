@@ -4,6 +4,13 @@ overlay_u1c_text_2e7d_cpu.c,pr_system_fillchar_16a8,yes,global,header,can-reach-
 overlay_u1c_text_2e7d_cpu.c,pr_u25_load_operands_0000,yes,global,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u1c_text_2e7d_cpu.c,pr_u25_load_word_0e0c,yes,global,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u1c_text_2e7d_cpu.c,pr_u25_word_06af,no,-,-,no-pointer,yes
+overlay_u25_entry4_0341_cpu.c,pr_r0802_0716_composed,no,-,-,no-pointer,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_fillchar_16a8,yes,global,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_freemem_0254,yes,global+local+code-literal,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_move_1685,yes,global,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_str_1366,yes,local,read,unreachable-by-construction,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_strcat_0b98,yes,local,read,unreachable-by-construction,yes
+overlay_u25_entry4_0341_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 overlay_u25_entry5_0411_cpu.c,pr_system_getmem_023f,yes,callee-returned+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 overlay_u38_message_3134_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 overlay_u3b0_entry_01da_cpu.c,pr_system_set_in_0dc0,yes,code-literal,read,unreachable-by-construction,yes
@@ -18,6 +25,12 @@ overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_entry1_0000,yes,caller-argument+local,head
 overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_lead_spaces_08d7_cpu,yes,local,header,unreachable-by-construction,yes
 overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_trail_spaces_0923_cpu,yes,local,header,unreachable-by-construction,yes
 overlay_u3b0_entry_0c33_cpu.c,pr_u3b0_step_scan_0b03_cpu,yes,caller-argument+global,header,can-reach-under-a-corrupt-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_r0464_restore_mode_00ff_cpu,no,-,-,no-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_r0899_quit_0000_cpu,no,-,-,no-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_system_move_1685,yes,global+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_system_write_str_0919,yes,global+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u40c_tile_015d_cpu.c,pr_system_writeln_084a,no,-,-,no-pointer,yes
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0802_0716_composed,no,-,-,no-pointer,yes
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0899_idle_0104_cpu,no,-,-,no-pointer,yes
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0899_quit_0000_cpu,no,-,-,no-pointer,yes
@@ -32,8 +45,12 @@ overlay_u77_party_0901_cpu.c,pr_res_00ba_1037_cpu,yes,local+code-literal+caller-
 overlay_u77_party_0901_cpu.c,pr_system_strcat_0b98,yes,local+code-literal+caller-argument,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u77_party_0901_cpu.c,pr_system_strload_0b0b,yes,local+code-literal+caller-argument,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u77_party_0901_cpu.c,pr_system_strstore_0b25,yes,local+code-literal+caller-argument,header,can-reach-under-a-corrupt-pointer,yes
+overlay_u77_split_17ed_cpu.c,pr_system_getmem_023f,yes,caller-argument+callee-returned,header,can-reach-under-a-corrupt-pointer,yes
+overlay_u77_split_17ed_cpu.c,pr_system_move_1685,yes,caller-argument+callee-returned,header,can-reach-under-a-corrupt-pointer,yes
+overlay_u77_split_17ed_cpu.c,pr_system_strload_0b0b,yes,code-literal,header,unreachable-by-construction,yes
 overlay_u7d_entry_05f0_cpu.c,pr_system_strload_0b0b,yes,code-literal,header,unreachable-by-construction,yes
 overlay_u7d_entry_05f0_cpu.c,pr_u7d_two_digits_0565_cpu,no,-,-,no-pointer,yes
+overlay_u7f_0054_cpu.c,pr_u7f_entry0_0000_cpu,no,-,-,no-pointer,yes
 overlay_u7f_number_0294_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,no
 overlay_u7f_number_0294_cpu.c,pr_system_charstr_0c3b,yes,local,read,unreachable-by-construction,no
 overlay_u7f_number_0294_cpu.c,pr_system_str_1366,yes,local,read,unreachable-by-construction,no
@@ -46,6 +63,7 @@ resident_00ba_display_1693_cpu.c,pr_r0709_delay_wrapper_0dbe_cpu,no,-,-,no-point
 resident_00ba_display_1693_cpu.c,pr_system_strstore_0b25,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_00ba_display_1816_cpu.c,pr_system_strload_0b0b,yes,code-literal,header,unreachable-by-construction,yes
 resident_0464_blit_1951_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
+resident_0464_compose_08d4_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_0709_glyph_01df_cpu.c,pr_system_upcase_182a,no,-,-,no-pointer,yes
 resident_0709_msgbox_0bf5_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,yes
 resident_0709_msgbox_0bf5_cpu.c,pr_system_strstore_0b25,yes,caller-argument,header,can-reach-under-a-corrupt-pointer,yes
