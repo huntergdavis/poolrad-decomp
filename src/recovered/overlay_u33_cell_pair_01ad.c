@@ -137,8 +137,8 @@ pr_u33_01ad_status pr_u33_cell_pair_01ad(
     cpu->bp = cpu->sp;
     cpu->sp = (uint16_t)(cpu->sp - 4u);
     /* +01B3..+01C2: (facing + 4) divided by 8, remainder into [BP-4]. The
-     * XOR and ADD flags are overwritten inside the first call; IDIV leaves
-     * the flags alone in both tested engines. */
+     * XOR and ADD flags (folded) are overwritten by the IDIV at +01BF, whose
+     * pinned flags are written below (docs/re/FLAG_FOLDED_SLICE6.md). */
     set_al(cpu, arg(ram, cpu, 0x06u));
     cpu->ax &= 0x00FFu;
     cpu->ax = (uint16_t)(cpu->ax + 4u);
