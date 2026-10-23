@@ -28,8 +28,35 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_pinned_shift_flags.py'
       - name: Test candidate pricer input handling
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
+      - name: Base is current (stale-base precondition, separate from build failures)
+        run: |
+          # This step exists so the check list distinguishes "your branch is behind main"
+          # from "a registered checker does not build". They look identical in a failing
+          # checker-builds job otherwise, and that cost several misdiagnoses.
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "base: HEAD includes origin/main ($(git rev-parse --short origin/main))" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Stale base, not a build failure"
+              echo ""
+              echo "HEAD does not include \`origin/main\` ($(git rev-parse --short origin/main))."
+              echo "No checker was compiled. Merge or rebase main into the branch and re-run."
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Compile, load and bind registered row checkers without media
-        run: python3 tools/overlay/check_checker_builds.py --all
+        run: |
+          set -o pipefail
+          if ! python3 tools/overlay/check_checker_builds.py --all 2>&1 | tee /tmp/checker-builds.log; then
+            {
+              echo "### A registered checker does not build"
+              echo ""
+              echo '```'
+              grep -m1 -E 'HANDOFF BLOCKED|error|Traceback' /tmp/checker-builds.log || echo "no first-line message captured"
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Undefined-name gate tests (a hook reading an unbound name fails; bound names pass)
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_checker_names.py'
       - name: Every global name a registered checker reads is bound (compiling is not running)
