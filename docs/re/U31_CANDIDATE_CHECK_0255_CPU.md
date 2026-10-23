@@ -264,3 +264,16 @@ python3 tools/overlay/check_checker_builds.py OVL_0031_0255 --require-current-ma
 ```
 
 Updated refusal/parity validation: [guard work report](../LOADED_STUB_GUARDS.md); measurements pending.
+
+## Evidence note (2026-10-23): the 23B7 carve-out, no claim moves
+
+The resident zero test `00BA:23B7` was translated inline in this model, with `SUB SP,2`'s flags folded. **It is now
+the shared raw entry `pr_res_00ba_zero_test_23b7_cpu`** ([RES_00BA_23B7_CPU.md](RES_00BA_23B7_CPU.md); PM i22084),
+which computes the full pinned flags at its RETF, and `resident_call` calls it.
+
+The behaviour at `+0255`'s own boundaries is unchanged. **Re-run on the changed source:**
+- the C test passes 158 checks (asserts on);
+- `u31_candidate_check_0255_cpu_audit.py --unicorn` gives **174/174** equal (166 return, 4 CODE, 3 CALLEE, 1 TRANSFER),
+  with the full 1 MiB and all 14 CPU words, 58/58 starts and 6/6 outcomes, and 286 23B7 fetches.
+
+The audit's source list now includes `resident_00ba_zero_test_23b7_cpu.c`. **The credit is unchanged.**

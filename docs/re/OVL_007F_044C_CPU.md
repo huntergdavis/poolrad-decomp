@@ -165,3 +165,17 @@ The host's **packaged `/usr/bin/dosbox-x` 2026.01.02** (SHA-256 `99d7460153175d1
     ctest --test-dir resources/build7f044c -R '^poolrad_overlay_u7f_044c_cpu_tests$' --output-on-failure
 
 Use the audit Python environment (Capstone, Unicorn). Original bytes, generated assembly/COM and capture receipts stay under ignored `resources/`. The Unicorn run took 588 s.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e on main `6fac2396` (2026-10-23), through `poolrad-heavy.sh`, with
+`--unicorn --native --mutate`. Unicorn: 880 cases, 71/71 body starts, 1,117 closure starts; 614 returned / 259 LIMIT / 4 TRANSFER; MULW split at 2 states; all 1,048,576 RAM bytes and 14 CPU words, flag masks 0. Mutation: 19/20 caught, 1 proven equivalent ('SHL leaves OF clear').
+Native: 39 cases. Body 188 B, SHA-256 `1f9525dc814d360d5e1938b7d7fcaf1782ad65128922575603d402f4cad70a06`, from GAME.OVR.
+
+Identity: par-a's two-factor argument in [U7F_IDENTITY_ARGUMENTS.md](U7F_IDENTITY_ARGUMENTS.md) (at `7806e3a8`). I re-derived
+every factor-1 site from the media: each near site decodes as `0E E8` at an instruction boundary inside a `game_evidenced`
+caller, and each far site is a fixup-backed `LCALL 008F:slot` that resolves to this entry.
+
+**Reviewer-added limit (native oracle):** the native run used /usr/bin/dosbox-x 2026.01.02 (SHA-256 99d74601...), not the pinned 5a9c7c53 build. Native agreement is claimed for that binary only.
+The primary evidence is the full-1 MiB Unicorn differential.

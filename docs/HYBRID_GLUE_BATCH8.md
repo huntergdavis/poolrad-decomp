@@ -112,3 +112,16 @@ classification now also greps IP values in header comments.
 
 This PR also carries the batch-8 doc fix that missed #1488 (the delay wording and the pre-#1445 note). **It replaces
 commit `355cffff`**, which was pushed to #1488's branch after that PR had merged.
+
+## Batch 8c: `RES_00BA_2E03` through its new raw model (#1494)
+
+`RES_00BA_2E03` is glued through `pr_res_00ba_link_check_2e03_cpu` (raw, RETF 4). Build `607a7061`.
+
+- **Route-3 V1, `hybrid-b8d-v1-r3-a`:** driver_rc 0, non-equal 0, stub declines 0. `RES_00BA_2E03` 168 / 168 equal,
+  with 168 observer arrivals. The route-3 count is now **51**.
+- **Walk regression:**
+  - `hybrid-b8d-v1-walk` (run -a) is **discarded**. A random encounter fired on the 14,4 step: an RNG divergence, not a
+    model divergence, with 0 non-equal. It is an ENVIRONMENT DIVERGENCE, named and excluded.
+  - `hybrid-b8d-v1-walk-b`: **0 px, no encounter on the 14,4 step**, 0 non-equal.
+- **The walk pixel bar was RNG-exposed** (the 14,4 step draws once), until the seed pin of
+  [re/RANDOM_GENERATOR.md](re/RANDOM_GENERATOR.md) stage 2, which this same change adds. Pinned walks reproduce at 0 px.

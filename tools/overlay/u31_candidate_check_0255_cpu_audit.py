@@ -97,7 +97,8 @@ def library(directory):
     path = directory / "u310255.so"
     sources = ["overlay_u31_candidate_check_0255_cpu.c", "overlay_u3c2_caller_0909.c", "overlay_u3c6_table_pair_0000.c",
                "overlay_u3c2_record_sort_002e_cpu.c", "system_runtime_leaves_cpu.c", "overlay_u3c2_entry4_057b.c", "overlay_u3c2_entry5_0422.c",
-               "overlay_u3c2_line_init_01a0.c", "overlay_u3c2_sign_entry1_0000.c", "overlay_u3c2_entry3_02cc.c"]
+               "overlay_u3c2_line_init_01a0.c", "overlay_u3c2_sign_entry1_0000.c", "overlay_u3c2_entry3_02cc.c",
+               "resident_00ba_zero_test_23b7_cpu.c"]
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-O2", "-fPIC", "-shared", "-I", str(ROOT / "include"),
                     *[str(ROOT / "src/recovered" / s) for s in sources], "-o", str(path)], check=True, capture_output=True, text=True)
     function = ctypes.CDLL(str(path)).pr_u31_candidate_check_0255_cpu
