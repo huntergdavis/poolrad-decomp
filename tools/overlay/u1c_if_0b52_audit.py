@@ -38,6 +38,8 @@ def source_audit(exe_path, ovr_path):
     print(f"u1c:0B52 bytes={len(data)} instructions={len(ins)} SHA256={digest}")
     return bodies, decoded
 
+CHECKER_ROWS = ('OVL_001C_0B52',)
+
 def build(root, directory):
     output = directory / "u1c-if.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
@@ -67,8 +69,7 @@ def fixture(opcode, flag, next_opcode, operands, *, pc=0x9900, **kwargs):
     memory[physical(cpu.ds, 0x6F7F)] = opcode
     return memory, cpu, (u25_cs, system_cs, base + 0x2B)
 
-def compare(label, fixture, budgets, bodies, decoded, lib, emulator, coverage):
-    memory, cpu, (u25_cs, system_cs, stub_cs) = fixture
+def install(memory, cpu, u25_cs, system_cs, stub_cs, bodies, decoded):
     segments = {"u1c": cpu.cs, "u25": u25_cs, "sys": system_cs}
     for (kind, start), data in bodies.items():
         segment = segments[kind]
@@ -83,6 +84,12 @@ def compare(label, fixture, budgets, bodies, decoded, lib, emulator, coverage):
     stub_address = physical(stub_cs, 0x8E)
     memory[stub_address:stub_address+5] = bytes((0xEA, 0xA6, 0x1E,
                                                 u25_cs & 255, u25_cs >> 8))
+    return segments
+
+def compare(label, fixture, budgets, bodies, decoded, lib, emulator, coverage):
+    memory, cpu, (u25_cs, system_cs, stub_cs) = fixture
+    segments = install(memory, cpu, u25_cs, system_cs, stub_cs, bodies, decoded)
+    stub_address = physical(stub_cs, 0x8E)
     emulator.mem_write(0, bytes(memory))
     for n, r in zip(NAMES, REGS):
         emulator.reg_write(r, getattr(cpu, n))
@@ -225,13 +232,25 @@ def run(bodies, decoded, lib, random_cases):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--exe", type=Path, required=True)
-    parser.add_argument("--ovr", type=Path, required=True)
+    parser.add_argument("--exe", type=Path, default=Path(__file__).resolve().parents[2] / "resources/DOS/POOLRAD/START.EXE")
+    parser.add_argument("--ovr", type=Path, default=Path(__file__).resolve().parents[2] / "resources/DOS/POOLRAD/GAME.OVR")
     parser.add_argument("--random-cases", type=int, default=100)
+    parser.add_argument('--compile-only', action='store_true')
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as directory:
+            build(Path(__file__).resolve().parents[2], Path(directory))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, decoded = source_audit(args.exe, args.ovr)
     with tempfile.TemporaryDirectory(prefix="poolrad-u1c-if-") as directory:
         library = build(Path(__file__).resolve().parents[2], Path(directory))
+        from loaded_stub_checks import verify_refusals
+        memory,cpu,(u25_cs,system_cs,stub_cs)=fixture(0x16,0,4,[])
+        install(memory,cpu,u25_cs,system_cs,stub_cs,bodies,decoded)
+        stub_guards=verify_refusals(memory,cpu,lambda ram,state: library.pr_u1c_if_0b52(ram,RAM_SIZE,ctypes.byref(state),u25_cs,system_cs,1024,512),
+                                    [(cpu.cs,p) for p in (0xB67,0xB79,0xB8B,0xB9D,0xBAF,0xBC1)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         run(bodies, decoded, library, args.random_cases)
 
 

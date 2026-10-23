@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """U9E +02FA grouped sidecar composition with the inherited handler boundary.
 Oracle mechanics reuse the accepted +0160 audit; original media stay private."""
+from loaded_stub_fixtures import loaded_sites
 import argparse,ctypes,json,random,struct,subprocess,tempfile,sys
 from pathlib import Path
 from hashlib import sha256
@@ -48,6 +49,7 @@ def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
     m,c,l=state;segs=segments(c,l);del segs['data'];backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m)
     uc=Uc(UC_ARCH_X86,UC_MODE_16);uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for (n,_),r in zip(Cpu._fields_,REGISTERS):uc.reg_write(r,getattr(c,n))
+    stubs=loaded_sites(m,segs,decoded)
     visited,edges=set(),set();calls=[];remaining=list(budgets)
     s=dict(stop=None,previous=None,last=None,stepping=False,callee=-1,nested=-1)
     def halt(status,nested=None):
@@ -58,6 +60,7 @@ def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
         del em,size,user
         if s['stepping']:return
         cs,ip=uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP)
+        if (cs,ip) in stubs:return
         kind=next((k for k,v in segs.items() if v==cs),None);key=kind,ip
         check(key in decoded,f'original escape {label}: {cs:04x}:{ip:04x}')
         if key==('caller',0x160):
@@ -178,6 +181,12 @@ def main():
     bodies,decoded,meta=source();report=dict(target=meta)
     with tempfile.TemporaryDirectory(prefix='u9e02fa-') as tmp:
         f=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        memory,cpu,layout=build(bodies,decoded)
+        limits=Limits(*DEFAULT);diagnostic=Diagnostic()
+        report['loaded_stub_guards']=verify_refusals(memory,cpu,
+            lambda ram,state: f(ram,SIZE,ctypes.byref(state),ctypes.byref(layout),ctypes.byref(limits),ctypes.byref(diagnostic)),
+            [(layout.chain_cs,p) for p in (0x92A,0x9D8)])
         if a.unicorn:report['unicorn']=differential(bodies,decoded,f,a.quick)
         if a.native:
             from u9e_sidecar_groups_02fa_cpu_native import native

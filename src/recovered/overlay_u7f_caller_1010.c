@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Complete U7F entry 13. See docs/re/U7F_CALLER_1010.md.
  * Memory/arithmetic primitives adapted from accepted U7F +0A01/+0508. */
 #include "poolrad/recovered/overlay_u7f_caller_1010.h"
@@ -122,6 +123,14 @@ pr_u7f_1010_status pr_u7f_caller_1010(
         c->ip!=0x1010u || c->sp<0x0040u || c->sp>0xFFF6u ||
         max_caller_iterations==0u)
         return PR_U7F_1010_ARGUMENT;
+    {
+        static const uint16_t sites[] = {0x10C7u, 0x1596u, 0x1611u, 0x1630u, 0x1649u, 0x1662u, 0x167Eu, 0x1692u, 0x16ABu, 0x170Fu, 0x174Bu, 0x17A1u, 0x17E6u};
+        size_t i;
+        /* Every listed call must resolve through its live loaded 0xEA stub. */
+        for (i = 0; i < sizeof sites / sizeof sites[0]; ++i)
+            if (!pr_overlay_stub_matches(ram, c->cs, sites[i], 0x0048u, 0x0DE3u, dice_cs))
+                return PR_U7F_1010_ARGUMENT;
+    }
     code_segment=c->cs;
     for (;;) {
         if (c->cs!=code_segment) return PR_U7F_1010_TRANSFER;

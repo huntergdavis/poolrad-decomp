@@ -38,6 +38,10 @@ typedef enum {
  * Logical/shift AF is chosen as zero (architecturally undefined). Native
  * saved-route reachability and strict-credit review remain separate.
  */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u5e_263d_status pr_u5e_direction_263d(
     uint8_t *ram, size_t ram_size, pr_u5e_263d_cpu *cpu,
     const pr_u5e_263d_layout *layout, size_t max_iterations);

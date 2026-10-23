@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* GAME.OVR unit 0x31 +0255 (raw CPU, composing U3C2 entry 6 through the loaded stub 03DB:003E and the resident zero
  * test 00BA:23B7); docs/re/U31_CANDIDATE_CHECK_0255_CPU.md. */
 #include "poolrad/recovered/overlay_u31_candidate_check_0255_cpu.h"
@@ -223,6 +224,15 @@ pr_u31_0255_status pr_u31_candidate_check_0255_cpu(uint8_t *ram, size_t ram_size
     if (ram == NULL || cpu == NULL || ram_size != PR_U31_0255_RAM_SIZE || max_caller_iterations == 0u || max_line_iterations == 0u
         || max_sort_loopbacks == 0u || (uint16_t)(cpu->sp - 0x18u) < 0x008Eu || (uint16_t)(cpu->sp - 0x18u) > 0xFFEEu)
         return PR_U31_0255_ARGUMENT;
+    {
+        uint16_t chain_cs;
+        /* Preserve this caller's existing CODE stop for its own malformed binding.
+         * A valid own 0xEA jump must lead to a chain whose dependencies are loaded. */
+        if (pr_overlay_stub_target(ram, cpu->cs, (uint16_t)(cpu->ip + 0x32u),
+                                   STUB_OFFSET, U3C2_ENTRY, &chain_cs) &&
+            !pr_u3c2_0909_stubs_loaded(ram, chain_cs, pair_cs))
+            return PR_U31_0255_ARGUMENT;
+    }
     memset(&m, 0, sizeof m);
     m.ram = ram; m.size = ram_size; m.cpu = cpu; m.entry = cpu->ip; m.pair_cs = pair_cs;
     m.max_caller_iterations = max_caller_iterations; m.max_line_iterations = max_line_iterations;

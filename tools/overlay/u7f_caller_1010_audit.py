@@ -78,7 +78,7 @@ def install(m,c,dice,bodies,decoded):
         blob=bytearray(data)
         for (k,ip),ins in decoded.items():
             if k==kind and start<=ip<start+len(data) and ins.mnemonic=='lcall' and ins.op_str=='0xb0, 0x48':
-                blob[ip-start+1:ip-start+5]=((0x48 if ip==0xFDE else 0xDE3).to_bytes(2,'little')+((dice+0x100) if ip==0xFDE else dice).to_bytes(2,'little'))
+                blob[ip-start+1:ip-start+5]=(0x48).to_bytes(2,'little')+((dice+0x100)&65535).to_bytes(2,'little')
         for i,v in enumerate(blob):m[physical({'u7f':c.cs,'dice':dice,'sys':SYSTEM,'data':SYSTEM}[kind],start+i)]=v
 
     stub=bytes((0xEA,0xE3,0x0D,dice&255,dice>>8))
@@ -161,6 +161,11 @@ def main():
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        m,c,dice=fixture();install(m,c,dice,bodies,decoded)
+        stub_guards=verify_refusals(m,c,lambda ram,state: f(ram,SIZE,ctypes.byref(state),dice,1024,256),
+                                    [(c.cs,p) for p in (0x10C7,0x1596,0x1611,0x1630,0x1649,0x1662,0x167E,0x1692,0x16AB,0x170F,0x174B,0x17A1,0x17E6)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         for label,kw in (alias_specifications() if a.aliases_only else specifications(a.quick)):
             kw=dict(kw);budgets=kw.pop('budgets',(1024,256));v,e,s,c=compare(label,fixture(**kw),bodies,decoded,f,budgets)
             visited.update(v);edges.update(e);statuses[str(s)]=statuses.get(str(s),0)+1;count+=1
@@ -168,7 +173,7 @@ def main():
             if count%50==0:print('Compared',count,label,flush=True)
     caller={k for k in decoded if k[0]=='u7f' and ENTRY<=k[1]<END}
     cond={k for k,i in decoded.items() if i.mnemonic.startswith('j') and i.mnemonic!='jmp'}
-    report=dict(cases=count,statuses=statuses,stops=stops,caller_sites=len(caller&visited),caller_total=len(caller),chain_sites=len(visited),chain_total=len(decoded),caller_edges=len([e for e in edges if e[0] in caller]),caller_edges_total=2*len(cond&caller),chain_edges=len(edges),chain_edges_total=2*len(cond),unvisited_sites=[f'{k}:{a:04X}' for k,a in sorted(set(decoded)-visited)],missing_edges=[f'{k}:{a:04X}->{dest:04X}' for k,a in sorted(cond) for dest in (int(decoded[k,a].op_str,16),a+decoded[k,a].size) if ((k,a),(k,dest)) not in edges],flags_masks=0,emulator_substitutions=0)
+    report=dict(loaded_stub_guards=stub_guards,cases=count,statuses=statuses,stops=stops,caller_sites=len(caller&visited),caller_total=len(caller),chain_sites=len(visited),chain_total=len(decoded),caller_edges=len([e for e in edges if e[0] in caller]),caller_edges_total=2*len(cond&caller),chain_edges=len(edges),chain_edges_total=2*len(cond),unvisited_sites=[f'{k}:{a:04X}' for k,a in sorted(set(decoded)-visited)],missing_edges=[f'{k}:{a:04X}->{dest:04X}' for k,a in sorted(cond) for dest in (int(decoded[k,a].op_str,16),a+decoded[k,a].size) if ((k,a),(k,dest)) not in edges],flags_masks=0,emulator_substitutions=0)
     print(json.dumps(report,indent=2))
     if a.output:a.output.write_text(json.dumps(report,indent=2)+'\n')
 if __name__=='__main__':main()

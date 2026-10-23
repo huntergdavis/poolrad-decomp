@@ -1,5 +1,6 @@
 /* GAME.OVR unit 0x6A:+0000..+0158; docs/re/U6A_RECORD_WEIGHT_0000.md. */
 #include "poolrad/recovered/overlay_u6a_record_weight_0000.h"
+#include "overlay_loaded_stubs.h"
 #include "poolrad/recovered/overlay_u86_record_predicate_323d.h"
 
 #include <string.h>
@@ -141,12 +142,13 @@ static void table_lookup(const uint8_t *ram, pr_u6a_0000_cpu *cpu, uint8_t byte)
 /* +008A: LCALL 0096:003E. The loaded stub jumps to unit 0x86 +323D; the
  * callee sees the pushed CS:+008F and consumes it with RETF 4. */
 static pr_u6a_0000_status call_323d(uint8_t *ram, size_t ram_size, pr_u6a_0000_cpu *cpu,
-                                    uint16_t return_ip)
+                                    uint16_t return_ip, uint16_t callee_cs)
 {
     pr_u86_323d_cpu leaf;
     uint16_t caller_cs = cpu->cs;
     push16(ram, cpu, cpu->cs);
     push16(ram, cpu, return_ip);
+    cpu->cs = callee_cs;
     cpu->ip = CALLEE_IP;
     memcpy(&leaf, cpu, sizeof leaf);
     if (pr_u86_record_predicate_323d(ram, ram_size, &leaf) != PR_U86_323D_OK)
@@ -160,8 +162,12 @@ static pr_u6a_0000_status call_323d(uint8_t *ram, size_t ram_size, pr_u6a_0000_c
 pr_u6a_0000_status pr_u6a_record_weight_0000(
     uint8_t *ram, size_t ram_size, pr_u6a_0000_cpu *cpu)
 {
-    uint16_t return_ip;
+    uint16_t return_ip, callee_cs;
     if (ram == NULL || cpu == NULL || ram_size < PR_U6A_0000_RAM_SIZE)
+        return PR_U6A_0000_ARGUMENT;
+    /* Reject cold/malformed stubs before mutation; honor the live 0xEA target. */
+    if (!pr_overlay_stub_target(ram, cpu->cs, (uint16_t)(cpu->ip + 0x8Au),
+                                0x003Eu, CALLEE_IP, &callee_cs))
         return PR_U6A_0000_ARGUMENT;
     /* The loaded game enters at offset 0 of its unit; the pushed return offset follows the entry offset. */
     return_ip = (uint16_t)(cpu->ip + RETURN_DELTA);
@@ -226,7 +232,7 @@ pr_u6a_0000_status pr_u6a_record_weight_0000(
         /* +0084..+008A: push segment then offset, rereading after each push. */
         push16(ram, cpu, read16(ram, cpu->ss, (uint16_t)(cpu->bp - 8u)));
         push16(ram, cpu, read16(ram, cpu->ss, (uint16_t)(cpu->bp - 0x0Au)));
-        status = call_323d(ram, ram_size, cpu, return_ip);
+        status = call_323d(ram, ram_size, cpu, return_ip, callee_cs);
         if (status != PR_U6A_0000_OK)
             return status;
 

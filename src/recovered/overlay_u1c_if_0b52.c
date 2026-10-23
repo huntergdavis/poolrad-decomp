@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Complete U1C IF-family; see docs/re/U1C_IF_0B52.md. */
 #include "poolrad/recovered/overlay_u1c_if_0b52.h"
 
@@ -120,6 +121,14 @@ pr_u1c_0b52_status pr_u1c_if_0b52(
         cpu->ip != 0x0B52u || max_operands == 0u || max_string_iterations == 0u ||
         cpu->sp < 0x0238u || cpu->sp > 0xFFFCu)
         return PR_U1C_0B52_ARGUMENT;
+    {
+        static const uint16_t sites[] = {0x0B67u, 0x0B79u, 0x0B8Bu, 0x0B9Du, 0x0BAFu, 0x0BC1u};
+        size_t i;
+        /* Every listed call must resolve through its live loaded 0xEA stub. */
+        for (i = 0; i < sizeof sites / sizeof sites[0]; ++i)
+            if (!pr_overlay_stub_matches(ram, cpu->cs, sites[i], 0x008Eu, 0x1EA6u, u25_cs))
+                return PR_U1C_0B52_ARGUMENT;
+    }
     push16(ram, cpu, cpu->bp); /* +0B52 */
     cpu->bp = (uint16_t)(cpu->sp); /* +0B53 */
     write16(ram, cpu->ds, (uint16_t)(0x49EDu), (uint16_t)(increment(cpu, read16(ram, cpu->ds, (uint16_t)(0x49EDu)), 16u))); /* +0B55 */

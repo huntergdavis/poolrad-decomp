@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 #include "poolrad/recovered/overlay_u6a_link_high_clear_019c.h"
 
 #include <stdio.h>
@@ -31,6 +32,7 @@ static pr_u6a_019c_cpu entry(void)
 static void frame(uint8_t *ram, pr_u6a_019c_cpu *cpu, uint16_t head_off, uint16_t head_seg)
 {
     memset(ram, 0xA5, RAM);
+    test_loaded_stub(ram, cpu->cs, (uint16_t)(cpu->ip + 0x27u), 0x0096u, 0x003Eu, 0x4000u, 0x323Du);
     put16(ram, cpu->ss, cpu->sp, 0x7000u);
     put16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u), 0x7001u);
     put16(ram, cpu->ss, (uint16_t)(cpu->sp + 4u), 0x0100u);

@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Original U5E [17F6,1884); see docs/re/U5E_DIRECTION_GATE_17F6.md. */
 #include "poolrad/recovered/overlay_u5e_direction_gate_17f6.h"
 
@@ -163,6 +164,9 @@ pr_u5e_263d_status pr_u5e_direction_gate_17f6(
         c->sp < 50u || c->sp > 0xFFF4u || max_iterations == 0u)
         return PR_U5E_263D_ARGUMENT;
     if (stack_code_alias(c, layout)) return PR_U5E_263D_CODE_ALIAS;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_u5e_263d_stubs_loaded(ram, c->cs, layout->slots_cs, layout->predicate_cs)))
+        return PR_U5E_263D_ARGUMENT;
     state.ram = ram;
     state.c = c;
     caller_cs = c->cs;

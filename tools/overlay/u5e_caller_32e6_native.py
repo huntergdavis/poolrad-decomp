@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """DOSBox-X original-chain CPU14/DS/stack captures for U5E +32E6."""
+from loaded_stub_fixtures import native_stub_patch
 import ctypes
 from hashlib import sha256
 import json
@@ -30,8 +31,11 @@ def assembly(paths,case,decoded):
     for (kind,ip),ins in decoded.items():
         if ins.mnemonic=='lcall':
             target,off=call_target(kind,ip,ins)
-            a += [f'mov ax,word ptr cs:[output+{metadata[kind]}]','mov es,ax',
-                  f'mov word ptr es:[{ip+1}],{off}',f'mov ax,word ptr cs:[output+{metadata[target]}]',f'mov word ptr es:[{ip+3}],ax']
+            if target in ('slots','chain'):
+                a += native_stub_patch(ins,metadata[kind],metadata[target],off)
+            else:
+                a += [f'mov ax,word ptr cs:[output+{metadata[kind]}]','mov es,ax',
+                      f'mov word ptr es:[{ip+1}],{off}',f'mov ax,word ptr cs:[output+{metadata[target]}]',f'mov word ptr es:[{ip+3}],ax']
     a+=['mov ax,cs','add ax,0x5000','mov ss,ax','mov es,ax','mov word ptr cs:[output+8],ax','xor di,di','mov cx,0xffff','mov al,0xa5','rep stosb','stosb',
         'mov ax,cs','add ax,0x6000','mov ds,ax','mov es,ax','mov word ptr cs:[output+10],ax','xor di,di','mov cx,0xffff','mov al,0xa5','rep stosb','stosb']
     for seg,prefix in ((0x6000,'ds'),(0x5000,'ss')):
