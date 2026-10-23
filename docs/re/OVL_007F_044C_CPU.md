@@ -91,7 +91,7 @@ Placed at `BP+k` for `k = -30h..+0Eh` in steps of 2, each on the above and not-a
 
 ## Evidence
 
-**Original-byte Unicorn differential on the composed closure: 880 cases, 0 mismatches among 877 compared; 3 outside the contract (above).** Every body is the original bytes at its own segment; relocated segment words are installed from the unit's fixup table; the 1693 world is the 1693 audit's, with the independent Python EGA behind A0000..AFFFF. After every compared case, **unmasked** (one declared exception below): CPU14, **all 1,048,576 RAM bytes**, the EGA planes, latches and registers, the ordered OUT events, the ordered VRAM operands, the stop and the remaining budget.
+**Original-byte Unicorn differential on the composed closure, re-run on the rebased tree (main `328ed22c`): 880 cases, 0 mismatches among 877 compared; 3 outside the contract (above).** Every body is the original bytes at its own segment; relocated segment words are installed from the unit's fixup table; the 1693 world is the 1693 audit's, with the independent Python EGA behind A0000..AFFFF. After every compared case, **unmasked** (one declared exception below): CPU14, **all 1,048,576 RAM bytes**, the EGA planes, latches and registers, the ordered OUT events, the ordered VRAM operands, the stop and the remaining budget.
 
 Outcomes: **614 RETURNED, 259 LIMIT, 4 TRANSFER**. **Starts: 71/71 in this body (1,117 across the composed closure).** **Non-architectural stops: 0.**
 
@@ -99,6 +99,7 @@ Cases: boundary cases for three class bytes x four values of W x {V-1, V, V+1, V
 **The independent statement** (172 cases): the branch, the array words, Q's `+0020` effect, SP, BP and CS:IP are recomputed from V (the original `+0000` alone), W, EXTRA, INDEX and the initial words on returning cases whose records do not overlap the stack or the world's data and do not straddle FFFFh.
 
 **The one declared split (pinned MULW), shared with `+0000`, `+0054` and `+0203`:** the C models compute the pinned MULW flags (`instructions.h:605-619`: SF and AF kept, ZF from AX alone, PF over DX:AX, CF=OF=DX!=0); raw Unicorn leaves SF, ZF, AF and PF at its own values. The checker uses the shared `tools/overlay/pinned_shift_flags.py` (`LastFlagWriter`, `declared_flags_split`): whenever the last FLAGS writer in the original is a word MUL the C flags must equal Unicorn's outside the six arithmetic bits and the pinned value inside them; every other state is compared exactly. **2 states of the 880 cases were compared under the split**, counted and reported; there is no mask.
+**The AF-after-shift split (shared, declared on main by `+0A88`).** The body's four `SHL AX,1` set AF as the pinned core does (`get_AF` = count & 1Fh); raw Unicorn leaves it clear. The shared harness declares it the same way (the last FLAGS writer is a non-zero shift: the C flags must equal Unicorn's with AF set; everywhere else exact). My first version of this model cleared AF and passed the exact comparison it was written against; **after the rebase onto the shared declaration it failed at `budget-not-103` (arrival 047A), and `shl1` now sets AF**. The run's JSON counts only the MULW states (2); the shift states are counted by the shared harness counter, not reported separately here.
 
 ### Claim-to-check
 
@@ -113,12 +114,12 @@ Cases: boundary cases for three class bytes x four values of W x {V-1, V, V+1, V
 | the return-address check (TRANSFER) is needed | the 4 TRANSFER cases; the mutant that drops it is caught by `parr-at-bp+02-not` |
 | the model's stops are the original's | stop compared per case; C-only stops asserted in the C test |
 | the model is exact at every instruction | the two budget sweeps (380 cases) compare the CPU at every arrival |
-| the checker detects a wrong model | **19 deliberate mutations: 18 caught (15 by the differential, 3 by the C test) and 1 equivalent, with its proof** |
+| the checker detects a wrong model | **20 deliberate mutations: 19 caught (16 by the differential, 3 by the C test) and 1 equivalent, with its proof** |
 | the checker builds on current main | `CHECKER_ROWS` is registered (`OVL_007F_044C`); `--compile-only` prints `CHECKER_BUILD_OK`; `check_checker_builds.py --require-current-main` |
 
 ### Mutation
 
-**19 mutants: 18 caught (15 by the Unicorn differential, 3 by the C test), 1 proven equivalent, 0 survivors.** Caught by the differential: JA inverted, the message at 0442h, the source word read at `+8Ah`, the source word getting an ADD, the destination word getting a SUB, INDEX zero-extended, the first SHL skipped, `+0020` given INDEX instead of EXTRA, `+003A` given P instead of Q, RETF popping 0Ah, `SUB SP,0Eh`, **the return-address (TRANSFER) check dropped (`parr-at-bp+02-not`)**, the `+0000` call-site displacement, the `+0000` call not charged to the budget, and `LES DI,ES:[DI]` swapping the pointer words.
+**20 mutants: 19 caught (16 by the Unicorn differential, 3 by the C test), 1 proven equivalent, 0 survivors.** Caught by the differential: JA inverted, **`SHL` not setting AF (the pinned rule; the budget sweep arrival at 047A)**, the message at 0442h, the source word read at `+8Ah`, the source word getting an ADD, the destination word getting a SUB, INDEX zero-extended, the first SHL skipped, `+0020` given INDEX instead of EXTRA, `+003A` given P instead of Q, RETF popping 0Ah, `SUB SP,0Eh`, **the return-address (TRANSFER) check dropped (`parr-at-bp+02-not`)**, the `+0000` call-site displacement, the `+0000` call not charged to the budget, and `LES DI,ES:[DI]` swapping the pointer words.
 **The three bus-bypass mutants survive the differential, as predicted, and are caught by the C test.**
 **One mutant is equivalent: `SHL AX,1` leaving OF clear.** Every SHL in the body (0478, 0490, 04B4, 04CC) directly follows a CBW, so its operand is a sign-extended byte, bits 15 and 14 are equal, and OF (= CF xor the new bit 15) is always 0. The checker proves it exhaustively over all 256 INDEX values and reports it as `proven_equivalent`; the proof, not the survival, is the claim.
 Two earlier survivors were **missing fixtures, not equivalents**: the TRANSFER-check mutant (the mutation set lacked the case that rewrites the return slot) and the pre-`+0000` pushes mutant (the C test did not look at the pushed words). Both are now pinned; a compile error is not counted as a catch.
