@@ -31,6 +31,7 @@ REGS = (x.UC_X86_REG_AX, x.UC_X86_REG_BX, x.UC_X86_REG_CX,
         x.UC_X86_REG_BP, x.UC_X86_REG_SP, x.UC_X86_REG_CS,
         x.UC_X86_REG_IP, x.UC_X86_REG_DS, x.UC_X86_REG_ES,
         x.UC_X86_REG_SS, x.UC_X86_REG_EFLAGS)
+CS_SPLITS = {"wrap-fffe": 0xFFFE, "wrap-ffff": 0xFFFF}
 
 
 class Cpu(ctypes.Structure):
@@ -84,27 +85,84 @@ def make_case(bit_code, seed_code, low, high, sp=0x8000, alias=None):
     return ram, cpu
 
 
-def native(initial_ram, initial_cpu, expected_cpu):
+def native(initial_ram, initial_cpu):
     emu = Uc(UC_ARCH_X86, UC_MODE_16)
     emu.mem_map(0, RAM_SIZE)
     emu.mem_write(0, bytes(initial_ram))
     for field, reg in zip(FIELDS, REGS):
         emu.reg_write(reg, getattr(initial_cpu, field))
     reached = []
+    pending_return = None
 
-    def stop_at_expected(uc, address, size, user):
+    def stop_after_return(uc, address, size, user):
+        nonlocal pending_return
         del size, user
-        if (address == physical(expected_cpu.cs, expected_cpu.ip) and
-            uc.reg_read(x.UC_X86_REG_CS) == expected_cpu.cs and
-            uc.reg_read(x.UC_X86_REG_IP) == expected_cpu.ip):
+        cs = uc.reg_read(x.UC_X86_REG_CS)
+        ip = uc.reg_read(x.UC_X86_REG_IP)
+        # Observe the original exit independently of the C candidate. The
+        # seed RET may transfer away instead of returning to +11D9.
+        if pending_return == "far" or (pending_return == "near" and
+                                       (cs, ip) != (initial_cpu.cs, 0x11D9)):
             reached.append(address)
             uc.emu_stop()
+            return
+        pending_return = None
+        if cs == initial_cpu.cs:
+            if ip == 0x11F2:
+                pending_return = "far"
+            elif ip == 0x1244:
+                pending_return = "near"
 
-    emu.hook_add(UC_HOOK_CODE, stop_at_expected)
+    emu.hook_add(UC_HOOK_CODE, stop_after_return)
     emu.emu_start(physical(initial_cpu.cs, initial_cpu.ip), 0, count=500)
-    assert len(reached) == 1, "original did not reach C's transfer target"
+    assert len(reached) == 1, "original did not reach a return boundary"
     vals = [emu.reg_read(reg) & 0xFFFF for reg in REGS]
     return bytes(emu.mem_read(0, RAM_SIZE)), vals
+
+
+def word(ram, at):
+    return ram[at & (RAM_SIZE - 1)] | (ram[(at + 1) & (RAM_SIZE - 1)] << 8)
+
+
+def compare(name, start, c_ram, c_cpu, native_ram, native_cpu):
+    assert bytes(c_ram) == native_ram, (name, "RAM diff")
+    split = name in CS_SPLITS
+    if split:
+        assert start.sp == CS_SPLITS[name], (name, "entry SP")
+        wrapped = word(native_ram, physical(start.ss, start.sp + 2))
+        contiguous = word(native_ram, physical(start.ss, start.sp) + 2)
+        assert wrapped != contiguous, (name, "indistinguishable CS fixtures")
+        assert c_cpu.cs == wrapped, (name, "C wrapped CS", hex(c_cpu.cs), hex(wrapped))
+        assert native_cpu[FIELDS.index("cs")] == contiguous, (name, "Unicorn contiguous CS")
+    for index, field in enumerate(FIELDS):
+        if split and field == "cs":
+            continue
+        actual = getattr(c_cpu, field)
+        expected = native_cpu[index]
+        assert actual == expected, (name, field, hex(actual), hex(expected))
+
+
+def build(directory, contiguous_mutant=False):
+    source = ROOT / "src/recovered/system_random_bit_fullstate_11d6.c"
+    if contiguous_mutant:
+        text = source.read_text()
+        old = "cpu->cs = read_word(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));"
+        new = """cpu->cs = (uint16_t)(
+        ram[(physical(cpu->ss, cpu->sp) + 2u) & MASK] |
+        ((uint16_t)ram[(physical(cpu->ss, cpu->sp) + 3u) & MASK] << 8));"""
+        assert text.count(old) == 1, "contiguous-CS mutation site changed"
+        source = directory / "contiguous_mutant.c"
+        source.write_text(text.replace(old, new))
+    library = directory / ("mutant.so" if contiguous_mutant else "candidate.so")
+    subprocess.run(("cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
+                    "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
+                    str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
+                    str(source), "-o", str(library)), check=True)
+    func = ctypes.CDLL(str(library)).pr_system_random_bit_fullstate_11d6
+    func.argtypes = (ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
+                     ctypes.POINTER(Cpu))
+    func.restype = ctypes.c_int
+    return func
 
 
 def main():
@@ -120,32 +178,34 @@ def main():
              ("far-frame-alias", 0x5678, 0x1234, 0x4428, "frame"),
              ("near-transfer", 0x5678, 0x1234, 0x442A, "near"))
     with tempfile.TemporaryDirectory(prefix="poolrad-11d6-") as tmp:
-        library = Path(tmp) / "candidate.so"
-        subprocess.run(("cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic",
-                        "-Werror", "-shared", "-fPIC", "-I", str(ROOT / "include"),
-                        str(ROOT / "src/recovered/system_seed_fullstate_120f.c"),
-                        str(ROOT / "src/recovered/system_random_bit_fullstate_11d6.c"),
-                        "-o", str(library)), check=True)
-        func = ctypes.CDLL(str(library)).pr_system_random_bit_fullstate_11d6
-        func.argtypes = (ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                         ctypes.POINTER(Cpu))
-        func.restype = ctypes.c_int
+        func = build(Path(tmp))
+        split_oracles = []
         for name, low, high, sp, alias in cases:
             memory, start = make_case(bit_code, seed_code, low, high, sp, alias)
             c_ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
             c_cpu = Cpu(*(getattr(start, field) for field in FIELDS))
             status = func(c_ram, RAM_SIZE, ctypes.byref(c_cpu))
             assert status == (3 if name == "near-transfer" else 0), (name, status)
-            native_ram, native_cpu = native(memory, start, c_cpu)
-            assert bytes(c_ram) == native_ram, (name, "RAM diff")
-            for index, field in enumerate(FIELDS):
-                actual = getattr(c_cpu, field)
-                expected = native_cpu[index]
-                mask = 0xFFEF if field == "flags" else 0xFFFF
-                assert ((actual ^ expected) & mask) == 0, (
-                    name, field, hex(actual), hex(expected))
-            print(f"PASS {name}: 1 MiB RAM + CPU14 (AF ignored)")
-    print(f"PASS SYSTEM +11D6 original-byte/C {len(cases)} bounded cases")
+            native_ram, native_cpu = native(memory, start)
+            compare(name, start, c_ram, c_cpu, native_ram, native_cpu)
+            if name in CS_SPLITS:
+                split_oracles.append((name, memory, start, native_ram, native_cpu))
+            detail = "declared CS-only split; CPU13 including FLAGS exact" if name in CS_SPLITS else "CPU14 exact"
+            print(f"PASS {name}: 1 MiB RAM + {detail}")
+        assert len(split_oracles) == 2
+        mutant = build(Path(tmp), contiguous_mutant=True)
+        for name, memory, start, native_ram, native_cpu in split_oracles:
+            c_ram = (ctypes.c_uint8 * RAM_SIZE).from_buffer_copy(memory)
+            c_cpu = Cpu(*(getattr(start, field) for field in FIELDS))
+            assert mutant(c_ram, RAM_SIZE, ctypes.byref(c_cpu)) == 0
+            try:
+                compare(name, start, c_ram, c_cpu, native_ram, native_cpu)
+            except AssertionError as error:
+                assert error.args[0][:2] == (name, "C wrapped CS"), error
+            else:
+                raise AssertionError((name, "contiguous-CS mutant accepted"))
+            print(f"PASS negative control {name}: contiguous-CS C mutant rejected")
+    print(f"PASS SYSTEM +11D6: {len(cases)} bounded cases, 2 CS splits, 2 mutant rejections; no FLAGS masks")
 
 
 if __name__ == "__main__":
