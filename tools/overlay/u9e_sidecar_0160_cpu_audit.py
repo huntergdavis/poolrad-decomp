@@ -234,7 +234,7 @@ def main():
         from loaded_stub_checks import verify_refusals
         memory,cpu,layout=build(bodies,decoded)
         limits=Limits(*DEFAULT);diagnostic=Diagnostic()
-        report['loaded_stub_guards']=verify_refusals(memory,cpu,
+        report['loaded_stub_guards']=verify_refusals(memory,Cpu.from_buffer_copy(cpu),
             lambda ram,state: f(ram,SIZE,ctypes.byref(state),ctypes.byref(layout),ctypes.byref(limits),ctypes.byref(diagnostic)),
             [(layout.chain_cs,p) for p in (0x92A,0x9D8)])
         if a.unicorn:report['unicorn']=differential(bodies,decoded,f,a.quick)

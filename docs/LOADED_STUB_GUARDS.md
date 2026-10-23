@@ -55,10 +55,44 @@ Separate host checks change cold-stub bytes, opcode, entry offset, segment
 (where the API specifies it), and each call site's opcode/slot offset. They
 require ARGUMENT and unchanged CPU14/full 1 MiB RAM; these are not DOS cases.
 
-Validation is pending. All compilation and audit runs use poolrad-heavy.sh,
-one at a time, with load1 at most 12 before starting work. Receipts and logs
-remain under ignored resources/stub-guards. The registered checker handoff
-will use actual compile/load/bind operations against current main.
+The 13 credited entries passed their full original-byte audits on f0826b32:
+
+| Entry | Full CPU14 / 1 MiB RAM cases | Atomic host refusals | Absent-unit fixtures |
+| --- | ---: | ---: | ---: |
+| U1C +0B52 | 919 | 16 | 1 |
+| U6A +019C | 507 | 5 | 1 |
+| U6A +0000 | 507 | 5 | 1 |
+| U5E +263D | 307 | 22 | 3 |
+| U5E +1BF8 | 587 | 18 | 3 |
+| U7F +1010 | 2,338 + 8 aliases | 30 | 1 |
+| U38 +04BA | 3,019 | 14 | 2 |
+| U3C2 +0909 | 439 | 8 | 1 |
+| U5E +32E6 | 440 | 32 | 5 |
+| U6A +0214 | 125 | 5 | 1 |
+| U5E +17F6 | 2,794 | 22 | 3 |
+| U5E +2574 | 2,301 | 22 | 3 |
+| U31 +0255 | 174 | 8 | 1 |
+
+These are 14,465 full-state cases with no FLAGS masks, plus 207 host refusal
+checks, including 26 absent-unit fixtures. Repeated host checks in the U7F
+alias invocation are counted once. The +263D checker also passed 506
+standalone predicate CPU/RAM cases. All 16 focused C executables passed.
+U38 and U7F include added successful A20-wrapped stub-segment fixtures.
+Existing deeper-chain coverage gaps remain in the receipts; no coverage
+credit is inferred from executing synthetic stubs. U6A +0000 and +019C each
+retain one nonreturning original fixture outside the C comparison; +0214
+also checks two nonreturning originals against its existing C cap.
+
+The two uncredited sidecar audits, changed native harnesses, and final
+registered-checker handoff are pending. An initial sidecar host check stopped
+before C invocation because the shared fixture supplied a distinct ctypes
+CPU class; the host checks now use the same CPU conversion as the existing
+full comparison. No recovered C change was needed for that checker failure.
+
+All compilation and audit runs use poolrad-heavy.sh, one at a time, with
+load1 at most 12 before starting work. Receipts and logs remain under ignored
+resources/stub-guards. The registered checker handoff will use actual
+compile/load/bind operations against current main.
 
 ## Adversarial parity assessment
 
