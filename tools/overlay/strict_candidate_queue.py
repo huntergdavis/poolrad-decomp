@@ -735,7 +735,32 @@ def is_boundary_mention(mention):
     return bool(NEXT_PROLOGUE.search(text))
 
 
-def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids):
+# A span the covering routine's registered checker pins by SHA-256 is translated
+# there: `(0x07BC, 0x0A74, "6ec8...")` in u25_load_word_0e0c_audit.py is +0E0C's
+# checker executing +07BC's original bytes against its C. A redirect or a bare
+# comment in that routine's model then names a body it models, not a boundary.
+SPAN_PIN = re.compile(r"\(\s*0x(?P<start>[0-9a-fA-F]{3,5})\s*,\s*0x[0-9a-fA-F]{3,5}\s*,\s*[\"'][0-9a-f]{64}[\"']\s*\)")
+
+
+def pinned_spans(repo):
+    """Row id -> span start offsets that one of its registered checkers pins by hash (the CI registry, both folders)."""
+    from check_checker_builds import discover
+    pinned = {}
+    for row, paths in discover(Path(repo)).items():
+        for path in paths:
+            text = (Path(repo) / path).read_text(errors="ignore")
+            pinned.setdefault(row, set()).update(int(m.group("start"), 16) for m in SPAN_PIN.finditer(text))
+    return pinned
+
+
+def pinned_by(cid, covered_by, pinned):
+    """True when covered_by's checker pins the span that starts at cid's offset in the same unit."""
+    if not pinned or covered_by is None or cid[:8] != covered_by[:8]:
+        return False
+    return int(cid[-4:], 16) in pinned.get(covered_by, ())
+
+
+def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay, known_ids, pinned=None):
     own = main_files.get(cid, [])
     flags, inline = set(), []
     if own:
@@ -745,7 +770,9 @@ def prior_evidence(cid, main_files, mentions, branches, commits, strict_overlay,
         if covered_by is None or covered_by == cid:
             continue
         if is_boundary_mention(mention):
-            continue
+            if not pinned_by(cid, covered_by, pinned):
+                continue
+            mention = dict(mention, pinned_span=True)
         if covered_by in strict_overlay:
             inline.append(dict(mention, covered_by=covered_by))
             flags.add("inline_in_strict")
@@ -992,7 +1019,7 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
-                               state["all_ids"])
+                               state["all_ids"], state.get("pinned_spans"))
         size_bytes = number(entry["bound"])
         size_points = (12 if size_bytes <= 48 else 8 if size_bytes <= 128 else
                        4 if size_bytes <= 256 else 2 if size_bytes <= 512 else 0)
@@ -1146,6 +1173,7 @@ def main():
                            csv_rows(blobs["partial_models"]), driver_internal,
                            csv_rows(blobs["identities"]), resident_runtime)
         main_files = scan_main_files(repo, state["all_ids"])
+        state["pinned_spans"] = pinned_spans(repo)
         for identifier, evidence in sorted(state["full_models"].items()):
             main_files.setdefault(identifier, []).append(evidence)
         mentions = scan_mentions(repo, state["candidates"])

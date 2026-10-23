@@ -919,6 +919,37 @@ class StrictCandidateQueueTest(unittest.TestCase):
         for text, expected in shapes:
             self.assertEqual(scq.is_boundary_mention({"text": text}), expected, text)
 
+    def test_redirect_into_a_span_the_strict_checker_pins_is_inline(self):
+        """The exact 07BC case: +0E0C's strict model reaches +07BC by `c->ip = 0x07BCu` and models it
+        (load_hook), and +0E0C's checker pins (0x07BC, 0x0A74, sha256). That is inline_in_strict; the same
+        text without the pin stays a boundary, and a pin for another offset or unit rescues nothing."""
+        known = {"OVL_0025_0E0C": (0x25, 0x0E0C), "OVL_0025_07BC": (0x25, 0x07BC)}
+        main_files = {"OVL_0025_0E0C": ["src/recovered/overlay_u25_load_word_0e0c.c"]}
+        source = {"file": "src/recovered/overlay_u25_load_word_0e0c.c"}
+        texts = ("        c->ip = 0x07BCu;", "/* DOS v1.3 unit 25 load word +0E0C, classifier +06FB, load hook +07BC")
+
+        def status(text, pinned, cid="OVL_0025_07BC"):
+            return scq.prior_evidence(cid, main_files, {"source": [dict(source, text=text)], "tooling": [], "docs": []},
+                                      [], [], {"OVL_0025_0E0C"}, known, pinned)
+
+        pin = {"OVL_0025_0E0C": {0x06FB, 0x0756, 0x07BC, 0x0E0C}}
+        for text in texts:
+            result = status(text, pin)
+            self.assertEqual(result["status"], "inline_in_strict", text)
+            self.assertEqual([(m["covered_by"], m["pinned_span"]) for m in result["inline"]], [("OVL_0025_0E0C", True)])
+            self.assertEqual(status(text, None)["status"], "source_mention", text)
+            self.assertEqual(status(text, {})["status"], "source_mention", text)
+            self.assertEqual(status(text, {"OVL_0025_0E0C": {0x07BD, 0x0E0C}})["status"], "source_mention", text)
+            self.assertEqual(status(text, {"OVL_0026_0E0C": {0x07BC}})["status"], "source_mention", text)
+        # the pin is unit-local: the same offset in another unit is not covered by +0E0C's checker
+        known["OVL_0026_07BC"] = (0x26, 0x07BC)
+        self.assertEqual(status(texts[0], pin, "OVL_0026_07BC")["status"], "source_mention")
+
+    def test_pinned_spans_reads_the_ci_registry(self):
+        """On the real tree, +0E0C's registered checker pins exactly its four spans, +07BC among them."""
+        pinned = scq.pinned_spans(Path(__file__).resolve().parents[2])
+        self.assertEqual(pinned["OVL_0025_0E0C"], {0x06FB, 0x0756, 0x07BC, 0x0E0C})
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
