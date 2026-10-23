@@ -173,3 +173,22 @@ A one-line import repair landed after this document: the division hook read
 `NameError` at line 192 while `--compile-only` passed (the hook never runs on that
 path). No claim, count or case in this document changes; the audit now runs end to
 end again (1609 cases, 1593 returns, 134 covered sites).
+
+
+## Division flags after #1433 (recorded by the acceptor, 2026-10-22)
+
+#1433 (par-d) corrected this model's flags after successful `DIV`/`IDIV` to the pinned DOSBox-X rule. The earlier
+Unicorn oracle masked all six flags at those exits, and there was no native run, so the PM marked the flag claim at
+the division exits unproven (i21495). par-d2 re-ran both checkers at `23acc5bf` (#1433 plus the 4235 audit import
+fix), with FLAGS unmasked in the native run (i21533).
+
+**Per-credit sentence:** `OVL_006C_4235`'s evidence did not depend on the division flags. The credit stands.
+
+Native 620/620 returns, `masked_flags = 0`. Unicorn audit rc 0 on 1,609 cases (1,593 returns with FLAGS unmasked; 16 internal transfers under the declared split; 9,178 threshold divisions).
+
+The credit's standing limits are unchanged and restated here. The 8 original-only cases at SP `442E..443E` exhaust the 50,000-instruction budget and carry no parity claim (documented since `a80908a3`). Loader dispatch and the natural game route are not measured.
+
+Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) for every
+number above. par-e also confirmed that this body's C source, header, audit and native script, and the SYSTEM sources,
+are byte-identical between `23acc5bf` and main `5af0fb2e`. par-e did not re-run these checkers. The logs' `source_sha256`
+is the original body's hash, not the C's, so the source identity above comes from the git diff.

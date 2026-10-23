@@ -91,3 +91,20 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_006C_408C --require-current-main
 ```
+
+
+## Division flags after #1433 (recorded by the acceptor, 2026-10-22)
+
+#1433 (par-d) corrected this model's flags after successful `DIV`/`IDIV` to the pinned DOSBox-X rule. The earlier
+Unicorn oracle masked all six flags at those exits, and there was no native run, so the PM marked the flag claim at
+the division exits unproven (i21495). par-d2 re-ran both checkers at `23acc5bf` (#1433 plus the 4235 audit import
+fix), with FLAGS unmasked in the native run (i21533).
+
+**Per-credit sentence:** `OVL_006C_408C`'s evidence did not depend on the division flags. The credit stands.
+
+Native 1,029/1,029 cases (1,026 returns plus 3 divide-error exits; 953 divisions), `flags_masked = 0`. Unicorn audit rc 0 on 3,265 cases (3,071 returns, 188 divide errors, 6 transfers, 2,893 divisions) under the declared division split.
+
+Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) for every
+number above. par-e also confirmed that this body's C source, header, audit and native script, and the SYSTEM sources,
+are byte-identical between `23acc5bf` and main `5af0fb2e`. par-e did not re-run these checkers. The logs' `source_sha256`
+is the original body's hash, not the C's, so the source identity above comes from the git diff.
