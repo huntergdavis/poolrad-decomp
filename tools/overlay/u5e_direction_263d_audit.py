@@ -113,8 +113,6 @@ def source_audit(exe_path, ovr_path):
     return bodies, decoded
 
 
-CHECKER_ROWS = ('OVL_005E_263D',)
-
 def build(root, directory):
     output = directory / "u5e_263d.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
