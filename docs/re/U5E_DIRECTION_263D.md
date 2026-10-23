@@ -19,12 +19,21 @@ following the DS4/VP ownership handoff. Every composed callee executes C.
 Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
 assumed; the credit is unchanged.
 
-This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
-loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
-as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
-stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
-loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
-resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+This credit holds **only while every overlay unit the body far-calls is resident**.
+The C now reads each listed live `LCALL` binding and requires its stub to hold a
+five-byte far `JMP` (`EA`) to the expected entry. Explicit callee-segment
+arguments must agree with the jump target; U6A's predicate uses the live jump
+segment. If a required unit is absent or a binding is malformed, **the C
+refuses with `ARGUMENT` before changing CPU14 or RAM**. The caller no longer
+has to enforce this listed precondition on the C's behalf.
+
+Bindings and code must remain immutable throughout the synchronous call.
+The overlay manager's DOS loading path is still outside this C model.
+Loaded-state differentials execute real far-JMP stubs; separate host checks
+exercise cold stubs and malformed bindings and verify atomic refusal. Host
+checks are not original executions and add no parity-case or credit count.
+Updated validation results are pending; see
+[the guard work report](../LOADED_STUB_GUARDS.md).
 
 | Credit | Stub | Target | Call sites |
 | --- | --- | --- | --- |

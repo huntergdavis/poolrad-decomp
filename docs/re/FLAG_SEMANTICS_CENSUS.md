@@ -160,3 +160,43 @@ earlier 0BDE and 0DBE `_cpu`); they were carried by hand. Fixing the matcher is 
 **Fixed (2026-10-23):** the cause was that `--carry-from` archived only `src/recovered` from the old revision, so bodies naming a
 macro from `include/` hashed differently there; it now archives `include/` too (`rev_digests`), and a test pins the four rows by name.
 
+
+## Closure of the stored-path disagreement class (par-a, 2026-10-23)
+
+The census widened to non-static functions (#1464). It then found 17 stored-path disagreements with pinned DOSBox-X 5a9c7c53.
+10 were in credited bodies and 7 in uncredited ones, and all 17 are fixed to the pinned rules:
+
+| Where | Rule | Rows |
+| --- | --- | --- |
+| #1461 (merged 2026-10-23) | AF after SHR | `OVL_005E_0E52` |
+| #1465, family 1 (merged 2026-10-23 03:41 PDT) | OR/XOR clear AF | `OVL_0025_0756`, `OVL_009E_0DE3` |
+| #1470, family 2 (merged 2026-10-23 04:29 PDT) | AF set after a non-zero SHR | `OVL_0038_2A87`, `2AE6`, `25BC`; `OVL_0033_0BDE` |
+| #1473, family 3 (merged 2026-10-23 04:51 PDT) | pinned MULW: SF/AF kept, ZF from AX, PF over DX:AX | `RES_0709_0DBE` (both files), `RES_0709_06A7` |
+| #1474 (merged 2026-10-23 05:03 PDT) | XOR/OR clear AF; SHR/SHL AF; MULW | the 7 uncredited rows |
+
+**Verdicts.** par-e checked the bytes of each credited row in families 2 and 3 against GAME.OVR and the unpacked START.EXE
+(i22164; this was not an echo of par-d2's claims).
+- **STAND:** 2A87, 2AE6, 0BDE, 0DBE `_cpu`, 0DBE plain and 06A7.
+  - For 2A87 and 2AE6 the AF after the shift does reach the caller. Their credit rests on the `_cpu` audits, whose explicit
+    shift profile already carried the pinned AF=1, so the evidence never depended on the plain model's AF.
+  - For 0DBE and 06A7, `OR DX,DX` at `0A40:+02A2` overwrites the flags before any read. A flag-neutral `PUSH AX` sits between
+    the `MUL` and the `LCALL`, so "immediately after" in the family 3 text is imprecise but harmless.
+- **25BC: STANDS WITH A CAVEAT (dated 2026-10-23).** The 25BC caveat:
+  - **Why its evidence could not fail:** from its credit until #1470 merged (2026-10-23 04:29 PDT), the credited check
+    compared the plain model with Unicorn. Both left AF=0 after `SHR AX,1` at `38:+25FA`, so **the old check proved
+    agreement with Unicorn, not with pinned**. It could not have failed on this bit.
+  - **Why the old check passed:** the declared pinned split that makes such a check fail landed on main with #1446
+    (merged 2026-10-22 21:54 PDT; `tools/overlay/pinned_shift_flags.py`, first committed 2026-10-22 21:36 PDT).
+  - **What the failure looks like:** under that split, the old model FAILS: the C flags are 0247 where the original gives
+    0257, a difference of exactly the AF bit.
+  - **Current state:** the fixed model passes 720 cases, with the split used at 378 stops.
+  - **Not verified:** caller observability. The stub `0041:01A6` is reached only through a table built at run time, so no
+    far pointer to it exists in START.EXE or GAME.OVR to walk statically.
+- **Not covered by this verdict set:** the family 1 rows and 0E52. Their verdicts are not recorded here.
+
+**Summary for the owner.** Stored-path flag disagreements were closed by pinning the emulator's own rules, across three
+credited families and one uncredited sweep. 17 disagreements were found and fixed, 10 of them in credited bodies. Of the
+seven credited verdicts recorded here, one (25BC) needed a dated caveat rather than a clean pass, because its original
+evidence could not have failed. The credited count does not move for any of this; the evidence behind it got stronger.
+
+Counts measured on main `6fac2396`.

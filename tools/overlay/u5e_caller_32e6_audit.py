@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Original-code CPU14/whole-RAM audit of complete U5E +32E6."""
+from loaded_stub_fixtures import install_stub, loaded_sites
 import argparse
 import ctypes
 from hashlib import sha256
@@ -82,12 +83,16 @@ def install(m,c,layout,bodies,decoded):
         for (k,ip),ins in decoded.items():
             if k==kind and start<=ip<start+len(data) and ins.mnemonic=='lcall':
                 target,off=call_target(kind,ip,ins)
-                blob[ip-start+1:ip-start+5]=off.to_bytes(2,'little')+segments[target].to_bytes(2,'little')
+                if target in ('slots','chain'):
+                    install_stub(m,blob,start,ins,segments[target],off)
+                else:
+                    blob[ip-start+1:ip-start+5]=off.to_bytes(2,'little')+segments[target].to_bytes(2,'little')
         for i,v in enumerate(blob):m[physical(segments[kind],start+i)]=v
 
 def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
     m,c,layout=state;install(m,c,layout,bodies,decoded)
     segments=dict(caller=c.cs,slots=layout.slots_cs,chain=layout.chain_cs,sys=layout.system_cs)
+    stubs=loaded_sites(m,segments,decoded)
     backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m);uc=Uc(UC_ARCH_X86,UC_MODE_16)
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for n,r in zip(NAMES,REGS):uc.reg_write(r,getattr(c,n))
@@ -96,6 +101,7 @@ def compare(label,state,bodies,decoded,f,budgets=DEFAULT):
         del address,size,user
         if stepping[0]:return
         cs=uc.reg_read(R.UC_X86_REG_CS);ip=uc.reg_read(R.UC_X86_REG_IP)&65535
+        if (cs,ip) in stubs:return
         kind=next((k for k,s in segments.items() if s==cs),None);key=kind,ip
         assert key in decoded,(label,'unexpected PC',hex(cs),hex(ip))
         if key==('chain',0x422):
@@ -171,6 +177,11 @@ def main():
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        m,c,l=fixture();install(m,c,l,bodies,decoded);limits=Limits(*DEFAULT)
+        stub_guards=verify_refusals(m,c,lambda ram,state: f(ram,SIZE,ctypes.byref(state),ctypes.byref(l),ctypes.byref(limits)),
+                                    [(c.cs,p) for p in (0x32F2,0x32FE,0x3311,0x331F)]+[(l.chain_cs,p) for p in (0x92A,0x9D8)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         for label,kw in specifications(a.quick):
             kw=dict(kw);budgets=kw.pop('budgets',DEFAULT);print('BEGIN',count+1,label,flush=True)
             v,e,s,c=compare(label,fixture(**kw),bodies,decoded,f,budgets)
@@ -179,7 +190,7 @@ def main():
     caller={k for k in decoded if k[0]=='caller'};cond={k for k,i in decoded.items() if i.mnemonic.startswith('j') and i.mnemonic!='jmp'}
     ce={e for e in edges if e[0] in caller};cc=cond&caller
     assert caller<=visited,sorted(caller-visited)
-    report=dict(target='OVL_005E_32E6',cases=count,cpu_words=14,ram_bytes=SIZE,status_counts=statuses,stop_counts=stops,
+    report=dict(loaded_stub_guards=stub_guards,target='OVL_005E_32E6',cases=count,cpu_words=14,ram_bytes=SIZE,status_counts=statuses,stop_counts=stops,
       caller_sites=len(caller&visited),caller_sites_total=len(caller),caller_branch_outcomes=len(ce),caller_branch_outcomes_total=len(cc)*2,
       chain_sites=len(visited),chain_sites_total=len(decoded),chain_branch_outcomes=len(edges),chain_branch_outcomes_total=len(cond)*2,
       masked_flags=0,emulator_state_substitutions=0,uncovered_sites=[f'{k}:{ip:04X}' for k,ip in sorted(set(decoded)-visited)],

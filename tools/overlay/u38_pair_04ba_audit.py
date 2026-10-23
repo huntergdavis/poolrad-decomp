@@ -140,6 +140,11 @@ def main():
     bodies,decoded=source();visited,edges=set(),set();count=wrap_cases=wrap_returns=seam_cases=limits=transfers=0
     with tempfile.TemporaryDirectory() as tmp:
         lib=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        m,c,callee,stub=fixture();install(m,c,callee,stub,bodies)
+        stub_guards=verify_refusals(m,c,lambda ram,state: lib.pr_u38_pair_04ba(ram,SIZE,ctypes.byref(state),callee,32),
+                                    [(c.cs,p) for p in (0x4DD,0x552,0x5B0)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         def run(label,budget=32,**kw):
             nonlocal visited,edges,count,wrap_cases,wrap_returns,seam_cases,limits,transfers
             v,e,w,l,s=compare(label,fixture(**kw),bodies,decoded,lib,budget)
@@ -156,6 +161,7 @@ def main():
         for n in (0,1,2,8):run(f'cycle-{n}',cycle=True,budget=n)
         for off in (0,1,0xFFF8,0xFFFB,0xFFFF):run(f'node-offset-{off:X}',node_base=off,nodes=((12,5),))
         run('different-node-segment',node_seg=0x3100)
+        run('A20-stub-segment',stub_cs=0xFFFF)
         for off in (0x7FEA,0x7FF0,0x7FFA,0x7FFB,0x7FFF,0x8000):
             run(f'record-frame-{off:X}',record=(0x2000,off),budget=8)
         run('source-is-record',src=(0x4000,0x100))
@@ -166,7 +172,7 @@ def main():
             run(f'seeded-{i}',attribute=rng.randrange(128),nodes=tuple((rng.choice((0,12,38,255)),rng.randrange(256)) for _ in range(rng.randrange(1,7))),flags=rng.choice((0x202,0xED7,0x47,0xA93)))
     required={((u,i.address),(u,t)) for (u,_),i in decoded.items() if i.mnemonic.startswith('j') and i.mnemonic!='jmp' for t in (int(i.op_str,16),i.address+i.size)}
     missing_sites=sorted(set(decoded)-visited);missing_edges=sorted(required-edges)
-    report=dict(target='OVL_0038_04BA',cases=count,whole_ram_bytes=SIZE,cpu_words=14,masked_flags=0,covered_sites=len(visited),source_sites=len(decoded),conditional_edges=len(edges),required_edges=len(required),missing_sites=missing_sites,missing_edges=missing_edges,
+    report=dict(loaded_stub_guards=stub_guards,target='OVL_0038_04BA',cases=count,whole_ram_bytes=SIZE,cpu_words=14,masked_flags=0,covered_sites=len(visited),source_sites=len(decoded),conditional_edges=len(edges),required_edges=len(required),missing_sites=missing_sites,missing_edges=missing_edges,
         wrapped_retf_hybrid_cases=wrap_cases,wrapped_retf_substitutions=wrap_returns,contiguous_les_seam_cases=seam_cases,limit_cases=limits,transfer_cases=transfers,natural_game_route_measured=False,
         bodies=[dict(unit=f'{u:04X}',start=f'{s:04X}',bytes=len(b),sha256=sha256(b).hexdigest()) for (u,s),b in bodies.items()])
     if args.output:args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')

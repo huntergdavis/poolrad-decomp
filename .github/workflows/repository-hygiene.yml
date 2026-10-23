@@ -32,6 +32,10 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_pinned_shift_flags.py'
       - name: Test candidate pricer input handling
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
+      # The strict queue's prior-translation detector (inline evidence, checker-pinned spans, the discard
+      # report, SEG:OFF mentions). Media-free; the two media cases skip. Without it the detector can regress silently.
+      - name: Strict candidate queue detector tests
+        run: python3 -m unittest discover -s tools/overlay -p 'test_strict_candidate_queue.py'
       - name: Base is current (stale-base precondition, separate from build failures)
         run: |
           # This step exists so the check list distinguishes "your branch is behind main"

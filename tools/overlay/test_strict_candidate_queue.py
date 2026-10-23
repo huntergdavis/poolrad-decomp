@@ -919,6 +919,91 @@ class StrictCandidateQueueTest(unittest.TestCase):
         for text, expected in shapes:
             self.assertEqual(scq.is_boundary_mention({"text": text}), expected, text)
 
+    def test_redirect_into_a_span_the_strict_checker_pins_is_inline(self):
+        """The exact 07BC case: +0E0C's strict model reaches +07BC by `c->ip = 0x07BCu` and models it
+        (load_hook), and +0E0C's checker pins (0x07BC, 0x0A74, sha256). That is inline_in_strict; the same
+        text without the pin stays a boundary, and a pin for another offset or unit rescues nothing."""
+        known = {"OVL_0025_0E0C": (0x25, 0x0E0C), "OVL_0025_07BC": (0x25, 0x07BC)}
+        main_files = {"OVL_0025_0E0C": ["src/recovered/overlay_u25_load_word_0e0c.c"]}
+        source = {"file": "src/recovered/overlay_u25_load_word_0e0c.c"}
+        texts = ("        c->ip = 0x07BCu;", "/* DOS v1.3 unit 25 load word +0E0C, classifier +06FB, load hook +07BC")
+
+        def status(text, pinned, cid="OVL_0025_07BC"):
+            return scq.prior_evidence(cid, main_files, {"source": [dict(source, text=text)], "tooling": [], "docs": []},
+                                      [], [], {"OVL_0025_0E0C"}, known, pinned)
+
+        pin = {"OVL_0025_0E0C": {0x06FB, 0x0756, 0x07BC, 0x0E0C}}
+        for text in texts:
+            result = status(text, pin)
+            self.assertEqual(result["status"], "inline_in_strict", text)
+            self.assertEqual([(m["covered_by"], m["pinned_span"]) for m in result["inline"]], [("OVL_0025_0E0C", True)])
+            self.assertEqual(status(text, None)["status"], "source_mention", text)
+            self.assertEqual(status(text, {})["status"], "source_mention", text)
+            self.assertEqual(status(text, {"OVL_0025_0E0C": {0x07BD, 0x0E0C}})["status"], "source_mention", text)
+            self.assertEqual(status(text, {"OVL_0026_0E0C": {0x07BC}})["status"], "source_mention", text)
+        # the pin is unit-local: the same offset in another unit is not covered by +0E0C's checker
+        known["OVL_0026_07BC"] = (0x26, 0x07BC)
+        self.assertEqual(status(texts[0], pin, "OVL_0026_07BC")["status"], "source_mention")
+
+    def test_pinned_spans_reads_the_ci_registry(self):
+        """On the real tree, +0E0C's registered checker pins exactly its four spans, +07BC among them."""
+        pinned = scq.pinned_spans(Path(__file__).resolve().parents[2])
+        self.assertEqual(pinned["OVL_0025_0E0C"], {0x06FB, 0x0756, 0x07BC, 0x0E0C})
+
+    # The 13 rows whose inline prior 7f1fd9d6 removed, reproduced by running that commit's queue and its parent's on the
+    # same products. Twelve were false priors and stay removed; +07BC was a true one, which +0E0C's checker pin restores.
+    REMOVED_BY_7F1FD9D6 = ("OVL_001C_0292", "OVL_001C_0BD1", "OVL_001C_0EBC", "OVL_001C_13D7", "OVL_001C_179B",
+                           "OVL_001C_2B7E", "OVL_001C_2F2D", "OVL_0025_07BC", "OVL_0025_0A74", "OVL_005E_0000",
+                           "OVL_007F_0000", "OVL_007F_0054", "OVL_009E_0FD2")
+
+    def test_the_13_priors_7f1fd9d6_removed_stay_removed_except_07bc(self):
+        """On the real tree, a pin rescue needs a same-unit registered checker pinning the row's offset: exactly
+        +07BC has one (+0E0C's), and none of the other twelve has any."""
+        pinned = scq.pinned_spans(Path(__file__).resolve().parents[2])
+        rescued = {row: sorted(host for host, offsets in pinned.items()
+                               if host != row and host[:8] == row[:8] and int(row[-4:], 16) in offsets)
+                   for row in self.REMOVED_BY_7F1FD9D6}
+        self.assertEqual({row: hosts for row, hosts in rescued.items() if hosts}, {"OVL_0025_07BC": ["OVL_0025_0E0C"]})
+        self.assertEqual(len(self.REMOVED_BY_7F1FD9D6), 13)
+
+    def test_discards_carry_their_rule(self):
+        """Every rejected mention is reported with the rule that rejected it."""
+        known = {"OVL_0025_0E0C": (0x25, 0x0E0C), "OVL_0025_07BC": (0x25, 0x07BC)}
+        main_files = {"OVL_0025_0E0C": ["src/recovered/overlay_u25_load_word_0e0c.c"]}
+        mentions = [dict(file="src/recovered/overlay_u25_load_word_0e0c.c", line=405, text="c->ip = 0x07BCu;"),
+                    dict(file="src/recovered/overlay_u25_load_word_0e0c.c", line=1, text="/* load hook +07BC"),
+                    dict(file="docs/notes.c", line=3, text="0x07BC"),
+                    dict(file="src/recovered/overlay_u25_hook_07bc.c", line=9, text="own file")]
+        result = scq.prior_evidence("OVL_0025_07BC", main_files, {"source": mentions, "tooling": [], "docs": []},
+                                    [], [], {"OVL_0025_0E0C"}, known, None)
+        self.assertEqual([(d["line"], d["rule"]) for d in result["discarded"]],
+                         [(405, "IP_REDIRECT"), (1, "COMMENT_ONLY"), (3, "NO_SINGLE_ROUTINE"), (9, "OWN_ROUTINE")])
+        rescued = scq.prior_evidence("OVL_0025_07BC", main_files, {"source": mentions[:2], "tooling": [], "docs": []},
+                                     [], [], {"OVL_0025_0E0C"}, known, {"OVL_0025_0E0C": {0x07BC}})
+        self.assertEqual(rescued["discarded"], [])
+        self.assertEqual([m["rescued_from"] for m in rescued["inline"]], ["IP_REDIRECT", "COMMENT_ONLY"])
+
+    def test_seg_off_mentions_are_found(self):
+        """'007F:0A88' (unit:offset) and '0041:00CA' (an overlay stub) are mentions; a resident SEG:OFF names no overlay
+        candidate; a time, a longer colon chain or a 0x-less 3-digit pair is not the form."""
+        import tempfile
+        candidates = {(0x7F, 0x0A88): "OVL_007F_0A88", (0x38, 0x0CC3): "OVL_0038_0CC3"}
+        stubs = {(0x41, 0x00CA): "OVL_0038_0CC3"}
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "src/recovered/overlay_u99_probe.c"
+            path.parent.mkdir(parents=True)
+            path.write_text("lcall 007F:0A88\n/* dispatch 0041:00CA */\n00BA:23B7 resident\n12:30 1234:0A88:0001 7F:0A88\n")
+            found = scq.scan_mentions(Path(root), candidates, stubs)
+        self.assertEqual([(m["line"], m["kind"]) for m in found["OVL_007F_0A88"]["source"]], [(1, "seg_off")])
+        self.assertEqual([(m["line"], m["kind"]) for m in found["OVL_0038_0CC3"]["source"]], [(2, "stub_seg_off")])
+
+    def test_stub_index_maps_the_stub_aliases_of_candidates(self):
+        """Rows carry STUB_pppp_oooo aliases (STUB_0041_00CA is OVL_0038_0CC3, U9E slot 40); non-candidates and non-stub aliases are left out."""
+        state = dict(candidates={(0x38, 0x0CC3): "OVL_0038_0CC3"},
+                     aliases={"STUB_0041_00CA": {"id": "OVL_0038_0CC3"}, "0x38:0x0cc3": {"id": "OVL_0038_0CC3"},
+                              "STUB_00B0_0025": {"id": "OVL_009E_0000"}})
+        self.assertEqual(scq.stub_index(state), {(0x41, 0x00CA): "OVL_0038_0CC3"})
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)

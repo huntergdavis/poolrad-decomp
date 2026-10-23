@@ -22,6 +22,10 @@ typedef enum {
  * CALLEE preserves a dependency's rejected/partial/changed-return state.
  * TRANSFER preserves unexpected direct-callee returns. No invented return.
  * See docs/re/U3C2_CALLER_0909.md for detailed ABI and evidence scope. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u3c2_0909_status pr_u3c2_caller_0909(
     uint8_t *ram,size_t size,pr_u3c2_0909_cpu *cpu,uint16_t pair_cs,
     size_t max_caller_iterations,size_t max_line_iterations,unsigned max_sort_loopbacks);

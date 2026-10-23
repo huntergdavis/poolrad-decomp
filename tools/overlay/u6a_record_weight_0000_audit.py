@@ -104,6 +104,9 @@ def source():
     return bodies, callee
 
 
+CHECKER_ROWS = ('OVL_006A_0000', 'OVL_006A_019C')
+
+
 def library(directory):
     path = directory / "u6a.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-fPIC", "-shared",
@@ -373,17 +376,30 @@ def differential(bodies, callee, key, functions, quick=False):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-checker-") as temp:
+            library(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     bodies, callee = source()
     report = dict(targets={k: dict(sha256=v["sha"], bytes=len(v["body"]), instructions=v["insns"]) for k, v in bodies.items()},
                   callee=CALLEE["sha"])
     if args.unicorn or args.native:
         with tempfile.TemporaryDirectory(prefix="poolrad-u6a-") as temp:
             functions = library(Path(temp))
+            from loaded_stub_checks import verify_refusals
+            report["loaded_stub_guards"] = {}
+            for key in bodies:
+                memory, cpu = fixture(bodies, callee, key)
+                report["loaded_stub_guards"][key] = verify_refusals(
+                    memory, cpu, lambda ram, state: functions[key](ram, SIZE, ctypes.byref(state)),
+                    [(cpu.cs, bodies[key]["call"])], check_target_cs=False)
             if args.unicorn:
                 report["unicorn_cases"] = {k: differential(bodies, callee, k, functions, args.quick) for k in bodies}
             if args.native:

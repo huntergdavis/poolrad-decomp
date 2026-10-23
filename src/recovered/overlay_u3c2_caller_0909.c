@@ -1,3 +1,4 @@
+#include "overlay_loaded_contracts.h"
 /* Complete U3C2 entry 6. See docs/re/U3C2_CALLER_0909.md.
  * Memory/arithmetic primitives adapted from accepted U7F +0A01. */
 #include "poolrad/recovered/overlay_u3c2_caller_0909.h"
@@ -103,6 +104,9 @@ pr_u3c2_0909_status pr_u3c2_caller_0909(
     if (ram==NULL || c==NULL || size!=PR_U3C2_0909_RAM_SIZE ||
         c->ip!=0x0909u || c->sp<0x008Eu || c->sp>0xFFEEu ||
         max_caller_iterations==0u || max_line_iterations==0u || max_sort_loopbacks==0u)
+        return PR_U3C2_0909_ARGUMENT;
+    /* Read the required loaded 0xEA bindings before CPU/RAM mutation. */
+    if (!(pr_u3c2_0909_stubs_loaded(ram, c->cs, pair_cs)))
         return PR_U3C2_0909_ARGUMENT;
     code_segment=c->cs;
     for (;;) {

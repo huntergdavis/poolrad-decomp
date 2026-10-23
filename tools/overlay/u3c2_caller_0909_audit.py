@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Original-code CPU14/whole-RAM audit of complete U3C2 entry6."""
+from loaded_stub_fixtures import install_stub, loaded_sites
 import argparse
 import ctypes
 from hashlib import sha256
@@ -90,11 +91,15 @@ def install(m,c,pair,system,bodies,decoded):
         for (k,ip),ins in decoded.items():
             if k==kind and start<=ip<start+len(data) and ins.mnemonic=='lcall':
                 off,seg=(0,pair) if ins.op_str=='0x3e0, 0x25' else (0xA3F,system)
-                blob[ip-start+1:ip-start+5]=off.to_bytes(2,'little')+seg.to_bytes(2,'little')
+                if ins.op_str=='0x3e0, 0x25':
+                    install_stub(m,blob,start,ins,pair,0)
+                else:
+                    blob[ip-start+1:ip-start+5]=off.to_bytes(2,'little')+seg.to_bytes(2,'little')
         for i,v in enumerate(blob):m[physical({'caller':c.cs,'pair':pair,'sys':system}[kind],start+i)]=v
 
 def compare(label,state,bodies,decoded,f,budgets=(20000,512,65536)):
     m,c,pair,system=state;install(m,c,pair,system,bodies,decoded)
+    stubs=loaded_sites(m,dict(caller=c.cs,pair=pair,sys=system),decoded)
     backing=(ctypes.c_uint8*SIZE).from_buffer_copy(m);uc=Uc(UC_ARCH_X86,UC_MODE_16)
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for n,r in zip(NAMES,REGS):uc.reg_write(r,getattr(c,n))
@@ -103,6 +108,7 @@ def compare(label,state,bodies,decoded,f,budgets=(20000,512,65536)):
         del address,size,user
         if stepping[0]:return
         cs=uc.reg_read(R.UC_X86_REG_CS);ip=uc.reg_read(R.UC_X86_REG_IP)&65535
+        if (cs,ip) in stubs:return
         kind='caller' if cs==c.cs else 'pair' if cs==pair else 'sys' if cs==system else None;key=(kind,ip)
         assert key in decoded,(label,'unexpected PC',hex(cs),hex(ip))
         if key==('caller',0x422):
@@ -185,6 +191,11 @@ def main():
     bodies,decoded=source();visited=set();edges=set();statuses={};stops={};count=0
     with tempfile.TemporaryDirectory() as tmp:
         f=library(Path(tmp))
+        from loaded_stub_checks import verify_refusals
+        m,c,pair,system=fixture();install(m,c,pair,system,bodies,decoded)
+        stub_guards=verify_refusals(m,c,lambda ram,state: f(ram,SIZE,ctypes.byref(state),pair,20000,512,65536),
+                                    [(c.cs,p) for p in (0x92A,0x9D8)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         for label,kw in specifications(a.quick):
             kw=dict(kw);budgets=kw.pop('budgets',(20000,512,65536))
             print('BEGIN',count+1,label,flush=True)
@@ -196,7 +207,7 @@ def main():
     ce={e for e in edges if e[0] in caller};cc=cond&caller
     assert caller<=visited,sorted(caller-visited)
     assert len(ce)==34,ce
-    report=dict(target='OVL_03C2_0909',cases=count,cpu_words=14,ram_bytes=SIZE,status_counts=statuses,stop_counts=stops,
+    report=dict(loaded_stub_guards=stub_guards,target='OVL_03C2_0909',cases=count,cpu_words=14,ram_bytes=SIZE,status_counts=statuses,stop_counts=stops,
       caller_sites=len(caller&visited),caller_sites_total=len(caller),caller_branch_outcomes=len(ce),caller_branch_outcomes_total=len(cc)*2,
       chain_sites=len(visited),chain_sites_total=len(decoded),chain_branch_outcomes=len(edges),chain_branch_outcomes_total=len(cond)*2,
       masked_flags=0,emulator_state_substitutions=0,uncovered_sites=[f'{k}:{ip:04X}' for k,ip in sorted(set(decoded)-visited)],
