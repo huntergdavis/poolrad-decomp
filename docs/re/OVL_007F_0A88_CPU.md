@@ -79,7 +79,7 @@ Budget:
 
 | Stop | Class | Origin | Pinned by |
 | --- | --- | --- | --- |
-| RETURNED | RETURN | `RETF 8` to the entry frame's return address | Unicorn: 382 of 732 cases; native (not-above branch only, below) |
+| RETURNED | RETURN | `RETF 8` to the entry frame's return address | Unicorn: 382 of 732 cases; native (not-above branch only): 37 of 37 |
 | LIMIT | LIMIT (host cap) | the budget ends at the next unexecuted counted instruction | Unicorn: 343 cases, equal CPU, RAM, EGA, OUT events and VRAM operands at the same arrival |
 | TRANSFER | control transfer | the body's own store through the record reached its return address, or a callee returned elsewhere | Unicorn: 7 cases, all in the `money-at-bp*` / `g102-at-bp*` alias families, the oracle stopping at the same garbage address |
 | ARGUMENT | ARGUMENT | null/size/IP or entry SP outside [0200,FFF4] | C test (ASan/UBSan): CPU, RAM and budget untouched |
@@ -151,13 +151,43 @@ The shared world now counts these arrivals separately (`SHIFT_SPLIT_ARRIVALS`). 
 | the money RMW goes through the bus | the C test with an EGA attached; the differential cannot see it |
 | the index is a signed byte | `index-80/ff/fe` cases plus the C test (I = FFh selects 67F0h and +86h) |
 | the stops are the original's | stop compared per case; C-only stops asserted in the C test |
-| the checker detects a wrong model | MUTATION_RESULTS |
+| the checker detects a wrong model | **22 deliberate mutations: 20 caught (19 by the differential, 1 by the C test) and 2 equivalent, each with its proof** |
 | the census covers the new helpers | `flag_census.py --check`: 0 without a row, 0 unclassified |
 | the checker builds on current main | `CHECKER_ROWS` registered; `--compile-only` prints `CHECKER_BUILD_OK`; `check_checker_builds.py --require-current-main` |
 
 ### Mutation
 
-MUTATION_DETAIL
+**22 mutants: 20 caught, 19 by the Unicorn differential and 1 by the C test; 2 equivalent.** The run is on the 46-case mutation set (`MUTANT_CASES`).
+
+**Caught by the differential (19):**
+- JE inverted;
+- the message at 0A7Eh (the string then loaded overruns the 10-byte temporary: TRANSFER);
+- the money word at +8Ah;
+- **JG as unsigned above** (`pool-8000-0000`);
+- **JBE as JB** (`pool-0000-0005`);
+- **SBB without the borrow** (`pool-0001-0000`);
+- the pool's high word stored at 67F4;
+- **the index zero-extended instead of CBW** (`index-80`);
+- the index byte read from `[BP+7]`;
+- the clamp keeping AMOUNT (`pool-0000-0004`);
+- `+003A` given the index word;
+- RETF popping 6;
+- `SUB SP,10h`;
+- the excess local at BP-4;
+- **the return-address (TRANSFER) check dropped** (`money-at-bp+02`);
+- the `+0054` call-site displacement;
+- the `+0054` and the 1693 calls not charged to the budget;
+- **SHL leaving AF clear**, caught by the declared split itself at `budget-not-150`: the split demands AF set after a non-zero shift, so it is a check, not a mask.
+
+**Caught by the C test (1).** The money read bypassing the bus survives the differential, as predicted, because no differential case puts the record in the aperture. It is caught by the C test's EGA case.
+
+**Equivalent (2), with proofs:**
+- **SHL without OF.** DI and AX are `CBW` of a byte, so they lie in [FF80h,007Fh]. After one doubling they lie in [FF00h,00FEh]. In both ranges bits 15 and 14 are equal before each of the ten SHLs (0AC1, 0AC3, 0AE2, 0AE4, 0AFC, 0AFE, 0B16, 0B18 on DI; 0B26, 0B3B on AX), so OF = bit15(result) ^ CF = 0 every time. A model that never sets OF agrees on every input.
+- **`OR AL,AL` testing 16 bits.** This is +0203's proof: AL is the 0/1 byte `+0054` returns, so SF is always clear.
+
+The first mutation run had two defects of its own, fixed before this run:
+- "the index read as a word" was itself equivalent, because `CBW` overwrites AH. It was replaced by the `[BP+7]` mutant.
+- The bus mutant did not compile (an unused helper under `-Werror`). A compile error is not counted as a catch.
 
 ### Census rows (FLAG_SEMANTICS_CENSUS.tsv)
 
@@ -170,13 +200,26 @@ MUTATION_DETAIL
 
 ### Native corroboration (partial; packaged DOSBox-X, not the pinned build)
 
-NATIVE_RESULTS
+DOSBox-X normal core, 386, **37 synthetic cases, all on the NOT-ABOVE branch**. `+0A88`, `+0054`, `+0000`, the 13AB/11EA closure and `+003A` run as original bytes under a real DOS. The branch that shows a message through 1693, StrLoad and the EGA is **not** run natively.
+
+Cases:
+- the pool compare: high words 0/1/8000h/FFFFh x low words 0/4/5/6 against AMOUNT 5, so JG, JL and both JBE outcomes are taken;
+- indices 0, 1, 3, 6, 7Fh, 80h, FFh, plus garbage in the index word's high byte;
+- money 0000h/7FFFh/FFFFh;
+- five flag images;
+- SP at both bounds and an odd SP;
+- W at the class edge;
+- a record at offset FF00h.
+
+Against the C model on identical state, all 14 CPU words and **12,125,196 bytes** (five 64 KiB regions per case plus the CPU words) match: **0 mismatches, no masks, 0 skipped.** IF is cleared in every native case.
+
+The host's **packaged `/usr/bin/dosbox-x`** (SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`) was used, **not the pinned `5a9c7c53` build**. Frames are synthetic, so this does not establish natural reachability.
 
 ### Declared environment
 
 1. No stubs stand in for original behaviour: there is no INT 3Fh dispatch and no environment service. The whole composition runs as original bytes in the oracle.
 2. The 1693 closure runs with generous loop-back limits and no refused OUT; its own LIMIT, refusal and CODE stops stay with its own audit.
-3. The shared world gains this span, the `CS:0A7D` constant, the two relocation words, this model's source, and the shift split. The **+0203 audit was re-run on the changed world**: REGRESSION_RESULTS.
+3. The shared world gains this span, the `CS:0A7D` constant, the two relocation words, this model's source, and the shift split. The **+0203 audit was re-run on the changed world**: `--unicorn --quick` gives **758 cases, 0 mismatches, 53/53 starts**, the same 2 pinned-MULW split states, 444 RETURNED / 302 LIMIT / 12 TRANSFER. +0203 has no SHL, so the new shift branch never fires there.
 4. TF is excluded from the random flag words; FLAGS bit 1 is always set.
 
 ## Not established
