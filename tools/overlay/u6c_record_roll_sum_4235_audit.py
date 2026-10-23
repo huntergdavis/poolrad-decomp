@@ -14,7 +14,7 @@ import tempfile
 
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from unicorn import Uc, UC_ARCH_X86, UC_HOOK_CODE, UC_MODE_16
-from unicorn.x86_const import UC_X86_REG_CS, UC_X86_REG_IP
+from unicorn.x86_const import UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CS, UC_X86_REG_DX, UC_X86_REG_IP
 from overlay_inventory import find_units, parse_mz
 from overlay_u9e_entry8_roll_audit import audit as dice_source_audit
 from resident_loader_map import unpack
