@@ -49,9 +49,11 @@ def _count(i, previous):
         return 1
     c = ops[1]
     if c == 'cl':
-        if previous is not None and previous.mnemonic == 'mov' and previous.op_str.startswith('cl, '):
-            n = int(previous.op_str.split(', ')[1], 0) & 0x1F
-            return n or None
+        if previous is not None and previous.mnemonic == 'mov' and previous.op_str.split(', ')[0] in ('cl', 'cx'):
+            value = previous.op_str.split(', ')[1]
+            if value.startswith('0x') or value.isdigit():
+                n = int(value, 0) & 0x1F                            # MOV CL,n or MOV CX,n just before (CL is the low byte)
+                return n or None
         return None
     n = int(c, 0) & 0x1F
     return n or None
@@ -156,7 +158,12 @@ def liveness(instructions, site, stops=()):
     stops = set(stops)
     start = by[site]
     result = {}
-    for flag in sorted(writes(start, prev[site])):
+    written = writes(start, prev[site])
+    if not written and start.mnemonic in SHIFTS | ROTATES:
+        # A folded shift/rotate whose count is not known here: analyse every flag it can write (a zero count writes
+        # none, so this is the conservative side); never report such a site DEAD vacuously.
+        written = ALL if start.mnemonic in SHIFTS else frozenset('CO')
+    for flag in sorted(written):
         killed, observed, seen, work = set(), set(), set(), [nxt[site]]
         while work:
             a = work.pop()
@@ -259,6 +266,62 @@ PRESETS = {'u31': [
     (('segment', 0x0AF8), (0x0C68, 0x0CBC), 'system_textassign_insert_cpu.c:145', [0x0C6B]),
     (('segment', 0x0AF8), (0x0C68, 0x0CBC), 'system_textassign_insert_cpu.c:152', [0x0C81]),
     (('segment', 0x0AF8), (0x0B57, 0x0B98), 'Copy 0B57, the callee at 0C84/0CA3: flags arriving at its entry', [('entry', 0x0B57)]),
+], 'slice6': [
+    (('segment', 0x0AF8), (0x1254, 0x12A6), 'system_str_1366_cpu.c:119 (12A3 SUB CX,DI; returns to 137A)', [0x12A3]),
+    (('segment', 0x0AF8), (0x1366, 0x13B1), 'system_str_1366_cpu.c:119 (flags arriving back at 137A)', [('entry', 0x137A)]),
+    (('segment', 0x0AF8), (0x1366, 0x13B1), 'system_str_1366_cpu.c:130', [0x1369]),
+    (('segment', 0x0AF8), (0x1254, 0x12A6), 'system_str_1366_cpu.c:130 (flags arriving at the 1254 callee)', [('entry', 0x1254)]),
+    (('segment', 0x0AF8), (0x0A5B, 0x0A76), 'system_longmul_0a5b_cpu.c:62', [0x0A5F, 0x0A65, 0x0A6B]),
+    (('segment', 0x0AF8), (0x0A5B, 0x0A76), 'system_longmul_0a5b_cpu.c:75', [0x0A71]),
+    (('segment', 0x0AF8), (0x0B25, 0x0B49), 'system_strstore_fullstate_0b25.c:34', [0x0B37]),
+    (('segment', 0x0AF8), (0x0B57, 0x0B98), 'system_string_move_leaves_cpu.c:95', [0x0B66]),
+    (('segment', 0x0AF8), (0x0A76, 0x0AE4), 'system_longdiv_0a76_cpu.c:98', [0x0A9F, 0x0AA1, 0x0AA6, 0x0AA8, 0x0AAA, 0x0AAC, 0x0AB0, 0x0AB2, 0x0AB4, 0x0AB5, 0x0AB7, 0x0AB9]),
+    (('segment', 0x0AF8), (0x13E2, 0x1410), 'system_ioresult_assign_cpu.c:84', [0x13FD]),
+    (('segment', 0x0AF8), (0x0308, 0x03D3), 'system_getmem_023f_cpu.c:103', [0x0354, 0x0356, 0x0358, 0x035A, 0x0387, 0x0389, 0x038B, 0x038D]),
+    (('segment', 0x0AF8), (0x0491, 0x04A2), 'system_freemem_0254_cpu.c:103', [0x0491, 0x0496, 0x0498, 0x049A, 0x049C]),
+    (('segment', 0x00BA), (0x2E8B, 0x2F57), 'resident_character_target_select.c:214', [0x2ECD]),
+    (('segment', 0x0802), (0x05CD, 0x06E7), 'resident_0802_05cd_cpu.c:187', [0x0622]),
+    (('segment', 0x0709), (0x01DF, 0x05EB), 'resident_0709_glyph_01df_cpu.c:3', [0x0212, 0x0255, 0x0257, 0x0286, 0x02A1, 0x02AE, 0x02C1, 0x02D8, 0x030D, 0x0328, 0x0335, 0x0348, 0x035F, 0x039C, 0x03FD, 0x0423, 0x0485, 0x048F, 0x0491, 0x04BF, 0x04DB, 0x04EB, 0x04FA, 0x051C, 0x02DF, 0x0366, 0x03A1, 0x0538, 0x055D, 0x0582, 0x05A7]),
+    (('segment', 0x0709), (0x0DD3, 0x0F82), 'resident_0709_clear_0dd3_cpu.c:96', [0x0DE7, 0x0DE9, 0x0DF2, 0x0DF4, 0x0E09, 0x0E28, 0x0E4A, 0x0EB9, 0x0EC2, 0x0ECC, 0x0ECE, 0x0EE0, 0x0EE2, 0x0E2F, 0x0E51, 0x0F06, 0x0F23, 0x0F40, 0x0F5D]),
+    (('segment', 0x03F1), (0x0137, 0x02E8), 'resident_03f1_clear_0137_cpu.c:96', [0x014B, 0x014D, 0x0156, 0x0158, 0x016D, 0x018C, 0x01AE, 0x021F, 0x0228, 0x0232, 0x0234, 0x0246, 0x0248, 0x0193, 0x01B5, 0x026C, 0x0289, 0x02A6, 0x02C3]),
+    (('segment', 0x00BA), (0x2199, 0x2208), 'resident_00ba_sidecar_lookup_2199_cpu.c:91', [0x219C]),
+    (('segment', 0x00BA), (0x26C2, 0x2729), 'resident_00ba_class_value_26c2_cpu.c:46', [0x26C5, 0x26CB, 0x26D1, 0x270D, 0x2713]),
+    (('segment', 0x00BA), (0x1037, 0x1073), 'resident_00ba_byte_string_1037_cpu.c:78', [0x103A, 0x1041, 0x1043]),
+    (('unit', 0x9E), (0x10E4, 0x110D), 'overlay_u9e_entry16_10e4.c:86', [0x10E7, 0x10ED, 0x10EF]),
+    (('unit', 0x9E), (0x10E4, 0x110D), 'overlay_u9e_entry16_10e4.c:97 (not in the TSV; equal by construction, see the doc)', [0x10FE]),
+    (('unit', 0x6A), (0x0000, 0x0159), 'overlay_u6a_record_weight_0000.c:111', [0x012A, 0x0136, 0x0142, 0x012F, 0x013B, 0x0147]),
+    (('unit', 0x3CE), (0x014E, 0x01B0), 'overlay_u3ce_bitmap_pair_release_014e_cpu.c:36', [0x0157, 0x015D, 0x016C, 0x0172, 0x0182, 0x0188, 0x0197, 0x019D]),
+    (('unit', 0x3B4), (0x00C7, 0x00FB), 'overlay_u3b4_case_maps.c:64 (00C7)', [0x00CA]),
+    (('unit', 0x3B4), (0x00FB, 0x012F), 'overlay_u3b4_case_maps.c:64 (00FB)', [0x00FE]),
+    (('unit', 0x3B4), (0x012F, 0x016D), 'overlay_u3b4_case_maps.c:64 (012F)', [0x0132]),
+    (('unit', 0x3B0), (0x11F3, 0x1245), 'overlay_u3b0_dispose_11f3_cpu.c:26', [0x11F6]),
+    (('unit', 0x3B0), (0x0CC5, 0x0D88), 'overlay_u3b0_cursor_step_0cc5_cpu.c:102', [0x0CC8]),
+    (('unit', 0x33), (0x02BA, 0x0377), 'overlay_u33_stamp_block_02ba.c:114', [0x02BD]),
+    (('unit', 0x33), (0x0221, 0x02BA), 'overlay_u33_stamp_block_02ba.c:114 (flags arriving at the 0221 callee)', [('entry', 0x0221)]),
+    (('unit', 0x33), (0x0377, 0x040F), 'overlay_u33_stamp_square_0377.c:109', [0x037A]),
+    (('unit', 0x38), (0x001F, 0x0058), 'overlay_u38_gated_append_001f_cpu.c:28', [0x0022]),
+    (('unit', 0x38), (0x2915, 0x2976), 'overlay_u38_roll_gate_2915_cpu.c:182', [0x2931, 0x2935, 0x2937, 0x2939]),
+    (('unit', 0x38), (0x2A87, 0x2AE6), 'overlay_u38_target_index_gate_2a87.c:264', [0x2AB4]),
+    (('unit', 0x38), (0x2A87, 0x2AE6), 'overlay_u38_target_index_gate_2a87.c:298', [0x2ACA]),
+    (('unit', 0x38), (0x25BC, 0x2605), 'overlay_u38_target_mask81_25bc.c:254', [0x25E9]),
+    (('unit', 0x3B0), (0x08D7, 0x0923), 'overlay_u3b0_space_scan_cpu.c:180', [0x090F]),
+    (('unit', 0x3B0), (0x0923, 0x0969), 'overlay_u3b0_space_scan_cpu.c:205', [0x0955]),
+    (('unit', 0x3B9), (0x048F, 0x04F8), 'overlay_u3b9_bitmap_set_release_048f_cpu.c:63', [0x04BD]),
+    (('unit', 0x3B9), (0x048F, 0x04F8), 'overlay_u3b9_bitmap_set_release_048f_cpu.c:74', [0x04B3]),
+    (('unit', 0x6F), (0x1446, 0x157F), 'overlay_u6f_party_insert_1446_cpu.c:239', [0x1449]),
+    (('unit', 0x6F), (0x1446, 0x157F), 'overlay_u6f_party_insert_1446_cpu.c:331', [0x1541, 0x1551, 0x1555, 0x155E]),
+    (('unit', 0x86), (0x0729, 0x07D6), 'overlay_u86_entry3_0729.c:67', [0x0746, 0x075B, 0x0773, 0x0786, 0x07AA, 0x074C, 0x0761, 0x0779, 0x078C, 0x07B0]),
+    (('unit', 0x86), (0x0729, 0x07D6), 'overlay_u86_entry3_0729.c:75', [0x0752, 0x0767, 0x077F, 0x0792]),
+    (('unit', 0x1C), (0x0AED, 0x0B52), 'overlay_u1c_compare_and_0aed_cpu.c:226', [0x0B23, 0x0B27]),
+    (('unit', 0x1C), (0x0A9F, 0x0AED), 'overlay_u1c_return_0a9f_cpu.c:26', [0x0AA2]),
+    (('unit', 0x1C), (0x2E7D, 0x2F2D), 'overlay_u1c_text_2e7d_cpu.c:92', [0x2EDE]),
+    (('unit', 0x20), (0x0355, 0x04C9), 'overlay_u20_party_award_0355_cpu.c:141', [0x03C0, 0x03ED, 0x041A, 0x0446, 0x03C3, 0x03F0, 0x041D, 0x0449]),
+    (('unit', 0x25), (0x1951, 0x19DB), 'overlay_u25_alloc_1951_cpu.c:179', [0x19BB]),
+    (('unit', 0x25), (0x1FB1, 0x207E), 'overlay_u25_entry23_1fb1.c:204', [0x2010, 0x2012, 0x2033, 0x2035]),
+    (('unit', 0x25), (0x0482, 0x0511), 'overlay_u25_step_probe_0482.c:98', [0x04E2, 0x04EB, 0x04F4, 0x04FD]),
+    (('unit', 0x25), (0x0F53, 0x1153), 'overlay_u25_store_string_0f53.c:239', [0x0FBD, 0x0FDD, 0x104B, 0x106B, 0x10B8, 0x10D8, 0x1120, 0x113E, 0x0FC0, 0x0FE0, 0x104E, 0x106E, 0x10BB, 0x10DB]),
+    (('unit', 0x33), (0x01AD, 0x0221), 'overlay_u33_cell_pair_01ad.c:140', [0x01B6, 0x01B8]),
+    (('unit', 0x33), (0x0810, 0x08A4), 'overlay_u33_neighbourhood_0810.c:164', [0x0813]),
 ], 'u77': [
     (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:154', [0x28C1]),
     (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:157', [0x28C4]),

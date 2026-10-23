@@ -161,7 +161,7 @@ pr_u33_0810_status pr_u33_neighbourhood_0810(
     if (ram == NULL || cpu == NULL || ram_size != PR_U33_0810_RAM_SIZE)
         return PR_U33_0810_ARGUMENT;
     entry = cpu->ip;
-    /* +0810..+0813: frame and ten local bytes (SUB's flags are overwritten by +01AD). */
+    /* +0810..+0813: frame and ten local bytes (SUB's flags are overwritten by the ADD at +0832). */
     push16(ram, cpu, cpu->bp);
     cpu->bp = cpu->sp;
     cpu->sp = (uint16_t)(cpu->sp - 0x0Au);
