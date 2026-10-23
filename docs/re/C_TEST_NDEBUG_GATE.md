@@ -50,3 +50,5 @@ carries the body's unit and offset, plus the `ctest` names the evidence table (`
 **Credits resting on composed Unicorn or DOSBox-X differentials are NOT in question.** Those differentials are their own
 Python harnesses, and they compare full state without `assert()`. Only a claim that leaned on a C test alone could have
 been hollow, and every such test in (a) now passes with asserts live.
+
+The C suite was green and blind; it is now green and watching. Of the 58 credits without a C test, 20 rest only on a cited shared tool, the weakest evidence class in the corpus, and are being upgraded. (owner: wR:p1)
