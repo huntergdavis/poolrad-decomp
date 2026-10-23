@@ -59,6 +59,8 @@ overlay_u7f_044c_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreac
 overlay_u7f_044c_cpu.c,pr_u7f_entry0_0000_cpu,no,-,-,no-pointer,no
 overlay_u7f_044c_cpu.c,pr_u7f_record_subtract_0020,no,-,-,no-pointer,no
 overlay_u7f_044c_cpu.c,pr_u7f_record_word_add_003a,no,-,-,no-pointer,no
+overlay_u7f_0a88_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,no
+overlay_u7f_0a88_cpu.c,pr_u7f_record_word_add_003a,no,-,-,no-pointer,no
 overlay_u7f_number_0294_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,no
 overlay_u7f_number_0294_cpu.c,pr_system_charstr_0c3b,yes,local,read,unreachable-by-construction,no
 overlay_u7f_number_0294_cpu.c,pr_system_str_1366,yes,local,read,unreachable-by-construction,no
