@@ -68,14 +68,11 @@ static void szp(pr_u77_28be_cpu *cpu, uint16_t result)
     if (result & 0x8000u) cpu->flags |= 0x0080u;
 }
 
-/* SHL r16,1: CF the bit shifted out, OF = MSB ^ CF, AF clear as Unicorn leaves it. */
+/* SHL r16,1: CF the bit shifted out, OF = MSB ^ CF, AF set (pinned DOSBox-X get_AF: count & 1Fh, non-zero). */
 static uint16_t shl1(pr_u77_28be_cpu *cpu, uint16_t value)
 {
     uint16_t result = (uint16_t)(value << 1);
     cpu->flags &= (uint16_t)~0x08D5u;
-    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
-    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
-    cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
     cpu->flags |= 0x0010u; /* pinned DOSBox-X: AF = (count & 1Fh) != 0 */
     if (value & 0x8000u) cpu->flags |= 0x0001u;
     if (((result >> 15) ^ (value >> 15)) & 1u) cpu->flags |= 0x0800u;
@@ -151,16 +148,16 @@ pr_u77_28be_cpu_status pr_u77_weighted_28be_cpu(uint8_t *ram, size_t ram_size, p
         return PR_U77_28BE_CPU_ARGUMENT;
     memset(&m, 0, sizeof m);
     m.ram = ram; m.size = ram_size; m.cpu = cpu; m.entry = cpu->ip; m.callee_status = callee_status; m.stop = PR_U77_28BE_CPU_OK;
-    push16(&m, cpu->bp);                                                  /* +28BE PUSH BP; MOV BP,SP; SUB SP,0Ah (flags folded) */
+    push16(&m, cpu->bp);                                                  /* +28BE PUSH BP; MOV BP,SP; SUB SP,0Ah (folded: XOR at +28C4) */
     cpu->bp = cpu->sp;
     cpu->sp = (uint16_t)(cpu->sp - 0x0Au);
-    cpu->ax = 0u;                                                         /* +28C4 XOR AX,AX (flags folded); sum := 0; j := 0 */
+    cpu->ax = 0u;                                                         /* +28C4 XOR AX,AX (folded: SHL at +28D9); sum := 0; j := 0 */
     write16(&m, cpu->ss, (uint16_t)(cpu->bp - 8u), cpu->ax);
     write16(&m, cpu->ss, (uint16_t)(cpu->bp - 6u), cpu->ax);
     ram[physical(cpu->ss, (uint16_t)(cpu->bp - 9u))] = 0u;
     for (;;) {
         uint16_t old, added;
-        load_j(&m);                                                       /* +28D5 SHL AX,1; LES DI,[BP+6]; ADD DI,AX (flags folded) */
+        load_j(&m);                                                       /* +28D5 SHL AX,1; LES DI,[BP+6]; ADD DI,AX (folded: XOR DX,DX at +28E5) */
         cpu->ax = (uint16_t)(cpu->ax << 1);
         at = physical(cpu->ss, (uint16_t)(cpu->bp + 6u));
         cpu->di = read16_at(ram, at);
@@ -177,14 +174,14 @@ pr_u77_28be_cpu_status pr_u77_weighted_28be_cpu(uint8_t *ram, size_t ram_size, p
         cpu->dx = read16(&m, cpu->ds, (uint16_t)(cpu->di + 0x0D26u));
         if (!far_call(&m, 0x28FDu, 0))                                    /* +28FD DX:AX := w[j] * value */
             return m.stop;
-        old = read16(&m, cpu->ss, (uint16_t)(cpu->bp - 8u));              /* +2902 ADD [BP-8],AX; ADC [BP-6],DX (flags folded) */
+        old = read16(&m, cpu->ss, (uint16_t)(cpu->bp - 8u));              /* +2902 ADD [BP-8],AX; ADC [BP-6],DX (ADD's CF is the carry below; rest folded: CMP at +2908) */
         added = (uint16_t)(old + cpu->ax);
         write16(&m, cpu->ss, (uint16_t)(cpu->bp - 8u), added);
         write16(&m, cpu->ss, (uint16_t)(cpu->bp - 6u),
                 (uint16_t)(read16(&m, cpu->ss, (uint16_t)(cpu->bp - 6u)) + cpu->dx + (added < old)));
-        if (ram[physical(cpu->ss, (uint16_t)(cpu->bp - 9u))] == 4u)      /* +2908 CMP BYTE [BP-9],4; JNE +28D2 (flags folded) */
+        if (ram[physical(cpu->ss, (uint16_t)(cpu->bp - 9u))] == 4u)      /* +2908 CMP BYTE [BP-9],4; JNE +28D2 (ZF is the branch; rest folded: SHL at +28D9 or ADD at +2914) */
             break;
-        at = physical(cpu->ss, (uint16_t)(cpu->bp - 9u));                 /* +28D2 INC BYTE [BP-9] (flags folded) */
+        at = physical(cpu->ss, (uint16_t)(cpu->bp - 9u));                 /* +28D2 INC BYTE [BP-9] (folded: SHL at +28D9) */
         ram[at] = (uint8_t)(ram[at] + 1u);
     }
     {

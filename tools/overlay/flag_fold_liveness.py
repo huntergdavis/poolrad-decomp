@@ -172,6 +172,14 @@ PRESETS = {'u31': [
     (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:302', [0x075D, 0x0774, 0x078B, 0x07A2]),
     (('unit', 0x31), (0x0675, 0x07D6), 'overlay_u31_step_gate_0675.c:308', [0x07B4]),
     (('unit', 0x31), (0x0675, 0x07D6), '(header: SHR, MUL)', [0x071F, 0x073F]),
+], 'u77': [
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:154', [0x28C1]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:157', [0x28C4]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:163', [0x28D9, 0x28DE]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:180', [0x2902, 0x2905]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:185', [0x2908]),
+    (('unit', 0x77), (0x28BE, 0x2939), 'overlay_u77_weighted_28be_cpu.c:187', [0x28D2]),
+    (('unit', 0x77), (0x28BE, 0x2939), '(other writers, not in the TSV)', [0x28E5, 0x28F1, 0x28F3, 0x2914, 0x2917]),
 ]}
 
 
