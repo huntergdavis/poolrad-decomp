@@ -19,6 +19,12 @@ then the driver waits until the prompt line reads the same on two polls (budget 
 and saves the frame as extraNN-<key>. The tail stops early, with the stage named, if a step's budget runs out, and with
 exit 8 ("route diverged") if a random-encounter prompt (COMBAT) appears, or if WALK_EXPECT is set and a step settles on
 a prompt containing none of its expected words: those runs are not the route.
+Optional combat route (route 3, PM i21589): WALK_COMBAT=1. After 14,4 the party paces Down/Up until the encounter menu
+(COMBAT/WAIT/FLEE) settles (budget SEEK_STEPS steps, default 60; exit 9 if none), presses c (Combat), then, until the area
+menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500): q (Quick: the computer fights for that
+character) on every character's combat menu, Return on every PRESS ENTER/RETURN screen, e (Exit) then y on the treasure
+menu. A settled prompt matching none of these stops with exit 10 and the frame saved, so the route never presses a key
+for a screen it does not know. Every key is logged with the prompt it answered.
 Usage: walk_driver.py RUN_DIR [STAGE_BUDGET_S=300] [TOTAL_BUDGET_S=1500] [STOP=walk|menu]
 """
 import os, signal, subprocess, sys, time
@@ -176,6 +182,98 @@ for k, name in enumerate(extra, 1):
     log(f"EXTRA {k} {name} settled: {last!r}")
     if k <= len(expect) and not any(w in (last or "") for w in expect[k - 1].split("|")):
         stop(8, f"route diverged: extra step {k} ({name}) settled on {last!r}, expected one of {expect[k - 1]}")
+
+
+def settle(tag, budget):
+    """Poll the prompt until it reads the same twice; returns it (None if the budget ran out)."""
+    t = time.time(); last = None
+    while time.time() - t < budget:
+        if time.time() - T0 > TOTAL_BUDGET:
+            stop(4, f"total budget exhausted at {tag}")
+        if emu.poll() is not None:
+            stop(5, f"emulator exited at {tag}")
+        time.sleep(2)
+        txt = ocr_prompt(grab(tag))
+        log(f"{tag} poll: {txt!r}")
+        if txt and txt == last:
+            return txt
+        last = txt
+    return None
+
+
+def readable(txt):
+    """A prompt with at least one known menu word; the empty prompt bar OCRs as noise."""
+    return any(w in txt for w in ("AREA", "SEARCH", "LOOK", "COMBAT", "FLEE", "ENTER", "RETURN", "CONTINUE", "QUICK", "GUARD",
+                                  "AIM", "MOVE", "OVE", "USE", "DONE", "DOE", "AIN", "TREASURE", "TAKE", "POOL", "SURE", "Y/N", "BATTLE", "CAMP", "VIEW", "LEFT", "ATTACH", "ATTACK", "DYING", "YES"))
+
+
+def has(txt, *words):
+    return any(w in txt for w in words)
+
+
+ENCOUNTER = ("COMBAT", "FLEE")
+AREA = ("AREA", "SEARCH", "LOOK")
+CONTINUE = ("ENTER", "RETURN", "CONTINUE")
+# The combat menu is MOVE VIEW AIM USE QUICK DONE; its two-colour hot letters OCR badly ('NHOVE WIEN AIN USE adich DOE'),
+# so match the fragments that survive.
+COMBAT_MENU = ("QUICK", "GUARD", "AIM", "MOVE", "OVE", "USE", "DONE", "DOE", "AIN")
+if os.environ.get("WALK_COMBAT"):
+    found = None
+    for step in range(int(os.environ.get("SEEK_STEPS", "60"))):
+        k = "Down" if step % 2 == 0 else "Up"
+        key(k)
+        while True:
+            txt = settle(f"seek{step:02d}-{k}", 60) or ""
+            if has(txt, *CONTINUE) and not has(txt, *ENCOUNTER):
+                key("Return"); continue
+            break
+        if has(txt, *ENCOUNTER, *COMBAT_MENU, "BATTLE") or not readable(txt):
+            found = txt; break             # the encounter menu, or an ambush: BATTLE BEGINS, then the combat screen
+        if not has(txt, *AREA):
+            stop(10, f"seek step {step}: unknown settled prompt {txt!r}")
+    if not found:
+        stop(9, "no encounter within the seek budget")
+    log(f"ENCOUNTER {found!r}")
+    if has(found, *ENCOUNTER):
+        time.sleep(1); key("c")
+    t = time.time(); quick = 0; unknown_since = None; after_exit = False
+    while True:
+        if time.time() - t > int(os.environ.get("COMBAT_BUDGET_S", "1500")):
+            stop(7, "combat never returned to the area menu")
+        txt = settle("combat", 120)
+        if txt is None:
+            continue                       # still animating: the computer is fighting
+        if has(txt, *AREA) and not has(txt, *ENCOUNTER):
+            log(f"COMBAT OVER: area menu {txt!r}; quick presses {quick}")
+            break
+        if after_exit and len(txt) <= 12 and has(txt, "NO", "MO", "YES"):
+            key("n")                       # THERE IS STILL TREASURE LEFT. GO BACK AND CLAIM IT? YES NO (OCR 'Me MO'): leave it
+            after_exit = False
+        elif has(txt, "BATTLE") and has(txt, "YES", "HES", "NO"):
+            key("n")                       # CONTINUE BATTLE: YES NO is asked when no enemy is left in reach (the party only
+                                           # guards, measured in hybrid-r3-proto-e): No ends the fight, its natural end
+        elif has(txt, "LEFT", "ATTACH", "ATTACK", "DYING"):
+            continue                       # MOVE/ATTACK, MOVE LEFT = n: the computer is moving that character; a status line
+        elif has(txt, *COMBAT_MENU):
+            key("q"); quick += 1
+        elif has(txt, "TREASURE", "TAKE", "POOL", "FOOL", "SHARE"):
+            key("e"); after_exit = True
+        elif has(txt, "SURE", "Y/N", "(Y"):
+            key("y")
+        elif has(txt, *CONTINUE):
+            key("Return")
+        elif has(txt, *ENCOUNTER):
+            key("c")
+        elif not readable(txt) or has(txt, "BATTLE"):
+            # the prompt bar is empty while monsters act (OCR reads noise): wait, but not for ever on one screen
+            unknown_since = unknown_since or time.time()
+            if time.time() - unknown_since > 120:
+                stop(10, f"combat: unreadable prompt unchanged for 120 s: {txt!r}")
+            continue
+        else:
+            stop(10, f"combat: unknown settled prompt {txt!r}")
+        unknown_since = None
 time.sleep(SETTLE)
 grab("final")
-stop(0, "route complete: 15,4 -> 14,4 seen" + (f", then {len(extra)} extra keys" if extra else ""))
+stop(0, "route complete: 15,4 -> 14,4 seen" + (f", then {len(extra)} extra keys" if extra else "") +
+     (", then an encounter fought to the area menu" if os.environ.get("WALK_COMBAT") else ""))
