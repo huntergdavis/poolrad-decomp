@@ -20,6 +20,7 @@ DECLARATION (read this before reading the numbers):
 Compared: 12 CPU words (CS and IP are the harness's frame), the arithmetic flags
 under mask 0x0FD5, and both 0x300-byte object blocks.
 """
+# NOT_A_ROW_CHECKER: native DOSBox-X harness for OVL_0077_275B; the row's registered checker is u77_275b_cpu_audit.py
 import ctypes
 import os
 import struct
@@ -81,7 +82,10 @@ def build_com(directory, body, specs):
                             RECORD_OFFSET, RECORD_SEGMENT)
         target = ram[audit.physical(TARGET_SEGMENT, 0):audit.physical(TARGET_SEGMENT, 0) + OBJECT_BYTES]
         record = ram[audit.physical(RECORD_SEGMENT, 0):audit.physical(RECORD_SEGMENT, 0) + OBJECT_BYTES]
-        fixture_input += frame + struct.pack("<H", spec.get("flags", 0x0202)) \
+        # Entry FLAGS and BP come from the fixture's own entry CPU: a harness that pins a register the body
+        # preserves compares itself, not the model (BP=7F00 was pinned while 15 fixtures vary it; VP i21817).
+        audit.check(spec.get("flags", 0x0202) == _cpu.flags, f"{name}: spec flags differ from the fixture CPU")
+        fixture_input += frame + struct.pack("<2H", _cpu.flags, _cpu.bp) \
             + bytes(target) + bytes(record)
     (directory / "INPUT.BIN").write_bytes(bytes(fixture_input))
 
@@ -108,7 +112,7 @@ def build_com(directory, body, specs):
              "again:",
              "    push cs", "    pop ds", "    push cs", "    pop es",
              "    mov dx,offset frame_words", "    mov cx,8", "    call read_input",
-             "    mov dx,offset frame_flags", "    mov cx,2", "    call read_input",
+             "    mov dx,offset frame_flags", "    mov cx,4", "    call read_input",   # flags, then BP
              "    mov dx,offset object_target", f"    mov cx,{OBJECT_BYTES}", "    call read_input",
              "    mov dx,offset object_record", f"    mov cx,{OBJECT_BYTES}", "    call read_input",
              f"    mov ax,{TARGET_SEGMENT:#x}", "    mov es,ax", "    mov si,offset object_target",
@@ -129,7 +133,7 @@ def build_com(directory, body, specs):
              f"    mov ax,{CS:#x}", "    mov ds,ax",
              # declared entry register file, mirroring the differential fixture
              "    xor ax,ax", "    xor bx,bx", "    xor cx,cx", "    xor dx,dx",
-             "    xor si,si", "    xor di,di", f"    mov bp,{0x7F00:#x}",
+             "    xor si,si", "    xor di,di", "    mov bp,word ptr cs:[frame_bp]",   # fixture entry BP
              "    push word ptr cs:[frame_flags]", "    popf",   # declared entry flags
              f"    mov ax,{DECLARED_DS:#x}", "    mov ds,ax",   # declared entry DS, last moment
              "    call dword ptr cs:[target]",   # return CS/IP are the harness frame
@@ -170,7 +174,7 @@ def build_com(directory, body, specs):
              'input_name: .asciz "INPUT.BIN"', 'output_name: .asciz "RESULT.BIN"',
              "input_handle: .word 0", "output_handle: .word 0", "index: .word 0",
              "file_header: .word 0,0,0,0",
-             "frame_words: .word 0,0,0,0", "frame_flags: .word 0",
+             "frame_words: .word 0,0,0,0", "frame_flags: .word 0", "frame_bp: .word 0",
              f"target: .word {ENTRY:#x},{CS:#x}"]
     at = 0x6000
     for label, blob in (("body", body), ("object_target", bytes(OBJECT_BYTES)),

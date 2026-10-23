@@ -207,3 +207,19 @@ identity row, that the classifier label is provisional, or that rows are propose
 superseded by this note. The evidence in this document is unchanged by it. The
 authority for the credit is the acceptance commit and the two credit CSVs, not this
 note.
+
+## Native harness BP: instrument fix, credit stands (2026-10-23)
+
+`u77_275b_cpu_native` failed on main at `case25 bp: C=7F01 DOS=7F00`. Cause (VP i21817 accepted): the COM stub entered every case
+with `mov bp,7F00h`, while the C side took its entry CPU from the differential fixture, and 15 of the 43 native cases have a fixture
+entry BP other than 7F00 (7F01, 7FFE, 1234, FFFF, 00FF). The body saves and restores BP, so the returned BP is the entry BP: the
+harness was comparing itself, not the model. With the C entry BP forced to the harness value, 43/43 passed (scratch probe), so the
+model was never at fault, and the credit stands.
+
+Fix: the input record now carries the fixture CPU's own entry FLAGS and BP, the stub loads BP from it (`mov bp,cs:[frame_bp]`), and
+the packer checks that the declared flags equal the fixture CPU's. Re-run: **43/43 native cases pass with the real per-case BP**.
+Checked the other entry registers across all 43 fixtures: only BP and FLAGS vary (AX..DI 0, DS 1000h, SS:SP 2000:7FF4 after the
+pushes and far call, all matching the harness); ES differs (harness CS vs fixture 1000h), but the body loads ES before reading it.
+
+General rule (VP): **a harness that pins a register the body preserves compares itself, not the model.**
+
