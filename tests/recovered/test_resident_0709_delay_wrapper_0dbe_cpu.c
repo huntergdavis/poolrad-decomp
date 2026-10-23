@@ -115,7 +115,7 @@ int main(void)
     ram[at(0x0709u, 0x0DCDu)] = 0x9D;
     cpu = wrapper_frame();
     CHECK(pr_r0709_delay_wrapper_0dbe_cpu(ram, RAM, &cpu, 64, &callee) == PR_R0709_DELAY_CPU_CODE && callee == -1);
-    CHECK(cpu.ip == 0x0DCCu && cpu.sp == SP0 - 4u && get16(SS0, cpu.sp) == 450u && cpu.dx == 0 && cpu.flags == 0x7202u);
+    CHECK(cpu.ip == 0x0DCCu && cpu.sp == SP0 - 4u && get16(SS0, cpu.sp) == 450u && cpu.dx == 0 && cpu.flags == 0x7206u);   /* pinned MULW: PF over DX:AX (01C2h, even) */
 
     /* Guards change nothing. */
     world(1, 1);
