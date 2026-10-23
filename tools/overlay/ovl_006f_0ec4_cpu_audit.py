@@ -246,7 +246,8 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
         uc.mem_map_ptr(origin + 0xB0000, 0x50000, 7, ctypes.addressof(backing) + 0xB0000)
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
-    s = dict(stop=None, steps=0, arrivals=0, snap=None, after=None, last=None)
+    s = dict(stop=None, steps=0, arrivals=0, snap=None, after=None, last=None, retry_arrivals=0)
+    retry_snaps = []
     seen, edges, calls = set(), set(), []
     known = {base + v for v in SEG.values()} | {cs0802, STUB_SEG, base + R.CRT, base + 0x0709, CS_OV, DICE_CS, STUB_AT[0]} | set(spec.get('extra_known', ()))
     entries = {(SYS, e): k for k, e in KINDS.items()}
@@ -286,6 +287,12 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
             if words[1] in (CS_OV, *spec.get('call_cs', ())):
                 calls.append((words[0] - 5, key, words, spv, None,
                               tuple(struct.unpack('<HHH', bytes(uc.mem_read(physical(ssv_, (bp0 - 6) & 0xFFFF), 6))))))
+        rl = spec.get('retry_limit')                                  # (segment, ip, budget): a wrapper's unbounded retry loop, stopped LIMIT before the budget+1'th taken back-edge
+        if rl is not None and (cs, ip) == (rl[0], rl[1]) and (uc.reg_read(RR.UC_X86_REG_EFLAGS) & 1):
+            s['retry_arrivals'] += 1
+            retry_snaps.append((bytes(cpu_now()), sha256(bytes(backing)).digest()))
+            if s['retry_arrivals'] == rl[2] + 1:
+                s['stop'] = 'LIMIT'; return uc.emu_stop()
         if stop_at is not None and (cs, ip) == (cs0802, 0x051F):
             s['arrivals'] += 1
             if s['arrivals'] == stop_at:
@@ -352,8 +359,8 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
     uc.hook_add(UC_HOOK_INSN, port_in, None, 1, 0, RR.UC_X86_INS_IN)
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, RR.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=200000000)
-    check(s['stop'] in ('RETURN', 'RUNERROR', 'EXIT', 'BREAK', 'DIVIDE', 'STALLED'), f'original stop {name}: {s["stop"]}')
-    out = dict(stop=s['stop'], fs=fs, env=env, device=device, ega=ega_events, seen=seen, edges=edges, calls=calls)
+    check(s['stop'] in ('RETURN', 'RUNERROR', 'EXIT', 'BREAK', 'DIVIDE', 'STALLED', 'LIMIT'), f'original stop {name}: {s["stop"]}')
+    out = dict(stop=s['stop'], fs=fs, env=env, device=device, ega=ega_events, seen=seen, edges=edges, calls=calls, retry_snaps=retry_snaps)
     if s['stop'] == 'STALLED':
         check(s['after'] == s['snap'][1], f'{name}: RAM changed across {M.STALL_EXTRA} further 050F iterations')
         return dict(out, cpu=s['snap'][0], ram=s['snap'][1], ega_packed=s['snap'][2], writes=device.writes[:s['snap'][3]])
@@ -361,7 +368,7 @@ def run_unicorn(name, ctx, m, c, spec, stop_at=None):
 
 
 # ---------------------------------------------------------------------------------------------------- the C model
-def run_c(f, lib, m, c, spec, diag_cls=None, status_map=None):
+def run_c(f, lib, m, c, spec, diag_cls=None, status_map=None, make_env=None):
     keep = []
     fs = file_service(spec)
     q, env = Q.c_env(M.ENVSPEC, keep, stub_at=(STUB_SEG, 0))
@@ -425,7 +432,7 @@ def run_c(f, lib, m, c, spec, diag_cls=None, status_map=None):
     ctx = ctypes.cast(ram, ctypes.c_void_p)
     load = M.Env(A716.Env716(fns[1], None, fns[2], None, fns[2], None, 100000), M.FileEnv(fns[0], ctx, fns[0], ctx), P.Env193(B.Env(video, None), ke),
                  100000, 1000000, spec['retries'], spec['max_seams'], spec['max_disk_prompts'])
-    e = Env0EC4(load, B5.Env0BF5(ke, 65536, 65536, 65536), 100000, 256)
+    e = make_env(load, ke) if make_env else Env0EC4(load, B5.Env0BF5(ke, 65536, 65536, 65536), 100000, 256)
     ega = B5.Ega(); lib.pr_ega_reset(ctypes.byref(ega))
     for p in range(4):
         ctypes.memset(ctypes.addressof(ega.plane[p]), 0x31 + p * 0x27, 65536)

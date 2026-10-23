@@ -146,3 +146,11 @@ Reused findings: [merged U7F party-head/next-link evidence](U7F_PARTY_COUNT_05E0
 +4235/+408C separate-code/native-frame audit design. No unmerged symbol is
 required. CMake registration overlaps the four pending U6C registrations;
 integration must retain all entries.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007F_003A --require-current-main
+```

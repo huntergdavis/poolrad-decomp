@@ -77,6 +77,9 @@ def source():
     return dict(leaf_starts=[i.address for i in leaf],leaf_conditional={i.address:(i.address+i.size,int(i.op_str,16)) for i in leaf if i.mnemonic.startswith('j')},conditional=conditional, starts=[i.address for i in insns], sha=sha, file_offset=u["ovr_offset"] + ENTRY), code, system
 
 
+CHECKER_ROWS = ('OVL_0038_1276',)
+
+
 def library(directory):
     path = directory / "u38match.so"
     sources = ["overlay_u38_character_compare_1276_cpu.c", "system_string_move_leaves_cpu.c"]
@@ -356,11 +359,18 @@ def native_audit(code, system, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     parser.add_argument("--routine", choices=sorted(ROUTINES), default="1276")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     select(args.routine)
     target, code, system = source()
     report = dict(routine=ROUTINE, target=dict(sha256=target["sha"], bytes=END - ENTRY, instructions=len(target["starts"]), file_offset=target["file_offset"]))

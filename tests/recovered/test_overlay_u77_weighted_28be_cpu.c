@@ -145,10 +145,11 @@ static void stops(void)
     cpu = world(v, w, 0u, SP0);                                            /* divisor 0: the divide's runtime-error stop */
     CHECK(pr_u77_weighted_28be_cpu(ram, RAM, &cpu, &callee) == PR_U77_28BE_CPU_CALLEE && callee == 2);
     CHECK(cpu.ip == 0x00E2u && cpu.cs == SYS && cpu.ax == 0x00C8u && r32(SS, BP1 - 8u) == 1u + 20u + 300u + 0u + 5000u);
-    cpu = world(v, w, 200u, SP0);                                          /* CODE at the multiply site at j = 0: the second SHL's flags */
+    cpu = world(v, w, 200u, SP0);                                          /* CODE at the multiply site at j = 0: the second SHL's flags, */
+                                                                           /* AF set (pinned SHL, since #1433): ZF PF AF */
     w16(CS, 0x28FEu, 0x0A5Cu);
     CHECK(pr_u77_weighted_28be_cpu(ram, RAM, &cpu, &callee) == PR_U77_28BE_CPU_CODE && callee == -1 && cpu.ip == 0x28FDu);
-    CHECK((cpu.flags & 0x08D5u) == 0x0044u && cpu.di == 0u && cpu.ax == 1u && cpu.dx == 0u && cpu.cx == 1u && cpu.bx == 0u && cpu.es == PSEG);
+    CHECK((cpu.flags & 0x08D5u) == 0x0054u && cpu.di == 0u && cpu.ax == 1u && cpu.dx == 0u && cpu.cx == 1u && cpu.bx == 0u && cpu.es == PSEG);
     cpu = world(v, w, 200u, SP0);                                          /* CODE at the divide site: ADC DX,0's flags */
     w8(CS, 0x2922u, 0xCBu);
     CHECK(pr_u77_weighted_28be_cpu(ram, RAM, &cpu, &callee) == PR_U77_28BE_CPU_CODE && callee == 0 && cpu.ip == 0x2922u);

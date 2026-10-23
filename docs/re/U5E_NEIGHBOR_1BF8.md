@@ -5,6 +5,27 @@ slot-reader/search, cell-lookup and SYSTEM set-membership effects. It uses
 one live 1 MiB RAM image and a 14-word CPU state. No callee result, frame
 cleanup or memory write is replaced by a semantic callback.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_005E_1BF8` | `03E0:005C` | unit `0x3C6` entry 12 `+0BE7` | `+1C1D` |
+| `OVL_005E_1BF8` | `03E0:0061` | unit `0x3C6` entry 13 `+0C0F` | `+1C3C` |
+| `OVL_005E_1BF8` | `03E0:003E` | unit `0x3C6` entry 6 `+04BE` | `+1C67` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
 ## Source identity and composition
 
 | Body | Bytes | Instructions | SHA-256 |
@@ -211,3 +232,21 @@ the native capture structure from u3c6_cell_04be_native.py; shared CPU/RAM
 helpers from u86_procvars_3413_audit.py. Local deja recall returned no
 matches; no recalled session finding was reused. No acceptance or credit
 ledger is changed; reviewer owns independent verification and credit.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_005E_1BF8 --require-current-main
+```
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the model's times-four shift sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `code-alias-(24576, 7160)` (`FLAGS C=0212, Unicorn=0202`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446): **587** cases (560 returns, 14 protected-write stops, 13 budget stops), `masked_flags=0`; the split was used at **6** stops, all after a shift (0 after a divide).
+
+**Per-credit sentence (OVL_005E_1BF8): evidence did not depend on AF after a shift**; those 6 stops hold C to AF=1 and every other stop is exact. Credit stands.

@@ -130,3 +130,11 @@ builder and native capture scaffolding adapt the GetMem audit.
   remain for the independent lane. The allocator's non-default
   HeapError and RunError implementations remain explicit boundaries.
   No classifier, accounting, acceptance, or credit is changed.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006A_0E37 --require-current-main
+```

@@ -26,6 +26,9 @@ def source():
     digests['U1C:0A9F-0AED']=dict(bytes=78,instructions=25,sha256=BODY_SHA,file_offset=0x17E5)
     return image,blob,allcode,edges,digests
 
+CHECKER_ROWS = ('OVL_001C_0A9F',)
+
+
 def library(directory):
     path=directory/'return.so'
     subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror','-O2','-shared','-fPIC','-I',str(ROOT/'include'),*[str(ROOT/'src/recovered'/s) for s in SOURCES],'-o',str(path)],check=True)
@@ -151,7 +154,12 @@ def differential(image,blob,decoded,conditional,f):
     print('Original parity',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image,blob,decoded,conditional,digests=source();report=dict(target=digests)
     with tempfile.TemporaryDirectory(prefix='u1c-0a9f-') as tmp:
         f=library(Path(tmp))

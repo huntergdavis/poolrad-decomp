@@ -162,3 +162,23 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | `helper_candidate`; identity is the verifying lane's call. The game meaning of the record and weights is not asserted. Natural saved-game reach is unmeasured. |
 
 No classifier, queue or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007F_00A8 --require-current-main
+```
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the model's `shl1` sets AF per the pinned rule; raw Unicorn leaves it clear, so the Unicorn audit failed on main (`flags mismatch +00A8 code-00f4-1: C=0256, original=0246`, AF). Model edit in the same PR: #1433 had written the AF line four times and left the comment 'AF clear as Unicorn leaves it'; it is now written once and the comment states the pinned rule (no behaviour change; census row carried).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446, `--unicorn`): **231** original-byte cases (222 returns, 5 CODE, 3 CALLEE, 1 TRANSFER), full 1 MiB RAM and 13 CPU words equal; the split was used at **2** stops, both after a shift. The DOSBox-X native run compares against the pinned core and needs no split.
+
+**Per-credit sentence (OVL_007F_00A8): evidence did not depend on AF after a shift**; those 2 stops hold C to AF=1 and every other stop is exact. Credit stands.
+
+Its audit now also calls the helper's `finish()` after emulation (2026-10-23), so a word divide that is the very last instruction before a stop has its pinned bits settled; re-run: 231 cases, unchanged.

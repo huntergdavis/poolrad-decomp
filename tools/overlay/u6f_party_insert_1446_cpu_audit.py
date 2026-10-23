@@ -93,6 +93,9 @@ def source():
     return target, code6f, code9b, image
 
 
+CHECKER_ROWS = ('OVL_006F_1446',)
+
+
 def library(directory):
     path = directory / "u6f1446.so"
     sources = ["overlay_u6f_party_insert_1446_cpu.c", "overlay_u9b_entry_zero_0000.c", "overlay_u9b_record_table_0255.c",
@@ -491,10 +494,17 @@ def native_audit(target, code6f, code9b, image, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code6f, code9b, image = source()
     report = dict(target=dict(sha256=BODY_SHA, bytes=313, instructions=99, file_offset=target["file_offset"]))
     if args.unicorn or args.native:

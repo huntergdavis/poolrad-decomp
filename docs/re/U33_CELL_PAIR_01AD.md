@@ -40,8 +40,11 @@ first result `[BP-2]` and the returned byte `[BP-1]`.
 It zero-extends facing, adds 4, sign-extends into DX:AX with `CWD`,
 divides by CX = 8 with signed `IDIV`, exchanges so AX holds the
 remainder, and stores its low byte as the opposite facing. (The XOR and
-ADD flags are overwritten inside the first call; `IDIV` leaves the flags
-alone in both tested engines.) It pushes x, y, facing and its own BP as
+ADD flags are overwritten inside the first call, and so are the `IDIV` flags: they are never observed at +01AD. The pinned
+normal/386 `IDIVW` does NOT leave the flags alone; it writes all six (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF
+over rem:quo, `instructions.h:743-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV
+checkpoints, all FLAGS bits unmasked). The model writes those values; an earlier version of this sentence said the flags were left alone
+in both tested engines, which was never measured here and is wrong.) It pushes x, y, facing and its own BP as
 live AX words and calls `+012B`, storing AL. It then forms
 `sign(x) + sign(DS:[2736+facing])` and `sign(y) + sign(DS:[273F+facing])`
 with facing zero-extended into DI, pushes those words, the opposite
@@ -90,3 +93,34 @@ target is `poolrad_overlay_u33_cell_pair_01ad_tests`.
 
 No classifier or count ledger is changed. Identity and strict credit
 remain the PM's review decision.
+
+## Reproduce
+
+Added 2026-10-22 by par-e (VP i21177). Until then this document described its checks but
+gave no command to rerun them. The evidence kind is recorded in
+[credit_evidence_kind.csv](credit_evidence_kind.csv) (labels: [CREDIT_EVIDENCE_KIND.md](CREDIT_EVIDENCE_KIND.md)).
+
+Original-byte differential. The script runs the credited C as a direct target and compares
+it with the original DOS bytes under Unicorn. It needs the private media under ignored
+`resources/`.
+
+```sh
+python3 tools/overlay/u33_cell_lookup_012b_audit.py --unicorn
+```
+
+- `tools/overlay/u33_cell_lookup_012b_audit.py` covers target `01ad` (`pr_u33_cell_pair_01ad`). Measured on `ee07bd68`: +01ad: 1212 original-byte cases passed with the full 1 MiB RAM and all 14 CPU words equal; 54/54 instruction starts; 0/0 conditional outcomes (the body has no conditionals).
+
+Synthetic C tests. These are hand-derived checks of the C, with no DOS bytes, so they are not
+an original-byte differential:
+
+```sh
+cmake -S . -B build
+cmake --build build --target poolrad_overlay_u33_cell_pair_01ad_tests
+ctest --test-dir build -R '^poolrad_overlay_u33_cell_pair_01ad_tests$' --output-on-failure
+```
+
+| Credit | Exercised by |
+| --- | --- |
+| `OVL_0033_01AD` | the whole `poolrad_overlay_u33_cell_pair_01ad_tests` executable |
+
+Measured on `ee07bd68`: `poolrad_overlay_u33_cell_pair_01ad_tests` passed (1/1 under ctest).

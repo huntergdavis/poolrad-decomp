@@ -36,7 +36,7 @@ def renamed_audit(classification="unresolved"):
 
 # Reviewed near-only bodies granted game_verified by their acceptance (par-e). Exact set: each grant
 # commit adds one, deliberately.
-GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000), (0xBA, 0x01FB), (0xBA, 0x0282), (0xBA, 0x03A0), (0xBA, 0x10E6), (0xBA, 0x11EA), (0xBA, 0x1282), (0xBA, 0x1325), (0x802, 0x0040), (0x802, 0x0105), (0x802, 0x0193), (0x802, 0x050F), (0x802, 0x05CD), (0x802, 0x06E7)})
+GRANTED_NEAR_ONLY = frozenset({(0xBA, 0x0000), (0xBA, 0x01FB), (0xBA, 0x0282), (0xBA, 0x03A0), (0xBA, 0x10E6), (0xBA, 0x11EA), (0xBA, 0x1282), (0xBA, 0x1325), (0x709, 0x06A7), (0x709, 0x0714), (0x802, 0x0040), (0x802, 0x0105), (0x802, 0x0193), (0x802, 0x050F), (0x802, 0x05CD), (0x802, 0x06E7)})
 
 
 class QueueNamingTest(unittest.TestCase):
@@ -169,19 +169,20 @@ class AuditTest(unittest.TestCase):
         for start, target in rc.REVIEWED_RESIDENTS.items():
             want = "game_verified" if target in GRANTED_NEAR_ONLY else "unresolved"
             self.assertEqual(self.other()[start]["classification"], want)
-        # 29 + RES_0802_02EB (#1341) + RES_0802_025D (par-e), both overlay-called, + the granted near-only bodies
-        self.assertEqual(self.base["summary"]["game_verified"], 31 + len(GRANTED_NEAR_ONLY))
+        # 29 + RES_0802_02EB (#1341) + RES_0802_025D + RES_0802_0716 (par-e), all overlay-called, + the granted near-only bodies
+        self.assertEqual(self.base["summary"]["game_verified"], 32 + len(GRANTED_NEAR_ONLY))
 
     def test_ownership_comes_only_from_game_specific_targets(self):
-        # Simulate one more grant: the first listed near-only body that is not yet granted (moves with the grants).
-        start, target = next((s, t) for s, t in sorted(rc.REVIEWED_NEAR_ONLY.items()) if t not in ri.GAME_SPECIFIC_TARGETS)
+        # Simulate one more grant: the first reviewed body (either door) that is not yet granted. Every near-only name is
+        # granted since 0714 (par-e), so the pick now reaches the loader-called door; it moves with the grants.
+        start, target = next((s, t) for s, t in sorted(rc.REVIEWED_RESIDENTS.items()) if t not in ri.GAME_SPECIFIC_TARGETS)
         grant = ri.GAME_SPECIFIC_TARGETS | {target}
         with mock.patch.object(rc, "GAME_SPECIFIC_TARGETS", grant):
             changed = rc.audit_coverage(self.exe, self.ovr)
         before, after = self.other(), self.other(changed)
         self.assertEqual({s for s in before if before[s]["classification"] != after[s]["classification"]}, {start})
         self.assertEqual(after[start]["classification"], "game_verified")
-        self.assertEqual(changed["summary"]["game_verified"], 32 + len(GRANTED_NEAR_ONLY))
+        self.assertEqual(changed["summary"]["game_verified"], 33 + len(GRANTED_NEAR_ONLY))
         self.assertEqual(changed["summary"]["unresolved"], self.base["summary"]["unresolved"] - 1)
 
     def test_the_loader_called_door_is_one_entry_with_its_own_condition(self):

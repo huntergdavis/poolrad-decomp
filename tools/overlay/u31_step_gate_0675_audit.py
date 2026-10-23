@@ -81,6 +81,9 @@ def source():
     return target, code31, code3c6, image
 
 
+CHECKER_ROWS = ('OVL_0031_0675',)
+
+
 def library(directory):
     path = directory / "u31.so"
     sources = ["overlay_u31_step_gate_0675.c", "overlay_u3c6_0cb9_cpu.c", "resident_00ba_sidecar_lookup_2199_cpu.c"]
@@ -167,7 +170,9 @@ def fixture(code31, code3c6, image, rng, *, b=None, c=None, y6=None, y15=None, k
     return memory, cpu, dict(words=words[2:], r_in_frame=r_in_frame)
 
 
-def compare(label, memory, cpu, target, function, Callee, budget=3000000):
+def compare(label, memory, cpu, target, function, Callee, budget=3000000, stop_site=None):
+    """stop_site: a call site whose first byte the caller made non-original in `memory`; the original is stopped on
+    reaching it (before executing it) and the model must stop there with CODE, every register and byte equal."""
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
     original = Uc(UC_ARCH_X86, UC_MODE_16)
     original.mem_map(0, 2 * SIZE)
@@ -199,13 +204,17 @@ def compare(label, memory, cpu, target, function, Callee, budget=3000000):
     original.hook_add(UC_HOOK_CODE, outside, begin=0, end=start - 1)
     original.hook_add(UC_HOOK_CODE, outside, begin=body_end, end=ret - 1)
     original.hook_add(UC_HOOK_CODE, leave, begin=ret, end=ret)
+    if stop_site is not None:
+        original.hook_add(UC_HOOK_CODE, leave, begin=start + stop_site - ENTRY, end=start + stop_site - ENTRY)
     original.emu_start(start, 2 * SIZE, count=budget)
-    check(returned[0], f"original did not return: {label}")
+    check(returned[0], f"original did not return or reach the stop: {label}")
+    if stop_site is not None:
+        check((original.reg_read(REGISTERS[9]) & 0xFFFF) == stop_site, f"original did not stop at +{stop_site:04X}: {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
     callee = Callee()
     status = function(ram, SIZE, ctypes.byref(cpu), 1000, ctypes.byref(callee))
-    check(status == 0, f"C status {status} (callee +{callee.site:04X} status {callee.status}): {label}")
+    check(status == (0 if stop_site is None else 2), f"C status {status} (callee +{callee.site:04X} status {callee.status}): {label}")
     actual = bytes(ram)
     if actual != expected:
         differences = [i for i, (a, b) in enumerate(zip(actual, expected)) if a != b]
@@ -252,15 +261,41 @@ def differential(target, code31, code3c6, image, function, Callee):
           f"{len(visited)}/{len(target['decoded'])} instruction starts, {len(edges)}/{2 * len(target['conditional'])} conditional outcomes; "
           f"last composed call per case: {dict(sorted((f'+{k:04X}', v) for k, v in sites.items()))}")
     check(not missing_sites and not missing_edges, f"+0675 coverage incomplete: {missing_sites} {missing_edges}")
-    return dict(returning=count, starts=len(visited), outcomes=len(edges))
+    stops = 0
+    for label, site, options in stop_cases():                   # t44: the flags at each call site's CODE stop
+        memory, cpu, _ = fixture(code31, code3c6, image, rng, **options)
+        memory[physical(cpu.cs, site)] = 0x90
+        compare(f"+0675 {label}", memory, cpu, target, function, Callee, stop_site=site)
+        stops += 1
+    print(f"+0675: {stops} CODE-stop cases passed at the four lookup sites (the OR AL,AL flags reach +076F/+0786/+079D)")
+    return dict(returning=count, code_stops=stops, starts=len(visited), outcomes=len(edges))
+
+
+def stop_cases():
+    """CODE stops at the lookup calls: +0758 after CMP, and +076F/+0786/+079D after OR AL,AL (every key missing), each
+    under several entry-flag seeds. +06DA's flags are IDIV's, written to the pinned DIVW/IDIVW values, which Unicorn does
+    not follow; that stop is checked by the DOSBox-X oracle (u31_step_gate_0675_native.py) instead."""
+    out = []
+    for n, flags in enumerate((0x7202, 0x0ED7, 0x0647, 0x0203)):
+        for site in (0x0758, 0x076F, 0x0786, 0x079D):
+            out.append((f"code-{site:04x}-{n}", site, dict(flags=flags, p6_force=0x1E, y6=0xFF - n, keys=[], open_cells=True,
+                                                          weight=1 + n % 3, steer=True)))
+    return out
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code31, code3c6, image = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(target["body"]), instructions=len(target["decoded"])))
     if args.unicorn or args.native:

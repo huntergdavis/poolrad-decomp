@@ -48,7 +48,7 @@ static void logic(pr_u20_11ac_cpu *c,uint16_t r) { c->flags&=(uint16_t)~0x08D5u;
 static void inc16(pr_u20_11ac_cpu *c,uint16_t a,uint16_t r) {
     c->flags&=(uint16_t)~0x08D4u;
     if((a^1u^r)&0x10)c->flags|=0x10;
-    if(a==0x8000u)c->flags|=0x800;
+    if(r==0x8000u)c->flags|=0x800; /* pinned INCw OF = (res == 8000h), flags.cpp:375 */
     szp(c,r,0x8000);
 }
 static void cmp8(pr_u20_11ac_cpu *c,uint8_t a,uint8_t b) {

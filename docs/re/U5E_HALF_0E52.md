@@ -135,3 +135,11 @@ After independent parity review and PR #383 merge
 verified identity and one strict full-C original for `+0x0E52` (inbox i2920).
 The separate [accounting refresh](FUNCTION_ACCOUNTING_REFRESH.md) updates the
 classifier and credit manifest. Saved-game reachability remains unmeasured.
+
+## Pinned AF after the final SHR: model defect fixed (2026-10-23)
+
+par-b measured route 3 at 269/269 `C_DIFFERS`, AF only (C `7202` vs original `7212`; `7246` vs `7256`). The body ends `zero AH, SHR AX`, and the model wrote `flags = (flags & ~08D5h) | CF` then PF/ZF, which **cleared** AF; pinned DOSBox-X sets AF after a non-zero SHR (`get_AF` = `count & 1Fh`, here 1), and that value reaches the RETF. The audit had passed only because raw Unicorn also clears AF, and its native run **masked AF** (`0xFFEF`, 'SHR AF is undefined').
+
+Fix (PR after #1450): the model sets AF after the SHR; the C test asserts OF/SF clear and AF set; the Unicorn differential uses the shared `pinned_shift_flags` split (AF set after a non-zero shift, every other bit exact); the native run now compares **full FLAGS, no mask**. Runs: Unicorn **791** cases, split used at all 791 returns (each follows the SHR); DOSBox-X native **512/512** with AF included. Mutation check: with the AF line removed, the unmasked native run fails at case 0 (`C=0246, DOSBox-X=0256`).
+
+**Per-credit sentence (OVL_005E_0E52): the credit's evidence previously did not cover AF** (Unicorn agreed with the defect, and native masked it). It now does: the model matches pinned DOSBox-X in every FLAGS bit on 512 native cases. Credit stands on the corrected model.

@@ -157,7 +157,8 @@ static void stops(void)
     cpu = world(v, w, 7u, SP0);                                            /* CODE at the multiply site: the second SHL's flags, j = 0 */
     w16(CS, 0x00F5u, 0x0A5Cu);
     CHECK(pr_u7f_weighted_00a8_cpu(ram, RAM, &cpu, &callee) == PR_U7F_00A8_CODE && callee == 0 && cpu.ip == 0x00F4u);
-    CHECK((cpu.flags & 0x08D5u) == 0x0044u && cpu.di == 0u && cpu.ax == 10u && cpu.dx == 0u && cpu.cx == 1u && cpu.bx == 0u);
+    /* pinned DOSBox-X: the SHL also sets AF (count & 1Fh), so ZF|PF|AF since #1433 */
+    CHECK((cpu.flags & 0x08D5u) == 0x0054u && cpu.di == 0u && cpu.ax == 10u && cpu.dx == 0u && cpu.cx == 1u && cpu.bx == 0u);
     cpu = world(v, w, 7u, SP0);                                            /* CODE at the divide site: ADC DX,0's flags */
     w8(CS, 0x0119u, 0xCBu);
     CHECK(pr_u7f_weighted_00a8_cpu(ram, RAM, &cpu, &callee) == PR_U7F_00A8_CODE && callee == 0 && cpu.ip == 0x0119u);

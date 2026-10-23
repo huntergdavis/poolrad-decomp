@@ -68,7 +68,7 @@ no arguments. After `PUSH BP; MOV BP,SP; SUB SP,0Ah` the frame holds:
   PF set).
 - After a success, the second `+0109` call either stored or returned
   early. AH, BX, CX, DX, DI, ES and the flags are whatever it leaves.
-  `IDIV`'s undefined flags never survive `+0109`'s first `CMP`.
+  `IDIV` writes the pinned IDIVW flags; they never survive `+0109`'s first `CMP`. Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values.
 
 **Addressing.** Every operand is reread in source order. LES pairs, word
 operands, `POP` and the `RETF` frame are read physically contiguous.
@@ -161,3 +161,11 @@ U33 dice-chain audits.
 
 No classifier, queue or count ledger is changed. Crediting `OVL_0068_04DF`
 is the verifying lane's call.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0068_04DF --require-current-main
+```

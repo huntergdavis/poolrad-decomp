@@ -162,3 +162,21 @@ region and a larger allocation arena.
 - review_notes: synthetic native reach, conservative stack/nonwrapping
   return profile, immutable prefix data, explicit allocator error stops.
   Acceptance, classifier, accounting and credit remain with the reviewer.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0086_028D --require-current-main
+```
+
+## Pinned flag split after #1433 (2026-10-23, no claim moves)
+
+After #1433 a composed shift sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `code-31f` (`flags: C=0612, original=0602`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py` (#1446): it tracks the last FLAGS-writing instruction the original executed and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set**. A model that reverted to the Unicorn value fails. Nothing is masked.
+
+Run (`--unicorn`): **303** cases; the split was used at **1** stop, after a shift.
+
+**Per-credit sentence (OVL_0086_028D): evidence did not depend on AF after a shift**; that stop holds C to AF=1 and every other stop is exact. Credit stands.

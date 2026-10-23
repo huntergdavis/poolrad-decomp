@@ -14,6 +14,7 @@ import tempfile
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from u5e_party_value_2879_audit import Cpu, EXE_SHA, OVR_SHA, physical, put16
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 RAM_SIZE = 1 << 20
 ENTRY, END = 0x0E52, 0x0E7B
@@ -134,6 +135,7 @@ def unicorn_audit(body, library):
                        ("A20-global", 255, 1, {"ds": 0xFFFF}),
                        ("flags-DF", 255, 0, {"flags": 0x0603}),
                        ("flags-arithmetic", 254, 1, {"flags": 0x0ED7})]
+    split_arrivals = 0
     for label, value, flag, options in specifications:
         memory, cpu = synthetic_case(body, value, flag, **options)
         original = Uc(UC_ARCH_X86, UC_MODE_16)
@@ -157,9 +159,11 @@ def unicorn_audit(body, library):
         # Stop immediately after RETF, before executing any return target.
         from unicorn import UC_HOOK_CODE
         returned = [False]
+        writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
         def stop_after_return(emulator, address, size, user):
             del size, user
+            writer.step(emulator, address)
             if address == physical(cpu.cs, 0x0E78):
                 returned[0] = True
 
@@ -173,6 +177,7 @@ def unicorn_audit(body, library):
             if returned[0]:
                 break
         check(returned[0], f"original did not return: {label}")
+        writer.finish(original)
         expected = bytes(original.mem_read(0, RAM_SIZE))
         actual, cpu = run_c(library, memory, cpu)
         if actual != expected:
@@ -181,11 +186,16 @@ def unicorn_audit(body, library):
             raise ValueError(f"RAM mismatch {label}: {differences[:8]}")
         for (name, _), register in zip(Cpu._fields_, register_ids):
             expected_value = original.reg_read(register) & 0xFFFF
+            if name == "flags":
+                problem = declared_flags_split(cpu.flags, expected_value, writer)
+                check(problem is None, f"register flags mismatch {label}: {problem}")
+                split_arrivals += split_used(cpu.flags, expected_value, writer)
+                continue
             check(getattr(cpu, name) == expected_value,
                   f"register {name} mismatch {label}: "
                   f"C={getattr(cpu, name):04x}, original={expected_value:04x}")
-    print(f"{len(specifications)} original-byte/C cases: full 1 MiB RAM "
-          "and all 14 returned register/flag words agree")
+    print(f"{len(specifications)} original-byte/C cases: full 1 MiB RAM and 13 returned register words agree; FLAGS "
+          f"agree except the declared pinned splits at {split_arrivals} returns {SPLIT_BY_RULE}")
 
 
 def native_audit(body, library, directory):
@@ -331,11 +341,10 @@ leaf:
         actual, cpu = run_c(library, memory, cpu)
         native_words = struct.unpack_from("<14H", record)
         for (name, _), expected in zip(Cpu._fields_, native_words):
-            # SHR leaves AF undefined. DOSBox-X and Unicorn make different
-            # choices; neither value is an architectural result contract.
-            mask = 0xFFEF if name == "flags" else 0xFFFF
-            check((getattr(cpu, name) & mask) == (expected & mask),
-                  f"native {name} mismatch at {index}")
+            # Full FLAGS, AF included: the model follows the pinned DOSBox-X
+            # rule (AF set after a non-zero SHR), so nothing is masked here.
+            check(getattr(cpu, name) == expected,
+                  f"native {name} mismatch at {index}: C={getattr(cpu, name):04x}, DOSBox-X={expected:04x}")
         at = physical(segment, 0xEFF6)
         check(actual[at:at + 10] == record[28:38],
               f"native stack RAM mismatch at {index}")
@@ -343,8 +352,7 @@ leaf:
               actual[physical(segment, 0xEFFE)] == record[39],
               f"native argument/global mismatch at {index}")
     print("512 DOSBox-X synthetic original-byte/C cases: all returned "
-          "registers and defined flags, frame bytes, argument, and global agree")
-    print("SHR AF is undefined: C/Unicorn use zero; DOSBox-X may set it")
+          "registers and full FLAGS (AF included, no mask), frame bytes, argument, and global agree")
     print("native result SHA-256 " + sha256(result).hexdigest())
 
 

@@ -7,6 +7,8 @@ from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from overlay_inventory import find_units,parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu,ROOT,SIZE,EXE_SHA,OVR_SHA,REGISTERS,physical,put16
+from pinned_shift_flags import LastFlagWriter,SPLIT_BY_RULE,declared_flags_split,split_used
+SPLIT_ARRIVALS=[0]
 CHECKER_ROWS = ("OVL_0038_2B20",)
 CS,DICE,STUB,SYSTEM,DS,SS,HEAP=0x5000,0x6000,0x7000,0xAF8,0x1800,0x2800,0x3000
 ENTRIES={'caller':0x2B20,'latch':0x0E2E}
@@ -89,8 +91,9 @@ def compare(label,m,c,decoded,conditional,functions,*,mode='caller',max_calls=25
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):u.reg_write(reg,getattr(c,name))
     state=dict(stop=None,latch=-1,dice=-1,previous=None,returned=False,returning=None,calls=[],system_calls=0,unexpected=None,rolls=[])
     seen,edges=set(),set()
+    writer=LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
     def hook(emulator,address,size,user):
-        del address,size,user
+        del size,user
         cs,ip=emulator.reg_read(UC_X86_REG_CS),emulator.reg_read(UC_X86_REG_IP)
         key=(CS if cs==caller_cs else DICE if cs==dice_cs else cs,ip)
         def stop(s):state['stop']=s;emulator.emu_stop()
@@ -131,6 +134,7 @@ def compare(label,m,c,decoded,conditional,functions,*,mode='caller',max_calls=25
         if ins.mnemonic in ('ret','retf'):
             if key==((CS,0x2B60) if mode=='caller' else (DICE,0xE4F)):state['returned']=True
             else:state['returning']=key
+        writer.step(emulator,address)
         state['previous']=key
     def mirror(emulator,access,address,size,value,user):
         del access,user
@@ -138,12 +142,17 @@ def compare(label,m,c,decoded,conditional,functions,*,mode='caller',max_calls=25
             raw=address+j;p=raw&(SIZE-1);emulator.mem_write(p+SIZE if raw<SIZE else p,bytes([(value>>(8*j))&255]))
     u.hook_add(UC_HOOK_CODE,hook);u.hook_add(UC_HOOK_MEM_WRITE,mirror);u.emu_start(physical(c.cs,c.ip),2*SIZE,count=3000000)
     check(state['unexpected'] is None and state['stop'] is not None,f'original stop {label}: {state}')
+    writer.finish(u)
     ram=(ctypes.c_uint8*SIZE).from_buffer_copy(m);d=Diagnostic(-1,-1);s=functions[mode](ram,SIZE,ctypes.byref(c),max_calls,ctypes.byref(d))
     check((s,d.latch_status,d.dice_status)==(state['stop'],state['latch'],state['dice']),f'{label}: statuses {(s,d.latch_status,d.dice_status)} vs {state}')
     want=bytes(u.mem_read(0,SIZE));actual=bytes(ram)
     if actual!=want:
         diff=[(hex(i),a,b) for i,(a,b) in enumerate(zip(actual,want)) if a!=b];raise ValueError(f'{label}: {len(diff)} RAM differences {diff[:8]}')
-    for (name,_),reg in zip(Cpu._fields_,REGISTERS):check(getattr(c,name)==u.reg_read(reg)&65535,f'{label}: {name} C{getattr(c,name):04X} DOS{u.reg_read(reg)&65535:04X}')
+    for (name,_),reg in zip(Cpu._fields_,REGISTERS):
+        if name=='flags':
+            problem=declared_flags_split(c.flags,u.reg_read(reg)&65535,writer);check(problem is None,f'{label}: {problem}')
+            SPLIT_ARRIVALS[0]+=split_used(c.flags,u.reg_read(reg)&65535,writer);continue
+        check(getattr(c,name)==u.reg_read(reg)&65535,f'{label}: {name} C{getattr(c,name):04X} DOS{u.reg_read(reg)&65535:04X}')
     return s,d.latch_status,d.dice_status,seen,edges,state['rolls']
 def differential(caller,dice,system,decoded,conditional,functions):
     seen,edges,rolls=set(),set(),set();stops={};modes={};rng=random.Random(0x2B20)
@@ -164,7 +173,7 @@ def differential(caller,dice,system,decoded,conditional,functions):
         seen|=v;edges|=e;rolls|=set(r);key=f'{mode}:{s}/{l}/{d}';stops[key]=stops.get(key,0)+1;modes[mode]=modes.get(mode,0)+1
         if not label.startswith(('seed-','kind-')):print(label,key,flush=True)
     check(set(decoded)<=seen,'missing closure instruction starts')
-    out=dict(cases=len(specs),modes=modes,stops=stops,cpu_words=14,ram_bytes=SIZE,closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)],caller_roll_results=sorted(rolls))
+    out=dict(cases=len(specs),modes=modes,stops=stops,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),cpu_words=14,ram_bytes=SIZE,closure_starts=len(seen),closure_total=len(decoded),closure_outcomes=len(edges),closure_outcomes_total=2*len(conditional),missing_outcomes=[f'{s:04X}:{i:04X}->{j:04X}' for (s,i),(_,j) in sorted({(a,b) for a,pair in conditional.items() for b in pair}-edges)],caller_roll_results=sorted(rolls))
     print('Original parity',out,flush=True);return out
 def main():
     p=argparse.ArgumentParser();p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()

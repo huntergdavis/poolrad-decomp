@@ -128,3 +128,11 @@ bf1e24f3fbf0660c08259b756b918b0685b1488c3c530599e55e80778ebd397f.
 It is a caller with one dependency, not a call-free leaf; its game role
 still needs review. +408C is the second disjoint follow-on if unclaimed.
 Neither follow-on is implemented or credited in this PR.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006C_3F31 --require-current-main
+```

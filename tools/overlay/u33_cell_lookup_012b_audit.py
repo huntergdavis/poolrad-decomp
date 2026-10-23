@@ -21,6 +21,7 @@ import tempfile
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 U33_BASE, U3BD_BASE = 0xC5D1, 0x2E8F7
 U33_SPAN = (0x012B, 0x0221)
@@ -119,6 +120,9 @@ def source():
     return bodies, spans
 
 
+CHECKER_ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
+
+
 def library(directory):
     import subprocess
     path = directory / "u33.so"
@@ -169,6 +173,9 @@ def fixture(spans, key, *, x=0, y=0, facing=0, map_id=5, party_y=0, buffer=None,
     return memory, cpu
 
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, memory, cpu, bodies, key, function, budget=20000):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     target = bodies[key]
@@ -183,11 +190,13 @@ def compare(label, memory, cpu, bodies, key, function, budget=20000):
              (physical(STUB_PARAGRAPH, 0x2A), physical(STUB_PARAGRAPH, 0x34))]
     returned, previous, visited, edges = [False], [None], set(), set()
     conditional = target["conditional"]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def instruction(emulator, address, size, user):
         del size, user
         if returned[0]:
             emulator.emu_stop(); return
+        writer.step(emulator, address)
         linear = address & (2 * SIZE - 1)
         if start <= linear < body_end:
             here = linear - start + target["entry"]
@@ -210,6 +219,7 @@ def compare(label, memory, cpu, bodies, key, function, budget=20000):
     original.hook_add(UC_HOOK_CODE, instruction); original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(start, 2 * SIZE, count=budget)
     check(returned[0], f"original did not return within {budget} instructions: {label}")
+    writer.finish(original)
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
     status = function(ram, SIZE, ctypes.byref(cpu))
@@ -220,6 +230,11 @@ def compare(label, memory, cpu, bodies, key, function, budget=20000):
         raise ValueError(f"RAM mismatch {label}: {[hex(d) for d in differences[:8]]} ({len(differences)} bytes)")
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         got, want = getattr(cpu, name), original.reg_read(register) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(got, want, writer)
+            check(problem is None, f"flags mismatch {label}: {problem}")
+            SPLIT_ARRIVALS[0] += split_used(got, want, writer)
+            continue
         check(got == want, f"{name} mismatch {label}: C={got:04x}, original={want:04x}")
     return visited, edges
 
@@ -285,18 +300,26 @@ def differential(bodies, spans, key, functions, quick=False):
     missing_edges = sorted({(s, o) for s, outs in target["conditional"].items() for o in outs} - edges)
     check(not missing_sites, f"+{key} unvisited instruction starts: {[hex(x) for x in missing_sites]}")
     check(not missing_edges, f"+{key} untaken conditional outcomes: {[(hex(a), hex(b)) for a, b in missing_edges]}")
-    print(f"+{key}: {count} original-byte cases passed, full 1 MiB RAM and all 14 CPU words equal; "
+    print(f"+{key}: {count} original-byte cases passed, full 1 MiB RAM and 13 CPU words equal, FLAGS through the declared "
+          f"pinned splits at {SPLIT_ARRIVALS[0]} stops so far (div {SPLIT_BY_RULE['div']}, shift {SPLIT_BY_RULE['shift']}); "
           f"{len(visited)}/{len(target['decoded'])} instruction starts, {len(edges)}/{2 * len(target['conditional'])} conditional outcomes")
     return count
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--quick", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, spans = source()
     report = dict(targets={k: dict(sha256=v["sha"], bytes=len(v["body"]), instructions=v["insns"]) for k, v in bodies.items()},
                   leaf_031f=LEAF_SHA)

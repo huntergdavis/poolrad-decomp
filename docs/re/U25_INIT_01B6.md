@@ -178,3 +178,11 @@ Capstone 5.0.7 and Unicorn 2.1.4 available:
 - review_notes: challenge live aliases and budget transitions; distinguish
   callable extent from linear queue extent, full returns from partial stops,
   and measured native profiles from emulator-only boundaries. No self-credit.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0025_01B6 --require-current-main
+```

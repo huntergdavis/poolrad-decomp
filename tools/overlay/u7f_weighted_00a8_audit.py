@@ -23,6 +23,7 @@ from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
+from pinned_shift_flags import LastFlagWriter, shift_af_split
 
 ENTRY, CODE_END, BODY_RETF = 0x00A8, 0x0130, 0x012D
 SITES = {0x00BC: "move", 0x00F4: "mul", 0x0119: "div"}
@@ -78,6 +79,9 @@ def source():
     return target, code, image
 
 
+CHECKER_ROWS = ('OVL_007F_00A8',)
+
+
 def library(directory):
     path = directory / "u7fw.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-O2", "-fPIC", "-shared", "-I", str(ROOT / "include"),
@@ -123,6 +127,9 @@ def build(image, code, rng, spec, *, sp=0x8000, ss=SS, ds=DS, record_at=None, fl
     return memory, Cpu(*reg, sp, CALLER_CS, (base + ENTRY) & 0xFFFF, ds, rng.randrange(0x10000), ss, flags), high
 
 
+AF_SPLIT_ARRIVALS = [0]
+
+
 def compare(label, memory, cpu, high, target, function, base=0x0000, budget=400000):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_MEM_WRITE
     original = Uc(UC_ARCH_X86, UC_MODE_16)
@@ -146,6 +153,8 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
             edges[kind].add((state["previous"][1], here))
         state["previous"] = (kind, here)
 
+    writer = LastFlagWriter()  # declared AF split after a non-zero shift, see pinned_shift_flags
+
     def halt(emulator, stop):
         state["stop"] = stop
         emulator.emu_stop()
@@ -164,6 +173,7 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
             if bytes(emulator.mem_read(address, 3)) != sites[address][1]:
                 return halt(emulator, CODE)
             state["expected"] = sites[address][0]
+        writer.step(emulator, address)
         if body[0] <= address < body[1]:
             note("body", address - origin, target["conditional"])
             if address - origin == BODY_RETF:
@@ -190,6 +200,7 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
     if high:
         original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(body[0], 2 * SIZE, count=budget)
+    writer.finish(original)
     check(state["stop"] is not None, f"original did not stop: {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
@@ -203,6 +214,11 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
         raise ValueError(f"RAM mismatch {label}: {[(hex(d), actual[d], expected[d]) for d in differences[:6]]} ({len(differences)} bytes)")
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         mine, want = getattr(cpu, name), original.reg_read(register) & 0xFFFF
+        if name == "flags":
+            problem = shift_af_split(mine, want, writer.shift_nonzero)
+            check(problem is None, f"flags mismatch {label}: {problem}")
+            AF_SPLIT_ARRIVALS[0] += writer.shift_nonzero and mine != want
+            continue
         check(mine == want, f"{name} mismatch {label}: C={mine:04x}, original={want:04x}")
     return state["stop"], seen, edges
 
@@ -260,8 +276,10 @@ def differential(target, code, image, function):
         print(f"  {kind}: {len(seen[kind])}/{len(decoded)} instruction starts, {len(edges[kind])}/{len(reachable)} conditional outcomes")
     check(all(stops[k] for k in (CODE, CALLEE, TRANSFER)), f"a stop kind was not exercised: {stops}")
     print(f"U7F +00A8: {sum(stops.values())} original-byte cases passed ({stops[OK]} returns, {stops[CODE]} CODE, {stops[CALLEE]} CALLEE, "
-          f"{stops[TRANSFER]} TRANSFER); full 1 MiB RAM and all 14 CPU words equal")
+          f"{stops[TRANSFER]} TRANSFER); full 1 MiB RAM and 13 CPU words equal; FLAGS equal except the declared pinned "
+          f"AF after a non-zero shift, at {AF_SPLIT_ARRIVALS[0]} arrivals")
     report["stops"] = {NAMES[k]: v for k, v in stops.items()}
+    report["declared_af_split_arrivals"] = AF_SPLIT_ARRIVALS[0]
     return report
 
 
@@ -400,10 +418,17 @@ def native_audit(target, code, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code, image = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(target["body"]), instructions=len(target["decoded"]), file_offset=target["file_offset"]))
     if args.unicorn or args.native:

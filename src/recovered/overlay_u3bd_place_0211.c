@@ -144,7 +144,7 @@ static uint16_t dec16(pr_u3bd_0211_cpu *cpu, uint16_t value)
 static void xor_ah(pr_u3bd_0211_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    result_flags(cpu, 0u, 0x80u, LOGIC_FLAGS);
+    result_flags(cpu, 0u, 0x80u, LOGIC_FLAGS | 0x10u); /* pinned: XOR clears AF */
 }
 
 static void cbw(pr_u3bd_0211_cpu *cpu)
@@ -157,9 +157,13 @@ static void mul_dx(pr_u3bd_0211_cpu *cpu)
     uint32_t result = (uint32_t)cpu->ax * cpu->dx;
     cpu->ax = (uint16_t)result;
     cpu->dx = (uint16_t)(result >> 16);
-    cpu->flags &= (uint16_t)~0x0801u;
-    if (cpu->dx != 0u) cpu->flags |= 0x0801u;
-    /* SF/ZF/AF/PF are undefined after MUL and retained as input state. */
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = result;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        cpu->flags = (uint16_t)((cpu->flags & ~0x0845u) | (cpu->dx != 0u ? 0x0801u : 0u) |
+                                (cpu->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 static void push16(uint8_t *ram, pr_u3bd_0211_cpu *cpu, uint16_t value)

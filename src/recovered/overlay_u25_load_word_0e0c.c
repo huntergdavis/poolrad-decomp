@@ -106,7 +106,7 @@ static void shift_ax(pr_u25_load_word_cpu *c, int right)
     uint16_t old = c->ax;
     uint16_t flags;
     c->ax = right ? old >> 1 : (uint16_t)(old << 1);
-    flags = szp(c->ax, 16u);
+    flags = (uint16_t)(szp(c->ax, 16u) | 0x10u); /* pinned: AF set for a non-zero count */
     if (right ? old & 1u : old & 0x8000u) flags |= 1u;
     if (right ? old & 0x8000u : (old ^ c->ax) & 0x8000u) flags |= 0x800u;
     c->flags = (uint16_t)((c->flags & ~ARITH) | flags);

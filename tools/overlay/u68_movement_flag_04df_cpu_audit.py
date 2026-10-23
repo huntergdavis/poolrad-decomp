@@ -55,6 +55,9 @@ def source():
     return dict(conditional=conditional, starts=[i.address for i in insns], sha=sha, file_offset=u["ovr_offset"] + ENTRY), code, chain
 
 
+CHECKER_ROWS = ('OVL_0068_04DF',)
+
+
 def library(directory):
     path = directory / "u6804df.so"
     sources = ["overlay_u68_movement_flag_04df_cpu.c", "overlay_u68_map_update_0109_cpu.c",
@@ -376,10 +379,17 @@ def native_audit(code, chain, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code, chain = source()
     report = dict(target=dict(sha256=target["sha"], bytes=204, instructions=81, file_offset=target["file_offset"]))
     if args.unicorn or args.native:

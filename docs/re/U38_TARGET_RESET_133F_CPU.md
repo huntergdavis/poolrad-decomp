@@ -121,3 +121,11 @@ The primary slot lead comes from #1019/#1020's inventory and is rechecked here.
 - review_notes: inspect LES physical contiguity, SUB versus OR flag contracts,
   alias-induced transfer handling, the JE's coincident successors, and native
   capture scope. No self-credit or canonical accounting changes.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_133F --require-current-main
+```

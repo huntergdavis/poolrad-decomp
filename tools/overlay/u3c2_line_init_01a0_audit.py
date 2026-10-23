@@ -13,6 +13,7 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
 from unicorn import x86_const as regs
 from overlay_inventory import find_units, parse_mz
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 SIZE, MASK = 1 << 20, (1 << 20) - 1
 NAMES = 'ax bx cx dx si di bp sp cs ip ds es ss flags'.split()
@@ -103,6 +104,9 @@ def fixture(points=(0, 0, 7, 3), *, record=(0x6000, 0x100), ss=0x2000,
     return memory, cpu
 
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, memory, cpu, bodies, instructions, library, coverage):
     for start, data in bodies.items():
         p = physical(cpu.cs, start)
@@ -117,11 +121,13 @@ def compare(label, memory, cpu, bodies, instructions, library, coverage):
         emulator.reg_write(register, getattr(cpu, name))
     instruction_map = {physical(cpu.cs, i.address): i for ins in instructions.values() for i in ins}
     stack, stop = [], [None]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def instruction(uc, address, size, user):
         del size, user
         ins = instruction_map.get(address & MASK)
         check(ins is not None, f'{label}: unexpected execution at {address:x}')
+        writer.step(uc, address)
         coverage.add(ins.address)
         if ins.mnemonic == 'call':
             stack.append((cpu.cs, ins.address + ins.size))
@@ -141,6 +147,7 @@ def compare(label, memory, cpu, bodies, instructions, library, coverage):
     hook = emulator.hook_add(UC_HOOK_CODE, instruction)
     emulator.emu_start(physical(cpu.cs, cpu.ip), SIZE * 2, count=1000)
     emulator.hook_del(hook)
+    writer.finish(emulator)
     check(stop[0] is not None, f'{label}: original did not return')
     pc = physical(emulator.reg_read(regs.UC_X86_REG_CS), emulator.reg_read(regs.UC_X86_REG_IP))
     emulator.emu_start(pc, SIZE * 2, count=1)
@@ -148,6 +155,11 @@ def compare(label, memory, cpu, bodies, instructions, library, coverage):
     check(status == stop[0], f'{label}: status C={status}, original={stop[0]}')
     for name, register in zip(NAMES, REGS):
         actual, expected = getattr(c_cpu, name), emulator.reg_read(register) & 65535
+        if name == 'flags':
+            problem = declared_flags_split(actual, expected, writer)
+            check(problem is None, f'{label}: {problem}')
+            SPLIT_ARRIVALS[0] += split_used(actual, expected, writer)
+            continue
         check(actual == expected, f'{label}: {name} C={actual:04x}, original={expected:04x}')
     if bytes(c_ram) != bytes(backing):
         bad = [i for i, (a, b) in enumerate(zip(c_ram, backing)) if a != b]
@@ -188,7 +200,8 @@ def run(bodies, instructions, library, random_cases):
         expected = {i.address for i in ins}
         check(expected <= coverage, f'uncovered {start:04X}: {sorted(expected - coverage)}')
         print(f'U3C2+{start:04X}: {len(expected & coverage)}/{len(expected)} instructions')
-    print(f'PASS: {sum(counts.values())} full CPU/RAM cases; statuses {counts}')
+    print(f'PASS: {sum(counts.values())} full CPU/RAM cases; statuses {counts}; FLAGS differ from raw Unicorn only by '
+          f'the declared pinned splits at {SPLIT_ARRIVALS[0]} stops {SPLIT_BY_RULE}')
 
 
 def main():

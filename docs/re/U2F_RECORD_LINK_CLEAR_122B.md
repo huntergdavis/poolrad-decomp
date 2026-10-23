@@ -124,3 +124,11 @@ Four aligned callers are +056C:+1D5C, +29AE:+2FE8, +3FB3:+4018 and
 +408C:+41C1; three are game_evidenced. No implementation/strict/open-PR
 collision was found. U38/U7D/U6A and the reserved U7F +05E0 are excluded
 from selection. U6C is not implemented or credited in this PR.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_002F_122B --require-current-main
+```

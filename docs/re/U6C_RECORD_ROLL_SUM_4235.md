@@ -80,8 +80,8 @@ must remain immutable and disjoint from writes.
 `ARGUMENT` rejects null pointers or RAM below 1 MiB before mutation.
 `TRANSFER` stops at the first changed internal CS:IP after its real return
 pop, without executing arbitrary code. Seed near returns and U9E returns
-have defined arithmetic flags. SYSTEM DIV leaves arithmetic flags undefined;
-SYSTEM OR leaves AF undefined. The oracle masks only those bits if the
+have defined arithmetic flags. SYSTEM DIV writes the pinned DIVW flags and SYSTEM OR clears AF (pinned FillFlags). Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. The raw-Unicorn oracle
+masks. The raw-Unicorn oracle masks only the bits where it differs from the pinned profile, and only if the
 corresponding internal far return changes. Normal returns compare all flags.
 
 Seed/frame aliases can rewrite live loop bounds or indexes. The C model has
@@ -157,3 +157,38 @@ completed finding. Reused findings: [merged U9E ABI/seed pins](U9E_ENTRY8_ROLL.m
 [merged U6C CPU/offset conventions](U6C_RECORD_TABLE_SUM_3F31.md), and completed
 +3FB3/+408C separate-code/frame audit design. No unmerged symbol or accounting
 metadata is required by this branch.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006C_4235 --require-current-main
+```
+
+## Repair note, 2026-10-22
+
+A one-line import repair landed after this document: the division hook read
+`UC_X86_REG_DX`/`AX`/`BX` without importing them, so a full run died with a
+`NameError` at line 192 while `--compile-only` passed (the hook never runs on that
+path). No claim, count or case in this document changes; the audit now runs end to
+end again (1609 cases, 1593 returns, 134 covered sites).
+
+
+## Division flags after #1433 (recorded by the acceptor, 2026-10-22)
+
+#1433 (par-d) corrected this model's flags after successful `DIV`/`IDIV` to the pinned DOSBox-X rule. The earlier
+Unicorn oracle masked all six flags at those exits, and there was no native run, so the PM marked the flag claim at
+the division exits unproven (i21495). par-d2 re-ran both checkers at `23acc5bf` (#1433 plus the 4235 audit import
+fix), with FLAGS unmasked in the native run (i21533).
+
+**Per-credit sentence:** `OVL_006C_4235`'s evidence did not depend on the division flags. The credit stands.
+
+Native 620/620 returns, `masked_flags = 0`. Unicorn audit rc 0 on 1,609 cases (1,593 returns with FLAGS unmasked; 16 internal transfers under the declared split; 9,178 threshold divisions).
+
+The credit's standing limits are unchanged and restated here. The 8 original-only cases at SP `442E..443E` exhaust the 50,000-instruction budget and carry no parity claim (documented since `a80908a3`). Loader dispatch and the natural game route are not measured.
+
+Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) (kept in par-d2's worktree at `resources/evidence-par-d2/flags2/`, a lane-local, git-ignored path; moved there from `/tmp` on 2026-10-23) for every
+number above. par-e also confirmed that this body's C source, header, audit and native script, and the SYSTEM sources,
+are byte-identical between `23acc5bf` and main `5af0fb2e`. par-e did not re-run these checkers. The logs' `source_sha256`
+is the original body's hash, not the C's, so the source identity above comes from the git diff.

@@ -32,6 +32,8 @@ class DashboardTest(unittest.TestCase):
             evidence.write_text("Test evidence", encoding="utf-8")
             source = dashboard.read_json(dashboard.DEFAULT_REPO /
                                          "docs/re/function_accounting_checkpoint.json")
+            # Fixed numerators: the live checkpoint moves every time credit lands.
+            source.update(strict_full_c_originals=82, verified_game_identities=143)
             (repo / "docs/re/function_accounting_checkpoint.json").write_text(
                 json.dumps(source), encoding="utf-8")
             census = {
@@ -57,6 +59,42 @@ class DashboardTest(unittest.TestCase):
             path.write_text(json.dumps(census), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "different original binaries"):
                 dashboard.function_progress(repo)
+
+    def test_hybrid_tile_values_are_the_cited_ones(self):
+        h = dashboard.hybrid_status(dashboard.DEFAULT_REPO)
+        self.assertTrue(h["verified"])
+        self.assertEqual({k: h[k] for k in ("running_as_c", "c_only", "shadow", "entries_before", "entries_after",
+                                            "credited_on_route", "credited_off_route")},
+                         {"running_as_c": 16, "c_only": 11, "shadow": 5, "entries_before": 2453,
+                          "entries_after": 937, "credited_on_route": 16, "credited_off_route": 261})
+        self.assertEqual(h["sources"], ["docs/HYBRID_GLUE_BATCH1.md", "docs/HYBRID_STAGE_B_OBSERVER.md"])
+
+    def test_hybrid_tile_asks_for_review_when_a_source_changes(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp)
+            (repo / "docs").mkdir()
+            for name in ("HYBRID_GLUE_BATCH1.md", "HYBRID_STAGE_B_OBSERVER.md"):
+                body = (dashboard.DEFAULT_REPO / "docs" / name).read_text(encoding="utf-8")
+                (repo / "docs" / name).write_text(body.replace("not reached by the cold start: 261",
+                                                               "not reached by the cold start: 262"), encoding="utf-8")
+            h = dashboard.hybrid_status(repo)
+            self.assertFalse(h["verified"])
+            self.assertIsNone(h["credited_off_route"])
+            self.assertEqual(h["running_as_c"], 16)
+
+    def test_overview_is_four_tiles_and_the_verbatim_lines(self):
+        body = dashboard.render(dashboard.DEFAULT_REPO).read_text(encoding="utf-8")
+        for kicker in ("CODE REPLACED", "IDENTITIES PROVEN", "RUNNING AS OUR C", "UNKNOWN"):
+            self.assertIn(f"tile('{kicker}'", body)
+        self.assertEqual(body.count("tile('"), 5)        # four tiles plus tile 3's re-review form
+        self.assertIn("815 is a ceiling, not a denominator; a body counts only when a differential proves registers, "
+                      "flags and all 1 MiB of RAM equal.", body)
+        self.assertIn("815 is an UPPER BOUND on callable starts, not a verified denominator. 800 was an earlier, "
+                      "looser figure; 815 is the current ceiling.", body)
+        self.assertIn("credited bodies are NOT on that route yet.", body)
+        overview = body[body.index('<section id="overview">'):body.index("</section>", body.index('<section id="overview">'))]
+        self.assertNotIn("comparisons", overview)
+        self.assertNotIn("verification", overview)
 
     def test_queue_keeps_identity_separate_from_full_c(self):
         entries, counts = dashboard.queue(dashboard.DEFAULT_REPO)

@@ -103,6 +103,8 @@ class Emitter:
         if mn == 'mul':
             assert ops[0].size == 2
             return f'mul16(c,{self.rd(ops[0], i)});' + go
+        if mn == 'cwde':  # 98h in 16-bit mode is CBW; no flags
+            return 'c->ax=(uint16_t)((c->ax&0x80u)?(c->ax|0xFF00u):(c->ax&0x00FFu));' + go
         if mn == 'cdq':  # 99h in 16-bit mode is CWD
             return 'c->dx=(c->ax&0x8000u)?0xFFFFu:0u;' + go
         if mn == 'lea':  # effective offset only; no memory access, no flags

@@ -120,7 +120,7 @@ static uint16_t shift1(pr_u3c2_0422_cpu *cpu, uint16_t old)
     if (result == 0u) cpu->flags |= 0x40u;
     if ((result & 0x8000u) != 0u) cpu->flags |= 0x80u;
     if (((old ^ result) & 0x8000u) != 0u) cpu->flags |= 0x800u;
-    /* SHL AF is undefined; choose zero without a native AF claim. */
+    cpu->flags |= 0x10u; /* pinned DOSBox-X: SHL sets AF for a non-zero count. */
     return result;
 }
 
@@ -136,10 +136,13 @@ static void multiply_ax(pr_u3c2_0422_cpu *cpu, uint16_t right)
     uint32_t product = (uint32_t)cpu->ax * right;
     cpu->ax = (uint16_t)product;
     cpu->dx = (uint16_t)(product >> 16);
-    cpu->flags &= (uint16_t)~0x0801u;
-    if (cpu->dx != 0u) cpu->flags |= 0x0801u;
-    /* Other MUL status flags are undefined and retained by convention.
-     * Later ADD/XOR/CMP replaces them before a callee boundary or return. */
+    /* Pinned MULW: SF/AF kept, ZF from AX, PF is the even parity of all four bytes of DX:AX. */
+    {
+        uint32_t fold = product;
+        fold ^= fold >> 16; fold ^= fold >> 8; fold ^= fold >> 4; fold ^= fold >> 2; fold ^= fold >> 1;
+        cpu->flags = (uint16_t)((cpu->flags & ~0x0845u) | (cpu->dx != 0u ? 0x0801u : 0u) |
+                                (cpu->ax == 0u ? 0x0040u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
 }
 
 static void logical8_flags(pr_u3c2_0422_cpu *cpu, uint8_t value)

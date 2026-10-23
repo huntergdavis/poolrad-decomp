@@ -140,7 +140,7 @@ static uint16_t shl16_3(cpu_t *c, uint16_t a)
 {
     uint16_t r = (uint16_t)(a << 3), f = (uint16_t)(szp16(r) | F_AF);
     if (a & 0x2000u) f |= F_CF;
-    if ((r ^ a) & 0x8000u) f |= F_OF;
+    if (((r >> 15) ^ ((f & F_CF) ? 1u : 0u)) & 1u) f |= F_OF; /* pinned FillFlags SHLw: OF = MSB(result) ^ CF */
     put_arith(c, f);
     return r;
 }

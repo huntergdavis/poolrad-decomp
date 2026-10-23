@@ -75,7 +75,7 @@ buffer that overlaps any of them changes what follows. The audit constructs each
   see the report to the VP.)
 - **Flags:**
   - MUL's undefined SF/ZF/AF/PF are set as DOSBox-X's 386 core sets them. They reach only the service's input flags.
-  - DIV leaves the flags unchanged.
+  - DIV does NOT leave the flags unchanged. Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. The following `XOR DX,DX`/`OR DX,DI` overwrite them before any read.
   - The body overwrites both before it reads a flag (`XOR DX,DX`, `OR DX,DI`, `CMP`).
 - Exactly 1 MiB of RAM.
 - Entry SP must lie in `[0006h,FFEEh]`: pushes reach entry SP − 6, and the arguments reach entry SP + 11h. Outside that range

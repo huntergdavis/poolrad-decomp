@@ -80,6 +80,9 @@ def source():
     return dict(conditional=conditional, starts=[i.address for i in insns]), code, image, decoded, spans
 
 
+CHECKER_ROWS = ('OVL_007D_0565',)
+
+
 def library(directory):
     path = directory / "u7d0565.so"
     sources = ["overlay_u7d_two_digits_0565_cpu.c", "resident_00ba_byte_string_1037_cpu.c", "system_str_1366_cpu.c",
@@ -350,10 +353,17 @@ def native_audit(code, image, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     target, code, image, decoded, spans = source()
     report = dict(target=spans["u7d"])
     if args.unicorn or args.native:

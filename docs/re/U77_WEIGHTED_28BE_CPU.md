@@ -156,3 +156,11 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | `helper_candidate`; identity is the verifying lane's call. The provisional value model stays as it is. The game meaning of the record words and weights is not asserted. Natural saved-game reach is unmeasured. |
 
 No classifier, queue or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0077_28BE --require-current-main
+```

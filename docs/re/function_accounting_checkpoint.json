@@ -1,41 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "774f1642941fd50965e7f2f9291c80ac8db887f05f0e7f1d8e513bdb6fea2c25",
-    "full_c_map": "cc04af541cfa91fe173c6c0c427374e22de24f76dc0b8b14152468bde7d20c5f",
+    "classification": "afca5df3cf18ed9d343a118e35caaab699925c8fb35694e40c406a09943cdd91",
+    "full_c_map": "adca435ce54f0bbfba7cce23eb6b37fde4f3503accb2b4c62df37674fa695d44",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
-    "resident_audit": "1828cd51b743b29e8f2b30c0ad865274c7a320686deb0b0ff0dc0b9cce84c947",
-    "reviewed_identities": "478431231f643d9a4f98f50af77ebb9212a89a39c1288af8d1bf880764170f8c"
+    "resident_audit": "ba3c3703dfb20172777eafa171b8885db9b6e7a68740dda905ecd0bbf481d111",
+    "reviewed_identities": "efc011f2707b32e8f624d90defc880b690e4562a00618671f7c852665bf2c336"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "b35d7af0a63536684c42bbaa2b3f2313079615c311aca2450955a4c38ef96871",
+  "queue_sha256": "d52ae347416ff7aabee4c174e426a00dbd935dcd9510469692f99547aa729ba0",
   "reviewed_change": {
-    "approval_reference": "resident acceptance of RES_0802_025D (VP i20362/i20671, reviewer par-e); follows the RES_00BA_1693 resident precedent",
+    "approval_reference": "acceptance of OVL_0077_17ED (par-a i21456 routing, reviewer par-e i21464): evidence PR #1430 head 716560be, identity by par-a (#1432, corrected #1434); reproduced at 716560be: Unicorn 550 cases, CPU14 + all 16 FLAGS + all 1,048,576 RAM bytes + 262,164 EGA bytes, 0 flag masks, 0 RAM exclusions, 0 callee stubs; caller 63/63 starts, 2/2 outcomes; stops 525 split / 5 message / 8 CODE / 11 CALLEE / 1 TRANSFER; native 28 cases on /usr/bin/dosbox-x 99d74601 (not the pinned build)",
     "approved_by": "PM",
-    "evidence_doc": "docs/re/RES_0802_025D_CPU.md",
+    "body_bytes": 176,
+    "body_sha256": "46c07cbe1120a95c2830f87199a1f5141a272b9dfba7df3f534e4168079e82e9",
+    "evidence_doc": "docs/re/U77_SPLIT_17ED.md",
     "game_identity": true,
-    "original_id": "RES_0802_025D",
-    "review_pr": 1337,
-    "reviewed_commit": "8b5a84e8",
+    "original_id": "OVL_0077_17ED",
+    "review_pr": 1430,
+    "reviewed_commit": "57ada5d45d5821a1991efde008bfc788ef6f651d",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 233,
-    "resident": 44
+    "overlay": 234,
+    "resident": 47
   },
-  "strict_full_c_originals": 277,
-  "unknown_ownership": 487,
+  "strict_full_c_originals": 281,
+  "unknown_ownership": 483,
   "verified_game_by_domain": {
-    "overlay": 277,
-    "resident": 45
+    "overlay": 278,
+    "resident": 48
   },
-  "verified_game_identities": 322,
+  "verified_game_identities": 326,
   "whole_game_denominator": "unknown"
 }

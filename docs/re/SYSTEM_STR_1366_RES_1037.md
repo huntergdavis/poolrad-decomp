@@ -159,3 +159,11 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | Str is a runtime (library) model; `00BA:1037` is a game resident routine whose credit is the verifying lane's call |
 
 No classifier, queue or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py RES_00BA_1037 --require-current-main
+```

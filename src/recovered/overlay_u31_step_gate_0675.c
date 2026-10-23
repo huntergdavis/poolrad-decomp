@@ -105,6 +105,16 @@ static void cmp8(pr_u31_0675_cpu *cpu, uint8_t left, uint8_t right)
     if ((left ^ right) & (left ^ result) & 0x80u) cpu->flags |= 0x0800u;
 }
 
+/* OR AL,AL (pinned t_ORb, the same for the lazy and stored paths): CF = OF = AF = 0; SF, ZF and PF from AL. */
+static void or_al(pr_u31_0675_cpu *cpu)
+{
+    uint8_t al = (uint8_t)cpu->ax;
+    cpu->flags &= (uint16_t)~0x08D5u;
+    if (even_parity(al)) cpu->flags |= 0x0004u;
+    if (al == 0u) cpu->flags |= 0x0040u;
+    if (al & 0x80u) cpu->flags |= 0x0080u;
+}
+
 static void note(pr_u31_0675_callee *callee, uint16_t site, int status)
 {
     if (callee != NULL) {
@@ -120,6 +130,7 @@ static pr_u31_0675_status scan_call(uint8_t *ram, size_t ram_size, pr_u31_0675_c
     uint16_t caller_cs = cpu->cs, return_ip = (uint16_t)(entry + SCAN_SITE + 5u), stub_segment;
     pr_u3c6_0cb9_cpu leaf;
     pr_u3c6_0cb9_cpu_status status;
+    cpu->ip = (uint16_t)(entry + SCAN_SITE);              /* a CODE stop leaves CS:IP at the call */
     if (read8(ram, cpu->cs, (uint16_t)(entry + SCAN_SITE)) != 0x9Au ||
         read16(ram, cpu->cs, (uint16_t)(entry + SCAN_SITE + 1u)) != STUB_OFFSET)
         return PR_U31_0675_CODE;
@@ -150,6 +161,7 @@ static pr_u31_0675_status lookup_call(uint8_t *ram, size_t ram_size, pr_u31_0675
     uint16_t return_ip = (uint16_t)(at + 5u);
     pr_res_2199_cpu leaf;
     pr_res_2199_status status;
+    cpu->ip = at;                                          /* a CODE stop leaves CS:IP at the call */
     if (read8(ram, cpu->cs, at) != 0x9Au || read16(ram, cpu->cs, (uint16_t)(at + 1u)) != LOOKUP_ENTRY)
         return PR_U31_0675_CODE;
     push16(ram, cpu, cpu->cs);
@@ -182,7 +194,7 @@ pr_u31_0675_status pr_u31_step_gate_0675(uint8_t *ram, size_t ram_size, pr_u31_0
     if (ram == NULL || cpu == NULL || ram_size != PR_U31_0675_RAM_SIZE)
         return PR_U31_0675_ARGUMENT;
     entry = cpu->ip;
-    /* +0675..+0678: PUSH BP; MOV BP,SP; SUB SP,0Ah (SUB's flags are overwritten by the first CMP or a callee). */
+    /* +0675..+0678: PUSH BP; MOV BP,SP; SUB SP,0Ah (SUB's flags folded: XOR AH,AH at +0689 overwrites them first). */
     push16(ram, cpu, cpu->bp);
     cpu->bp = cpu->sp;
     cpu->sp = (uint16_t)(cpu->sp - 0x0Au);
@@ -200,7 +212,7 @@ pr_u31_0675_status pr_u31_step_gate_0675(uint8_t *ram, size_t ram_size, pr_u31_0
     cpu->di = (uint16_t)(cpu->di << 2);
     cpu->di = (uint16_t)(cpu->di + cpu->si);
     cpu->di = (uint16_t)(cpu->di + cpu->dx);
-    /* +06A7..+06BA: [BP-6] := t; AX := b + [BP-6]. */
+    /* +06A7..+06BA: [BP-6] := t; AX := b + [BP-6] (the XORs' and ADD's flags folded: IDIV overwrites them). */
     set_al(cpu, read8(ram, cpu->ds, (uint16_t)(cpu->di + 0x02AEu)));
     set_frame8(ram, cpu, -6, (uint8_t)cpu->ax);
     load_byte(cpu, frame8(ram, cpu, -6));
@@ -208,12 +220,20 @@ pr_u31_0675_status pr_u31_step_gate_0675(uint8_t *ram, size_t ram_size, pr_u31_0
     load_byte(cpu, frame8(ram, cpu, 0x0A));
     cpu->ax = (uint16_t)(cpu->ax + cpu->dx);
     /* +06BC..+06C3: CWD; MOV CX,8; IDIV CX; XCHG DX,AX; [BP-7] := remainder. The dividend is a sign-extended
-     * word, so the quotient always fits and IDIV cannot fault; its undefined flags are folded. */
+     * word, so the quotient always fits and IDIV cannot fault. Its flags reach the +06DA call, so they are written. */
     cpu->dx = (cpu->ax & 0x8000u) ? 0xFFFFu : 0x0000u;
     cpu->cx = 8u;
     dividend = (int32_t)(int16_t)cpu->ax;
     cpu->dx = (uint16_t)(int16_t)(dividend % 8);
     cpu->ax = (uint16_t)(int16_t)(dividend / 8);
+    /* IDIV CX. Pinned DIVW/IDIVW (instructions.h:655-673, 745-761) overwrite all six flags: AF=SF=OF=0,
+     * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+    {
+        uint16_t rem16 = (uint16_t)(dividend % 8), quo16 = (uint16_t)(dividend / 8), fold = (uint16_t)(rem16 ^ quo16);
+        fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+        cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+    }
     {
         uint16_t swap = cpu->ax;
         cpu->ax = cpu->dx;
@@ -291,13 +311,15 @@ pr_u31_0675_status pr_u31_step_gate_0675(uint8_t *ram, size_t ram_size, pr_u31_0
             status = lookup_call(ram, ram_size, cpu, entry, sites[n], lookup_max_loopbacks, callee);
             if (status != PR_U31_0675_OK)
                 return status;
-            if ((uint8_t)cpu->ax != 0u)                       /* OR AL,AL; JNE +07B8 (OR's flags folded) */
+            or_al(cpu);                                       /* OR AL,AL; JNE +07B8: its flags reach the next lookup call */
+                                                              /* (equal to a missed lookup's return flags, written anyway) */
+            if ((uint8_t)cpu->ax != 0u)
                 break;
         }
         if (n == 4u) {
             load_y(ram, cpu);
             load_byte(cpu, read8(ram, cpu->es, (uint16_t)(cpu->di + 6u)));
-            cpu->ax = (uint16_t)(cpu->ax + 1u);                /* INC AX (flags folded) */
+            cpu->ax = (uint16_t)(cpu->ax + 1u);                /* INC AX (flags folded: CMP at +07C4 overwrites them) */
             set_frame8(ram, cpu, -0x0A, (uint8_t)cpu->ax);
         }
     }

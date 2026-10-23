@@ -6,6 +6,15 @@ byte at +12 using its heading byte at +09. All reads, writes, stack locals,
 flags and register effects remain on the supplied 1 MiB CPU/RAM state.
 There are no result callbacks or host substitutions for callees.
 
+## Loaded-state precondition (inherited)
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. The credit is unchanged. `OVL_005E_17F6`'s C
+composes `pr_u5e_direction_263d` (`OVL_005E_263D`), and that model does not read its overlay stubs. This credit therefore holds only
+under the same loaded-state precondition: every stub listed in [U5E_DIRECTION_263D.md](U5E_DIRECTION_263D.md#loaded-state-precondition)
+must hold its loaded far `JMP`. When one of those units is not resident, the original goes through the overlay
+manager and this C does not. This section covers only the composed model. It makes no claim about stubs this
+body calls directly.
+
 ## Identity and reuse
 
 | Artifact | Extent | SHA-256 |
@@ -80,9 +89,7 @@ stack or pointer storage.
 - A non-OK callee result exposes its reached state. A changed nested return
   produces TRANSFER. OK means the outer RETF 8 executed, including when
   a data alias changed the outer return address.
-- Logical AF is chosen as zero; IDIV preserves its incoming flags, matching
-  the selected Unicorn profile. The native ISA leaves division flags
-  undefined. This profile is explicitly not a universal native FLAGS claim.
+- Logical AF is cleared (pinned FillFlags). IDIV does NOT preserve its incoming flags: Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. This profile is explicitly not a universal native FLAGS claim.
 
 ## Validation
 
@@ -138,3 +145,13 @@ python3 tools/overlay/u5e_direction_gate_17f6_audit.py \
   direction-chain dependency add ownership evidence but do not change the
   classifier or strict ledger here. Native saved-route execution, division
   FLAGS characterization and strict-credit review remain separate gates.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the model writes the pinned IDIVW flags in `divide_eight` and the pinned AF after the composed shift; raw Unicorn writes neither, so the audit failed on main at `direction-0-heading-5` (`flags C=7203, original=7202`, CF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h:655-673/743-761` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to AF=0 fails. Nothing is masked; the audit prints how many stops used the split.
+
+Run (PR #1446): **2,794** full CPU/RAM cases (2,790 returns, 4 budget stops), 53/53 instructions; the split was used at **2,308** stops: **2,307** with an IDIV as the last writer (C equals the pinned formula on the original's own remainder and quotient, so C's `rem` and CF are right) and **1** after a shift.
+
+**Per-credit sentence (OVL_005E_17F6): evidence did not depend on the IDIV flags or on AF after a shift**; at every such stop C is held to the pinned value, and every other stop is exact. Credit stands.

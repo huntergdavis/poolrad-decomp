@@ -13,6 +13,8 @@ from capstone import Cs,CS_ARCH_X86,CS_MODE_16
 from overlay_inventory import find_units,parse_mz
 import system_getmem_023f_audit as gm
 from u86_procvars_3413_audit import Cpu,ROOT,SIZE,EXE_SHA,OVR_SHA,REGISTERS,physical,put16
+from pinned_shift_flags import LastFlagWriter,SPLIT_BY_RULE,declared_flags_split,split_used
+SPLIT_ARRIVALS=[0]
 CS,DS,SS,ENTRY,END=0x8000,gm.DS,0x2800,0x028D,0x044E
 RET_CS,RET_IP=0x9001,0x7000
 OK,CODE,CALLEE,TRANSFER,LIST_LIMIT=0,2,3,4,5
@@ -51,6 +53,9 @@ def source():
     target=dict(bytes=449,instructions=165,sha256=BODY_SHA,file_start=u['ovr_offset']+ENTRY,file_end=u['ovr_offset']+END,
                 callers=refs,prefix_sha256=sha256(prefixes).hexdigest())
     print('U86 +028D:',target,flush=True);return image,code,decoded,target
+
+CHECKER_ROWS = ('OVL_0086_028D',)
+
 
 def library(directory):
     path=directory/'u86028d.so'
@@ -100,9 +105,10 @@ def compare(label, memory, cpu, high, decoded, function, cap=64,list_cap=400):
     for (name,_), reg in zip(Cpu._fields_, REGISTERS): original.reg_write(reg,getattr(cpu,name))
     state = dict(stop=None, callee=-1, returned=False, returning=None, calls=[], previous=None, steps=0, list_visits=0, kind=-1, unexpected=None)
     visited, edges = set(), set()
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def hook(uc, address, size, user):
-        del address,size,user
+        del size,user
         cs, ip = uc.reg_read(UC_X86_REG_CS), uc.reg_read(UC_X86_REG_IP)
         here=(cs,ip)
         if state["returned"]:
@@ -145,6 +151,7 @@ def compare(label, memory, cpu, high, decoded, function, cap=64,list_cap=400):
         elif ins.mnemonic in ("ret","retf"):
             if here==(CS,0x044B):state["returned"]=True
             else:state["returning"]=here
+        writer.step(uc,address)
         state["previous"]=here
 
     def mirror(uc,access,address,size,value,user):
@@ -157,6 +164,7 @@ def compare(label, memory, cpu, high, decoded, function, cap=64,list_cap=400):
     if high:original.hook_add(UC_HOOK_MEM_WRITE,mirror)
     original.emu_start(physical(CS,ENTRY),2*SIZE,count=2000000)
     check(state["unexpected"] is None and state["stop"] is not None,f"original escape/timeout {state}: {label}")
+    writer.finish(original)
     expected=bytes(original.mem_read(0,SIZE))
     ram=(ctypes.c_uint8*SIZE).from_buffer_copy(memory);callee=Diagnostic()
     status=function(ram,SIZE,ctypes.byref(cpu),list_cap,cap,ctypes.byref(callee))
@@ -167,6 +175,9 @@ def compare(label, memory, cpu, high, decoded, function, cap=64,list_cap=400):
         raise ValueError(f"RAM mismatch {label}: {[(hex(p),actual[p],expected[p]) for p in diff[:8]]}, {len(diff)} bytes")
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):
         want=original.reg_read(reg)&65535
+        if name=="flags":
+            problem=declared_flags_split(cpu.flags,want,writer);check(problem is None,f"flags: {problem}: {label}")
+            SPLIT_ARRIVALS[0]+=split_used(cpu.flags,want,writer);continue
         check(getattr(cpu,name)==want,f"{name}: C={getattr(cpu,name):04x}, original={want:04x}: {label}")
     check(callee.callee==state['kind'],f'callee identity mismatch {label}')
     return status,callee.status,visited,edges
@@ -217,12 +228,17 @@ def differential(image,code,decoded,function):
     check(starts<=visited,f'caller starts missing: {starts-visited}')
     caller_total=2*sum(i.mnemonic.startswith('j') and i.mnemonic!='jmp' for p,i in decoded.items() if p[0]==CS)
     check(len(caller_edges)==caller_total,f'caller outcomes {len(caller_edges)}/{caller_total}')
-    report=dict(cases=sum(stops.values()),stops=stops,caller_starts=len(starts),caller_total=len(starts),caller_outcomes=len(caller_edges),caller_outcomes_total=caller_total,
+    report=dict(cases=sum(stops.values()),stops=stops,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),caller_starts=len(starts),caller_total=len(starts),caller_outcomes=len(caller_edges),caller_outcomes_total=caller_total,
         chain_starts=len(visited),chain_total=len(decoded),chain_outcomes=len(edges),chain_outcomes_total=2*sum(i.mnemonic.startswith('j') and i.mnemonic!='jmp' for i in decoded.values()))
     print('Original-chain:',report,flush=True);return report
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--unicorn',action='store_true');p.add_argument('--native',action='store_true');p.add_argument('--output',type=Path);p.add_argument('--compile-only',action='store_true');a=p.parse_args()
+    if a.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     image,code,decoded,target=source();report=dict(target=target)
     with tempfile.TemporaryDirectory(prefix='u86-028d-') as tmp:
         f=library(Path(tmp))

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Pinned complete U6C +4235 caller and raw U9E/SYSTEM RNG parity."""
 
+from pinned_div_flags import division_flags, declared_split, AF
 import argparse
 import ctypes
 from hashlib import sha256
@@ -13,7 +14,7 @@ import tempfile
 
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from unicorn import Uc, UC_ARCH_X86, UC_HOOK_CODE, UC_MODE_16
-from unicorn.x86_const import UC_X86_REG_CS, UC_X86_REG_IP
+from unicorn.x86_const import UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CS, UC_X86_REG_DX, UC_X86_REG_IP
 from overlay_inventory import find_units, parse_mz
 from overlay_u9e_entry8_roll_audit import audit as dice_source_audit
 from resident_loader_map import unpack
@@ -81,6 +82,9 @@ def source(exe_path=None, ovr_path=None):
                       "dice":[d["ovr_offset"]+0xDE3,d["ovr_offset"]+0xE2E],
                       "random":[origin[0xC140]+0x200,origin[0xC155]+0x201],
                       "seed":[origin[0xC18F]+0x200,origin[0xC1C4]+0x201]})
+
+
+CHECKER_ROWS = ('OVL_006C_4235',)
 
 
 def library(directory):
@@ -155,6 +159,7 @@ def compare(label,memory,cpu,layout,decoded,lib):
     visited,edges,previous,pending = set(),set(),[None],[None]
     stop,undefined = [None],[0]
     rng_calls,thresholds = [0],[0]
+    div_six = [None]
 
     def on_instruction(uc,address,size,user):
         del size,user
@@ -182,7 +187,10 @@ def compare(label,memory,cpu,layout,decoded,lib):
         if name == "dice" and ip == 0xE2B:pending[0]=(caller_cs,0x4285);undefined[0]=0
         if name == "caller" and ip == 0x42EA:pending[0]="outer";undefined[0]=0
         if name == "random" and ip == 0x11CB:undefined[0]=0x10
-        if name == "random" and ip == 0x11D0:undefined[0]=0x8D5
+        if name == "random" and ip == 0x11D0:
+            undefined[0]=0x8D5
+            div_dividend = (uc.reg_read(UC_X86_REG_DX) << 16) | uc.reg_read(UC_X86_REG_AX); div_divisor = uc.reg_read(UC_X86_REG_BX)
+            div_six[0] = division_flags(div_dividend % div_divisor, div_dividend // div_divisor)  # DIV BX, divisor nonzero here
         if name == "dice" and ip == 0xE0E:rng_calls[0]+=1
         if name == "caller" and ip in (0x42AB,0x42CA):thresholds[0]+=1
 
@@ -199,8 +207,14 @@ def compare(label,memory,cpu,layout,decoded,lib):
         raise ValueError(f"RAM differs {label}: {diffs[:8]}")
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):
         expected = original.reg_read(reg) & 0xFFFF
-        mask = 0xFFFF ^ undefined[0] if name == "flags" else 0xFFFF
-        if (getattr(cpu,name) ^ expected) & mask:
+        if name == "flags" and undefined[0]:
+            # declared split: DIV BX writes the pinned DIVW six flags; OR BX,BX clears AF (pinned FillFlags)
+            problem = (declared_split(getattr(cpu,name),expected,div_six[0]) if undefined[0] == 0x8D5
+                       else declared_split(getattr(cpu,name),expected,0,bits=AF))
+            if problem:
+                raise ValueError(f"{label}: {problem}")
+            continue
+        if (getattr(cpu,name) ^ expected) & 0xFFFF:
             raise ValueError(f"{name} differs {label}: {getattr(cpu,name):04X}/{expected:04X}")
     return visited,edges,status,rng_calls[0],thresholds[0],undefined[0]
 
@@ -212,7 +226,14 @@ def main():
     parser.add_argument("--progress",action="store_true")
     parser.add_argument("--exe", type=Path, help="owner-provided START.EXE")
     parser.add_argument("--ovr", type=Path, help="owner-provided GAME.OVR")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies,decoded,meta = source(args.exe, args.ovr)
     visited,edges,count,transfers,rng_calls,thresholds = set(),set(),0,0,0,0
     bounded_original_cases = []
@@ -265,7 +286,7 @@ def main():
         bounded_original_cases_without_C_parity=bounded_original_cases,returns=count-transfers,internal_transfers=transfers,transfer_cases=transfer_cases,rng_calls=rng_calls,threshold_divisions=thresholds,
         covered_sites=len(visited),source_sites=len(required_sites),conditional_edges=len(edges),
         infeasible_edges=["U9E:0DFE->0E1F (nonzero bound snapshot, AL=1)"],compared_ram_bytes=SIZE,compared_cpu_words=14,
-        normal_return_flags_masked=0,transfer_flags_masked_only_when_undefined=True,
+        normal_return_flags_masked=0,transfer_flags_declared_split=True,
         aligned_near_callers=["056C:+1D3B","29AE:+2FB1"],natural_game_route_measured=False,**meta)
     report.pop("caller_prefix");report.pop("multiplier")
     if args.output:

@@ -55,12 +55,13 @@ typedef struct {
  * and the RETF frame are read physically contiguous.
  *
  * Flags: the final flags are the last CMP's (+06DF, +06EF, +070F or +07C4).
- * The flag writes of XOR AH,AH, SHL, ADD, IDIV, SHR, MUL, INC and OR AL,AL
- * are folded: each is overwritten by a later CMP, or by a composed callee's
- * prologue SUB, before any flag is read or the routine returns. SHR's carry
- * selects the factor directly. At a mid-run CODE stop the arithmetic flags
- * are therefore those of the last modeled CMP (or the entry flags), not the
- * folded instructions'. */
+ * IDIV (pinned DIVW/IDIVW values) and OR AL,AL after each lookup are written,
+ * because their flags reach a far call: the callee's entry and this model's
+ * CODE or CALLEE stop there. The flag writes of SUB SP, XOR AH,AH, SHL, ADD,
+ * SHR, MUL and INC are folded: on every path a later writer overwrites them
+ * before any branch, call, stop or return (docs/re/FLAG_FOLDED_U31_0255_0675.md,
+ * tools/overlay/flag_fold_liveness.py). SHR's carry selects the factor directly.
+ * A CODE stop leaves CS:IP at the call it refused. */
 pr_u31_0675_status pr_u31_step_gate_0675(uint8_t *ram, size_t ram_size, pr_u31_0675_cpu *cpu,
                                          unsigned lookup_max_loopbacks, pr_u31_0675_callee *callee);
 

@@ -12,6 +12,25 @@ actual nested call frames and returns. It replaces neither the callees
 nor their memory effects with scalar answers. This is an author evidence
 submission; independent review owns acceptance and credit.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_03C2_0909` | `03E0:0025` | unit `0x3C6` entry 1 `+0000` | `+092A, +09D8` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
 ## Queue ownership and provenance
 
 This was the next uncompleted composable hard target at schema-8 rank 26,
@@ -210,3 +229,11 @@ reports, tool versions and native capture hashes.
 | score | Strong source identity and tested contract parity; separate incomplete transitive coverage and no natural-route evidence |
 | verdict | likely_match, pending independent review |
 | review_notes | Check argument order, signed coordinates, late reloads, explicit pair RETF policy, per-call line budget, shared caller budget, actual outer frame and stated native limits; no self-credit |
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C2_0909 --require-current-main
+```

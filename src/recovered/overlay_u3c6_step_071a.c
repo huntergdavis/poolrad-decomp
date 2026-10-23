@@ -119,6 +119,7 @@ static void times_four(pr_u3c6_071a_cpu *c)
         c->di = (uint16_t)(old << 1);
         c->flags = (uint16_t)((c->flags & (uint16_t)~ARITH) |
                               parity((uint8_t)c->di));
+        c->flags |= 0x10u; /* pinned: SHL sets AF for a non-zero count */
         if ((old & 0x8000u) != 0u) c->flags |= 1u;
         if (c->di == 0u) c->flags |= 0x40u;
         if ((c->di & 0x8000u) != 0u) c->flags |= 0x80u;

@@ -22,6 +22,7 @@ from unicorn.x86_const import (
     UC_X86_REG_CS, UC_X86_REG_IP, UC_X86_REG_DS, UC_X86_REG_ES,
     UC_X86_REG_SS, UC_X86_REG_EFLAGS,
 )
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 ROOT = Path(__file__).resolve().parents[2]
 SIZE = 1 << 20
@@ -86,6 +87,9 @@ def source(ovr):
     return bodies, instructions
 
 
+CHECKER_ROWS = ('OVL_0025_0E0C',)
+
+
 def library(directory):
     path = directory / "load-word.so"
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
@@ -119,6 +123,9 @@ def make_case(bodies, address, *, sp=0x8000, ds=0x1000, ss=0x2000):
     return ram, cpu
 
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, ram, initial, bodies, instructions, lib, visited):
     for start, body in bodies.items():
         at = physical(initial.cs, start)
@@ -132,9 +139,10 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         uc.reg_write(reg, getattr(initial, name))
     calls, stopped, stepping = [], [], [False]
     count = [0]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def hook(emulator, at, length, user):
-        del at, length, user
+        del length, user
         if stepping[0]:
             return
         ip = emulator.reg_read(UC_X86_REG_IP)
@@ -143,6 +151,7 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         visited.add(ip)
         count[0] += 1
         require(count[0] <= 100000, "original exceeded bounded audit execution")
+        writer.step(emulator, at)
         mnemonic, size = instructions[ip]
         if mnemonic == "call":
             calls.append((cs, (ip + size) & 0xFFFF))
@@ -167,6 +176,7 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         if actual != target:
             expected_status = 2
             break
+    writer.finish(uc)
     candidate_ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(baseline)
     candidate = Cpu.from_buffer_copy(initial)
     status = lib.pr_u25_load_word_0e0c(candidate_ram, SIZE, ctypes.byref(candidate))
@@ -177,6 +187,11 @@ def compare(label, ram, initial, bodies, instructions, lib, visited):
         raise ValueError(f"RAM mismatch {label}: physical offsets {offsets}")
     for (name, _), reg in zip(Cpu._fields_, REGS):
         value = uc.reg_read(reg) & 0xFFFF
+        if name == "flags":
+            problem = declared_flags_split(candidate.flags, value, writer)
+            require(problem is None, f"register mismatch {label} flags: {problem}")
+            SPLIT_ARRIVALS[0] += split_used(candidate.flags, value, writer)
+            continue
         require(getattr(candidate, name) == value,
                 f"register mismatch {label} {name}: {getattr(candidate, name):04x}/{value:04x}")
     return status
@@ -242,7 +257,14 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--ovr", type=Path, default=ROOT / "resources/DOS/POOLRAD/GAME.OVR")
     parser.add_argument("--quick", action="store_true")
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the candidate library only; no media")
     args = parser.parse_args()
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
+            library(Path(_t))
+        print('CHECKER_BUILD_OK')
+        return
     bodies, instructions = source(args.ovr)
     addresses = [0, 0xB1, 0xFB, 0xFC, 0x33D, 0x35F, 0x48FF, 0x4900, 0x49FD,
         0x4CFF, 0x4D00, 0x6AFF, 0x6B00, 0x6B18, 0x6B9B, 0x6BA0, 0x6BA5, 0x6BAC,
@@ -260,6 +282,7 @@ def main():
             transfers += compare(label, ram, cpu, bodies, instructions, lib, visited) == 2
             total += 1
     print(json.dumps(dict(cases=total, internal_return_transfers=transfers, visited_instructions=len(visited),
+        declared_flag_split_arrivals=SPLIT_ARRIVALS[0], declared_flag_split_by_rule=dict(SPLIT_BY_RULE),
         total_instructions=len(instructions), game_ovr_sha256=OVR_SHA,
         unvisited_original_addresses=[f"{offset:04X}" for offset in sorted(set(instructions) - visited)]),
         sort_keys=True))

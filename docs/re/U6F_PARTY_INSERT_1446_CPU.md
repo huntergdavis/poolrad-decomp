@@ -275,3 +275,11 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 | `review_notes` | Identity and strict credit are the verifying lane's call. The segment-view, DOS-RAM and SS-local entries and the #614 step adapter stay as they are. Natural saved-route reach through a warm stub is unmeasured; the saved first insertion meets the stub cold |
 
 No classifier, queue or count ledger is changed.
+
+## Checker registration (2026-10-28)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_006F_1446 --require-current-main
+```

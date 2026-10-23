@@ -164,3 +164,11 @@ remain under ignored `resources/u7f-0508/`.
 | score | Strong source identity and tested contract parity; no natural-route evidence |
 | verdict | likely_match, pending independent review |
 | review_notes | Check budget boundaries, late amount/next-pointer reloads, overwritten return handling, immutable-code precondition, and native scope; no acceptance or credit asserted |
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_007F_0508 --require-current-main
+```

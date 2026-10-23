@@ -84,8 +84,8 @@ static void add_ax(pr_u5e_0123_cpu *cpu, uint16_t right)
 static void xor_ah_ah(pr_u5e_0123_cpu *cpu)
 {
     cpu->ax &= 0x00FFu;
-    /* AF is undefined after XOR; the source convention retains its bit. */
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) |
+    /* pinned FillFlags: XOR clears AF. */
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) |
                             0x0044u);
 }
 
@@ -98,9 +98,9 @@ static void shl_ax_one(pr_u5e_0123_cpu *cpu)
     if (result == 0u) flags |= 0x0040u;
     if ((result & 0x8000u) != 0u) flags |= 0x0080u;
     if (((result >> 15) ^ carry) != 0u) flags |= 0x0800u;
-    /* AF is undefined after SHL; retain the incoming bit. */
+    /* pinned DOSBox-X: SHL sets AF for a non-zero count. */
     cpu->ax = result;
-    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~LOGIC_FLAGS) | flags);
+    cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~(LOGIC_FLAGS | 0x10u)) | flags | 0x10u);
 }
 
 pr_u5e_0123_status pr_u5e_entry2_0123(

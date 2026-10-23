@@ -209,3 +209,13 @@ Werror, ASan/UBSan, and frame pointers.
   choice, finite measured branch coverage, bounded native capture, and
   provisional identity remain material limits. Independent verification and
   credit belong to the reviewer/VP. No self-credit.
+
+## Pinned flag split after #1433 (2026-10-22, no claim moves)
+
+After #1433 the shared `system_random_fullstate_11c0.c` writes the pinned DIVW/IDIVW flags; raw Unicorn does not, so the audit failed on main at `caller-seed-frame-444E` (`flags C0002 DOS0006`, PF; `DOS` is the audit's label for the original under Unicorn).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py`: it tracks the last FLAGS-writing instruction the original executed (decoded from the original bytes at run time) and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` (or word `MUL`) the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set** (pinned `get_AF` = `count & 1Fh`). A model that reverted to the Unicorn value fails. Nothing is masked; the audit reports how many stops used the split, by rule.
+
+Run (PR #1446, `--unicorn`): **610** cases (556 caller, 54 latch), closure 102/102 starts; the split was used at **2** stops, both with a word divide as the last writer (0 after a shift or multiply).
+
+**Per-credit sentence (OVL_0038_2B20): evidence did not depend on the divide flags**; at those 2 stops C equals the pinned formula on the original's own remainder and quotient, and every other stop is exact. Credit stands.

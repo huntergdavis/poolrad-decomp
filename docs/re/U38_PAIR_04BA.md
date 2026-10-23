@@ -6,6 +6,26 @@ composable hard target remaining at selection. Its two raw CPU dependencies
 are merged in PRs #916 and #917. This implements the entire 284-byte,
 99-instruction public entry 12, with both real U9E callees on shared CPU/RAM.
 
+## Loaded-state precondition
+
+Added 2026-10-22 by par-e (credit authority), VP i21329, ruling i21377. This states a condition the credit always
+assumed; the credit is unchanged.
+
+This credit holds **only while every overlay unit the body far-calls is resident**: each stub below must hold the
+loaded five-byte far `JMP` (`EA`) to the named entry. The credited C never reads these stubs. It models each `LCALL`
+as a direct transfer to the loaded entry, so it cannot refuse when the unit is absent, and a caller must check the
+stub before it runs the C. When the unit is not resident, the original's `LCALL` lands in the overlay manager, which
+loads the unit with DOS reads. This C does not model that path. The differential in this document runs only the
+resident case: it either places a loaded stub or patches each `LCALL` straight to the entry.
+
+| Credit | Stub | Target | Call sites |
+| --- | --- | --- | --- |
+| `OVL_0038_04BA` | `00B0:0075` | unit `0x9E` entry 17 `+110D` | `+04DD, +0552` |
+| `OVL_0038_04BA` | `00B0:0070` | unit `0x9E` entry 16 `+10E4` | `+05B0` |
+
+Stubs were resolved from the original bytes: each `LCALL` segment is matched to its unit's `memory_segment`, and
+the slot `0x20 + 5 * entry` gives the entry. SYSTEM (`0AF8`) calls are resident and need no stub.
+
 ## Original identity and reuse
 
 START.EXE: 65,231 bytes, SHA256
@@ -139,3 +159,11 @@ With Capstone/Unicorn installed and owner media under resources/DOS/POOLRAD:
   retain the contiguous-LES caveat in queue readiness. Natural invocation,
   dynamic loader execution and the defensive TRANSFER branch are unmeasured.
   No author credit is claimed.
+
+## Checker registration (2026-10-29)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven on current main with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_0038_04BA --require-current-main
+```

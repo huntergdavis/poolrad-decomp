@@ -12,6 +12,7 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
 from unicorn import x86_const as regs
 import u5e_direction_263d_audit as dep
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 ENTRY, END = 0x2574, 0x263D
 SHA = '81c15df9fdd2f0693d2a4f1dd7e55ba75f049a8a785bba01b6c092ed98e3b101'
@@ -89,6 +90,9 @@ def fixture(*, signed_byte=1, type1=7, type2=50, counter=2, heading=0,
     return memory, cpu, layout
 
 
+SPLIT_ARRIVALS = [0]
+
+
 def compare(label, memory, cpu, layout, bodies, decoded, library, coverage,
             *, base=0, budget=2048):
     dep.install(memory, cpu, layout, bodies, base)
@@ -104,11 +108,13 @@ def compare(label, memory, cpu, layout, bodies, decoded, library, coverage,
     instruction_map = {dep.physical(segments[unit], i.address): (unit, i)
                        for (unit, _), instructions in decoded.items() for i in instructions}
     stack, remaining, stop = [], [budget], [None]
+    writer = LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
 
     def instruction(uc, address, size, user):
         del size, user
         pair = instruction_map.get(address & (dep.RAM_SIZE - 1))
         if pair is None:
+            writer.step(uc, address)
             return  # Loaded EA stubs are checked by source_audit/install.
         unit, ins = pair
         coverage.add((unit, ins.address))
@@ -119,6 +125,7 @@ def compare(label, memory, cpu, layout, bodies, decoded, library, coverage,
                 uc.emu_stop()
                 return
             remaining[0] -= 1
+        writer.step(uc, address)
         if ins.mnemonic in ('call', 'lcall'):
             stack.append((cs, ins.address + ins.size))
         elif ins.mnemonic == 'retf':
@@ -137,6 +144,7 @@ def compare(label, memory, cpu, layout, bodies, decoded, library, coverage,
     hook = emulator.hook_add(UC_HOOK_CODE, instruction)
     emulator.emu_start(dep.physical(cpu.cs, cpu.ip), 2 * dep.RAM_SIZE, count=3000000)
     emulator.hook_del(hook)
+    writer.finish(emulator)
     dep.check(stop[0] is not None, f'{label}: original did not reach a boundary')
     if stop[0] in (0, 5):
         pc = dep.physical(emulator.reg_read(regs.UC_X86_REG_CS),
@@ -147,6 +155,11 @@ def compare(label, memory, cpu, layout, bodies, decoded, library, coverage,
     dep.check(status == stop[0], f'{label}: status C={status}, original={stop[0]}')
     for name, register in zip(dep.NAMES, dep.REGISTERS):
         actual, expected = getattr(c_cpu, name), emulator.reg_read(register) & 65535
+        if name == 'flags':
+            problem = declared_flags_split(actual, expected, writer)
+            dep.check(problem is None, f'{label}: {problem}')
+            SPLIT_ARRIVALS[0] += split_used(actual, expected, writer)
+            continue
         dep.check(actual == expected, f'{label}: {name} C={actual:04x}, original={expected:04x}')
     if bytes(c_ram) != bytes(backing):
         bad = [i for i, (a, b) in enumerate(zip(c_ram, backing)) if a != b]
@@ -212,7 +225,9 @@ def run(bodies, decoded, library, random_cases):
              heading=rng.randrange(256), seed=i)
     starts = {(0x5E, i.address) for i in decoded[(0x5E, ENTRY)]}
     dep.check(starts <= coverage, f'uncovered caller instructions: {sorted(starts - coverage)}')
-    print(f'PASS: {sum(counts.values())} full CPU/RAM cases; statuses {counts}')
+    print(f'PASS: {sum(counts.values())} full CPU/RAM cases; statuses {counts}; FLAGS differ from raw Unicorn only by '
+          f'the declared pinned splits at {SPLIT_ARRIVALS[0]} arrivals ({SPLIT_BY_RULE["div"]} after a word DIV/IDIV: pinned six bits; '
+          f'{SPLIT_BY_RULE["shift"]} after a non-zero shift: AF set)')
     for key, instructions in decoded.items():
         expected = {(key[0], i.address) for i in instructions}
         print(f'U{key[0]:X}+{key[1]:04X}: {len(expected & coverage)}/{len(expected)} instructions')

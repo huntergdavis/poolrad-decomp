@@ -72,7 +72,7 @@ static uint16_t step(pr_u86_051c_cpu *c,uint16_t v,unsigned bits,unsigned subtra
     c->flags=(uint16_t)((c->flags&~1u)|cf);return v;
 }
 static uint16_t shift1(pr_u86_051c_cpu *c,uint16_t v) {
-    uint16_t result=(uint16_t)(v<<1u);(void)logic(c,result,16u);
+    uint16_t result=(uint16_t)(v<<1u);(void)logic(c,result,16u);c->flags|=0x10u; /* pinned: SHL sets AF */
     if(v&0x8000u)c->flags|=1u;
     if((v^result)&0x8000u)c->flags|=0x800u;
     return result;

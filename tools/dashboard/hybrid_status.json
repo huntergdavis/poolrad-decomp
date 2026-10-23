@@ -1,0 +1,17 @@
+{
+  "note": "Tile 3 of the owner overview. Each value is shown only while its source document still states it (the proof pattern); otherwise the tile asks for re-review. Update the value, the source and the proof together.",
+  "claims": {
+    "running_as_c": {"value": 16, "source": "docs/HYBRID_GLUE_BATCH1.md",
+                     "proof": "\\*\\*16 of the 16 credited bodies the cold start reaches now run as our C: 11 C-only, 5 shadow\\.\\*\\*"},
+    "c_only": {"value": 11, "source": "docs/HYBRID_GLUE_BATCH1.md", "proof": "now run as our C: 11 C-only, 5 shadow"},
+    "shadow": {"value": 5, "source": "docs/HYBRID_GLUE_BATCH1.md", "proof": "now run as our C: 11 C-only, 5 shadow"},
+    "entries_before": {"value": 2453, "source": "docs/HYBRID_GLUE_BATCH1.md",
+                       "proof": "original executions on the save walk: 2,453 unsubstituted, 937 here"},
+    "entries_after": {"value": 937, "source": "docs/HYBRID_GLUE_BATCH1.md",
+                      "proof": "original executions on the save walk: 2,453 unsubstituted, 937 here"},
+    "credited_on_route": {"value": 16, "source": "docs/HYBRID_STAGE_B_OBSERVER.md",
+                          "proof": "277 credited, 16 reached by the cold start"},
+    "credited_off_route": {"value": 261, "source": "docs/HYBRID_STAGE_B_OBSERVER.md",
+                           "proof": "\\*\\*Credited bodies not reached by the cold start: 261\\*\\*"}
+  }
+}

@@ -18,10 +18,49 @@ jobs:
         run: python3 -m pip install capstone==5.0.7 unicorn==2.1.4
       - name: Test checker build failure gates
         run: python3 -m unittest discover -s tools/overlay -p 'test_checker_builds.py'
+      - name: Flag-semantics census covers every flag-writing helper
+        run: python3 -m unittest discover -s tools/overlay -p 'test_flag_census.py'
+      - name: Folded-flags liveness tool (t44) on synthetic bytes, including codex-poolrad2's regressions
+        run: python3 -m unittest discover -s tools/overlay -p 'test_flag_fold_liveness.py'
+      - name: Flag helpers in generated sources come from their emitters
+        run: python3 -m unittest discover -s tools/overlay -p 'test_emitters_reproduce_sources.py'
+      - name: Declared AF-after-shift split allows AF alone, only after a non-zero shift
+        run: python3 -m unittest discover -s tools/overlay -p 'test_pinned_shift_flags.py'
       - name: Test candidate pricer input handling
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
+      - name: Base is current (stale-base precondition, separate from build failures)
+        run: |
+          # This step exists so the check list distinguishes "your branch is behind main"
+          # from "a registered checker does not build". They look identical in a failing
+          # checker-builds job otherwise, and that cost several misdiagnoses.
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "base: HEAD includes origin/main ($(git rev-parse --short origin/main))" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### Stale base, not a build failure"
+              echo ""
+              echo "HEAD does not include \`origin/main\` ($(git rev-parse --short origin/main))."
+              echo "No checker was compiled. Merge or rebase main into the branch and re-run."
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
       - name: Compile, load and bind registered row checkers without media
-        run: python3 tools/overlay/check_checker_builds.py --all
+        run: |
+          set -o pipefail
+          if ! python3 tools/overlay/check_checker_builds.py --all 2>&1 | tee /tmp/checker-builds.log; then
+            {
+              echo "### A registered checker does not build"
+              echo ""
+              echo '```'
+              grep -m1 -E 'HANDOFF BLOCKED|error|Traceback' /tmp/checker-builds.log || echo "no first-line message captured"
+              echo '```'
+            } | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Undefined-name gate tests (a hook reading an unbound name fails; bound names pass)
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_checker_names.py'
+      - name: Every global name a registered checker reads is bound (compiling is not running)
+        run: python3 tools/overlay/check_checker_names.py
   verify-public-tree:
     runs-on: ubuntu-latest
     steps:
@@ -49,6 +88,12 @@ jobs:
       # build where one appears in a credit table, so a hand edit or bad merge fails.
       - name: Refuse declared boundary endpoints in credit tables
         run: python3 tools/overlay/check_boundary_credits.py
+      - name: Test credit evidence-kind table
+        run: python3 -m unittest discover -s tools/overlay -p 'test_credit_evidence_kind.py'
+      # Every strict credit carries one evidence-kind label derived from the tree. A
+      # credit, checker or doc change that moves a label must regenerate the table.
+      - name: Refuse a stale credit evidence-kind table
+        run: python3 tools/overlay/credit_evidence_kind.py --check
       - name: Test evidence-link guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_evidence_docs.py'
       # Proves each credited row links to a document that names it. It does NOT

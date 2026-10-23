@@ -154,3 +154,11 @@ independently reviewed [U33 frame/flags and native-capture design](https://githu
 PM reserved this target in inbox i3713 and released it in i3728 after U3C2
 review. No unmerged symbol is required. The CMake insertion shares an area
 with seven pending branches; integration must preserve every registration.
+
+## Checker registration (2026-10-30)
+
+This row's audit is now a registered checker: it carries `--compile-only`, which builds and binds the candidate library with the audit's own compiler command and no game media, and `CHECKER_ROWS`. Proven in a worktree WITHOUT `resources/` (what CI has) with
+
+```sh
+python3 tools/overlay/check_checker_builds.py OVL_03C6_06E9 --require-current-main
+```

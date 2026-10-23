@@ -51,9 +51,9 @@ entry 8 with `PUSH CS; CALL`, so the composed callback leaves SP on that
 frame for the merged entry-9 model's own RETF 4 accounting. Then AL :=
 `DS:6819 AND 9`, `OR AL,AL`; when nonzero AL := `DS:681C` and the byte at
 `DS:6818` gains it with `ADD`'s flags. The final flags come from that
-`ADD`, or from `OR AL,AL`, or when the pointer is null from the pointer
-`OR`. AX, BX, CX, DX, SI, ES and DI return as the chain and the last LES
-left them.
+`ADD` when it runs, otherwise from `OR AL,AL`; the pointer `OR` never
+reaches the return (see the correction below). AX, BX, CX, DX, SI, ES and DI
+return as the chain and the last LES left them.
 
 Each far call is modelled as the loaded-state transfer: the relocated
 segment word is read from the call site in RAM, the five-byte far jump at
@@ -130,3 +130,19 @@ PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 
 
 No classifier or count ledger is changed. Identity and strict credit
 remain the PM's review decision.
+
+## Correction, 2026-10-21 (final flags; doc only)
+
+An earlier version of this page said the final flags come, "when the pointer is null", from the pointer `OR` at
+`+2D55`. **That was wrong.** Every path reaches `+2D72` before the return:
+- the null-pointer `JE` at `+2D58` jumps there;
+- the type test's `JNE` at `+2D62` jumps there;
+- the matching path falls through to it after the call.
+
+`+2D72..+2D79` is `MOV AL,[6819]; AND AL,9; OR AL,AL; JE 2D82`, so `OR AL,AL` at `+2D77` always runs, and its flags
+are final unless `ADD [6818],AL` at `+2D7E` runs after it. The pointer `OR`'s flags never survive to the `RETF 0Ah`.
+
+The C model and its differential are unaffected: the differential compares the real final flags, so the model was
+already right. The credit stands, and only this prose sentence changes. Found by a free-model static re-derivation
+(opencode/deepseek-v4.1-flash-free). par-d verified it against GAME.OVR (VP i20821), and par-e verified it independently
+by decoding `OVL_0038_2D38` from the media.
