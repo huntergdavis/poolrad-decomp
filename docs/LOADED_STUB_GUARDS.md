@@ -77,7 +77,8 @@ These are 14,465 full-state cases with no FLAGS masks, plus 207 host refusal
 checks, including 26 absent-unit fixtures. Repeated host checks in the U7F
 alias invocation are counted once. The +263D checker also passed 506
 standalone predicate CPU/RAM cases. All 16 focused C executables passed.
-U38 and U7F include added successful A20-wrapped stub-segment fixtures.
+U38 adds a successful A20-wrapped stub-address fixture. U7F adds an
+A20-wrapped callee with a 16-bit wrap in the relocated stub segment.
 Existing deeper-chain coverage gaps remain in the receipts; no coverage
 credit is inferred from executing synthetic stubs. U6A +0000 and +019C each
 retain one nonreturning original fixture outside the C comparison; +0214
@@ -88,6 +89,16 @@ registered-checker handoff are pending. An initial sidecar host check stopped
 before C invocation because the shared fixture supplied a distinct ctypes
 CPU class; the host checks now use the same CPU conversion as the existing
 full comparison. No recovered C change was needed for that checker failure.
+
+After rebasing onto main 574092a9, the affected audits are being rerun because
+PR #1433 changed arithmetic flag semantics in shared dependencies. U6A's
+507 + 507 full cases, U1C's 919 full cases, and the affected focused C tests
+passed again. U38's unchanged source closure retains its earlier result.
+The U5E +263D `predicate-budget` case stopped with C FLAGS 7212 versus
+Unicorn 7202: main's `times_four` now sets AF under the pinned DOSBox-X
+profile. The failed receipt is retained. PM instruction i21568 assigns the
+declared profile split to par-d2; this branch adds no mask and will rerun the
+checker after that correction reaches main. Other audits continue separately.
 
 All compilation and audit runs use poolrad-heavy.sh, one at a time, with
 load1 at most 12 before starting work. Receipts and logs remain under ignored
