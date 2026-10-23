@@ -1,0 +1,122 @@
+# OVL_0038 +0CC3: the U9E dispatcher's slot-40 handler (remove a map object), composed over StrLoad, resident 1693 and FreeMem (strict body; credit is par-e's)
+
+`OVL_0038_0CC3` (unit 0x38, entry 34, stub `0041:00CA`) removes one object from the map:
+- **Find.** It looks in the far-pointer list at `DS:[6DBB]` for the node whose first dword is the 32-bit key and whose type
+  byte `+12h` equals the object record's byte `+3` shifted right by 4.
+- **Message.** If one is found, it shows a 26-byte message through resident `00BA:1693`.
+- **Restore the cells.** For each of the node's four cells it puts the map back: 1Fh where an entry of the 7-byte table at
+  `DS:66D6` sits on the cell, otherwise the byte the node saved.
+- **Unlink and free.** It unlinks the node and frees it with SYSTEM FreeMem.
+- **Re-stamp.** It marks 1Eh on every cell of every node still in the list.
+
+This change adds the model, its C test, its checker, the native harness for the not-found walk, the mutation set, three census
+rows and this document. It also adds an optional named-stop map to the shared unit-0x7F world's runner. **par-e decides credit.**
+
+## Claim table
+
+| Item | Value |
+| --- | --- |
+| Row | `OVL_0038_0CC3`: game_evidenced, grade A, state, composable, 0 unready callees; claim i22096, approved i22097 |
+| Extent | **[0CC3,0FA2), 735 bytes / 266 instructions**, ending at the only return `RETF 0Ah` at `+0F9F`. The queue's 745-byte bound runs into the next routine's 9-byte string at `0FA2` |
+| Model | `src/recovered/overlay_u38_0cc3_cpu.c`, `include/poolrad/recovered/overlay_u38_0cc3_cpu.h` |
+| C test | `tests/recovered/test_overlay_u38_0cc3_cpu.c` (asserts on) |
+| Checker | `tools/overlay/ovl_0038_0cc3_cpu_audit.py`, `CHECKER_ROWS = ('OVL_0038_0CC3',)`, `--compile-only`, `--mutate`, `--native` |
+| Callees | SYSTEM StrLoad `0AF8:0B0B`, resident `00BA:1693` (resident_covered, its own audit), SYSTEM FreeMem `0AF8:0254` (runtime_covered, `system_freemem_0254_cpu.c`) |
+| Census | three new helper rows, `overlay_u38_0cc3_cpu.c:arith`, `:mulw` and `:shr16`, classified; `flag_census.py --check`: 0 gaps |
+
+**Role line:** removes a map object: finds its node by key and type in the object list at `DS:6DBB`, shows a message,
+restores its four map cells (1Fh under a listed figure, else the saved byte), unlinks and frees the node, then re-marks
+(1Eh) the cells of every remaining object.
+
+## Identity
+
+**Factor 1: a new class.** The handler has **no call site**. It is reached only through the U9E dispatcher's table:
+
+| Link | Bytes |
+| --- | --- |
+| L1, the installer store | credited `OVL_0038_31A2`, `+33A0 B8 CA 00` mov ax,00CAh; `+33A3 BA 41 00` mov dx,0041h; `+33A6 A3 C8 68` mov [68C8h],ax; `+33A9 89 16 CA 68` mov [68CAh],dx. **The segment word `0041h` at `+33A4` is fixup-relocated** |
+| L2, the slot | 68C8h = 6828h + 4·28h: slot 40 |
+| L3, the dispatch | `OVL_009E_0000` `+0013` `mov al,[bp+10h]; xor ah,ah; mov di,ax; shl di,1; shl di,1` then `+001E lcall [di+6828h]` |
+| L4, the stub | `0041:00CA` is `CD 3F C3 0C 00`: INT 3Fh to offset 0CC3h of unit 0x38, whose stub header is at file offset 0EC5Bh |
+
+**Limit, stated:** of the dispatcher's 11 far call sites, the 8 that pass a constant use 0Bh, 17h, 2Bh, 2Ch, 3Ah and 4Eh,
+never 28h. Slot 40 is reached only through the record-byte callers or the undecoded near callers
+([OVL_009E_0000_HANDLERS.md](OVL_009E_0000_HANDLERS.md)). The PM sent L1–L4 to the VP with a PASS recommendation (i22112).
+
+**Factor 2: the body uses documented game state:**
+- it **writes** map bytes through the map pointer `DS:6716/6718` ([U31_CANDIDATE_CHECK_0255_CPU.md](U31_CANDIDATE_CHECK_0255_CPU.md));
+- it **compares** each cell with the coordinates of the 7-byte records at `DS:66D6`, count `DS:6715`
+  ([U5E_NEIGHBOR_1BF8.md](U5E_NEIGHBOR_1BF8.md));
+- it adds the step tables `DS:2736/273F` ([OVL_0068_068D_CPU.md](OVL_0068_068D_CPU.md)) to each node's coordinates;
+- it **edits** the object list at `DS:6DBB`. That list is not yet named in any document, and this note does not name it.
+
+## Frame and contract
+
+After the far call:
+- `[SP]` IP, `[SP+2]` CS;
+- `[SP+4]` the dispatcher's forwarded byte, unused;
+- `[SP+6]/[SP+8]` the far pointer to the object record;
+- `[SP+10]/[SP+12]` the 32-bit key;
+- `RETF 0Ah`.
+
+Locals:
+- `[BP-28h..]`: the message temporary;
+- `[BP-0Eh]`: the table count;
+- `[BP-0Dh]/[BP-0Ch]`: y and x;
+- `[BP-0Bh]`: the cell index i;
+- `[BP-0Ah]`: the type nibble, later the table index;
+- `[BP-9]`: the found flag;
+- `[BP-8..-5]`: the node;
+- `[BP-4..-1]`: the walk pointer.
+
+The node layout, as the body reads it:
+- `+0` the key dword;
+- `+4` the next link;
+- `+8..+0Bh` the saved bytes;
+- `+0Ch..+0Fh` the live flags;
+- `+10h/+11h` the signed x and y;
+- `+12h` the type.
+
+Contract: `pr_u38_0cc3_cpu(bus, size, cpu, budget, limits, diagnostic)`:
+- exactly 1 MiB through the bus, with an EGA attached for the message;
+- IP 0CC3;
+- entry SP in `[0200h,FFF2h]`.
+
+Every access through a far pointer the body did not create goes **through the bus**: the record, the list nodes and the map.
+The stack, the code and the DS globals are flat. StrLoad, 1693 and FreeMem keep their own contracts.
+
+Budget: each instruction of this body costs one unit. The callees cost none; 1693 and FreeMem have their own caps in `limits`.
+
+| Stop | Class | Pinned by |
+| --- | --- | --- |
+| RETURNED | RETURN | Unicorn RETURNED_COUNT; native NATIVE_COUNT (not-found walk) |
+| RUNERROR | architectural: FreeMem's RunError 204 on an invalid block, CPU at SYSTEM:00E2 | Unicorn: the `runerror-*` cases reach SYSTEM:00E2 in both runs |
+| LIMIT | host cap | Unicorn: the budget sweeps and the cyclic lists, equal state at the same arrival |
+| TRANSFER | control transfer | Unicorn (alias cases), when they occur; the mutant that drops the check |
+| ARGUMENT / CODE / CALLEE | non-architectural | C test; 0 in the differential |
+
+## Evidence
+
+DIFFERENTIAL_RESULTS
+
+MUTATION_RESULTS
+
+NATIVE_RESULTS
+
+## Not established
+
+- The found path natively. The 1693 native machine is the same declared gap as for `+0203` and `+0A88`.
+- A record, node or map in the A0000..AFFFF aperture in the differential. The bus path rests on the C test, where a node in the
+  aperture is matched through plane data.
+- The 1693 closure's and FreeMem's own caps; both are generous here.
+- Natural reachability of slot 40: see the factor-1 limit.
+- The meaning of the object list at `DS:6DBB`.
+- Credit: par-e's.
+
+## Reproduction
+
+    python3 tools/overlay/ovl_0038_0cc3_cpu_audit.py --unicorn --output resources/38-0cc3-evidence.json
+    python3 tools/overlay/ovl_0038_0cc3_cpu_audit.py --mutate --output resources/38-0cc3-mutation.json
+    python3 tools/overlay/ovl_0038_0cc3_cpu_audit.py --native --output resources/38-0cc3-native.json
+    python3 tools/overlay/ovl_0038_0cc3_cpu_audit.py --compile-only
+    python3 tools/overlay/check_checker_builds.py --require-current-main OVL_0038_0CC3
