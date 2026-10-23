@@ -80,8 +80,8 @@ must remain immutable and disjoint from writes.
 `ARGUMENT` rejects null pointers or RAM below 1 MiB before mutation.
 `TRANSFER` stops at the first changed internal CS:IP after its real return
 pop, without executing arbitrary code. Seed near returns and U9E returns
-have defined arithmetic flags. SYSTEM DIV leaves arithmetic flags undefined;
-SYSTEM OR leaves AF undefined. The oracle masks only those bits if the
+have defined arithmetic flags. SYSTEM DIV writes the pinned DIVW flags and SYSTEM OR clears AF (pinned FillFlags). Pinned DOSBox-X `DIVW`/`IDIVW`/`DIVB` write all six arithmetic flags (AF=SF=OF=0, ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF over rem:quo; `instructions.h:635-761`), measured natively in [U33_PARTY_ATTACH_12E1_CPU.md](U33_PARTY_ATTACH_12E1_CPU.md) (256 IDIV checkpoints, all FLAGS bits unmasked); the model writes those values. The raw-Unicorn oracle
+masks. The raw-Unicorn oracle masks only the bits where it differs from the pinned profile, and only if the
 corresponding internal far return changes. Normal returns compare all flags.
 
 Seed/frame aliases can rewrite live loop bounds or indexes. The C model has

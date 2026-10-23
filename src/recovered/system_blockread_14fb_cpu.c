@@ -139,6 +139,14 @@ pr_blockread_status pr_system_blockread_14fb(uint8_t *ram, size_t ram_size, pr_b
                 return PR_BLOCKREAD_DIVIDE;
             }
             c->dx = (uint16_t)(c->ax % recsize); c->ax = (uint16_t)(c->ax / recsize);
+            /* DIV WORD ES:[DI+4]. Pinned DIVW/IDIVW (instructions.h:655-673, 743-761) overwrite all six flags: AF=SF=OF=0,
+             * ZF=(rem==0 && quo odd), CF=((rem&3) in 1..2), PF=even parity of the four bytes of rem:quo. */
+            {
+                uint16_t rem16 = (uint16_t)(c->dx), quo16 = (uint16_t)(c->ax), fold = (uint16_t)(rem16 ^ quo16);
+                fold ^= (uint16_t)(fold >> 8); fold ^= (uint16_t)(fold >> 4); fold ^= (uint16_t)(fold >> 2); fold ^= (uint16_t)(fold >> 1);
+                c->flags = (uint16_t)((c->flags & ~0x08D5u) | ((rem16 == 0u && (quo16 & 1u)) ? 0x0040u : 0u) |
+                                        (((rem16 & 3u) >= 1u && (rem16 & 3u) <= 2u) ? 0x0001u : 0u) | ((fold & 1u) ? 0u : 0x0004u));
+            }
         }
     }
     c->di = rd16(ram, c->ss, (uint16_t)(c->bp + 6u));                 /* 1535 LES DI,[BP+6] (result) */
