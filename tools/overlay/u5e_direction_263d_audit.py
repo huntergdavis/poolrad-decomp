@@ -18,6 +18,7 @@ from unicorn import x86_const as uc_regs
 
 from overlay_inventory import find_units, parse_mz
 
+CHECKER_ROWS = ("OVL_005E_263D",)
 RAM_SIZE = 1 << 20
 EXE_SHA = "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
@@ -378,12 +379,21 @@ def predicate_audit(bodies, decoded, library, random_cases):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--exe", required=True, type=Path)
-    parser.add_argument("--ovr", required=True, type=Path)
+    parser.add_argument("--exe", type=Path)
+    parser.add_argument("--ovr", type=Path)
     parser.add_argument("--random-cases", type=int, default=200)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the C library without media, print CHECKER_BUILD_OK, and exit")
     args = parser.parse_args()
-    bodies, decoded = source_audit(args.exe, args.ovr)
     root = Path(__file__).resolve().parents[2]
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-u5e-263d-") as directory:
+            build(root, Path(directory))
+        print("CHECKER_BUILD_OK")
+        return
+    if args.exe is None or args.ovr is None:
+        parser.error("--exe and --ovr are required unless --compile-only")
+    bodies, decoded = source_audit(args.exe, args.ovr)
     with tempfile.TemporaryDirectory(prefix="poolrad-u5e-263d-") as directory:
         library = build(root, Path(directory))
         predicate_audit(bodies, decoded, library, args.random_cases)
