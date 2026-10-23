@@ -113,6 +113,7 @@ def compare(label, model, callback_type, wrapper, callee):
     original.hook_add(UC_HOOK_CODE, on_code)
     original.emu_start(helper.physical(0xF000, 0x2D88), helper.RAM_SIZE,
                        count=130)
+    writer.finish(original)
     assert reached[0] and len(expected_calls) == (label[0] != 0), label
     expected_ram = bytes(original.mem_read(0, helper.RAM_SIZE))
     ram = (ctypes.c_uint8 * helper.RAM_SIZE).from_buffer_copy(memory)

@@ -200,6 +200,7 @@ def compare(label, memory, cpu, high, target, function, base=0x0000, budget=4000
     if high:
         original.hook_add(UC_HOOK_MEM_WRITE, mirror)
     original.emu_start(body[0], 2 * SIZE, count=budget)
+    writer.finish(original)
     check(state["stop"] is not None, f"original did not stop: {label}")
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)

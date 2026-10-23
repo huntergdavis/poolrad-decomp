@@ -188,7 +188,7 @@ Native 620/620 returns, `masked_flags = 0`. Unicorn audit rc 0 on 1,609 cases (1
 
 The credit's standing limits are unchanged and restated here. The 8 original-only cases at SP `442E..443E` exhaust the 50,000-instruction budget and carry no parity claim (documented since `a80908a3`). Loader dispatch and the natural game route are not measured.
 
-Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) for every
+Provenance, stated plainly: par-e checked par-d2's run logs (`*_audit.log` and `*_native.log` per body) (kept in par-d2's worktree at `resources/evidence-par-d2/flags2/`, a lane-local, git-ignored path; moved there from `/tmp` on 2026-10-23) for every
 number above. par-e also confirmed that this body's C source, header, audit and native script, and the SYSTEM sources,
 are byte-identical between `23acc5bf` and main `5af0fb2e`. par-e did not re-run these checkers. The logs' `source_sha256`
 is the original body's hash, not the C's, so the source identity above comes from the git diff.

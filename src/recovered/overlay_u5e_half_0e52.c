@@ -54,10 +54,12 @@ pr_u5e_0e52_status pr_u5e_half_0e52(
 
     /* +0E68..+0E72: zero AH, SHR AX, and copy the result through BP-1.
      * This SHR overwrites every defined arithmetic flag from earlier
-     * SUB/SHR/INC/XOR instructions. Nonarithmetic flags remain intact. */
+     * SUB/SHR/INC/XOR instructions. Nonarithmetic flags remain intact.
+     * AF follows pinned DOSBox-X (get_AF = count & 1Fh): set, as count is 1. */
     before = ram[physical(cpu->ss, (uint16_t)(cpu->bp - 2u))];
     cpu->ax = (uint16_t)(before >> 1u);
     cpu->flags = (uint16_t)((cpu->flags & ~0x08D5u) | (before & 1u));
+    cpu->flags |= 0x0010u; /* pinned: AF set after a non-zero SHR */
     if (even_parity((uint8_t)cpu->ax))
         cpu->flags |= 0x0004u;
     if (cpu->ax == 0u)

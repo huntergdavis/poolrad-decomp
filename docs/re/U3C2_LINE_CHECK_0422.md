@@ -152,3 +152,13 @@ cmake -S . -B /tmp/poolrad-build
 cmake --build /tmp/poolrad-build --target poolrad_overlay_u3c2_line_check_0422_tests
 ctest --test-dir /tmp/poolrad-build --output-on-failure -R line_check_0422
 ~~~
+
+## Pinned flag split after #1433 (2026-10-23, no claim moves)
+
+After #1433 a shift reached by this audit sets AF per the pinned rule; raw Unicorn leaves it clear, so the audit failed on main at `limit-0` (`flags C=7256, original=7246`, AF).
+
+The audit now declares the split through the shared `tools/overlay/pinned_shift_flags.py` (#1446): it tracks the last FLAGS-writing instruction the original executed and requires C to equal Unicorn **exactly**, except that after a word `DIV`/`IDIV` the six arithmetic bits must equal the pinned `instructions.h` values, and after a shift with a non-zero count AF must be **set**. A model that reverted to the Unicorn value fails. Nothing is masked.
+
+Run (`--exe/--ovr`): **1,430** full CPU/RAM cases (1,425 returns, 5 budget stops); the split was used at **1** stop, after a shift.
+
+**Per-credit sentence (OVL_03C2_0422): evidence did not depend on AF after a shift**; that stop holds C to AF=1 and every other stop is exact. Credit stands.
