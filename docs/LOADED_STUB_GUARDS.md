@@ -1,7 +1,9 @@
 # Model-side loaded overlay guards
 
 Role: AUTHOR, implementation and evidence only. PM assignment i21442.
-No credit, identity, ledger, manifest, or accounting change is requested.
+No credit or identity change is requested. The generated evidence-kind table
+labels six existing entries as registered checkers; their credited membership
+and the credit count remain unchanged.
 
 A live hybrid arrival at U6A +0214 exposed the gap: its +019C model skipped
 the overlay manager when U86 was absent. The model-side guards now read the
