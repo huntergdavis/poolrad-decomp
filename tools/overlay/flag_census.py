@@ -26,6 +26,9 @@ TSV = ROOT / "docs/re/FLAG_SEMANTICS_CENSUS.tsv"
 COLUMNS = ["hash", "n_helpers", "files", "instruction", "assumed_rule", "pinned_rule_and_citation", "agent_verdict",
            "stored_flags_verdict(FillFlags)", "detail", "classified_by", "branched_on"]
 FUNCTION = re.compile(r"^static\s+[A-Za-z0-9_ \*]+?\b([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{", re.M)
+# Non-static definitions too: a body function that computes FLAGS inline (OVL_005E_0E52, PM i21766) was invisible
+# to a static-only scan. Unindented, not a declaration, not a control statement.
+PUBLIC = re.compile(r"^(?!static\b)(?:[A-Za-z_][A-Za-z0-9_]*[ \t\*]+)+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;{)]*)\)\s*\{", re.M)
 WRITES_FLAGS = re.compile(r"\bflags\s*(?:&=|\|=|\^=|=(?!=))")
 UNCLASSIFIED = "UNCLASSIFIED"
 
@@ -36,6 +39,7 @@ def normalize(body):
     n = re.sub(r"\b(cpu|c|st|state|m|h)->", "X->", n)
     n = re.sub(r"pr_[a-z0-9_]+|cpu_t|machine", "T", n)
     n = re.sub(r"^static [^\(]*\(", "static F(", n)
+    n = re.sub(r"^(?!static )[^\(]*\(", "public F(", n)   # non-static bodies: own prefix, static hashes unchanged
     return re.sub(r"\s+", "", n)
 
 
@@ -43,7 +47,7 @@ def helpers(root=ROOT):
     """Yield (file name, function name, body, hash) for every flag-writing static function."""
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text()
-        for m in FUNCTION.finditer(text):
+        for m in sorted(list(FUNCTION.finditer(text)) + list(PUBLIC.finditer(text)), key=lambda x: x.start()):
             i, depth = m.end(), 1
             while depth and i < len(text):
                 depth += (text[i] == "{") - (text[i] == "}")

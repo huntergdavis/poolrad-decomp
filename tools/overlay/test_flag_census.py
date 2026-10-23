@@ -46,5 +46,11 @@ class CensusTest(unittest.TestCase):
         self.assertEqual((missing, pending), ([], []), "run tools/overlay/flag_census.py --regen, classify the new rows, commit")
 
 
+
+class InlineDetectorTest(unittest.TestCase):
+    def test_non_static_body_with_inline_flags_is_found(self):
+        found = {(name, function) for name, function, _, _ in census.helpers()}
+        self.assertIn(("overlay_u5e_half_0e52.c", "pr_u5e_half_0e52"), found)   # the PM i21766 miss
+
 if __name__ == "__main__":
     unittest.main()
