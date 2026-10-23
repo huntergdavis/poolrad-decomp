@@ -21,7 +21,7 @@ exit 8 ("route diverged") if a random-encounter prompt (COMBAT) appears, or if W
 a prompt containing none of its expected words: those runs are not the route.
 Optional combat route (route 3, PM i21589): WALK_COMBAT=1. After 14,4 the party paces Down/Up until the encounter menu
 (COMBAT/WAIT/FLEE) settles (budget SEEK_STEPS steps, default 60; exit 9 if none), presses c (Combat), then, until the area
-menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500): q (Quick: the computer fights for that
+menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500; an unreadable prompt may last COMBAT_IDLE_S, default 300): q (Quick: the computer fights for that
 character) on every character's combat menu, Return on every PRESS ENTER/RETURN screen, e (Exit) then y on the treasure
 menu. A settled prompt matching none of these stops with exit 10 and the frame saved, so the route never presses a key
 for a screen it does not know. Every key is logged with the prompt it answered.
@@ -279,8 +279,8 @@ if os.environ.get("WALK_COMBAT"):
         elif not readable(txt) or has(txt, "BATTLE"):
             # the prompt bar is empty while monsters act (OCR reads noise): wait, but not for ever on one screen
             unknown_since = unknown_since or time.time()
-            if time.time() - unknown_since > 120:
-                stop(10, f"combat: unreadable prompt unchanged for 120 s: {txt!r}")
+            if time.time() - unknown_since > int(os.environ.get("COMBAT_IDLE_S", "300")):   # V1 shadowing slows the computer's turns
+                stop(10, f"combat: unreadable prompt unchanged for {os.environ.get('COMBAT_IDLE_S', '300')} s: {txt!r}")
             continue
         else:
             stop(10, f"combat: unknown settled prompt {txt!r}")

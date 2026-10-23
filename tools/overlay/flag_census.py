@@ -161,10 +161,6 @@ def rev_digests(rev, root=ROOT):
 
 def carry_from(rev, root=ROOT, path=TSV):
     """Move rows whose helper body changed since `rev` onto the new hash (matched by file and function)."""
-    import subprocess
-    import tarfile
-    import io
-    import tempfile
     old = rev_digests(rev, root)
     new = {(f, fn): d for f, fn, _, d in helpers(root)}
     rows, moved = read_rows(path), 0

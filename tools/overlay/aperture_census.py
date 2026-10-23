@@ -60,6 +60,9 @@ SOURCES = {
 
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
+    ("overlay_u7f_0a88_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0A7D into a body-frame temporary (docs/re/OVL_007F_0A88_CPU.md)"),
+    ("overlay_u7f_0203_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 39-byte message at CS:01DB into the body-frame temporary [BP-2Ah]"),
+    ("overlay_u7f_044c_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0441 into the body-frame temporary [BP-0Bh]"),
     ("overlay_u77_split_17ed_cpu.c", "pr_system_strload_0b0b"): ("code-literal", "header", "StrLoad of the 188D literal in the caller's own segment"),
     ("overlay_u25_entry4_0341_cpu.c", "pr_system_fillchar_16a8"): ("global", "read", "FillChar of the 1E00h buffer at DS:[49DE]; the declared limit in OVL_0025_0341_CPU.md (the --demo shows the aperture divergence)"),
     ("overlay_u25_entry4_0341_cpu.c", "pr_system_move_1685"): ("global", "read", "Move into the buffer at DS:[49DE]; same declared limit"),
