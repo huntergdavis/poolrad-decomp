@@ -311,10 +311,10 @@ index 0000000..38102a2
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..7f9d574
+index 0000000..bc4959a
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,712 @@
+@@ -0,0 +1,740 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -384,6 +384,10 @@ index 0000000..7f9d574
 +#include "poolrad/recovered/resident_00ba_character_0bb8_cpu.h"
 +#include "poolrad/recovered/resident_00ba_clear_17e3_cpu.h"
 +#include "poolrad/recovered/resident_0709_screen_0cab_cpu.h"
++#include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
++#include "poolrad/recovered/overlay_u3bd_entry1_0155_cpu.h"
++#include "poolrad/recovered/overlay_u3bd_cell_057a_cpu.h"
++#include "poolrad/recovered/overlay_u68_up_preflight_068d_cpu.h"
 +}
 +extern unsigned long long pr_hw_irqs;          /* pic.cpp */
 +#include "inout.h"
@@ -406,7 +410,7 @@ index 0000000..7f9d574
 +PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
 +PR_SAME_LAYOUT(pr_u86_323d_cpu); PR_SAME_LAYOUT(pr_res_2199_cpu); PR_SAME_LAYOUT(pr_u6a_0159_cpu); PR_SAME_LAYOUT(pr_u6a_019c_cpu);
 +PR_SAME_LAYOUT(pr_u77_0901_cpu); PR_SAME_LAYOUT(pr_u6a_0214_cpu); PR_SAME_LAYOUT(pr_res00ba_cpu); PR_SAME_LAYOUT(pr_r00ba_clear_cpu);
-+PR_SAME_LAYOUT(pr_r0709_screen_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
++PR_SAME_LAYOUT(pr_r0709_screen_cpu); PR_SAME_LAYOUT(pr_u3bd_lookup_cpu); PR_SAME_LAYOUT(pr_u3bd_0155_cpu); PR_SAME_LAYOUT(pr_u3bd_057a_cpu); PR_SAME_LAYOUT(pr_u68_068d_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
 +    unsigned long long arrivals, equal, differ, interrupted, timeouts, mid_equal, mid_differ, back_equal, back_differ, stops_seen, returned_seen;
@@ -473,6 +477,12 @@ index 0000000..7f9d574
 +    {"RES_00BA_13AB", 0x00BA, 0x13AB, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"RES_00BA_17E3", 0x00BA, 0x17E3, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"RES_0709_0CAB", 0x0709, 0x0CAB, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batch 6a: the existing full-state u3bd lookups (RETF 6; near call to +031F inside the unit, no stub) */
++    {"OVL_03BD_047B", 0x0000, 0x047B, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03BD_0350", 0x0000, 0x0350, 10, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03BD_0155", 0x0000, 0x0155, 12, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* batch 6: the new raw-CPU model; RETF 8 */
++    {"OVL_03BD_057A", 0x0000, 0x057A, 8, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* batch 6: the new raw-CPU model; pr_bus (the buffer read); RETF 4 */
++    {"OVL_0068_068D", 0x0000, 0x068D, 4, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* batch 6: the new raw-CPU model; pr_bus (the 5AAh word); RETF; stub-checked */
 +};
 +static const int NBODY = (int)(sizeof bodies / sizeof bodies[0]);
 +static unsigned long long stub_declined = 0;   /* arrivals whose overlay-stub precondition did not hold (the original ran) */
@@ -728,6 +738,13 @@ index 0000000..7f9d574
 +        pr_u1c_18f8_limits lim = {sys_cs, 1u << 20, 1u << 20, 1u << 20, 1u << 20}; pr_u1c_18f8_diagnostic d;
 +        int st = pr_u1c_on_goto_18f8_cpu(MemBase, RAM, (pr_u1c_18f8_cpu *)&m, &lim, &d);
 +        return st == PR_U1C_18F8_OK ? 0 : st == PR_U1C_18F8_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_03BD_0155")) { size_t budget = 1u << 20;
++        int st = pr_u3bd_entry1_0155_cpu(MemBase, RAM, (pr_u3bd_0155_cpu *)&m, &budget);
++        return st == PR_U3BD_0155_RETURNED ? 0 : st == PR_U3BD_0155_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_03BD_047B") || !strcmp(x.id, "OVL_03BD_0350")) {
++        int st = x.entry == 0x047Bu ? pr_u3bd_nibble_047b_fullstate(MemBase, RAM, (pr_u3bd_lookup_cpu *)&m)
++                                    : pr_u3bd_field_0350_fullstate(MemBase, RAM, (pr_u3bd_lookup_cpu *)&m);
++        return st == PR_U3BD_LOOKUP_OK ? 0 : st == PR_U3BD_LOOKUP_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0086_323D")) { int st = pr_u86_record_predicate_323d(MemBase, RAM, (pr_u86_323d_cpu *)&m);
 +        return st == PR_U86_323D_OK ? 0 : st == PR_U86_323D_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_00BA_2199")) { int st = pr_res_00ba_2199_cpu(MemBase, RAM, (pr_res_2199_cpu *)&m, 1u << 20);
@@ -780,6 +797,17 @@ index 0000000..7f9d574
 +        return st == PR_R00BA_CLEAR_CPU_OK ? 0 : st == PR_R00BA_CLEAR_CPU_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "RES_0709_0CAB")) { pr_r0709_screen_cpu_diagnostic d; int st = pr_r0709_screen_0cab_cpu(bus, RAM, (pr_r0709_screen_cpu *)&m, B, &d);
 +        return st == PR_R0709_SCREEN_CPU_OK ? 0 : st == PR_R0709_SCREEN_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_0068_068D")) {
++        /* 068D far-calls unit 0x3BD +0350 through the stub its LCALL names (CS:06C1/06C3). The model reads the stub too and stops OVERLAY
++         * when it is not loaded, but only after its pushes and the 5AAh clear; decline BEFORE running so nothing changes and the original runs. */
++        const size_t K = RAM - 1u; size_t c = ((size_t)m.cs << 4);
++        uint16_t so = (uint16_t)(MemBase[(c + 0x06C1u) & K] | (MemBase[(c + 0x06C2u) & K] << 8)), ss_ = (uint16_t)(MemBase[(c + 0x06C3u) & K] | (MemBase[(c + 0x06C4u) & K] << 8));
++        size_t st0 = ((size_t)ss_ << 4) + so;
++        if (MemBase[st0 & K] != 0xEAu || (MemBase[(st0 + 1u) & K] | (MemBase[(st0 + 2u) & K] << 8)) != 0x0350u) { ++stub_declined; return 1; }
++        int st = pr_u68_up_preflight_068d_cpu(bus, RAM, (pr_u68_068d_cpu *)&m);
++        return st == PR_U68_068D_RETURNED ? 0 : st == PR_U68_068D_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03BD_057A")) { int st = pr_u3bd_cell_057a_cpu(bus, RAM, (pr_u3bd_057a_cpu *)&m);
++        return st == PR_U3BD_057A_RETURNED ? 0 : st == PR_U3BD_057A_ARGUMENT ? 1 : 2; }
 +    pr_u3b0_01da_limits lim = {B, B}; pr_u3b0_01da_diagnostic d;
 +    int st = pr_u3b0_entry_01da_cpu(bus, RAM, (pr_u3b0_01da_cpu *)&m, &lim, &d);
 +    return st == PR_U3B0_01DA_OK ? 0 : st == PR_U3B0_01DA_ARGUMENT ? 1 : 2;
