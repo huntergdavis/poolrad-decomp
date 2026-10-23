@@ -132,3 +132,15 @@ which. A further 11 agent disagreements are the established word-op PF path spli
 `get_OF` is `var1 > 8000h` (`flags.cpp:401-404`; bytes `> 80h`). They differ only for an input of exactly 8000h/80h,
 and only a JO/JNO reads the lazy path. No row here depends on it.
 
+## The row hash covers macro definitions (2026-10-23)
+
+A flag rule can live in a `#define` (OVL_0025_0756's AF fix in #1465 edited only `DEFINED_OR_FLAGS`), and a hash of the
+body text alone could not see it: the row did not move and had to be marked FIXED by hand. The hash now covers the
+normalized body **plus the definition of every macro the body names**, taken from the file and from every file it
+`#include`s directly (**one level deep**). A body that names no macro keeps exactly the hash it had before.
+
+Limits, stated: includes nested deeper than one level are not read; `#ifdef` branches are not evaluated (every
+`#define` in the read files counts, and the last one wins); a function the body calls has its own row. The migration
+re-keyed 279 rows (388 of 854 helpers name a macro) with **no classification changed**, no row split and no merge.
+`test_flag_census.py` shows that a changed `#define`, in the file or in a directly included header, moves the hash.
+

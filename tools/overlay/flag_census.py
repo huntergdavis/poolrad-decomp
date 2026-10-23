@@ -43,10 +43,48 @@ def normalize(body):
     return re.sub(r"\s+", "", n)
 
 
+DEFINE = re.compile(r"^[ \t]*#[ \t]*define[ \t]+([A-Za-z_][A-Za-z0-9_]*)(\([^)]*\))?[ \t]*((?:[^\n\\]|\\\n|\\.)*)", re.M)
+INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*[<"]([^>"]+)[>"]', re.M)
+IDENT = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*\b")
+
+
+def macro_env(path, root=ROOT):
+    """#define name -> normalized definition, from the file and every file it #includes directly (one level deep).
+
+    The census hash covers these definitions for the macros a body names, because a flag rule can live in a macro:
+    OVL_0025_0756's AF fix was a #define edit that the body text never showed (census #1464 family 1). Limits: only
+    one include level, no conditional compilation (#ifdef branches are all read), and a later #define wins."""
+    root = Path(root)
+    texts = [path.read_text()]
+    for name in INCLUDE.findall(texts[0]):
+        for base in (path.parent, root / "include"):
+            candidate = base / name
+            if candidate.is_file():
+                texts.append(candidate.read_text())
+                break
+    env = {}
+    for text in texts:
+        for m in DEFINE.finditer(text):
+            value = re.sub(r"/\*.*?\*/", "", (m.group(2) or "") + m.group(3), flags=re.S)
+            env[m.group(1)] = re.sub(r"\s+", "", re.sub(r"//.*", "", value.replace("\\\n", " ")))
+    return env
+
+
+def digest_of(body, env):
+    """md5 of the normalized body; a body that names macros also covers their definitions (macro-free bodies keep
+    exactly the hash they had before macros were covered)."""
+    used = sorted(set(IDENT.findall(re.sub(r"/\*.*?\*/", "", body, flags=re.S))) & set(env))
+    key = normalize(body)
+    if used:
+        key += "|" + ";".join(f"{name}={env[name]}" for name in used)
+    return hashlib.md5(key.encode()).hexdigest()
+
+
 def helpers(root=ROOT):
-    """Yield (file name, function name, body, hash) for every flag-writing static function."""
+    """Yield (file name, function name, body, hash) for every flag-writing function (static or not)."""
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text()
+        env = macro_env(path, root)
         for m in sorted(list(FUNCTION.finditer(text)) + list(PUBLIC.finditer(text)), key=lambda x: x.start()):
             i, depth = m.end(), 1
             while depth and i < len(text):
@@ -54,7 +92,7 @@ def helpers(root=ROOT):
                 i += 1
             body = text[m.start():i]
             if WRITES_FLAGS.search(body):
-                yield path.name, m.group(1), body, hashlib.md5(normalize(body).encode()).hexdigest()
+                yield path.name, m.group(1), body, digest_of(body, env)
 
 
 def groups(root=ROOT):
