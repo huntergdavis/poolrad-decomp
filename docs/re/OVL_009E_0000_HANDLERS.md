@@ -1,43 +1,43 @@
 # OVL_009E_0000: the dispatcher's handler set, enumerated and priced (VP ruling i21629; measurement only, no model)
 
-The ruling: model every handler the credited installer  stores, state the set handler by handler, name a gap per handler that cannot be modelled, and **price it before building**. This document is the enumeration and the price. **It builds nothing and proposes no credit.**
+The ruling: model every handler the credited installer `OVL_0038_31A2` stores, state the set handler by handler, name a gap per handler that cannot be modelled, and **price it before building**. This document is the enumeration and the price. **It builds nothing and proposes no credit.**
 
-START.EXE SHA-256 d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd; GAME.OVR SHA-256 872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614. The queue export was regenerated on origin/main () for the prices.
+START.EXE SHA-256 d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd; GAME.OVR SHA-256 872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614. The queue export was regenerated on origin/main (`d7f5eb5e`) for the prices.
 
 ## The dispatcher
 
- is 38 bytes, , stub :
+`OVL_009E_0000` is 38 bytes, `RETF 000Ch`, stub `00B0:0025`:
 
     0000 push bp / mov bp,sp
-    0003 push [bp+0Eh] / push [bp+0Ch] / push [bp+0Ah] / push [bp+8]   (four argument words, forwarded)
-    000F mov al,[bp+6] / push ax                                       (a byte, forwarded)
-    0013 mov al,[bp+10h] / xor ah,ah / mov di,ax / shl di,1 / shl di,1 (DI = 4 * the index byte)
-    001E lcall [di+6828h]                                              (the only dispatch)
+    0003 push [bp+0Eh] / push [bp+0Ch] / push [bp+0Ah] / push [bp+8]    (four argument words, forwarded)
+    000F mov al,[bp+6] / push ax                                        (a byte, forwarded)
+    0013 mov al,[bp+10h] / xor ah,ah / mov di,ax / shl di,1 / shl di,1  (DI = 4 * the index byte)
+    001E lcall [di+6828h]                                               (the only dispatch)
     0022 pop bp / retf 000Ch
 
-The index is **one unsigned byte, so the domain is 256 slots (6828h..6C27h)**. The callee receives the forwarded arguments (RETF 0Ah handlers: five words) and returns to the dispatcher.
+The index is **one unsigned byte, so the domain is 256 slots (6828h..6C27h)**. The handler receives the forwarded arguments (`RETF 0Ah` handlers: five words) and returns to the dispatcher.
 
-## What  stores (all identified)
+## What `31A2` stores (all identified)
 
- makes 138 far-pointer installs at DS:682Ch..6A57h (**slots 1..139, not slot 88**); every one resolves, through the loader's stub table, to an overlay entry. They are **117 distinct functions**, 115 in unit 0x38 and 2 in unit 0x5E. **64 are strict-credited; 53 are not.** Nothing  stores is unidentifiable, so the set is **not open from 's side**; the ruling's stop condition is not triggered by  itself.
+`31A2` makes 138 far-pointer installs at DS:682Ch..6A57h (**slots 1..139, except slot 88**); every one resolves, through the loader's stub table, to an overlay entry. They are **117 distinct functions**, 115 in unit 0x38 and 2 in unit 0x5E. **64 are strict-credited; 53 are not.** Nothing `31A2` stores is unidentifiable, so the set is **not open from `31A2`'s side**; the ruling's stop condition is not triggered by `31A2` itself.
 
-## What  does not store (the domain is wider than the ruling's set)
+## What `31A2` does not store (the domain is wider than the ruling's set)
 
 | Slots | Address | Who writes it | Consequence |
 | --- | --- | --- | --- |
-| 88 | 6988h..698Bh | **unit 0x86 +37A7/+37AA** (the  initializer, which runs before ; recorded in ): the far pointer , **unit 0x86 entry 63 = ** | one more handler (the 118th), **not credited, closure 17,602 B** |
-| 0 | 6828h/682Ah | not a table entry:  is a **far-pointer variable** written by  (+014E/+0151) and  (+3AA3/+3AA6) | index 0 would call the variable's (offset, high word), which is not a handler; no stored handler exists |
-| 140..255 | 6A58h..6C27h | **other game state** (a linear sweep of every overlay finds 108 distinct writer addresses in 6A58h..6C27h that are 1- and 2-byte variables and far-pointer variables, e.g. unit 0x36 at 6A58h/6A5Ch, 6B80h.. onward) | an index of 140 or more would call garbage |
+| 88 | 6988h..698Bh | **unit 0x86 +37A7/+37AA** (the `+3413` initializer, which runs before `31A2`; already recorded in `U38_EFFECTS_INSTALL_31A2.md`): the far pointer `0096:015B`, **unit 0x86 entry 63 = `OVL_0086_30D9`** | one more handler (the 118th), **not credited, closure 17,602 B** |
+| 0 | 6828h/682Ah | not a table entry: `6826h:6828h` is a **far-pointer variable**, written by `OVL_0038_013B` (+014E/+0151) and `OVL_005E_3A86` (+3AA3/+3AA6) | index 0 would call the variable's (offset, high word), not a handler; no stored handler exists |
+| 140..255 | 6A58h..6C27h | **other game state**: a linear sweep of every overlay finds 108 distinct written addresses in 6A58h..6C27h, 1- and 2-byte variables and far-pointer variables (for example unit 0x36 at 6A58h/6A5Ch, and 6B80h onward) | an index of 140 or more would call garbage |
 
 ## The callers' index (what is reached in practice)
 
-Eleven far call sites () and five near ones (inside unit 0x9E). Of the 11 far sites, **8 pass a constant** as the first pushed byte ( x2, , , ,  x2, ) and **3 pass a record byte read from memory** (unit 0x38 : ; unit 0x77  and : ). **The domain is therefore not statically bounded by the callers**; an in-range value is a game invariant, not something the bytes prove.
+Eleven far call sites (`lcall 00B0:0025`) and five near ones (inside unit 0x9E). Of the 11 far sites, **8 pass a constant** as the first pushed byte (`0Bh` twice, `17h`, `2Bh`, `2Ch`, `3Ah` twice, `4Eh`) and **3 pass a record byte read from memory** (unit 0x38 `+2F30`: `[rec+3Dh]`; unit 0x77 `+1533` and `+164F`: `[rec+3Eh]`). **The domain is therefore not statically bounded by the callers**; an in-range value is a game invariant, not something the bytes prove. The five near callers were not decoded here.
 
-## Price (per handler; , closure bytes and bodies, floors)
+## Price (per handler; `tools/overlay/price_row_closures.py`, closure bytes and bodies, floors)
 
-**The 53 not-credited handlers carry closures from 55 B to 20,654 B; 6 are at most 1,000 B, 17 are 1,000 to 3,000 B, 30 are above 3,000 B. 34 of the 53 reach  or , whose own closures dispatch through : the handler closures are CYCLIC** (the dispatcher is part of its own handlers' closures). Closures overlap heavily (13-20 KB shared sub-closures), so the sum over handlers (424,482 B) is **not** a cost; the union was not computed here.
+**The 53 not-credited handlers carry closures from 55 B to 20,654 B: 6 are at most 1,000 B, 17 are 1,000 to 3,000 B, 30 are above 3,000 B.** The pricer lists an `OVL_009E_*` dispatch (`0026`, `0160` or `175D`) for **34 of the 53**; `0026` and `0160` are documented to dispatch through `OVL_009E_0000` itself (`STRICT_CANDIDATE_QUEUE.md`, `IDENTITY_CLEARED_PRICING.md`), so those handler closures are **cyclic**: the dispatcher is part of its own handlers' closures. Closures overlap heavily (9 to 20 KB shared sub-closures), so the sum over handlers (424,482 B) is **not** a cost; the union was not computed here.
 
-| slot(s) | stub | function | own B | status | closure B (bodies) | dispatch cycle through 009E |
+| slot(s) | stub | function | own B | status | closure B (bodies) | 009E dispatch in the closure |
 | --- | --- | --- | ---: | --- | ---: | --- |
 | 1 | 0041:002A | OVL_0038_010D | 16 | strict-credited | - | - |
 | 2 | 0041:002F | OVL_0038_011D | 30 | strict-credited | - | - |
@@ -114,6 +114,7 @@ Eleven far call sites () and five near ones (inside unit 0x9E). Of the 11 far si
 | 85 | 0041:0183 | OVL_0038_23A4 | 30 | not credited | 13914 (33) | yes |
 | 86 | 0041:0188 | OVL_0038_23C2 | 42 | not credited | 13926 (33) | yes |
 | 87 | 0041:018D | OVL_0038_23EC | 164 | not credited | 1431 (5) | no |
+| 88 | 0096:015B | OVL_0086_30D9 | not read | not credited | 17602 (42) | see the closure listing |
 | 89 | 0041:0192 | OVL_0038_2490 | 73 | strict-credited | - | - |
 | 90 | 0041:0197 | OVL_0038_24D9 | 125 | strict-credited | - | - |
 | 91 | 0041:019C | OVL_0038_2556 | 76 | not credited | 1343 (5) | no |
@@ -156,21 +157,20 @@ Eleven far call sites () and five near ones (inside unit 0x9E). Of the 11 far si
 | 132 | 0041:0255 | OVL_0038_30A5 | 143 | not credited | 14852 (37) | yes |
 | 135 | 0041:025A | OVL_0038_3134 | 70 | strict-credited | - | - |
 | 137 | 0041:025F | OVL_0038_317A | 33 | not credited | 347 (2) | yes |
-| 88 | 0096:015B | OVL_0086_30D9 | ? | not credited | 17602 (42) | see note |
 
-( is the ledger bound; slot 88's own bytes were not read here. A credited handler needs no new body, only composition.)
+(`own B` is the ledger bound. A credited handler needs no new body, only composition. The `OVL_0038_2EDA` row is the dispatch boundary of `u38_dispatch_boundary_2eda_audit.py`.)
 
 ## What this means for the ruling
 
-1. **The literal ruling is a program, not a body.** 54 uncredited handlers (the 53 plus slot 88), mostly with 9 to 20 KB closures that overlap and **loop back through this dispatcher**: a fixed-point composition, not a leaf-by-leaf build.
-2. **A bounded, honest first body exists:** model  with the **64 credited handlers composed**, and give **each of the 54 uncredited handlers (and slot 0, and the slots 140..255) its own named stop** (a CALLEE-class stop that carries the slot and the handler id, never a silent stop at the ). That satisfies "a named gap per handler" at the cost of one 38-byte body plus a table of 64 compositions; it does **not** make the 54 modelled.
-3. **The domain needs a declared contract:** index in 1..139 (and 88 via unit 0x86); outside that the original calls a non-handler. The three data-dependent callers mean this is a precondition, not a proven range.
+1. **The literal ruling is a program, not a body.** 54 uncredited handlers (the 53 plus slot 88), mostly with 9 to 20 KB closures that overlap and, for 34 of them, **loop back through this dispatcher**: a fixed-point composition, not a leaf-by-leaf build.
+2. **A bounded, honest first body exists:** model `OVL_009E_0000` with the **64 credited handlers composed**, and give **each of the 54 uncredited handlers (and slot 0, and slots 140..255) its own named stop** (a stop class that carries the slot and the handler id, never a silent stop at the `LCALL`). That satisfies "a named gap per handler" at the cost of one 38-byte body plus a table of 64 compositions; it does **not** make the 54 modelled.
+3. **The domain needs a declared contract:** index in 1..139 (and 88 via unit 0x86); outside that the original calls a non-handler. The three data-dependent callers make this a precondition, not a proven range.
 
-**Decision wanted (the VP's): (a) the bounded body in point 2, with the 54 named gaps; or (b) fund the 54 handlers first (priced above; a fixed-point build), or (c) hold.** Nothing was built.
+**Decision wanted (the VP's): (a) the bounded body in point 2 with the 54 named gaps; (b) fund the 54 handlers first (priced above; a fixed-point build); or (c) hold.** Nothing was built.
 
 ## Reproduction
 
     python3 tools/overlay/strict_candidate_queue.py --inventory resources/function-accounting-current/inventory.json --callgraph resources/function-accounting-current/callgraph.json --near-calls resources/function-accounting-current/near.json --ovr resources/DOS/POOLRAD/GAME.OVR --repo . --json queue.json
-    python3 tools/overlay/price_row_closures.py --queue queue.json --exe resources/DOS/POOLRAD/START.EXE <the 53 ids in the table>
+    python3 tools/overlay/price_row_closures.py --queue queue.json --exe resources/DOS/POOLRAD/START.EXE <the not-credited ids in the table>
 
-The enumeration reads the installer's operands through  and the unit stub table; the writer and caller scans are linear sweeps of every overlay unit (a fixup-free  into 6828h..6C27h and ), so a write through a computed pointer would not appear. The prior-session memory tool () was unavailable (ENOENT); nothing was reused from earlier sessions.
+The enumeration reads the installer's operands through `u38_effects_install_31a2_audit.source()` and the unit stub table; the writer and caller scans are linear sweeps of every overlay unit (a `mov` into 6828h..6C27h with an absolute or `[reg+disp]` operand, and `9A 25 00` with segment B0h), so a write through a computed pointer would not appear. The prior-session memory tool (`deja`) was unavailable (ENOENT); nothing was reused from earlier sessions.
