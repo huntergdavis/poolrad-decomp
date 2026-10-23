@@ -92,3 +92,18 @@ The wrap concerns only the **segment word of a far pointer that `LES`/`LDS` read
 pointer, so they cannot reach the wrap, whatever their offset.
 
 **Open item (1) is closed.** Items (2), non-GetMem far-pointer arithmetic, and (3), the live GetMem sample, remain.
+
+**The original bytes.** Each unit's code was decoded from GAME.OVR, and every instruction using the displacement was
+listed (`les_bytes` sweep). **Not one of them is an `LES` or `LDS`:**
+
+| Unit / disp | Instructions (offset, bytes, decode) |
+| --- | --- |
+| 0x6C / 408Eh | `+3F69 8a858e40 mov al,[di+408eh]` (the only use) |
+| 0x25 / 6E00h | `+02E7 268985006e mov es:[di+6e00h],ax`; also `+0C9C`, `+0E32`, `+0FC8`, `+0FEA` word moves and `+1337 cmp word es:[di+6e00h],0` (7 uses, all data) |
+| 0x25 / 6700h | `+002C 268a950067 mov dl,es:[di+6700h]` …; `+0D05 mov es:[di+6700h],dl`; `+0E93 mov al,es:[di+6700h]` (12 uses, all byte data) |
+| 0x5E / 66DBh | `+1D9B 8a85db66 mov al,[di+66dbh]`; `+2FFA` the same (2 uses) |
+| 0x3C2 / 2746h | `+0503 8a854627 mov al,[di+2746h]` (the only use) |
+| 0x3C6 / 66DCh | `+0F8C 888ddc66 mov [di+66dch],cl`; `+11AC 80bddc661f cmp byte [di+66dch],1fh`; `+11BF 8a85dc66 mov al,[di+66dch]` |
+
+The decode is a linear sweep that resyncs on failure, so an offset can sit a few bytes from a model's comment address.
+The instruction bytes themselves are exact.
