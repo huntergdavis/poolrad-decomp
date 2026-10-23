@@ -142,16 +142,30 @@ def regen(root=ROOT, path=TSV):
     return len(out), dropped, sum(1 for r in out.values() if r["agent_verdict"] == UNCLASSIFIED)
 
 
+def rev_digests(rev, root=ROOT):
+    """{(file, function): hash} for every flag-writing helper as of `rev`.
+
+    The archive must include `include/` as well as `src/recovered`: since the hash covers the #defines a body names,
+    from its file and its direct includes, an old tree without the headers gives bodies that name a header macro a
+    different hash, and `--carry-from` silently skipped their rows (four non-static rows were carried by hand)."""
+    import subprocess
+    import tarfile
+    import io
+    import tempfile
+    blob = subprocess.run(["git", "-C", str(root), "archive", rev, "src/recovered", "include"], check=True,
+                          capture_output=True).stdout
+    with tempfile.TemporaryDirectory() as tmp:
+        tarfile.open(fileobj=io.BytesIO(blob)).extractall(tmp)
+        return {(f, fn): d for f, fn, _, d in helpers(Path(tmp))}
+
+
 def carry_from(rev, root=ROOT, path=TSV):
     """Move rows whose helper body changed since `rev` onto the new hash (matched by file and function)."""
     import subprocess
     import tarfile
     import io
     import tempfile
-    blob = subprocess.run(["git", "-C", str(root), "archive", rev, "src/recovered"], check=True, capture_output=True).stdout
-    with tempfile.TemporaryDirectory() as tmp:
-        tarfile.open(fileobj=io.BytesIO(blob)).extractall(tmp)
-        old = {(f, fn): d for f, fn, _, d in helpers(Path(tmp))}
+    old = rev_digests(rev, root)
     new = {(f, fn): d for f, fn, _, d in helpers(root)}
     rows, moved = read_rows(path), 0
     for key, od in old.items():

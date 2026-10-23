@@ -157,4 +157,6 @@ compile 0E05 (`0e2e`: 16 cases, `2b20`: 54 cases) and the `u7d_list_timer_0000` 
 
 Tooling note: `--carry-from` did not carry the rows of non-static body functions (here u7d_list_timer_0000 and 0E05;
 earlier 0BDE and 0DBE `_cpu`); they were carried by hand. Fixing the matcher is a follow-up.
+**Fixed (2026-10-23):** the cause was that `--carry-from` archived only `src/recovered` from the old revision, so bodies naming a
+macro from `include/` hashed differently there; it now archives `include/` too (`rev_digests`), and a test pins the four rows by name.
 
