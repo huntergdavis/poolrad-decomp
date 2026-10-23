@@ -1,4 +1,5 @@
 """Original +02FA groups under DOSBox-X normal/386; explicit pre-handler trap."""
+from loaded_stub_fixtures import loaded_sites
 import ctypes,os,struct,subprocess
 from hashlib import sha256
 from u9e_sidecar_groups_02fa_cpu_audit import ROOT,SIZE,CS,DS,NODES,FLAGS,ENTRY,Cpu,Limits,Diagnostic,DEFAULT,physical,put16,build,cases,segments,check,GROUPS
@@ -41,6 +42,9 @@ def native(bodies,decoded,function):
     for j,((kind,start),body) in enumerate(bodies.items()):
         p=directory/f'body{j}.bin';p.write_bytes(m[physical(segs[kind],start):physical(segs[kind],start)+len(body)])
         blobs.append((f'body{j}',segs[kind],start,p,len(body)))
+    for j,(seg,off) in enumerate(sorted(loaded_sites(m,segs,decoded))):
+        p=directory/f'stub{j}.bin';p.write_bytes(bytes(m[physical(seg,off+i)] for i in range(5)))
+        blobs.append((f'stub{j}',seg,off,p,5))
     t=['.code16','.intel_syntax noprefix','.global _start','_start: jmp main','.org 0x200','main:',
        'mov ax,cs','mov ds,ax','mov ss,ax',f'mov sp,{TOP}','cld']
     for label,seg,off,path,length in blobs:

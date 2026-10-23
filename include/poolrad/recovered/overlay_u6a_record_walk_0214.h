@@ -40,6 +40,10 @@ typedef enum {
  * the next would stop before +0227 with every earlier effect kept (LIMIT).
  * A cyclic node list inside +019C is that model's contract and is not
  * capped here. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u6a_0214_status pr_u6a_record_walk_0214(
     uint8_t *ram, size_t ram_size, pr_u6a_0214_cpu *cpu, unsigned max_records, int *callee_status);
 

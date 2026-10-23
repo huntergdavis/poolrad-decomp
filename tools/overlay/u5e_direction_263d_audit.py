@@ -397,6 +397,12 @@ def main():
     with tempfile.TemporaryDirectory(prefix="poolrad-u5e-263d-") as directory:
         library = build(root, Path(directory))
         predicate_audit(bodies, decoded, library, args.random_cases)
+        from loaded_stub_checks import verify_refusals
+        memory,cpu,layout=fixture()
+        install(memory,cpu,layout,bodies,0)
+        stub_guards=verify_refusals(memory,cpu,lambda ram,state: library.pr_u5e_direction_263d(ram,RAM_SIZE,ctypes.byref(state),ctypes.byref(layout),2048),
+                                    [(cpu.cs,p) for p in (0x2649,0x2657,0x2665,0x2673,0x2693)])
+        print("LOADED_STUB_GUARDS",stub_guards,flush=True)
         run(bodies, decoded, library, args.random_cases)
 
 

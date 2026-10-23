@@ -4,6 +4,11 @@ overlay_u1c_text_2e7d_cpu.c,pr_system_fillchar_16a8,yes,global,header,can-reach-
 overlay_u1c_text_2e7d_cpu.c,pr_u25_load_operands_0000,yes,global,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u1c_text_2e7d_cpu.c,pr_u25_load_word_0e0c,yes,global,header,can-reach-under-a-corrupt-pointer,yes
 overlay_u1c_text_2e7d_cpu.c,pr_u25_word_06af,no,-,-,no-pointer,yes
+overlay_u23_append_0239_cpu.c,pr_ovl0077_275b_cpu,no,-,-,no-pointer,yes
+overlay_u23_append_0239_cpu.c,pr_res00ba_0bb8_cpu,no,-,-,no-pointer,yes
+overlay_u23_append_0239_cpu.c,pr_system_getmem_023f,yes,callee-returned,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u23_append_0239_cpu.c,pr_system_move_0a3f,yes,caller-argument+callee-returned,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u23_append_0239_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 overlay_u25_entry4_0341_cpu.c,pr_r0802_0716_composed,no,-,-,no-pointer,yes
 overlay_u25_entry4_0341_cpu.c,pr_system_fillchar_16a8,yes,global,read,can-reach-under-a-corrupt-pointer,yes
 overlay_u25_entry4_0341_cpu.c,pr_system_freemem_0254,yes,global+local+code-literal,read,can-reach-under-a-corrupt-pointer,yes

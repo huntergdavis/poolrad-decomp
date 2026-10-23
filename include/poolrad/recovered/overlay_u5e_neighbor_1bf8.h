@@ -47,6 +47,10 @@ typedef enum {
  * by convention; MUL follows DOSBox-X normal/386's undefined-flag profile.
  * Native route reachability and independent credit remain separate.
  */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u5e_1bf8_status pr_u5e_neighbor_1bf8(
     uint8_t *ram, size_t ram_size, pr_u5e_1bf8_cpu *cpu,
     const pr_u5e_1bf8_layout *layout, size_t max_iterations);

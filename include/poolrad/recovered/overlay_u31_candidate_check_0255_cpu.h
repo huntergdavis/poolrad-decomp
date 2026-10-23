@@ -67,6 +67,10 @@ typedef enum {
  * pairs, POP and every RETF frame are read physically contiguous.
  * *callee and *callee_status (either may be NULL) receive the last callee
  * run and its status (0 for the resident routine), or NO_CALLEE and -1. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u31_0255_status pr_u31_candidate_check_0255_cpu(uint8_t *ram, size_t ram_size, pr_u31_0255_cpu *cpu, uint16_t pair_cs,
                                                    size_t max_caller_iterations, size_t max_line_iterations,
                                                    unsigned max_sort_loopbacks, pr_u31_0255_callee *callee, int *callee_status);

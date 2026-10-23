@@ -549,6 +549,11 @@ def main():
     if args.unicorn or args.native:
         with tempfile.TemporaryDirectory(prefix="poolrad-u310255-") as temp:
             function = library(Path(temp))
+            from loaded_stub_checks import verify_refusals
+            memory,cpu,_ = build(code31,code3c2,code3c6,image,random.Random(0))
+            report["loaded_stub_guards"] = verify_refusals(memory,cpu,
+                lambda ram,state: function(ram,SIZE,ctypes.byref(state),U3C6_CS,*BUDGETS,None,None),
+                [(U3C2_CS,p) for p in (0x92A,0x9D8)])
             if args.unicorn:
                 report["unicorn"] = differential(target, code31, code3c2, code3c6, image, function)
             if args.native:

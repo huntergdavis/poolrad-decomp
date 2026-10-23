@@ -1,3 +1,4 @@
+#include "loaded_stub_fixture.h"
 /* Focused synthetic test for raw-CPU U31 +0255, composing U3C2 entry 6 through the loaded stub 03DB:003E and the
  * resident zero test 00BA:23B7 (docs/re/U31_CANDIDATE_CHECK_0255_CPU.md). No game bytes: only the two LCALL encodings,
  * the stub, U3C2's three SYSTEM Move call operands and its synthetic world (as in its merged test) are placed in RAM.
@@ -53,6 +54,8 @@ static pr_u31_0255_cpu world_at(unsigned entry, const member *party, unsigned co
     pr_u31_0255_cpu cpu = {0x1234u, 0x3456u, 0x5678u, 0x789Au, 0x9ABCu, 0xBCDEu, BP0, SP0, CS, (uint16_t)entry, DS, 0x4444u, SS, FLAGS0};
     unsigned i, j, site = entry + 0x0287u - 0x0255u;
     memset(ram, 0xA5, RAM);
+    test_loaded_stub(ram,U3C2,0x092Au,0x4100u,0x0025u,PAIR,0u);
+    test_loaded_stub(ram,U3C2,0x09D8u,0x4100u,0x0025u,PAIR,0u);
     w8(ram, CS, site, 0x9Au); w16(ram, CS, site + 1u, 0x003Eu); w16(ram, CS, site + 3u, STUB);
     site = entry + 0x02A9u - 0x0255u;
     w8(ram, CS, site, 0x9Au); w16(ram, CS, site + 1u, 0x23B7u); w16(ram, CS, site + 3u, RES);

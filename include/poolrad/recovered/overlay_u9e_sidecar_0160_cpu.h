@@ -36,6 +36,10 @@ typedef enum { PR_U9E_0160_OK=0,PR_U9E_0160_ARGUMENT,PR_U9E_0160_CODE,
  * ARGUMENT leaves RAM/CPU unchanged; diagnostic is reset on entry.
  * Flags use normal/386 logical AF0, one-bit SHL AF1; IRQs/faults excluded.
  * See docs/re/U9E_SIDECAR_0160_CPU.md for evidence and explicit limits. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u9e_0160_status pr_u9e_sidecar_0160_cpu(uint8_t *ram,size_t size,
     pr_u9e_0160_cpu *cpu,const pr_u9e_0160_layout *layout,
     const pr_u9e_0160_limits *limits,pr_u9e_0160_diagnostic *diagnostic);

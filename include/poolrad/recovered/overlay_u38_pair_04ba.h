@@ -23,6 +23,10 @@ typedef enum {
  * and screens the deepest 32-byte stack span against all three code bodies.
  * Arbitrary data aliases are live; callers must exclude all code-writing
  * aliases, including far stores by +110D. See U38_PAIR_04BA.md. */
+/* Required loaded overlay bindings are checked before CPU/RAM mutation.
+ * A cold/malformed required stub returns ARGUMENT with CPU14/RAM unchanged.
+ * Call words and loaded EA jumps must remain immutable during execution.
+ * See docs/LOADED_STUB_GUARDS.md for the exact direct/inherited scope. */
 pr_u38_04ba_status pr_u38_pair_04ba(uint8_t *ram, size_t ram_size,
                                   pr_u38_04ba_cpu *cpu, uint16_t u9e_cs,
                                   size_t budget);

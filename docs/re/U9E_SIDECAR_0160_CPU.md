@@ -193,3 +193,12 @@ Unicorn, DOSBox-X, GNU as/ld and a C compiler are needed.
 - verdict: likely_match for the implemented paths; partial chain.
 - review_notes: no full-chain acceptance or credit claim; no accounting
   edits. Reviewer/VP controls independent verification and credit.
+
+## Inherited loaded-state refusal
+
+The entry now preflights the composed U3C2 +0909 model's two calls through
+U3C6's +0025 stub. A cold or malformed binding returns `ARGUMENT` before
+CPU14 or RAM mutation. This covers the shared dependency path; the sidecar's
+own previously declared direct-call rebinding profile remains unchanged.
+No credit is claimed for either sidecar. Updated checks are recorded in the
+[guard work report](../LOADED_STUB_GUARDS.md); measurements pending.

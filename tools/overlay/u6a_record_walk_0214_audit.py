@@ -259,6 +259,11 @@ def main():
     if args.unicorn or args.native:
         with tempfile.TemporaryDirectory(prefix="poolrad-u6a-0214-") as temp:
             function = library(Path(temp))
+            from loaded_stub_checks import verify_refusals
+            memory, cpu, _ = fixture(code, callee, records=[])
+            report["loaded_stub_guards"] = verify_refusals(
+                memory, cpu, lambda ram, state: function(ram, SIZE, ctypes.byref(state), 10, None),
+                [(cpu.cs, 0x01C3)], check_target_cs=False)
             if args.unicorn:
                 report["unicorn_cases"] = differential(target, code, callee, function)
             if args.native:

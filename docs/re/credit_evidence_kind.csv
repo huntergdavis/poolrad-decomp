@@ -3,7 +3,7 @@ OVL_001C_00F4,checker,u1c_goto_00f4_cpu_audit.py
 OVL_001C_0111,checker,u1c_gosub_0111_cpu_audit.py
 OVL_001C_0A9F,checker,u1c_return_0a9f_cpu_audit.py
 OVL_001C_0AED,checker,u1c_compare_and_0aed_cpu_audit.py
-OVL_001C_0B52,audit,tools/overlay/u1c_if_0b52_audit.py
+OVL_001C_0B52,checker,u1c_if_0b52_audit.py
 OVL_001C_125D,checker,u1c_clearmonsters_125d_cpu_audit.py
 OVL_001C_18F8,checker,u1c_on_goto_18f8_cpu_audit.py
 OVL_001C_266A,checker,u1c_party_item_scan_266a_audit.py
@@ -125,9 +125,9 @@ OVL_0038_3134,checker,u38_message_3134_cpu_audit.py
 OVL_0038_319B,audit,tools/overlay/u38_dispatch_nop_audit.py
 OVL_0038_31A2,checker,u38_effects_install_31a2_audit.py
 OVL_005E_0E52,audit,tools/overlay/u5e_half_0e52_audit.py
-OVL_005E_17F6,audit,tools/overlay/u5e_direction_gate_17f6_audit.py
+OVL_005E_17F6,checker,u5e_direction_gate_17f6_audit.py
 OVL_005E_1BF8,checker,u5e_neighbor_1bf8_audit.py
-OVL_005E_2574,audit,tools/overlay/u5e_direction_match_2574_audit.py
+OVL_005E_2574,checker,u5e_direction_match_2574_audit.py
 OVL_005E_263D,checker,u5e_direction_263d_audit.py
 OVL_005E_2879,audit,tools/overlay/u5e_party_value_2879_audit.py
 OVL_005E_32E6,checker,u5e_caller_32e6_audit.py
@@ -139,9 +139,9 @@ OVL_0068_05AB,unit-test,poolrad_overlay_u68_record_scan_tests
 OVL_0068_05EE,unit-test,poolrad_overlay_u68_list_search_tests
 OVL_0068_0648,unit-test,poolrad_overlay_u68_record_clear_tests
 OVL_0068_068D,checker,ovl_0068_068d_cpu_audit.py
-OVL_006A_0000,audit,tools/overlay/u6a_record_weight_0000_audit.py
+OVL_006A_0000,checker,u6a_record_weight_0000_audit.py
 OVL_006A_0159,checker,u6a_record_clear_high_0159_audit.py
-OVL_006A_019C,audit,tools/overlay/u6a_record_weight_0000_audit.py
+OVL_006A_019C,checker,u6a_record_weight_0000_audit.py
 OVL_006A_0214,checker,u6a_record_walk_0214_audit.py
 OVL_006A_025C,audit,tools/overlay/u6a_record_remaining_025c_audit.py
 OVL_006A_0E37,checker,u6a_string_node_0e37_audit.py

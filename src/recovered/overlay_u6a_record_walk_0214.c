@@ -1,5 +1,6 @@
 /* GAME.OVR unit 0x6A:+0214..+025B; docs/re/U6A_RECORD_WALK_0214.md. */
 #include "poolrad/recovered/overlay_u6a_record_walk_0214.h"
+#include "overlay_loaded_stubs.h"
 #include "poolrad/recovered/overlay_u6a_link_high_clear_019c.h"
 #include "poolrad/recovered/overlay_u6a_record_clear_high_0159.h"
 
@@ -112,6 +113,10 @@ pr_u6a_0214_status pr_u6a_record_walk_0214(
     if (callee_status != NULL)
         *callee_status = -1;
     if (ram == NULL || cpu == NULL || ram_size != PR_U6A_0214_RAM_SIZE)
+        return PR_U6A_0214_ARGUMENT;
+    /* Validate the inherited 019C loaded 0xEA binding before either child runs. */
+    if (!pr_overlay_stub_target(ram, cpu->cs,
+            (uint16_t)(cpu->ip - BACK_019C + 0x27u), 0x003Eu, 0x323Du, NULL))
         return PR_U6A_0214_ARGUMENT;
     entry = cpu->ip;
     /* +0214..+0224: frame, four local bytes, the head pointer DS:5D96/5D98 (SUB's flags are
