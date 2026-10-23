@@ -11,6 +11,7 @@ from hashlib import sha256
 from pathlib import Path
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 import res00ba_display_1693_cpu_audit as D
+from pinned_shift_flags import LastFlagWriter, declared_flags_split
 import ovl_007f_0054_cpu_audit as B54
 import ovl_007f_0000_cpu_audit as A
 from res0709_printer_0626_cpu_audit import Cpu, Ega, Bus, Env, OUT_FN, IN_FN, WRITE_FN, ROOT, SIZE, REGISTERS, physical, put16, check
@@ -31,7 +32,7 @@ RELOC = {0x000F: R13, 0x022E: SEG['sys'], 0x0233: SEG['display'], 0x04FB: SEG['s
 SYSTEM_STRLOAD = (0x0B0B, 0x0B25, 12, None)
 
 
-MASKED_ARRIVALS = [0]
+SPLIT_ARRIVALS = [0]                         # states compared under the declared pinned-MULW split (the last FLAGS writer was a word MUL)
 
 
 def source():
@@ -140,13 +141,14 @@ def run_original(m, c, decoded, budget):
         uc.mem_map_ptr(base + 0xB0000, 0x50000, 7, ctypes.addressof(backing) + 0xB0000)
     for (n, _), r in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(r, getattr(c, n))
-    left = [budget]; calls = []; pending = [None]; status = [None]; seen = set(); events = []
+    left = [budget]; calls = []; pending = [None]; status = [None]; seen = set(); events = []; writer = LastFlagWriter()
 
     def word(seg, off):
         at = physical(seg, off & 0xFFFF); return backing[at] | (backing[(at + 1) & (SIZE - 1)] << 8)
 
     def hook(uc_, address, size, user):
         cs = uc.reg_read(R.UC_X86_REG_CS); ip = uc.reg_read(R.UC_X86_REG_IP)
+        writer.finish(uc)                                    # settle a MUL that executed just before this arrival (pinned MULW needs its DX:AX)
         if pending[0] is not None:
             target, expected = pending[0]; pending[0] = None
             if expected is None:
@@ -162,6 +164,7 @@ def run_original(m, c, decoded, budget):
                 status[0] = 'LIMIT'; uc.emu_stop(); return
             left[0] -= 1
         seen.add((kind, ip)); ins = decoded[(kind, ip)]
+        writer.step(uc, address)
         if ins.mnemonic in ('call', 'lcall'):
             calls.append((cs, (ip + ins.size) & 0xFFFF))
         if ins.mnemonic == 'retf':
@@ -178,24 +181,26 @@ def run_original(m, c, decoded, budget):
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=max(5000000, 40 * budget))
     check(status[0] is not None, 'original execution did not reach return, limit or transfer')
     cpu = Cpu(*(uc.reg_read(r) & 0xFFFF for r in REGISTERS))
-    return status[0], bytes(backing), events, device.writes, device.packed(), cpu, left[0], seen
+    return status[0], bytes(backing), events, device.writes, device.packed(), cpu, left[0], seen, writer
 
 
 def compare_states(label, expected, actual, bodies, m, decoded=None):
     """expected = run_original(...), actual = run_c(...). Raises on any difference; the EGA, the OUT events and the VRAM operands are compared in order."""
-    estat, eram, eev, ewr, eega, ecpu, eleft, seen = expected
-    astat, aram, aev, awr, aega, acpu, aleft, _ = actual
+    estat, eram, eev, ewr, eega, ecpu, eleft, seen, writer = expected
+    astat, aram, aev, awr, aega, acpu, aleft, _ = actual[:8]
     check(astat == estat, f'{label}: status C {astat} original {estat}')
     check(aleft == eleft, f'{label}: budget left C {aleft} original {eleft}')
-    # MUL (in the 13AB closure) leaves SF, ZF, AF and PF undefined; the ADD that follows overwrites them, so a COMPLETED call never exposes them. At a LIMIT arrival on the instruction right after a MUL
-    # Unicorn keeps the stale value where the model computes one: those four flag bits (00D4) are not compared at exactly those arrivals, which are counted in MASKED_ARRIVALS.
-    after_mul = {('res13', a.address + a.size) for k, a in (decoded or {}).items() if k[0] == 'res13' and a.mnemonic == 'mul'}
-    undefined = 0x00D4 if estat == 'LIMIT' and ecpu.cs == R13 and ('res13', ecpu.ip) in after_mul else 0
-    if undefined:
-        MASKED_ARRIVALS[0] += 1
+    # MUL (in the 13AB closure): the model computes the PINNED MULW flags (tools/overlay/pinned_shift_flags.py, instructions.h:605-619: SF and AF kept, ZF from AX, PF over DX:AX, CF=OF=DX!=0); raw Unicorn leaves SF/ZF/AF/PF
+    # at its own values. The split is declared, never masked: whenever the last FLAGS writer in the original is a word MUL, the C flags must equal Unicorn's outside the six arithmetic bits and the pinned value inside them;
+    # on every other state the flags are compared exactly. Counted in SPLIT_ARRIVALS.
+    split = writer.rule == 'mul' and writer.division is not None
     for name, _ in Cpu._fields_:
-        mask = ~undefined & 0xFFFF if name == 'flags' else 0xFFFF
-        check(getattr(acpu, name) & mask == getattr(ecpu, name) & mask, f'{label}: {name} C {getattr(acpu, name):04x} original {getattr(ecpu, name):04x}')
+        if name == 'flags' and split:
+            problem = declared_flags_split(acpu.flags, ecpu.flags, writer)
+            check(problem is None, f'{label}: {problem}')
+            SPLIT_ARRIVALS[0] += 1
+            continue
+        check(getattr(acpu, name) == getattr(ecpu, name), f'{label}: {name} C {getattr(acpu, name):04x} original {getattr(ecpu, name):04x}')
     if aram != eram:
         diffs = [i for i in range(SIZE) if aram[i] != eram[i]]
         raise ValueError(f'{label}: RAM {[(hex(i), aram[i], eram[i]) for i in diffs[:12]]} ({len(diffs)} bytes)')

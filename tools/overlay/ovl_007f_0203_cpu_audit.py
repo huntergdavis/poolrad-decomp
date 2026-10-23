@@ -136,7 +136,7 @@ def expected_transfer(name):
 
 def statements(name, kw, st, expected, vcache, b54):
     """Independent of the C model, on cases whose record does not overlap the stack, the globals or the world's own data: the branch, the accumulator word, W, the counter, the message temporary and the stack."""
-    status, ram, events, writes, ega, out, left, seen = expected
+    status, ram, events, writes, ega, out, left, seen = expected[:8]
     if status != 'RETURNED':
         return 0
     memory, cpu, info = st
@@ -178,7 +178,7 @@ def differential(bodies, decoded, lib, b54, quick=False, only=None):
             stated += statements(name, kw, st, expected, vcache, b54)
     w0203 = {k for k in seen_all if k[0] == 'w' and 0x203 <= k[1] < 0x294}
     check(only is not None or len(w0203) == 53, f'every +0203 instruction start was reached ({len(w0203)}/53)')
-    return dict(cases=len(cs), end_states=stops, starts_0203=f'{len(w0203)}/53', starts_total=len(seen_all), independent_statements_checked=stated, mul_undefined_flag_arrivals=WD.MASKED_ARRIVALS[0], cpu_words=14, ram_bytes=SIZE, flag_masks=0, seconds=round(time.time() - t0, 1))
+    return dict(cases=len(cs), end_states=stops, starts_0203=f'{len(w0203)}/53', starts_total=len(seen_all), independent_statements_checked=stated, declared_mulw_split_states=WD.SPLIT_ARRIVALS[0], cpu_words=14, ram_bytes=SIZE, flag_masks=0, seconds=round(time.time() - t0, 1))
 
 
 MUTANT_CASES = ('b-12-1234-eq', 'b-12-1234-p1', 'b-12-0000-m1', 'b-0c-ffff-far', 'ctr-ffff-0000-7000', 'ctr-0001-0000-7000', 'ctr-ffff-ffff-ffff', 'acc-ffff-7000', 'acc-8000-0000', 'mode1-above', 'g90-at-bp-01-above',
