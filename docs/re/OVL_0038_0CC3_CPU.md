@@ -89,15 +89,57 @@ Budget: each instruction of this body costs one unit. The callees cost none; 169
 
 | Stop | Class | Pinned by |
 | --- | --- | --- |
-| RETURNED | RETURN | Unicorn RETURNED_COUNT; native NATIVE_COUNT (not-found walk) |
-| RUNERROR | architectural: FreeMem's RunError 204 on an invalid block, CPU at SYSTEM:00E2 | Unicorn: the `runerror-*` cases reach SYSTEM:00E2 in both runs |
-| LIMIT | host cap | Unicorn: the budget sweeps and the cyclic lists, equal state at the same arrival |
-| TRANSFER | control transfer | Unicorn (alias cases), when they occur; the mutant that drops the check |
+| RETURNED | RETURN | Unicorn: 136 of 453 cases; native (not-found walk): NATIVE_COUNT |
+| RUNERROR | architectural: FreeMem's RunError 204 on an invalid block, CPU at SYSTEM:00E2 | Unicorn: 2 cases, `runerror-offset-4` (a block at offset 4) and `runerror-outside-heap` (a block above HeapPtr); both runs reach SYSTEM:00E2 |
+| LIMIT | host cap | Unicorn: 313 cases. The budget sweeps, the three cyclic lists, and the alias cases whose map or node writes make the walk cyclic (`grid-on-frame-08/-06`, `grid-on-node+04/+06`, `grid-on-list-head`, `node-on-frame`) stop with equal state at the same arrival |
+| TRANSFER | control transfer | Unicorn: 2 cases, `grid-on-frame+02/+04` (the map cell over the return address); the oracle stops at the same garbage address |
 | ARGUMENT / CODE / CALLEE | non-architectural | C test; 0 in the differential |
 
 ## Evidence
 
-DIFFERENTIAL_RESULTS
+**Original-byte Unicorn differential on the composed closure: 453 cases, 0 mismatches.**
+- Every body runs as its original bytes at its own segment: this span, StrLoad, FreeMem's four spans, and the 1693 closure with
+  the independent Python EGA.
+- The span's three relocated segment words are installed from the unit's fixup table.
+- Compared after every case, **unmasked**: CPU14, **all 1,048,576 RAM bytes**, the EGA planes, latches and registers, the ordered
+  OUT events and VRAM operands, the stop and the remaining budget.
+
+Outcomes:
+- 136 RETURNED, 313 LIMIT, 2 RUNERROR, 2 TRANSFER; 0 ARGUMENT/CODE/CALLEE;
+- **266/266 instruction starts** in this body (1,239 across the closure);
+- **104 independent statements**.
+
+What the independent statement computes, on plain returning cases (no aliasing, a valid heap, an acyclic list), without the C model:
+- the matched node;
+- each restored cell, 1Fh or the saved byte;
+- the list head or predecessor link after the unlink;
+- every 1Eh re-stamp;
+- the message temporary, SP and CS:IP.
+
+It encodes two facts the bytes taught. A first version got them wrong, and the differential caught it:
+- the restore loop keeps the cell as two bytes, zero-extended, while the re-stamp loop keeps 16-bit sums `CBW(base) + CBW(step)`;
+- the overlap test compares `CBW(table x)` with the zero-extended cell byte, so a cell at x ≥ 80h never matches.
+
+**Declared splits, counted and never masked** (shared `pinned_shift_flags.py`):
+- **24** states under the pinned-MULW split: `MUL DX` keeps SF and AF, and PF covers DX:AX;
+- **16** states under the AF-after-SHR split: `SHR AX,CL` with CL = 4 sets AF in the pinned core.
+
+Cases:
+- the walk: empty list, no key, wrong type, high-word mismatch, both record nibbles, three type values;
+- the unlink at head, middle, tail and only node, and the first of two matches;
+- live-flag patterns;
+- table counts 0/1/2/5, including a zero-dword entry and a high-word-only entry;
+- signed and extreme coordinates and steps;
+- the display world: four modes, three pages, three delay settings;
+- six entry SPs and ten flag images;
+- FreeMem: a valid offset-8 block, and two RunError blocks;
+- three cyclic lists;
+- the map cell on each word of the frame and on each field of the node, and over the list head;
+- the record on the frame, and a node on the frame;
+- a budget sweep 0..259 plus five higher budgets, and a missed-walk sweep 0..39;
+- 40 random cases.
+
+1,821 s on the heavy wrapper.
 
 MUTATION_RESULTS
 

@@ -187,13 +187,15 @@ def statement(name, st, expected):
     if k is not None:
         return 0
     want = [k for k in order if nodes[k]['key'] == info['key'] and (nodes[k].get('type', info['kind']) & 0xFF) == info['kind']]
-    g = lambda x, y: physical(info['grid'][0], (info['grid'][1] + ((50 * (y & 0xFF) + (x & 0xFF)) & 0xFFFF) + 7) & 0xFFFF)
+    # The restore loop truncates the cell to bytes ([BP-0Ch]/[BP-0Dh], zero-extended); the re-stamp loop keeps 16-bit sums CBW(base) + CBW(step).
+    g = lambda x, y: physical(info['grid'][0], (info['grid'][1] + ((50 * y + x) & 0xFFFF) + 7) & 0xFFFF)
     grid0 = {a: m[a] for a in range(physical(info['grid'][0], info['grid'][1]), physical(info['grid'][0], info['grid'][1]) + 0x1000)}
 
-    def cell(n, i):
+    def cell(n, i, wide=False):
         kk = info['steps'][i]
-        dx, dy = info['dxy'][kk] if kk < len(info['dxy']) else (s8(m[physical(ds, 0x2736 + kk)]), s8(m[physical(ds, 0x273F + kk)]))
-        return (s8(n.get('x', 10)) + dx) & 0xFF, (s8(n.get('y', 5)) + dy) & 0xFF
+        dx, dy = s8(m[physical(ds, 0x2736 + kk)]), s8(m[physical(ds, 0x273F + kk)])
+        x, y = s8(n.get('x', 10) & 0xFF) + dx, s8(n.get('y', 5) & 0xFF) + dy
+        return (x & 0xFFFF, y & 0xFFFF) if wide else (x & 0xFF, y & 0xFF)
     word = lambda a: ram[a] | (ram[(a + 1) & (SIZE - 1)] << 8)
     if not want:
         check(ram[physical(info['ss'], (info['sp'] - 2 - 0x28) & 0xFFFF)] != 26 or m[physical(info['ss'], (info['sp'] - 2 - 0x28) & 0xFFFF)] == 26,
@@ -204,13 +206,13 @@ def statement(name, st, expected):
     for i in range(4):
         if tn.get('live', (1, 1, 1, 1))[i]:
             x, y = cell(tn, i)
-            hit = any(live and (s8(ex & 0xFF) & 0xFF) == x and (s8(ey & 0xFF) & 0xFF) == y for live, ex, ey in info['table'][:info['count']])
+            hit = any(live and (s8(ex & 0xFF) & 0xFFFF) == x and (s8(ey & 0xFF) & 0xFFFF) == y for live, ex, ey in info['table'][:info['count']])   # CMP CBW(entry), zero-extended cell
             expect[g(x, y)] = 0x1F if hit else tn.get('saved', (0x11, 0x22, 0x33, 0x44))[i]
     rest = [k for k in order if k != t]
     for k in rest:
         for i in range(4):
             if nodes[k].get('live', (1, 1, 1, 1))[i]:
-                x, y = cell(nodes[k], i)
+                x, y = cell(nodes[k], i, wide=True)
                 expect[g(x, y)] = 0x1E
     for a, v in expect.items():
         check(ram[a] == v, f'{name}: map byte at {a:#x} is {ram[a]:#04x}, not {v:#04x}')
