@@ -14,6 +14,7 @@ from unicorn import x86_const as R
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
+from pinned_shift_flags import LastFlagWriter, SPLIT_BY_RULE, declared_flags_split, split_used
 
 MASK = SIZE-1
 PINS = ((0x5E,0x1BF8,0x1E16,193,'e4d40ee52d77251769257793d73634d80def7043b5264c6e050ea98902c11e1a'),
@@ -134,6 +135,9 @@ def install(m,c,l,stub,bodies,data):
     return segments
 
 
+SPLIT_ARRIVALS=[0]
+
+
 def compare(label,initial,bodies,decoded,data,lib,budget=4096):
     m,c,l,stub=initial
     segments=install(m,c,l,stub,bodies,data);unit_by_cs={v:k for k,v in segments.items()}
@@ -144,6 +148,7 @@ def compare(label,initial,bodies,decoded,data,lib,budget=4096):
     uc.mem_map_ptr(0,SIZE,7,ctypes.addressof(backing));uc.mem_map_ptr(SIZE,SIZE,7,ctypes.addressof(backing))
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,name))
     visited,edges=set(),set();previous=[None];remaining=[budget];stop=[None];calls=[];stepping=[False]
+    writer=LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
     def hook(uc,address,size,user):
         if stepping[0]:return
         cs=uc.reg_read(R.UC_X86_REG_CS);ip=uc.reg_read(R.UC_X86_REG_IP)&65535
@@ -159,6 +164,7 @@ def compare(label,initial,bodies,decoded,data,lib,budget=4096):
             off=(uc.reg_read(R.UC_X86_REG_DI)+(2 if ip in(0x1C8E,0x1DD3,0x1DF3) else 0))&65535
             at=physical(uc.reg_read(R.UC_X86_REG_ES),off)
             if protected(at) or protected((at+1)&MASK):stop[0]=2;uc.emu_stop();return
+        writer.step(uc,address)
         if previous[0] is not None:edges.add((previous[0],key))
         ins=decoded[key];visited.add(key)
         previous[0]=key if ins.mnemonic.startswith('j') and ins.mnemonic!='jmp' else None
@@ -176,6 +182,7 @@ def compare(label,initial,bodies,decoded,data,lib,budget=4096):
         if not calls:break
         if (uc.reg_read(R.UC_X86_REG_CS),uc.reg_read(R.UC_X86_REG_IP))!=calls.pop():
             status=5;break
+    writer.finish(uc)
     for start,length in regions:
         assert all(backing[(start+i)&MASK]==m[(start+i)&MASK] for i in range(length)),(label,'code/data modified')
     ram=(ctypes.c_uint8*SIZE).from_buffer_copy(m);actual=Cpu.from_buffer_copy(c)
@@ -184,6 +191,11 @@ def compare(label,initial,bodies,decoded,data,lib,budget=4096):
     assert bytes(ram)==bytes(backing),(label,'RAM',[(hex(i),ram[i],backing[i]) for i in range(SIZE) if ram[i]!=backing[i]][:12])
     for (name,_),reg in zip(Cpu._fields_,REGISTERS):
         expected=uc.reg_read(reg)&65535
+        if name=='flags':
+            problem=declared_flags_split(actual.flags,expected,writer)
+            assert problem is None,(label,problem)
+            SPLIT_ARRIVALS[0]+=split_used(actual.flags,expected,writer)
+            continue
         assert getattr(actual,name)==expected,(label,name,hex(getattr(actual,name)),hex(expected))
     return visited,edges,status,actual
 
@@ -247,7 +259,7 @@ def main():
               for dest in (ins.address+ins.size,int(ins.op_str,16))}
     report=dict(target='OVL_005E_1BF8',cases=count,whole_ram_bytes=SIZE,cpu_words=14,source_sites=len(decoded),covered_sites=len(visited),
                 conditional_edges=len(edges),required_edges=len(required),missing_sites=sorted(set(decoded)-visited),missing_edges=sorted(required-edges),
-                status_counts=statuses,stop_counts=stops,returned_al=sorted(results),masked_flags=0,emulator_state_substitutions=0,
+                status_counts=statuses,stop_counts=stops,returned_al=sorted(results),masked_flags=0,declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),emulator_state_substitutions=0,
                 native_route_measured=False)
     if args.output:args.output.write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
     print(json.dumps(report,sort_keys=True))
