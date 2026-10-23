@@ -95,7 +95,7 @@ def compare(label,state,bodies,decoded,f,budgets=(1024,256)):
         if stepping[0]:return
         cs=uc.reg_read(R.UC_X86_REG_CS);ip=uc.reg_read(R.UC_X86_REG_IP)&65535
         kind='u7f' if cs==c.cs else 'dice' if cs==dice else 'sys' if cs==SYSTEM else None;key=(kind,ip)
-        if cs==dice+0x100 and ip==0x48:return
+        if cs==((dice+0x100)&65535) and ip==0x48:return
         assert key in decoded,(label,'unexpected PC',hex(cs),hex(ip))
         index=0 if kind=='u7f' and ip in LOOPS else 1 if key==('dice',0xE0E) else None
         if index is not None:
@@ -138,7 +138,7 @@ def specifications(quick=False):
     for t in (61,63):
         for budget in (1,2,3,4,5):cases.append((f'caller-limit-{t}-{budget}',dict(kind=t,budgets=(budget,256))))
     for t in (1,61):cases.append((f'dice-limit-{t}',dict(kind=t,budgets=(1024,0))))
-    cases.extend([('A20-data',dict(record_seg=0xFFFF,record_off=0x400)),('word-wrap',dict(record_off=0xFFCA,kind=1)),('A20-code',dict(cs=0xFFFF)),('A20-stack',dict(ss=0xFFFF,sp=0x200,kind=61)),('relocated',dict(cs=0x7000,dice=0x8000,kind=61))])
+    cases.extend([('A20-data',dict(record_seg=0xFFFF,record_off=0x400)),('word-wrap',dict(record_off=0xFFCA,kind=1)),('A20-code',dict(cs=0xFFFF)),('A20-stack',dict(ss=0xFFFF,sp=0x200,kind=61)),('relocated',dict(cs=0x7000,dice=0x8000,kind=61)),('A20-dice-stub',dict(dice=0xFFFF,kind=61))])
     return cases
 
 def alias_specifications():

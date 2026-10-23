@@ -161,6 +161,7 @@ def main():
         for n in (0,1,2,8):run(f'cycle-{n}',cycle=True,budget=n)
         for off in (0,1,0xFFF8,0xFFFB,0xFFFF):run(f'node-offset-{off:X}',node_base=off,nodes=((12,5),))
         run('different-node-segment',node_seg=0x3100)
+        run('A20-stub-segment',stub_cs=0xFFFF)
         for off in (0x7FEA,0x7FF0,0x7FFA,0x7FFB,0x7FFF,0x8000):
             run(f'record-frame-{off:X}',record=(0x2000,off),budget=8)
         run('source-is-record',src=(0x4000,0x100))
