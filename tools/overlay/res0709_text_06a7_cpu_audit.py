@@ -26,6 +26,8 @@ EXCLUDED={
 }
 PARENT=0x9000
 import res0709_glyph_01df_cpu_audit as prior
+from pinned_shift_flags import LastFlagWriter,SPLIT_BY_RULE,declared_flags_split,split_used
+SPLIT_ARRIVALS=[0]
 FLAGS=(2,0xD7,0x8D7,0x402,0x893,3)
 SOURCES=('resident_0709_text_06a7_cpu','resident_a40_delay_029c_cpu')+prior.SOURCES
 WRITE_FN=ctypes.CFUNCTYPE(None,ctypes.c_void_p,ctypes.c_uint16,ctypes.c_uint8)
@@ -91,6 +93,7 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
     s=dict(stop=None,ret=False,callee=-1,status=-1,glyph_callee=-1,glyph_status=-1,loops=0,glyph_loops=0,delay_loops=0,delay_pending=False,last=None)
     calls=[];seen=set();edges=set();events=[];writes=[]
     def stop(v):s['stop']=v;uc.emu_stop()
+    writer=LastFlagWriter()  # declared splits for the pinned flag rules, see pinned_shift_flags
     def hook(em,address,size,user):
         cs=uc.reg_read(R.UC_X86_REG_CS);ip=uc.reg_read(R.UC_X86_REG_IP);key=('caller' if cs==CS else 'sys' if cs==SYS else 'delay' if cs==DELAY else '?',ip)
         if s['delay_pending']:s['status']=2;return stop(3)
@@ -120,7 +123,7 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
                 if s['delay_loops']==delay_limit:s['delay_pending']=True
                 else:s['delay_loops']+=1
         if s['last'] is not None:edges.add((s['last'],key))
-        seen.add(key);s['last']=key if conditional(ins) else None
+        writer.step(em,address);seen.add(key);s['last']=key if conditional(ins) else None
         if key[0]=='caller' and ins.mnemonic in ('call','lcall'):
             owner='text' if ip in (0x6FD,0x6E8) else 'glyph'
             calls.append(((cs,ip+ins.size),owner))
@@ -136,6 +139,7 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
             if 0xA0000<=at<0xB0000:writes.append((at-0xA0000,(value>>(8*j))&255))
     uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_INSN,out,None,1,0,R.UC_X86_INS_OUT);uc.hook_add(UC_HOOK_MEM_WRITE,write)
     uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=3000000)
+    writer.finish(uc)
     check(s['stop'] is not None,f'instruction ceiling {name}')
     for (kind,start),blob in bodies.items():
         at=physical(CS if kind=='caller' else DELAY if kind=='delay' else SYS,start)
@@ -153,7 +157,11 @@ def compare(name,state,bodies,decoded,lib,limit=65536,refuse=None,glyph_limit=65
     for off,value in writes:replay[off]=value
     check(expected[0xA0000:0xB0000]==bytes(replay) and ram[0xA0000:0xB0000]==bytes(m[0xA0000:0xB0000]),f'aperture {name}')
     for (n,_),r in zip(Cpu._fields_,REGISTERS):
-        want=uc.reg_read(r)&65535;check(getattr(actual,n)==want,f'CPU {name}/{n} {getattr(actual,n):04x}/{want:04x}')
+        want=uc.reg_read(r)&65535
+        if n=='flags':
+            problem=declared_flags_split(actual.flags,want,writer);check(problem is None,f'CPU {name}/flags {problem}')
+            SPLIT_ARRIVALS[0]+=split_used(actual.flags,want,writer);continue
+        check(getattr(actual,n)==want,f'CPU {name}/{n} {getattr(actual,n):04x}/{want:04x}')
     detail=STOPS[status]
     if status==3:detail+='/glyph/'+GLYPH_STATUS[s['status']] if s['callee']==0 else '/delay/'+DELAY_STATUS[s['status']]
     if status==2:detail+='/'+s['site']
@@ -204,7 +212,7 @@ def differential(bodies,decoded,lib,quick=False):
     branches={(k,(k[0],t)) for k,ins in decoded.items() if conditional(ins) for t in successors(ins)}
     missing=sorted((a[1],b[1]) for a,b in branches-edges)
     if not quick:check(set(missing)==set(EXCLUDED),f'composed outcomes not covered or not excluded: {sorted(set(missing)^set(EXCLUDED))}')
-    return dict(cases=len(specs),stops=dict(sorted(stops.items())),non_return_cases={k:v for k,v in case_stops.items() if v!='RETURN'},composed_outcomes=len(branches&edges),composed_outcomes_total=len(branches),
+    return dict(cases=len(specs),declared_flag_split_arrivals=SPLIT_ARRIVALS[0],declared_flag_split_by_rule=dict(SPLIT_BY_RULE),stops=dict(sorted(stops.items())),non_return_cases={k:v for k,v in case_stops.items() if v!='RETURN'},composed_outcomes=len(branches&edges),composed_outcomes_total=len(branches),
         excluded_outcomes=[dict(edge=f'+{a:04X}->+{b:04X}',kind=k,argument=w,feasible_if=f) for (a,b),(k,w,f) in sorted(EXCLUDED.items())],caller_starts=len(caller&visited),caller_starts_total=len(caller),caller_outcomes=len(outcomes),
         uncovered_starts=[f'{k}:{ip:04X}' for k,ip in sorted(set(decoded)-visited)],
         uncovered_outcomes=[f'{k}:{ip:04X}->{dest:04X}' for k,ip in sorted(caller) if decoded[k,ip].mnemonic in ('ja','jne','je','jbe') for dest in (int(decoded[k,ip].op_str,16),ip+decoded[k,ip].size) if ((k,ip),(k,dest)) not in edges],

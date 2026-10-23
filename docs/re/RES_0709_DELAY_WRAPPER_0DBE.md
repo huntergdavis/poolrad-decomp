@@ -98,3 +98,11 @@ RNG, menu choice, and script reachability remain to be measured. Arm U1C
 and return frames only on a naturally reached branch.
 
 No full-C count or saved-game DELAY parity is claimed before PM review.
+
+## Pinned MULW flags: model fixed (2026-10-23, census #1464 family 3)
+
+Pinned DOSBox-X `MULW` (`instructions.h:605-619`) keeps SF and AF (`FillFlagsNoCFOF`), sets ZF from AX **alone**, PF to the even parity of **all four bytes of DX:AX** (`FLAG_PF` is the constant mask 4), and CF = OF = (DX != 0). This plain model modelled neither XOR AH,AH's flags nor MUL's ZF/PF/SF; it only cleared CF/OF. Fix: XOR AH,AH sets ZF and PF and clears the rest, and the MUL follows pinned MULW (here AL*E1h <= DB1Fh, so DX = 0 and CF = OF = 0).
+
+- **Did the evidence depend on these flags?** No. The credit rests on the `_cpu` audit, and this plain model's C test passes with asserts on.
+- **Caller-observable?** No. The `MUL` is followed immediately by `LCALL 0A40:029C`, whose `OR DX,DX` at `+02A2` overwrites ZF, PF, SF and AF before any instruction reads them (walked over the original bytes). At every real return these flags are already gone.
+- **Evidence for the verdict (par-e decides):** we expect the credit to stand.

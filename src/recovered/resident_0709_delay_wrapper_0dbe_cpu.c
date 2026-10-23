@@ -63,11 +63,14 @@ pr_r0709_delay_cpu_status pr_r0709_delay_wrapper_0dbe_cpu(uint8_t *ram, size_t r
     product = (uint32_t)cpu->ax * cpu->dx;
     cpu->ax = (uint16_t)product;
     cpu->dx = (uint16_t)(product >> 16);
-    cpu->flags &= (uint16_t)~0x08D5u;
-    if (cpu->dx != 0u) cpu->flags |= 0x0801u;
-    if (even_parity((uint8_t)cpu->ax)) cpu->flags |= 0x0004u;
-    if (cpu->ax == 0u) cpu->flags |= 0x0040u;
-    if (cpu->ax & 0x8000u) cpu->flags |= 0x0080u;
+    {   /* pinned DOSBox-X MULW (instructions.h:605-619): SF/AF kept, ZF from AX alone,
+         * PF = even parity of all four bytes of DX:AX, CF = OF = (DX != 0). */
+        uint16_t w = (uint16_t)(cpu->ax ^ cpu->dx);
+        cpu->flags &= (uint16_t)~0x0845u;
+        if (cpu->dx != 0u) cpu->flags |= 0x0801u;
+        if (cpu->ax == 0u) cpu->flags |= 0x0040u;
+        if (even_parity((uint8_t)(w ^ (w >> 8)))) cpu->flags |= 0x0004u;
+    }
     push16(ram, cpu, cpu->ax);                                            /* 0DCB PUSH AX */
     cpu->ip = 0x0DCCu;                                                    /* 0DCC LCALL 0A40:029C */
     if (ram[physical(cpu->cs, 0x0DCCu)] != 0x9Au || rd16(ram, cpu->cs, 0x0DCDu) != DELAY_IP)
