@@ -3,7 +3,7 @@
 identical state. The above branch shows a message through resident 1693 (EGA, delay, clear) and is NOT run natively here, as for +0203: it needs the 1693 native harness's EGA machine and is
 declared not established. Completed calls end at a label the oracle program provides as the entry frame's return address. Compared with no masks: the 14 CPU words and the five 64 KiB regions
 (data, stack, record, two spares). IF is cleared in every native case. The host's packaged dosbox-x is used, not the pinned build."""
-# NOT_A_ROW_CHECKER: native corroboration helper imported by ovl_007f_0a88_cpu_audit.py --native; the audit carries CHECKER_ROWS
+# NOT_A_ROW_CHECKER: native corroboration helper imported by ovl_007f_0a88_cpu_audit.py --native; the audit registers the row
 import ctypes, shutil, struct, sys
 from hashlib import sha256
 from pathlib import Path
