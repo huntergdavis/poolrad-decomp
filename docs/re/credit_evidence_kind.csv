@@ -212,7 +212,7 @@ OVL_03B4_00C7,audit,tools/overlay/u3b4_case_maps_audit.py
 OVL_03B4_00FB,audit,tools/overlay/u3b4_case_maps_audit.py
 OVL_03B4_012F,audit,tools/overlay/u3b4_case_maps_audit.py
 OVL_03B9_048F,checker,u3b9_bitmap_set_release_048f_audit.py
-OVL_03BD_0155,cites-tool,tools/overlay/ecl_walk.py
+OVL_03BD_0155,checker,ovl_03bd_0155_cpu_audit.py
 OVL_03BD_0350,unit-test,poolrad_overlay_u3bd_field_tests
 OVL_03BD_047B,unit-test,poolrad_overlay_u3bd_nibble_tests
 OVL_03BD_057A,unit-test,poolrad_overlay_u3bd_cell_tests

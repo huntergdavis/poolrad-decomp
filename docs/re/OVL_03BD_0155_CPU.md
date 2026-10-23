@@ -142,3 +142,7 @@ build), with no masks: 14 CPU words and five 64 KiB regions per case. Results ar
 - **TRANSFER is Unicorn-only.** Return-address aliasing cannot return to the native oracle program.
 - **No EGA-aperture DS is modelled.** See the pointer census.
 - **Not yet glued into the hybrid.** That is the next step, with the same shadow bar as the glue batches.
+
+## Evidence kind (2026-10-22)
+
+Registering `CHECKER_ROWS = ('OVL_03BD_0155',)` moves this row in `docs/re/credit_evidence_kind.csv` from `cites-tool` to `checker`, regenerated with `credit_evidence_kind.py --write`. **The credit count does not move**; only the recorded kind of evidence gets stronger.
