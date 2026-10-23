@@ -19,9 +19,29 @@ hash-checked and loaded at base `1000h` with its relocation table applied. Each 
 
 - **The result:** AL for `23B7`, `2E03` and `2E46`; AX for `2637` and `2E8B`. Those two take AX in and out, keeping the
   caller's AH as the original does, so both sides start from the same random AX. The status must be OK.
-- **Every RAM byte outside the call's own stack window** `[SS:SP-200h, SS:SP+10h)`. These models are contract-level and
-  keep no stack, while the original keeps its locals there, including `1509`'s StrLoad copy. This window is the only
-  bytes not compared, and it is stated here rather than hidden.
+- **Every RAM byte outside the call's own stack window.** These models are contract-level and keep no stack, while the
+  original keeps its locals there, including `1509`'s StrLoad copy.
+  - **The window, per body:** `[return address - 200h, return address + 4 + RETF bytes)`. The `RETF` size is asserted
+    from that body's bytes, and the pushed argument bytes are checked equal to it.
+  - **Why it stops there:** the arguments are pushed downward from `SS:F000h`, so the window ends exactly at the top of
+    the arguments. The caller's frame above them is outside the window. It holds a non-zero sentinel, and that sentinel
+    is compared, so an out-parameter store aimed at the caller's frame would be caught.
+  - **The rule:** an exclusion window must be provably disjoint from the region the check is testing, not merely likely
+    to be.
+
+  | Body | RETF bytes | Excluded window (SS:) |
+  | --- | ---: | --- |
+  | `RES_00BA_1509` | 8 | `[EDF4, F000)` |
+  | `RES_00BA_15F7` | 8 | `[EDF4, F000)` |
+  | `RES_00BA_23B7` | 4 | `[EDF8, F000)` |
+  | `RES_00BA_23DB` | 0 | `[EDFC, F000)` |
+  | `RES_00BA_2637` | 4 | `[EDF8, F000)` |
+  | `RES_00BA_2E03` | 4 | `[EDF8, F000)` |
+  | `RES_00BA_2E46` | 4 | `[EDF8, F000)` |
+  | `RES_00BA_2E8B` | 8 | `[EDF4, F000)` |
+
+  The first version of this checker used a fixed `[SS:SP-200h, SS:SP+10h)`, which reached 10h bytes into the caller's
+  frame. The PM caught it (i22001/i22004), and the per-body bound replaces it.
 - **For `1509` and `15F7`, the declared boundaries in call order.**
   - On the original side they are intercepted at their entries. GetMem `0AF8:023F` returns the same caller-chosen block
     (`RETF 2`). FreeMem `0AF8:0254` and the message `0709:0BF5` are recorded and skipped (`RETF 6`). StrLoad `0AF8:0B0B`

@@ -5,8 +5,10 @@ Each body runs from the ORIGINAL bytes of the loader-expanded START.EXE (hash-ch
 base 1000h) under Unicorn. The C model runs through the reusable io adapter (res00ba_io_adapter.py / .c), whose callbacks
 read and write the same 1 MiB RAM image. Compared per call:
   - the model's result: AL (23B7 is_zero, 2E03/2E46 result) or AX (2637, 2E8B), and its status (OK);
-  - every RAM byte OUTSIDE the call's own stack window [SS:SP-200h, SS:SP+10h): the models are contract-level and keep no
-    stack, while the original keeps its locals (and StrLoad's copy) there. No other byte is masked;
+  - every RAM byte OUTSIDE the call's own stack window [return address - 200h, return address + 4 + RETF bytes), which
+    ends exactly at the arguments' top, so it is disjoint from the caller's frame (a non-zero sentinel there is
+    compared). The models are contract-level and keep no stack, while the original keeps its locals (and StrLoad's
+    copy) below the return address. No other byte is masked;
   - for 1509 and 15F7, the declared boundaries in call order. On the original side they are intercepted at their entries:
     GetMem 0AF8:023F returns the same caller-chosen block (RETF 2); FreeMem 0AF8:0254 and the message 0709:0BF5 are
     recorded and skipped (RETF 6); StrLoad 0AF8:0B0B and Move 0AF8:1685 run from the original bytes and are recorded.
@@ -57,6 +59,8 @@ def media():
     from capstone import Cs, CS_ARCH_X86, CS_MODE_16
     image, sites = Q.load_image()
     m = bytearray(SIZE)
+    for k in range(0x100):                         # the caller's frame above the arguments: a non-zero sentinel, compared
+        m[phys(SS, SP + k)] = (0x5B + 7 * k) & 0xFF or 0x5B
     reloc = Q.relocate(image, sites, BASE)
     m[BASE * 16:BASE * 16 + len(reloc)] = reloc
     md, report = Cs(CS_ARCH_X86, CS_MODE_16), dict(image_sha256=Q.IMAGE_DIGEST, relocations=len(sites), load_base=f'{BASE:04X}', bodies={})
@@ -71,6 +75,8 @@ def media():
 
 def run(m, entry, words, block=None, ax=0):
     """Far-call 00BA:entry with argument words pushed in order; returns (uc, ram, boundaries)."""
+    rid = next(k for k, v in BODIES.items() if v[0] == entry)
+    check(2 * len(words) == BODIES[rid][3], f'{rid}: pushed argument bytes differ from RETF {BODIES[rid][3]}')
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
     from unicorn import x86_const as X
     ram = bytearray(m)
@@ -115,8 +121,19 @@ def run(m, entry, words, block=None, ax=0):
     return uc, bytearray(backing), log
 
 
-def compare_ram(c_ram, o_ram, label):
-    lo, hi = phys(SS, SP - 0x200), phys(SS, SP + 0x10)
+def window(rid):
+    """The excluded stack window for one body: [return address - 200h, return address + 4 + RETF bytes). Arguments are
+    pushed downward from SP, so the return address sits at SP - 4 - RETF bytes and the window ends exactly at SP: it can
+    never reach the caller's frame above the arguments (which holds a non-zero sentinel and IS compared)."""
+    retf = BODIES[rid][3]
+    ret = SP - 4 - retf
+    return ret - 0x200, ret + 4 + retf
+
+
+def compare_ram(c_ram, o_ram, label, rid):
+    lo_off, hi_off = window(rid)
+    check(hi_off == SP, f'{rid}: window does not end at the arguments')
+    lo, hi = phys(SS, lo_off), phys(SS, hi_off)
     if c_ram[:lo] != o_ram[:lo] or c_ram[hi:] != o_ram[hi:]:
         diff = [hex(i) for i in range(SIZE) if not lo <= i < hi and c_ram[i] != o_ram[i]]
         raise ValueError(f'{label}: RAM differs outside the stack window at {diff[:8]} ({len(diff)} bytes)')
@@ -174,7 +191,7 @@ def differential(m, lib, quick=False):
                 status, value = fn(lib, cram, DS, char)
             got = uc.reg_read(X.UC_X86_REG_AX) & (0xFF if result_reg == 'al' else 0xFFFF)
             check(status == 0 and got == value, f'{rid} case {case}: original {result_reg}={got:04x} C {value:04x} (status {status})')
-            compare_ram(cram, ram, f'{rid} case {case}')
+            compare_ram(cram, ram, f'{rid} case {case}', rid)
             n += 1
         counts[rid] = n
 
@@ -198,7 +215,7 @@ def differential(m, lib, quick=False):
         cram = bytearray(mm)
         status = R.res_23db(lib, cram, DS)
         check(status == 0, f'23DB case {case}: status {status}')
-        compare_ram(cram, ram, f'RES_00BA_23DB case {case}')
+        compare_ram(cram, ram, f'RES_00BA_23DB case {case}', 'RES_00BA_23DB')
         n += 1
     counts['RES_00BA_23DB'] = n
 
@@ -227,7 +244,7 @@ def differential(m, lib, quick=False):
         status, clog = R.res_15f7(lib, cram, DS, source, char, block)
         check(status == 0, f'15F7 case {case}: status {status}')
         check(olog == clog, f'15F7 case {case}: boundaries original {olog} C {clog}')
-        compare_ram(cram, ram, f'RES_00BA_15F7 case {case}')
+        compare_ram(cram, ram, f'RES_00BA_15F7 case {case}', 'RES_00BA_15F7')
         n += 1
     counts['RES_00BA_15F7'] = n
 
@@ -244,7 +261,7 @@ def differential(m, lib, quick=False):
         cram = bytearray(mm)
         status, clog = R.res_1509(lib, cram, DS, target, char)
         check(olog == clog, f'1509 case {case} ({kind}): boundaries original {olog} C {clog}')
-        compare_ram(cram, ram, f'RES_00BA_1509 case {case} ({kind})')
+        compare_ram(cram, ram, f'RES_00BA_1509 case {case} ({kind})', 'RES_00BA_1509')
         n += 1
     counts['RES_00BA_1509'] = n
     return counts
@@ -262,7 +279,8 @@ def main():
             print('CHECKER_BUILD_OK'); return
         m, report = media()
         report['cases'] = differential(m, lib, a.quick)
-        report.update(compared='result register, every RAM byte outside the call stack window, boundaries in order', masks=0)
+        report.update(compared='result register, every RAM byte outside the per-body stack window, boundaries in order', masks=0,
+                      windows={rid: f'SS:[{window(rid)[0]:04X},{window(rid)[1]:04X})' for rid in BODIES})
     text = json.dumps(report, indent=1, sort_keys=True)
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(text + '\n')
