@@ -73,3 +73,22 @@ The largest constant added to DI/BX/SI in each lead's source is a heuristic (`(d
 3. There is no live GetMem sample.
 
 Item (3) is one observer row. Item (1) is a short read of six sources. A ruling on fixes should wait for both.
+
+## Update (2026-10-23): the six large-k leads were read
+
+**None of them is a far-pointer field.** Each large constant indexes a byte or word **data** access, not a far pointer
+that `LES`/`LDS` loads.
+
+| Lead | Line | What it is |
+| --- | --- | --- |
+| u6c 3f31 | `read_byte(DS, DI + 408Eh)` | a DS table byte |
+| u5e 1bf8 | `r8(DS, DI + 66DBh)` | a DS slot-table byte |
+| u3c2 0422 | `read8(DS, DI + 2746h)` | a DS table byte |
+| u3c6 10a7 | `read8(DS, DI + 66DCh)` | a DS slot-table byte |
+| u25 01b6 | `write16(ES, DI + 6E00h)` | an ES data word |
+| u25 1ea6, 0e0c | `read8(ES, DI + 6700h)` | an ES data byte |
+
+The wrap concerns only the **segment word of a far pointer that `LES`/`LDS` reads**. These accesses read no far
+pointer, so they cannot reach the wrap, whatever their offset.
+
+**Open item (1) is closed.** Items (2), non-GetMem far-pointer arithmetic, and (3), the live GetMem sample, remain.
