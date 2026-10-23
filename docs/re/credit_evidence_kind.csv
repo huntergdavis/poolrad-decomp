@@ -165,6 +165,7 @@ OVL_007D_03A3,checker,u7d_update_03a3_native_audit.py
 OVL_007D_047A,checker,u7d_update_047a_cpu_audit.py
 OVL_007D_0565,checker,u7d_two_digits_0565_cpu_audit.py
 OVL_007D_05F0,checker,u7d_entry_05f0_cpu_audit.py
+OVL_007F_0000,checker,ovl_007f_0000_cpu_audit.py
 OVL_007F_003A,checker,u7f_record_word_add_003a_audit.py
 OVL_007F_00A8,checker,u7f_weighted_00a8_audit.py
 OVL_007F_0130,unit-test,poolrad_overlay_u7f_div5_tests
