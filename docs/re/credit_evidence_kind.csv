@@ -251,7 +251,7 @@ RES_00BA_1693,checker,res00ba_display_1693_cpu_audit.py
 RES_00BA_17E3,checker,res00ba_clear_17e3_cpu_audit.py
 RES_00BA_1816,checker,res00ba_display_1816_cpu_audit.py
 RES_00BA_2199,checker,resident_2199_cpu_audit.py
-RES_00BA_23B7,checker,res00ba_rec_models_audit.py
+RES_00BA_23B7,checker,res00ba_rec_models_audit.py;res00ba_zero_test_23b7_cpu_audit.py
 RES_00BA_23DB,checker,res00ba_rec_models_audit.py
 RES_00BA_2637,checker,res00ba_rec_models_audit.py
 RES_00BA_26C2,audit,tools/overlay/res26c2_u86_0729_audit.py
