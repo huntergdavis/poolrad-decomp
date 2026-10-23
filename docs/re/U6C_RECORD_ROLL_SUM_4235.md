@@ -165,3 +165,11 @@ This row's audit is now a registered checker: it carries `--compile-only`, which
 ```sh
 python3 tools/overlay/check_checker_builds.py OVL_006C_4235 --require-current-main
 ```
+
+## Repair note, 2026-10-22
+
+A one-line import repair landed after this document: the division hook read
+`UC_X86_REG_DX`/`AX`/`BX` without importing them, so a full run died with a
+`NameError` at line 192 while `--compile-only` passed (the hook never runs on that
+path). No claim, count or case in this document changes; the audit now runs end to
+end again (1609 cases, 1593 returns, 134 covered sites).
