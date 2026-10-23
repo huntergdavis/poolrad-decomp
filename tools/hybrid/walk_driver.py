@@ -42,7 +42,8 @@ n = 0
 
 
 def log(msg):
-    print(f"t={time.time() - T0:6.1f}s {msg}", flush=True)
+    now = time.time()
+    print(f"t={now - T0:6.1f}s {msg} @ms={int(now * 1000)}", flush=True)
 
 
 def grab(tag):
@@ -153,10 +154,20 @@ if STOP == "menu":
     time.sleep(SETTLE)
     grab("final")
     stop(0, "cold start complete: main menu seen")
+IDLE = int(os.environ.get("WALK_IDLE_S", "0"))   # optional idle windows (seed-pin stage 1): no key for IDLE seconds
+
+
+def idle(where):
+    if IDLE:
+        log(f"IDLE {where} start"); time.sleep(IDLE); log(f"IDLE {where} end")
+
+
+idle("menu")
 time.sleep(1); key("l")
 wait_for("slots", lambda s, l: "FUNCTION" not in s and s == l, ocr_prompt)
 key("a")
 wait_for("at15_4", lambda s, l: "15,4" in s, ocr_digits)
+log("SAVE LOADED")
 time.sleep(1); key("Up")
 wait_for("at14_4", lambda s, l: "14,4" in s, ocr_digits)
 extra = os.environ.get("WALK_EXTRA", "").split()
@@ -218,6 +229,7 @@ CONTINUE = ("ENTER", "RETURN", "CONTINUE")
 # so match the fragments that survive.
 COMBAT_MENU = ("QUICK", "GUARD", "AIM", "MOVE", "OVE", "USE", "DONE", "DOE", "AIN")
 if os.environ.get("WALK_COMBAT"):
+    idle("at14_4")
     found = None
     for step in range(int(os.environ.get("SEEK_STEPS", "60"))):
         k = "Down" if step % 2 == 0 else "Up"
