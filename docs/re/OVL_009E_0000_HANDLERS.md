@@ -44,7 +44,7 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | slot | address | stub | handler | verdict | closure B (bodies) |
 | ---: | --- | --- | --- | --- | ---: |
 | 0 | 6828h | - | - | **non-handler** (the far-pointer variable 6826h:6828h; REFUSED) | - |
-| 1 | 682Ch | 0041:002A | OVL_0038_010D | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 1 | 682Ch | 0041:002A | OVL_0038_010D | modelled with credited handler OVL_0038_010D (semantic model `pr_u38_entry2` through a phase-2 adapter; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 2 | 6830h | 0041:002F | OVL_0038_011D | **named gap (phase 2): credited handler, semantic model, not composed** | - |
 | 3 | 6834h | 0041:0034 | OVL_0038_013B | **named gap (phase 2): credited handler, semantic model, not composed** | - |
 | 4 | 6838h | 0041:0039 | OVL_0038_017F | **named gap: uncredited handler OVL_0038_017F** | 1335 (5) |

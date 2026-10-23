@@ -4650,5 +4650,10 @@
   "tips_sha256": "2a076226f78023fa001e2383e72d90ba07e0e943e2b66db9fac0d178ea375fef",
   "unmerged_tips": 572
  },
- "schema_version": 1
+ "kind": "pinned measurement of the strict queue detector's discards, not a live list",
+ "pin": {
+  "export_sha256": "555cf1617f33c1c8b8a5d8e0a9469ce5e6ddab1d74cff8581348081c01b9dc9f",
+  "tree_commit": "12b1285f (the detector branch rebased on origin/main c6be5156), before the SEG:OFF form"
+ },
+ "schema_version": 2
 }

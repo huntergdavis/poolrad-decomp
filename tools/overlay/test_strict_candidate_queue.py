@@ -983,6 +983,27 @@ class StrictCandidateQueueTest(unittest.TestCase):
         self.assertEqual(rescued["discarded"], [])
         self.assertEqual([m["rescued_from"] for m in rescued["inline"]], ["IP_REDIRECT", "COMMENT_ONLY"])
 
+    def test_seg_off_mentions_are_found(self):
+        """'007F:0A88' (unit:offset) and '0041:00CA' (an overlay stub) are mentions; a resident SEG:OFF names no overlay
+        candidate; a time, a longer colon chain or a 0x-less 3-digit pair is not the form."""
+        import tempfile
+        candidates = {(0x7F, 0x0A88): "OVL_007F_0A88", (0x38, 0x0CC3): "OVL_0038_0CC3"}
+        stubs = {(0x41, 0x00CA): "OVL_0038_0CC3"}
+        with tempfile.TemporaryDirectory() as root:
+            path = Path(root) / "src/recovered/overlay_u99_probe.c"
+            path.parent.mkdir(parents=True)
+            path.write_text("lcall 007F:0A88\n/* dispatch 0041:00CA */\n00BA:23B7 resident\n12:30 1234:0A88:0001 7F:0A88\n")
+            found = scq.scan_mentions(Path(root), candidates, stubs)
+        self.assertEqual([(m["line"], m["kind"]) for m in found["OVL_007F_0A88"]["source"]], [(1, "seg_off")])
+        self.assertEqual([(m["line"], m["kind"]) for m in found["OVL_0038_0CC3"]["source"]], [(2, "stub_seg_off")])
+
+    def test_stub_index_maps_the_stub_aliases_of_candidates(self):
+        """Rows carry STUB_pppp_oooo aliases (STUB_0041_00CA is OVL_0038_0CC3, U9E slot 40); non-candidates and non-stub aliases are left out."""
+        state = dict(candidates={(0x38, 0x0CC3): "OVL_0038_0CC3"},
+                     aliases={"STUB_0041_00CA": {"id": "OVL_0038_0CC3"}, "0x38:0x0cc3": {"id": "OVL_0038_0CC3"},
+                              "STUB_00B0_0025": {"id": "OVL_009E_0000"}})
+        self.assertEqual(scq.stub_index(state), {(0x41, 0x00CA): "OVL_0038_0CC3"})
+
     def test_prior_status_none_when_no_evidence(self):
         inventory, ledger, classifications = fixture()
         state = scq.load_queue(inventory, ledger, classifications, [], None)
