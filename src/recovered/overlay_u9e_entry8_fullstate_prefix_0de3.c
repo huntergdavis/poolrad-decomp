@@ -3,7 +3,7 @@
 
 #define MASK (PR_U9E_ENTRY8_PREFIX_RAM_SIZE - 1u)
 #define ARITH_FLAGS 0x08D5u
-#define LOGIC_FLAGS 0x08C5u /* AF undefined after XOR. */
+#define LOGIC_FLAGS 0x08D5u /* XOR clears AF in pinned DOSBox-X (flags.cpp:684-691). */
 
 static size_t physical(uint16_t segment, uint16_t offset)
 {
