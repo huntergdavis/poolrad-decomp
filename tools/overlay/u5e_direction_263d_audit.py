@@ -4,6 +4,9 @@
 Original bytes are read only from owner-supplied media; output is metadata.
 Requires Capstone and Unicorn. No callee is replaced by a result-only stub.
 """
+
+# Registered with the handoff gate: this checker is the one that proves OVL_005E_263D.
+CHECKER_ROWS = ('OVL_005E_263D',)
 import argparse
 import ctypes
 from hashlib import sha256
