@@ -26,6 +26,10 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_price_candidates.py'
       - name: Compile, load and bind registered row checkers without media
         run: python3 tools/overlay/check_checker_builds.py --all
+      - name: Undefined-name gate tests (a hook reading an unbound name fails; bound names pass)
+        run: python3 -m unittest discover -s tools/overlay -p 'test_check_checker_names.py'
+      - name: Every global name a registered checker reads is bound (compiling is not running)
+        run: python3 tools/overlay/check_checker_names.py
   verify-public-tree:
     runs-on: ubuntu-latest
     steps:
