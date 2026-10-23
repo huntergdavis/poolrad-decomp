@@ -156,6 +156,7 @@ OVL_006C_4235,checker,u6c_record_roll_sum_4235_audit.py
 OVL_006F_032F,audit,tools/overlay/u6f_vector_merge_032f_audit.py;tools/overlay/u6f_vector_merge_032f_native.py
 OVL_006F_1446,checker,u6f_party_insert_1446_cpu_audit.py
 OVL_0077_0901,checker,u77_party_0901_cpu_audit.py
+OVL_0077_17ED,checker,u77_split_17ed_audit.py
 OVL_0077_275B,checker,u77_275b_cpu_audit.py
 OVL_0077_27DF,audit,tests/recovered/check_overlay_u77_active_select_27df.py;tools/overlay/u77_active_select_27df_native.py
 OVL_0077_28BE,checker,u77_weighted_28be_cpu_audit.py
