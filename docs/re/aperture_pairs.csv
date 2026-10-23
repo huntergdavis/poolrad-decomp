@@ -25,12 +25,14 @@ overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_entry1_0000,yes,caller-argument+local,head
 overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_lead_spaces_08d7_cpu,yes,local,header,unreachable-by-construction,yes
 overlay_u3b0_entry_0a08_cpu.c,pr_u3b0_trail_spaces_0923_cpu,yes,local,header,unreachable-by-construction,yes
 overlay_u3b0_entry_0c33_cpu.c,pr_u3b0_step_scan_0b03_cpu,yes,caller-argument+global,header,can-reach-under-a-corrupt-pointer,yes
+overlay_u3bd_cell_057a_cpu.c,pr_u3bd_in_grid_031f,no,-,-,no-pointer,no
 overlay_u40c_tile_015d_cpu.c,pr_r0464_restore_mode_00ff_cpu,no,-,-,no-pointer,yes
 overlay_u40c_tile_015d_cpu.c,pr_r0899_quit_0000_cpu,no,-,-,no-pointer,yes
 overlay_u40c_tile_015d_cpu.c,pr_r0899_readkey_0059_cpu,no,-,-,no-pointer,yes
 overlay_u40c_tile_015d_cpu.c,pr_system_move_1685,yes,global+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 overlay_u40c_tile_015d_cpu.c,pr_system_write_str_0919,yes,global+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 overlay_u40c_tile_015d_cpu.c,pr_system_writeln_084a,no,-,-,no-pointer,yes
+overlay_u68_up_preflight_068d_cpu.c,pr_u3bd_field_0350_fullstate,no,-,-,no-pointer,no
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0802_0716_composed,no,-,-,no-pointer,yes
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0899_idle_0104_cpu,no,-,-,no-pointer,yes
 overlay_u6f_entry6_0ec4_cpu.c,pr_r0899_quit_0000_cpu,no,-,-,no-pointer,yes
