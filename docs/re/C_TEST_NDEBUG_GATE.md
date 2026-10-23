@@ -1,5 +1,9 @@
 # C tests: the NDEBUG gate and the per-credit back-catalogue (2026-10-23)
 
+**CLASS CLOSED (VP-accepted).** All 281 of 281 credited bodies are accounted for: **222** have C tests that pass with asserts on; **1** (OVL_007F_0FD2) has a failing C test that is a stale expectation, while its credit rests on a registered checker; **58** have no C test. Credits that rest on composed Unicorn or DOSBox-X differentials are **not in question**: those harnesses compare full state and do not use `assert()`.
+
+58 credits have no C test; each rests on its differential (13 registered checkers, 25 audits), which is the primary evidence and does not use `assert()`, or, for 20, on a cited shared tool.
+
 **The C suite was green and blind.** A Release build defines `NDEBUG`, which compiles every `assert()` away. With the
 assertions gone, the assert-based tests could not fail; with them on, current main (`5813276e`) passes **612 of 613** C
 tests, and the one real failure predates tonight. CI never builds or runs the C tests, so nothing caught it.
