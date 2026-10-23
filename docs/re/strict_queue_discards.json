@@ -1,0 +1,4654 @@
+{
+ "artifacts_sha256": {
+  "callgraph": "c180ff957a769ad56f1afdfcdb25900ebb915a7a6098db9c726a89b2793f4dc3",
+  "classification": "afca5df3cf18ed9d343a118e35caaab699925c8fb35694e40c406a09943cdd91",
+  "driver_internal": "48dd714e96d774711093a419b351360ffc79a8484c72e0f1da2e87e321220bc4",
+  "identities": "efc011f2707b32e8f624d90defc880b690e4562a00618671f7c852665bf2c336",
+  "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
+  "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
+  "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
+  "ovr": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
+  "partial_models": "56fccaeb4190b32c8bce60edfde7863b3b7bdf0b49bea4b814f3a9da8e8636da",
+  "resident_runtime": "1dc4649e6b293ea310e28eee5944d41171dd4479a0a1c4e0d369965864dea7b4",
+  "strict_map": "adca435ce54f0bbfba7cce23eb6b37fde4f3503accb2b4c62df37674fa695d44"
+ },
+ "by_rule": {
+  "BOUNDARY_ASSERTION": 6,
+  "CALLSITE_MAP": 1,
+  "COMMENT_ONLY": 50,
+  "IP_REDIRECT": 21,
+  "NO_SINGLE_ROUTINE": 106,
+  "OWN_ROUTINE": 375,
+  "RANGE_COMMENT": 13,
+  "SPAN_HASH": 5
+ },
+ "count": 577,
+ "discards": [
+  {
+   "covered_by": "OVL_001C_0001",
+   "file": "include/poolrad/recovered/overlay_u1c_exit_0001.h",
+   "line": 4,
+   "row": "OVL_001C_0001",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0001..+0x00F3 (file"
+  },
+  {
+   "covered_by": "OVL_001C_0001",
+   "file": "src/recovered/overlay_u1c_exit_0001.c",
+   "line": 1,
+   "row": "OVL_001C_0001",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0001 (ECL opcode 0x00 EXIT); see"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_key_branch_33bd.c",
+   "line": 4,
+   "row": "OVL_001C_0001",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "FLAG_CF = 0x0001u, FLAG_PF = 0x0004u, FLAG_AF = 0x0010u,"
+  },
+  {
+   "covered_by": "OVL_001C_18F8",
+   "file": "src/recovered/overlay_u1c_on_goto_18f8_cpu.c",
+   "line": 144,
+   "row": "OVL_001C_0001",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x190A: al(c,(uint8_t)(0x0001u));c->ip=0x190Cu;break;"
+  },
+  {
+   "covered_by": "OVL_001C_18F8",
+   "file": "src/recovered/overlay_u1c_on_goto_18f8_cpu.c",
+   "line": 187,
+   "row": "OVL_001C_0001",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x197E: ram[physical(c->ss,(uint16_t)(c->bp+-5))]=(uint8_t)(0x0001u);c->ip=0x1982u;break;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 655,
+   "row": "OVL_001C_0126",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* COMPARE (opcode 0x03): GAME.OVR 0x00E6C, unit 0x1c + 0x0126 (bytes +0x0126.."
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 1190,
+   "row": "OVL_001C_0126",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Issue #102: COMPARE (unit 0x1c + 0x0126) and the IF family (+ 0x0B52) -- */"
+  },
+  {
+   "covered_by": "OVL_001C_0111",
+   "file": "tests/recovered/check_overlay_u1c_gosub_0111.py",
+   "line": 61,
+   "row": "OVL_001C_0126",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "assert ins[-1].address + ins[-1].size == 0x0126"
+  },
+  {
+   "covered_by": "OVL_001C_01A3",
+   "file": "include/poolrad/recovered/overlay_u1c_arith_01a3.h",
+   "line": 4,
+   "row": "OVL_001C_01A3",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x01A3..+0x0233 (file 0x0EE9..0x0F79, exactly 145"
+  },
+  {
+   "covered_by": "OVL_001C_01A3",
+   "file": "src/recovered/overlay_u1c_arith_01a3.c",
+   "line": 1,
+   "row": "OVL_001C_01A3",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x01A3 (ECL opcodes 0x04..0x07); see docs/re/U1C_ARITH_01A3.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_01A3",
+   "file": "tests/recovered/test_overlay_u1c_arith_01a3.c",
+   "line": 1,
+   "row": "OVL_001C_01A3",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x01A3 ECL arithmetic handler model. Scripts and state are fabricated."
+  },
+  {
+   "covered_by": "OVL_001C_01A3",
+   "file": "include/poolrad/recovered/overlay_u1c_arith_01a3.h",
+   "line": 7,
+   "row": "OVL_001C_0234",
+   "rule": "COMMENT_ONLY",
+   "text": "* (+0x0234) is RANDOM. Evidence: docs/re/U1C_ARITH_01A3.md."
+  },
+  {
+   "covered_by": "OVL_001C_0234",
+   "file": "include/poolrad/recovered/overlay_u1c_random_0234.h",
+   "line": 4,
+   "row": "OVL_001C_0234",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0234..+0x0291 (file"
+  },
+  {
+   "covered_by": "OVL_001C_0234",
+   "file": "src/recovered/overlay_u1c_random_0234.c",
+   "line": 1,
+   "row": "OVL_001C_0234",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0234 (ECL opcode 0x08); see docs/re/U1C_RANDOM_0234.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_0234",
+   "file": "tests/recovered/test_overlay_u1c_random_0234.c",
+   "line": 1,
+   "row": "OVL_001C_0234",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x0234 RANDOM handler model. Script, windows and the three runtime hooks are"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 582,
+   "row": "OVL_001C_0292",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* SAVE (opcode 0x09): GAME.OVR 0x00FD8, unit 0x1c + 0x0292 (bytes +0x0292.."
+  },
+  {
+   "covered_by": "OVL_001C_0234",
+   "file": "include/poolrad/recovered/overlay_u1c_random_0234.h",
+   "line": 7,
+   "row": "OVL_001C_0292",
+   "rule": "COMMENT_ONLY",
+   "text": "* (RANDOM). The next routine (+0x0292) is SAVE. Evidence:"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 967,
+   "row": "OVL_001C_0292",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Issue #84: slot value (unit 0x25 + 0x0136) and SAVE (unit 0x1c + 0x0292) */"
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "include/poolrad/recovered/overlay_u1c_approach_0817.h",
+   "line": 19,
+   "row": "OVL_001C_03B4",
+   "rule": "COMMENT_ONLY",
+   "text": "* w582 and the DS bytes [0x6F81], [0x6F82] are the state SETUP MONSTER (unit 0x1c +0x03B4, see"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "include/poolrad/recovered/overlay_u1c_setup_monster_03b4.h",
+   "line": 4,
+   "row": "OVL_001C_03B4",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x03B4..+0x044A (file 0x10FA..0x1190, 151 bytes of"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "src/recovered/overlay_u1c_setup_monster_03b4.c",
+   "line": 1,
+   "row": "OVL_001C_03B4",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x03B4 (ECL opcode 0x0C); see docs/re/U1C_SETUP_MONSTER_03B4.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "tests/recovered/test_overlay_u1c_setup_monster_03b4.c",
+   "line": 1,
+   "row": "OVL_001C_03B4",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x03B4 SETUP MONSTER handler model. Scripts, state and both hooks are fabricated."
+  },
+  {
+   "covered_by": "OVL_001C_0450",
+   "file": "include/poolrad/recovered/overlay_u1c_load_monster_prefix_0450.h",
+   "line": 4,
+   "row": "OVL_001C_0450",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of ONLY the entry prefix of DOS v1.3 GAME.OVR unit 0x1c +0x0450 (ECL opcode 0x0B, LOAD MONSTER; the"
+  },
+  {
+   "covered_by": "OVL_001C_0450",
+   "file": "include/poolrad/recovered/overlay_u1c_load_monster_prefix_0450.h",
+   "line": 5,
+   "row": "OVL_001C_0450",
+   "rule": "OWN_ROUTINE",
+   "text": "* whole routine is +0x0450..+0x0816, file 0x1196..0x155C, 967 bytes, SHA-256"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "include/poolrad/recovered/overlay_u1c_setup_monster_03b4.h",
+   "line": 8,
+   "row": "OVL_001C_0450",
+   "rule": "COMMENT_ONLY",
+   "text": "* +0x0450. Evidence: docs/re/U1C_SETUP_MONSTER_03B4.md."
+  },
+  {
+   "covered_by": "OVL_001C_0450",
+   "file": "src/recovered/overlay_u1c_load_monster_prefix_0450.c",
+   "line": 1,
+   "row": "OVL_001C_0450",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of the entry prefix of GAME.OVR unit 0x1c +0x0450 (ECL opcode 0x0B); see docs/re/U1C_LOAD_MONSTER_PREFIX_0450.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_0450",
+   "file": "tests/recovered/test_overlay_u1c_load_monster_prefix_0450.c",
+   "line": 1,
+   "row": "OVL_001C_0450",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the LOAD MONSTER entry-prefix model (unit 0x1c +0x0450 up to the return of the unit 0x25 entry-5 wrapper)."
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "include/poolrad/recovered/overlay_u1c_approach_0817.h",
+   "line": 4,
+   "row": "OVL_001C_0817",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0817..+0x0850 (file 0x155D..0x1596, 58 bytes of code"
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "src/recovered/overlay_u1c_approach_0817.c",
+   "line": 1,
+   "row": "OVL_001C_0817",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0817 (ECL opcode 0x0D); see docs/re/U1C_APPROACH_0817.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "tests/recovered/test_overlay_u1c_approach_0817.c",
+   "line": 1,
+   "row": "OVL_001C_0817",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x0817 APPROACH handler model. State and the hook are fabricated. For every"
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "include/poolrad/recovered/overlay_u1c_approach_0817.h",
+   "line": 7,
+   "row": "OVL_001C_0856",
+   "rule": "COMMENT_ONLY",
+   "text": "* Pascal string constant never executed here; the next routine is +0x0856 (PICTURE). Evidence:"
+  },
+  {
+   "covered_by": "OVL_001C_0856",
+   "file": "include/poolrad/recovered/overlay_u1c_picture_0856.h",
+   "line": 4,
+   "row": "OVL_001C_0856",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0856..+0x0950 (file"
+  },
+  {
+   "covered_by": "OVL_001C_0856",
+   "file": "src/recovered/overlay_u1c_picture_0856.c",
+   "line": 1,
+   "row": "OVL_001C_0856",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0856 (ECL opcode 0x0E PICTURE); see"
+  },
+  {
+   "covered_by": "OVL_001C_0856",
+   "file": "tests/recovered/test_overlay_u1c_picture_0856.c",
+   "line": 1,
+   "row": "OVL_001C_0856",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic parity test for the unit 0x1c +0x0856 PICTURE handler model. Script,"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 1,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x1C:+0951..+0991, complete 65-byte INPUT NUMBER. */"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 4,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U1C_0951_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 35,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u1c_0951_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 41,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u1c_0951_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 56,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_sp_six(pr_u1c_0951_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 71,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_al(pr_u1c_0951_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 76,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "static int external_call(uint8_t *ram, size_t size, pr_u1c_0951_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_001C_0951",
+   "file": "src/recovered/overlay_u1c_input_number_0951.c",
+   "line": 77,
+   "row": "OVL_001C_0951",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_0951_external external, void *context,"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 1,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x1C:+0994..+0A08, complete 117-byte INPUT STRING. */"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 4,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U1C_0994_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 35,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u1c_0994_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 41,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u1c_0994_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 56,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_sp_204(pr_u1c_0994_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 71,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static void cmp8_zero(pr_u1c_0994_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 79,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_al(pr_u1c_0994_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "src/recovered/overlay_u1c_input_string_0994.c",
+   "line": 84,
+   "row": "OVL_001C_0994",
+   "rule": "OWN_ROUTINE",
+   "text": "static int external_call(uint8_t *ram, size_t size, pr_u1c_0994_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_001C_0A09",
+   "file": "include/poolrad/recovered/overlay_u1c_print_0a09.h",
+   "line": 4,
+   "row": "OVL_001C_0A09",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0A09..+0x0A9E (file"
+  },
+  {
+   "covered_by": "OVL_001C_0A09",
+   "file": "src/recovered/overlay_u1c_print_0a09.c",
+   "line": 1,
+   "row": "OVL_001C_0A09",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0A09 (ECL opcodes 0x11 PRINT and 0x12 PRINTCLEAR); see"
+  },
+  {
+   "covered_by": "OVL_001C_0994",
+   "file": "tests/recovered/check_overlay_u1c_input_string_0994.py",
+   "line": 63,
+   "row": "OVL_001C_0A09",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "assert ins[-1].address + ins[-1].size == 0x0A09"
+  },
+  {
+   "covered_by": "OVL_001C_0A09",
+   "file": "tests/recovered/test_overlay_u1c_print_0a09.c",
+   "line": 1,
+   "row": "OVL_001C_0A09",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x0A09 PRINT/PRINTCLEAR handler model. Scripts, DS bytes,"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "include/poolrad/recovered/overlay_u6f_22d5_transition_prompt.h",
+   "line": 11,
+   "row": "OVL_001C_0BD1",
+   "rule": "COMMENT_ONLY",
+   "text": "* is the area-transition prompt the NEWECL handler (unit 0x1C + 0x0BD1,"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 193,
+   "row": "OVL_001C_0C74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- LOAD FILES / LOAD PIECES handler (issue #92, unit 0x1c + 0x0C74) --"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 596,
+   "row": "OVL_001C_0C74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* GAME.OVR 0x019BA, unit 0x1c + 0x0C74 (bytes +0x0C74..+0x0DEE), opcodes 0x21"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_pieces.h",
+   "line": 7,
+   "row": "OVL_001C_0C74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* and the LOAD FILES / LOAD PIECES handler (unit 0x1c +0x0C74, PR #97's"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_wallset.h",
+   "line": 6,
+   "row": "OVL_001C_0C74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* merged LOAD FILES handler (unit 0x1c +0x0C74, opcode 0x21 wallset branch,"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 1041,
+   "row": "OVL_001C_0C74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Issue #92: LOAD FILES / LOAD PIECES, unit 0x1c + 0x0C74 (model) ------- */"
+  },
+  {
+   "covered_by": "OVL_001C_0DEF",
+   "file": "include/poolrad/recovered/overlay_u1c_and_or_0def.h",
+   "line": 4,
+   "row": "OVL_001C_0DEF",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Path-complete model of DOS v1.3 GAME.OVR unit 0x1c +0x0DEF..+0x0E5D (file"
+  },
+  {
+   "covered_by": "OVL_001C_0DEF",
+   "file": "src/recovered/overlay_u1c_and_or_0def.c",
+   "line": 1,
+   "row": "OVL_001C_0DEF",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Path-complete model of GAME.OVR unit 0x1c +0x0DEF (opcodes 0x2F AND and 0x30"
+  },
+  {
+   "covered_by": "OVL_001C_0DEF",
+   "file": "tests/recovered/test_overlay_u1c_and_or_0def.c",
+   "line": 1,
+   "row": "OVL_001C_0DEF",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x0DEF AND/OR handler composition. Scripts, windows"
+  },
+  {
+   "covered_by": "OVL_001C_0DEF",
+   "file": "include/poolrad/recovered/overlay_u1c_and_or_0def.h",
+   "line": 6,
+   "row": "OVL_001C_0E5E",
+   "rule": "COMMENT_ONLY",
+   "text": "* trailing data: the next prologue is +0x0E5E): the shared handler of ECL"
+  },
+  {
+   "covered_by": "OVL_001C_0E5E",
+   "file": "include/poolrad/recovered/overlay_u1c_gettable_0e5e.h",
+   "line": 4,
+   "row": "OVL_001C_0E5E",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x0E5E..+0x0EBB (file 0x1BA4..0x1C01, exactly 94"
+  },
+  {
+   "covered_by": "OVL_001C_0E5E",
+   "file": "src/recovered/overlay_u1c_gettable_0e5e.c",
+   "line": 1,
+   "row": "OVL_001C_0E5E",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x0E5E (ECL opcode 0x2A); see docs/re/U1C_GETTABLE_0E5E.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_0E5E",
+   "file": "tests/recovered/test_overlay_u1c_gettable_0e5e.c",
+   "line": 1,
+   "row": "OVL_001C_0E5E",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x0E5E GETTABLE handler model. Scripts, tables and state are fabricated. The"
+  },
+  {
+   "covered_by": "OVL_001C_0E5E",
+   "file": "include/poolrad/recovered/overlay_u1c_gettable_0e5e.h",
+   "line": 6,
+   "row": "OVL_001C_0EBC",
+   "rule": "COMMENT_ONLY",
+   "text": "* 0x2A (GETTABLE, reference name). The next routine (+0x0EBC) is separate. Evidence:"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 4,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "#define RAM_MASK (PR_U1C_0F08_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 30,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u1c_0f08_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 36,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u1c_0f08_cpu *cpu)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 51,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static void inc_ax(pr_u1c_0f08_cpu *cpu)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 64,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static void set_al(pr_u1c_0f08_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 69,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static void clear_ah(pr_u1c_0f08_cpu *cpu)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 76,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "static int external_call(uint8_t *ram, size_t size, pr_u1c_0f08_cpu *cpu,"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_vertical_menu_null_head_0f73.c",
+   "line": 89,
+   "row": "OVL_001C_0F08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "uint8_t *ram, size_t ram_size, pr_u1c_0f08_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_001C_10D1",
+   "file": "include/poolrad/recovered/overlay_u1c_horizontal_menu_10d1.h",
+   "line": 4,
+   "row": "OVL_001C_10D1",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x10D1..+0x125C (file 0x1E17..0x1FA2, exactly 396 bytes,"
+  },
+  {
+   "covered_by": "OVL_001C_10D1",
+   "file": "src/recovered/overlay_u1c_horizontal_menu_10d1.c",
+   "line": 1,
+   "row": "OVL_001C_10D1",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x10D1 (ECL opcode 0x2B); see docs/re/U1C_HORIZONTAL_MENU_10D1.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_10D1",
+   "file": "tests/recovered/test_overlay_u1c_horizontal_menu_10d1.c",
+   "line": 1,
+   "row": "OVL_001C_10D1",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x10D1 HORIZONTAL MENU handler model. The script (six-bit packed string items), the"
+  },
+  {
+   "covered_by": "OVL_001C_125D",
+   "file": "include/poolrad/recovered/overlay_u1c_clearmonsters_125d.h",
+   "line": 6,
+   "row": "OVL_001C_12C6",
+   "rule": "COMMENT_ONLY",
+   "text": "* 0x1C (CLEARMONSTERS, reference name). The next routine is +0x12C6. Evidence: docs/re/U1C_CLEARMONSTERS_125D.md."
+  },
+  {
+   "covered_by": "OVL_001C_12C6",
+   "file": "include/poolrad/recovered/overlay_u1c_party_strength_12c6.h",
+   "line": 4,
+   "row": "OVL_001C_12C6",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x12C6..+0x13D6 (file"
+  },
+  {
+   "covered_by": "OVL_001C_12C6",
+   "file": "src/recovered/overlay_u1c_party_strength_12c6.c",
+   "line": 1,
+   "row": "OVL_001C_12C6",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x12C6 (ECL opcode 0x1D); see docs/re/U1C_PARTY_STRENGTH_12C6.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_12C6",
+   "file": "tests/recovered/test_overlay_u1c_party_strength_12c6.c",
+   "line": 1,
+   "row": "OVL_001C_12C6",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x12C6 PARTYSTRENGTH handler model. The party list, records, script and"
+  },
+  {
+   "covered_by": "OVL_001C_12C6",
+   "file": "include/poolrad/recovered/overlay_u1c_party_strength_12c6.h",
+   "line": 7,
+   "row": "OVL_001C_13D7",
+   "rule": "COMMENT_ONLY",
+   "text": "* The next routine (+0x13D7) is separate. Evidence: docs/re/U1C_PARTY_STRENGTH_12C6.md."
+  },
+  {
+   "covered_by": "OVL_001C_1629",
+   "file": "include/poolrad/recovered/overlay_u1c_party_surprise_1629.h",
+   "line": 4,
+   "row": "OVL_001C_1629",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x1629..+0x16C8 (file 0x236F..0x240E, exactly 160 bytes,"
+  },
+  {
+   "covered_by": "OVL_001C_1629",
+   "file": "src/recovered/overlay_u1c_party_surprise_1629.c",
+   "line": 1,
+   "row": "OVL_001C_1629",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x1629 (ECL opcode 0x22); see docs/re/U1C_PARTY_SURPRISE_1629.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_1629",
+   "file": "tests/recovered/test_overlay_u1c_party_surprise_1629.c",
+   "line": 1,
+   "row": "OVL_001C_1629",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x1629 PARTY SURPRISE handler model. The party list, records, script and window"
+  },
+  {
+   "covered_by": "OVL_001C_1629",
+   "file": "include/poolrad/recovered/overlay_u1c_party_surprise_1629.h",
+   "line": 6,
+   "row": "OVL_001C_16C9",
+   "rule": "COMMENT_ONLY",
+   "text": "* (PARTY SURPRISE, reference name). The next routine (+0x16C9) is separate. Evidence:"
+  },
+  {
+   "covered_by": "OVL_001C_16C9",
+   "file": "include/poolrad/recovered/overlay_u1c_surprise_16c9.h",
+   "line": 4,
+   "row": "OVL_001C_16C9",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of DOS v1.3 GAME.OVR unit 0x1c +0x16C9..+0x178E (file 0x240F..0x24D4, 198 bytes of code"
+  },
+  {
+   "covered_by": "OVL_001C_16C9",
+   "file": "src/recovered/overlay_u1c_surprise_16c9.c",
+   "line": 1,
+   "row": "OVL_001C_16C9",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x1c +0x16C9 (ECL opcode 0x23); see docs/re/U1C_SURPRISE_16C9.md. */"
+  },
+  {
+   "covered_by": "OVL_001C_16C9",
+   "file": "tests/recovered/test_overlay_u1c_surprise_16c9.c",
+   "line": 1,
+   "row": "OVL_001C_16C9",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic test for the unit 0x1c +0x16C9 SURPRISE handler model. Scripts, state and the roll hook are fabricated;"
+  },
+  {
+   "covered_by": "OVL_001C_16C9",
+   "file": "include/poolrad/recovered/overlay_u1c_surprise_16c9.h",
+   "line": 8,
+   "row": "OVL_001C_179B",
+   "rule": "COMMENT_ONLY",
+   "text": "* +0x179B. Evidence: docs/re/U1C_SURPRISE_16C9.md."
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 1,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x1C:+2AA2..+2AC0, complete 31-byte body. */"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 4,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U1C_2AA2_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 35,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "static void cmp_zero(pr_u1c_2aa2_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 47,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_2aa2_status pr_u1c_sprite_off_2aa2("
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 48,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "uint8_t *ram, size_t ram_size, pr_u1c_2aa2_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 49,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_2aa2_view view, void *context)"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 53,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "if (ram == NULL || cpu == NULL || ram_size < PR_U1C_2AA2_RAM_SIZE)"
+  },
+  {
+   "covered_by": "OVL_001C_2AA2",
+   "file": "src/recovered/overlay_u1c_sprite_off_2aa2.c",
+   "line": 54,
+   "row": "OVL_001C_2AA2",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U1C_2AA2_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 1,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x1C:+2AC1..+2AEA, complete 42-byte body. */"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 4,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U1C_2AC1_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 35,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u1c_2ac1_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 41,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_al(pr_u1c_2ac1_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 46,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_sp_two(pr_u1c_2ac1_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 66,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_2ac1_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 67,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_2ac1_external external, void *context,"
+  },
+  {
+   "covered_by": "OVL_001C_2AC1",
+   "file": "src/recovered/overlay_u1c_clock_2ac1.c",
+   "line": 68,
+   "row": "OVL_001C_2AC1",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u1c_2ac1_call call, uint16_t site,"
+  },
+  {
+   "covered_by": "OVL_001C_2B14",
+   "file": "tests/recovered/check_overlay_u1c_clear_box_2b14.py",
+   "line": 62,
+   "row": "OVL_001C_2B33",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "assert instructions[-1].address + instructions[-1].size == 0x2B33"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "include/poolrad/recovered/overlay_u6f_1262_add_npc.h",
+   "line": 11,
+   "row": "OVL_001C_2B7E",
+   "rule": "COMMENT_ONLY",
+   "text": "* script handler (opcode 0x36, unit 0x1C + 0x2B7E, site +2B9B). Semantics:"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_key_jmp_33ea.h",
+   "line": 7,
+   "row": "OVL_001C_2DD3",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* return state after near callee +2DD3. Stop at +342C. */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 19,
+   "row": "OVL_001C_2DD3",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*            upcase(key) = 0x45 -> near +0x2DD3, then +0x342C"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 36,
+   "row": "OVL_001C_2DD3",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* every callee (unit 0x68 entries 2 and 1, near +0x2DD3/+0x3171/+0x31B4, unit"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u1c_loop_3387.c",
+   "line": 261,
+   "row": "OVL_001C_2DD3",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* scene 5: key 'e' (upcase 'E') with word 0x594 = 0 enters the search branch: near +0x2DD3, then the re-prompt */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 184,
+   "row": "OVL_001C_2F2D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Run loop and dispatcher (issue #75, unit 0x1c + 0x3171 / + 0x2F2D) --"
+  },
+  {
+   "covered_by": "OVL_001C_0DEF",
+   "file": "include/poolrad/recovered/overlay_u1c_and_or_0def.h",
+   "line": 7,
+   "row": "OVL_001C_2F2D",
+   "rule": "COMMENT_ONLY",
+   "text": "* opcodes 0x2F (AND) and 0x30 (OR), dispatcher cases of +0x2F2D. Evidence:"
+  },
+  {
+   "covered_by": "OVL_001C_0001",
+   "file": "include/poolrad/recovered/overlay_u1c_exit_0001.h",
+   "line": 8,
+   "row": "OVL_001C_2F2D",
+   "rule": "COMMENT_ONLY",
+   "text": "* handler of ECL opcode 0x00 (EXIT, dispatcher case +0x2F2D). Evidence:"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_script_call_frame_31a4.h",
+   "line": 6,
+   "row": "OVL_001C_2F2D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Execute only U1C 3582:31A4 PUSH CS; +31A5 near CALL +2F2D from a"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u1c_script_call_frame_31a4.c",
+   "line": 43,
+   "row": "OVL_001C_2F2D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "cpu->ip = 0x2f2du;"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u1c_script_call_frame_31a4.c",
+   "line": 54,
+   "row": "OVL_001C_2F2D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "expected.ip = 0x2f2du;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 184,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Run loop and dispatcher (issue #75, unit 0x1c + 0x3171 / + 0x2F2D) --"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 517,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* Run function: GAME.OVR 0x03EB7, unit 0x1c + 0x3171 (bytes +0x3171..+0x31B2),"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 21,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*                 near +0x3171([0x49E5]); [0x442F] <> 0 -> near +0x31B4; word 0x594 := [0x84DD]"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 23,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*   +0x344C  [0x49FF] = 0 -> near +0x3171([0x49E3])"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 27,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*            resident 0x8AE:0x00DC([0x2628]); [0x84E0] := 0; [0x84E1] := 1; near +0x3171([0x49E5]);"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 36,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* every callee (unit 0x68 entries 2 and 1, near +0x2DD3/+0x3171/+0x31B4, unit"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 66,
+   "row": "OVL_001C_3171",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "int (*script_3171)(void *ctx, pr_u1c_state *st, uint16_t entry);       /* near +0x3171, one word */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 21,
+   "row": "OVL_001C_31B4",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*                 near +0x3171([0x49E5]); [0x442F] <> 0 -> near +0x31B4; word 0x594 := [0x84DD]"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 24,
+   "row": "OVL_001C_31B4",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*            [0x442F] <> 0 -> near +0x31B4, to +0x34F5;   [0x49FF] <> 0 -> +0x34F5"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 28,
+   "row": "OVL_001C_31B4",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*            [0x442F] <> 0 -> near +0x31B4"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 36,
+   "row": "OVL_001C_31B4",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* every callee (unit 0x68 entries 2 and 1, near +0x2DD3/+0x3171/+0x31B4, unit"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u1c_loop_3387.c",
+   "line": 248,
+   "row": "OVL_001C_31B4",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* scene 3: [0x442F] set by the first script: +0x31B4 runs and the movement bookkeeping is skipped */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 6,
+   "row": "OVL_001C_32F8",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* 528-byte routine +0x32F8..+0x3507, one `retf`; unit file offset 3,398)."
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_loop_3387.h",
+   "line": 7,
+   "row": "OVL_001C_32F8",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* It starts after the loop's initialisation (+0x32F8..+0x3386, not modelled)"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 5,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "#ifdef PR_U20_11AC_TRACE"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 8,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U20_11AC_RAM_SIZE-1u)"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 9,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "#define BASE 0x11ACu"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 10,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef struct { uint8_t *r; pr_u20_11ac_cpu *c; } machine;"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 11,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "_Static_assert(sizeof(pr_u20_11ac_cpu)==sizeof(pr_u6c_3291_cpu),\"scale check: +3291 CPU layout differs\");"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 12,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "_Static_assert(sizeof(pr_u20_11ac_cpu)==sizeof(pr_system_freemem_cpu),\"scale check: FreeMem CPU layout differs\");"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 34,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void szp(pr_u20_11ac_cpu *c,uint16_t r,uint16_t sign) {"
+  },
+  {
+   "covered_by": "OVL_0020_11AC",
+   "file": "src/recovered/overlay_u20_list_walk_11ac_cpu.c",
+   "line": 39,
+   "row": "OVL_0020_11AC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub16(pr_u20_11ac_cpu *c,uint16_t a,uint16_t b) {"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 743,
+   "row": "OVL_0025_0341",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Issue #68: ECL block load, unit 0x25 + 0x0341 (model) ----------------- */"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 1,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Unit 0x25 +0341, the 1E00h-byte screen block loader, raw CPU (docs/re/OVL_0025_0341_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 1,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Unit 0x25 +0341, the 1E00h-byte screen block loader, raw CPU (docs/re/OVL_0025_0341_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 13,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u25_0341_cpu cpu_t;"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 14,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef struct { uint8_t *ram; pr_bus *bus; size_t size; cpu_t *c; const pr_u25_0341_env *e; pr_u25_0341_diagnostic *d; } machine;"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 59,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "static int leaf_stop(int s) { return s == PR_SYSTEM_LEAF_RETURNED ? CONTINUE : (int)PR_U25_0341_CALLEE; }"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 61,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "static int far_call(machine *m, uint16_t site, pr_u25_0341_callee kind)"
+  },
+  {
+   "covered_by": "OVL_0025_0341",
+   "file": "src/recovered/overlay_u25_entry4_0341_cpu.c",
+   "line": 64,
+   "row": "OVL_0025_0341",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_0341_diagnostic *d = m->d;"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411.c",
+   "line": 1,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of GAME.OVR unit 0x25 +0x0411 (entry 5, stub 0x2B:0x39); see docs/re/U25_ENTRY5_0411.md. */"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 1,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Unit 0x25 +0411, the LOAD MONSTER wrapper, raw CPU (docs/re/OVL_0025_0411_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 1,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Unit 0x25 +0411, the LOAD MONSTER wrapper, raw CPU (docs/re/OVL_0025_0411_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 9,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u25_0411_cpu cpu_t;"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 59,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "case PR_U6F_0EC4_EXIT: return (int)PR_U25_0411_EXIT;"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 60,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "case PR_U6F_0EC4_RUNERROR: return (int)PR_U25_0411_RUNERROR;"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 61,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "case PR_U6F_0EC4_DIVIDE: return (int)PR_U25_0411_DIVIDE;"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411_cpu.c",
+   "line": 62,
+   "row": "OVL_0025_0411",
+   "rule": "OWN_ROUTINE",
+   "text": "case PR_U6F_0EC4_BREAK: return (int)PR_U25_0411_BREAK;"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 1,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x25:+0511..+0543, complete 51-byte public entry 7. The 10"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 6,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U25_0511_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 26,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u25_0511_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 32,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u25_0511_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 39,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint8_t arg8(const uint8_t *ram, const pr_u25_0511_cpu *cpu, uint16_t disp)"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 45,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push_al(uint8_t *ram, pr_u25_0511_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 51,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "static int far_call(uint8_t *ram, size_t size, pr_u25_0511_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 52,
+   "row": "OVL_0025_0511",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_0511_external external, void *context,"
+  },
+  {
+   "covered_by": "OVL_001C_0817",
+   "file": "include/poolrad/recovered/overlay_u1c_approach_0817.h",
+   "line": 14,
+   "row": "OVL_0025_054E",
+   "rule": "COMMENT_ONLY",
+   "text": "*       0x2B:0x48 (unit 0x25 entry 8, +0x054E) with the bytes [0x6F81], [0x6F82], low byte of the"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "include/poolrad/recovered/overlay_u1c_setup_monster_03b4.h",
+   "line": 20,
+   "row": "OVL_0025_054E",
+   "rule": "COMMENT_ONLY",
+   "text": "*   0x2B:0x48 (unit 0x25 entry 8, +0x054E) with the bytes [0x6F81], [0x6F82], low byte of w582 and the"
+  },
+  {
+   "covered_by": "OVL_001C_03B4",
+   "file": "include/poolrad/recovered/overlay_u1c_setup_monster_03b4.h",
+   "line": 49,
+   "row": "OVL_0025_054E",
+   "rule": "COMMENT_ONLY",
+   "text": "/* 0x2B:0x48 (unit 0x25 +0x054E): ([0x6F81], [0x6F82], low byte of w582) and the far pointer DS:0x84C8. */"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "include/poolrad/recovered/overlay_u25_entry7_0511.h",
+   "line": 33,
+   "row": "OVL_0025_054E",
+   "rule": "COMMENT_ONLY",
+   "text": "* from +054E). SS:SP holds return IP/CS and two byte words: [BP+6] and"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "src/recovered/overlay_u25_entry7_0511.c",
+   "line": 2,
+   "row": "OVL_0025_054E",
+   "rule": "RANGE_COMMENT",
+   "text": "* bytes +0544..+054D that follow are +054E's data, not part of this"
+  },
+  {
+   "covered_by": "OVL_0025_0511",
+   "file": "tests/recovered/check_overlay_u25_entry7_0511.py",
+   "line": 72,
+   "row": "OVL_0025_054E",
+   "rule": "RANGE_COMMENT",
+   "text": "# +0544..+054D is +054E's data (its MOV DI,0544/054A are the only refs)."
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 308,
+   "row": "OVL_0025_07BC",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* unit 0x25 +0x07BC: rel = address - 0x6B00 (16-bit). For these rel values the hook reads the character record or DS,"
+  },
+  {
+   "covered_by": "OVL_0025_0756",
+   "file": "tests/recovered/check_overlay_u25_party_index_0756.py",
+   "line": 76,
+   "row": "OVL_0025_07BC",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "decoded[-1].address + decoded[-1].size == 0x07BC,"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_ecl_store_hook.h",
+   "line": 4,
+   "row": "OVL_0025_0A74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C for DOS v1.3 GAME.OVR unit 0x25 + 0x0A74 (file 0x07F47), the"
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "include/poolrad/recovered/overlay_u25_store_word_0c77.h",
+   "line": 17,
+   "row": "OVL_0025_0A74",
+   "rule": "COMMENT_ONLY",
+   "text": "* +0A74 store-hook effects and the complete resident selector-push leaf."
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_pieces.h",
+   "line": 6,
+   "row": "OVL_0025_0A74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* merged class-1 store hook (unit 0x25 +0x0A74, cases 0x322/0x324/0x326)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/ecl_helpers.c",
+   "line": 387,
+   "row": "OVL_0025_0A74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* unit 0x25 +0x0A74: rel = address - 0x6B00 (16-bit); the potential-effect cases are +0x0A86 rel = 0, the range"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_ecl_store_hook.c",
+   "line": 1,
+   "row": "OVL_0025_0A74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C for GAME.OVR unit 0x25 + 0x0A74, the class-1 ECL store hook"
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "src/recovered/overlay_u25_store_word_0c77.c",
+   "line": 1,
+   "row": "OVL_0025_0A74",
+   "rule": "COMMENT_ONLY",
+   "text": "/* DOS v1.3 unit 25 store word +0C77, classifier +06FB, local store hook +0A74."
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "src/recovered/overlay_u25_store_word_0c77.c",
+   "line": 356,
+   "row": "OVL_0025_0A74",
+   "rule": "IP_REDIRECT",
+   "text": "c->ip = 0x0A74u;"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_ecl_store_hook.c",
+   "line": 1,
+   "row": "OVL_0025_0A74",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Synthetic tests for unit 0x25 + 0x0A74, the class-1 ECL store hook. No"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 221,
+   "row": "OVL_0025_0C77",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* ---- Store word class 0 side effect (unit 0x25 + 0x0C77, +0x0CA1..+0x0CAF) -------"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 258,
+   "row": "OVL_0025_0C77",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Cores of unit 0x25 + 0x0E0C (load word) and + 0x0C77 (entry 10, store word)."
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "src/recovered/overlay_u25_store_word_0c77.c",
+   "line": 1,
+   "row": "OVL_0025_0C77",
+   "rule": "OWN_ROUTINE",
+   "text": "/* DOS v1.3 unit 25 store word +0C77, classifier +06FB, local store hook +0A74."
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "src/recovered/overlay_u25_store_word_0c77.c",
+   "line": 328,
+   "row": "OVL_0025_0C77",
+   "rule": "OWN_ROUTINE",
+   "text": "c == NULL || c->ip != 0x0C77u)"
+  },
+  {
+   "covered_by": "OVL_0025_0C77",
+   "file": "tests/recovered/test_overlay_u25_store_word_0c77.c",
+   "line": 58,
+   "row": "OVL_0025_0C77",
+   "rule": "OWN_ROUTINE",
+   "text": "0x4321u, 0x8000u, 0x3000u, 0x0C77u, 0x1000u, 0x6000u, 0x2000u, 0x202u"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 2,
+   "row": "OVL_0025_156D",
+   "rule": "COMMENT_ONLY",
+   "text": "* composed with the full-state +156D near callee. Its 32-byte set constant"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 168,
+   "row": "OVL_0025_156D",
+   "rule": "IP_REDIRECT",
+   "text": "cpu->ip = 0x156Du;"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 2,
+   "row": "OVL_0025_156D",
+   "rule": "COMMENT_ONLY",
+   "text": "* composed with the full-state +156D near callee. */"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 1,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x25:+1684..+1787, complete 260-byte public entry 13,"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 6,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U25_1684_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 12,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_1684_cpu *cpu;"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 13,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_1684_external external;"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 57,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t sub_flags(pr_u25_1684_cpu *cpu, uint16_t a, uint16_t b,"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 72,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "static int zf(const pr_u25_1684_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 77,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_al(pr_u25_1684_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_0025_1684",
+   "file": "src/recovered/overlay_u25_entry13_1684.c",
+   "line": 131,
+   "row": "OVL_0025_1684",
+   "rule": "OWN_ROUTINE",
+   "text": "(unsigned)PR_U25_1684_156D_BASE + (unsigned)call);"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 1,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x25:+1788..+1814, complete 141-byte public entry 14,"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 5,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U25_1788_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 11,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_1788_cpu *cpu;"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 12,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u25_1788_external external;"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 56,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t sub_flags(pr_u25_1788_cpu *cpu, uint16_t a, uint16_t b)"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 69,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_al(pr_u25_1788_cpu *cpu, uint8_t value)"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 113,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Forward the composed +156D's runtime calls to the +1788 hook. */"
+  },
+  {
+   "covered_by": "OVL_0025_1788",
+   "file": "src/recovered/overlay_u25_entry14_1788.c",
+   "line": 119,
+   "row": "OVL_0025_1788",
+   "rule": "OWN_ROUTINE",
+   "text": "(unsigned)PR_U25_1788_156D_BASE + (unsigned)call);"
+  },
+  {
+   "covered_by": "OVL_0025_1FB1",
+   "file": "src/recovered/overlay_u25_entry23_1fb1.c",
+   "line": 2,
+   "row": "OVL_0025_20CC",
+   "rule": "RANGE_COMMENT",
+   "text": "* 78 bytes +207E..+20CB are +20CC's literal data, not part of this routine. */"
+  },
+  {
+   "covered_by": "OVL_0025_1FB1",
+   "file": "tests/recovered/check_overlay_u25_entry23_1fb1.py",
+   "line": 72,
+   "row": "OVL_0025_20CC",
+   "rule": "RANGE_COMMENT",
+   "text": "# +207E..+20CB is +20CC's literal data: only +20CC's MOV DI loads it."
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 1,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x33 +0B97: two grid-cell stores and a counter increment (docs/re/OVL_0033_0B97_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 1,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x33 +0B97: two grid-cell stores and a counter increment (docs/re/OVL_0033_0B97_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 2,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u33_0b97_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 5,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u33_0b97_regs cpu_t;"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 63,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u33_0b97_status pr_u33_0b97_cpu(pr_bus *bus, size_t ram_size, pr_u33_0b97_regs *c, size_t *budget)"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 66,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "if (bus == NULL || bus->ram == NULL || c == NULL || budget == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0B97u || c->sp < 0x0010u || c->sp > 0xFFF6u)"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 67,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U33_0B97_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_0033_0B97",
+   "file": "src/recovered/overlay_u33_0b97_cpu.c",
+   "line": 69,
+   "row": "OVL_0033_0B97",
+   "rule": "OWN_ROUTINE",
+   "text": "#define STEP() do { if (*budget == 0u) return PR_U33_0B97_LIMIT; --*budget; } while (0)"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 87,
+   "row": "OVL_0036_002D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "#define PR_REC_ECL_WINDOW0_WORDS 1024u      /* GetMem(0x800) in unit 0x36 + 0x002D */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 113,
+   "row": "OVL_0036_002D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* Allocated and zero-filled once by unit 0x36 + 0x002D: three heap arrays of"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/font_8x8d_201.h",
+   "line": 12,
+   "row": "OVL_0036_002D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (unit 0x36 + 0x002D) allocates exactly 0x588 bytes at +0x0074 for the far"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "include/poolrad/recovered/overlay_u38_link_message_2bc8.h",
+   "line": 12,
+   "row": "OVL_0038_0FAC",
+   "rule": "COMMENT_ONLY",
+   "text": "/* Callback enters the distinct +0FAC callee before its instructions. On"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 127,
+   "row": "OVL_0038_0FAC",
+   "rule": "IP_REDIRECT",
+   "text": "cpu->ip = 0x0FACu;"
+  },
+  {
+   "covered_by": "OVL_0038_12B2",
+   "file": "include/poolrad/recovered/overlay_u38_effect_match_12b2.h",
+   "line": 11,
+   "row": "OVL_0038_12FB",
+   "rule": "RANGE_COMMENT",
+   "text": "/* GAME.OVR U38 public entry 41, +12B2..+12FB (73 bytes). The conditional"
+  },
+  {
+   "covered_by": "OVL_0038_12B2",
+   "file": "src/recovered/overlay_u38_effect_match_12b2.c",
+   "line": 1,
+   "row": "OVL_0038_12FB",
+   "rule": "RANGE_COMMENT",
+   "text": "/* GAME.OVR U38 entry 41, +12B2..+12FB, composed with U38 +0C06. */"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 73,
+   "row": "OVL_0038_15EB",
+   "rule": "IP_REDIRECT",
+   "text": "cpu->ip = 0x15EBu;"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 1,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR U38 public entry 55, +1699..+16BB (34 original bytes). */"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 39,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u38_1699_status pr_u38_roll_dispatch_1699("
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 41,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u38_1699_call call, void *context)"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 44,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "ram_size < PR_U38_101D_RAM_SIZE || cpu->ip != 0x1699u)"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 45,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_1699_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 61,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_1699_ROLL_ABORT;"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 75,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_1699_DISPATCH_ABORT;"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 83,
+   "row": "OVL_0038_1699",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_1699_OK;"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "include/poolrad/recovered/overlay_u38_roll_dispatch_1699.h",
+   "line": 19,
+   "row": "OVL_0038_16BB",
+   "rule": "RANGE_COMMENT",
+   "text": "/* Complete U38 public entry 55, +1699..+16BB (34 original bytes). */"
+  },
+  {
+   "covered_by": "OVL_0038_1699",
+   "file": "src/recovered/overlay_u38_roll_dispatch_1699.c",
+   "line": 1,
+   "row": "OVL_0038_16BB",
+   "rule": "RANGE_COMMENT",
+   "text": "/* GAME.OVR U38 public entry 55, +1699..+16BB (34 original bytes). */"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 1,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR U38 public entry 104: 73 reachable bytes, +2BC8..+2C11. */"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 88,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u38_2bc8_status pr_u38_link_message_2bc8("
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 90,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u38_2bc8_dispatch dispatch, void *context)"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 94,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "ram_size < PR_U38_101D_RAM_SIZE || cpu->ip != 0x2BC8u)"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 95,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_2BC8_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 129,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_2BC8_CALL_ABORT;"
+  },
+  {
+   "covered_by": "OVL_0038_2BC8",
+   "file": "src/recovered/overlay_u38_link_message_2bc8.c",
+   "line": 140,
+   "row": "OVL_0038_2BC8",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U38_2BC8_OK;"
+  },
+  {
+   "covered_by": "OVL_0038_2B7D",
+   "file": "src/recovered/overlay_u38_target_reset_2b7d.c",
+   "line": 1,
+   "row": "OVL_0038_2BC8",
+   "rule": "RANGE_COMMENT",
+   "text": "/* GAME.OVR U38 public entry 103, +2B7D..+2BC8 (75 original bytes). */"
+  },
+  {
+   "covered_by": "OVL_005E_32E6",
+   "file": "include/poolrad/recovered/overlay_u5e_caller_32e6.h",
+   "line": 23,
+   "row": "OVL_005E_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "* Initial IP32E6 and SP[00A4,FFF6]. slots_cs binds U3C6 +0000 and"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 1,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original GAME.OVR U5E entry 2: +0123..+0190, 110 bytes. */"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 4,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U5E_0123_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 38,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u5e_0123_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 52,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_flags(pr_u5e_0123_cpu *cpu, uint16_t left,"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 68,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "static void add_ax(pr_u5e_0123_cpu *cpu, uint16_t right)"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 84,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "static void xor_ah_ah(pr_u5e_0123_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 92,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "static void shl_ax_one(pr_u5e_0123_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_005E_0123",
+   "file": "src/recovered/overlay_u5e_entry2_0123.c",
+   "line": 106,
+   "row": "OVL_005E_0123",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u5e_0123_status pr_u5e_entry2_0123("
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 26,
+   "row": "OVL_0068_0294",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*            key 'B' -> [bp-1] := near +0x0294;  'K' -> near +0x0648;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 38,
+   "row": "OVL_0068_0294",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* near callees +0x0000/+0x0236/+0x0294/+0x04DF/+0x05EE/+0x0648/+0x073B/+0x0818,"
+  },
+  {
+   "covered_by": "OVL_0068_0294",
+   "file": "include/poolrad/recovered/overlay_u68_roll_gate_0294.h",
+   "line": 5,
+   "row": "OVL_0068_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "* +0x0294..+0x04DE (file 0x1695F, exactly 587 bytes, 247 instructions,"
+  },
+  {
+   "covered_by": "OVL_0068_0294",
+   "file": "src/recovered/overlay_u68_roll_gate_0294.c",
+   "line": 1,
+   "row": "OVL_0068_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded C model of GAME.OVR unit 0x68 +0x0294; see"
+  },
+  {
+   "covered_by": "OVL_0068_0294",
+   "file": "src/recovered/overlay_u68_roll_gate_0294.c",
+   "line": 308,
+   "row": "OVL_0068_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "cpu->ip != 0x0294u || cpu->sp < 0x0040u || cpu->sp > 0xFFFCu)"
+  },
+  {
+   "covered_by": "OVL_0068_0294",
+   "file": "tests/recovered/test_overlay_u68_roll_gate_0294.c",
+   "line": 1,
+   "row": "OVL_0068_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Synthetic parity test for the unit 0x68 +0x0294 bounded model. The list"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_coordinate_writer.h",
+   "line": 5,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* +0x073B..+0x07F3 (file 0x16E06, 185 bytes of code, 66 instructions, `retf`,"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 28,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*   commit (+0x1027..+0x1042): [bp-1] <> 0 -> near +0x073B, else resident"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 38,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* near callees +0x0000/+0x0236/+0x0294/+0x04DF/+0x05EE/+0x0648/+0x073B/+0x0818,"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 122,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "unsigned committed_move;      /* +0x073B was called */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u68_coordinate_writer.c",
+   "line": 1,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x68 +0x073B (the party coordinate"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u68_coordinate_writer.c",
+   "line": 40,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "r->stop_offset = 0x073Bu;"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u68_coordinate_writer.c",
+   "line": 1,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Synthetic parity test for the unit 0x68 +0x073B coordinate writer model."
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u68_coordinate_writer.c",
+   "line": 275,
+   "row": "OVL_0068_073B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "CHECK(rep.stop_offset == 0x073Bu && rep.call_count == 0);"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 1,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded C model of GAME.OVR unit 0x68 +0x0818; see"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 12,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "int pr_u68_0818_tile_blocked(uint8_t t)"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 20,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "int pr_u68_0818_tile_special(uint8_t t)"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 31,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u68_0818_status pr_u68_0818_run(pr_u68_0818_state *st, pr_u68_0818_report *report)"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 33,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u68_0818_report local;"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 34,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u68_0818_report *r = report ? report : &local;"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 39,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "if (!st || !st->window0 || st->window0_size < PR_U68_0818_WINDOW0_MIN_SIZE || !st->direction_table ||"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "src/recovered/overlay_u68_tile_step_0818.c",
+   "line": 41,
+   "row": "OVL_0068_0818",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U68_0818_ARGUMENT;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry2_up.h",
+   "line": 5,
+   "row": "OVL_0068_0989",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* +0x0989..+0x0D4B. This represents selector [0x49FA]==1 and a prompt"
+  },
+  {
+   "covered_by": "OVL_0068_0818",
+   "file": "include/poolrad/recovered/overlay_u68_tile_step_0818.h",
+   "line": 7,
+   "row": "OVL_0068_0989",
+   "rule": "RANGE_COMMENT",
+   "text": "* +0x097A..+0x0988 up to the next prologue (entry 2, +0x0989) are string"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_up_preflight.h",
+   "line": 7,
+   "row": "OVL_0068_0989",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (+0x0989) reaches with `push cs; call +0x068D` at +0x0AB2 when its prompt"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_coordinate_writer.h",
+   "line": 9,
+   "row": "OVL_0068_0D6D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* ledger bound covers both). Near-called from entry 1 (+0x0D6D) at +0x102E"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 5,
+   "row": "OVL_0068_0D6D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (+0x0D6D..+0x10A6, file 0x1F458.., run-time stub of unit 0x68), exactly"
+  },
+  {
+   "covered_by": "OVL_0068_0236",
+   "file": "include/poolrad/recovered/overlay_u68_party_byte_0236.h",
+   "line": 7,
+   "row": "OVL_0068_0D6D",
+   "rule": "COMMENT_ONLY",
+   "text": "* from entry 1 (+0x0D6D) at +0x0DDE (argument 6), +0x0F1D (6) and +0x0F57 (5);"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u68_entry1.c",
+   "line": 1,
+   "row": "OVL_0068_0D6D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x68 entry 1 (+0x0D6D); see"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u68_entry1.c",
+   "line": 1,
+   "row": "OVL_0068_0D6D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Synthetic parity test for the unit 0x68 entry 1 (+0x0D6D) model. The"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u68_entry1.h",
+   "line": 9,
+   "row": "OVL_0068_10A7",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* leaf +0x10A7. Evidence: docs/re/U68_ENTRY1.md."
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 1,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x6A +0824: a 21-byte selection-exchange sort through a global far pointer (docs/re/OVL_006A_0824_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 1,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x6A +0824: a 21-byte selection-exchange sort through a global far pointer (docs/re/OVL_006A_0824_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 2,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6a_0824_raw_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 5,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u6a_0824_raw_regs cpu_t;"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 52,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6a_0824_raw_status pr_u6a_0824_raw_cpu(pr_bus *bus, size_t ram_size, pr_u6a_0824_raw_regs *c, size_t *budget)"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 55,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "if (bus == NULL || bus->ram == NULL || c == NULL || budget == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0824u || c->sp < 0x0008u || c->sp > 0xFFFCu)"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 56,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U6A_0824_RAW_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_006A_0824",
+   "file": "src/recovered/overlay_u6a_0824_raw_cpu.c",
+   "line": 59,
+   "row": "OVL_006A_0824",
+   "rule": "OWN_ROUTINE",
+   "text": "if (*budget == 0u) return PR_U6A_0824_RAW_LIMIT;"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 1,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6f_0010_read_list.h\""
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 46,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "static void node_clear(pr_u6f_0010_node *node) {"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 47,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "for (size_t i = 0; i < PR_U6F_0010_NAME_BYTES; ++i) {"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 54,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_0010_status pr_u6f_0010_read_list("
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 55,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_0010_node **head,"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 59,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_0010_party *party,"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 60,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_0010_hooks *hooks,"
+  },
+  {
+   "covered_by": "OVL_006F_0010",
+   "file": "src/recovered/overlay_u6f_0010_read_list.c",
+   "line": 62,
+   "row": "OVL_006F_0010",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_0010_result *out) {"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 1,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6f_01b8_write_list.h\""
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 32,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_01b8_status pr_u6f_01b8_write_list("
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 33,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_01b8_node *list,"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 38,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_01b8_hooks *hooks,"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 40,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_01b8_result *out) {"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 44,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_01b8_node *node;                               /* SS:BP-4 */"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 45,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_01b8_result r = {0u, 0u, 0u, 0u, 0u, 0u, 0u, 0x01B8u};"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "src/recovered/overlay_u6f_01b8_write_list.c",
+   "line": 45,
+   "row": "OVL_006F_01B8",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_01b8_result r = {0u, 0u, 0u, 0u, 0u, 0u, 0u, 0x01B8u};"
+  },
+  {
+   "covered_by": "OVL_006F_01B8",
+   "file": "include/poolrad/recovered/overlay_u6f_01b8_write_list.h",
+   "line": 26,
+   "row": "OVL_006F_02AE",
+   "rule": "COMMENT_ONLY",
+   "text": "* The runtime text-file services, the resident prompt and +02AE are the"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 1,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6f_0482_picture_build.h\""
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 5,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "dst[0] = (uint8_t)(PR_U6F_0482_PREFIX_LENGTH + 1u);"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 6,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "for (size_t i = 0; i < PR_U6F_0482_PREFIX_LENGTH; ++i) {"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 9,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "dst[1u + PR_U6F_0482_PREFIX_LENGTH] = letter;"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 12,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_0482_status pr_u6f_0482_picture_build("
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 19,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_0482_hooks *hooks,"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 20,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_0482_result *out) {"
+  },
+  {
+   "covered_by": "OVL_006F_0482",
+   "file": "src/recovered/overlay_u6f_0482_picture_build.c",
+   "line": 21,
+   "row": "OVL_006F_0482",
+   "rule": "OWN_ROUTINE",
+   "text": "uint8_t name[PR_U6F_0482_PREFIX_LENGTH + 2u];               /* the composed string, SS:BP-0x229 */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u6f_party_load.h",
+   "line": 6,
+   "row": "OVL_006F_0AEC",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* record fix-ups of the record loader (+0x0AEC) and the party insertion (+0x1446). It"
+  },
+  {
+   "covered_by": "OVL_0025_0411",
+   "file": "src/recovered/overlay_u25_entry5_0411.c",
+   "line": 57,
+   "row": "OVL_006F_0EC4",
+   "rule": "RANGE_COMMENT",
+   "text": "rc = env->hooks.init_u6f_0ec4(env->ctx, env, (uint16_t)((p.off & 0xFF00u) | id), p);   /* +0x0436..+0x0444: 0x7C:0x3E; AH is the GetMem offset's high byte */"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 1,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6f_1262_add_npc.h\""
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 5,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "static int table_read(const pr_u6f_1262_table *table, int race, unsigned stride, uint8_t roll, uint8_t *value) {"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 14,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_1262_status pr_u6f_1262_add_npc("
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 16,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_1262_state *state,"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 17,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_1262_hooks *hooks,"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 18,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_1262_result *out) {"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 24,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_1262_table *table;"
+  },
+  {
+   "covered_by": "OVL_006F_1262",
+   "file": "src/recovered/overlay_u6f_1262_add_npc.c",
+   "line": 26,
+   "row": "OVL_006F_1262",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_1262_result r;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_wallset.h",
+   "line": 8,
+   "row": "OVL_006F_1602",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (unit 0x6f +0x1602) call with one pushed word: [bp+6] = id, read as a"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u6f_party_load.h",
+   "line": 5,
+   "row": "OVL_006F_1602",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (+0x1602, the world-save loader): the character-record loop at +0x1926..+0x19F4, the"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "include/poolrad/recovered/overlay_u6f_22d5_transition_prompt.h",
+   "line": 28,
+   "row": "OVL_006F_1D58",
+   "rule": "COMMENT_ONLY",
+   "text": "*   +23CC  resident 0x802:0x095D (DS:[0x5376] := DS:[0x5377]); near +1D58"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 1,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u6f_22d5_transition_prompt.h\""
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 28,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "c = PR_U6F_22D5_COORD_MAX;"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 30,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "if ((int8_t)c > (int8_t)PR_U6F_22D5_COORD_MAX) {"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 36,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_22d5_status pr_u6f_22d5_transition_prompt("
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 39,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_22d5_state *state,"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 40,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u6f_22d5_hooks *hooks,"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 41,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u6f_22d5_result *out) {"
+  },
+  {
+   "covered_by": "OVL_006F_22D5",
+   "file": "src/recovered/overlay_u6f_22d5_transition_prompt.c",
+   "line": 42,
+   "row": "OVL_006F_22D5",
+   "rule": "OWN_ROUTINE",
+   "text": "uint8_t name[PR_U6F_22D5_NAME_LIMIT + 1u];                  /* SS:BP-0x29, string[40] */"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 1,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x77:+189D..+1A76; +1A77..+1A89 is text data. */"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 4,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U77_189D_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 40,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u77_189d_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 46,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u77_189d_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 53,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint8_t local8(const uint8_t *ram, const pr_u77_189d_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 59,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_local8(uint8_t *ram, const pr_u77_189d_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 65,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t local16(const uint8_t *ram, const pr_u77_189d_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_0077_189D",
+   "file": "src/recovered/overlay_u77_stack_189d.c",
+   "line": 71,
+   "row": "OVL_0077_189D",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_local16(uint8_t *ram, const pr_u77_189d_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 1,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x77:+299C..+2B0C; external effects supplied by caller. */"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 6,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u77_299c_status pr_u77_spell_299c("
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 8,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u77_299c_external external, void *context, uint8_t *result)"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 12,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U77_299C_ARGUMENT;"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 15,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "(void)external(context, (pr_u77_299c_call)(PR_U77_299C_TITLE_0 + mode));"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 17,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "selected = external(context, PR_U77_299C_SELECT);"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 21,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "return PR_U77_299C_OK;"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "src/recovered/overlay_u77_spell_299c.c",
+   "line": 25,
+   "row": "OVL_0077_299C",
+   "rule": "OWN_ROUTINE",
+   "text": "(void)external(context, PR_U77_299C_MESSAGE_1);"
+  },
+  {
+   "covered_by": "OVL_0077_299C",
+   "file": "tests/recovered/check_overlay_u77_spell_299c.py",
+   "line": 41,
+   "row": "OVL_0077_2B0D",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "assert ins[-1].address + ins[-1].size == 0x2B0D"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u7d_entry1.c",
+   "line": 3,
+   "row": "OVL_007D_0000",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* C: the near call to +0x0000 is a host hook. */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u7d_entry1.c",
+   "line": 85,
+   "row": "OVL_007D_0000",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* +0x0468..+0x0471: push ax (AH = 0x93 from the loop's last shl), n; push ax, idx; push cs; call +0x0000 */"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 1,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x7D +0000 (raw CPU, composing SYSTEM FillChar 16A8; stops at its U9E +0026 call);"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 6,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U7D_0000_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 19,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7d_0000_cpu *cpu;"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 21,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7d_0000_status stop;"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 74,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "static void szp(pr_u7d_0000_cpu *cpu, uint16_t result, uint16_t sign)"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 82,
+   "row": "OVL_007D_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_flags(pr_u7d_0000_cpu *cpu, uint16_t a, uint16_t b, uint16_t sign)"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u7d_entry1.h",
+   "line": 4,
+   "row": "OVL_007D_03D5",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of DOS v1.3 GAME.OVR unit 0x7d public entry 1 (+0x03D5,"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u7d_entry1.h",
+   "line": 5,
+   "row": "OVL_007D_03D5",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* file 0x241A1, run-time stub 0x8C:0x0025; exactly 165 bytes +0x03D5..+0x0479,"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u7d_entry1.c",
+   "line": 1,
+   "row": "OVL_007D_03D5",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x7d entry 1 (+0x03D5) and its near"
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 13,
+   "row": "OVL_007D_03D5",
+   "rule": "SPAN_HASH",
+   "text": "(0x03A3, 0x03D5): \"3cef292a9346dadb89b80e93d5b78f701878140bf60bcd95aaba8d7022fc01ad\","
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 15,
+   "row": "OVL_007D_0721",
+   "rule": "SPAN_HASH",
+   "text": "(0x0721, 0x0871): \"1d3e90cba8a713d25f6d090da93c5d5af02ffa2adf1df7de27e088dcb3409f16\","
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 22,
+   "row": "OVL_007D_0721",
+   "rule": "CALLSITE_MAP",
+   "text": "0x0D1C: 0x0721,"
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 15,
+   "row": "OVL_007D_0871",
+   "rule": "SPAN_HASH",
+   "text": "(0x0721, 0x0871): \"1d3e90cba8a713d25f6d090da93c5d5af02ffa2adf1df7de27e088dcb3409f16\","
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 16,
+   "row": "OVL_007D_0C9A",
+   "rule": "SPAN_HASH",
+   "text": "(0x0C9A, 0x0E60): \"9964836108967641b80c7c0983446af0b66055ff0bb2ad2302c626846ed8d631\","
+  },
+  {
+   "covered_by": "OVL_007D_03A3",
+   "file": "tests/recovered/check_overlay_u7d_03a3_natural_route.py",
+   "line": 16,
+   "row": "OVL_007D_0E60",
+   "rule": "SPAN_HASH",
+   "text": "(0x0C9A, 0x0E60): \"9964836108967641b80c7c0983446af0b66055ff0bb2ad2302c626846ed8d631\","
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "/* Original unit 0x7F +0054: the bounded subtraction around +0000 (docs/re/OVL_007F_0054_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 45,
+   "row": "OVL_007F_0000",
+   "rule": "IP_REDIRECT",
+   "text": "push(ram, c, ret); c->ip = 0x0000u;"
+  },
+  {
+   "covered_by": "OVL_007F_1010",
+   "file": "src/recovered/overlay_u7f_caller_1010.c",
+   "line": 374,
+   "row": "OVL_007F_0020",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x12C8: (void)arithmetic(c,(uint8_t)c->ax,0x0020u,0u,8u,1u);c->ip=0x12CAu;break;"
+  },
+  {
+   "covered_by": "OVL_007F_0020",
+   "file": "src/recovered/overlay_u7f_record_subtract_0020.c",
+   "line": 1,
+   "row": "OVL_007F_0020",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x7F:+0020..+0039; docs/re/U7F_RECORD_SUBTRACT_0020.md. */"
+  },
+  {
+   "covered_by": "OVL_007F_0020",
+   "file": "src/recovered/overlay_u7f_record_subtract_0020.c",
+   "line": 3,
+   "row": "OVL_007F_0020",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U7F_0020_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0054: the bounded subtraction around +0000 (docs/re/OVL_007F_0054_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0054: the bounded subtraction around +0000 (docs/re/OVL_007F_0054_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 2,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u7f_0054_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 38,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "static int call_0000(pr_bus *bus, cpu_t *c, size_t *budget, pr_u7f_0054_diagnostic *d, uint16_t site, uint16_t ret, uint8_t disp_lo, uint8_t disp_hi, uint16_t c"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 41,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "if (*budget == 0u) return PR_U7F_0054_LIMIT;"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 43,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "if (rd8(ram, cs, site) != 0xE8u || rd8(ram, cs, (uint16_t)(site + 1u)) != disp_lo || rd8(ram, cs, (uint16_t)(site + 2u)) != disp_hi) return PR_U7F_0054_CODE;"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 47,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "if (s == PR_U7F_0000_LIMIT) return PR_U7F_0054_LIMIT;"
+  },
+  {
+   "covered_by": "OVL_007F_0054",
+   "file": "src/recovered/overlay_u7f_0054_cpu.c",
+   "line": 48,
+   "row": "OVL_007F_0054",
+   "rule": "OWN_ROUTINE",
+   "text": "if (s != PR_U7F_0000_RETURNED) { d->callee_status = (int)s; return PR_U7F_0054_CALLEE; }"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0203: the capped add with a message (docs/re/OVL_007F_0203_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0203: the capped add with a message (docs/re/OVL_007F_0203_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 2,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u7f_0203_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 9,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u7f_0203_regs cpu_t;"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 46,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "#define STEP() do { if (*budget == 0u) return PR_U7F_0203_LIMIT; --*budget; } while (0)"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 48,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_0203_status pr_u7f_0203_cpu(pr_bus *bus, size_t ram_size, pr_u7f_0203_regs *c, size_t *budget, const pr_u7f_0203_limits *limits, pr_u7f_0203_diagnostic *"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 50,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_0203_diagnostic local, *d = diagnostic ? diagnostic : &local;"
+  },
+  {
+   "covered_by": "OVL_007F_0203",
+   "file": "src/recovered/overlay_u7f_0203_cpu.c",
+   "line": 52,
+   "row": "OVL_007F_0203",
+   "rule": "OWN_ROUTINE",
+   "text": "if (bus == NULL || bus->ram == NULL || c == NULL || budget == NULL || limits == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0203u || c->sp < 0x0200u || c-"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "include/poolrad/recovered/overlay_u7f_number_0294_cpu.h",
+   "line": 12,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Raw-CPU, full-state model of GAME.OVR unit 7Fh +0294..+0440 (429 bytes, 188 instructions, RETF 8), the game's numeric"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "include/poolrad/recovered/overlay_u7f_number_0294_cpu.h",
+   "line": 13,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "* entry line editor, OVL_007F_0294 (docs/re/U7F_NUMBER_0294_CPU.md). Entered by a far call (stub 008F:003E) or PUSH CS;"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "src/recovered/overlay_u7f_number_0294_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 7Fh +0294, the game's numeric entry line editor, raw CPU (docs/re/U7F_NUMBER_0294_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "src/recovered/overlay_u7f_number_0294_cpu.c",
+   "line": 110,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "ram_size != PR_U7F_NUMBER_RAM_SIZE || c->ip != 0x0294u || c->sp < 0x025Au || c->sp > 0xFFF4u)"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "tests/recovered/test_overlay_u7f_number_0294_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Focused synthetic test for the raw-CPU GAME.OVR unit 7Fh +0294 numeric entry editor (docs/re/U7F_NUMBER_0294_CPU.md)."
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "tests/recovered/test_overlay_u7f_number_0294_cpu.c",
+   "line": 22,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_cpu c = {0x1234, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE, 0x7777, 0xF000, OVL, 0x0294, DS, 0x1111, SS, 0x0002};"
+  },
+  {
+   "covered_by": "OVL_007F_0294",
+   "file": "tests/recovered/test_overlay_u7f_number_0294_cpu.c",
+   "line": 66,
+   "row": "OVL_007F_0294",
+   "rule": "OWN_ROUTINE",
+   "text": "c.ip = 0x0294; CHECK(memcmp(&c, &before, sizeof c) == 0 && get(ram, SS, 0xEFFE) == 0x5A5A);"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +044C: the capped transfer between two records with a message (docs/re/OVL_007F_044C_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +044C: the capped transfer between two records with a message (docs/re/OVL_007F_044C_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 2,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u7f_044c_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 10,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u7f_044c_regs cpu_t;"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 59,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "#define STEP() do { if (*budget == 0u) return PR_U7F_044C_LIMIT; --*budget; } while (0)"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 62,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_044c_status pr_u7f_044c_cpu(pr_bus *bus, size_t ram_size, pr_u7f_044c_regs *c, size_t *budget, const pr_u7f_044c_limits *limits, pr_u7f_044c_diagnostic *"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 64,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_044c_diagnostic local, *d = diagnostic ? diagnostic : &local;"
+  },
+  {
+   "covered_by": "OVL_007F_044C",
+   "file": "src/recovered/overlay_u7f_044c_cpu.c",
+   "line": 66,
+   "row": "OVL_007F_044C",
+   "rule": "OWN_ROUTINE",
+   "text": "if (bus == NULL || bus->ram == NULL || c == NULL || budget == NULL || limits == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x044Cu || c->sp < 0x0200u || c-"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_load_monster_tail_0537.h",
+   "line": 14,
+   "row": "OVL_007F_063A",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*     P.link := nil; P[+0x7F..+0x82] := 0; P[+0xC8..+0xCB] := 0; n++; [0x4435]++                     (+0x05B7..+0x063A)"
+  },
+  {
+   "covered_by": "OVL_007F_05E0",
+   "file": "tests/recovered/check_overlay_u7f_party_count_05e0.py",
+   "line": 72,
+   "row": "OVL_007F_063A",
+   "rule": "BOUNDARY_ASSERTION",
+   "text": "decoded[-1].address + decoded[-1].size == 0x063A,"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0A88: take coins of one kind from the pool into the active character (docs/re/OVL_007F_0A88_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 1,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x7F +0A88: take coins of one kind from the pool into the active character (docs/re/OVL_007F_0A88_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 2,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u7f_0a88_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 9,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u7f_0a88_regs cpu_t;"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 52,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "#define STEP() do { if (*budget == 0u) return PR_U7F_0A88_LIMIT; --*budget; } while (0)"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 68,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_0a88_status pr_u7f_0a88_cpu(pr_bus *bus, size_t ram_size, pr_u7f_0a88_regs *c, size_t *budget, const pr_u7f_0a88_limits *limits, pr_u7f_0a88_diagnostic *"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 70,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u7f_0a88_diagnostic local, *d = diagnostic ? diagnostic : &local;"
+  },
+  {
+   "covered_by": "OVL_007F_0A88",
+   "file": "src/recovered/overlay_u7f_0a88_cpu.c",
+   "line": 72,
+   "row": "OVL_007F_0A88",
+   "rule": "OWN_ROUTINE",
+   "text": "if (bus == NULL || bus->ram == NULL || c == NULL || budget == NULL || limits == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0A88u || c->sp < 0x0200u || c-"
+  },
+  {
+   "covered_by": "OVL_006A_0000",
+   "file": "src/recovered/overlay_u6a_record_weight_0000.c",
+   "line": 141,
+   "row": "OVL_0086_008A",
+   "rule": "COMMENT_ONLY",
+   "text": "/* +008A: LCALL 0096:003E. The loaded stub jumps to unit 0x86 +323D; the"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/check_overlay_u86_entry1_postdc0_jz_01ed_static.py",
+   "line": 29,
+   "row": "OVL_0086_008A",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "0x27018, 0x37B5, 0x008A)"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/check_overlay_u86_entry1_postdc0_lea_di_019c_static.py",
+   "line": 28,
+   "row": "OVL_0086_008A",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "0x27018, 0x37B5, 0x008A)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "include/poolrad/recovered/overlay_u86_status_1499_full.h",
+   "line": 23,
+   "row": "OVL_0086_08C3",
+   "rule": "COMMENT_ONLY",
+   "text": "*   IP and CS words of both modelled RETFs (the +08C3 retf 0xE and the body's"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "include/poolrad/recovered/overlay_u86_status_1499_full.h",
+   "line": 54,
+   "row": "OVL_0086_08C3",
+   "rule": "COMMENT_ONLY",
+   "text": "* target (originally +08C3); the hook sees SS:SP = return IP, CS, the"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "include/poolrad/recovered/overlay_u86_status_1499_full.h",
+   "line": 60,
+   "row": "OVL_0086_08C3",
+   "rule": "COMMENT_ONLY",
+   "text": "* SP + 8 (retf 4); after the +08C3 hook SS:SP must still be at the return IP;"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 156,
+   "row": "OVL_0086_08C3",
+   "rule": "COMMENT_ONLY",
+   "text": "* (originally 0xF401, giving +08C3) and added to the return IP +14C2 */"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 156,
+   "row": "OVL_0086_08C3",
+   "rule": "COMMENT_ONLY",
+   "text": "* (originally 0xE25D, giving +08C3) and added to the return IP +2666 */"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 1,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x86:+1499..+14C5, complete 45-byte body, full state. */"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 4,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U86_1499_FULL_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 31,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u86_1499_full_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 37,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u86_1499_full_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 53,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t sub16(pr_u86_1499_full_cpu *cpu, uint16_t a, uint16_t b)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 66,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "#define BODY_OFF 0x1499u"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 79,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "static int window_hits_body(const pr_u86_1499_full_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0086_1499",
+   "file": "src/recovered/overlay_u86_status_1499_full.c",
+   "line": 99,
+   "row": "OVL_0086_1499",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u86_1499_full_status pr_u86_status_1499_full("
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 1,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x86:+263D..+2669, complete 45-byte body, full state. */"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 4,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U86_263D_FULL_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 31,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u86_263d_full_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 37,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u86_263d_full_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 53,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t sub16(pr_u86_263d_full_cpu *cpu, uint16_t a, uint16_t b)"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 66,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "#define BODY_OFF 0x263Du"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 79,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "static int window_hits_body(const pr_u86_263d_full_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_0086_263D",
+   "file": "src/recovered/overlay_u86_status_263d_full.c",
+   "line": 99,
+   "row": "OVL_0086_263D",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u86_263d_full_status pr_u86_status_263d_full("
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_0160.c",
+   "line": 120,
+   "row": "OVL_009E_0000",
+   "rule": "RANGE_COMMENT",
+   "text": "/* +0x02D4..+0x02F1: found -> +0x0000 (type, B, cell, 0) */"
+  },
+  {
+   "covered_by": "OVL_009E_115C",
+   "file": "src/recovered/overlay_u9e_character_pair_115c_cpu.c",
+   "line": 94,
+   "row": "OVL_009E_0000",
+   "rule": "IP_REDIRECT",
+   "text": "w8(ram,c->ss,(uint16_t)(c->bp + -1),(uint8_t)(0x0000u)); c->ip=0x1190u; break;"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x9E +0000, the effect dispatcher, raw CPU, composed with the raw-CPU credited unit-0x38 handlers (docs/re/OVL_009E_0000_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Original unit 0x9E +0000, the effect dispatcher, raw CPU, composed with the raw-CPU credited unit-0x38 handlers (docs/re/OVL_009E_0000_CPU.md). */"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 25,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U9E_0000_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 29,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u9e_0000_cpu cpu_t;"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 323,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "#define STEP() do { if (*budget == 0u) return PR_U9E_0000_LIMIT; --*budget; } while (0)"
+  },
+  {
+   "covered_by": "OVL_009E_0000",
+   "file": "src/recovered/overlay_u9e_dispatch_0000_cpu.c",
+   "line": 326,
+   "row": "OVL_009E_0000",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef struct { uint8_t *ram; size_t size; cpu_t *cpu; const pr_u9e_0000_limits *lim; int status_raw; } call_t;"
+  },
+  {
+   "covered_by": "OVL_007D_0000",
+   "file": "src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+   "line": 267,
+   "row": "OVL_009E_0026",
+   "rule": "IP_REDIRECT",
+   "text": "cpu->ip = 0x01FEu;                                        /* 01FE LCALL 00B0:002A (U9E +0026) */"
+  },
+  {
+   "covered_by": "OVL_009E_115C",
+   "file": "src/recovered/overlay_u9e_character_pair_115c_cpu.c",
+   "line": 154,
+   "row": "OVL_009E_0026",
+   "rule": "IP_REDIRECT",
+   "text": "(void)arithmetic(c,r8(ram,c->es,(uint16_t)(c->di)),0x0026u,8u,1); c->ip=0x11E4u; break;"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u9e_entry2.c",
+   "line": 1,
+   "row": "OVL_009E_0026",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x9e entry 2 (+0x0026) and entry 1"
+  },
+  {
+   "covered_by": "OVL_009E_0026",
+   "file": "src/recovered/overlay_u9e_list_release_0026_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0026",
+   "rule": "OWN_ROUTINE",
+   "text": "/* U9E +0026 removal / FreeMem, with an explicit dynamic-handler boundary."
+  },
+  {
+   "covered_by": "OVL_009E_0026",
+   "file": "src/recovered/overlay_u9e_list_release_0026_cpu.c",
+   "line": 6,
+   "row": "OVL_009E_0026",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U9E_0026_RAM_SIZE-1u)"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3c6_slot.c",
+   "line": 2,
+   "row": "OVL_009E_0160",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* docs/re/U9E_0160.md. */"
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_0160.c",
+   "line": 1,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x9e +0x0160; see docs/re/U9E_0160.md."
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_0160.c",
+   "line": 1,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x9e +0x0160; see docs/re/U9E_0160.md."
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_0160.c",
+   "line": 4,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u9e_0160.h\""
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_sidecar_0160_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "/* U9E +0160 with a precise pending dynamic-dispatch boundary."
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_sidecar_0160_cpu.c",
+   "line": 11,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U9E_0160_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "src/recovered/overlay_u9e_sidecar_0160_cpu.c",
+   "line": 29,
+   "row": "OVL_009E_0160",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push(uint8_t *ram, pr_u9e_0160_cpu *c, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_009E_0160",
+   "file": "include/poolrad/recovered/overlay_u9e_0160.h",
+   "line": 6,
+   "row": "OVL_009E_02FA",
+   "rule": "COMMENT_ONLY",
+   "text": "* instructions, `retf 6`, no trailing data: the next prologue is +0x02FA)."
+  },
+  {
+   "covered_by": "OVL_009E_02FA",
+   "file": "src/recovered/overlay_u9e_sidecar_groups_02fa_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_02FA",
+   "rule": "OWN_ROUTINE",
+   "text": "/* U9E +02FA: grouped sidecar dispatch with the inherited pending boundary."
+  },
+  {
+   "covered_by": "OVL_009E_02FA",
+   "file": "src/recovered/overlay_u9e_sidecar_groups_02fa_cpu.c",
+   "line": 74,
+   "row": "OVL_009E_02FA",
+   "rule": "OWN_ROUTINE",
+   "text": "size!=PR_U9E_0160_RAM_SIZE || c->ip!=0x02FAu ||"
+  },
+  {
+   "covered_by": "OVL_009E_02FA",
+   "file": "src/recovered/overlay_u9e_sidecar_groups_02fa_cpu.c",
+   "line": 82,
+   "row": "OVL_009E_02FA",
+   "rule": "OWN_ROUTINE",
+   "text": "case 0x02FA: push(ram,c,c->bp);c->ip=0x02FBu;break;"
+  },
+  {
+   "covered_by": "OVL_007F_1010",
+   "file": "src/recovered/overlay_u7f_caller_1010.c",
+   "line": 193,
+   "row": "OVL_009E_0FD2",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x10AC: push(ram,c,0x10AFu);c->ip=0x0FD2u;dice_status=-1;status=roll(ram,size,c,max_system_calls,&dice_status);if(dice_status==PR_U9E_ENTRY8_COMPOSE_LIMIT)"
+  },
+  {
+   "covered_by": "OVL_007F_0FD2",
+   "file": "src/recovered/overlay_u7f_roll_class_0fd2_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0FD2",
+   "rule": "COMMENT_ONLY",
+   "text": "/* GAME.OVR unit 0x7F +0FD2 (raw CPU, composing the U9E entry-8 dice chain through the loaded stub 00B0:0048);"
+  },
+  {
+   "covered_by": "OVL_007F_0FD2",
+   "file": "tests/recovered/test_overlay_u7f_roll_class_0fd2_cpu.c",
+   "line": 1,
+   "row": "OVL_009E_0FD2",
+   "rule": "COMMENT_ONLY",
+   "text": "/* Focused synthetic test for raw-CPU U7F +0FD2 composing the U9E entry-8 dice chain through the loaded stub 00B0:0048"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 1,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR U9E +1081..+10E3, complete local body. */"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 4,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U9E_1081_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 38,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u9e_1081_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 52,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_sp(pr_u9e_1081_cpu *cpu, uint16_t count)"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 67,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "static void or_al_al(pr_u9e_1081_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 77,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "static pr_u9e_1081_status call_at("
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 78,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "uint8_t *ram, size_t ram_size, pr_u9e_1081_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_009E_1081",
+   "file": "src/recovered/overlay_u9e_entry_1081.c",
+   "line": 79,
+   "row": "OVL_009E_1081",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u9e_1081_io *io, pr_u9e_1081_call_kind kind,"
+  },
+  {
+   "covered_by": "OVL_03B0_06FB",
+   "file": "src/recovered/overlay_u3b0_row_clear_06fb_cpu.c",
+   "line": 13,
+   "row": "OVL_03B0_06FB",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push(pr_bus *bus, pr_u3b0_06fb_cpu *c, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_03B0_06FB",
+   "file": "src/recovered/overlay_u3b0_row_clear_06fb_cpu.c",
+   "line": 20,
+   "row": "OVL_03B0_06FB",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop(pr_bus *bus, pr_u3b0_06fb_cpu *c)"
+  },
+  {
+   "covered_by": "OVL_03B0_06FB",
+   "file": "src/recovered/overlay_u3b0_row_clear_06fb_cpu.c",
+   "line": 30,
+   "row": "OVL_03B0_06FB",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b0_06fb_status pr_u3b0_row_clear_06fb_cpu(pr_bus *bus, size_t size,"
+  },
+  {
+   "covered_by": "OVL_03B0_06FB",
+   "file": "src/recovered/overlay_u3b0_row_clear_06fb_cpu.c",
+   "line": 31,
+   "row": "OVL_03B0_06FB",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b0_06fb_cpu *c, size_t max_loopbacks, pr_u3b0_06fb_diagnostic *d)"
+  },
+  {
+   "covered_by": "OVL_03B0_06FB",
+   "file": "src/recovered/overlay_u3b0_row_clear_06fb_cpu.c",
+   "line": 33,
+   "row": "OVL_03B0_06FB",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b0_06fb_diagnostic local={-1,{-1,-1,-1,-1}};"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 1,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x3B0:+1140..+11F2, complete 179-byte entry 6 body. */"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 4,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U3B0_1140_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 30,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static void push16(uint8_t *ram, pr_u3b0_1140_cpu *cpu, uint16_t value)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 36,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t pop16(const uint8_t *ram, pr_u3b0_1140_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 51,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static void sub_sp_eight(pr_u3b0_1140_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 66,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static void xor_ax_ax(pr_u3b0_1140_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 73,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static void cmp16(pr_u3b0_1140_cpu *cpu, uint16_t a, uint16_t b)"
+  },
+  {
+   "covered_by": "OVL_03B0_1140",
+   "file": "src/recovered/overlay_u3b0_entry6_1140.c",
+   "line": 86,
+   "row": "OVL_03B0_1140",
+   "rule": "OWN_ROUTINE",
+   "text": "static void inc_local(uint8_t *ram, pr_u3b0_1140_cpu *cpu, uint16_t off)"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 438,
+   "row": "OVL_03B4_016D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* view refresh unit 0x3b4 + 0x016D (site +0x0207) with computed values. The"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3b4_case_maps.h",
+   "line": 22,
+   "row": "OVL_03B4_016D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* after the far CALL (in the game PUSH CS; CALL from +016D) with SS:[SP]"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "include/poolrad/recovered/overlay_u3b9_entry7_0708_cpu.h",
+   "line": 19,
+   "row": "OVL_03B9_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "* SYSTEM +084A (Writeln), resident 0x899:+0000, resident 0x464:+0D71 and"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "include/poolrad/recovered/overlay_u3b9_entry7_0708_cpu.h",
+   "line": 40,
+   "row": "OVL_03B9_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "*                     and 0x899:+0000, whose body reaches SYSTEM Halt (+00E9)"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708_cpu.c",
+   "line": 54,
+   "row": "OVL_03B9_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "/* RETF n at retf_ip under the declared policy (public U3C6 +0000 contract):"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "tests/recovered/test_overlay_u3b9_entry7_0708_cpu.c",
+   "line": 285,
+   "row": "OVL_03B9_0050",
+   "rule": "COMMENT_ONLY",
+   "text": "/* slot 1 pointing at an object 0x6000:0x0010 with x0 = 0x0100, y0 = 0x0050 */"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 4,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t local_word(const pr_u3b9_0708_frame *f, size_t at) {"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 8,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "static void set_local_word(pr_u3b9_0708_frame *f, size_t at, uint16_t v) {"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 15,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "static int slot_base(const pr_u3b9_0708_frame *f, size_t *di) {"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 17,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "return (*di + 5u < PR_U3B9_0708_LOCALS_SIZE) ? 0 : -1;"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 20,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b9_0708_status pr_u3b9_0708_show("
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 21,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b9_0708_frame *frame, const pr_u3b9_0708_state *state,"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 23,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u3b9_0708_hooks *hooks, pr_u3b9_0708_result *out) {"
+  },
+  {
+   "covered_by": "OVL_03B9_0708",
+   "file": "src/recovered/overlay_u3b9_entry7_0708.c",
+   "line": 24,
+   "row": "OVL_03B9_0708",
+   "rule": "OWN_ROUTINE",
+   "text": "pr_u3b9_0708_result r = {0u, 0u, 0u, 0u, 0u, 0u, 0x0708u};"
+  },
+  {
+   "covered_by": null,
+   "file": "tests/recovered/test_overlay_u3bd_first_call_07e9.c",
+   "line": 57,
+   "row": "OVL_03BD_0000",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "assert(get_word(frame.ss, 0x0000u) == 0x1102u);"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_dual_wall.c",
+   "line": 13,
+   "row": "OVL_03BD_0211",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Exact reached +0x0211 row-major cursor and 0..10 signed clipping. */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_first_wall.c",
+   "line": 63,
+   "row": "OVL_03BD_0211",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* local +0x0211. The helper reads the low byte of each position word. */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_jne_080a.c",
+   "line": 130,
+   "row": "OVL_03BD_0211",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* +0830..+0844: first local +0211 call. */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_jne_080a.c",
+   "line": 143,
+   "row": "OVL_03BD_0211",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*ip = 0x0211u;"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_jne_080a.c",
+   "line": 165,
+   "row": "OVL_03BD_0211",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*ip = 0x0211u;"
+  },
+  {
+   "covered_by": "OVL_03BD_0211",
+   "file": "src/recovered/overlay_u3bd_place_0211.c",
+   "line": 1,
+   "row": "OVL_03BD_0211",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR U3BD:+0211..+031E. See docs/re/U3BD_PLACE_0211.md. */"
+  },
+  {
+   "covered_by": "OVL_03BD_0211",
+   "file": "src/recovered/overlay_u3bd_place_0211.c",
+   "line": 4,
+   "row": "OVL_03BD_0211",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U3BD_0211_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_03BD_0211",
+   "file": "src/recovered/overlay_u3bd_place_0211.c",
+   "line": 42,
+   "row": "OVL_03BD_0211",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t local16(const uint8_t *ram, const pr_u3bd_0211_cpu *cpu,"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_cell.c",
+   "line": 2,
+   "row": "OVL_03BD_031F",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* local leaf it near-calls (+0x031F); see docs/re/U3BD_CELL_ENTRY4.md."
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_cell.c",
+   "line": 15,
+   "row": "OVL_03BD_031F",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* +0x031F..+0x034D: local leaf, 49 bytes, 18 instructions, `retf 4`, reached by"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_cell.c",
+   "line": 36,
+   "row": "OVL_03BD_031F",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* +0x0580..+0x058E: push x byte, push y byte, push cs, call +0x031F; or al,al; jne +0x05A4 */"
+  },
+  {
+   "covered_by": "OVL_03BD_057A",
+   "file": "src/recovered/overlay_u3bd_cell_057a_cpu.c",
+   "line": 104,
+   "row": "OVL_03BD_031F",
+   "rule": "IP_REDIRECT",
+   "text": "c->ip = 0x031Fu; memcpy(&leaf, c, sizeof leaf);"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 623,
+   "row": "OVL_03BD_0E08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "void (*load_pieces)(void *ctx, uint8_t id, uint8_t slot);  /* unit 0x3bd entry 6 (+0x0E08), `retf 4`, (id, slot) as pushed */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_ecl_store_hook.h",
+   "line": 76,
+   "row": "OVL_03BD_0E08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "pr_u25_hook_u3bd_entry6_fn u3bd_entry6;     /* overlay unit 0x3bd entry 6 (+0x0E08), `retf 4` */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_pieces.h",
+   "line": 5,
+   "row": "OVL_03BD_0E08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (+0x0E08, file 0x2F6FF, run-time stub 0x3D5:0x003E), the routine that the"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_pieces.c",
+   "line": 1,
+   "row": "OVL_03BD_0E08",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x3bd entry 6 (+0x0E08); see"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 622,
+   "row": "OVL_03BD_10C7",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "void (*load_wallset)(void *ctx, uint8_t id);               /* unit 0x3bd entry 7 (+0x10C7), `retf 2`; required when reached */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_wallset.h",
+   "line": 5,
+   "row": "OVL_03BD_10C7",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* (+0x10C7, file 0x2F9BE, run-time stub 0x3D5:0x0043), the routine the"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/overlay_u3bd_wallset.c",
+   "line": 1,
+   "row": "OVL_03BD_10C7",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Portable C model of GAME.OVR unit 0x3bd entry 7 (+0x10C7); see"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 119,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x090F: ram[physical(c->ss,(uint16_t)(c->bp+-3))]=(uint8_t)(0x0000u);c->ip=0x0913u;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 164,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x0976: ram[physical(c->ds,(uint16_t)(26394))]=(uint8_t)(0x0000u);c->ip=0x097Bu;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 179,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x099E: (void)arithmetic(c,ram[physical(c->ds,(uint16_t)(c->di+24362))],0x0000u,0u,8u,1u);c->ip=0x09A3u;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 182,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x09A8: ram[physical(c->ss,(uint16_t)(c->bp+-7))]=(uint8_t)(0x0000u);c->ip=0x09ACu;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 184,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x09B1: ram[physical(c->ss,(uint16_t)(c->bp+-4))]=(uint8_t)(0x0000u);c->ip=0x09B5u;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 245,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x0A3F: ram[physical(c->ss,(uint16_t)(c->bp+-4))]=(uint8_t)(0x0000u);c->ip=0x0A43u;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 251,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x0A4F: (void)arithmetic(c,ram[physical(c->ss,(uint16_t)(c->bp+c->di+-23))],0x0000u,0u,8u,1u);c->ip=0x0A53u;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_0909",
+   "file": "src/recovered/overlay_u3c2_caller_0909.c",
+   "line": 254,
+   "row": "OVL_03C2_0000",
+   "rule": "IP_REDIRECT",
+   "text": "case 0x0A58: ram[physical(c->ss,(uint16_t)(c->bp+-3))]=(uint8_t)(0x0000u);c->ip=0x0A5Cu;break;"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 1,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR U3C2 public entry 3, +02CC..+0421 (342 original bytes). */"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 4,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "#define RAM_MASK (PR_U3C2_02CC_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 38,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void les(const uint8_t *ram, pr_u3c2_02cc_cpu *cpu, uint16_t offset)"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 46,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void les_record(const uint8_t *ram, pr_u3c2_02cc_cpu *cpu)"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 51,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint8_t record8(const uint8_t *ram, pr_u3c2_02cc_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 58,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static uint16_t record16(const uint8_t *ram, pr_u3c2_02cc_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 65,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void add_record8(uint8_t *ram, pr_u3c2_02cc_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_03C2_02CC",
+   "file": "src/recovered/overlay_u3c2_entry3_02cc.c",
+   "line": 75,
+   "row": "OVL_03C2_02CC",
+   "rule": "OWN_ROUTINE",
+   "text": "static void add_record16(uint8_t *ram, pr_u3c2_02cc_cpu *cpu,"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 79,
+   "row": "OVL_03C6_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "/* RETF n at retf_ip under the declared policy (public +0000 contract):"
+  },
+  {
+   "covered_by": "OVL_03C6_0CB9",
+   "file": "src/recovered/overlay_u3c6_0cb9_cpu.c",
+   "line": 3,
+   "row": "OVL_03C6_0000",
+   "rule": "RANGE_COMMENT",
+   "text": "* (entry 15), +0000..+0065 (entry 1) and +04BE..+0528 (entry 6) for the"
+  },
+  {
+   "covered_by": "OVL_03C6_0CB9",
+   "file": "src/recovered/overlay_u3c6_0cb9_cpu.c",
+   "line": 80,
+   "row": "OVL_03C6_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "/* RETF n at retf_ip under the declared policy (public +0000 contract):"
+  },
+  {
+   "covered_by": "OVL_03C6_0CB9",
+   "file": "src/recovered/overlay_u3c6_0cb9_cpu.c",
+   "line": 267,
+   "row": "OVL_03C6_0000",
+   "rule": "COMMENT_ONLY",
+   "text": "/* entry 1, +0000: the offset pair for direction [bp+0xE] of class [bp+0x10] */"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 1,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x3C6 + 0x0105 (entry 3) on live CPU/RAM; see the header."
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 2,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "* Comments name the original offsets: entry body (+0105..+0126) and the"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 4,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u3c6_0105_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 6,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U3C6_0105_CPU_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 16,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u3c6_0105_cpu cpu_t;"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 17,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u3c6_0105_cpu_status st_t;"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 18,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "#define OK PR_U3C6_0105_CPU_RETURNED"
+  },
+  {
+   "covered_by": "OVL_03C6_0105",
+   "file": "src/recovered/overlay_u3c6_0105_cpu.c",
+   "line": 23,
+   "row": "OVL_03C6_0105",
+   "rule": "OWN_ROUTINE",
+   "text": "const pr_u3c6_0105_cpu_hooks *h;"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "include/poolrad/recovered/overlay_u3c6_1298_cpu.h",
+   "line": 15,
+   "row": "OVL_03C6_0996",
+   "rule": "COMMENT_ONLY",
+   "text": "* (+0996) with byte arguments (8, b, entry13(Q), entry12(Q)) pushed as words,"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "include/poolrad/recovered/overlay_u3c6_1298_cpu.h",
+   "line": 20,
+   "row": "OVL_03C6_0996",
+   "rule": "COMMENT_ONLY",
+   "text": "* with their real pushes, frames and flags. Entry 10 (+0996, 354 bytes,"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "include/poolrad/recovered/overlay_u3c6_1298_cpu.h",
+   "line": 65,
+   "row": "OVL_03C6_0996",
+   "rule": "COMMENT_ONLY",
+   "text": "/* U3C6 entry 10 +0996 from its first instruction; 0 when it returned (by"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 4,
+   "row": "OVL_03C6_0996",
+   "rule": "COMMENT_ONLY",
+   "text": "* folded near callees. Entry 10 (+0996) is the hook. */"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "tests/recovered/test_overlay_u3c6_1298_cpu.c",
+   "line": 2,
+   "row": "OVL_03C6_0996",
+   "rule": "COMMENT_ONLY",
+   "text": "* controls on synthetic state (no game bytes). Entry 10 (+0996) is a test"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 1,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 0x3C6 + 0x1298 (entry 19) on live CPU/RAM; see the header."
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 2,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "* Comments name the original offsets: +1298..+12F8 for the body, +0C5F..+0CB6"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 5,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "#include \"poolrad/recovered/overlay_u3c6_1298_cpu.h\""
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 7,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "#define MASK (PR_U3C6_1298_CPU_RAM_SIZE - 1u)"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 15,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "#define ALIAS PR_U3C6_1298_CPU_UNSCREENED_ALIAS"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 21,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "#define SNAP_BYTES ((0x0C37u - 0x0BE7u) + (0x0CB9u - 0x0C5Fu) + (0x12FBu - 0x1298u))"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 23,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u3c6_1298_cpu cpu_t;"
+  },
+  {
+   "covered_by": "OVL_03C6_1298",
+   "file": "src/recovered/overlay_u3c6_1298_cpu.c",
+   "line": 24,
+   "row": "OVL_03C6_1298",
+   "rule": "OWN_ROUTINE",
+   "text": "typedef pr_u3c6_1298_cpu_status status_t;"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/ecl_helpers.h",
+   "line": 624,
+   "row": "OVL_03CE_0022",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "void (*show_text)(void *ctx);                              /* unit 0x3ce entry 1 (+0x0022) with the constant, 0, 0x28 */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u1c_load_monster_04af.h",
+   "line": 16,
+   "row": "OVL_03CE_01C8",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "*   0x3E9:0x34 (unit 0x3ce entry 4, +0x01C8) with (far local string, p3, [0x6F83])               (+0x0524..+0x0532)"
+  },
+  {
+   "covered_by": "OVL_03CE_01C8",
+   "file": "include/poolrad/recovered/overlay_u3ce_entry4_01c8.h",
+   "line": 4,
+   "row": "OVL_03CE_01C8",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of unit 0x3ce entry 4 (+0x01C8, file 0x31C34, run-time stub 0x3E9:0x34), the callee of LOAD MONSTER +0x0532."
+  },
+  {
+   "covered_by": "OVL_03CE_01C8",
+   "file": "include/poolrad/recovered/overlay_u3ce_entry4_01c8.h",
+   "line": 5,
+   "row": "OVL_03CE_01C8",
+   "rule": "OWN_ROUTINE",
+   "text": "* 820 bytes (+0x01C8..+0x04FB), 353 instructions, SHA-256 3046c9df720e9e30e4db427198b37ced3932f8a6cbdca6e96a59f11e6568095d, `retf 8`."
+  },
+  {
+   "covered_by": "OVL_03CE_01C8",
+   "file": "src/recovered/overlay_u3ce_entry4_01c8.c",
+   "line": 1,
+   "row": "OVL_03CE_01C8",
+   "rule": "OWN_ROUTINE",
+   "text": "/* Bounded model of unit 0x3ce entry 4 (+0x01C8); see docs/re/U3CE_ENTRY4_01C8.md. */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/overlay_u3bd_pieces.h",
+   "line": 78,
+   "row": "OVL_040C_003B",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "/* Overlay unit 0x40c entry 1 (+0x003B, stub 0x428:0x25, `retf 4`) with (arg, slot) as"
+  },
+  {
+   "covered_by": "OVL_040C_015D",
+   "file": "include/poolrad/recovered/overlay_u40c_tile_015d_cpu.h",
+   "line": 25,
+   "row": "OVL_040C_015D",
+   "rule": "OWN_ROUTINE",
+   "text": "* bits and physical addresses at 1 MiB. See docs/re/OVL_040C_015D_CPU.md for the contract and evidence. */"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/resident_03f1_box_0000_cpu.h",
+   "line": 15,
+   "row": "OVL_040C_015D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* OVL_040C_015D's model; an unloaded entry (INT 3Fh, the overlay manager) stops with OVERLAY. The stub's segment word is"
+  },
+  {
+   "covered_by": null,
+   "file": "include/poolrad/recovered/resident_0464_video_mode_cpu.h",
+   "line": 29,
+   "row": "OVL_040C_015D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* the RES 00BA:16EC -> RES_03F1_0000 -> OVL_040C_015D path (docs/re/RES_0464_VIDEO_MODE_00CF_CPU.md). Entered by a far"
+  },
+  {
+   "covered_by": "OVL_040C_015D",
+   "file": "src/recovered/overlay_u40c_tile_015d_cpu.c",
+   "line": 1,
+   "row": "OVL_040C_015D",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 40Ch +015D tile placement, raw CPU (docs/re/OVL_040C_015D_CPU.md)."
+  },
+  {
+   "covered_by": "OVL_040C_015D",
+   "file": "src/recovered/overlay_u40c_tile_015d_cpu.c",
+   "line": 1,
+   "row": "OVL_040C_015D",
+   "rule": "OWN_ROUTINE",
+   "text": "/* GAME.OVR unit 40Ch +015D tile placement, raw CPU (docs/re/OVL_040C_015D_CPU.md)."
+  },
+  {
+   "covered_by": "OVL_040C_015D",
+   "file": "src/recovered/overlay_u40c_tile_015d_cpu.c",
+   "line": 193,
+   "row": "OVL_040C_015D",
+   "rule": "OWN_ROUTINE",
+   "text": "if (b == NULL || b->ram == NULL || c == NULL || env == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x015Du)"
+  },
+  {
+   "covered_by": "OVL_040C_015D",
+   "file": "src/recovered/overlay_u40c_tile_015d_cpu.c",
+   "line": 202,
+   "row": "OVL_040C_015D",
+   "rule": "OWN_ROUTINE",
+   "text": "case 0x015D: push(b,c,c->bp);c->ip=0x015Eu;break; /* push bp */"
+  },
+  {
+   "covered_by": null,
+   "file": "src/recovered/resident_03f1_box_0000_cpu.c",
+   "line": 75,
+   "row": "OVL_040C_015D",
+   "rule": "NO_SINGLE_ROUTINE",
+   "text": "* it is executed, then OVL_040C_015D runs to its RETF 0Ah, which returns straight to this body. */"
+  }
+ ],
+ "git": {
+  "branch_refs": 2432,
+  "branch_tips": 1580,
+  "commits_scanned": 3640,
+  "commits_sha256": "185045aba6ccbbaa32e675dd232f51f14a454cc9469e5602048cc2d98a1d388a",
+  "main_commits": 2922,
+  "tips_sha256": "2a076226f78023fa001e2383e72d90ba07e0e943e2b66db9fac0d178ea375fef",
+  "unmerged_tips": 572
+ },
+ "schema_version": 1
+}
