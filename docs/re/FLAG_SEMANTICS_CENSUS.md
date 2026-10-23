@@ -21,6 +21,12 @@ Read from `src/cpu/instructions.h` (SHLW/SHRW/SHRB, MULW), `src/cpu/flags.cpp`
   ZF = (AX == 0); PF = `PARITY16(AX)^PARITY16(DX)^FLAG_PF`. `FLAG_PF` is the constant
   mask, the three terms cancel to the even parity of all FOUR bytes of DX:AX, with no
   dependence on the prior PF. CF = OF = (DX != 0).
+- `PARITY16(x)` (`instructions.h:589`) is `parity_lookup[hi]^parity_lookup[lo]^FLAG_PF`, and `FLAG_PF` is the
+  CONSTANT mask 4 (`regs.h:25`), not the live flag: `PARITY16(x)` is just the even parity of the 16 bits. So DIVW/IDIVW
+  (`instructions.h:655-673, 743-761`), whose PF line is `PARITY16(rem)^PARITY16(quo)^FLAG_PF`, set PF to the even parity
+  of all four bytes of rem:quo, again with no dependence on the prior PF. A rule written as `...^PF` in this census means
+  that mask. The one row worded that way (`overlay_u33_party_attach_12e1_cpu.c`, IDIV CX=8) is reworded; its verdict
+  (agree) does not move, and no other row's classification changes.
 
 ## Fixed here
 
