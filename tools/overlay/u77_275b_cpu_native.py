@@ -20,7 +20,7 @@ DECLARATION (read this before reading the numbers):
 Compared: 12 CPU words (CS and IP are the harness's frame), the arithmetic flags
 under mask 0x0FD5, and both 0x300-byte object blocks.
 """
-# NOT_A_ROW_CHECKER: native DOSBox-X harness for OVL_0077_275B; the row's registered checker is u77_275b_cpu_audit.py
+# NOT_A_ROW_CHECKER: native harness for OVL_0077_275B; the row is registered by the audit (u77_275b_cpu_audit.py), this is a second instrument
 import ctypes
 import os
 import struct

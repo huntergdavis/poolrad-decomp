@@ -3995,3 +3995,27 @@ if(BUILD_TESTING)
     add_test(NAME poolrad_u68_roll_gate_0294_cpu_tests
              COMMAND poolrad_u68_roll_gate_0294_cpu_tests)
 endif()
+
+# ---------------------------------------------------------------------------
+# C tests always run with assert() live (par-d2, 2026-10-23). A Release build
+# defines NDEBUG, which compiled away the assert() of 211 test files and let the
+# suite pass blind. Every executable built from tests/ gets -UNDEBUG (later on
+# the command line than -DNDEBUG, so it wins), and the canary below refuses to
+# build if NDEBUG still reaches a test target.
+if(BUILD_TESTING)
+    add_executable(poolrad_assert_canary_tests tests/recovered/test_assert_canary.c)
+    add_test(NAME poolrad_assert_canary_tests COMMAND poolrad_assert_canary_tests)
+endif()
+get_property(_poolrad_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(_poolrad_target IN LISTS _poolrad_all_targets)
+    get_target_property(_poolrad_type ${_poolrad_target} TYPE)
+    if(_poolrad_type STREQUAL "EXECUTABLE")
+        get_target_property(_poolrad_sources ${_poolrad_target} SOURCES)
+        foreach(_poolrad_source IN LISTS _poolrad_sources)
+            if(_poolrad_source MATCHES "(^|/)tests/")
+                target_compile_options(${_poolrad_target} PRIVATE -UNDEBUG)
+                break()
+            endif()
+        endforeach()
+    endif()
+endforeach()
