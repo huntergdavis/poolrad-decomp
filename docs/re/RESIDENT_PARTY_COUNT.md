@@ -96,3 +96,14 @@ short routine"`, and exact queries for `RES_00BA_23DB` and
 and [loader map](RESIDENT_LOADER_MAP.md) supplied framing and address
 context; their role claims were checked against the cited DOS instructions.
 No original files, save bytes, decoded text, or executable bytes enter Git.
+
+## Reproduce (original-byte checker)
+
+`RES_00BA_23DB` is checked against the original bytes by the registered checker `tools/overlay/res00ba_rec_models_audit.py`,
+through the reusable io adapter `tools/overlay/res00ba_io_adapter.py`. What it compares is described in
+[RES_00BA_REC_MODELS_AUDIT.md](RES_00BA_REC_MODELS_AUDIT.md).
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay \
+  python3 tools/overlay/res00ba_rec_models_audit.py --output resources/res00ba-rec-audit/report.json
+```
