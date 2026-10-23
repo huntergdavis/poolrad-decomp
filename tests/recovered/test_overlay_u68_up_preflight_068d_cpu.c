@@ -75,7 +75,11 @@ int main(void)
     /* argument rejection is atomic */
     c = setup(r, 5, 3, 1, 0, 1, 1); memcpy(before, r, PR_BUS_RAM_SIZE); bus = flat_bus(r);
     c.ip = 0x068Eu; saved = c; assert(pr_u68_up_preflight_068d_cpu(&bus, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);
-    c.ip = 0x068Du; c.sp = 0x002Fu; saved = c; assert(pr_u68_up_preflight_068d_cpu(&bus, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);
+    /* the named SP-floor precondition: the composed 0350->047B->031F chain writes 30h bytes below entry SP, so an entry SP of 2Ah (which wraps the
+     * stack inside the segment; the original then runs off in Unicorn) is refused with ARGUMENT, CPU and RAM untouched */
+    c.ip = 0x068Du; c.sp = 0x002Au; saved = c; assert(pr_u68_up_preflight_068d_cpu(&bus, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);
+    assert(!memcmp(&c, &saved, sizeof c) && !memcmp(r, before, PR_BUS_RAM_SIZE));
+    c.sp = 0x002Fu; saved = c; assert(pr_u68_up_preflight_068d_cpu(&bus, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);
     c.sp = 0xFFFDu; saved = c; assert(pr_u68_up_preflight_068d_cpu(&bus, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);
     assert(!memcmp(&c, &saved, sizeof c) && !memcmp(r, before, PR_BUS_RAM_SIZE)); c.sp = S0;
     assert(pr_u68_up_preflight_068d_cpu(NULL, PR_BUS_RAM_SIZE, &c) == PR_U68_068D_ARGUMENT);

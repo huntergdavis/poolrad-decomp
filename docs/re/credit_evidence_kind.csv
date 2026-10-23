@@ -138,7 +138,7 @@ OVL_0068_04DF,checker,u68_movement_flag_04df_cpu_audit.py
 OVL_0068_05AB,unit-test,poolrad_overlay_u68_record_scan_tests
 OVL_0068_05EE,unit-test,poolrad_overlay_u68_list_search_tests
 OVL_0068_0648,unit-test,poolrad_overlay_u68_record_clear_tests
-OVL_0068_068D,unit-test,poolrad_overlay_u68_up_preflight_tests
+OVL_0068_068D,checker,ovl_0068_068d_cpu_audit.py
 OVL_006A_0000,audit,tools/overlay/u6a_record_weight_0000_audit.py
 OVL_006A_0159,checker,u6a_record_clear_high_0159_audit.py
 OVL_006A_019C,audit,tools/overlay/u6a_record_weight_0000_audit.py

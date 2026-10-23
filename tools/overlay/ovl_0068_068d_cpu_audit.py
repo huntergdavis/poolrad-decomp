@@ -215,6 +215,10 @@ def differential(body, code3bd, body_ips, lib, quick=False, only=None):
         stops[expected[0]] = stops.get(expected[0], 0) + 1; seen |= expected[3]; edges |= expected[4]; statements += independent(name, st, expected)
         if actual[0] in ('ARGUMENT', 'CALLEE') or (actual[0] == 'TRANSFER') != (name == 'window-on-ret-cs'):
             raise ValueError(f'{name}: C stopped {actual[0]}')
+    if only is None:                                                     # the named SP-floor precondition: entry SP 2Ah (the wrapping case) is refused, atomically
+        st = fixture(body, code3bd, sp=0x002A, cellfill=0xFF); r = run_c(lib, st)
+        check(r[0] == 'ARGUMENT' and r[1] == bytes(st[0]) and bytes(r[2]) == bytes(st[1]), 'entry SP 2Ah: ARGUMENT with CPU and RAM untouched')
+        stops['ARGUMENT (sp-2a)'] = 1
     conds = {a: (int(i.op_str, 16), a + i.size) for a, i in body_ips.items() if i.mnemonic.startswith('j') and i.mnemonic != 'jmp'}
     outcomes = {(a, t) for a, ts in conds.items() for t in ts}
     check(only is not None or seen == set(body_ips), f'starts not reached: {sorted(hex(a) for a in set(body_ips) - seen)}')
