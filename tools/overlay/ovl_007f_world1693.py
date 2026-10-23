@@ -148,13 +148,15 @@ def run_original(m, c, decoded, budget):
     def word(seg, off):
         at = physical(seg, off & 0xFFFF); return backing[at] | (backing[(at + 1) & (SIZE - 1)] << 8)
 
+    entry_ret = (word(c.ss, c.sp + 2), word(c.ss, c.sp))     # what the entry frame holds NOW: a fixture may legitimately place a pointer cell over the return slot
+
     def hook(uc_, address, size, user):
         cs = uc.reg_read(R.UC_X86_REG_CS); ip = uc.reg_read(R.UC_X86_REG_IP)
         writer.finish(uc)                                    # settle a MUL that executed just before this arrival (pinned MULW needs its DX:AX)
         if pending[0] is not None:
             target, expected = pending[0]; pending[0] = None
             if expected is None:
-                status[0] = 'RETURNED' if target == ENTRY_RET else 'TRANSFER'; uc.emu_stop(); return
+                status[0] = 'RETURNED' if target == entry_ret else 'TRANSFER'; uc.emu_stop(); return
             if target != expected:
                 status[0] = 'TRANSFER'; uc.emu_stop(); return
         kind = KIND_OF.get(cs)
