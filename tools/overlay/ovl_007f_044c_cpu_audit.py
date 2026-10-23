@@ -168,7 +168,7 @@ def expected_transfer(name):
 def statements(name, kw, st, expected, vcache, b54):
     """Independent of the C model, on cases whose records, cells and arrays do not overlap the stack, the globals or each other, and straddle nothing: the branch, the two array words, Q's +0102 word
     (+0020 then +003A leave it where it started) and the message temporary."""
-    status, ram, events, writes, ega, out, left, seen = expected
+    status, ram, events, writes, ega, out, left, seen = expected[:8]
     if status != 'RETURNED':
         return 0
     memory, cpu, info = st
