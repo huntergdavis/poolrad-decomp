@@ -176,8 +176,7 @@ def check_native(directory,result,program,code):
         divided = status == 0 and cpu.dx < cpu.cx
         if status == 0: totals["divisions" if divided else "clamps"] += 1
         for (name,_),expected in zip(Cpu._fields_,struct.unpack_from("<14H",observed)):
-            mask = (0xFFFF ^ 0x08D5) if name == "flags" and divided else 0xFFFF
-            if (getattr(cpu,name) ^ expected) & mask:
+            if (getattr(cpu,name) ^ expected) & 0xFFFF:  # FLAGS compared unmasked, including after IDIV
                 raise ValueError(f"native {case} {name}: {getattr(cpu,name):04X}/{expected:04X}")
         at = physical(segment,FRAME)
         if memory[at:at+FRAME_SIZE] != observed[30:30+FRAME_SIZE]:
@@ -194,7 +193,7 @@ def check_native(directory,result,program,code):
                   original_caller_suffix="U6C:+2469..2474",original_return_ip="2475",
                   reached_game_route=False,interrupts_isolated=True,compared_cpu_words=14,
                   compared_frame_bytes=FRAME_SIZE,compared_table_bytes=TABLE_SIZE,compared_record_bytes=DATA_SIZE,
-                  undefined_arithmetic_flags_masked_only_after_idiv=True,fault_frame_normalized_words=3,
+                  flags_masked=0,fault_frame_normalized_words=3,
                   result_sha256=sha256(result).hexdigest())
     (directory / "report.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
     print(json.dumps(report,sort_keys=True))
