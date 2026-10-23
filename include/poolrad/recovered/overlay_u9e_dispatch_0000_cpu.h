@@ -53,7 +53,7 @@ typedef struct {
 pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9e_0000_cpu *cpu, size_t *budget,
                                             const pr_u9e_0000_limits *limits, pr_u9e_0000_diagnostic *diagnostic);
 
-/* The slot table the model was built on, for the audit and the tests. kind: 0 refused, 1 raw (composed), 2 semantic gap, 3 uncredited gap, 4 deferred gap. */
+/* The slot table the model was built on, for the audit and the tests. kind: 0 refused, 1 raw (composed), 2 semantic gap, 3 uncredited gap, 4 deferred gap, 5 adapted (a credited semantic model composed through a hand adapter). */
 int pr_u9e_dispatch_0000_slot_kind(unsigned slot);
 uint16_t pr_u9e_dispatch_0000_slot_stub_off(unsigned slot);
 uint16_t pr_u9e_dispatch_0000_slot_stub_seg(unsigned slot);

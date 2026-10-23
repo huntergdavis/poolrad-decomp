@@ -29,7 +29,7 @@ static pr_u9e_0000_cpu setup(uint8_t *r, unsigned idx)
     /* the loaded stub of every raw-composed slot: EA, the handler's offset, the loaded segment */
     for (s = 1; s < 140; ++s) {
         uint16_t seg, off;
-        if (pr_u9e_dispatch_0000_slot_kind(s) != 1) continue;
+        if (pr_u9e_dispatch_0000_slot_kind(s) != 1 && pr_u9e_dispatch_0000_slot_kind(s) != 5) continue;
         seg = pr_u9e_dispatch_0000_slot_stub_seg(s); off = pr_u9e_dispatch_0000_slot_stub_off(s);
         r[at(seg, off)] = 0xEA; put16(r, seg, (uint16_t)(off + 1u), pr_u9e_dispatch_0000_slot_entry(s)); put16(r, seg, (uint16_t)(off + 3u), LOAD_CS);
     }
@@ -43,9 +43,9 @@ int main(void)
     assert(r && before);
     /* the table the model was built on: 1..139 are handlers (88 via unit 0x86), the kinds are the documented counts */
     {
-        unsigned n[5] = {0, 0, 0, 0, 0};
+        unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 35 && n[3] == 61 && n[4] == 1);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 34 && n[3] == 61 && n[4] == 1 && n[5] == 1);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
@@ -57,10 +57,10 @@ int main(void)
         assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_REFUSED);
         assert(memcmp(&c, &saved, sizeof c) == 0 && memcmp(r, before, PR_U9E_0000_RAM_SIZE) == 0 && budget == b0 && d.slot == (int)i);
     }
-    /* GAP: slot 4 (uncredited +017F), slot 1 (semantic +010D), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
+    /* GAP: slot 4 (uncredited +017F), slot 2 (semantic +011D), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
     {
         static const struct { unsigned slot; pr_u9e_0000_gap gap; uint32_t id; } G[] = {
-            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {1, PR_U9E_0000_GAP_SEMANTIC, 0x0038010Du}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
+            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {2, PR_U9E_0000_GAP_SEMANTIC, 0x0038011Du}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
         for (i = 0; i < 4; ++i) {
             c = setup(r, G[i].slot); budget = 100000;
             assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_GAP);
@@ -81,6 +81,13 @@ int main(void)
     assert(c.cs == 0x8000u && c.ip == 0x9000u && c.sp == (uint16_t)(S0 + 0x10u) && c.bp == 0x7777u && c.di == 64u && c.ax == 16u);
     assert(c.flags == (uint16_t)((0x0202u & ~0x08D5u) | 0x0010u));          /* 64: CF=0, ZF=0, SF=0, OF=0, PF=0 (one bit set), AF=1 */
     assert(budget == 100000u - 16u);                                          /* 13 before the LCALL + the LCALL + POP BP + RETF = 16 charged; the stub JMP and the handler are free */
+    /* ADAPTED slot 1 (+010D: ADD byte [6825],5; INC byte [6822]), hand-checked: [6825]=FEh -> 03h (CF=1, AF=1, ZF=0, SF=0, OF=0, PF=1 since 03h has two bits), then [6822]=7Fh -> 80h
+     * (INC keeps CF=1; AF=1, OF=1, SF=1, ZF=0, PF=0 since 80h has one bit): flags = 0202h kept bits | CF 0001 | AF 0010 | SF 0080 | OF 0800 = 0A93h. The handler's PUSH BP writes the dispatcher's BP below its return slot. */
+    c = setup(r, 1); r[at(DS_, 0x6825)] = 0xFE; r[at(DS_, 0x6822)] = 0x7F; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6825)] == 0x03u && r[at(DS_, 0x6822)] == 0x80u && c.flags == 0x0A93u && c.bp == 0x7777u);
+    assert(c.cs == 0x8000u && c.ip == 0x9000u && c.sp == (uint16_t)(S0 + 0x10u) && c.di == 4u && c.ax == 1u);
+    assert(get16(r, SS_, (uint16_t)(S0 - 16u - 2u)) == (uint16_t)(S0 - 2u));   /* the handler's PUSH BP writes the dispatcher's BP (S0-2) below its return slot */
     /* the budget sweep: LIMIT stops at each instruction start in order */
     {
         static const uint16_t IPS[] = {0x0000, 0x0001, 0x0003, 0x0006, 0x0009, 0x000C, 0x000F, 0x0012, 0x0013, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0022, 0x0023};
