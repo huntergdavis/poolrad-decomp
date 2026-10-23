@@ -556,13 +556,15 @@ def specs(bodies, dmap, literal, lib, quick=False):
     for lim in (0, 1, 2, 3):
         out.append((f'walk-3-limit-{lim}', dict(nodes=N(3), walk_limit=lim)))
     out.append(('walk-1-limit-0', dict(nodes=N(1), walk_limit=0)))
-    # code guards: an original opcode or offset that differs stops at the call, and a stub that does not resolve
+    # code guards: an original opcode or offset that differs stops at the call, and a stub that does not resolve. Entry FLAGS
+    # 08D7h (every arithmetic flag set): at the default SP, SUB SP,14h's own result flags are all clear, so with clean entry
+    # flags a model that skipped them would be indistinguishable at these stops (the mutation check found that).
     for site in SITES:
-        out.append((f'code-op-{site:x}', dict(nodes=N(2), writes=((OVERLAY, site, b'\x90'),))))
-        out.append((f'code-off-{site:x}', dict(nodes=N(2), writes=((OVERLAY, site + 1, b'\x00'),))))
-        out.append((f'code-op-over-{site:x}', dict(nodes=N(16), writes=((OVERLAY, site, b'\x90'),))))
-    out.append(('stub-opcode', dict(nodes=N(2), writes=((STUB, 0x4D, b'\x90'),))))
-    out.append(('stub-target', dict(nodes=N(2), writes=((STUB, 0x4E, b'\x5C'),))))
+        out.append((f'code-op-{site:x}', dict(nodes=N(2), flags=0x08D7, writes=((OVERLAY, site, b'\x90'),))))
+        out.append((f'code-off-{site:x}', dict(nodes=N(2), flags=0x08D7, writes=((OVERLAY, site + 1, b'\x00'),))))
+        out.append((f'code-op-over-{site:x}', dict(nodes=N(16), flags=0x08D7, writes=((OVERLAY, site, b'\x90'),))))
+    out.append(('stub-opcode', dict(nodes=N(2), flags=0x08D7, writes=((STUB, 0x4D, b'\x90'),))))
+    out.append(('stub-target', dict(nodes=N(2), flags=0x08D7, writes=((STUB, 0x4E, b'\x5C'),))))
     # display path: mode, active page, factor, planar fills and write modes, fonts, refused pages (as the 3134 closure)
     for mode in (0, 1, 2, 3, 255):
         out.append((f'display-mode-{mode}', dict(nodes=N(16), mode=mode)))

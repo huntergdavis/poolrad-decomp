@@ -37,9 +37,14 @@ def specifications():
     # because SYSTEM's RunError (0AF8:00E2) runs Halt's exit chain, which a bare oracle cannot survive (it hung the first run).
     out += [dict(nodes=N(2), over=0, result=(A.RESULT_SEG, 0xFFFF))]
     out += [dict(nodes=N(2), over=0, item=dict(weight=0xFFFF, quantity=255))]
-    out += [dict(nodes=N(2), over=0, stop=(OVERLAY, s)) for s in (0x24D, 0x29B, 0x300, 0x344)] + [dict(nodes=N(16), over=1, stop=(OVERLAY, 0x260))]
+    # each trapped call site must be on the case's path: 029B (head GetMem) needs an empty list, 0300 (tail GetMem) a non-empty
+    # one, 0260 (StrLoad) the over-capacity path
+    out += [dict(nodes=N(0 if s == 0x29B else 2), over=0, stop=(OVERLAY, s)) for s in (0x24D, 0x29B, 0x300, 0x344)]
+    out += [dict(nodes=N(16), over=1, stop=(OVERLAY, 0x260))]
+    # IF stays clear natively: the oracle's POPF would otherwise enable interrupts inside the body and a timer IRQ frame
+    # (F000:FEAF) lands in its locals (the first native run showed exactly that in case 6). IF-set entry flags are Unicorn-only.
     for n, c in enumerate(out):
-        c.setdefault('flags', (tuple(FLAGS) + (0x0202, 0x0602, 0x0A87, 0x0402, 0x0E57))[n % 11])
+        c.setdefault('flags', (tuple(FLAGS) + (0x0202, 0x0602, 0x0A87, 0x0402, 0x0E57))[n % 11] & ~0x0200)
     return out
 
 
@@ -119,7 +124,7 @@ def native(bodies, literal, lib, directory=None):
     t += ['push cs', 'pop es', 'cld', f'mov sp,{TOP}', 'mov al,0xa5', f'mov di,{LOW}', f'mov cx,{STACK_WINDOW}', 'rep stosb',
           'mov ax,0x40', 'mov ds,ax', 'mov al,byte ptr [0]', 'mov byte ptr cs:[bios],al',
           f'push {A.ITEM_SEG}', 'push 0x0200', 'push word ptr cs:[spec+8]', 'push word ptr cs:[spec+6]', 'push word ptr cs:[spec]',
-          f'mov ax,{DS}', 'mov ds,ax']
+          f'mov ax,{DS}', 'mov ds,ax', 'mov ax,0x1111', 'mov es,ax']        # ES as the fixture has it (0239 reads it only after an LES)
     for r, v in zip('ax bx cx dx si di bp'.split(), REGS):
         t.append(f'mov {r},{v}')
     t += ['popf', 'call dword ptr cs:[target]', 'returned:']
