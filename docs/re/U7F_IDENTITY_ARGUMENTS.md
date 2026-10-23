@@ -102,3 +102,42 @@ The caller's pushes (`+23FE..+240F`), in 044C's frame:
 **Limits:**
 - the destination record is taken as a character object from its use of `+88h` and `+102h` (the 285-byte layout), not traced through `2C48`;
 - the meanings of `+88h[index]` and `+102h` are not named.
+
+## `OVL_007F_0A88` (210 B, `[0A88,0B5A)`), evidence PR #1484
+
+I re-decoded both the caller and the body from the original unit `7Fh` bytes for this section. The checks below cite
+those instructions.
+
+**Factor 1: PASS, through a near call from a `game_evidenced` caller.** The one site is `+0F25 push cs` / `+0F26 call 0A88`,
+inside `OVL_007F_0CEB` (`game_evidenced`, grade A, near-call evidence `decoded_validated`; extent `[0CEB,0F7E)`). There is no
+fixup-backed site and no entry slot.
+
+**Factor 2: PASS on two independent grounds.** 0A88 USES documented game state rather than forwarding it.
+
+The caller's pushes (`+0F15..+0F24`), in 0A88's frame (`RETF 8`):
+
+| 0A88 slot | What 0CEB passes |
+| --- | --- |
+| `[bp+0Ch]:[bp+0Ah]` | `[5D94]:[5D92]`, the **active-character pointer** ([GAMEPLAY_PATH.md](GAMEPLAY_PATH.md)) |
+| `[bp+8]` | `[bp-116h]`, the amount `0294` returned (`+0F11`). 0294 was given `DS:[67F4h+4i]` as its maximum at `+0F00` |
+| `[bp+6]` | the index byte `[bp-2]` |
+
+1. **The DS:67F4 pool.** At `+0AC5..+0ADA`, 0A88 reads the dword `DS:[67F4h+4i]/[67F6h+4i]`, compares the amount with it
+   (`cmp dx,bx; jg/jl`, then `cmp ax,cx; jbe`), and clamps the amount to the pool (`+0AE6..+0AEA`). It then writes
+   `pool - amount` back (`+0B00..+0B1E`, a `sub`/`sbb` pair, then stores to `67F4h+4i`/`67F6h+4i`). Two docs define these dwords:
+   [U7F_RECORD_SUBTRACT_0020.md](U7F_RECORD_SUBTRACT_0020.md), where record `+88h` words are added into them, and
+   [U7F_NUMBER_0294_CPU.md](U7F_NUMBER_0294_CPU.md), at the same 0CEB site.
+2. **The active-character record.** At `+0B28..+0B42` it does `les di,[bp+0Ah]`, then reads, adds the amount to and writes back
+   `es:[di+88h+2i]`, a read-modify-write of the active character's `+88h[i]` word. Before that, it passes the same
+   record and amount to `0054` (`+0A8E..+0A9D`), the `+102h` threshold test (see 0054 above). When the test is over the
+   threshold, it shows a message through `0AF8:0B0B` and `00BA:1693`, and does nothing else. At the end it passes the record and
+   amount to `003A` (`+0B47..+0B51`).
+
+**Role line:** moves up to the amount from the `DS:67F4` pool slot `i` into the active character's `+88h[i]` word. The amount
+is clamped to what the pool holds, and the move is refused with a message when 0054's `+102h` threshold would be passed.
+
+**Limits:**
+- the meanings of `+88h[i]`, `+102h` and the pool are not named. The identity rests on the dereference and on the
+  documented `67F4` dwords, not on their meaning;
+- 0CEB's class is from the function-accounting queue export, which this note did not regenerate;
+- `003A` is not traced here.
