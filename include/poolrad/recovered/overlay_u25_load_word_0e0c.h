@@ -24,4 +24,14 @@ typedef enum {
 pr_u25_load_word_status pr_u25_load_word_0e0c(
     uint8_t *ram, size_t ram_size, pr_u25_load_word_cpu *cpu);
 
+/* Entry at CS:07BC after the far CALL (or PUSH CS; CALL): the class-1 load
+ * hook alone, the SAME code the +0E0C entry runs (no second copy). SS:SP
+ * holds return IP/CS, the far pointer to the found flag, and the address
+ * word; RETF 6. The flag byte is set to 1 before the address is read and
+ * cleared on the not-found path; AX is the result local [BP-2], which some
+ * paths never write (it is read from RAM, as in DOS). Its +0756 calls
+ * return TRANSFER on an altered frame. Same RAM contract as above. */
+pr_u25_load_word_status pr_u25_load_hook_07bc(
+    uint8_t *ram, size_t ram_size, pr_u25_load_word_cpu *cpu);
+
 #endif
