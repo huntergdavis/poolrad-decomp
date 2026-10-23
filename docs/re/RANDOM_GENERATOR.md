@@ -74,3 +74,43 @@ runs, as `Randomize` predicts: `C83DAA44` and `CC295420` before the load.
 **Limit.** Draws in (b) were attributed by wall-clock window. The encounter screen is recognised a few seconds after
 it appears, so the 5 draws of the encounter step may include its setup. **Under the VP's rule (i21897), (b) is
 non-zero**; the decision belongs to the VP and the PM.
+
+## Stage 2: the seed pin (2026-10-23, PM i22231, VP i22230)
+
+**Mechanism.** This is a logged test-harness poke, off by default.
+- **Observer:** `pr_hybrid_observer.h` reads `PR_HYBRID_SEED_PIN=<hex>`. At the first RandSeed step (`DRAW_SYS_120F`)
+  after the driver has created `<run>/observer.pin`, it writes the value to `DS:4428..442B` before the step executes,
+  and logs `# PINNED` in `<run>.draws`.
+- **Driver:** `walk_driver.py` creates `observer.pin` at `SAVE LOADED`.
+- **Registry:** the `DRAW_SYS_120F` row is now part of the registry every run uses, so every run logs its draws.
+
+**Runs.** Build `a0e1c66f`, all observer-only, all with pin `12345678`. Each pin landed at draw 30,533.
+
+| Pair | Pre-pin draws | Post-pin RandSeed sequence | Keys sent | Final frame |
+| --- | --- | --- | --- | --- |
+| walk `hybrid-pin2-walk-a` vs `-b` | 30,532 / 30,532, seed sequences **different** | 1 / 1, **identical** | 5 / 5, identical | **0 px** apart, and 0 px vs the reference walk frame |
+| route 3 `hybrid-pin2-r3-a` vs `-b` | 30,532 / 30,532, seed sequences **different** | 1,447 / 1,447, **identical** | 132 / 132, identical | **0 px** apart |
+
+**The poke's exact point.** It happens at the instruction start of the first `+120F` arrival (the seed step's `MOV
+AX,[4428]`) after `observer.pin` exists. In every run here that was arrival 30,533, the step onto 14,4. The four bytes
+are written before that instruction executes, so the step reads the pinned value. The `# PINNED` line records the
+arrival and the instruction count.
+
+**OFF by default:** with `PR_HYBRID_SEED_PIN` unset nothing is written, and the observer stays read-only. **Pinned
+runs are TEST-HARNESS runs. They are never quoted as natural game behaviour.**
+
+**Equality as hashes.** The ordered post-pin RandSeed column, plus the draw count, and the final frame's raw RGB
+pixels. The instruction counter is excluded, because it counts idle-loop instructions while the game waits for keys.
+
+| Run | Post-pin draws | RandSeed sequence SHA-256 (16) | Final pixels SHA-256 (16) |
+| --- | --- | --- | --- |
+| `hybrid-pin2-walk-a` | 1 | `ef797c8118f02dfb` | `955fa8ff76c1db2c` |
+| `hybrid-pin2-walk-b` | 1 | `ef797c8118f02dfb` | `955fa8ff76c1db2c` |
+| `hybrid-pin2-r3-a` | 1,447 | `ad42d362af555a51` | `1a371fdb1dc6a17b` |
+| `hybrid-pin2-r3-b` | 1,447 | `ad42d362af555a51` | `1a371fdb1dc6a17b` |
+
+**What it shows:**
+- Start-up draws the same number of times in every run, from a different clock seed: the same counts, different
+  values. This is the benign cause behind the walk run that met an encounter on the 14,4 step.
+- Once pinned at the save-load point, the walk and the whole combat route reproduce draw for draw and pixel for pixel.
+- With a pin, route 3 can carry a pixel bar like the walk. That bar is not adopted here; the ruling is the PM's.

@@ -180,10 +180,10 @@ index 0000000..f880355
 +#endif
 diff --git a/src/cpu/pr_hybrid_observer.h b/src/cpu/pr_hybrid_observer.h
 new file mode 100644
-index 0000000..65c12f7
+index 0000000..011606d
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_observer.h
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,152 @@
 +/* Poolrad hybrid executor, STAGE 0: OBSERVER ONLY (docs/HYBRID_EXECUTOR_SCOPE.md in the poolrad-decomp repo, VP i20556).
 + *
 + * Counts arrivals at credited entry points. It never changes guest state: it reads guest bytes and writes host files.
@@ -203,6 +203,7 @@ index 0000000..65c12f7
 +#include <string>
 +#include <vector>
 +#include <sys/time.h>
++#include <sys/stat.h>
 +
 +namespace pr_obs {
 +struct Entry {
@@ -221,7 +222,11 @@ index 0000000..65c12f7
 +static const uint64_t SEQ_CAP = 2000000;
 +static std::string log_base;
 +static FILE *seq = NULL;
-+static FILE *draws = NULL;                    /* <log>.draws: every arrival of a DRAW_ row (the RandSeed step), never capped */
++static FILE *draws = NULL;
++/* Seed-pin stage 2 (PM i22231): a TEST-HARNESS POKE, off unless PR_HYBRID_SEED_PIN is set. At the first RandSeed step (a DRAW_ row) after the
++ * driver has created <log>.pin (it does so at SAVE LOADED), DS:4428..442B := PR_HYBRID_SEED_PIN before the step runs. Logged in <log>.draws. */
++static int pin_state = 0;                     /* 0 off, 1 armed, 2 done */
++static uint32_t pin_value = 0;                    /* <log>.draws: every arrival of a DRAW_ row (the RandSeed step), never capped */
 +static void (*on_match)(int index, uint16_t cs, uint16_t ip) = NULL;   /* set by the one-body dispatch */
 +static int suppress_index = -1;               /* an entry whose re-arrival is a hand-back rerun, not a new arrival */
 +
@@ -282,6 +287,7 @@ index 0000000..65c12f7
 +    log_base = lb && *lb ? lb : "pr_hybrid_observer";
 +    seq = fopen((log_base + ".seq").c_str(), "w");
 +    if (seq) fprintf(seq, "# n\tid\tcs:ip\tinstruction\n");
++    { const char *pv = getenv("PR_HYBRID_SEED_PIN"); if (pv && *pv) { pin_value = (uint32_t)strtoul(pv, NULL, 16); pin_state = 1; } }
 +    draws = fopen((log_base + ".draws").c_str(), "w");
 +    if (draws) { fprintf(draws, "# n\tinstruction\twall_ms\tcs:ip\trandseed_before (DS:4428, read at the step's entry)\n"); fflush(draws); }
 +    state = 2;
@@ -306,6 +312,14 @@ index 0000000..65c12f7
 +        if (draws && e.id.compare(0, 5, "DRAW_") == 0) {
 +            struct timeval tv; gettimeofday(&tv, NULL);
 +            PhysPt d = SegPhys(ds) + 0x4428u;
++            if (pin_state == 1) {
++                struct stat st;
++                if (stat((log_base + ".pin").c_str(), &st) == 0) {
++                    for (int k = 0; k < 4; ++k) mem_writeb(d + k, (uint8_t)(pin_value >> (8 * k)));
++                    pin_state = 2;
++                    fprintf(draws, "# PINNED RandSeed := %08X at draw %llu, instruction %llu\n", pin_value, (unsigned long long)e.count, (unsigned long long)insns);
++                }
++            }
 +            uint32_t seed = (uint32_t)mem_readb_inline(d) | ((uint32_t)mem_readb_inline(d + 1) << 8) |
 +                            ((uint32_t)mem_readb_inline(d + 2) << 16) | ((uint32_t)mem_readb_inline(d + 3) << 24);
 +            fprintf(draws, "%llu\t%llu\t%llu\t%04X:%04X\t%08X\n", (unsigned long long)e.count, (unsigned long long)insns,
@@ -324,10 +338,10 @@ index 0000000..65c12f7
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..387ee4e
+index 0000000..2ff6a2a
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1017 @@
+@@ -0,0 +1,1021 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -430,6 +444,7 @@ index 0000000..387ee4e
 +#include "poolrad/recovered/overlay_u5e_direction_match_2574.h"
 +#include "poolrad/recovered/overlay_u5e_direction_gate_17f6.h"
 +#include "poolrad/recovered/overlay_u3c6_slot_getters_cpu.h"
++#include "poolrad/recovered/resident_00ba_link_check_2e03_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -483,7 +498,7 @@ index 0000000..387ee4e
 +PR_SAME_LAYOUT(pr_r0709_screen_cpu); PR_SAME_LAYOUT(pr_u3bd_lookup_cpu); PR_SAME_LAYOUT(pr_u3bd_0155_cpu); PR_SAME_LAYOUT(pr_u3bd_057a_cpu); PR_SAME_LAYOUT(pr_u68_068d_cpu);
 +PR_SAME_LAYOUT(pr_u3c2_057b_cpu); PR_SAME_LAYOUT(pr_u33_0221_cpu); PR_SAME_LAYOUT(pr_u3c2_01a0_cpu); PR_SAME_LAYOUT(pr_u33_012b_cpu); PR_SAME_LAYOUT(pr_u3c2_0422_cpu); PR_SAME_LAYOUT(pr_u3c6_06e9_cpu); PR_SAME_LAYOUT(pr_u33_01ad_cpu);
 +PR_SAME_LAYOUT(pr_u33_0615_cpu); PR_SAME_LAYOUT(pr_u33_040f_cpu); PR_SAME_LAYOUT(pr_u33_0377_cpu); PR_SAME_LAYOUT(pr_u33_02ba_cpu); PR_SAME_LAYOUT(pr_u5e_0e52_cpu); PR_SAME_LAYOUT(pr_u3c2_002e_cpu); PR_SAME_LAYOUT(pr_u3c6_03a0_cpu); PR_SAME_LAYOUT(pr_u31_128d_cpu); PR_SAME_LAYOUT(pr_u33_1434_cpu); PR_SAME_LAYOUT(pr_u31_0675_cpu); PR_SAME_LAYOUT(pr_u2f_0131_cpu); PR_SAME_LAYOUT(pr_u3c6_0068_cpu); PR_SAME_LAYOUT(pr_u3c2_0909_cpu);
-+PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu);
++PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu); PR_SAME_LAYOUT(pr_res_2e03_cpu);
 +PR_SAME_LAYOUT(pr_res_2637_cpu); PR_SAME_LAYOUT(pr_r0709_delay_cpu); PR_SAME_LAYOUT(pr_r0709_skip_cpu); PR_SAME_LAYOUT(pr_target_cpu); PR_SAME_LAYOUT(pr_roll_chain_cpu); PR_SAME_LAYOUT(pr_r00ba_1693_cpu); PR_SAME_LAYOUT(pr_u33_1577_cpu); PR_SAME_LAYOUT(pr_u5e_2879_cpu); PR_SAME_LAYOUT(pr_u38_string_match_cpu); PR_SAME_LAYOUT(pr_u6c_3291_cpu); PR_SAME_LAYOUT(pr_u6c_0000_cpu); PR_SAME_LAYOUT(pr_u2f_122b_cpu); PR_SAME_LAYOUT(pr_u38_11f9_cpu); PR_SAME_LAYOUT(pr_u25_0f53_cpu); PR_SAME_LAYOUT(pr_u7f_0f7e_cpu); PR_SAME_LAYOUT(pr_u25_0482_cpu); PR_SAME_LAYOUT(pr_u25_1951_cpu); PR_SAME_LAYOUT(pr_u1c_return_cpu); PR_SAME_LAYOUT(pr_u1c_gosub_cpu); PR_SAME_LAYOUT(pr_u33_12e1_cpu); PR_SAME_LAYOUT(pr_u33_0810_cpu); PR_SAME_LAYOUT(pr_u33_0000_cpu); PR_SAME_LAYOUT(pr_u20_0355_cpu); PR_SAME_LAYOUT(pr_u1c_cmon_cpu); PR_SAME_LAYOUT(pr_u25_1fb1_cpu); PR_SAME_LAYOUT(pr_u1c_delay_cpu); PR_SAME_LAYOUT(pr_u77_27df_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
@@ -587,6 +602,7 @@ index 0000000..387ee4e
 +    {"OVL_03C6_0CB9", 0x0000, 0x0CB9, 18, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* RETF 0Eh; SS-wrapped frame policy */
 +    /* batch 8 (route 3): the remaining credited raw/bus entries route 3 reaches; returns detected dynamically */
 +    /* batch 8b: U3C6 entries 12/13/14/15 through the existing raw slot-getter model (found by the pre-claim grep) */
++    {"RES_00BA_2E03", 0x00BA, 0x2E03, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* the new raw model (#1494); RETF 4 */
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -794,6 +810,8 @@ index 0000000..387ee4e
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
 +    /* batch 8 */
++    if (!strcmp(x.id, "RES_00BA_2E03")) { int st = pr_res_00ba_link_check_2e03_cpu(MemBase, RAM, (pr_res_2e03_cpu *)&m);
++        return st == PR_RES_2E03_RETURNED ? 0 : st == PR_RES_2E03_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C6_0BE7") || !strcmp(x.id, "OVL_03C6_0C0F") || !strcmp(x.id, "OVL_03C6_0C37") || !strcmp(x.id, "OVL_03C6_0C5F")) {
 +        int st = pr_u3c6_slot_getter_cpu(MemBase, RAM, (pr_u3c6_getter_cpu *)&m, (size_t)1u << 20);
 +        return st == PR_U3C6_GETTER_OK ? 0 : st == PR_U3C6_GETTER_ARGUMENT ? 1 : 2; }
