@@ -86,3 +86,29 @@ Builds: `65521ba5` (the 29) and `e4ece650` (the 29 plus the trio).
 - **No credit change.**
 - The limit is the one stated in batch 7: validated per arrival, which is weaker than "the final state matched".
 - The single-arrival bodies rest on one compared call each.
+
+## Batch 8b: U3C6 entries 12-15 through the existing slot-getter model (PM i22065)
+
+The pre-claim grep (VP i22025) for the planned "carve-outs" found that the model already exists. It is
+`pr_u3c6_slot_getter_cpu` (`overlay_u3c6_slot_getters_cpu.c`), and its header reads: "Raw U3C6 entries12/13/14/15,
+IP0BE7/0C0F/0C37/0C5F, all RETF4".
+
+My earlier entry classification had grepped only for `pr_*<offset>*` names, so these four looked like "no entry". The
+classification now also greps IP values in header comments.
+
+**The four are glued through that one model** (RETF 4, same unit, so no stub). Build `738d07fb`.
+
+**Route-3 V1, `hybrid-b8c-v1-r3-a`:** driver_rc 0, non-equal 0, stub declines 0. The walk regression,
+`hybrid-b8c-v1-walk`, is 0 px with 0 non-equal.
+
+| Body | Observer arrivals | V1 own / equal |
+| --- | --- | --- |
+| `OVL_03C6_0BE7` | 317 | 177 / 177 |
+| `OVL_03C6_0C0F` | 317 | 177 / 177 |
+| `OVL_03C6_0C37` | 83 | 83 / 83 |
+| `OVL_03C6_0C5F` | 1,224 | 107 / 107 (the rest arrive inside glued composers: 0BE7/0C0F, 071A, 0CB9, 263D) |
+
+**4 more counted from route 3.** The route-3 total is 50: 23 + 23 + 4.
+
+This PR also carries the batch-8 doc fix that missed #1488 (the delay wording and the pre-#1445 note). **It replaces
+commit `355cffff`**, which was pushed to #1488's branch after that PR had merged.
