@@ -39,6 +39,11 @@ stubs. The glue checks the three stubs listed in [re/U5E_DIRECTION_263D.md](re/U
 It takes `slots_cs` and `predicate_cs` from those stubs. If any check fails it declines, so nothing changes and the
 original runs. Stub declines were 0 in both runs.
 
+**These sources predate #1445.** The trio was glued against main before #1445, codex's loaded-overlay-stub guards,
+which changes `overlay_u5e_direction_gate_17f6.c` and the 263D audit. #1445 was still open when this ran. Until it
+lands, the stub-precondition guard lives in this glue, as for 0214 (PM i21977). Once #1445 lands, the trio is re-run
+against main.
+
 ## Results
 
 Builds: `65521ba5` (the 29) and `e4ece650` (the 29 plus the trio).
@@ -65,9 +70,13 @@ Builds: `65521ba5` (the 29) and `e4ece650` (the 29 plus the trio).
 | `OVL_006C_3291` | 6 / 6 (b8a: 5 equal, plus 1 C stop at 0C0D:002F whose mid-body hand-back compared equal) | | | |
 
 **Glued but NOT counted:**
-- **`RES_0709_0DBE` and `RES_00BA_1693`: every arrival timed out** (b8a 17 and 1, b8b 39 and 6). The window is abandoned
-  after 2M instructions. Both are timer-delay bodies: the original spins on the BIOS tick, and the shadow C cannot
-  advance time. They are not shadow-comparable as glued. Whether to keep them is the PM's ruling.
+- **`RES_0709_0DBE` and `RES_00BA_1693`: delay: not shadow-comparable** (PM i22007). They stay glued and are not
+  counted. Every arrival timed out: b8a 17 and 1, b8b 39 and 6. The window is abandoned after 2M instructions. Both are
+  timer-delay bodies: the original spins on the BIOS tick, and the shadow C cannot advance time. These are honest
+  non-comparisons, not passes.
+
+  **Possible later fix, not built:** feed the shadow C the BIOS tick values the original read, so that its delay loop
+  ends at the same point.
 - **`OVL_0033_0810`:** its one arrival per run was IRQ-interrupted.
 - **0 own arrivals in both runs:** `OVL_006C_0000`, `OVL_0025_12FB`, `OVL_0025_1951`, `OVL_0033_0000`, `OVL_001C_271F`,
   `OVL_0077_27DF`.
