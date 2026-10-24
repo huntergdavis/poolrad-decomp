@@ -64,6 +64,35 @@ The program data segment is paragraph `0C7C` of the expanded image. `DS:0113h+i`
 
 Function `+1656` (`callers 84 5 1656`) takes a type byte at `[BP+14h]` and forwards it at `+16FD` to `+0026`; the list append `+0E52` (`callers 52 4 E52`) writes the type of every node it creates. **Immediates passed to the removal chain include 254 (`0038+1FC5`) and 0 (`0086+21E7`).** Whether the dispatcher is then reached with 254 or 0 depends on whether a node of that type with a nonzero byte `+4` exists in the list being walked. The appenders' constants are all in 1..124 (31 immediates, `callers 52 4 E52`), but **8 of the 39 append sites are not constants** (`0038+004A` parameter, `0038+2F24` item `+3Dh`, `0038+18ED` and `+197A`, `0086+1354`, `+205A`, `+2F44`, `009E+1716` parameter), and the removal-chain forwarders `+1656` (7 non-immediate callers) and `+1080` (1) have their own parameters. Closing this is a global invariant on the set of node types ever created; this document does not close it.
 
+## Scan inputs (by hash)
+
+`python3 tools/overlay/u9e_index_sites.py inputs` prints these; the scans read nothing else. START.EXE and GAME.OVR are the owner files named in `U38_DISPATCH_BOUNDARY_2EDA.md` (same hashes). The data segment used for the tables is paragraph 0C7C of the expanded START.EXE image (`u9e_dispatch_0000_audit.py` `source()`, the same expansion the composed differential runs on).
+
+```
+d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd  START.EXE
+872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614  GAME.OVR
+a1927b99e61de81f910cae15428e8bce17fd1857197a666e605980f8ba3e8332  CHRDATA1.ITM
+1068419d97cae13fa081304c5fee9c10e487a2d7f073bba8b21c1d41e746a48a  CHRDATA2.ITM
+a069154daf5870f11c3580d0dc8df3e19dce47d9805060428f39667c04446b2c  CHRDATA3.ITM
+2583a54045d43f64e656b4446b30bac7ea2d6d6223cd020d9ef727a135bd6857  CHRDATA4.ITM
+caf8e0db328867a8087b0a7311b777f0183fbec193377a3c7146d2021580d7f1  CHRDATA5.ITM
+ab5c48038c4000a690e25737d73b647967c991e778346ca0747e11db828f95e3  CHRDATA6.ITM
+beb57c33402d8aee81275b913d822c65593bdb0107f49ee1f0016b8875c95d22  CHRDATJ1.ITM
+bd8a75e0c112130bd426b1e98e24d9413983b23411a27da52103874c1b89bdcc  CHRDATJ2.ITM
+20d8fadd91a6a8484de9add2bc9fd8b6cc151f9cf83b2f7a322e171f3c20d6a2  CHRDATJ3.ITM
+9cf0bc38b8f733230508221d39fede49807b3d60158e93579030a1cdf28e98be  CHRDATJ4.ITM
+c44a4cde4a148d2c41a64f23ac27f4d92e720e9996ab7fcfa4e0d5d3910fc7c5  CHRDATJ5.ITM
+24f23ab53160c78dfc643a5fb9bd2d48f3970740bae9af69b6a9e21b3f158a4c  CHRDATJ6.ITM
+048e3f8e2a434004e2fff5e519da2a4e9b3b6aad87eb310a9c21b6e814e7deaa  MON1ITM.DAX
+06a69dd2a63077a464a3a936ed3f14dc4d463175d43de6670e3c30fe41481988  MON2ITM.DAX
+8ba4c7f722469c671c5b5cc4021b6d11e750b31a492c73e26917894555ef2ed1  MON3ITM.DAX
+e9c8ee5a987a498c4b93950d001f45b855f248df779457678f51364bac7517e9  MON4ITM.DAX
+dd3bf78c479909b87b0ddf32bc32380c02fa8d62953e26d5ae05c1bc21874c94  MON5ITM.DAX
+b56cf3c70e13f31121cfc57464db5420dbf5a1c6cbfdcf3714818038fcb214cb  MON6ITM.DAX
+86ef5f43c05db3c1aeedaa26875e1325bd01e6d78ba4ef270aa1c8e99b7a594f  MON7ITM.DAX
+ffeebbd5822542894ec0c8090025e735b58f9aafe09e97d2781321d42a00902f  MON8ITM.DAX
+```
+
 ## 6. What is established and what is not
 
 **Established** (code-proved or measured, with the commands above): 11 of 16 direct sites are in-range immediates; function `+0160` reaches the dispatcher only with 1..126; the three DS tables supply only 1..139; the direct stores to `+3D`/`+3E` are 23, 1 and 137; index 0 cannot come from the `0077` sites; the shipped item data contain no effect byte of 140 or above.

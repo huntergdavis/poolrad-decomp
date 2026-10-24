@@ -7,6 +7,7 @@ Light, read-only static scans over the original GAME.OVR / START.EXE; no emulati
   callers STUB K NEAR    every far call to 00B0:STUB (and every near call to unit-9E +NEAR) with the instruction that supplies the K-th push from the end
   writers DISP           every store to a [reg+DISP] operand in any unit's code (record bytes +3Dh/+3Eh)
   tables                 the three DS tables that supply an index (DS:0113h+i, DS:0C13h+i, DS:0C23h+i), read from the expanded START.EXE image, and a scan for code that could write them
+  inputs                 SHA-256 of every media file the scans read (the scan inputs, by hash)
   items                  effect bytes +3Ch/+3Dh/+3Eh of every 63-byte item record in the shipped .ITM files and MON*ITM.DAX blocks
 
 An index is "supplied" by the instruction that last loaded AL before the PUSH AX of the argument: MOV AL,imm (a constant), MOV AL,[mem] (data), or a parameter of the enclosing function.
@@ -180,14 +181,26 @@ def cmd_items(units, code):
     print("+3E values with the high bit set (the only ones the unit-0x77 sites dispatch):", sorted(v for v in counts[0x3E] if v > 0x7F))
 
 
+def cmd_inputs():
+    import glob
+    import hashlib
+    d = ROOT / "resources/DOS/POOLRAD"
+    names = ["START.EXE", "GAME.OVR"] + sorted(Path(f).name for f in glob.glob(str(d / "*.ITM"))) + sorted(Path(f).name for f in glob.glob(str(d / "MON*ITM.DAX")))
+    for n in names:
+        print(f"{hashlib.sha256((d / n).read_bytes()).hexdigest()}  {n}")
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("sites")
     c = sub.add_parser("callers"); c.add_argument("stub", type=lambda s: int(s, 16)); c.add_argument("k", type=int); c.add_argument("near", type=lambda s: int(s, 16))
     w = sub.add_parser("writers"); w.add_argument("disp", type=lambda s: int(s, 16))
-    sub.add_parser("tables"); sub.add_parser("items")
+    sub.add_parser("tables"); sub.add_parser("items"); sub.add_parser("inputs")
     a = p.parse_args()
+    if a.cmd == "inputs":
+        cmd_inputs()
+        return
     units, code = load()
     if a.cmd == "sites":
         cmd_sites(units, code)
