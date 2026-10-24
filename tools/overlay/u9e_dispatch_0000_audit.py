@@ -13,6 +13,7 @@ from hashlib import sha256
 import json
 from pathlib import Path
 import random
+import zlib
 import re
 import struct
 import subprocess
@@ -37,7 +38,7 @@ SP_MIN, SP_MAX = 0x0200, 0xFFEE
 STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'LIMIT', 6: 'CALLEE', 7: 'TRANSFER'}
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
-ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
+ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
 RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
@@ -329,9 +330,8 @@ def compare(label, src, memory, cpu, budget, lib, mem_before):
     if aram != eram:
         diffs = [i for i in range(SIZE) if aram[i] != eram[i]]
         raise ValueError(f"{label}: RAM {[(hex(i), aram[i], eram[i]) for i in diffs[:10]]} ({len(diffs)} bytes)")
-    for lo, hi in CODE_RANGES:
-        check(eram[lo:hi] == bytes(mem_before[lo:hi]), f"{label}: code written")
-    return estat, seen, dict(diag=diag, split=writer.shift_nonzero or writer.division is not None)
+    code_written = any(eram[lo:hi] != bytes(mem_before[lo:hi]) for lo, hi in CODE_RANGES)     # C and the original agree byte for byte, but both overwrote resident code: outside the composed contract, reported
+    return estat, seen, dict(diag=diag, split=writer.shift_nonzero or writer.division is not None, code_written=code_written)
 
 
 # ---------------------------------------------------------------------------------------------------- the three data-dependent callers
@@ -500,6 +500,52 @@ def cases(src, per_slot=16, quick=False):
         for a in (0x00, 0x01, 0x02, 0x05, 0x80, 0xFF):
             for lim in (0x00, 0x01, 0x02, 0x03, 0x05, 0x10, 0x7F, 0x80, 0xFF):
                 adapt("2a28", 113, g=gate, a=a, l=lim)
+    # phase 2, batch P1 (pointer handlers: slots 3 +013B, 14 +05D6, 17 +064E, 33 +0BAC, 37 +0C26, 58 +1452, 89 +2490, 98 +2700). The record/source/P/Q live in the arena segments below; offsets near FFFFh
+    # make the original's 16-bit ES:[DI+k] wrap at 64 KiB inside the segment (the adapters copy in and out with that wrap).
+    RSEG, PSEG, QSEG, SSEG = 0x6000, 0x6400, 0x6800, 0x6C00
+    def pk(seg, off, vals):
+        return [(seg, (off + k) & 0xFFFF, bytes([v])) for k, v in vals.items()]
+    def ds(vals):
+        return [(DS, a, bytes([v])) for a, v in vals.items()]
+    def padd(tag, slot, label, words, poke):
+        add(f"adapt{tag}-{label}", slot, words=words, poke=poke)
+    for s3 in (0x00, 0x01, 0x7F, 0x80, 0xFF, 0xA5):
+        for lab, roff, soff, sseg in (("a", 0x0100, 0x0200, SSEG), ("wrec", 0xFFF0, 0x0200, SSEG), ("wsrc", 0x0100, 0xFFFE, SSEG), ("alias", 0x0100, 0x0112, RSEG)):
+            padd("05d6", 14, f"{s3:02x}-{lab}", [0x5A, soff, sseg, roff, RSEG], pk(sseg, soff, {3: s3}) + pk(RSEG, roff, {0x15: 0x55}) * (lab != "alias"))
+    for r111 in (0x00, 0x38, 0x39, 0x3A, 0xFF):
+        for v16 in (0x00, 0x7F, 0xFF):
+            for v1b in (0x0E, 0x0F, 0x10, 0x00, 0xFF):
+                for lab, roff in (("a", 0x0100), ("w", 0xFF00)):
+                    padd("064e", 17, f"{r111:02x}-{v16:02x}-{v1b:02x}-{lab}", [0x5A, 0x0100, SSEG, roff, RSEG], pk(RSEG, roff, {0x111: r111}) + ds({0x6816: v16, 0x681B: v1b, 0x6818: 0x33}))
+    R112, V22 = (0x00, 0x04, 0xFC), (0x00, 0x04, 0xFF, 0x80)
+    i = 0
+    for r111 in (0x00, 0x03, 0x04, 0x05, 0x80, 0xFF):
+        for v16 in (0x00, 0x04, 0x05, 0x7C, 0x80, 0xFF):
+            lab, roff = (("a", 0x0100), ("w", 0xFEFF))[i % 2]
+            padd("0bac", 33, f"{r111:02x}-{v16:02x}-{lab}", [0x5A, 0x0100, SSEG, roff, RSEG], pk(RSEG, roff, {0x111: r111, 0x112: R112[i % 3]}) + ds({0x6816: v16, 0x6822: V22[i % 4]}))
+            i += 1
+    for p3 in (0x00, 0x01, 0x7F, 0x80, 0xFF, 0x40):
+        for poff in (0x0300, 0xFFFE, 0x0000):
+            for roff in (0x0100, 0xFFF8):
+                padd("0c26", 37, f"{p3:02x}-{poff:04x}-{roff:04x}", [0x5A, 0x0100, SSEG, roff, RSEG], pk(RSEG, roff, {0x108: poff & 0xFF, 0x109: poff >> 8, 0x10A: PSEG & 0xFF, 0x10B: PSEG >> 8}) + pk(PSEG, poff, {3: p3}) + ds({0x681E: 0x11, 0x6822: 0x22}))
+    for v1d in (0x00, 0x01, 0xFF):
+        for poff in (0x0300, 0xFFFC, 0xFFFA):
+            for roff in (0x0100, 0xFFF8):
+                padd("1452", 58, f"{v1d:02x}-{poff:04x}-{roff:04x}", [0x5A, 0x0100, SSEG, roff, RSEG], pk(RSEG, roff, {0x108: poff & 0xFF, 0x109: poff >> 8, 0x10A: PSEG & 0xFF, 0x10B: PSEG >> 8}) + pk(PSEG, poff, {6: 0x77}) + ds({0x681D: v1d, 0x681A: 0x5A}))
+    for s3 in (0x00, 0x0F, 0x10, 0x1F, 0x11, 0x80, 0xF0, 0xFF, 0x7F, 0x20):
+        for v3, v22 in ((0, 0), (0, 1), (1, 0), (0, 0xFF), (1, 0xFF)):
+            for soff in (0x0100, 0xFFFE):
+                padd("2490", 89, f"{s3:02x}-{v3:02x}-{v22:02x}-{soff:04x}", [0x5A, soff, SSEG, 0x0100, RSEG], pk(SSEG, soff, {3: s3}) + ds({0x6DE3: v3, 0x6822: v22}))
+    for r11b in (0x00, 0x10, 0xFC, 0xFD, 0xFE, 0xFF, 0x7F, 0x80):
+        for r32 in (0x00, 0x10, 0x11, 0x7F, 0x80, 0xFF):
+            for roff in (0x0100, 0xFF00):
+                padd("2700", 98, f"{r11b:02x}-{r32:02x}-{roff:04x}", [0x5A, 0x0100, SSEG, roff, RSEG], pk(RSEG, roff, {0x11B: r11b, 0x32: r32}))
+    for q9f in (0x03, 0x04, 0x05, 0x00, 0xFF):
+        for v22, v18 in ((0xFE, 0xFE), (0xFF, 0x7F), (0x7E, 0xFF), (0x00, 0x00), (0x7F, 0x7E)):
+            for lab, poff, qoff, roff in (("a", 0x0300, 0x0400, 0x0100), ("wp", 0xFFF8, 0x0400, 0x0100), ("wq", 0x0300, 0xFF70, 0x0100), ("wr", 0x0300, 0x0400, 0xFEFF), ("wr2", 0x0300, 0x0400, 0xFFF8)):
+                pokes = pk(RSEG, roff, {0x108: poff & 0xFF, 0x109: poff >> 8, 0x10A: PSEG & 0xFF, 0x10B: PSEG >> 8})
+                pokes += pk(PSEG, poff, {0xA: qoff & 0xFF, 0xB: qoff >> 8, 0xC: QSEG & 0xFF, 0xD: QSEG >> 8}) + pk(QSEG, qoff, {0x9F: q9f}) + ds({0x6822: v22, 0x6818: v18})
+                padd("013b", 3, f"{q9f:02x}-{v22:02x}-{v18:02x}-{lab}", [0x5A, 0x0100, SSEG, roff, RSEG], pokes)
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -515,13 +561,13 @@ def cases(src, per_slot=16, quick=False):
 
 
 def differential(src, lib, base, only=None, keep_going=False):
-    t0 = time.time(); rng = random.Random(0x9E0001); stops = {}; seen_all = set(); failures = []; skipped = []; per_slot = {}; split_states = 0
+    t0 = time.time(); stops = {}; seen_all = set(); failures = []; skipped = []; per_slot = {}; split_states = 0; code_written = []
     cs = [c for c in cases(src) if only is None or c[0] in only or any(c[0].startswith(o) for o in only)]
     for index, (name, idx, kw, budget) in enumerate(cs):
         kw = dict(kw); budget = kw.pop('budget', budget)
         if index % 40 == 0:
             print(f'[{index + 1}/{len(cs)}] {name}: START', file=sys.stderr, flush=True)
-        memory, cpu = fixture(base, rng, idx, **kw)
+        memory, cpu = fixture(base, random.Random(zlib.crc32(name.encode()) ^ 0x9E0001), idx, **kw)     # per-case seed: the world of a case does not depend on which other cases ran
         try:
             estat, seen, extra = compare(name, src, memory, cpu, budget, lib, base)
         except ValueError as e:
@@ -534,8 +580,10 @@ def differential(src, lib, base, only=None, keep_going=False):
         stops[estat] = stops.get(estat, 0) + 1; seen_all |= seen
         per_slot.setdefault(idx, []).append(estat)
         split_states += int(bool(extra.get('split')))
+        if extra.get('code_written'):
+            code_written.append(name)
     return dict(cases=len(cs), compared=len(cs) - len(skipped) - len(failures), end_states=stops, dispatcher_starts=f'{len(seen_all)}/16', skipped_nonterminating=len(skipped),
-                skipped=skipped[:10], failures=failures, split_states=split_states, per_slot={s: sorted(set(v)) for s, v in sorted(per_slot.items())}, seconds=round(time.time() - t0, 1))
+                skipped=skipped[:10], failures=failures, split_states=split_states, code_written_equal=code_written[:20], per_slot={s: sorted(set(v)) for s, v in sorted(per_slot.items())}, seconds=round(time.time() - t0, 1))
 
 
 # ---------------------------------------------------------------------------------------------------- mutation
@@ -579,7 +627,7 @@ MUTANTS = (
     ('+2A87 uses the Unicorn shift profile', [("pr_u38_target_index_gate_2a87_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg)", "pr_u38_target_index_gate_2a87_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_UNICORN, &dg)")]),
     ('+1363 gets no heap budget', [("l.max_heap_steps = m->lim->heap_steps; l.max_links = m->lim->links; COPY(&x, m->cpu);\n    s = (int)pr_u38_append_1363_cpu", "l.max_heap_steps = 0; l.max_links = m->lim->links; COPY(&x, m->cpu);\n    s = (int)pr_u38_append_1363_cpu")]),
     ('+010D adds 4, not 5, to [6825]', [("pr_u38_entry2(&st) != PR_U38_OK) return 1;\n    store_state(m->ram, m->cpu, &st);\n    add8_flags(m->cpu, a6825, 5u);", "pr_u38_entry2(&st) != PR_U38_OK) return 1;\n    st.b6825 = (uint8_t)(st.b6825 - 1u);\n    store_state(m->ram, m->cpu, &st);\n    add8_flags(m->cpu, a6825, 5u);")]),
-    ('+010D INC clears CF instead of preserving it', [("c->flags = (uint16_t)((c->flags & ~(ARITH & ~0x0001u)) | f);   /* CF is preserved */", "c->flags = (uint16_t)((c->flags & ~ARITH) | f);")]),
+    ('+010D INC clears CF instead of preserving it', [('    if (a == 0x7Fu) f |= 0x0800u;\n    c->flags = (uint16_t)((c->flags & ~(ARITH & ~0x0001u)) | f);   /* CF is preserved */', '    if (a == 0x7Fu) f |= 0x0800u;\n    c->flags = (uint16_t)((c->flags & ~ARITH) | f);')]),
     ('+010D ADD computes AF from the wrong operand', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
     ('+010D ADD tests AF at bit 5, not bit 4', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ b ^ r) & 0x20u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
     ('+010D leaves the saved BP unwritten (no PUSH BP write)', [("static void frame_enter(call_t *m) { push(m->ram, m->cpu, m->cpu->bp); m->cpu->bp = m->cpu->sp; }", "static void frame_enter(call_t *m) { m->cpu->sp = (uint16_t)(m->cpu->sp - 2u); m->cpu->bp = m->cpu->sp; }")]),
@@ -599,7 +647,7 @@ MUTANTS = (
     ('+0C15 first SUB flags dropped', [('sub8_flags(m->cpu, a6822, 4u); sub8_flags(m->cpu, a6816, 4u);', '(void)a6822; sub8_flags(m->cpu, a6816, 4u);')]),
     ('+0C15 skips the semantic model', [('pr_rec_u38_entry31(&mods) != PR_REC_EFFECT_OK', '(void)pr_rec_u38_entry31, 0')]),
     ('+0C15 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +171F', 'frame_leave(m, 0x08u);\n    return 0;\n}\n/* +171F')]),
-    ('+0C15/+171F SUB borrow test a <= b (CF)', [('    if (a < b) f |= 0x0001u;', '    if (a <= b) f |= 0x0001u;')]),
+    ('+0C15/+171F SUB borrow test a <= b (CF)', [('    if (a < b) f |= 0x0001u;\n    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u)', '    if (a <= b) f |= 0x0001u;\n    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u)')]),
     ('+0C15/+171F SUB OF from the wrong operand sign', [('if ((uint8_t)((a ^ b) & (a ^ r)) & 0x80u) f |= 0x0800u;', 'if ((uint8_t)((a ^ r)) & 0x80u) f |= 0x0800u;')]),
     ('+0C15/+171F SUB AF from a ^ r only', [('    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)((a ^ b) &', '    if ((a ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)((a ^ b) &')]),
     ('+171F skips the semantic model', [('pr_u38_entry59(&st) != PR_U38_OK', '(void)pr_u38_entry59, 0')]),
@@ -621,7 +669,7 @@ MUTANTS = (
     ('+25A2 tests the +2B63 mask', [('halve_adapter(m, 0x01u, pr_u38_entry77)', 'halve_adapter(m, 0x02u, pr_u38_entry77)')]),
     ('+10C1 skips the semantic model', [('pr_u38_entry36(&st) != PR_U38_OK', '(void)pr_u38_entry36, 0')]),
     ('+10C1 AX keeps AH', [('m->cpu->ax = (uint16_t)(a681a >> 1); shr16_flags(m->cpu, a681a);', 'm->cpu->ax = (uint16_t)((m->cpu->ax & 0xFF00u) | (a681a >> 1)); shr16_flags(m->cpu, a681a);')]),
-    ('+10C1 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n\ntypedef', 'frame_leave(m, 0x08u);\n    return 0;\n}\n\ntypedef')]),
+    ('+10C1 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n\n\nstatic void sub16_flags', 'frame_leave(m, 0x08u);\n    return 0;\n}\n\n\nstatic void sub16_flags')]),
     ('+03E1 tests the +06E4 mask', [('gated_halve_add3_regs(m->cpu, 0x02u,', 'gated_halve_add3_regs(m->cpu, 0x01u,')]),
     ('+06E4 tests the +03E1 mask', [('gated_halve_add3_regs(m->cpu, 0x01u,', 'gated_halve_add3_regs(m->cpu, 0x02u,')]),
     ('+03E1 skips the semantic model', [('pr_rec_u38_entry10(&mods, &applied) != PR_REC_EFFECT_OK', '(void)pr_rec_u38_entry10, 0')]),
@@ -654,7 +702,45 @@ MUTANTS = (
     ('+2A28 the final AL is 1', [('set_al_(c, limit); sub8_flags(c, limit, limit);', 'sub8_flags(c, limit, limit);')]),
     ('+2A28 the final CMP flags are omitted', [('set_al_(c, limit); sub8_flags(c, limit, limit);', 'set_al_(c, limit);')]),
     ('+2A28 the loop gate is mask 02h', [('logic8_flags(c, (uint8_t)(a6819 & 1u)); set_al_(c, (uint8_t)(a6819 & 1u));\n    if (a6819 & 1u) {', 'logic8_flags(c, (uint8_t)(a6819 & 2u)); set_al_(c, (uint8_t)(a6819 & 2u));\n    if (a6819 & 2u) {')]),
-    ('+2A28 pops 8 argument bytes, not 0Ah', [('    frame_leave(m, 0x0Au);\n    return 0;\n}\n\ntypedef int (*handler_fn)', '    frame_leave(m, 0x08u);\n    return 0;\n}\n\ntypedef int (*handler_fn)')]),
+    ('+2A28 pops 8 argument bytes, not 0Ah', [('    frame_leave(m, 0x0Au);\n    return 0;\n}\n\n\n/* ---- batch P', '    frame_leave(m, 0x08u);\n    return 0;\n}\n\n\n/* ---- batch P')]),
+    ('+P1 xb_byte reads without the 64K offset wrap', [('static uint8_t xb_byte(const call_t *m, uint16_t seg, uint16_t off, unsigned k) { return m->ram[physical(seg, (uint16_t)(off + k))]; }', 'static uint8_t xb_byte(const call_t *m, uint16_t seg, uint16_t off, unsigned k) { return m->ram[(physical(seg, off) + k) & 0xFFFFFu]; }')]),
+    ('+P1 xb_flush writes back without the 64K offset wrap', [('x->m->ram[physical(x->seg[i], (uint16_t)(x->off[i] + k))] = x->cur[i][k];', 'x->m->ram[(physical(x->seg[i], x->off[i]) + k) & 0xFFFFFu] = x->cur[i][k];')]),
+    ('+P1 xb_flush is skipped (the writes are lost)', [('            if (x->cur[i][k] != x->orig[i][k]) x->m->ram', '            if (0 && x->cur[i][k] != x->orig[i][k]) x->m->ram')]),
+    ('+P1 ES is left unchanged', [('static void set_es_di(cpu_t *c, uint16_t seg, uint16_t off) { c->es = seg; c->di = off; }', 'static void set_es_di(cpu_t *c, uint16_t seg, uint16_t off) { (void)seg; c->di = off; }')]),
+    ('+P1 DI is left unchanged', [('static void set_es_di(cpu_t *c, uint16_t seg, uint16_t off) { c->es = seg; c->di = off; }', 'static void set_es_di(cpu_t *c, uint16_t seg, uint16_t off) { (void)off; c->es = seg; }')]),
+    ('+05D6 skips the semantic model', [('pr_u38_entry13(rec, src) == PR_U38_OK', '((void)pr_u38_entry13, PR_U38_OK) == PR_U38_OK')]),
+    ('+05D6 AL is source[2]', [('xb_flush(x); set_al_(m->cpu, src[3]);', 'xb_flush(x); set_al_(m->cpu, src[2]);')]),
+    ('+05D6 AL is not written', [('xb_flush(x); set_al_(m->cpu, src[3]);', 'xb_flush(x);')]),
+    ('+05D6 the record pointer is the source pointer', [('set_al_(m->cpu, src[3]); set_es_di(m->cpu, rs, ro);', 'set_al_(m->cpu, src[3]); set_es_di(m->cpu, ss_, so);')]),
+    ('+064E the CMP flags use 0Eh', [('sub8_flags(m->cpu, a681b, 0x0Fu); set_es_di(m->cpu, rs, ro);', 'sub8_flags(m->cpu, a681b, 0x0Eu); set_es_di(m->cpu, rs, ro);')]),
+    ('+064E skips the semantic model', [('pr_u38_entry16(&st, rec, &paths) == PR_U38_OK', '((void)pr_u38_entry16, PR_U38_OK) == PR_U38_OK')]),
+    ('+064E no flag writer (the flags stay)', [('        sub8_flags(m->cpu, a681b, 0x0Fu); set_es_di(m->cpu, rs, ro);', '        (void)a681b; set_es_di(m->cpu, rs, ro);')]),
+    ('+064E pops 8 argument bytes, not 0Ah', [('        frame_leave(m, 0x0Au); rc = 0;\n    }\n    return rc;\n}\n/* +0BAC', '        frame_leave(m, 0x08u); rc = 0;\n    }\n    return rc;\n}\n/* +0BAC')]),
+    ('+0BAC the SUB flags come from [6822]', [('sub8_flags(m->cpu, a6816, 4u); set_es_di(m->cpu, rs, ro);', 'sub8_flags(m->cpu, st.b6822, 4u); set_es_di(m->cpu, rs, ro);')]),
+    ('+0BAC skips the semantic model', [('pr_u38_entry28(&st, rec) == PR_U38_OK', '((void)pr_u38_entry28, PR_U38_OK) == PR_U38_OK')]),
+    ('+0BAC the SUB flags use the stored value', [('sub8_flags(m->cpu, a6816, 4u); set_es_di(m->cpu, rs, ro);', 'sub8_flags(m->cpu, st.b6816, 4u); set_es_di(m->cpu, rs, ro);')]),
+    ('+0C26 the CMP is against 1, not 0', [('sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); set_es_di(m->cpu, ps, po);', 'sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 1u); set_es_di(m->cpu, ps, po);')]),
+    ('+0C26 ES:DI is the record pointer, not P', [('sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); set_es_di(m->cpu, ps, po);', 'sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); set_es_di(m->cpu, rs, ro);')]),
+    ('+0C26 skips the semantic model', [('pr_u38_entry32(&st, rec, xb_resolve, x, &paths) == PR_U38_OK', '((void)pr_u38_entry32, PR_U38_OK) == PR_U38_OK')]),
+    ('+0C26 the CMP flags are unsigned-style (SF cleared)', [('sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); set_es_di(m->cpu, ps, po);', 'sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); m->cpu->flags = (uint16_t)(m->cpu->flags & ~0x0080u); set_es_di(m->cpu, ps, po);')]),
+    ('+1452 the CMP is against 1, not 0', [('sub8_flags(m->cpu, a681d, 0u); set_es_di(m->cpu, ps, po);', 'sub8_flags(m->cpu, a681d, 1u); set_es_di(m->cpu, ps, po);')]),
+    ('+1452 ES:DI is the record pointer, not P', [('sub8_flags(m->cpu, a681d, 0u); set_es_di(m->cpu, ps, po);', 'sub8_flags(m->cpu, a681d, 0u); set_es_di(m->cpu, rs, ro);')]),
+    ('+1452 skips the semantic model', [('pr_u38_entry48(&st, rec, xb_resolve, x, &paths) == PR_U38_OK', '((void)pr_u38_entry48, PR_U38_OK) == PR_U38_OK')]),
+    ('+2490 path A AL is source[3] & F0h', [('if (paths == PR_U38_PATH_EFFECT) al = (uint8_t)(s3 & 0x0Fu);', 'if (paths == PR_U38_PATH_EFFECT) al = (uint8_t)(s3 & 0xF0u);')]),
+    ('+2490 path B2 AL is source[3] | 01h', [('else if (paths == PR_U38_PATH_SECOND) al = (uint8_t)(s3 | 0x10u);', 'else if (paths == PR_U38_PATH_SECOND) al = (uint8_t)(s3 | 0x01u);')]),
+    ('+2490 path B1 AL is source[3]', [('else al = (uint8_t)(s3 & 0x10u);', 'else al = s3;')]),
+    ('+2490 skips the semantic model', [('pr_u38_entry74(&st, src, &paths) == PR_U38_OK', '(void)pr_u38_entry74, 1')]),
+    ('+2490 the OR flags omit ZF (logic helper shared)', [('logic8_flags(m->cpu, al); set_al_(m->cpu, al); set_es_di(m->cpu, ss_, so);', 'logic8_flags(m->cpu, (uint8_t)(al | 0x00u)); m->cpu->flags = (uint16_t)(m->cpu->flags & ~0x0040u); set_al_(m->cpu, al); set_es_di(m->cpu, ss_, so);')]),
+    ('+2700 the CMP flags are swapped (lim - v)', [('xb_flush(x); sub8_flags(m->cpu, v, lim); set_al_(m->cpu, v > lim ? lim : v);', 'xb_flush(x); sub8_flags(m->cpu, lim, v); set_al_(m->cpu, v > lim ? lim : v);')]),
+    ('+2700 AL is always the limit', [('set_al_(m->cpu, v > lim ? lim : v); set_es_di(m->cpu, rs, ro);', 'set_al_(m->cpu, lim); set_es_di(m->cpu, rs, ro);')]),
+    ('+2700 AL is always the sum', [('set_al_(m->cpu, v > lim ? lim : v); set_es_di(m->cpu, rs, ro);', 'set_al_(m->cpu, v); set_es_di(m->cpu, rs, ro);')]),
+    ('+2700 skips the semantic model', [('pr_u38_entry82(rec, &paths) == PR_U38_OK', '(void)pr_u38_entry82, 1')]),
+    ('+013B DX is not set', [('m->cpu->ax = (uint16_t)(xb_byte(m, ps, po, 0xAu) | xb_byte(m, ps, po, 0xBu) << 8); m->cpu->dx = (uint16_t)(xb_byte(m, ps, po, 0xCu) | xb_byte(m, ps, po, 0xDu) << 8);', 'm->cpu->ax = (uint16_t)(xb_byte(m, ps, po, 0xAu) | xb_byte(m, ps, po, 0xBu) << 8);')]),
+    ('+013B AX is P[0Ch]', [('m->cpu->ax = (uint16_t)(xb_byte(m, ps, po, 0xAu) | xb_byte(m, ps, po, 0xBu) << 8);', 'm->cpu->ax = (uint16_t)(xb_byte(m, ps, po, 0xCu) | xb_byte(m, ps, po, 0xDu) << 8);')]),
+    ('+013B the equal path leaves the CMP flags', [('if (q9f == 4u) add8_flags(m->cpu, a6818, 2u); else sub8_flags(m->cpu, q9f, 4u);', 'sub8_flags(m->cpu, q9f, 4u);')]),
+    ('+013B the equal path ADD flags use [6822]', [('if (q9f == 4u) add8_flags(m->cpu, a6818, 2u); else', 'if (q9f == 4u) add8_flags(m->cpu, st.b6822, 2u); else')]),
+    ('+013B the CMP is against 3', [('sub8_flags(m->cpu, q9f, 4u);\n        set_es_di', 'sub8_flags(m->cpu, q9f, 3u);\n        set_es_di')]),
+    ('+013B skips the semantic model', [('pr_u38_entry4(&st, rec, xb_resolve, x, &paths) == PR_U38_OK', '((void)pr_u38_entry4, PR_U38_OK) == PR_U38_OK')]),
     ('the gap kind of an uncredited slot is reported as semantic', [("sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC :", "sl->kind != K_RAW ? PR_U9E_0000_GAP_SEMANTIC :")]),
 )
 MUTANT_CASES_EXTRA = ('adapt', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
@@ -679,6 +765,7 @@ def mutation_check(src, base, libdir, only_mutants=None):
     for s in raw:
         first.setdefault(src['slots'][s]['entry'], s)
     names = [f"slot{s:03d}-random{k}" for s in first.values() for k in range(3)]
+    differential(src, library(libdir), base, only=list(names) + list(MUTANT_CASES_EXTRA))        # the unmutated library MUST pass the case set the mutants are judged on (a failing baseline would 'catch' every mutant)
     for k, (name, edits) in enumerate(MUTANTS):
         if only_mutants is not None and k not in only_mutants:
             continue
@@ -705,7 +792,7 @@ def mutation_check(src, base, libdir, only_mutants=None):
     d = sum(1 for _, r in out if r.startswith('CAUGHT:')); c = sum(1 for _, r in out if r.endswith('CAUGHT BY THE C TEST'))
     return dict(total=len(out), caught=d + c, caught_by_differential=d, caught_by_c_test=c, results=out,
                 proven_equivalent=[n for n, r in out if r.startswith('SURVIVED') and not r.endswith('CAUGHT BY THE C TEST') and n in EQUIVALENT],
-                survivors=[n for n, r in out if ((r.startswith('SURVIVED') and not r.endswith('CAUGHT BY THE C TEST')) or r == 'COMPILE-ERROR') and n not in EQUIVALENT])
+                survivors=[n for n, r in out if r == 'COMPILE-ERROR' or (r.startswith('SURVIVED') and not r.endswith('CAUGHT BY THE C TEST') and n not in EQUIVALENT)])   # a mutant that does not build is never excused
 
 
 def main():
