@@ -55,6 +55,12 @@ return before C is invoked. Thus neither a cyclic count traversal nor an
 aperture-reaching access can overlap the claimed fixture set.
 For budgets that stop before +05E0, a separate ten-counted-instruction
 original prefix proves its termination on the same input first.
+The memory observer is registered only over the aperture window, with a
+16-byte margin for crossing operands. A bounded diagnostic showed that
+unrestricted Unicorn memory hooks perturb RETF: SP advances but IP stays
+at 0639, causing a second return. Both no-hook and aperture-only traces
+return normally to 0655. The audit changes neither the original bytes nor
+CPU state to compensate; full RAM comparison uses the backing buffer.
 Native fixtures additionally require all six loaded/captured 64 KiB regions below
 A0000. The original-only recurrence assumes no interrupts or external
 memory mutations, matching the standalone model's execution environment.
@@ -131,4 +137,11 @@ The focused `poolrad_overlay_u7f_063a_cpu_tests` CTest passed on 2026-10-23
 with `-UNDEBUG`, no build type, and assertions enabled (one test, zero
 failures). Its independent distribution, residual, divide-error, guard,
 argument-atomicity and bus-mechanism assertions all ran. The complete
-original-byte/native receipts and parity verdict remain pending.
+original-byte receipts and parity verdict remain pending.
+
+The pinned-native diagnostic passed all 16 completed-call cases, including
+status mixtures, cap residuals, large/negative pools, class mixtures, stack
+endpoints, odd SP, record wrap and a node word crossing FFFF. All CPU14 words
+and five 64 KiB RAM regions matched without masks. The separate cyclic-list
+probe repeated full CPU14 and 1 MiB RAM at +05F7 after a 3,328-instruction
+period (steps 32 and 3360); the unbounded C callee was not invoked.

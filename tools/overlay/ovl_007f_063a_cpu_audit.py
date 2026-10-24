@@ -136,7 +136,11 @@ def original(state,decoded,budget):
         for byte in range(size):
             if 0xA0000 <= ((address+byte)&(SIZE-1)) < 0xC0000:
                 domain['aperture_accesses']+=1
-    uc.hook_add(UC_HOOK_MEM_READ|UC_HOOK_MEM_WRITE,memory_hook)
+    # Stack-wide memory hooks make this Unicorn RETF repeat at its old IP.
+    # Observe only the excluded window (with a margin for crossing operands).
+    # All-RAM equality is still checked through the shared backing buffer.
+    for base in (0,SIZE):
+        uc.hook_add(UC_HOOK_MEM_READ|UC_HOOK_MEM_WRITE,memory_hook,begin=base+0x9FFF0,end=base+0xBFFFF)
     entry_ret=(word(m,c.ss,c.sp+2),word(m,c.ss,c.sp))
     def hook(em,address,size,user):
         nonlocal left,pending,status,prev
@@ -310,7 +314,8 @@ def exclusions(bodies,decoded,lib):
                     repeat=dict(first_step=states[key],repeat_step=steps,period=steps-states[key],loop_ip=loop)
                     em.emu_stop()
                 else:states[key]=steps
-        uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_MEM_READ|UC_HOOK_MEM_WRITE,memory)
+        uc.hook_add(UC_HOOK_CODE,hook)
+        uc.hook_add(UC_HOOK_MEM_READ|UC_HOOK_MEM_WRITE,memory,begin=0x9FFF0,end=0xBFFFF)
         uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=20000)
         if mode=='self-cycle':
             check(repeat is not None and not arrived,'cyclic original must repeat before +05E0 returns')
