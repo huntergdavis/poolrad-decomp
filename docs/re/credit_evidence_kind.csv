@@ -12,6 +12,7 @@ OVL_001C_2AEB,checker,ecl_helpers_original_audit.py
 OVL_001C_2B14,checker,u1c_clear_box_2b14_cpu_audit.py
 OVL_001C_2E7D,checker,u1c_text_2e7d_cpu_audit.py
 OVL_0020_0355,audit,tools/overlay/u20_party_award_0355_audit.py
+OVL_0023_0239,checker,u23_append_0239_cpu_audit.py
 OVL_0025_0000,audit,tools/overlay/u25_loader_0000_audit.py
 OVL_0025_0136,checker,u25_slot_value_0136_audit.py
 OVL_0025_01B6,checker,u25_init_01b6_audit.py
@@ -20,6 +21,7 @@ OVL_0025_06AF,checker,ecl_helpers_original_audit.py
 OVL_0025_06D3,checker,ecl_helpers_original_audit.py;u25_06d3_06fb_cpu_audit.py
 OVL_0025_06FB,checker,ecl_helpers_original_audit.py;u25_06d3_06fb_cpu_audit.py
 OVL_0025_0756,audit,tests/recovered/check_overlay_u25_party_index_0756.py
+OVL_0025_07BC,checker,u25_load_hook_07bc_audit.py
 OVL_0025_0E0C,checker,u25_load_word_0e0c_audit.py
 OVL_0025_0F53,checker,u25_store_string_0f53_composed_audit.py
 OVL_0025_1153,audit,tools/overlay/u25_string_cores_audit.py

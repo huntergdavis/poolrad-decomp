@@ -8,10 +8,12 @@ Screenshots/OCR and measured timings stay in the ignored oracle run directory.
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import hashlib
 import shutil
 import signal
+import struct
 import subprocess
 import time
 
@@ -49,11 +51,104 @@ def automatic_status(text):
         'BATTLE' in text and not any(word in text for word in ('YES', 'HES', 'NO')))
 
 
+def single_exit_prompt(text):
+    """Accept only the measured single Exit control, never a clipped Next menu."""
+    text = text.strip().upper()
+    return text if text in ('EXIT', 'EXT', 'EXT.') else ''
+
+
+
+def load_coordinate_font(path):
+    """Read the documented private 8X8D1 block 201; publish no glyph bytes."""
+    archive = path.read_bytes()
+    if hashlib.sha256(archive).hexdigest() != 'cce9313f23a600200fec60b5d46cd08aa9535a6143eee5d5d768a1d4e0415021':
+        raise ValueError('coordinate font archive differs from pinned input')
+    header = struct.unpack_from('<H', archive)[0]
+    for at in range(2, 2 + header, 9):
+        ident, offset, size, packed = struct.unpack_from('<BIHH', archive, at)
+        if ident != 201:
+            continue
+        source = archive[2 + header + offset:2 + header + offset + packed]
+        font = bytearray()
+        at = 0
+        while at < len(source):
+            control = source[at]
+            at += 1
+            if control < 128:
+                font.extend(source[at:at + control + 1])
+                at += control + 1
+            else:
+                font.extend([source[at]] * (256 - control))
+                at += 1
+        if size != 1416 or len(font) != size or hashlib.sha256(font).hexdigest() != 'fca3a918bd20e24456f579d20341278a21d3b5f5b4e205384fadeb551ce091c1':
+            raise ValueError('coordinate font block differs from documented input')
+        glyphs = {}
+        for ch in map(chr, range(32, 96)):
+            glyph = bytes(font[(ord(ch) % 64) * 8:(ord(ch) % 64) * 8 + 8])
+            glyphs[glyph] = None if glyph in glyphs else ch
+        return {glyph: ch for glyph, ch in glyphs.items() if ch is not None}
+    raise ValueError('coordinate font block missing')
+
+
+def decode_font_cells(rgb, glyphs, columns, green_only=False):
+    """Decode only exact, uniformly doubled glyphs from the pinned private font."""
+    width = columns * 16
+    if len(rgb) != width * 16 * 3:
+        return None
+    def foreground(x, y):
+        at = (y * width + x) * 3
+        r, g, b = rgb[at:at + 3]
+        return (g > 64 and g > 1.5 * r and g > 1.5 * b) if green_only else max(r, g, b) > 64
+    text = ''
+    for cell in range(columns):
+        rows = []
+        for y in range(8):
+            row = 0
+            for x in range(8):
+                pixels = {foreground(cell * 16 + x * 2 + dx, y * 2 + dy)
+                          for dx in range(2) for dy in range(2)}
+                if len(pixels) != 1:
+                    return None
+                row = (row << 1) | pixels.pop()
+            rows.append(row)
+        char = glyphs.get(bytes(rows))
+        if char is None:
+            return None
+        text += char
+    return text
+
+
+def decode_coordinate(rgb, glyphs):
+    text = decode_font_cells(rgb, glyphs, 6, green_only=True)
+    if text is None or ' ' not in text:
+        return ''
+    text = text.split(' ', 1)[0]
+    match = re.fullmatch(r'([0-9]{1,2}),([0-9]{1,2})', text)
+    return text if match and all(int(v) < 16 for v in match.groups()) else ''
+
+
 class Route:
     def __init__(self, data):
         self.data = data
         records = canonical_start(data['start']) + data['states']
         self.records = {r['name']: r for r in records}
+        self.message_gates = data.get('message_gates', {})
+        if self.message_gates.keys() - self.records.keys():
+            raise ValueError('unknown message gate state')
+        if any(not isinstance(words, list) or not words or
+               any(not isinstance(word, str) or not word for word in words)
+               for words in self.message_gates.values()):
+            raise ValueError('message gate must be a nonempty word list')
+        self.navigation_states = data.get('navigation_states', {})
+        if self.navigation_states.keys() - self.records.keys():
+            raise ValueError('unknown navigation state')
+        for position in self.navigation_states.values():
+            if (not isinstance(position, list) or len(position) != 2 or
+                    any(type(v) is not int or not 0 <= v < 16 for v in position)):
+                raise ValueError('navigation position must be two grid coordinates')
+        self.exact_prompt_states = set(data.get('exact_prompt_states', []))
+        if self.exact_prompt_states - self.records.keys():
+            raise ValueError('unknown exact-prompt state')
         if len(self.records) != len(records):
             raise ValueError('duplicate gate names')
         for r in self.records.values():
@@ -72,11 +167,29 @@ class Route:
         self.visits = {}
         self.words = {word for r in records for word in r['gate'] if len(word) >= 3}
 
+    def needs_digits(self):
+        return any(n in self.navigation_states or
+                   self.records[n].get('source') == 'digits' for n in self.allowed)
+
+    def position_matches(self, name, observation):
+        if name not in self.navigation_states:
+            return True
+        x, y = self.navigation_states[name]
+        return re.search(rf'(?<![0-9]){x}\s*,\s*{y}(?![0-9])',
+                         observation.get('digits', '')) is not None
+
     def choose(self, observation):
         if automatic_status(observation.get('prompt', '')):
             return None
         return next((self.records[n] for n in self.allowed
-                     if matches(self.records[n], observation)), None)
+                     if matches(self.records[n], observation) and
+                     self.position_matches(n, observation) and
+                     (n not in self.message_gates or any(
+                         word in observation.get('message', '').upper()
+                         for word in self.message_gates[n])) and
+                     (n not in self.exact_prompt_states or
+                      observation.get('prompt', '').upper().strip(' .') in
+                      self.records[n]['gate'])), None)
 
     def idle(self, observation):
         text = observation.get('prompt', '')
@@ -106,6 +219,8 @@ class Driver:
         self.frame_number = 0
         self.shutdown = 'not started'
         self.final_pixels_sha256 = None
+        self.coordinate_font = (load_coordinate_font(run / 'POOLRAD' / '8X8D1.DAX')
+                                if self.route.navigation_states or data.get('font_text') else None)
 
     def log(self, event, **fields):
         row = dict(event=event, elapsed_s=round(time.monotonic()-self.started, 3),
@@ -137,8 +252,44 @@ class Driver:
                                    *extra], capture_output=True, text=True, timeout=120)
             return ' '.join(result.stdout.upper().split())
         observation = {'prompt': ocr(crop, '7'), 'frame': str(path.relative_to(self.run))}
-        if any(self.route.records[n].get('source') == 'digits'
-               for n in self.route.allowed):
+        if not observation['prompt']:
+            single = self.frames / 'single-exit.png'
+            self.command(['convert', str(path), '-crop', '110x26+190+562',
+                          '-scale', '400%', str(single)])
+            fallback = single_exit_prompt(ocr(single, '7'))
+            if fallback:
+                observation['prompt'] = fallback
+                observation['ocr_fallback'] = 'single_exit_crop'
+        if self.route.data.get('font_text'):
+            rgb = self.command(['convert', str(path), '-crop', '640x16+192+568',
+                                '-depth', '8', 'rgb:-'], capture_output=True).stdout
+            exact = decode_font_cells(rgb, self.coordinate_font, 40)
+            if exact is not None and exact.strip():
+                observation['prompt_ocr'] = observation['prompt']
+                observation['prompt'] = exact.strip()
+                observation['prompt_source'] = 'pinned_font_cells'
+        if any(n in self.route.message_gates for n in self.route.allowed):
+            message = self.frames / 'message.png'
+            self.command(['convert', str(path), '-crop', '620x104+204+452',
+                          '-scale', '200%', str(message)])
+            observation['message'] = ocr(message, '6')
+            if self.route.data.get('font_text'):
+                rgb = self.command(['convert', str(path), '-crop', '608x96+208+456',
+                                    '-depth', '8', 'rgb:-'], capture_output=True).stdout
+                stride = 608 * 16 * 3
+                lines = [decode_font_cells(rgb[i * stride:(i + 1) * stride],
+                                           self.coordinate_font, 38) for i in range(6)]
+                if all(line is not None for line in lines):
+                    observation['message_ocr'] = observation['message']
+                    observation['message'] = ' '.join(line.strip() for line in lines if line.strip())
+                    observation['message_source'] = 'pinned_font_cells'
+
+        if any(n in self.route.navigation_states for n in self.route.allowed):
+            rgb = self.command(['convert', str(path), '-crop', '96x16+464+424',
+                                '-depth', '8', 'rgb:-'], capture_output=True).stdout
+            observation['digits'] = decode_coordinate(rgb, self.coordinate_font)
+            observation['digits_source'] = 'pinned_font_cells'
+        elif self.route.needs_digits():
             observation['digits'] = ocr(path, '11', ['-c', 'tessedit_char_whitelist=0123456789,NSWE:'])
         return observation
 
@@ -175,7 +326,7 @@ class Driver:
             time.sleep(2)
             obs = self.observe()
             record = self.route.choose(obs)
-            signature = (obs['prompt'], obs.get('digits'))
+            signature = (obs['prompt'], obs.get('digits'), obs.get('message'))
             self.log('poll', expected=self.route.allowed, **obs)
             if signature != previous:
                 previous = signature

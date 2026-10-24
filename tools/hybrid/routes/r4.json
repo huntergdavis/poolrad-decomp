@@ -1,0 +1,1081 @@
+{
+  "version": 2,
+  "name": "r4",
+  "description": "Shop Buy and Sune temple service route; original guest only.",
+  "start": "walk_00",
+  "terminal": "final",
+  "navigation_states": {
+    "walk_00": [
+      14,
+      4
+    ],
+    "walk_01": [
+      14,
+      4
+    ],
+    "walk_02": [
+      15,
+      4
+    ],
+    "walk_04": [
+      1,
+      4
+    ],
+    "walk_05": [
+      1,
+      4
+    ],
+    "walk_06": [
+      1,
+      5
+    ],
+    "walk_07": [
+      1,
+      6
+    ],
+    "walk_08": [
+      1,
+      7
+    ],
+    "walk_09": [
+      1,
+      8
+    ],
+    "walk_10": [
+      1,
+      9
+    ],
+    "walk_11": [
+      1,
+      10
+    ],
+    "walk_12": [
+      1,
+      11
+    ],
+    "walk_13": [
+      1,
+      11
+    ],
+    "walk_14": [
+      2,
+      11
+    ],
+    "walk_15": [
+      3,
+      11
+    ],
+    "walk_16": [
+      4,
+      11
+    ],
+    "walk_17": [
+      5,
+      11
+    ],
+    "walk_18": [
+      6,
+      11
+    ],
+    "walk_19": [
+      7,
+      11
+    ],
+    "shop_offer": [
+      8,
+      11
+    ],
+    "temple_walk_00": [
+      8,
+      11
+    ],
+    "temple_walk_01": [
+      8,
+      11
+    ],
+    "temple_walk_02": [
+      7,
+      11
+    ],
+    "temple_walk_03": [
+      6,
+      11
+    ],
+    "temple_walk_04": [
+      5,
+      11
+    ],
+    "temple_walk_05": [
+      4,
+      11
+    ],
+    "temple_walk_06": [
+      3,
+      11
+    ],
+    "temple_walk_07": [
+      2,
+      11
+    ],
+    "temple_walk_08": [
+      1,
+      11
+    ],
+    "temple_walk_09": [
+      1,
+      11
+    ],
+    "temple_walk_10": [
+      1,
+      10
+    ],
+    "temple_walk_11": [
+      1,
+      9
+    ],
+    "temple_walk_12": [
+      1,
+      8
+    ],
+    "temple_walk_13": [
+      1,
+      7
+    ],
+    "temple_walk_14": [
+      1,
+      6
+    ],
+    "temple_walk_15": [
+      1,
+      5
+    ],
+    "temple_walk_16": [
+      1,
+      4
+    ],
+    "temple_offer": [
+      1,
+      3
+    ],
+    "final": [
+      1,
+      3
+    ]
+  },
+  "states": [
+    {
+      "name": "walk_00",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Down",
+      "expect_next": [
+        "walk_01"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_01",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_02"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_02",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_03"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_03",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_04"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_04",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Right",
+      "expect_next": [
+        "walk_05"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_05",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_06"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_06",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_07"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_07",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_08"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_08",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_09"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_09",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_10"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_10",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_11"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_11",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_12"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_12",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Left",
+      "expect_next": [
+        "walk_13"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_13",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_14"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_14",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_15"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_15",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_16"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_16",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_17"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_17",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_18"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_18",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "walk_19"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "walk_19",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "shop_offer"
+      ],
+      "timeout_s": 120,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_offer",
+      "gate": [
+        "YES NO"
+      ],
+      "key": "y",
+      "expect_next": [
+        "shop_pool_first"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_pool_first",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "p",
+      "expect_next": [
+        "shop_buy_pool"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_buy_pool",
+      "gate": [
+        "BUY VIEW TAKE POOL SHARE APPRAISE EXIT"
+      ],
+      "key": "b",
+      "expect_next": [
+        "buy_pay_pool"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "buy_pay_pool",
+      "gate": [
+        "ITEMS: BUY NEXT PREV EXIT"
+      ],
+      "key": "b",
+      "expect_next": [
+        "buy_leave_pool"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "buy_leave_pool",
+      "gate": [
+        "ITEMS: BUY NEXT PREV EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "shop_share_first"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_share_first",
+      "gate": [
+        "BUY VIEW TAKE POOL SHARE APPRAISE EXIT"
+      ],
+      "key": "s",
+      "expect_next": [
+        "shop_buy_personal"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_buy_personal",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "b",
+      "expect_next": [
+        "buy_pay_personal"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "buy_pay_personal",
+      "gate": [
+        "ITEMS: BUY NEXT PREV EXIT"
+      ],
+      "key": "b",
+      "expect_next": [
+        "buy_leave_personal"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "buy_leave_personal",
+      "gate": [
+        "ITEMS: BUY NEXT PREV EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "shop_view"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_view",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "v",
+      "expect_next": [
+        "view_items"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "view_items",
+      "gate": [
+        "VIEW:ITEMS TRADE DROP EXIT"
+      ],
+      "key": "i",
+      "expect_next": [
+        "items_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "items_leave",
+      "gate": [
+        "READY TRADE DROP HALVE JOIN SELL ID EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "view_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "view_leave",
+      "gate": [
+        "VIEW:ITEMS TRADE DROP EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "shop_appraise"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_appraise",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "a",
+      "expect_next": [
+        "shop_pool_take"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_pool_take",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "p",
+      "expect_next": [
+        "shop_take"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_take",
+      "gate": [
+        "BUY VIEW TAKE POOL SHARE APPRAISE EXIT"
+      ],
+      "key": "t",
+      "expect_next": [
+        "take_pending"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "take_pending",
+      "gate": [
+        "SELECT TYPE OF COIN EXIT"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "take_cancel"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "take_cancel",
+      "gate": [
+        "HOW MUCH GOLD WILL YOU TAKE?"
+      ],
+      "key": "Escape",
+      "expect_next": [
+        "take_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "take_leave",
+      "gate": [
+        "SELECT TYPE OF COIN EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "shop_share_last"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_share_last",
+      "gate": [
+        "BUY VIEW TAKE POOL SHARE APPRAISE EXIT"
+      ],
+      "key": "s",
+      "expect_next": [
+        "shop_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "shop_leave",
+      "gate": [
+        "BUY VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "temple_walk_00"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_00",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Down",
+      "expect_next": [
+        "temple_walk_01"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_01",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_02"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_02",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_03"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_03",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_04"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_04",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_05"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_05",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_06"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_06",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_07"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_07",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_08"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_08",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Right",
+      "expect_next": [
+        "temple_walk_09"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_09",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_10"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_10",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_11"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_11",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_12"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_12",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_13"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_13",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_14"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_14",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_15"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_15",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_walk_16"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_walk_16",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "temple_offer"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_offer",
+      "gate": [
+        "YES NO"
+      ],
+      "key": "y",
+      "expect_next": [
+        "temple_heal"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_heal",
+      "gate": [
+        "HEAL VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "h",
+      "expect_next": [
+        "heal_next_01"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "heal_next_01",
+      "gate": [
+        "HEAL EXIT"
+      ],
+      "key": "End",
+      "expect_next": [
+        "heal_next_02"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "heal_next_02",
+      "gate": [
+        "HEAL EXIT"
+      ],
+      "key": "End",
+      "expect_next": [
+        "heal_choose"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "heal_choose",
+      "gate": [
+        "HEAL EXIT"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "heal_pay"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "heal_pay",
+      "gate": [
+        "PAY FOR CURE YES NO"
+      ],
+      "key": "y",
+      "expect_next": [
+        "heal_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "heal_leave",
+      "gate": [
+        "HEAL EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "temple_leave"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "temple_leave",
+      "gate": [
+        "HEAL VIEW POOL APPRAISE EXIT"
+      ],
+      "key": "e",
+      "expect_next": [
+        "final"
+      ],
+      "timeout_s": 180,
+      "max_visits": 1
+    },
+    {
+      "name": "final",
+      "gate": [
+        "AREA CAST VIEW ENCAMP SEARCH LOOK"
+      ],
+      "key": null,
+      "expect_next": [],
+      "timeout_s": 180,
+      "max_visits": 1
+    }
+  ],
+  "candidates": [
+    "OVL_0077_17ED",
+    "OVL_0077_275B",
+    "OVL_0077_28BE",
+    "OVL_007F_00A8",
+    "OVL_007F_0130",
+    "OVL_007F_0185",
+    "OVL_007F_0203",
+    "OVL_007F_044C",
+    "OVL_007F_0A01",
+    "OVL_007F_0A88",
+    "OVL_007F_0B93",
+    "OVL_0086_044E",
+    "OVL_0086_051C",
+    "RES_00BA_15F7"
+  ],
+  "service_markers": {
+    "shop": "OVL_0023_053E",
+    "temple": "OVL_001E_0D09"
+  },
+  "action_markers": {
+    "shop": "OVL_0023_0361",
+    "temple": "OVL_001E_09D7"
+  },
+  "message_gates": {
+    "walk_03": [
+      "GATEWAY",
+      "GATENAY"
+    ],
+    "shop_offer": [
+      "ARMS"
+    ],
+    "temple_offer": [
+      "HEALING"
+    ],
+    "heal_pay": [
+      "100 GOLD"
+    ]
+  },
+  "font_text": true,
+  "exact_prompt_states": [
+    "shop_offer",
+    "shop_pool_first",
+    "shop_buy_pool",
+    "buy_pay_pool",
+    "buy_leave_pool",
+    "shop_share_first",
+    "shop_buy_personal",
+    "buy_pay_personal",
+    "buy_leave_personal",
+    "shop_view",
+    "view_items",
+    "items_leave",
+    "view_leave",
+    "shop_appraise",
+    "shop_pool_take",
+    "shop_take",
+    "take_pending",
+    "take_cancel",
+    "take_leave",
+    "shop_share_last",
+    "shop_leave",
+    "temple_offer",
+    "temple_heal",
+    "heal_next_01",
+    "heal_next_02",
+    "heal_choose",
+    "heal_pay",
+    "heal_leave",
+    "temple_leave",
+    "final"
+  ]
+}

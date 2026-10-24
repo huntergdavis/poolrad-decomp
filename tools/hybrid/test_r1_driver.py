@@ -5,10 +5,91 @@ from pathlib import Path
 import unittest
 import tempfile
 from r1_report import report
-from r1_driver import Route, matches
+from r1_driver import Route, matches, single_exit_prompt, decode_coordinate, decode_font_cells
 
 
 class RouteTest(unittest.TestCase):
+    def test_exact_coordinate_cells_reject_wrong_or_partial_glyphs(self):
+        glyphs = {bytes([i + 1] * 8): ch for i, ch in enumerate('0123456789,')}
+        glyphs[bytes(8)] = ' '
+        reverse = {ch: glyph for glyph, ch in glyphs.items()}
+        def render(text):
+            rgb = bytearray(96 * 16 * 3)
+            for cell, ch in enumerate(text.ljust(6)):
+                for y, row in enumerate(reverse[ch]):
+                    for x in range(8):
+                        if row & (128 >> x):
+                            for dx in range(2):
+                                for dy in range(2):
+                                    rgb[((y * 2 + dy) * 96 + cell * 16 + x * 2 + dx) * 3 + 1] = 255
+            return rgb
+        for text in ('1,5', '14,4', '1,14', '15,15'):
+            self.assertEqual(decode_coordinate(render(text), glyphs), text)
+        for text in ('16,4', '1,', ',4'):
+            self.assertEqual(decode_coordinate(render(text), glyphs), '')
+        broken = render('1,5')
+        broken[1] = 255
+        self.assertEqual(decode_coordinate(broken, glyphs), '')
+        self.assertEqual(decode_coordinate(b'', glyphs), '')
+
+    def test_menu_cells_accept_white_glyph_and_reject_partial_pixel(self):
+        glyph = bytes([128] * 8)
+        pixels = bytearray(16 * 16 * 3)
+        for y in range(16):
+            for x in range(2):
+                at = (y * 16 + x) * 3
+                pixels[at:at + 3] = bytes([255, 255, 255])
+        self.assertEqual(decode_font_cells(pixels, {glyph: 'Q'}, 1), 'Q')
+        self.assertIsNone(decode_font_cells(pixels, {}, 1))
+        pixels[:3] = bytes(3)
+        self.assertIsNone(decode_font_cells(pixels, {glyph: 'Q'}, 1))
+
+    def test_transition_requires_message_and_prompt(self):
+        self.route.allowed = ['area_view']
+        self.route.message_gates = {'area_view': ['PORTAL']}
+        self.assertIsNone(self.route.choose({'prompt': 'AREA', 'message': ''}))
+        self.assertIsNone(self.route.choose({'prompt': 'YES NO', 'message': 'PORTAL'}))
+        self.assertIsNotNone(self.route.choose({'prompt': 'AREA', 'message': 'PORTAL'}))
+
+    def test_message_configuration_rejects_unknown_and_empty_gates(self):
+        for gates in ({'missing': ['PORTAL']}, {'area_view': []}, {'area_view': ['']}):
+            with self.assertRaises(ValueError):
+                Route(dict(self.route.data, message_gates=gates))
+
+    def test_navigation_requires_menu_and_exact_coordinate(self):
+        self.route.allowed = ['area_view']
+        self.route.navigation_states = {'area_view': [1, 4]}
+        self.assertTrue(self.route.needs_digits())
+        self.assertIsNotNone(self.route.choose({'prompt': 'AREA', 'digits': '1, 4 W'}))
+        for obs in ({'prompt': 'YES NO', 'digits': '1,4'},
+                    {'prompt': 'AREA', 'digits': '11,4'},
+                    {'prompt': 'AREA', 'digits': '1,14'},
+                    {'prompt': 'AREA', 'digits': ''}):
+            self.assertIsNone(self.route.choose(obs))
+
+    def test_navigation_configuration_rejects_unknown_or_invalid_positions(self):
+        for nav in ({'missing': [1, 4]}, {'area_view': [16, 4]},
+                    {'area_view': ['1', 4]}, {'area_view': [1]}):
+            with self.assertRaises(ValueError):
+                Route(dict(self.route.data, navigation_states=nav))
+
+    def test_single_exit_fallback_rejects_other_controls(self):
+        for text in ('EXIT', 'EXT', 'EXT.'):
+            self.assertEqual(single_exit_prompt(text), text)
+        for text in ('NEXT', 'TEXT', 'EXTRA', 'EXIT NEXT', '', 'A'):
+            self.assertEqual(single_exit_prompt(text), '')
+
+    def test_exact_gate_rejects_an_earlier_menu_with_same_word(self):
+        self.route.allowed=['view_items']
+        self.route.exact_prompt_states={'view_items'}
+        self.assertIsNone(self.route.choose({'prompt':'ITEMS TRADE'}))
+        self.assertIsNotNone(self.route.choose({'prompt':'ITEMS'}))
+
+    def test_unknown_exact_gate_is_rejected(self):
+        data=dict(self.route.data, exact_prompt_states=['missing'])
+        with self.assertRaisesRegex(ValueError, 'unknown exact'):
+            Route(data)
+
     def setUp(self):
         self.route=Route(json.loads(Path(__file__).with_name('routes').joinpath('r1.json').read_text()))
 

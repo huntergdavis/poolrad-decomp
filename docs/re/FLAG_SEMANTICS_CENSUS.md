@@ -200,3 +200,37 @@ seven credited verdicts recorded here, one (25BC) needed a dated caveat rather t
 evidence could not have failed. The credited count does not move for any of this; the evidence behind it got stronger.
 
 Counts measured on main `6fac2396`.
+
+## Detector widened: a comment or newline between the signature and the brace (2026-10-24)
+
+par-d2 measured a gap in the census (i23004). `FUNCTION` and `PUBLIC` required `{` right after `)`, so a helper written
+`static T f(args)   /* comment */` with `{` on the next line was never hashed, and `--check` still passed.
+
+**The fix.** Both patterns now allow any run of whitespace, newlines, block comments and line comments between `)` and
+`{`. A block comment is matched as `/\*(?:[^*]|\*(?!/))*\*/` without `re.S`, so it cannot run past its own `*/` into the
+next function. A `;` still ends a prototype, so declarations are not picked up.
+
+**The regression tests** in `test_flag_census.py`:
+
+- A synthetic file pins four commented or split signatures by exact name: a block comment, a line comment, a blank
+  line, and a public body with a two-line comment. It also checks that a prototype followed by a comment is not a
+  helper.
+- `overlay_u25_entry4_0341_cpu.c:dec16_flags` and `resident_0802_0105_cpu.c:cmp_flags` are pinned as found in the tree.
+
+**The effect on main `ea768440`:**
+
+| Measure | Result |
+| --- | --- |
+| Helpers newly found | 29, in 21 files (par-d2's list exactly) |
+| Helpers lost | 0 |
+| Existing hashes changed | 0 |
+| Hashed into already classified rows | 4: `resident_0709_msgbox_0bf5_cpu.c:sub_flags`, `resident_0802_0193_cpu.c:sub_flags`, `resident_0802_02eb_cpu.c:cmp_flags`, `resident_0802_050f_cpu.c:logic_flags` |
+| New rows | 22, each classified by hand against pinned 5a9c7c53 |
+
+**Result:** 21 rows agree, and 1 disagrees. Word-width rows carry the established PF path split.
+
+**Finding, not fixed here.** `overlay_u3bd_cell_057a_cpu.c:shl16` (`SHL AX,CL`) sets OF to MSB(result) XOR
+MSB(operand). Pinned `t_SHLw` (flags.cpp:719-727) sets OF to MSB(result) XOR CF, where CF is bit (16 − count) of the
+operand. The two agree only for a count of 1. The body's only call is `05D6 MOV CL,4; SHL AX,CL`, and `05DE ADD DI,AX`
+overwrites all six arithmetic flags before any reader, so the difference is not observable in that body. It is reported
+to the PM rather than fixed in this PR.
