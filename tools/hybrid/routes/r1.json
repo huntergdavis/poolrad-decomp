@@ -1,0 +1,424 @@
+{
+  "version": 2,
+  "name": "r1",
+  "description": "R1 core: encounter, Quick combat, loot Pool/Share, View Items; original guest only.",
+  "start": "seek_down",
+  "terminal": "final",
+  "states": [
+    {
+      "name": "seek_down",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Down",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "seek_continue_down",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_down",
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 60
+    },
+    {
+      "name": "seek_up",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_down",
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "seek_continue_up",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
+      "max_visits": 60
+    },
+    {
+      "name": "encounter",
+      "gate": [
+        "COMBAT",
+        "FLEE"
+      ],
+      "key": "c",
+      "expect_next": [
+        "treasure_pool",
+        "battle_end",
+        "combat_continue",
+        "combat_confirm",
+        "combat_quick",
+        "encounter"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    },
+    {
+      "name": "battle_end",
+      "gate": [
+        "BATTLE"
+      ],
+      "key": "n",
+      "expect_next": [
+        "treasure_pool",
+        "battle_end",
+        "combat_continue",
+        "combat_confirm",
+        "combat_quick",
+        "encounter"
+      ],
+      "timeout_s": 300,
+      "max_visits": 8
+    },
+    {
+      "name": "combat_continue",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "treasure_pool",
+        "battle_end",
+        "combat_continue",
+        "combat_confirm",
+        "combat_quick",
+        "encounter"
+      ],
+      "timeout_s": 300,
+      "max_visits": 150
+    },
+    {
+      "name": "combat_confirm",
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
+      "key": "y",
+      "expect_next": [
+        "treasure_pool",
+        "battle_end",
+        "combat_continue",
+        "combat_confirm",
+        "combat_quick",
+        "encounter"
+      ],
+      "timeout_s": 300,
+      "max_visits": 12
+    },
+    {
+      "name": "combat_quick",
+      "gate": [
+        "QUICK",
+        "GUARD",
+        "AIM",
+        "MOVE",
+        "OVE",
+        "USE",
+        "DONE",
+        "DOE",
+        "AIN"
+      ],
+      "key": "q",
+      "expect_next": [
+        "treasure_pool",
+        "battle_end",
+        "combat_continue",
+        "combat_confirm",
+        "combat_quick",
+        "encounter"
+      ],
+      "timeout_s": 300,
+      "max_visits": 250
+    },
+    {
+      "name": "treasure_pool",
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
+      "key": "p",
+      "expect_next": [
+        "pool_confirm",
+        "pool_continue",
+        "treasure_share"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "pool_confirm",
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
+      "key": "y",
+      "expect_next": [
+        "pool_continue",
+        "treasure_share"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    },
+    {
+      "name": "pool_continue",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "pool_confirm",
+        "pool_continue",
+        "treasure_share"
+      ],
+      "timeout_s": 300,
+      "max_visits": 6
+    },
+    {
+      "name": "treasure_share",
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
+      "key": "s",
+      "expect_next": [
+        "share_confirm",
+        "share_continue",
+        "treasure_exit"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "share_confirm",
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
+      "key": "y",
+      "expect_next": [
+        "share_continue",
+        "treasure_exit"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    },
+    {
+      "name": "share_continue",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "share_confirm",
+        "share_continue",
+        "treasure_exit"
+      ],
+      "timeout_s": 300,
+      "max_visits": 6
+    },
+    {
+      "name": "treasure_exit",
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
+      "key": "e",
+      "expect_next": [
+        "leave_confirm",
+        "leave_remaining",
+        "leave_continue",
+        "area_view"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "leave_confirm",
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
+      "key": "y",
+      "expect_next": [
+        "leave_remaining",
+        "leave_continue",
+        "area_view"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    },
+    {
+      "name": "leave_continue",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "leave_confirm",
+        "leave_remaining",
+        "leave_continue",
+        "area_view"
+      ],
+      "timeout_s": 300,
+      "max_visits": 6
+    },
+    {
+      "name": "area_view",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "v",
+      "expect_next": [
+        "view_items"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "view_items",
+      "gate": [
+        "ITEMS"
+      ],
+      "key": "i",
+      "expect_next": [
+        "final"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "final",
+      "gate": [
+        "READY",
+        "UNREADY",
+        "HALVE",
+        "JOIN",
+        "SELL",
+        "IDENTIFY"
+      ],
+      "key": null,
+      "expect_next": [],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "leave_remaining",
+      "gate": [
+        "YES",
+        "HES",
+        "NO",
+        "MO"
+      ],
+      "key": "n",
+      "expect_next": [
+        "leave_continue",
+        "area_view"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    }
+  ],
+  "candidates": [
+    "OVL_0077_17ED",
+    "OVL_0077_275B",
+    "OVL_0077_28BE",
+    "OVL_007F_0000",
+    "OVL_007F_003A",
+    "OVL_007F_0054",
+    "OVL_007F_00A8",
+    "OVL_007F_044C",
+    "OVL_007F_0508",
+    "OVL_007F_05E0",
+    "OVL_007F_0A01",
+    "OVL_007F_0B93",
+    "OVL_0086_028D",
+    "OVL_0086_044E",
+    "OVL_0086_051C",
+    "OVL_0086_059C",
+    "OVL_03B0_0000",
+    "OVL_03B0_0067",
+    "OVL_03B0_0711",
+    "OVL_03B0_07A4",
+    "OVL_03B0_08D7",
+    "OVL_03B0_0923",
+    "OVL_03B0_0969",
+    "OVL_03B0_0A08",
+    "OVL_03B0_0B03",
+    "OVL_03B0_0C33",
+    "OVL_03B0_0CC5",
+    "OVL_03B0_11F3"
+  ]
+}
