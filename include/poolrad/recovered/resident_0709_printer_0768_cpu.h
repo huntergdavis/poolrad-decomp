@@ -40,7 +40,7 @@
 typedef struct {
     uint16_t ax, bx, cx, dx, si, di;
     uint16_t bp, sp, cs, ip, ds, es, ss, flags;
-} pr_r0709_printer_cpu;
+} pr_r0709_printer_0768_regs;
 
 typedef struct {
     size_t clear_loopbacks, clear_rect_loopbacks;                 /* 0DD3's budgets */
@@ -66,6 +66,6 @@ typedef struct {
                             status; 0DD3: callee, status, -1, -1), else -1 */
 } pr_r0709_printer_diagnostic;
 
-pr_r0709_printer_status pr_r0709_printer_0768_cpu(pr_bus *bus, size_t ram_size, pr_r0709_printer_cpu *cpu,
+pr_r0709_printer_status pr_r0709_printer_0768_cpu(pr_bus *bus, size_t ram_size, pr_r0709_printer_0768_regs *cpu,
                                                   const pr_r0709_printer_budget *budget, pr_r0709_printer_diagnostic *diagnostic);
 #endif
