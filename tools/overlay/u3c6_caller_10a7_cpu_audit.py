@@ -8,7 +8,7 @@ Unicorn and the C model. The original decides each stop: the fetch after its own
 whose live bytes differ when fetched (CODE), loop 1's taken JNE +117F past the host cap (LIMIT), an +03A0 budget point
 reached with that budget spent, counted as its merged audit counts it, or a nested RETF that does not come back to its
 call (CALLEE), or a RETF of a direct callee that does not come back to its call (TRANSFER). Any fetch outside the
-pre-decoded original functions is an error. Only one FLAGS bit is ever excepted: AF at returns whose final flags come from
+pre-decoded original functions is an error. A declared split requires AF=1 at returns whose final flags come from
 the slot-clearing path's SHL DI,1, where Unicorn leaves 0 and the C model, like the merged +0CB9 model, follows the pinned
 DOSBox-X core's 1; the native oracle compares it unmasked. Media stays private.
 """
@@ -19,11 +19,13 @@ import json
 import os
 from pathlib import Path
 import random
+import shutil
 import struct
 import subprocess
 import tempfile
 
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
+import u3c6_10a7_folded_flags as folded_flags
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS, physical, put16
@@ -83,16 +85,22 @@ def source():
 CHECKER_ROWS = ('OVL_03C6_10A7',)
 
 
-def library(directory):
-    path = directory / "u3c610a7.so"
+def library(directory, trace_shifts=False, mutation=None):
+    path = directory / ("u3c610a7-probe.so" if trace_shifts else "u3c610a7.so")
     sources = ["overlay_u3c6_caller_10a7_cpu.c", "overlay_u3c6_0cb9_cpu.c", "overlay_u3c6_rebuild_03a0.c", "overlay_u3c6_table_pair_0000.c",
                "system_runtime_leaves_cpu.c"]
+    sources = [ROOT / "src/recovered" / s for s in sources]
+    if trace_shifts:
+        sources[0] = folded_flags.instrument_shifts(sources[0], directory, mutation)
     subprocess.run(["cc", "-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror", "-O2", "-fPIC", "-shared", "-I", str(ROOT / "include"),
-                    *[str(ROOT / "src/recovered" / s) for s in sources], "-o", str(path)], check=True, capture_output=True, text=True)
-    function = ctypes.CDLL(str(path)).pr_u3c6_caller_10a7_cpu
+                    *map(str, sources), "-o", str(path)], check=True, capture_output=True, text=True)
+    module = ctypes.CDLL(str(path))
+    function = module.pr_u3c6_caller_10a7_cpu
     function.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.c_uint, ctypes.c_size_t, ctypes.c_size_t,
                          ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int)]
     function.restype = ctypes.c_int
+    if trace_shifts:
+        folded_flags.bind_shift_trace(module, function)
     return function
 
 
@@ -156,19 +164,25 @@ def build(code, image, rng, *, flag49=5, slots=((10, 10, 1), (20, 12, 1)), q_slo
 
 def compare(label, memory, cpu, target, decoded, function, cap=64, budgets=BUDGETS, count=5000000):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
-    from unicorn.x86_const import UC_X86_REG_CS, UC_X86_REG_IP
+    from unicorn.x86_const import UC_X86_REG_CS, UC_X86_REG_IP, UC_X86_REG_EFLAGS, UC_X86_REG_DI
     original = Uc(UC_ARCH_X86, UC_MODE_16)
     original.mem_map(0, 2 * SIZE)
     original.mem_write(0, bytes(memory)); original.mem_write(SIZE, bytes(memory))
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         original.reg_write(register, getattr(cpu, name))
     state = dict(stop=None, returning=False, returned=False, previous=None, last=None, loops=0, remaining=list(budgets), calls=[],
-                 unexpected=None, fill=0, fail_path=False)
+                 unexpected=None, fill=0, fail_path=False, shift_pending=None, shift_trace=[])
     visited, edges = set(), set()
 
     def hook(emulator, address, size, user):
         del size, user
         cs, ip = emulator.reg_read(UC_X86_REG_CS), emulator.reg_read(UC_X86_REG_IP)
+        if state["shift_pending"] is not None:
+            flags = emulator.reg_read(UC_X86_REG_EFLAGS) & 0xFFFF
+            di = emulator.reg_read(UC_X86_REG_DI)
+            check(bool(flags & 4) == ((di & 255).bit_count() % 2 == 0), "oracle stored PF is not low-byte parity")
+            state["shift_trace"].append((state["shift_pending"], flags | 0x0010, di))
+            state["shift_pending"] = None
         if state["returned"]:
             state["stop"] = OK
             return emulator.emu_stop()
@@ -197,6 +211,8 @@ def compare(label, memory, cpu, target, decoded, function, cap=64, budgets=BUDGE
                     return emulator.emu_stop()
             if ip == FAIL_SHL:
                 state["fail_path"] = True
+            if ip in folded_flags.LIVE_SHIFTS:
+                state["shift_pending"] = ip
             visited.add(ip)
             if state["previous"] in target["conditional"] and state["previous"] != ip:
                 edges.add((state["previous"], ip))
@@ -224,21 +240,32 @@ def compare(label, memory, cpu, target, decoded, function, cap=64, budgets=BUDGE
     expected = bytes(original.mem_read(0, SIZE))
     ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(memory)
     callee, callee_status = ctypes.c_int(99), ctypes.c_int(99)
+    if hasattr(function, "shift_trace_reset"):
+        function.shift_trace_reset()
     status = function(ram, SIZE, ctypes.byref(cpu), cap, *budgets, ctypes.byref(callee), ctypes.byref(callee_status))
+    if hasattr(function, "shift_trace_reset"):
+        folded_flags.compare_shift_trace(function, state["shift_trace"], label)
     check(status == state["stop"], f"C status {status} (callee {callee.value}/{callee_status.value}), original stopped with "
           f"{NAMES[state['stop']]}: {label}")
     actual = bytes(ram)
     if actual != expected:
         differences = [i for i, (a, b) in enumerate(zip(actual, expected)) if a != b]
         raise ValueError(f"RAM mismatch {label}: {[(hex(d), actual[d], expected[d]) for d in differences[:6]]} ({len(differences)} bytes)")
-    masked = False
+    split = False
     for (name, _), register in zip(Cpu._fields_, REGISTERS):
         mine, want = getattr(cpu, name), original.reg_read(register) & 0xFFFF
-        if name == "flags" and state["stop"] == OK and state["fail_path"] and mine == (want | 0x0010) and not want & 0x0010:
-            masked = True                                                  # the declared SHL AF exception
-            continue
+        if name == "flags" and state["stop"] == OK and state["fail_path"]:
+            # The original executed +1144 SHL DI,1 and no later flag writer.
+            # Require the pinned AF=1 image; an AF=0 model must fail even when
+            # it equals Unicorn. Every other bit still compares exactly.
+            pinned = want | 0x0010
+            split = pinned != want
+            want = pinned
         check(mine == want, f"{name} mismatch {label}: C={mine:04x}, original={want:04x} ({NAMES[state['stop']]})")
-    return state["stop"], visited, edges, (callee.value, callee_status.value), masked, cpu.ax & 0xFF, state["fill"]
+    return state["stop"], visited, edges, (callee.value, callee_status.value), split, cpu.ax & 0xFF, state["fill"]
+
+
+HIGH_BYTE_SHIFT_CASE = dict(slots=((10, 10, 1),) * 64, q_slot=64, ranks=((0x17, 0xFF),))
 
 
 def cases(rng):
@@ -270,6 +297,7 @@ def cases(rng):
     spec.append(("success-x-only", dict(entries=((0x1234, REC, 10, 11, 3),))))
     spec.append(("occupied-cells", dict(shape=valid, occupancy=(((10, 10), 1), ((11, 10), 1), ((10, 11), 1), ((9, 10), 1)))))
     spec.append(("fail-rank", dict(ranks=((0x17, 0xFF),))))
+    spec.append(("fail-rank-slot64-pf", dict(HIGH_BYTE_SHIFT_CASE)))
     spec.append(("fail-zero-cell", dict(shape=valid, cells=(((10, 10), 0), ((11, 10), 0), ((10, 11), 0), ((9, 10), 0)))))
     spec.append(("q-absent", dict(q_slot=0)))
     for sp in (0x0100, 0x0101, 0xFFE0, 0xFFF0):
@@ -290,18 +318,18 @@ def cases(rng):
 def differential(target, code, image, decoded, function):
     rng = random.Random(0x3C610A7)
     visited, edges, stops = set(), set(), {k: 0 for k in NAMES}
-    masked, results, fills = 0, {}, 0
+    splits, results, fills = 0, {}, 0
     for label, options in cases(rng):
         cap = options.pop("cap", 64)
         budgets = options.pop("budgets", BUDGETS)
         memory, cpu, q = build(code, image, rng, **options)
         stop, v, e, callee, m, al, fill = compare(f"+10A7 {label}", memory, cpu, target, decoded, function, cap, budgets)
         if not label.startswith("random"):
-            print(f"  {label}: {NAMES[stop]} callee {callee} AL {al}{' (AF excepted)' if m else ''} fills {fill}")
+            print(f"  {label}: {NAMES[stop]} callee {callee} AL {al}{' (pinned AF split)' if m else ''} fills {fill}")
         stops[stop] += 1
         visited |= v
         edges |= e
-        masked += m
+        splits += m
         fills += fill
         if stop == OK:
             results[al] = results.get(al, 0) + 1
@@ -309,12 +337,38 @@ def differential(target, code, image, decoded, function):
     missing = sorted(hex(a) for a in target["starts"] if a not in visited)
     missing_edges = sorted((hex(s), hex(o)) for s, o in reachable - edges)
     print(f"U3C6 +10A7: {sum(stops.values())} original-byte cases ({', '.join(f'{v} {NAMES[k]}' for k, v in stops.items())}); "
-          f"full 1 MiB RAM and all 14 CPU words equal, AF excepted at {masked} slot-clearing returns; {len(visited)}/{len(target['starts'])} "
+          f"full 1 MiB RAM and all 14 CPU words equal, pinned AF required at {splits} slot-clearing returns; {len(visited)}/{len(target['starts'])} "
           f"instruction starts, {len(edges)}/{len(reachable)} conditional outcomes; FillChar fetches {fills}; results {dict(sorted(results.items()))}")
     check(not missing and not missing_edges, f"coverage incomplete: {missing} {missing_edges}")
     check(all(stops.values()), f"a stop kind was not exercised: {stops}")
-    return dict(stops={NAMES[k]: v for k, v in stops.items()}, starts=len(visited), outcomes=len(edges), af_excepted=masked,
+    trace_counts = function.shift_trace_counts
+    check(set(trace_counts) == set(folded_flags.LIVE_SHIFTS), "both exposed shifts must be checked")
+    return dict(stops={NAMES[k]: v for k, v in stops.items()}, starts=len(visited), outcomes=len(edges), declared_shl_af_splits=splits, masked_flags=0,
+                live_shift_observations={f'{site:04X}': n for site, n in sorted(trace_counts.items())},
                 fill_fetches=fills, results={str(k): v for k, v in sorted(results.items())})
+
+
+def negative_tests(target, code, image, decoded):
+    """Each deliberately broken site must fail at its immediate FLAGS probe."""
+    rejected = []
+    for mutation in (None, *((site, kind) for site in folded_flags.LIVE_SHIFTS for kind in ('af-zero', 'pf-word'))):
+        with tempfile.TemporaryDirectory(prefix='poolrad-10a7-negative-') as temp:
+            function = library(Path(temp), trace_shifts=True, mutation=mutation)
+            memory, cpu, _ = build(code, image, random.Random(0x10A7), **HIGH_BYTE_SHIFT_CASE)
+            label = 'baseline' if mutation is None else f'{mutation[0]:04X}-{mutation[1]}'
+            try:
+                compare(label, memory, cpu, target, decoded, function)
+            except ValueError as error:
+                if mutation is None or f'live-shift mismatch {label} at +{mutation[0]:04X}:' not in str(error):
+                    raise
+                rejected.append(dict(mutation=label, rejection=str(error)))
+            else:
+                check(mutation is None, f'negative control passed: {label}')
+                check([(site, di) for site, _, di in function.shift_trace_values()] ==
+                      [(site, 0x0100) for site in folded_flags.LIVE_SHIFTS], 'PF fixture did not reach both high-byte shifts')
+    check(len(rejected) == 4, 'not all live-shift mutations were rejected')
+    print('Live-shift negative controls: all four AF/PF mutations rejected')
+    return rejected
 
 
 # ---- DOSBox-X synthetic oracle -------------------------------------------------------------------------
@@ -363,7 +417,10 @@ def case_bytes(case):
     return data
 
 
-def native_audit(target, code, image, decoded, function):
+def native_audit(target, code, image, decoded, function, executable="dosbox-x"):
+    executable = shutil.which(str(executable))
+    check(executable is not None, "DOSBox-X executable not found")
+    executable_sha = sha256(Path(executable).read_bytes()).hexdigest()
     del target, decoded
     directory = ROOT / "resources/oracle-runs/u3c6-10a7-synthetic"
     directory.mkdir(parents=True, exist_ok=True)
@@ -465,7 +522,7 @@ def native_audit(target, code, image, decoded, function):
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
     with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+        subprocess.run([executable, "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
                        env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)
     result = result_path.read_bytes()
     check(len(result) == 8 + len(cases) * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
@@ -507,7 +564,8 @@ def native_audit(target, code, image, decoded, function):
           f"with AF measured 1 and unmasked); all 14 CPU words, the {WINDOW_SIZE}-byte stack window, the whole 64 KiB DS segment and the "
           f"{MAP_WINDOW:#x}-byte map window; no mask")
     print(f"native result SHA-256 {digest}; COM segment {segment:04x}; U3C6 at {U3C6_CS:04X}, FillChar at {SYS_N:04X}:16A8")
-    return dict(cases=len(cases), results={str(k): v for k, v in sorted(results.items())}, slot_clearing=fails, result_sha256=digest)
+    return dict(cases=len(cases), results={str(k): v for k, v in sorted(results.items())}, slot_clearing=fails, result_sha256=digest,
+                executable_sha256=executable_sha, core="normal", cputype="386")
 
 
 def main():
@@ -516,22 +574,29 @@ def main():
                         help="build and bind the candidate library only; no media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
+    parser.add_argument("--dosbox-x", default="dosbox-x", help="native executable; pass the pinned build explicitly")
+    parser.add_argument("--negative-tests", action="store_true", help="reject AF=0 and word-parity PF at each exposed shift")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.compile_only:  # same compiler command and symbol binding as the audit; no media
         with tempfile.TemporaryDirectory(prefix='poolrad-checker-') as _t:
             library(Path(_t))
+            library(Path(_t), trace_shifts=True)
         print('CHECKER_BUILD_OK')
         return
     target, code, image, decoded = source()
     report = dict(target=dict(sha256=target["sha"], bytes=497, instructions=191, file_offset=target["file_offset"]))
+    report["folded_flags"] = folded_flags.prove(code, decoded)
     if args.unicorn or args.native:
         with tempfile.TemporaryDirectory(prefix="poolrad-u3c610a7-") as temp:
-            function = library(Path(temp))
             if args.unicorn:
+                function = library(Path(temp), trace_shifts=True)
                 report["unicorn"] = differential(target, code, image, decoded, function)
             if args.native:
-                report["native"] = native_audit(target, code, image, decoded, function)
+                function = library(Path(temp))
+                report["native"] = native_audit(target, code, image, decoded, function, args.dosbox_x)
+    if args.negative_tests:
+        report["negative_controls"] = negative_tests(target, code, image, decoded)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n")

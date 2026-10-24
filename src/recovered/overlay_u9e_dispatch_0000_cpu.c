@@ -21,6 +21,7 @@
 #include "poolrad/recovered/overlay_u38_target_reset_133f_cpu.h"
 #include "poolrad/recovered/overlay_u38_target_reset_2b7d.h"
 #include "poolrad/recovered/overlay_unit38_effects.h"
+#include "poolrad/recovered/ecl_helpers.h"
 #include <string.h>
 
 #define MASK (PR_U9E_0000_RAM_SIZE - 1u)
@@ -37,7 +38,7 @@ typedef struct { uint8_t kind; uint16_t stub_off, stub_seg, entry; uint32_t id; 
 static const slot_t SLOTS[256] = {
     {K_REFUSED, 0, 0, 0, 0},
     {K_ADAPTED, 0x002A, 0x0041, 0x010D, 0x00380000u | 0x010Du},
-    {K_GAP_SEMANTIC, 0x002F, 0x0041, 0x011D, 0x00380000u | 0x011Du},
+    {K_ADAPTED, 0x002F, 0x0041, 0x011D, 0x00380000u | 0x011Du},
     {K_GAP_SEMANTIC, 0x0034, 0x0041, 0x013B, 0x00380000u | 0x013Bu},
     {K_GAP_UNCREDITED, 0x0039, 0x0041, 0x017F, 0x00380000u | 0x017Fu},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
@@ -70,14 +71,14 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x00A7, 0x0041, 0x0B1B, 0x00380000u | 0x0B1Bu},
     {K_GAP_SEMANTIC, 0x00AC, 0x0041, 0x0BAC, 0x00380000u | 0x0BACu},
     {K_GAP_UNCREDITED, 0x00B1, 0x0041, 0x0BCF, 0x00380000u | 0x0BCFu},
-    {K_GAP_SEMANTIC, 0x00B6, 0x0041, 0x0C06, 0x00380000u | 0x0C06u},
-    {K_GAP_SEMANTIC, 0x00BB, 0x0041, 0x0C15, 0x00380000u | 0x0C15u},
+    {K_ADAPTED, 0x00B6, 0x0041, 0x0C06, 0x00380000u | 0x0C06u},
+    {K_ADAPTED, 0x00BB, 0x0041, 0x0C15, 0x00380000u | 0x0C15u},
     {K_GAP_SEMANTIC, 0x00C0, 0x0041, 0x0C26, 0x00380000u | 0x0C26u},
     {K_GAP_SEMANTIC, 0x005C, 0x0041, 0x04BA, 0x00380000u | 0x04BAu},
     {K_GAP_UNCREDITED, 0x00C5, 0x0041, 0x0C4B, 0x00380000u | 0x0C4Bu},
     {K_GAP_UNCREDITED, 0x00CA, 0x0041, 0x0CC3, 0x00380000u | 0x0CC3u},
     {K_GAP_UNCREDITED, 0x00CF, 0x0041, 0x1086, 0x00380000u | 0x1086u},
-    {K_GAP_SEMANTIC, 0x00D4, 0x0041, 0x10C1, 0x00380000u | 0x10C1u},
+    {K_ADAPTED, 0x00D4, 0x0041, 0x10C1, 0x00380000u | 0x10C1u},
     {K_GAP_UNCREDITED, 0x00D9, 0x0041, 0x10DE, 0x00380000u | 0x10DEu},
     {K_GAP_UNCREDITED, 0x00DE, 0x0041, 0x1168, 0x00380000u | 0x1168u},
     {K_GAP_SEMANTIC, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
@@ -106,7 +107,7 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x0138, 0x0041, 0x16BB, 0x00380000u | 0x16BBu},
     {K_GAP_UNCREDITED, 0x013D, 0x0041, 0x16E6, 0x00380000u | 0x16E6u},
     {K_GAP_UNCREDITED, 0x0142, 0x0041, 0x170B, 0x00380000u | 0x170Bu},
-    {K_GAP_SEMANTIC, 0x0147, 0x0041, 0x171F, 0x00380000u | 0x171Fu},
+    {K_ADAPTED, 0x0147, 0x0041, 0x171F, 0x00380000u | 0x171Fu},
     {K_RAW, 0x014C, 0x0041, 0x1730, 0x00380000u | 0x1730u},
     {K_GAP_UNCREDITED, 0x008E, 0x0068, 0x39D2, 0x005E0000u | 0x39D2u},
     {K_GAP_UNCREDITED, 0x0093, 0x0068, 0x3A86, 0x005E0000u | 0x3A86u},
@@ -128,7 +129,7 @@ static const slot_t SLOTS[256] = {
     {K_GAP_SEMANTIC, 0x0197, 0x0041, 0x24D9, 0x00380000u | 0x24D9u},
     {K_GAP_UNCREDITED, 0x019C, 0x0041, 0x2556, 0x00380000u | 0x2556u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x01A1, 0x0041, 0x25A2, 0x00380000u | 0x25A2u},
+    {K_ADAPTED, 0x01A1, 0x0041, 0x25A2, 0x00380000u | 0x25A2u},
     {K_GAP_SEMANTIC, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
     {K_GAP_UNCREDITED, 0x01AB, 0x0041, 0x2610, 0x00380000u | 0x2610u},
     {K_RAW, 0x01B0, 0x0041, 0x264B, 0x00380000u | 0x264Bu},
@@ -149,11 +150,11 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x01FB, 0x0041, 0x29F0, 0x00380000u | 0x29F0u},
     {K_RAW, 0x0200, 0x0041, 0x2A11, 0x00380000u | 0x2A11u},
     {K_GAP_SEMANTIC, 0x0205, 0x0041, 0x2A28, 0x00380000u | 0x2A28u},
-    {K_GAP_SEMANTIC, 0x020A, 0x0041, 0x2A6D, 0x00380000u | 0x2A6Du},
+    {K_ADAPTED, 0x020A, 0x0041, 0x2A6D, 0x00380000u | 0x2A6Du},
     {K_RAW, 0x020F, 0x0041, 0x2A87, 0x00380000u | 0x2A87u},
     {K_RAW, 0x0214, 0x0041, 0x2AE6, 0x00380000u | 0x2AE6u},
     {K_RAW, 0x0219, 0x0041, 0x2B20, 0x00380000u | 0x2B20u},
-    {K_GAP_SEMANTIC, 0x021E, 0x0041, 0x2B63, 0x00380000u | 0x2B63u},
+    {K_ADAPTED, 0x021E, 0x0041, 0x2B63, 0x00380000u | 0x2B63u},
     {K_RAW, 0x0223, 0x0041, 0x2B7D, 0x00380000u | 0x2B7Du},
     {K_GAP_UNCREDITED, 0x0228, 0x0041, 0x2BC8, 0x00380000u | 0x2BC8u},
     {K_GAP_UNCREDITED, 0x022D, 0x0041, 0x2C1C, 0x00380000u | 0x2C1Cu},
@@ -451,11 +452,133 @@ static int h_010d(call_t *m)
     return 0;
 }
 
+
+static void sub8_flags(cpu_t *c, uint8_t a, uint8_t b)
+{
+    uint8_t r = (uint8_t)(a - b); uint16_t f = parity(r);
+    if (a < b) f |= 0x0001u;
+    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x80u) f |= 0x0080u;
+    if ((uint8_t)((a ^ b) & (a ^ r)) & 0x80u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void dec8_flags(cpu_t *c, uint8_t a)
+{
+    uint8_t r = (uint8_t)(a - 1u); uint16_t f = parity(r);
+    if ((a ^ 1u ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x80u) f |= 0x0080u;
+    if (a == 0x80u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~(ARITH & ~0x0001u)) | f);   /* CF is preserved */
+}
+static void logic8_flags(cpu_t *c, uint8_t r)                          /* AND/OR/XOR byte: CF=OF=AF=0, ZF, SF at bit 7, PF */
+{
+    uint16_t f = parity(r);
+    if (!r) f |= 0x0040u;
+    if (r & 0x80u) f |= 0x0080u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void shr16_flags(cpu_t *c, uint16_t a)                          /* SHR r16,1 with the pinned rule: CF = old bit 0, OF = old bit 15, AF set, SF/ZF/PF of the result */
+{
+    uint16_t r = (uint16_t)(a >> 1u), f = (uint16_t)(parity((uint8_t)r) | 0x0010u);
+    if (a & 1u) f |= 0x0001u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x8000u) f |= 0x0080u;
+    if (a & 0x8000u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void load_mods(const uint8_t *ram, const cpu_t *c, pr_rec_modifier_state *m)
+{ m->b6816 = ds8(ram, c, 0x6816); m->b6822 = ds8(ram, c, 0x6822); m->b6818 = ds8(ram, c, 0x6818); m->b6819 = ds8(ram, c, 0x6819); }
+static void store_mods(uint8_t *ram, const cpu_t *c, const pr_rec_modifier_state *m)
+{ ds_set8(ram, c, 0x6816, m->b6816); ds_set8(ram, c, 0x6822, m->b6822); ds_set8(ram, c, 0x6818, m->b6818); ds_set8(ram, c, 0x6819, m->b6819); }
+static void set_al_(cpu_t *c, uint8_t v) { c->ax = (uint16_t)((c->ax & 0xFF00u) | v); }
+
+/* +011D: PUSH BP; MOV BP,SP; CMP byte [6825],5; JAE; (MOV byte [6825],0 | SUB byte [6825],5); DEC byte [6822]; POP BP; RETF 0Ah (pr_u38_entry3).
+ * The CF that survives the DEC is the CMP's (the SUB on the taken path computes the same CF = 0 because the path needs [6825] >= 5). */
+static int h_011d(call_t *m)
+{
+    pr_u38_state st; unsigned paths = 0; uint8_t a6825, a6822;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a6825 = st.b6825; a6822 = st.b6822;
+    if (pr_u38_entry3(&st, &paths) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    m->cpu->flags = (uint16_t)((m->cpu->flags & ~0x0001u) | (a6825 < 5u ? 0x0001u : 0u));
+    dec8_flags(m->cpu, a6822);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +0C06: INC byte [6816]; INC byte [6822] (pr_rec_u38_entry30) */
+static int h_0c06(call_t *m)
+{
+    pr_rec_modifier_state mods; uint8_t a6816, a6822;
+    frame_enter(m);
+    load_mods(m->ram, m->cpu, &mods); a6816 = mods.b6816; a6822 = mods.b6822;
+    if (pr_rec_u38_entry30(&mods) != PR_REC_EFFECT_OK) return 1;
+    store_mods(m->ram, m->cpu, &mods);
+    inc8_flags(m->cpu, a6816); inc8_flags(m->cpu, a6822);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +0C15: SUB byte [6822],4; SUB byte [6816],4 (pr_rec_u38_entry31) */
+static int h_0c15(call_t *m)
+{
+    pr_rec_modifier_state mods; uint8_t a6816, a6822;
+    frame_enter(m);
+    load_mods(m->ram, m->cpu, &mods); a6816 = mods.b6816; a6822 = mods.b6822;
+    if (pr_rec_u38_entry31(&mods) != PR_REC_EFFECT_OK) return 1;
+    store_mods(m->ram, m->cpu, &mods);
+    sub8_flags(m->cpu, a6822, 4u); sub8_flags(m->cpu, a6816, 4u);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +171F: MOV byte [681E],1; SUB byte [6822],4 (pr_u38_entry59) */
+static int h_171f(call_t *m)
+{
+    pr_u38_state st; uint8_t a6822;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a6822 = st.b6822;
+    if (pr_u38_entry59(&st) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    sub8_flags(m->cpu, a6822, 4u);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +25A2 / +2A6D / +2B63: MOV AL,[6819]; AND AL,mask; OR AL,AL; JE skip; MOV AL,[6818]; XOR AH,AH; SHR AX,1; MOV [6818],AL (pr_u38_entry77 / 98 / 102).
+ * Not taken the mask test: AL = the masked bit, FLAGS = the OR's (zero result). Taken: AX = [6818] >> 1 (AH cleared), FLAGS = the SHR's. */
+static int halve_adapter(call_t *m, uint8_t mask, pr_u38_status (*model)(pr_u38_state *, unsigned *))
+{
+    pr_u38_state st; unsigned paths = 0; uint8_t masked, a6818;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a6818 = st.b6818; masked = (uint8_t)(st.b6819 & mask);
+    if (model(&st, &paths) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    logic8_flags(m->cpu, masked); set_al_(m->cpu, masked);
+    if (masked) { m->cpu->ax = (uint16_t)(a6818 >> 1); shr16_flags(m->cpu, a6818); }
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+static int h_25a2(call_t *m) { return halve_adapter(m, 0x01u, pr_u38_entry77); }
+static int h_2a6d(call_t *m) { return halve_adapter(m, 0x04u, pr_u38_entry98); }
+static int h_2b63(call_t *m) { return halve_adapter(m, 0x02u, pr_u38_entry102); }
+/* +10C1: MOV AL,[681A]; XOR AH,AH; SHR AX,1; MOV [681A],AL (pr_u38_entry36) */
+static int h_10c1(call_t *m)
+{
+    pr_u38_state st; uint8_t a681a;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a681a = st.b681a;
+    if (pr_u38_entry36(&st) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    m->cpu->ax = (uint16_t)(a681a >> 1); shr16_flags(m->cpu, a681a);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x010D, h_010d}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},

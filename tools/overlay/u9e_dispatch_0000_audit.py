@@ -37,7 +37,7 @@ SP_MIN, SP_MAX = 0x0200, 0xFFEE
 STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'LIMIT', 6: 'CALLEE', 7: 'TRANSFER'}
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
-ADAPTED = {0x010D}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
+ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
 RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
@@ -473,6 +473,21 @@ def cases(src, per_slot=16, quick=False):
     for v25 in (0x00, 0x0A, 0x0B, 0x7A, 0x7B, 0x7F, 0x80, 0xFA, 0xFB, 0xFF):
         for v22 in (0x00, 0x0F, 0x7F, 0x80, 0xFF):
             add(f"adapt010d-{v25:02x}-{v22:02x}", 1, poke=[(DS, 0x6825, bytes([v25])), (DS, 0x6822, bytes([v22]))])
+    # phase 2, batch 1: the byte values that reach every flag outcome of each handler's last flag writer (slot -> handler: 2 +011D, 35 +0C06, 36 +0C15, 42 +10C1, 71 +171F, 93 +25A2, 114 +2A6D, 118 +2B63)
+    EDGE = (0x00, 0x01, 0x03, 0x04, 0x05, 0x0F, 0x10, 0x7F, 0x80, 0x84, 0x85, 0xFE, 0xFF)
+    def adapt(tag, slot, **kv):
+        add(f"adapt{tag}-" + "-".join(f"{v:02x}" for v in kv.values()), slot, poke=[(DS, a, bytes([v])) for a, v in zip(ADDR[tag], kv.values())])
+    ADDR = {"011d": (0x6825, 0x6822), "0c06": (0x6816, 0x6822), "0c15": (0x6816, 0x6822), "171f": (0x6822, 0x681E), "10c1": (0x681A,), "25a2": (0x6819, 0x6818), "2a6d": (0x6819, 0x6818), "2b63": (0x6819, 0x6818)}
+    for a in EDGE:
+        for b in (0x00, 0x01, 0x7F, 0x80, 0xFF):
+            adapt("011d", 2, a=a, b=b); adapt("0c06", 35, a=a, b=b); adapt("0c15", 36, a=a, b=b)
+        for b in (0x00, 0x01, 0x55):
+            adapt("171f", 71, a=a, b=b)
+        adapt("10c1", 42, a=a)
+    for tag, slot, mask in (("25a2", 93, 0x01), ("2a6d", 114, 0x04), ("2b63", 118, 0x02)):
+        for gate in (0x00, mask, 0xFF ^ mask, 0xFF, 0x80 | mask, 0x40):
+            for a in (0x00, 0x01, 0x02, 0x03, 0x7F, 0x80, 0xFE, 0xFF):
+                adapt(tag, slot, g=gate, a=a)
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -513,6 +528,12 @@ def differential(src, lib, base, only=None, keep_going=False):
 
 # ---------------------------------------------------------------------------------------------------- mutation
 EQUIVALENT = {      # a survivor named here carries a written proof
+    '+0C15/+171F SUB AF from a ^ r only': 'the subtrahend is the constant 4 (bit 4 clear) in both handlers, so (a ^ 4 ^ r) & 10h equals (a ^ r) & 10h for every byte',
+    '+25A2/+2A6D/+2B63 AH is not cleared': 'AH is already zero at the handler: the dispatcher body executes XOR AH,AH before the LCALL and nothing between it and these handlers writes AH, so XOR AH,AH inside the handler (modelled by the explicit clear) changes nothing the caller can see',
+    '+10C1 AX keeps AH': 'the same proof: the dispatcher\'s XOR AH,AH before the LCALL leaves AH = 0, so the handler\'s own XOR AH,AH is a no-op for AH',
+    '+0C06 first INC flags dropped': 'the second INC byte [6822] (no instruction between) overwrites AF, OF, SF, ZF and PF and both INCs preserve CF, so the first INC\'s flags are dead at the return in the original and in the model',
+    '+0C15 first SUB flags dropped': 'the second SUB byte [6816],4 overwrites every arithmetic flag (CF, PF, AF, ZF, SF, OF) with nothing between them, so the first SUB\'s flags are dead at the return',
+    '+25A2/+2A6D/+2B63 the OR flags put SF at bit 6': 'the OR AL,AL result is the masked bit (0 or the mask 01h/04h/02h): bit 6 and bit 7 are both clear for every value it can take, so SF is 0 whichever bit is tested',
     '+010D ADD computes AF from the wrong operand': 'the INC byte [6822] that follows the ADD (no instruction between them) overwrites AF, OF, SF, ZF and PF; only the ADD\'s CF reaches the return. The ADD\'s non-CF flags are therefore dead at the handler\'s return in the original and in the model, and any change to how add8_flags computes them is unobservable (also: b is always 5, whose bit 4 is 0)',
     '+010D ADD tests AF at bit 5, not bit 4': 'the same proof: the ADD\'s AF is overwritten by the following INC before the return, so no AF rule inside add8_flags is observable',
 }
@@ -544,11 +565,48 @@ MUTANTS = (
     ('+010D ADD computes AF from the wrong operand', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
     ('+010D ADD tests AF at bit 5, not bit 4', [("    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)", "    if ((a ^ b ^ r) & 0x20u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)(~(a ^ b)")]),
     ('+010D leaves the saved BP unwritten (no PUSH BP write)', [("static void frame_enter(call_t *m) { push(m->ram, m->cpu, m->cpu->bp); m->cpu->bp = m->cpu->sp; }", "static void frame_enter(call_t *m) { m->cpu->sp = (uint16_t)(m->cpu->sp - 2u); m->cpu->bp = m->cpu->sp; }")]),
-    ('+010D pops 8 argument bytes, not 0Ah', [("frame_leave(m, 0x0Au);\n    return 0;\n}\n\ntypedef", "frame_leave(m, 0x08u);\n    return 0;\n}\n\ntypedef")]),
+    ('+010D pops 8 argument bytes, not 0Ah', [("frame_leave(m, 0x0Au);\n    return 0;\n}\n\n\nstatic void sub8_flags", "frame_leave(m, 0x08u);\n    return 0;\n}\n\n\nstatic void sub8_flags")]),
     ('+010D skips the semantic model (the DS bytes stay)', [("if (pr_u38_entry2(&st) != PR_U38_OK) return 1;", "(void)pr_u38_entry2;")]),
+    ('+011D CF test polarity (a < 5 becomes a <= 5)', [('(a6825 < 5u ? 0x0001u : 0u)', '(a6825 <= 5u ? 0x0001u : 0u)')]),
+    ('+011D DEC clears CF instead of preserving it', [('(ARITH & ~0x0001u)) | f);   /* CF is preserved */\n}\nstatic void logic8_flags', 'ARITH) | f);\n}\nstatic void logic8_flags')]),
+    ('+011D DEC sets OF at 7Fh, not 80h', [('if (a == 0x80u) f |= 0x0800u;', 'if (a == 0x7Fu) f |= 0x0800u;')]),
+    ('+011D DEC flags from the stored value, not the original', [('dec8_flags(m->cpu, a6822);', 'dec8_flags(m->cpu, st.b6822);')]),
+    ('+011D skips the semantic model', [('pr_u38_entry3(&st, &paths) != PR_U38_OK', '(void)pr_u38_entry3, 0')]),
+    ('+011D pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +0C06', 'frame_leave(m, 0x08u);\n    return 0;\n}\n/* +0C06')]),
+    ('+0C06 flags come from the [6816] INC, not the [6822] INC', [('inc8_flags(m->cpu, a6816); inc8_flags(m->cpu, a6822);', 'inc8_flags(m->cpu, a6822); inc8_flags(m->cpu, a6816);')]),
+    ('+0C06 first INC flags dropped', [('inc8_flags(m->cpu, a6816); inc8_flags(m->cpu, a6822);', '(void)a6816; inc8_flags(m->cpu, a6822);')]),
+    ('+0C06 skips the semantic model', [('pr_rec_u38_entry30(&mods) != PR_REC_EFFECT_OK', '(void)pr_rec_u38_entry30, 0')]),
+    ('+0C06 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +0C15', 'frame_leave(m, 0x08u);\n    return 0;\n}\n/* +0C15')]),
+    ('+0C15 flags come from the [6822] SUB, not the [6816] SUB', [('sub8_flags(m->cpu, a6822, 4u); sub8_flags(m->cpu, a6816, 4u);', 'sub8_flags(m->cpu, a6816, 4u); sub8_flags(m->cpu, a6822, 4u);')]),
+    ('+0C15 first SUB flags dropped', [('sub8_flags(m->cpu, a6822, 4u); sub8_flags(m->cpu, a6816, 4u);', '(void)a6822; sub8_flags(m->cpu, a6816, 4u);')]),
+    ('+0C15 skips the semantic model', [('pr_rec_u38_entry31(&mods) != PR_REC_EFFECT_OK', '(void)pr_rec_u38_entry31, 0')]),
+    ('+0C15 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +171F', 'frame_leave(m, 0x08u);\n    return 0;\n}\n/* +171F')]),
+    ('+0C15/+171F SUB borrow test a <= b (CF)', [('    if (a < b) f |= 0x0001u;', '    if (a <= b) f |= 0x0001u;')]),
+    ('+0C15/+171F SUB OF from the wrong operand sign', [('if ((uint8_t)((a ^ b) & (a ^ r)) & 0x80u) f |= 0x0800u;', 'if ((uint8_t)((a ^ r)) & 0x80u) f |= 0x0800u;')]),
+    ('+0C15/+171F SUB AF from a ^ r only', [('    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)((a ^ b) &', '    if ((a ^ r) & 0x10u) f |= 0x0010u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    if ((uint8_t)((a ^ b) &')]),
+    ('+171F skips the semantic model', [('pr_u38_entry59(&st) != PR_U38_OK', '(void)pr_u38_entry59, 0')]),
+    ('+171F SUB flags from the stored value', [('sub8_flags(m->cpu, a6822, 4u);\n    frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +25A2', 'sub8_flags(m->cpu, st.b6822, 4u);\n    frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +25A2')]),
+    ('+171F pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n/* +25A2', 'frame_leave(m, 0x08u);\n    return 0;\n}\n/* +25A2')]),
+    ('+25A2/+2A6D/+2B63 the zero-gate AL is not written', [('logic8_flags(m->cpu, masked); set_al_(m->cpu, masked);', 'logic8_flags(m->cpu, masked);')]),
+    ('+25A2/+2A6D/+2B63 AH is not cleared', [('m->cpu->ax = (uint16_t)(a6818 >> 1); shr16_flags(m->cpu, a6818);', 'm->cpu->ax = (uint16_t)((m->cpu->ax & 0xFF00u) | (a6818 >> 1)); shr16_flags(m->cpu, a6818);')]),
+    ('+25A2/+2A6D/+2B63 the OR flags omit ZF', [('    if (!r) f |= 0x0040u;\n    if (r & 0x80u) f |= 0x0080u;\n    c->flags = (uint16_t)((c->flags & ~ARITH) | f);\n}\nstatic void shr16_flags', '    if (r & 0x80u) f |= 0x0080u;\n    c->flags = (uint16_t)((c->flags & ~ARITH) | f);\n}\nstatic void shr16_flags')]),
+    ('+25A2/+2A6D/+2B63 the OR flags invert PF', [('static void logic8_flags(cpu_t *c, uint8_t r)                          /* AND/OR/XOR byte: CF=OF=AF=0, ZF, SF at bit 7, PF */\n{\n    uint16_t f = parity(r);', 'static void logic8_flags(cpu_t *c, uint8_t r)                          /* AND/OR/XOR byte: CF=OF=AF=0, ZF, SF at bit 7, PF */\n{\n    uint16_t f = parity(r) ^ 0x0004u;')]),
+    ('+25A2/+2A6D/+2B63 the OR flags put SF at bit 6', [('static void logic8_flags(cpu_t *c, uint8_t r)                          /* AND/OR/XOR byte: CF=OF=AF=0, ZF, SF at bit 7, PF */\n{\n    uint16_t f = parity(r);\n    if (!r) f |= 0x0040u;\n    if (r & 0x80u)', 'static void logic8_flags(cpu_t *c, uint8_t r)                          /* AND/OR/XOR byte: CF=OF=AF=0, ZF, SF at bit 7, PF */\n{\n    uint16_t f = parity(r);\n    if (!r) f |= 0x0040u;\n    if (r & 0x40u)')]),
+    ('+25A2/+2A6D/+2B63/+10C1 SHR CF from bit 1', [('    if (a & 1u) f |= 0x0001u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x8000u) f |= 0x0080u;', '    if (a & 2u) f |= 0x0001u;\n    if (!r) f |= 0x0040u;\n    if (r & 0x8000u) f |= 0x0080u;')]),
+    ('+25A2/+2A6D/+2B63/+10C1 SHR does not set AF (pinned)', [('f = (uint16_t)(parity((uint8_t)r) | 0x0010u);\n    if (a & 1u)', 'f = (uint16_t)(parity((uint8_t)r));\n    if (a & 1u)')]),
+    ('+25A2/+2A6D/+2B63/+10C1 SHR OF from bit 7 of the byte', [('    if (a & 0x8000u) f |= 0x0800u;\n    c->flags = (uint16_t)((c->flags & ~ARITH) | f);\n}\nstatic void load_mods', '    if (a & 0x80u) f |= 0x0800u;\n    c->flags = (uint16_t)((c->flags & ~ARITH) | f);\n}\nstatic void load_mods')]),
+    ('+25A2/+2A6D/+2B63/+10C1 SHR sets ZF when the source is zero, not the result', [('    if (a & 1u) f |= 0x0001u;\n    if (!r) f |= 0x0040u;', '    if (a & 1u) f |= 0x0001u;\n    if (!a) f |= 0x0040u;')]),
+    ('+25A2 skips the semantic model', [('if (model(&st, &paths) != PR_U38_OK) return 1;', '(void)model;')]),
+    ('+25A2/+2A6D/+2B63 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\nstatic int h_25a2', 'frame_leave(m, 0x08u);\n    return 0;\n}\nstatic int h_25a2')]),
+    ('+2A6D tests the +25A2 mask', [('halve_adapter(m, 0x04u, pr_u38_entry98)', 'halve_adapter(m, 0x01u, pr_u38_entry98)')]),
+    ('+2B63 tests the +2A6D mask', [('halve_adapter(m, 0x02u, pr_u38_entry102)', 'halve_adapter(m, 0x04u, pr_u38_entry102)')]),
+    ('+25A2 tests the +2B63 mask', [('halve_adapter(m, 0x01u, pr_u38_entry77)', 'halve_adapter(m, 0x02u, pr_u38_entry77)')]),
+    ('+10C1 skips the semantic model', [('pr_u38_entry36(&st) != PR_U38_OK', '(void)pr_u38_entry36, 0')]),
+    ('+10C1 AX keeps AH', [('m->cpu->ax = (uint16_t)(a681a >> 1); shr16_flags(m->cpu, a681a);', 'm->cpu->ax = (uint16_t)((m->cpu->ax & 0xFF00u) | (a681a >> 1)); shr16_flags(m->cpu, a681a);')]),
+    ('+10C1 pops 8 argument bytes, not 0Ah', [('frame_leave(m, 0x0Au);\n    return 0;\n}\n\ntypedef', 'frame_leave(m, 0x08u);\n    return 0;\n}\n\ntypedef')]),
     ('the gap kind of an uncredited slot is reported as semantic', [("sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC :", "sl->kind != K_RAW ? PR_U9E_0000_GAP_SEMANTIC :")]),
 )
-MUTANT_CASES_EXTRA = ('adapt010d-', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
+MUTANT_CASES_EXTRA = ('adapt', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
 
 
 def c_test_verdict(tmp, mutant_path):
@@ -620,7 +678,7 @@ def main():
         if a.callers:
             report['callers'] = caller_fixtures(src, lib, base, tries=60)
         if a.mutate:
-            only = None if not a.mutant_filter else {k for k, (n, _) in enumerate(MUTANTS) if a.mutant_filter in n}
+            only = None if not a.mutant_filter else {k for k, (n, _) in enumerate(MUTANTS) if any(f in n for f in a.mutant_filter.split("|"))}
             report['mutation'] = mutation_check(src, base, libdir, only_mutants=only)
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(report, sort_keys=True, indent=2, default=str) + '\n')

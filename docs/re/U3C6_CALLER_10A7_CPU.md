@@ -121,10 +121,12 @@ ran, they receive `NO_CALLEE` and −1.
   model (see its [scan notes](U3C6_0CB9_SCAN.md)).
 - At the FillChar site they are `ADD DI,66D6h`'s.
 - At `LIMIT` they are loop 1's last `CMP`.
-- These flags are folded:
-  - every `MUL` (its undefined flags never escape);
-  - `AND AL,7Fh`;
-  - the other `XOR`, `SHL`, `INC` and `CMP` writes.
+- The 13 branch-only CMP/OR writers feed ZF branches, whose decisions the
+  existing C conditions reproduce. Their lazy and stored ZF rules agree.
+- The remaining folds have an original-byte liveness certificate, including
+  the partial flag overwrites of `MUL` and `INC`. The [14-group evidence
+  record](U3C6_10A7_FOLDED_FLAGS.md) identifies each writer and its observer
+  or overwrite. It also distinguishes the two live SHLs already computed.
 
 Offsets wrap at 16 bits and physical addresses at 1 MiB. `LES` pairs,
 `POP` and this routine's `RETF` frames are read physically contiguous.
@@ -132,8 +134,9 @@ Offsets wrap at 16 bits and physical addresses at 1 MiB. `LES` pairs,
 ## Validation
 
 **Focused C test.** `test_overlay_u3c6_caller_10a7_cpu.c` runs under CTest
-with ASan/UBSan. The source compiles with `-Wconversion -Wsign-conversion
--Wshadow -Werror`. The test uses no game bytes: only the FillChar `LCALL`
+using the repository CMake configuration: no `CMAKE_BUILD_TYPE`,
+`-UNDEBUG` so assertions remain active, and the project warning flags.
+The test uses no game bytes: only the FillChar `LCALL`
 encodings at `+11DF` and `+03B2`. Every shape point is negative, so entry
 16 leaves c = 0 and v = 17h. It passes 52 checks.
 
@@ -173,7 +176,7 @@ works as follows:
 
 | Stops | Cases |
 | --- | --- |
-| Returns | 138 |
+| Returns | 139 |
 | `CODE` | 1 |
 | `CALLEE` (`+03A0` slot and cell budgets) | 2 |
 | `TRANSFER` | 1 |
@@ -184,12 +187,15 @@ A call/return stack separates a direct callee's diverted `RETF`
 its merged audit counts them, at fetches of `+03CF` and `+03ED`.
 
 Coverage is 191/191 instruction starts and 34/34 conditional outcomes;
-results are 71 zero and 67 one.
+results are 72 zero and 67 one (144 cases total).
 
-The one declared FLAGS exception is AF at the 71 slot-clearing returns.
-There Unicorn leaves 0 and the model sets the pinned core's 1. No other bit
-or stop is excepted, and the native oracle below measures the bit
-unmasked. The merged `+0CB9` parity uses the same exception.
+The one declared FLAGS split is AF at the 72 slot-clearing returns.
+There Unicorn leaves 0 and the checker requires the pinned core's 1;
+an AF=0 model now fails even if it matches Unicorn. No bit is masked.
+The checker also observes FLAGS/DI immediately after the two live SHLs
+(133 observations at `+1100` and 72 at `+1144`). Four negative
+controls reject AF=0 and whole-word PF independently at both sites;
+see the [folded-flags evidence](U3C6_10A7_FOLDED_FLAGS.md).
 
 The cases cover:
 
@@ -200,10 +206,15 @@ The cases cover:
 - a rewritten FillChar site;
 - the loop 1 cap and an exact cap;
 - both `+03A0` budgets;
-- the `+03A0` return alias.
+- the `+03A0` return alias;
+- slot 64 with DI=0100h, distinguishing low-byte stored PF from whole-word parity.
 
 **DOSBox-X oracle.** The normal-core/386 synthetic oracle passes **48
-cases** with no mask.
+cases** with no mask. The fresh 2026-10-23 run explicitly selected the pinned
+normal/386 build, source revision `5a9c7c53481c2e933948039c33256776653f4faf`,
+binary SHA-256 `c05ce28a60258c320c5a209a477603d91fb2b7558c0cc03919e518ddd99eb457`.
+Its existing local instrumentation is described in the
+[folded-flags evidence](U3C6_10A7_FOLDED_FLAGS.md); the report records the executable hash.
 
 - **Loading.** The COM copies unit `0x3C6` to paragraph `3000`. Both
   FillChar sites are relocated to `7800:16A8`, which holds the SYSTEM span.
@@ -222,9 +233,11 @@ cases** with no mask.
 Original bytes and generated images stay under ignored `resources/`.
 
 ```sh
-ctest --test-dir <build> -R poolrad_overlay_u3c6_caller_10a7_cpu --output-on-failure
+cmake -S . -B resources/t44-10a7/cmake-ci -DBUILD_TESTING=ON -DCMAKE_C_FLAGS=-UNDEBUG
+cmake --build resources/t44-10a7/cmake-ci --target poolrad_overlay_u3c6_caller_10a7_cpu_tests --parallel 2
+ctest --test-dir resources/t44-10a7/cmake-ci -R '^poolrad_overlay_u3c6_caller_10a7_cpu_tests$' --output-on-failure
 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn PYTHONDONTWRITEBYTECODE=1 timeout 3000s \
-  python3 tools/overlay/u3c6_caller_10a7_cpu_audit.py --unicorn --native --output resources/u3c6-10a7-parity/report.json
+  python3 tools/overlay/u3c6_caller_10a7_cpu_audit.py --unicorn --native --negative-tests --dosbox-x "$PINNED_DOSBOX_X" --output resources/u3c6-10a7-parity/report.json
 ```
 
 | Parity report field | Finding |
