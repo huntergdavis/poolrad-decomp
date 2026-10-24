@@ -15,6 +15,8 @@
 #include "poolrad/recovered/overlay_u38_roll_effect_27d9_cpu.h"
 #include "poolrad/recovered/overlay_u38_roll_gate_2915_cpu.h"
 #include "poolrad/recovered/overlay_u38_sidecar_1472_cpu.h"
+#include "poolrad/recovered/overlay_u38_sidecar_flag_0918.h"
+#include "poolrad/recovered/resident_00ba_sidecar_lookup_2199_cpu.h"
 #include "poolrad/recovered/overlay_u38_string_match_cpu.h"
 #include "poolrad/recovered/overlay_u38_target_gate_2ae6.h"
 #include "poolrad/recovered/overlay_u38_target_index_gate_2a87.h"
@@ -62,7 +64,7 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x0084, 0x0041, 0x0775, 0x00380000u | 0x0775u},
     {K_GAP_UNCREDITED, 0x0089, 0x0041, 0x07E0, 0x00380000u | 0x07E0u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x008E, 0x0041, 0x0918, 0x00380000u | 0x0918u},
+    {K_ADAPTED, 0x008E, 0x0041, 0x0918, 0x00380000u | 0x0918u},
     {K_RAW, 0x0093, 0x0041, 0x0947, 0x00380000u | 0x0947u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_GAP_UNCREDITED, 0x0098, 0x0041, 0x09C0, 0x00380000u | 0x09C0u},
@@ -844,11 +846,28 @@ static int gated_alignment(call_t *m, int second, uint8_t k3)
 static int h_0377(call_t *m) { return gated_alignment(m, 0, 8u); }
 static int h_03ac(call_t *m) { return gated_alignment(m, 1, 6u); }
 
+
+/* ---- +0918 (slot 25): a credited CPU-level model with a CALLBACK for the resident sidecar lookup BA:2199 (SUB SP,4; PUSH [5D94]; PUSH [5D92]; MOV AL,18h; PUSH AX; LEA DI,[BP-4]; PUSH SS; PUSH DI; LCALL BA:2199;
+ * OR AL,AL; JNE; MOV [681E],1; SUB byte [6822],4). The callback is the credited raw-CPU model of the resident routine (pr_res_00ba_2199_cpu), so the composition is handler + resident callee, both
+ * credited, both compared against the ORIGINAL bytes (the original really runs the resident code in the composed world). A lookup that hits the host loop-back cap aborts the handler (CALLEE). */
+static int res2199_lookup(void *ctx, uint8_t *ram, size_t size, pr_u38_0918_cpu *cpu)
+{
+    call_t *m = (call_t *)ctx; pr_res_2199_cpu c; pr_res_2199_status st;
+    COPY(&c, cpu); st = pr_res_00ba_2199_cpu(ram, size, &c, m->lim->loopbacks); COPY(cpu, &c);
+    return st == PR_RES_2199_OK;
+}
+static int h_0918(call_t *m)
+{
+    pr_u38_0918_cpu x; int s;
+    COPY(&x, m->cpu); s = (int)pr_u38_sidecar_flag_0918(m->ram, m->size, &x, res2199_lookup, m); COPY(m->cpu, &x);
+    return s;
+}
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0918, h_0918}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},

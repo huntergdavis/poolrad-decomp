@@ -45,7 +45,7 @@ int main(void)
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 10 && n[3] == 61 && n[4] == 1 && n[5] == 25);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 9 && n[3] == 61 && n[4] == 1 && n[5] == 26);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
@@ -185,6 +185,20 @@ int main(void)
     assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u && c.es == 0x6000u && c.di == 0xFF70u);
     c = setup(r, 8); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x03); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
     assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u);
+    /* ADAPTED slot 25 +0918 (the handler composed with the credited resident lookup BA:2199, which the composed world runs for real), hand-checked data effects: the active character DS:[5D92]/[5D94] = 6000:0100,
+     * its sidecar list head at +7Fh (offset) / +81h (segment), 9-byte nodes (type +0, next far pointer +5/+7). Key 18h found: AL = 1, [681E] untouched; not found: AL = 0 and [681E] = 1; both then SUB [6822],4
+     * (05h -> 01h) and leave the SUB's flags 0202h (01h: odd parity, nothing set). Only AL is asserted here (AH, DX and ES:DI come from the resident routine and are compared against the original by the audit). */
+    c = setup(r, 25); put16(r, DS_, 0x5D92u, 0x0100u); put16(r, DS_, 0x5D94u, 0x6000u);
+    put16(r, 0x6000, 0x017F, 0x2000); put16(r, 0x6000, 0x0181, 0x6400);
+    PW(0x6400, 0x2000, 0, 0x17); put16(r, 0x6400, 0x2005, 0x2040); put16(r, 0x6400, 0x2007, 0x6400);
+    PW(0x6400, 0x2040, 0, 0x18); put16(r, 0x6400, 0x2045, 0); put16(r, 0x6400, 0x2047, 0);
+    r[at(DS_, 0x6822)] = 0x05; r[at(DS_, 0x681E)] = 0x55; RUN();
+    assert((c.ax & 0xFFu) == 1u && r[at(DS_, 0x681E)] == 0x55u && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0202u);
+    c = setup(r, 25); put16(r, DS_, 0x5D92u, 0x0100u); put16(r, DS_, 0x5D94u, 0x6000u);
+    put16(r, 0x6000, 0x017F, 0x2000); put16(r, 0x6000, 0x0181, 0x6400);
+    PW(0x6400, 0x2000, 0, 0x17); put16(r, 0x6400, 0x2005, 0); put16(r, 0x6400, 0x2007, 0);
+    r[at(DS_, 0x6822)] = 0x05; r[at(DS_, 0x681E)] = 0x55; RUN();
+    assert((c.ax & 0xFFu) == 0u && r[at(DS_, 0x681E)] == 0x01u && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0202u);
     /* the budget sweep: LIMIT stops at each instruction start in order */
     {
         static const uint16_t IPS[] = {0x0000, 0x0001, 0x0003, 0x0006, 0x0009, 0x000C, 0x000F, 0x0012, 0x0013, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0022, 0x0023};
