@@ -340,7 +340,7 @@ def main():
     args=p.parse_args();report={}
     with tempfile.TemporaryDirectory(prefix='u7f063a-') as tmp:
         lib=library(tmp)
-        if args.compile_only:print('CHECKER_BUILD_OK OVL_007F_063A');return
+        if args.compile_only:print('CHECKER_BUILD_OK');return
         bodies,decoded,meta=source();report['source']=meta
         if args.unicorn:
             report['exclusions']=exclusions(bodies,decoded,lib)
