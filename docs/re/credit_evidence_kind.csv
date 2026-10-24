@@ -250,7 +250,7 @@ RES_00BA_11EA,checker,u9e_character_pair_115c_audit.py
 RES_00BA_1282,checker,u9e_character_pair_115c_audit.py
 RES_00BA_1325,checker,u9e_character_pair_115c_audit.py
 RES_00BA_13AB,checker,u9e_character_pair_115c_audit.py
-RES_00BA_1509,checker,res00ba_rec_models_audit.py
+RES_00BA_1509,checker,res00ba_rec_models_audit.py;res00ba_sidecar_remove_1509_cpu_audit.py
 RES_00BA_15F7,checker,res00ba_rec_models_audit.py
 RES_00BA_1693,checker,res00ba_display_1693_cpu_audit.py
 RES_00BA_17E3,checker,res00ba_clear_17e3_cpu_audit.py
