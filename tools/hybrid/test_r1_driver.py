@@ -5,10 +5,27 @@ from pathlib import Path
 import unittest
 import tempfile
 from r1_report import report
-from r1_driver import Route, matches
+from r1_driver import Route, matches, single_exit_prompt
 
 
 class RouteTest(unittest.TestCase):
+    def test_single_exit_fallback_rejects_other_controls(self):
+        for text in ('EXIT', 'EXT', 'EXT.'):
+            self.assertEqual(single_exit_prompt(text), text)
+        for text in ('NEXT', 'TEXT', 'EXTRA', 'EXIT NEXT', '', 'A'):
+            self.assertEqual(single_exit_prompt(text), '')
+
+    def test_exact_gate_rejects_an_earlier_menu_with_same_word(self):
+        self.route.allowed=['view_items']
+        self.route.exact_prompt_states={'view_items'}
+        self.assertIsNone(self.route.choose({'prompt':'ITEMS TRADE'}))
+        self.assertIsNotNone(self.route.choose({'prompt':'ITEMS'}))
+
+    def test_unknown_exact_gate_is_rejected(self):
+        data=dict(self.route.data, exact_prompt_states=['missing'])
+        with self.assertRaisesRegex(ValueError, 'unknown exact'):
+            Route(data)
+
     def setUp(self):
         self.route=Route(json.loads(Path(__file__).with_name('routes').joinpath('r1.json').read_text()))
 
