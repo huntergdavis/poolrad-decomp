@@ -89,15 +89,15 @@ Budget: each instruction of this body costs one unit. The callees cost none; 169
 
 | Stop | Class | Pinned by |
 | --- | --- | --- |
-| RETURNED | RETURN | Unicorn: 136 of 453 cases; native (not-found walk): 16 of 16 |
+| RETURNED | RETURN | Unicorn: 138 of 458 cases; native (not-found walk): 16 of 16 |
 | RUNERROR | architectural: FreeMem's RunError 204 on an invalid block, CPU at SYSTEM:00E2 | Unicorn: 2 cases, `runerror-offset-4` (a block at offset 4) and `runerror-outside-heap` (a block above HeapPtr); both runs reach SYSTEM:00E2 |
-| LIMIT | host cap | Unicorn: 313 cases. The budget sweeps, the three cyclic lists, and the alias cases whose map or node writes make the walk cyclic (`grid-on-frame-08/-06`, `grid-on-node+04/+06`, `grid-on-list-head`, `node-on-frame`) stop with equal state at the same arrival |
+| LIMIT | host cap | Unicorn: 316 cases. The budget sweeps, the targeted stops after SHR/CBW/MUL, the three cyclic lists, and the alias cases whose map or node writes make the walk cyclic (`grid-on-frame-08/-06`, `grid-on-node+04/+06`, `grid-on-list-head`, `node-on-frame`) stop with equal state at the same arrival |
 | TRANSFER | control transfer | Unicorn: 2 cases, `grid-on-frame+02/+04` (the map cell over the return address); the oracle stops at the same garbage address |
 | ARGUMENT / CODE / CALLEE | non-architectural | C test; 0 in the differential |
 
 ## Evidence
 
-**Original-byte Unicorn differential on the composed closure: 453 cases, 0 mismatches.**
+**Original-byte Unicorn differential on the composed closure: 458 cases, 0 mismatches.**
 - Every body runs as its original bytes at its own segment: this span, StrLoad, FreeMem's four spans, and the 1693 closure with
   the independent Python EGA.
 - The span's three relocated segment words are installed from the unit's fixup table.
@@ -105,9 +105,9 @@ Budget: each instruction of this body costs one unit. The callees cost none; 169
   OUT events and VRAM operands, the stop and the remaining budget.
 
 Outcomes:
-- 136 RETURNED, 313 LIMIT, 2 RUNERROR, 2 TRANSFER; 0 ARGUMENT/CODE/CALLEE;
+- 138 RETURNED, 316 LIMIT, 2 RUNERROR, 2 TRANSFER; 0 ARGUMENT/CODE/CALLEE;
 - **266/266 instruction starts** in this body (1,239 across the closure);
-- **104 independent statements**.
+- **105 independent statements**.
 
 What the independent statement computes, on plain returning cases (no aliasing, a valid heap, an acyclic list), without the C model:
 - the matched node;
@@ -121,8 +121,8 @@ It encodes two facts the bytes taught. A first version got them wrong, and the d
 - the overlap test compares `CBW(table x)` with the zero-extended cell byte, so a cell at x ≥ 80h never matches.
 
 **Declared splits, counted and never masked** (shared `pinned_shift_flags.py`):
-- **24** states under the pinned-MULW split: `MUL DX` keeps SF and AF, and PF covers DX:AX;
-- **16** states under the AF-after-SHR split: `SHR AX,CL` with CL = 4 sets AF in the pinned core.
+- **25** states under the pinned-MULW split: `MUL DX` keeps SF and AF, and PF covers DX:AX;
+- **17** states under the AF-after-SHR split: `SHR AX,CL` with CL = 4 sets AF in the pinned core.
 
 Cases:
 - the walk: empty list, no key, wrong type, high-word mismatch, both record nibbles, three type values;
@@ -136,10 +136,11 @@ Cases:
 - three cyclic lists;
 - the map cell on each word of the frame and on each field of the node, and over the list head;
 - the record on the frame, and a node on the frame;
-- a budget sweep 0..259 plus five higher budgets, and a missed-walk sweep 0..39;
+- a budget sweep 0..259 plus five higher budgets, a missed-walk sweep 0..39, and three targeted stops (budgets 9, 65, 515);
+- the map in the A0000 aperture, compared through the EGA planes;
 - 40 random cases.
 
-1,821 s on the heavy wrapper.
+1,432 s on the heavy wrapper (the final case set, including the five cases added in the mutation round).
 
 ### Mutation
 
@@ -203,8 +204,8 @@ not the pinned `5a9c7c53` build. Every found path goes through 1693's EGA displa
 ## Not established
 
 - The found path natively. The 1693 native machine is the same declared gap as for `+0203` and `+0A88`.
-- A record, node or map in the A0000..AFFFF aperture in the differential. The bus path rests on the C test, where a node in the
-  aperture is matched through plane data.
+- A record or list node in the A0000..AFFFF aperture in the differential. The map is covered there (`grid-in-aperture`), and a
+  node in the aperture is covered by the C test, matched through plane data.
 - The 1693 closure's and FreeMem's own caps; both are generous here.
 - Natural reachability of slot 40: see the factor-1 limit.
 - The meaning of the object list at `DS:6DBB`.
