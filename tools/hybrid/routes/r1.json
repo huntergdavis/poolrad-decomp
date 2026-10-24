@@ -32,7 +32,7 @@
     {
       "name": "slots",
       "gate": {
-        "pattern": ".+",
+        "pattern": "LOAD.*GAME",
         "source": "prompt",
         "exclude": "FUNCTION"
       },

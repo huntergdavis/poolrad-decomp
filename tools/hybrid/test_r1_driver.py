@@ -15,6 +15,11 @@ class RouteTest(unittest.TestCase):
     def test_unknown_screen_never_selects_key(self):
         self.assertIsNone(self.route.choose({'prompt':'UNRECOGNIZED'}))
 
+    def test_slot_gate_rejects_unrelated_stable_text(self):
+        self.route.allowed=['slots']
+        self.assertIsNone(self.route.choose({'prompt':'UNRECOGNIZED'}))
+        self.assertIsNotNone(self.route.choose({'prompt':'LOAD GAME'}))
+
     def test_gate_cannot_jump_to_later_menu(self):
         self.assertIsNone(self.route.choose({'prompt':'ITEMS TRADE'}))
 

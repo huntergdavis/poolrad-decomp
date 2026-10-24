@@ -15,7 +15,7 @@ def report(run, route):
     if result['mode']=='observer':
         result['forced_kill'] = summary['shutdown'].startswith('SIGKILL')
         result['counts_scope'] = ('last periodic snapshot; zero is inconclusive'
-                                  if result['forced_kill'] else 'observer report at process exit')
+                                  if result['forced_kill'] else 'report file; final flush expected on normal or SIGTERM exit')
         counts={}
         for row in csv.reader((run/'observer.tsv').read_text().splitlines(),delimiter='\t'):
             if row and not row[0].startswith('#') and len(row)>=2:
