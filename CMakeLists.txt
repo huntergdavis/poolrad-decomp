@@ -93,6 +93,8 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_character_field_zero.c
                                     src/recovered/resident_character_link_check.c
                                     src/recovered/resident_00ba_link_check_2e03_cpu.c
+                                    src/recovered/resident_00ba_link_flags_2e46_cpu.c
+                                    src/recovered/resident_00ba_party_count_23db_cpu.c
                                     src/recovered/resident_character_link_flags.c
                                     src/recovered/overlay_0077_275b_cpu.c
                                     src/recovered/overlay_u3b9_bitmap_set_release_048f_cpu.c
@@ -888,6 +890,16 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_00ba_link_check_2e03_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_00ba_link_check_2e03_cpu_tests
              COMMAND poolrad_resident_00ba_link_check_2e03_cpu_tests)
+    add_executable(poolrad_resident_00ba_link_flags_2e46_cpu_tests
+                   tests/recovered/test_resident_00ba_link_flags_2e46_cpu.c)
+    target_link_libraries(poolrad_resident_00ba_link_flags_2e46_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_00ba_link_flags_2e46_cpu_tests
+             COMMAND poolrad_resident_00ba_link_flags_2e46_cpu_tests)
+    add_executable(poolrad_resident_00ba_party_count_23db_cpu_tests
+                   tests/recovered/test_resident_00ba_party_count_23db_cpu.c)
+    target_link_libraries(poolrad_resident_00ba_party_count_23db_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_00ba_party_count_23db_cpu_tests
+             COMMAND poolrad_resident_00ba_party_count_23db_cpu_tests)
     add_executable(poolrad_overlay_u68_up_preflight_068d_cpu_tests
                    tests/recovered/test_overlay_u68_up_preflight_068d_cpu.c)
     target_link_libraries(poolrad_overlay_u68_up_preflight_068d_cpu_tests PRIVATE poolrad_recovered)
