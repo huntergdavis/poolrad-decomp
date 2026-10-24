@@ -45,8 +45,8 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_GAP_SEMANTIC, 0x003E, 0x0041, 0x01C3, 0x00380000u | 0x01C3u},
     {K_GAP_UNCREDITED, 0x0043, 0x0041, 0x0233, 0x00380000u | 0x0233u},
-    {K_GAP_SEMANTIC, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
-    {K_GAP_SEMANTIC, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
+    {K_ADAPTED, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
+    {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
     {K_ADAPTED, 0x0052, 0x0041, 0x03E1, 0x00380000u | 0x03E1u},
     {K_GAP_UNCREDITED, 0x0057, 0x0041, 0x0400, 0x00380000u | 0x0400u},
     {K_GAP_SEMANTIC, 0x005C, 0x0041, 0x04BA, 0x00380000u | 0x04BAu},
@@ -82,8 +82,8 @@ static const slot_t SLOTS[256] = {
     {K_ADAPTED, 0x00D4, 0x0041, 0x10C1, 0x00380000u | 0x10C1u},
     {K_GAP_UNCREDITED, 0x00D9, 0x0041, 0x10DE, 0x00380000u | 0x10DEu},
     {K_GAP_UNCREDITED, 0x00DE, 0x0041, 0x1168, 0x00380000u | 0x1168u},
-    {K_GAP_SEMANTIC, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
-    {K_GAP_SEMANTIC, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
+    {K_ADAPTED, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
+    {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
     {K_RAW, 0x00E3, 0x0041, 0x11F9, 0x00380000u | 0x11F9u},
     {K_RAW, 0x00E8, 0x0041, 0x1276, 0x00380000u | 0x1276u},
     {K_GAP_SEMANTIC, 0x00ED, 0x0041, 0x12B2, 0x00380000u | 0x12B2u},
@@ -818,11 +818,37 @@ static int h_013b(call_t *m)
     return rc;
 }
 
+
+/* ---- batch P2: +0377 and +03AC read the GLOBAL active-character pointer DS:[5D92] (offset), DS:[5D94] (segment) and compare the record byte +0A0h with three constants (+0377: 2, 5, 8; +03AC: 0, 3, 6):
+ * LES DI,[5D92]; CMP byte ES:[DI+0A0h],k1; JE body; LES DI,[5D92]; CMP ...,k2; JE body; LES DI,[5D92]; CMP ...,k3; JNE end; body: ADD byte [6816],2; SUB byte [6822],2.
+ * A match leaves the SUB as the last flag writer; no match leaves the third CMP (against k3) and no data change. ES:DI is the record pointer on every path; AX is untouched. The models take the full 285-byte record. */
+static int gated_alignment(call_t *m, int second, uint8_t k3)
+{
+    xb_t xs, *x = &xs; pr_rec_modifier_state mods; unsigned applied = 0; uint16_t rs, ro; uint8_t *rec, a6822, b;
+    cpu_t *c = m->cpu; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m);
+    ro = rd16(m->ram, c->ds, 0x5D92u); rs = rd16(m->ram, c->ds, 0x5D94u);
+    load_mods(m->ram, c, &mods); a6822 = mods.b6822;
+    rec = xb_get(x, rs, ro, PR_REC_CHAR_RECORD_SIZE);
+    if (rec) {
+        b = rec[0xA0];
+        if ((second ? pr_rec_u38_entry9(&mods, rec, &applied) : pr_rec_u38_entry8(&mods, rec, &applied)) == PR_REC_EFFECT_OK) {
+            store_mods(m->ram, c, &mods); xb_flush(x);
+            if (applied) sub8_flags(c, a6822, 2u); else sub8_flags(c, b, k3);
+            set_es_di(c, rs, ro);
+            frame_leave(m, 0x0Au); rc = 0;
+        }
+    }
+    return rc;
+}
+static int h_0377(call_t *m) { return gated_alignment(m, 0, 8u); }
+static int h_03ac(call_t *m) { return gated_alignment(m, 1, 6u); }
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},
