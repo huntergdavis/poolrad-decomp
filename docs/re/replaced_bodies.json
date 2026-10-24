@@ -6,7 +6,8 @@
   "hybrid-b8e-route-pin-walk",
   "hybrid-b9-route-pin-r3-b",
   "hybrid-b10-r1-route",
-  "hybrid-b11a-route-pin-r3"
+  "hybrid-b11a-route-pin-r3",
+  "hybrid-b11-r2-route"
  ],
  "excluded": "DOS-service bodies run with services replayed (shadow by design): RES_0802_025D, RES_0802_02EB, RES_0802_050F, RES_0802_05CD, RES_0802_06E7, RES_0802_0716, RES_0899_0059. Bodies composed inside a routed parent but with 0 own arrivals are not counted. Earlier unpinned runs b6e/b7d are superseded by these pinned runs.",
  "bodies": [
@@ -473,6 +474,48 @@
    }
   },
   {
+   "id": "OVL_006A_0214",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 2,
+    "arrivals": 2,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_006A_14A9",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_006A_1601",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
    "id": "OVL_006C_3291",
    "proven_at": "2026-10-24T03:51:49Z",
    "evidence": {
@@ -529,6 +572,20 @@
    }
   },
   {
+   "id": "OVL_0077_27DF",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
    "id": "OVL_007D_02F2",
    "proven_at": "2026-10-24T03:51:49Z",
    "evidence": {
@@ -540,6 +597,48 @@
     "stops_handed_back": 0,
     "pixel_bar": "final frame frames/0278-final.png raw-RGB sha256 eada8752f3546439 == pinned all-original hybrid-pin2-r3-a frames/0290-final.png raw-RGB sha256 eada8752f3546439; 0 of 786432 pixels differ (re-measured by par-a 2026-10-23)",
     "condition": "route 3 (combat), pinned seed 12345678, test-harness run; LIMIT: identity is the final frame plus the 60 observed post-pin draws (draws inside routed C are not observed), not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_007D_03A3",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 2,
+    "arrivals": 2,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_007D_047A",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_007D_05F0",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 4,
+    "arrivals": 4,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
    }
   },
   {
@@ -610,6 +709,20 @@
     "stops_handed_back": 0,
     "pixel_bar": "final frame frames/0278-final.png raw-RGB sha256 eada8752f3546439 == pinned all-original hybrid-pin2-r3-a frames/0290-final.png raw-RGB sha256 eada8752f3546439; 0 of 786432 pixels differ (re-measured by par-a 2026-10-23)",
     "condition": "route 3 (combat), pinned seed 12345678, test-harness run; LIMIT: identity is the final frame plus the 60 observed post-pin draws (draws inside routed C are not observed), not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_0086_059C",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 3,
+    "arrivals": 3,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
    }
   },
   {
@@ -753,6 +866,34 @@
    }
   },
   {
+   "id": "OVL_03B0_0A08",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 6,
+    "arrivals": 6,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_03B0_0C33",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 2,
+    "arrivals": 2,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
+   }
+  },
+  {
    "id": "OVL_03B0_0CC5",
    "proven_at": "2026-10-24T09:19:51Z",
    "evidence": {
@@ -764,6 +905,20 @@
     "stops_handed_back": 0,
     "pixel_bar": "final frame final.png raw-RGB sha256 7fb305542dc1c6f4 == pinned all-original R1 r1-original-c and r1-original-d final.png raw-RGB sha256 7fb305542dc1c6f4 (RGBA 0dc77c31eaa137b9); 0 of 786432 pixels differ",
     "condition": "R1 route (loot Pool/Share, View Items), pinned seed 12345678, test-harness run; LIMIT: identity is the final frame plus the 60 observed post-pin draws (equal to the all-original prefix; draws inside routed C are not observed), not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_03B0_11F3",
+   "proven_at": "2026-10-24T12:52:49Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b11-r2-route (R2 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 3b75bd03; observer.dispatch summary line for this body)",
+    "routed_returns": 2,
+    "arrivals": 2,
+    "stops_handed_back": 0,
+    "pixel_bar": "final frame final.png raw-RGB sha256 d612a49eafbbe07b == pinned all-original R2 r2-original-a and r2-original-b final.png raw-RGB sha256 d612a49eafbbe07b (RGBA 4474ef303441be51); 0 of 786432 pixels differ",
+    "condition": "R2 route (camp: Magic, Rest, Order), pinned seed 12345678, test-harness run; the route makes no draw after the pinned one (as in both all-original runs); LIMIT: identity is the final frame, not a full-state comparison"
    }
   },
   {
