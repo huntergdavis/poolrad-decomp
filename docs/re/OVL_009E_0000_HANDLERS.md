@@ -68,7 +68,7 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | 22 | 6880h | 0041:0084 | OVL_0038_0775 | **named gap: uncredited handler OVL_0038_0775** | 13344 (31) |
 | 23 | 6884h | 0041:0089 | OVL_0038_07E0 | **named gap: uncredited handler OVL_0038_07E0** | 1579 (5) |
 | 24 | 6888h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
-| 25 | 688Ch | 0041:008E | OVL_0038_0918 | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 25 | 688Ch | 0041:008E | OVL_0038_0918 | modelled with credited handler OVL_0038_0918 composed with the credited resident lookup BA:2199 (callback pr_res_00ba_2199_cpu; the bar is (a) over 216 constructed-list worlds, the random worlds do not terminate in the original: see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 26 | 6890h | 0041:0093 | OVL_0038_0947 | modelled with credited handler OVL_0038_0947 (raw-CPU model, composed in phase 1) | - |
 | 27 | 6894h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
 | 28 | 6898h | 0041:0098 | OVL_0038_09C0 | **named gap: uncredited handler OVL_0038_09C0** | 1706 (6) |
