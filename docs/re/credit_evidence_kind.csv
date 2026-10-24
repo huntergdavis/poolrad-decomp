@@ -261,7 +261,7 @@ RES_00BA_23DB,checker,res00ba_rec_models_audit.py
 RES_00BA_2637,checker,res00ba_rec_models_audit.py
 RES_00BA_26C2,audit,tools/overlay/res26c2_u86_0729_audit.py
 RES_00BA_2E03,checker,res00ba_link_check_2e03_cpu_audit.py;res00ba_rec_models_audit.py
-RES_00BA_2E46,checker,res00ba_rec_models_audit.py
+RES_00BA_2E46,checker,res00ba_link_flags_2e46_cpu_audit.py;res00ba_rec_models_audit.py
 RES_00BA_2E8B,checker,res00ba_rec_models_audit.py
 RES_03F1_0137,checker,res03f1_clear_0137_cpu_audit.py
 RES_0464_2595,checker,res0464_bitmap_release_2595_audit.py
