@@ -141,3 +141,41 @@ is clamped to what the pool holds, and the move is refused with a message when 0
   documented `67F4` dwords, not on their meaning;
 - 0CEB's class is from the function-accounting queue export, which this note did not regenerate;
 - `003A` is not traced here.
+
+## `OVL_007F_063A` (967 B, `[063A,0A01)`, `RETF`), evidence PR #1506
+
+I re-decoded all three callers and the body from the original unit `23h`, `1Eh`, `20h` and `7Fh` bytes for this section.
+
+**Factor 1: PASS, through three relocated far calls.** Each of these is `lcall 008F:002F`, fixup-backed, with
+`008F:002F` being unit `7Fh`'s public stub for entry slot 3 (`+063A`):
+
+| Site | Caller | Condition |
+| --- | --- | --- |
+| `0023:+0663` | `OVL_0023_053E` | key `AL = 53h` |
+| `001E:+0DF4` | `OVL_001E_0D09` | `cmp al,53h; jne` at `+0DF0` |
+| `0020:+106A` | `OVL_0020_0ECD` | `cmp al,53h; jne` at `+1066` |
+
+All three callers are `game_evidenced` in the regenerated classification (codex-poolrad3, pin `972d878e`).
+[U7F_05E0_NATIVE_REACH_FULLC_GATE.md](U7F_05E0_NATIVE_REACH_FULLC_GATE.md) documents the same three sites.
+
+**Factor 2: PASS. The body walks and updates the party list and the global pools itself.**
+- **The party list.** It loads the party head `DS:5D96/5D98` (GAMEPLAY_PATH.md, "non-nil party head `[0x5D96]`") twice, at
+  `+0640/+0643` and again at `+08A8/+08AB`, once per pass. For each node it:
+  - tests `es:[di+84h]` against `80h` (`+0732`);
+  - reads, adds to and writes back the indexed word `es:[di+88h]` (`+0772` read, `+0791` write; also `+07F5`, `+0835`, `+090E`,
+    `+0967`), the money words that U7F_NUMBER_0294 and U7F_RECORD_SUBTRACT_0020 cite;
+  - subtracts `es:[di+102h]` (`+08CD`), the field that 0054's threshold uses;
+  - follows the link `es:[di+104h]/[di+106h]` (`+087B/+0880`, `+0991/+0996`).
+- **The pools.** It reads the `DS:67F4h+4i / 67F6h+4i` dwords (`+068D..+06E5`), which U7F_RECORD_SUBTRACT_0020 defines, and writes
+  the residuals back at `+09D6/+09DA`.
+- **A global byte.** It clears `DS:6DC0` (`+09AD`).
+
+**Role line:** a two-pass distribution over the party. It moves amounts from the `DS:67F4` pools into each eligible member's
+`+88h[i]` words, with members' `+84h` status gating eligibility, subject to 0054's `+102h` threshold. It writes the residuals back to
+the pools.
+
+**Limits:**
+- the meanings of `+84h`, `+88h[i]`, `+102h`, the pools and `DS:6DC0` are not named; the identity rests on the documented party
+  head and the `67F4` dwords;
+- the callers' `game_evidenced` class comes from a regenerated export, not from a credit;
+- the exclusions in #1506 (a self-linked list in 05E0; aperture nodes) are evidence matters for that PR, not identity matters.
