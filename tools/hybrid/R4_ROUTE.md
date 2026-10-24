@@ -120,5 +120,84 @@ the axes. Exit left the list, a second Exit left the temple, and the final
 area screen showed `(1,3)`. No city interruption occurred in this traversal.
 The route qualifies payment with the measured quote as well as the prompt.
 
-Paired references and observer results are pending. Par-b owns independent
-review, merge and subsequent V1/arrival-route validation.
+## Paired reference result (2026-10-24)
+
+The original pair passed before observer submission. Comparison was confirmed
+at 11:21:15 UTC; observer ticket 74 was submitted afterward. Both references
+completed all 72 gates with the same 70 inputs, actual seed pin `12345678`,
+identical driver/route/input/emulator hashes, identical final RGBA pixels, and
+the same complete 33-value post-pin RNG sequence. Each complete DRAW log has
+30,565 rows, agreeing with its final counter; the pin is at draw 30,533.
+
+| Original run | Seconds to final gate | Cleanup |
+| --- | ---: | --- |
+| `r4-original-a` | 1402.685 | SIGTERM |
+| `r4-original-b` | 1098.871 | SIGTERM |
+
+Neither run needed SIGKILL. The final screen is `(1,3)`, north-facing, at game
+time 11:22. The route and driver were frozen for these runs against main
+`fb01b862`. Rebasing onto main `d08a1012` afterward left both runtime files
+byte-for-byte unchanged. All 43 focused harness tests passed against the
+initial base; the subsequent upstream change did not touch the harness.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Private emulator | `af3000ec35c4c799d73cc2eb55e0670912b57a740343a6915bfdf8ed802286c0` |
+| Driver | `600fdb18d80f11e90a6d4a6093e779558bfb3c63379bf7010951d397dac8eb32` |
+| Route JSON | `f94abe6b68d7f6f0cde4e8bc3bf8a9bc7540233c376bcda08491d0ff03313c9a` |
+| Input manifest | `adf69e4405ea60fe45037c018efe0b3bcdd72c357ff16927dae9a1d879735b55` |
+| Final RGBA | `008650a6d2d674d16b71631cb77bc8577ca0ecebe361a315a9d36dc3c504a9d2` |
+| Gate/key sequence (JSON) | `040aefad328fb89f3db832daaaec8a5ebdeb1de2a850cd8a64555fc50b6a8c2b` |
+| Post-pin RNG values (JSON) | `1a1cf3c05b2f43b310f504fd392833bb0ebe3709638e2072beb9087087d97297` |
+| Original pin registry | `b67de8edb2c8fb68620617cfd96e74cf28a16410203eff1797ee305ff9b3155a` |
+| Observer registry (19 unique rows) | `15e59020914afd29cea61a579ef540627e4f55f3f11715c9642034d0a43fe94b` |
+| `START.EXE` | `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd` |
+| `GAME.OVR` | `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` |
+| `SAVGAMA` | `abca248371287c43c99e1b34e03394819fca3cf406bed184e7e4fbfe4f0c08f1` |
+
+## Observer result
+
+`r4-observer-a` completed the same 72 gates in 1458.364 seconds. Its provenance,
+gate/key sequence, final RGBA pixels and all 33 post-pin RNG values match both
+original references. No forced kill occurred. All 19 unique registry rows were
+present, with no skipped rows. Its complete 30,581-row sequence agrees with the
+final counters: 30,565 DRAW arrivals, 11 candidate arrivals and five marker
+arrivals.
+
+Seven of the 14 candidate IDs arrived. All seven occurred in the shop interval
+(nine arrivals); two also occurred in the temple interval (two arrivals).
+There were no candidate arrivals before the shop. The two temple IDs overlap
+the shop set and must not be added to the seven-ID union.
+
+| Candidate ID | Before services | Shop | Temple | Whole run |
+| --- | ---: | ---: | ---: | ---: |
+| `OVL_0077_17ED` | 0 | 0 | 0 | 0 |
+| `OVL_0077_275B` | 0 | 2 | 0 | 2 |
+| `OVL_0077_28BE` | 0 | 2 | 1 | 3 |
+| `OVL_007F_00A8` | 0 | 1 | 1 | 2 |
+| `OVL_007F_0130` | 0 | 1 | 0 | 1 |
+| `OVL_007F_0185` | 0 | 1 | 0 | 1 |
+| `OVL_007F_0203` | 0 | 0 | 0 | 0 |
+| `OVL_007F_044C` | 0 | 0 | 0 | 0 |
+| `OVL_007F_0A01` | 0 | 0 | 0 | 0 |
+| `OVL_007F_0A88` | 0 | 1 | 0 | 1 |
+| `OVL_007F_0B93` | 0 | 1 | 0 | 1 |
+| `OVL_0086_044E` | 0 | 0 | 0 | 0 |
+| `OVL_0086_051C` | 0 | 0 | 0 | 0 |
+| `RES_00BA_15F7` | 0 | 0 | 0 | 0 |
+
+The shop and temple entry markers each arrived once, at guest instructions
+764,874,209 and 1,641,146,450 respectively. Buy arrived twice and Heal once;
+all action markers were inside their corresponding service intervals.
+
+Post-run capture checks independently found two hand axes in each of the three
+inventory frames and the named 100-gold Heal quote in each payment gate. The
+inventory RGBA hash is identical across all three:
+`97699473cefb522da54fc186f6e5d9d866f27a96573dfd4f336f7c6615333173`.
+Private pair/full comparison reports, the per-ID CSV and the outcome audit
+remain under ignored `resources/` for review.
+
+Par-b owns independent review, merge and subsequent V1/arrival-route
+validation. These are original-guest arrival measurements; this route does
+not award replacement credit. Successful healing and training remain outside
+the measured route.
