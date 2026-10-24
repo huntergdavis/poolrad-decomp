@@ -16,8 +16,8 @@ The DOS source evidence is in
 [party-after](../../docs/re/U6A_PARTY_AFTER_1601.md). Order has two modes:
 character selection, then selected-character movement. The control bitmap at
 U6A `+174E` accepts Return/P/S to switch modes. Extended Home/End reach
-`+14A9/+1601` only in movement mode. This remains a static input-path finding
-The native preflight confirmed this mode distinction and the reverse movement.
+`+14A9/+1601` only in movement mode. The native preflight confirmed this mode
+distinction and the reverse movement.
 
 Rest adjustment is separate from completed rest. The U7D `+0721` handler starts
 on minutes; I adds five minutes and D subtracts five. Return maps to R and
