@@ -236,7 +236,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run', type=Path)
     parser.add_argument('--route', type=Path, default=Path(__file__).with_name('routes')/(os.environ.get('WALK_ROUTE', 'r1')+'.json'))
-    parser.add_argument('--total', type=int, default=2400)
+    parser.add_argument('--total', type=int, default=4800)
     args = parser.parse_args()
     driver = Driver(args.run.resolve(), json.loads(args.route.read_text()), args.total)
     success, error, code = False, None, 10

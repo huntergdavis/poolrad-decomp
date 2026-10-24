@@ -18,7 +18,8 @@ Keys require two identical observations and an allowed next state. Known
 computer-action status and unreadable prompt bars wait within the state's
 idle allowance (`COMBAT_IDLE_S`, default 300 seconds). A settled recognizable
 but unexpected menu fails with status 10; the total budget fails with status 7.
-Visit bounds prevent loops. OCR alternatives include measured hot-letter
+Visit bounds prevent loops. Seeking allows 150 steps (the retained pinned
+control first encounters combat on pace 116); the total default is 4800 seconds. OCR alternatives include measured hot-letter
 misreads. OCR runs with one thread and a bounded 120-second subprocess budget
 to tolerate contention on the shared host; screenshots/key commands are also
 bounded. No input is sent to another X display.

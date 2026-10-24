@@ -44,7 +44,7 @@ fi
 if [[ -n $seed ]]; then
     export PR_HYBRID_SEED_PIN=$seed
 fi
-xvfb-run -a -s '-screen 0 1024x768x24' python3 -u "$run/r1-driver.py" "$run" --route "$run/r1-route.json" --total "${R1_TOTAL_S:-2400}" > "$run/r1-driver.log" 2>&1
+xvfb-run -a -s '-screen 0 1024x768x24' python3 -u "$run/r1-driver.py" "$run" --route "$run/r1-route.json" --total "${R1_TOTAL_S:-4800}" > "$run/r1-driver.log" 2>&1
 if [[ -n $seed ]]; then
     rg -q "^# PINNED RandSeed := ${seed^^} " "$run/observer.draws" || {
         echo 'route ended without the requested seed pin' >&2; exit 11;
