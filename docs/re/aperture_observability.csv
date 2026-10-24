@@ -184,6 +184,7 @@ overlay_u3b0_row_clear_06fb_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u3b0_space_scan_cpu.c,flat,no,no
 overlay_u3b0_step_scan_0b03_cpu.c,flat,no,no
 overlay_u3b4_case_maps.c,flat,no,no
+overlay_u3b6_window_0000_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u3b9_bitmap_set_release_048f_cpu.c,flat,no,no
 overlay_u3b9_entry7_0708.c,flat,no,no
 overlay_u3b9_entry7_0708_cpu.c,flat,no,no
@@ -259,6 +260,7 @@ overlay_u3c6_step_071a.c,flat,no,no
 overlay_u3c6_table_pair_0000.c,flat,no,no
 overlay_u3ce_bitmap_pair_release_014e_cpu.c,flat,no,no
 overlay_u3ce_entry4_01c8.c,flat,no,no
+overlay_u3ce_tile_00f1_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u40c_group3_tile_plane.c,flat,no,no
 overlay_u40c_tile_015d_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u40c_tile_plane.c,flat,no,no
