@@ -45,7 +45,7 @@ int main(void)
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 14 && n[3] == 61 && n[4] == 1 && n[5] == 21);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 10 && n[3] == 61 && n[4] == 1 && n[5] == 25);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
@@ -174,6 +174,17 @@ int main(void)
     c = setup(r, 58); FRAME(0x0100, 0x6C00, 0x0100, 0x6000);
     PW(0x6000, 0x0100, 0x108, 0xFC); PW(0x6000, 0x0100, 0x109, 0xFF); PW(0x6000, 0x0100, 0x10A, 0x00); PW(0x6000, 0x0100, 0x10B, 0x64); PW(0x6400, 0xFFFC, 6, 0x77); r[at(DS_, 0x681D)] = 1; r[at(DS_, 0x681A)] = 0x5A; RUN();
     assert(r[at(0x6400, 0x0002)] == 0x00u && r[at(DS_, 0x681A)] == 0x00u && c.flags == 0x0202u && c.es == 0x6400u && c.di == 0xFFFCu);
+    /* ADAPTED batch P2 (slots 8, 45 +0377 [matches 2, 5, 8]; 9, 46 +03AC [matches 0, 3, 6]), hand-checked. The record is the GLOBAL active character DS:[5D92] (offset) / DS:[5D94] (segment): here 6000:FF70,
+     * so byte +0A0h wraps to 6000:0010. A match adds 2 to [6816] and subtracts 2 from [6822] (the SUB is the last flag writer); no match leaves the third CMP (against 8 for +0377, 6 for +03AC).
+     *  slot 8, [A0]=05h (match), [6816]=7Fh, [6822]=01h: [6816]=81h, [6822]=FFh; SUB 01h-2: CF, AF (bit 4 of 01h^02h^FFh), SF, PF (FFh) -> 0297h; ES:DI = 6000:FF70; AX = 0008h
+     *  slot 9, [A0]=04h (no match): data unchanged; CMP 04h,6 = FEh: CF, AF, SF (odd parity: no PF) -> 0293h
+     *  slot 8, [A0]=03h (no match for +0377): CMP 03h,8 = FBh: CF, AF, SF -> 0293h */
+    c = setup(r, 8); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x05); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x81u && r[at(DS_, 0x6822)] == 0xFFu && c.flags == 0x0297u && c.es == 0x6000u && c.di == 0xFF70u && c.ax == 0x0008u);
+    c = setup(r, 9); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x04); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u && c.es == 0x6000u && c.di == 0xFF70u);
+    c = setup(r, 8); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x03); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u);
     /* the budget sweep: LIMIT stops at each instruction start in order */
     {
         static const uint16_t IPS[] = {0x0000, 0x0001, 0x0003, 0x0006, 0x0009, 0x000C, 0x000F, 0x0012, 0x0013, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0022, 0x0023};

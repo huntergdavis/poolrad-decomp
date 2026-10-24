@@ -38,7 +38,7 @@ SP_MIN, SP_MAX = 0x0200, 0xFFEE
 STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'LIMIT', 6: 'CALLEE', 7: 'TRANSFER'}
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
-ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
+ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700, 0x0377, 0x03AC}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
 RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
@@ -546,6 +546,14 @@ def cases(src, per_slot=16, quick=False):
                 pokes = pk(RSEG, roff, {0x108: poff & 0xFF, 0x109: poff >> 8, 0x10A: PSEG & 0xFF, 0x10B: PSEG >> 8})
                 pokes += pk(PSEG, poff, {0xA: qoff & 0xFF, 0xB: qoff >> 8, 0xC: QSEG & 0xFF, 0xD: QSEG >> 8}) + pk(QSEG, qoff, {0x9F: q9f}) + ds({0x6822: v22, 0x6818: v18})
                 padd("013b", 3, f"{q9f:02x}-{v22:02x}-{v18:02x}-{lab}", [0x5A, 0x0100, SSEG, roff, RSEG], pokes)
+    # phase 2, batch P2 (slots 8 and 45 +0377, 9 and 46 +03AC): the GLOBAL active-character pointer DS:[5D92]/[5D94] and the character record byte +0A0h against three constants
+    for tag, slots, ks, vals in (("0377", (8, 45), (2, 5, 8), (0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0xFF, 0x82, 0x85, 0x88)), ("03ac", (9, 46), (0, 3, 6), (0, 1, 2, 3, 4, 5, 6, 7, 0x80, 0x83, 0x86, 0xFF))):
+        for si, slot in enumerate(slots):
+            sel = vals if si == 0 else (ks[0], ks[2], 1, 0x81)
+            for a0 in sel:
+                for v22 in ((0x00, 0x02, 0x03, 0x81, 0x82, 0xFF) if si == 0 else (0x02, 0x80)):
+                    for lab, roff in (("a", 0x0100), ("w", 0xFF70)):
+                        padd(tag, slot, f"s{slot}-{a0:02x}-{v22:02x}-{lab}", [0x5A, 0x0100, SSEG, 0x0100, RSEG], pk(RSEG, roff, {0xA0: a0}) + ds({0x5D92: roff & 0xFF, 0x5D93: roff >> 8, 0x5D94: RSEG & 0xFF, 0x5D95: RSEG >> 8, 0x6822: v22, 0x6816: 0x7F}))
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -741,6 +749,18 @@ MUTANTS = (
     ('+013B the equal path ADD flags use [6822]', [('if (q9f == 4u) add8_flags(m->cpu, a6818, 2u); else', 'if (q9f == 4u) add8_flags(m->cpu, st.b6822, 2u); else')]),
     ('+013B the CMP is against 3', [('sub8_flags(m->cpu, q9f, 4u);\n        set_es_di', 'sub8_flags(m->cpu, q9f, 3u);\n        set_es_di')]),
     ('+013B skips the semantic model', [('pr_u38_entry4(&st, rec, xb_resolve, x, &paths) == PR_U38_OK', '((void)pr_u38_entry4, PR_U38_OK) == PR_U38_OK')]),
+    ('+0377/+03AC an unmatched record uses the CMP against 0', [('if (applied) sub8_flags(c, a6822, 2u); else sub8_flags(c, b, k3);', 'if (applied) sub8_flags(c, a6822, 2u); else sub8_flags(c, b, 0u);')]),
+    ('+0377/+03AC an unmatched record leaves the flags', [('if (applied) sub8_flags(c, a6822, 2u); else sub8_flags(c, b, k3);', 'if (applied) sub8_flags(c, a6822, 2u);')]),
+    ('+0377/+03AC a match leaves the ADD flags (not the SUB)', [('if (applied) sub8_flags(c, a6822, 2u); else', 'if (applied) add8_flags(c, mods.b6816, 2u); else')]),
+    ('+0377/+03AC the SUB flags come from the stored [6822]', [('if (applied) sub8_flags(c, a6822, 2u); else', 'if (applied) sub8_flags(c, mods.b6822, 2u); else')]),
+    ('+0377/+03AC ES:DI is left unchanged', [('            set_es_di(c, rs, ro);\n            frame_leave(m, 0x0Au); rc = 0;\n        }\n    }\n    return rc;\n}\nstatic int h_0377', '            frame_leave(m, 0x0Au); rc = 0;\n        }\n    }\n    return rc;\n}\nstatic int h_0377')]),
+    ('+0377/+03AC the pointer offset is read from [5D94]', [('ro = rd16(m->ram, c->ds, 0x5D92u); rs = rd16(m->ram, c->ds, 0x5D94u);', 'ro = rd16(m->ram, c->ds, 0x5D94u); rs = rd16(m->ram, c->ds, 0x5D92u);')]),
+    ('+0377/+03AC the model result is ignored (applied forced 0)', [('store_mods(m->ram, c, &mods); xb_flush(x);\n            if (applied) sub8_flags', 'store_mods(m->ram, c, &mods); xb_flush(x); applied = 0;\n            if (applied) sub8_flags')]),
+    ('+0377 uses the +03AC model', [('(second ? pr_rec_u38_entry9(&mods, rec, &applied) : pr_rec_u38_entry8(&mods, rec, &applied))', 'pr_rec_u38_entry9(&mods, rec, &applied)')]),
+    ('+0377/+03AC skip the semantic model', [('(second ? pr_rec_u38_entry9(&mods, rec, &applied) : pr_rec_u38_entry8(&mods, rec, &applied)) == PR_REC_EFFECT_OK', '((void)pr_rec_u38_entry8, PR_REC_EFFECT_OK) == PR_REC_EFFECT_OK')]),
+    ('+0377/+03AC pop 8 argument bytes, not 0Ah', [('            set_es_di(c, rs, ro);\n            frame_leave(m, 0x0Au); rc = 0;\n        }\n    }\n    return rc;\n}\nstatic int h_0377', '            set_es_di(c, rs, ro);\n            frame_leave(m, 0x08u); rc = 0;\n        }\n    }\n    return rc;\n}\nstatic int h_0377')]),
+    ('+03AC the third constant is 8', [('static int h_03ac(call_t *m) { return gated_alignment(m, 1, 6u); }', 'static int h_03ac(call_t *m) { return gated_alignment(m, 1, 8u); }')]),
+    ('+0377 the third constant is 6', [('static int h_0377(call_t *m) { return gated_alignment(m, 0, 8u); }', 'static int h_0377(call_t *m) { return gated_alignment(m, 0, 6u); }')]),
     ('the gap kind of an uncredited slot is reported as semantic', [("sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC :", "sl->kind != K_RAW ? PR_U9E_0000_GAP_SEMANTIC :")]),
 )
 MUTANT_CASES_EXTRA = ('adapt', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
