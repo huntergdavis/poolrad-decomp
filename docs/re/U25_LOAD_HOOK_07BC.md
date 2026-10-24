@@ -157,3 +157,22 @@ The +0E0C audit's own run is unchanged by this change: its default entry, cases 
     python3 tools/overlay/check_checker_builds.py --require-current-main OVL_0025_07BC OVL_0025_0E0C
 
 Media, assembly and captures stay under ignored `resources/`.
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at main `58a0a276` (2026-10-23/24), through `poolrad-heavy.sh`. The checked C closure, headers and
+audit are byte-identical on `9ff74887`. Unicorn: 3,593 cases, 268/268 instructions (hook 233 + 0756 35), 0 unvisited, 0 declared flag-split arrivals; all 1,048,576 RAM bytes and 14 CPU words, flag masks 0.
+Mutation: 17/17 caught. Native: 39 cases (masked_flags 0). Code body 696 B, SHA-256 `6ec8c66f021fed88e9a816e2cf45a8b927889f036600c9b0d6c0d61ca96a5451`, re-derived from GAME.OVR.
+
+Identity: par-a's two-factor argument in [U25_IDENTITY_ARGUMENTS.md](U25_IDENTITY_ARGUMENTS.md) (at `2c7d77af`). I re-derived every factor-1 site from the
+media: each near site decodes as `0E E8` at an instruction boundary inside the caller extent par-a names.
+
+**Reviewer-added limit (native oracle):** the native run used /usr/bin/dosbox-x 2026.01.02 (SHA-256 99d74601...), not the pinned 5a9c7c53 build. Native agreement is claimed for that binary only.
+The primary evidence is the full-1 MiB Unicorn differential.
+
+**07BC-specific (the credit question in this document).** Creditable as its own row. Strict credit counts original
+routines, not C files. `[07BC,0A74)` is a distinct routine with its own extent that `OVL_0025_0E0C`'s row does not count;
+0E0C starts above 0A74, so the spans do not overlap. That its only translation lives in 0E0C's C file is the same case
+as `OVL_007F_0000`, which 0054/0A88 compose and which is credited separately. Factor 1 is the strongest kind: the sole
+caller, near `+0E4A`, is inside strict-credited 0E0C.
