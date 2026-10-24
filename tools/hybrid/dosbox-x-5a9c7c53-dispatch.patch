@@ -180,10 +180,10 @@ index 0000000..f880355
 +#endif
 diff --git a/src/cpu/pr_hybrid_observer.h b/src/cpu/pr_hybrid_observer.h
 new file mode 100644
-index 0000000..011606d
+index 0000000..d36b184
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_observer.h
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,154 @@
 +/* Poolrad hybrid executor, STAGE 0: OBSERVER ONLY (docs/HYBRID_EXECUTOR_SCOPE.md in the poolrad-decomp repo, VP i20556).
 + *
 + * Counts arrivals at credited entry points. It never changes guest state: it reads guest bytes and writes host files.
@@ -326,6 +326,8 @@ index 0000000..011606d
 +                    (unsigned long long)tv.tv_sec * 1000ull + (unsigned long long)(tv.tv_usec / 1000), cs, ip, seed);
 +            fflush(draws);
 +        }
++        if (draws && e.id.compare(0, 7, "SAMPLE_") == 0)            /* a sampled return (e.g. GetMem's success RETF): DX:AX at that instruction */
++            { fprintf(draws, "# SAMPLE %s %llu DX:AX=%04X:%04X\n", e.id.c_str(), (unsigned long long)e.count, (unsigned)reg_dx, (unsigned)reg_ax); fflush(draws); }
 +        if ((arrivals & 4095u) == 0) report();
 +    }
 +}
@@ -338,10 +340,10 @@ index 0000000..011606d
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..2ff6a2a
+index 0000000..4e031e1
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1021 @@
+@@ -0,0 +1,1025 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -445,6 +447,7 @@ index 0000000..2ff6a2a
 +#include "poolrad/recovered/overlay_u5e_direction_gate_17f6.h"
 +#include "poolrad/recovered/overlay_u3c6_slot_getters_cpu.h"
 +#include "poolrad/recovered/resident_00ba_link_check_2e03_cpu.h"
++#include "poolrad/recovered/resident_00ba_zero_test_23b7_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -498,7 +501,7 @@ index 0000000..2ff6a2a
 +PR_SAME_LAYOUT(pr_r0709_screen_cpu); PR_SAME_LAYOUT(pr_u3bd_lookup_cpu); PR_SAME_LAYOUT(pr_u3bd_0155_cpu); PR_SAME_LAYOUT(pr_u3bd_057a_cpu); PR_SAME_LAYOUT(pr_u68_068d_cpu);
 +PR_SAME_LAYOUT(pr_u3c2_057b_cpu); PR_SAME_LAYOUT(pr_u33_0221_cpu); PR_SAME_LAYOUT(pr_u3c2_01a0_cpu); PR_SAME_LAYOUT(pr_u33_012b_cpu); PR_SAME_LAYOUT(pr_u3c2_0422_cpu); PR_SAME_LAYOUT(pr_u3c6_06e9_cpu); PR_SAME_LAYOUT(pr_u33_01ad_cpu);
 +PR_SAME_LAYOUT(pr_u33_0615_cpu); PR_SAME_LAYOUT(pr_u33_040f_cpu); PR_SAME_LAYOUT(pr_u33_0377_cpu); PR_SAME_LAYOUT(pr_u33_02ba_cpu); PR_SAME_LAYOUT(pr_u5e_0e52_cpu); PR_SAME_LAYOUT(pr_u3c2_002e_cpu); PR_SAME_LAYOUT(pr_u3c6_03a0_cpu); PR_SAME_LAYOUT(pr_u31_128d_cpu); PR_SAME_LAYOUT(pr_u33_1434_cpu); PR_SAME_LAYOUT(pr_u31_0675_cpu); PR_SAME_LAYOUT(pr_u2f_0131_cpu); PR_SAME_LAYOUT(pr_u3c6_0068_cpu); PR_SAME_LAYOUT(pr_u3c2_0909_cpu);
-+PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu); PR_SAME_LAYOUT(pr_res_2e03_cpu);
++PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu); PR_SAME_LAYOUT(pr_res_2e03_cpu); PR_SAME_LAYOUT(pr_res_23b7_cpu);
 +PR_SAME_LAYOUT(pr_res_2637_cpu); PR_SAME_LAYOUT(pr_r0709_delay_cpu); PR_SAME_LAYOUT(pr_r0709_skip_cpu); PR_SAME_LAYOUT(pr_target_cpu); PR_SAME_LAYOUT(pr_roll_chain_cpu); PR_SAME_LAYOUT(pr_r00ba_1693_cpu); PR_SAME_LAYOUT(pr_u33_1577_cpu); PR_SAME_LAYOUT(pr_u5e_2879_cpu); PR_SAME_LAYOUT(pr_u38_string_match_cpu); PR_SAME_LAYOUT(pr_u6c_3291_cpu); PR_SAME_LAYOUT(pr_u6c_0000_cpu); PR_SAME_LAYOUT(pr_u2f_122b_cpu); PR_SAME_LAYOUT(pr_u38_11f9_cpu); PR_SAME_LAYOUT(pr_u25_0f53_cpu); PR_SAME_LAYOUT(pr_u7f_0f7e_cpu); PR_SAME_LAYOUT(pr_u25_0482_cpu); PR_SAME_LAYOUT(pr_u25_1951_cpu); PR_SAME_LAYOUT(pr_u1c_return_cpu); PR_SAME_LAYOUT(pr_u1c_gosub_cpu); PR_SAME_LAYOUT(pr_u33_12e1_cpu); PR_SAME_LAYOUT(pr_u33_0810_cpu); PR_SAME_LAYOUT(pr_u33_0000_cpu); PR_SAME_LAYOUT(pr_u20_0355_cpu); PR_SAME_LAYOUT(pr_u1c_cmon_cpu); PR_SAME_LAYOUT(pr_u25_1fb1_cpu); PR_SAME_LAYOUT(pr_u1c_delay_cpu); PR_SAME_LAYOUT(pr_u77_27df_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
@@ -603,6 +606,7 @@ index 0000000..2ff6a2a
 +    /* batch 8 (route 3): the remaining credited raw/bus entries route 3 reaches; returns detected dynamically */
 +    /* batch 8b: U3C6 entries 12/13/14/15 through the existing raw slot-getter model (found by the pre-claim grep) */
 +    {"RES_00BA_2E03", 0x00BA, 0x2E03, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* the new raw model (#1494); RETF 4 */
++    {"RES_00BA_23B7", 0x00BA, 0x23B7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* the shared raw entry carved out of 0255 (#1504); RETF 4 */
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -810,6 +814,8 @@ index 0000000..2ff6a2a
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
 +    /* batch 8 */
++    if (!strcmp(x.id, "RES_00BA_23B7")) { int st = pr_res_00ba_zero_test_23b7_cpu(MemBase, RAM, (pr_res_23b7_cpu *)&m);
++        return st == PR_RES_23B7_RETURNED ? 0 : st == PR_RES_23B7_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_00BA_2E03")) { int st = pr_res_00ba_link_check_2e03_cpu(MemBase, RAM, (pr_res_2e03_cpu *)&m);
 +        return st == PR_RES_2E03_RETURNED ? 0 : st == PR_RES_2E03_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C6_0BE7") || !strcmp(x.id, "OVL_03C6_0C0F") || !strcmp(x.id, "OVL_03C6_0C37") || !strcmp(x.id, "OVL_03C6_0C5F")) {

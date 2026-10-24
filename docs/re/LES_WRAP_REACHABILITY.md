@@ -107,3 +107,24 @@ listed (`les_bytes` sweep). **Not one of them is an `LES` or `LDS`:**
 
 The decode is a linear sweep that resyncs on failure, so an offset can sit a few bytes from a model's comment address.
 The instruction bytes themselves are exact.
+
+## Update (2026-10-23): the live GetMem sample (open item 3 closed)
+
+**What was sampled.** An observer row, `SAMPLE_GETMEM_RET`, sits on GetMem's success return: the `RETF 2` at SYSTEM
+`+024B`. Its 12-byte signature is `ca0200b8cb00e98efe558bec`, unique in START.EXE (file offset `0xAC76 + 0x24B`). At
+each arrival the observer logs DX:AX, the returned pointer, to `observer.draws` as a `# SAMPLE` line.
+
+**Result:** 1,592 GetMem returns. **Every returned offset is `0000h` or `0008h`.**
+
+| Run | Returns | Offset 0000h | Offset 0008h |
+| --- | --- | --- | --- |
+| `hybrid-b8e-v1-r3-a` (route 3, combat) | 1,280 | 611 | 669 |
+| `hybrid-b8e-v1-walk` | 312 | 124 | 188 |
+
+This is the normalized, granule-aligned pointer that the reading in (a) predicts. Reaching `FFFDh` would therefore
+need `k ≥ FFF5h`.
+
+**Scope:** these two routes in the hybrid build. They are test-harness runs, unpinned. The walk is reported at
+**0 px, no encounter on the 14,4 step**.
+
+**Open item (3) is closed.** Item (2), far-pointer arithmetic that GetMem did not make, remains the only open route.
