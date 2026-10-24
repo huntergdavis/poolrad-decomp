@@ -63,7 +63,7 @@ static void or8(cpu_t *c, uint8_t r)                                            
     c->flags = (uint16_t)((c->flags & ~ARITH) | f);
 }
 static void shl16(cpu_t *c, unsigned count)                                     /* SHL AX,CL as DOSBox-X's 386 core: count masked to 5 bits, */
-{                                                                               /* AF = (count != 0), OF = MSB(result) ^ MSB(operand)          */
+{                                                                               /* AF = (count != 0), OF = MSB(result) ^ CF (flags.cpp:719-727) */
     uint16_t a = c->ax, r; uint16_t f;
     count &= 0x1Fu;
     if (count == 0u) return;
@@ -72,7 +72,7 @@ static void shl16(cpu_t *c, unsigned count)                                     
     if (count <= 16u && ((a >> (16u - count)) & 1u)) f |= 0x0001u;
     if (!r) f |= 0x0040u;
     if (r & 0x8000u) f |= 0x0080u;
-    if ((r ^ a) & 0x8000u) f |= 0x0800u;
+    if (((r >> 15u) ^ f) & 1u) f |= 0x0800u;                                    /* f bit 0 is CF */
     c->flags = (uint16_t)((c->flags & ~ARITH) | f);
     c->ax = r;
 }
