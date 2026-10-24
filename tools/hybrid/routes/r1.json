@@ -1,118 +1,98 @@
 {
-  "version": 1,
+  "version": 2,
+  "name": "r1",
   "description": "R1 core: encounter, Quick combat, loot Pool/Share, View Items; original guest only.",
-  "start": "code",
-  "records": [
+  "start": "seek_down",
+  "terminal": "final",
+  "states": [
     {
-      "name": "code",
-      "gate": {
-        "pattern": "CODE",
-        "source": "prompt"
-      },
+      "name": "seek_down",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
+      "key": "Down",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
+      "max_visits": 30
+    },
+    {
+      "name": "seek_continue_down",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
       "key": "Return",
-      "expected_next": [
-        "menu"
-      ],
-      "timeout": 300,
-      "max_visits": 1
-    },
-    {
-      "name": "menu",
-      "gate": {
-        "pattern": "FUNCTION",
-        "source": "prompt"
-      },
-      "key": "l",
-      "expected_next": [
-        "slots"
-      ],
-      "timeout": 300,
-      "max_visits": 1
-    },
-    {
-      "name": "slots",
-      "gate": {
-        "pattern": "LOAD.*GAME",
-        "source": "prompt",
-        "exclude": "FUNCTION"
-      },
-      "key": "a",
-      "expected_next": [
-        "at15_4"
-      ],
-      "timeout": 300,
-      "max_visits": 1
-    },
-    {
-      "name": "at15_4",
-      "gate": {
-        "pattern": "15\\s*,\\s*4",
-        "source": "digits"
-      },
-      "key": "Up",
-      "expected_next": [
-        "at14_4"
-      ],
-      "timeout": 300,
-      "max_visits": 1
-    },
-    {
-      "name": "at14_4",
-      "gate": {
-        "pattern": "14\\s*,\\s*4",
-        "source": "digits"
-      },
-      "key": null,
-      "expected_next": [
+      "expect_next": [
         "encounter",
-        "seek_continue",
-        "seek"
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_down",
+        "seek_down"
       ],
-      "timeout": 300,
-      "max_visits": 1
-    },
-    {
-      "name": "seek",
-      "gate": {
-        "pattern": "AREA|SEARCH|LOOK",
-        "source": "prompt",
-        "exclude": "COMBAT|FLEE"
-      },
-      "key": [
-        "Down",
-        "Up"
-      ],
-      "expected_next": [
-        "encounter",
-        "seek_continue",
-        "seek"
-      ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 60
     },
     {
-      "name": "seek_continue",
-      "gate": {
-        "pattern": "ENTER|RETURN|CONTINUE",
-        "source": "prompt"
-      },
-      "key": "Return",
-      "expected_next": [
-        "encounter",
-        "seek_continue",
-        "seek"
+      "name": "seek_up",
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
       ],
-      "timeout": 300,
+      "key": "Up",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_down",
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 30
+    },
+    {
+      "name": "seek_continue_up",
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "encounter",
+        "battle_end",
+        "combat_quick",
+        "combat_confirm",
+        "treasure_pool",
+        "seek_continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
       "max_visits": 60
     },
     {
       "name": "encounter",
-      "gate": {
-        "pattern": "COMBAT|FLEE",
-        "source": "prompt"
-      },
+      "gate": [
+        "COMBAT",
+        "FLEE"
+      ],
       "key": "c",
-      "expected_next": [
+      "expect_next": [
         "treasure_pool",
         "battle_end",
         "combat_continue",
@@ -120,17 +100,16 @@
         "combat_quick",
         "encounter"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 3
     },
     {
       "name": "battle_end",
-      "gate": {
-        "pattern": "BATTLE.*(YES|HES|NO)|(YES|HES|NO).*BATTLE",
-        "source": "prompt"
-      },
+      "gate": [
+        "BATTLE"
+      ],
       "key": "n",
-      "expected_next": [
+      "expect_next": [
         "treasure_pool",
         "battle_end",
         "combat_continue",
@@ -138,17 +117,18 @@
         "combat_quick",
         "encounter"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 8
     },
     {
       "name": "combat_continue",
-      "gate": {
-        "pattern": "ENTER|RETURN|CONTINUE",
-        "source": "prompt"
-      },
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
       "key": "Return",
-      "expected_next": [
+      "expect_next": [
         "treasure_pool",
         "battle_end",
         "combat_continue",
@@ -156,17 +136,18 @@
         "combat_quick",
         "encounter"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 150
     },
     {
       "name": "combat_confirm",
-      "gate": {
-        "pattern": "SURE|Y/N",
-        "source": "prompt"
-      },
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
       "key": "y",
-      "expected_next": [
+      "expect_next": [
         "treasure_pool",
         "battle_end",
         "combat_continue",
@@ -174,18 +155,24 @@
         "combat_quick",
         "encounter"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 12
     },
     {
       "name": "combat_quick",
-      "gate": {
-        "pattern": "QUICK|GUARD|AIM|MOVE|OVE|USE|DONE|DOE|AIN",
-        "source": "prompt",
-        "exclude": "LEFT|ATTACH|ATTACK|DYING|BATTLE|TREASURE"
-      },
+      "gate": [
+        "QUICK",
+        "GUARD",
+        "AIM",
+        "MOVE",
+        "OVE",
+        "USE",
+        "DONE",
+        "DOE",
+        "AIN"
+      ],
       "key": "q",
-      "expected_next": [
+      "expect_next": [
         "treasure_pool",
         "battle_end",
         "combat_continue",
@@ -193,197 +180,214 @@
         "combat_quick",
         "encounter"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 250
     },
     {
       "name": "treasure_pool",
-      "gate": {
-        "pattern": "TREASURE|TAKE|POOL|FOOL|SHARE",
-        "source": "prompt",
-        "exclude": "LEFT"
-      },
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
       "key": "p",
-      "expected_next": [
+      "expect_next": [
         "pool_confirm",
         "pool_continue",
         "treasure_share"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
       "name": "pool_confirm",
-      "gate": {
-        "pattern": "SURE|Y/N",
-        "source": "prompt"
-      },
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
       "key": "y",
-      "expected_next": [
+      "expect_next": [
         "pool_continue",
         "treasure_share"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 3
     },
     {
       "name": "pool_continue",
-      "gate": {
-        "pattern": "ENTER|RETURN|CONTINUE",
-        "source": "prompt"
-      },
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
       "key": "Return",
-      "expected_next": [
+      "expect_next": [
         "pool_confirm",
         "pool_continue",
         "treasure_share"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 6
     },
     {
       "name": "treasure_share",
-      "gate": {
-        "pattern": "TREASURE|TAKE|POOL|FOOL|SHARE",
-        "source": "prompt",
-        "exclude": "LEFT"
-      },
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
       "key": "s",
-      "expected_next": [
+      "expect_next": [
         "share_confirm",
         "share_continue",
         "treasure_exit"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
       "name": "share_confirm",
-      "gate": {
-        "pattern": "SURE|Y/N",
-        "source": "prompt"
-      },
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
       "key": "y",
-      "expected_next": [
+      "expect_next": [
         "share_continue",
         "treasure_exit"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 3
     },
     {
       "name": "share_continue",
-      "gate": {
-        "pattern": "ENTER|RETURN|CONTINUE",
-        "source": "prompt"
-      },
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
       "key": "Return",
-      "expected_next": [
+      "expect_next": [
         "share_confirm",
         "share_continue",
         "treasure_exit"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 6
     },
     {
       "name": "treasure_exit",
-      "gate": {
-        "pattern": "TREASURE|TAKE|POOL|FOOL|SHARE",
-        "source": "prompt",
-        "exclude": "LEFT"
-      },
+      "gate": [
+        "TREASURE",
+        "TAKE",
+        "POOL",
+        "FOOL",
+        "SHARE"
+      ],
       "key": "e",
-      "expected_next": [
+      "expect_next": [
         "leave_confirm",
         "leave_remaining",
         "leave_continue",
         "area_view"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
       "name": "leave_confirm",
-      "gate": {
-        "pattern": "SURE|Y/N",
-        "source": "prompt"
-      },
+      "gate": [
+        "SURE",
+        "Y/N",
+        "(Y"
+      ],
       "key": "y",
-      "expected_next": [
+      "expect_next": [
         "leave_remaining",
         "leave_continue",
         "area_view"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 3
     },
     {
       "name": "leave_continue",
-      "gate": {
-        "pattern": "ENTER|RETURN|CONTINUE",
-        "source": "prompt"
-      },
+      "gate": [
+        "ENTER",
+        "RETURN",
+        "CONTINUE"
+      ],
       "key": "Return",
-      "expected_next": [
+      "expect_next": [
         "leave_confirm",
         "leave_remaining",
         "leave_continue",
         "area_view"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 6
     },
     {
       "name": "area_view",
-      "gate": {
-        "pattern": "AREA|SEARCH|LOOK",
-        "source": "prompt",
-        "exclude": "COMBAT|FLEE"
-      },
+      "gate": [
+        "AREA",
+        "SEARCH",
+        "LOOK"
+      ],
       "key": "v",
-      "expected_next": [
+      "expect_next": [
         "view_items"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
       "name": "view_items",
-      "gate": {
-        "pattern": "ITEMS.*(TRADE|DROP)|(TRADE|DROP).*ITEMS",
-        "source": "prompt"
-      },
-      "key": "i",
-      "expected_next": [
-        "items_seen"
+      "gate": [
+        "ITEMS"
       ],
-      "timeout": 300,
+      "key": "i",
+      "expect_next": [
+        "final"
+      ],
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
-      "name": "items_seen",
-      "gate": {
-        "pattern": "READY|UNREADY|HALVE|JOIN|SELL|IDENTIFY",
-        "source": "prompt"
-      },
+      "name": "final",
+      "gate": [
+        "READY",
+        "UNREADY",
+        "HALVE",
+        "JOIN",
+        "SELL",
+        "IDENTIFY"
+      ],
       "key": null,
-      "expected_next": [],
-      "timeout": 300,
+      "expect_next": [],
+      "timeout_s": 300,
       "max_visits": 1
     },
     {
       "name": "leave_remaining",
-      "gate": {
-        "pattern": "YES|NO|MO",
-        "source": "prompt"
-      },
+      "gate": [
+        "YES",
+        "HES",
+        "NO",
+        "MO"
+      ],
       "key": "n",
-      "expected_next": [
+      "expect_next": [
         "leave_continue",
         "area_view"
       ],
-      "timeout": 300,
+      "timeout_s": 300,
       "max_visits": 3
     }
   ],

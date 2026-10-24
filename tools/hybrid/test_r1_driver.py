@@ -19,6 +19,7 @@ class RouteTest(unittest.TestCase):
         self.route.allowed=['slots']
         self.assertIsNone(self.route.choose({'prompt':'UNRECOGNIZED'}))
         self.assertIsNotNone(self.route.choose({'prompt':'LOAD GAME'}))
+        self.assertIsNotNone(self.route.choose({'prompt':'LODB WHICH X'}))
 
     def test_gate_cannot_jump_to_later_menu(self):
         self.assertIsNone(self.route.choose({'prompt':'ITEMS TRADE'}))
@@ -42,7 +43,7 @@ class RouteTest(unittest.TestCase):
         self.assertNotIn('treasure_pool',self.route.allowed)
 
     def test_digit_gate_uses_digit_observation(self):
-        gate=self.route.records['at15_4']['gate']
+        gate=self.route.records['at15_4']
         self.assertFalse(matches(gate,{'prompt':'15,4'}))
         self.assertTrue(matches(gate,{'digits':'15,4 W'}))
 
@@ -66,6 +67,28 @@ class RouteTest(unittest.TestCase):
             self.assertEqual(result['missing_candidates'],1)
             self.assertEqual([r['status'] for r in result['candidates']],
                              ['arrived','not observed','missing'])
+
+    def test_route_states_have_owner_schema(self):
+        for state in self.route.data['states']:
+            self.assertEqual(set(state), {'name','gate','key','expect_next','timeout_s','max_visits'})
+            self.assertIsInstance(state['gate'],list)
+
+    def test_seek_alternates_and_accepts_ambush(self):
+        self.route.allowed=['seek_down']
+        self.assertEqual(self.route.advance(self.route.choose({'prompt':'AREA'})),'Down')
+        self.assertEqual(self.route.advance(self.route.choose({'prompt':'AREA'})),'Up')
+        self.assertEqual(self.route.advance(self.route.choose({'prompt':'QUICK GUARD'})),'q')
+
+    def test_unknown_recognizable_menu_is_not_idle(self):
+        observation={'prompt':'AREA'}
+        self.assertIsNone(self.route.choose(observation))
+        self.assertFalse(self.route.idle(observation))
+
+    def test_battle_animation_waits_for_choice(self):
+        self.route.allowed=['battle_end']
+        self.assertIsNone(self.route.choose({'prompt':'BATTLE'}))
+        self.assertTrue(self.route.idle({'prompt':'BATTLE'}))
+        self.assertEqual(self.route.advance(self.route.choose({'prompt':'BATTLE YES NO'})),'n')
 
 
 if __name__=='__main__':

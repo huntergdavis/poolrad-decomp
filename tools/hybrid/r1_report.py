@@ -9,9 +9,13 @@ from pathlib import Path
 def report(run, route):
     summary=json.loads((run/'r1-summary.json').read_text())
     result=dict(run=run.name,success=summary['success'],error=summary['error'],
-                shutdown=summary['shutdown'],mode=(run/'r1-mode.txt').read_text().strip(),
+                shutdown=summary['shutdown'],final_pixels_sha256=summary.get('final_pixels_sha256'),mode=(run/'r1-mode.txt').read_text().strip(),
                 timings=[dict(gate=r['name'],visit=r['visit'],wait_s=r['wait_s'],
                               elapsed_s=r['elapsed_s']) for r in summary['gates']])
+    seed_file=run/'r1-seed.txt'
+    result['seed_pin']=seed_file.read_text().strip() if seed_file.exists() else ''
+    if result['seed_pin']:
+        result['seed_pin_observed']=('# PINNED RandSeed := '+result['seed_pin'].upper()+' ') in (run/'observer.draws').read_text()
     if result['mode']=='observer':
         result['forced_kill'] = summary['shutdown'].startswith('SIGKILL')
         result['counts_scope'] = ('last periodic snapshot; zero is inconclusive'
