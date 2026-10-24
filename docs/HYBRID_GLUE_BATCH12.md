@@ -33,3 +33,17 @@ those merge.
   claimed.
 - **Hand-backs:** the only hand-back in all four runs is `OVL_006F_1446`, at the cold INT 3Fh stub (`code=CD 3F`).
 - **REPLACED:** #1545 adds the 9 routed bodies (112 → 121).
+
+**TIMEOUT lines, all in bodies outside this batch.** A V1 window allows 200,000 instructions. When the original runs
+longer than that, the dispatch abandons the window, the original result stands, and nothing is compared. The rows below
+are TIMEOUT counts.
+
+| Run | `RES_0899_0059` (ReadKey) | `RES_00BA_1693` (display) |
+| --- | --- | --- |
+| `hybrid-b12-r4-v1` | 2 (arrivals 1 and 63) | 2 (arrivals 1 and 2) |
+| `hybrid-b12-r2-v1` | 1 | 0 |
+| `hybrid-b12-r4-route` | 2 | 0 |
+| `hybrid-b12-r2-route` | 1 | 0 |
+
+- **`0059`** waits for a key, and with DOS-service replay it stays shadow even in route mode.
+- **`1693`** is routed in route mode, so it has no window there.
