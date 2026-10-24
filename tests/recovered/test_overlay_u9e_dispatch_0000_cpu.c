@@ -45,9 +45,11 @@ int main(void)
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 9 && n[3] == 61 && n[4] == 1 && n[5] == 26);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 6 && n[3] == 61 && n[4] == 1 && n[5] == 29);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
+        /* wiring batch W1: three credited CPU-level models composed with their callees; the loaded original code they need is not in this test's RAM, so only the table is pinned here (the composed differential is in the audit) */
+        assert(pr_u9e_dispatch_0000_slot_kind(49) == 5 && pr_u9e_dispatch_0000_slot_entry(49) == 0x12B2u && pr_u9e_dispatch_0000_slot_kind(94) == 5 && pr_u9e_dispatch_0000_slot_entry(94) == 0x25BCu && pr_u9e_dispatch_0000_slot_kind(122) == 5 && pr_u9e_dispatch_0000_slot_entry(122) == 0x2D38u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
     }
     /* REFUSED: every index outside 1..139 leaves CPU, RAM and budget exactly as they were and calls nothing */
