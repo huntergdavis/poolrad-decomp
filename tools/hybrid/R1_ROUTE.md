@@ -64,3 +64,69 @@ route-mode replacement work remains separate from this arrival harness.
 python3 tools/hybrid/test_r1_driver.py
 python3 tools/hybrid/r1_report.py resources/oracle-runs/r1-observer-a
 ```
+
+## Measured native runs (2026-10-23)
+
+Two pinned originals (`r1-original-c`, `r1-original-d`) and one original-code
+observer (`r1-observer-a`) completed through the shared FIFO with dispatch unset.
+All three used identical input, driver, route and emulator hashes. Their final
+raw-RGBA SHA256 is
+`0dc77c31eaa137b9538d9a6b55a94ea752d0c4dc7157321b0e11c59746acf5bb`.
+
+| Gate | Original C (s) | Original D (s) | Observer A (s) |
+| --- | ---: | ---: | ---: |
+| treasure_pool | 1918.408 | 2053.710 | 1970.786 |
+| treasure_share | 1926.527 | 2062.263 | 1980.839 |
+| treasure_exit | 1939.589 | 2070.135 | 1988.604 |
+| area_view | 1949.288 | 2078.727 | 1997.170 |
+| view_items | 1960.344 | 2088.331 | 2005.362 |
+| final | 1970.443 | 2097.832 | 2013.983 |
+
+Each run issued six Quick inputs. C and observer A issued 116 pacing inputs;
+D issued 117. The extra Down in D occurred while encounter text was still
+drawing above the old area prompt. The input/draw timelines agree through
+move 116 and reach the first Quick input at the same post-pin draw count.
+All three complete post-pin RNG traces contain the same 1,447 values.
+**Exact key-sequence validation fails for D.** Prompt-only stability can
+accept an obsolete area menu during a transition; route-owner review of this
+limitation remains pending. Equal final pixels do not establish arbitrary
+guest-state equivalence or C-replacement parity.
+
+All runs exited successfully with SIGTERM cleanup, without SIGKILL. Final
+per-ID report counts agree exactly with the complete observer sequence.
+Both originals contain 31,979 draw arrivals. Observer A has 31,978 draw
+arrivals (its pin occurs one draw earlier) plus 154 candidate arrivals.
+All 28 candidates are present in the report: 14 arrived and 14 were not
+observed. These counts cover the whole run, not only the loot/items segment.
+Zero does not prove unreachability. No replacement credit is claimed.
+
+| Candidate | Whole-run arrivals |
+| --- | ---: |
+| `OVL_0077_17ED` | 0 |
+| `OVL_0077_275B` | 0 |
+| `OVL_0077_28BE` | 0 |
+| `OVL_007F_0000` | 47 |
+| `OVL_007F_003A` | 47 |
+| `OVL_007F_0054` | 47 |
+| `OVL_007F_00A8` | 0 |
+| `OVL_007F_044C` | 0 |
+| `OVL_007F_0508` | 1 |
+| `OVL_007F_05E0` | 1 |
+| `OVL_007F_0A01` | 0 |
+| `OVL_007F_0B93` | 0 |
+| `OVL_0086_028D` | 0 |
+| `OVL_0086_044E` | 0 |
+| `OVL_0086_051C` | 0 |
+| `OVL_0086_059C` | 0 |
+| `OVL_03B0_0000` | 3 |
+| `OVL_03B0_0067` | 1 |
+| `OVL_03B0_0711` | 1 |
+| `OVL_03B0_07A4` | 1 |
+| `OVL_03B0_08D7` | 1 |
+| `OVL_03B0_0923` | 1 |
+| `OVL_03B0_0969` | 1 |
+| `OVL_03B0_0A08` | 0 |
+| `OVL_03B0_0B03` | 1 |
+| `OVL_03B0_0C33` | 0 |
+| `OVL_03B0_0CC5` | 1 |
+| `OVL_03B0_11F3` | 0 |
