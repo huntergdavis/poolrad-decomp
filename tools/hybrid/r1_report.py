@@ -13,7 +13,9 @@ def report(run, route):
                 timings=[dict(gate=r['name'],visit=r['visit'],wait_s=r['wait_s'],
                               elapsed_s=r['elapsed_s']) for r in summary['gates']])
     if result['mode']=='observer':
-        result['counts_verified_shutdown'] = not summary['shutdown'].startswith('SIGKILL')
+        result['forced_kill'] = summary['shutdown'].startswith('SIGKILL')
+        result['counts_scope'] = ('last periodic snapshot; zero is inconclusive'
+                                  if result['forced_kill'] else 'observer report at process exit')
         counts={}
         for row in csv.reader((run/'observer.tsv').read_text().splitlines(),delimiter='\t'):
             if row and not row[0].startswith('#') and len(row)>=2:
