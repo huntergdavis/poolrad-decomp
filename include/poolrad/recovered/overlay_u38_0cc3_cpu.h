@@ -35,7 +35,8 @@ typedef struct {
  * (a list whose head is the node advances the head; otherwise the walk from the head looks for the predecessor and never stops
  * if there is none), frees it with SYSTEM FreeMem (13h bytes), and re-stamps 1Eh on every cell of every remaining node.
  * Every access through a far pointer the body did not create (the record, the list nodes, the map) goes THROUGH THE BUS; the
- * stack, the code and DS globals are flat; StrLoad, the 1693 closure and FreeMem keep their own contracts. The flags follow the
+ * stack, the code and DS globals are flat; StrLoad, the 1693 closure and FreeMem keep their own contracts. Declared exclusion: FreeMem
+ * reaches the freed node FLAT, so a corrupt list node in the A0000..AFFFF aperture is freed through RAM, not the planes (as for +0EC4). The flags follow the
  * pinned DOSBox-X normal core: MUL keeps SF/AF (pinned MULW), SHR sets AF for a nonzero count. Each instruction of this body
  * consumes one unit of *budget; StrLoad, 1693 and FreeMem do not (1693 and FreeMem have their own caps in *limits). Exactly 1 MiB
  * of A20-off RAM; entry SP in [0200h,FFF2h]. CPU, budget, limits, bus and diagnostic storage are distinct. Code is immutable. */

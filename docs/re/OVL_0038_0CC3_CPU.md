@@ -206,6 +206,9 @@ not the pinned `5a9c7c53` build. Every found path goes through 1693's EGA displa
 - The found path natively. The 1693 native machine is the same declared gap as for `+0203` and `+0A88`.
 - A record or list node in the A0000..AFFFF aperture in the differential. The map is covered there (`grid-in-aperture`), and a
   node in the aperture is covered by the C test, matched through plane data.
+- **A declared exclusion:** a list node in the A0000..AFFFF aperture. The body reads it through the bus, but FreeMem frees it flat. The
+  aperture census records the pair `overlay_u38_0cc3_cpu.c → pr_system_freemem_0254` (pointer source: the global list head) as
+  reachable under a corrupt pointer and declared.
 - The 1693 closure's and FreeMem's own caps; both are generous here.
 - Natural reachability of slot 40: see the factor-1 limit.
 - The meaning of the object list at `DS:6DBB`.
