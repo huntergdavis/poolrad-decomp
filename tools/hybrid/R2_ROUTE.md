@@ -1,6 +1,6 @@
 # R2 camp route
 
-R2 extends the accepted R1 harness with a separate JSON route for Camp Magic,
+`WALK_ROUTE=r2` extends the accepted R1 harness with a separate JSON route for Camp Magic,
 Rest adjustment, and Alter/Order. All input discovery and reference runs use
 original guest code, a disposable copy of the pinned slot-A save, and the same
 explicit seed pin. C dispatch remains unset. Submit each native job once
@@ -17,7 +17,7 @@ The DOS source evidence is in
 character selection, then selected-character movement. The control bitmap at
 U6A `+174E` accepts Return/P/S to switch modes. Extended Home/End reach
 `+14A9/+1601` only in movement mode. This remains a static input-path finding
-until observed natively.
+The native preflight confirmed this mode distinction and the reverse movement.
 
 Rest adjustment is separate from completed rest. The U7D `+0721` handler starts
 on minutes; I adds five minutes and D subtracts five. Return maps to R and
@@ -50,9 +50,34 @@ exit so an earlier menu containing the word Exit cannot satisfy that gate.
 The six fields within each state record remain unchanged. Existing R1 states
 retain substring matching.
 
-Sixteen driver tests and seven R2 attribution tests pass. The narrow crop was
-measured on the retained frame; its live use and Rest/Order remain pending the
-next preflight. Probe runs are excluded from the complete reference pair.
+The third probe confirmed Rest duration changing from zero to five minutes and
+back to zero, then returning to Camp through Exit. It entered Alter/Order,
+used Return to change Select to Place mode, moved the selected first member
+to the tail with Home, restored the original order with End, and used Return
+to return to Select mode. Exit then returned through Alter and Camp to the
+area screen. Cleanup completed successfully with SIGTERM.
+
+Sixteen driver tests, four R2 route tests, and seven attribution tests pass.
+The narrow Exit crop was measured on the retained frame; its live use and the
+complete assembled route await the original reference pair. Probe runs are
+excluded from that pair.
+
+The full route selects the second member with End, browses the Memorize list
+with Home/End/Page Down/Page Up, leaves it, opens and exits Display, adjusts
+Rest through Magic with I/D/Exit, then leaves Magic. It enters Alter/Order,
+selects that member with Return, applies Home/End, releases selection with
+Return, and exits Order/Alter/Camp. The terminal frame is the area screen.
+It neither selects a spell for memorization nor starts timed rest.
+
+```sh
+WALK_ROUTE=r2 R1_SEED_PIN=12345678 /path/to/heavy-wrapper tools/hybrid/run_r1.sh r2-original-a original
+WALK_ROUTE=r2 R1_SEED_PIN=12345678 /path/to/heavy-wrapper tools/hybrid/run_r1.sh r2-original-b original
+# Submit only after the pinned original pair completes and is compared:
+WALK_ROUTE=r2 R1_SEED_PIN=12345678 /path/to/heavy-wrapper tools/hybrid/run_r1.sh r2-observer-a observer resources/hybrid/registry_r2_pin.tsv
+```
+
+The accepted launcher and run-artifact names retain their `r1` prefix; the
+selected JSON and immutable snapshots identify R2. No second launcher is needed.
 
 ## Arrival attribution
 
@@ -84,6 +109,7 @@ after Camp entry through the end of the run.
 
 ```sh
 python3 tools/hybrid/test_r2_report.py
+python3 tools/hybrid/test_r2_route.py
 python3 tools/hybrid/r2_report.py resources/oracle-runs/r2-observer-a
 ```
 
