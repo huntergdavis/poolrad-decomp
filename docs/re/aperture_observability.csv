@@ -406,6 +406,7 @@ resident_00ba_clear_17e3_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_display_1693_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_display_1816_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_link_check_2e03_cpu.c,flat,no,no
+resident_00ba_link_flags_2e46_cpu.c,flat,no,no
 resident_00ba_sidecar_lookup_2199_cpu.c,flat,no,no
 resident_00ba_target_reset_2637_cpu.c,flat,no,no
 resident_00ba_zero_test_23b7_cpu.c,flat,no,no
