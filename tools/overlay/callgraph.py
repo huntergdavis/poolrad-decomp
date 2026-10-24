@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Fixup-aware 16-bit call graph for the GAME.OVR overlay units (candidate call sites).
+"""
+RADIX TRAP (VP i22432): JSON has no hex, so every number in the JSON output (unit, target_unit, seg,
+off, site, src_func) is a plain integer and READS AS DECIMAL. Body IDs and docs use hex stub paragraphs:
+JSON "unit": 35 is OVL_0023_..., "unit": 127 is OVL_007F_..., "seg": 143 / "off": 47 is 008F:002F.
+Convert before you filter (for example `hex(edge["unit"])`). far_call_sites.py prints hex directly.
+Fixup-aware 16-bit call graph for the GAME.OVR overlay units (candidate call sites).
 
 IMPORTANT: near calls are found by scanning raw code bytes for E8 without
 instruction-boundary validation, so every near site is a CANDIDATE. Confirmed
@@ -132,6 +137,8 @@ def main():
              "Confirmed far-call sites come from segment-word fixups with a 9A three bytes earlier. "
              "Unrelocated 9A and near E8 sites come from byte scans without instruction-boundary "
              "validation; their counts are candidates only.", "",
+             "Numbers in this summary are hex; the same fields in the JSON output are integers that read as "
+             "DECIMAL (JSON unit 35 = unit 0x23 = OVL_0023_...).", "",
              "| measure | count |", "| --- | ---: |"]
     for k, v in sorted(summ.items()):
         lines.append(f"| {k} | {v} |")

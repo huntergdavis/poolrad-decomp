@@ -156,3 +156,19 @@ ctest --test-dir /tmp/poolrad-strings-build -R poolrad_overlay_u25_string_cores_
 ~~~
 
 Original media, disassembly and private logs remain under ignored resources/.
+
+## Evidence (2026-10-23): `+06D3` and `+06FB` are now shared raw entries
+
+`pr_u25_char_remap_06d3_cpu` and `pr_u25_address_class_06fb_cpu` are now **defined in this file**. Each runs the
+unchanged static `body_06d3` / `body_06fb` that `+1153` and `+12FB` call, on a copy of the caller's 14 words. See
+[OVL_0025_06D3_06FB_CPU.md](OVL_0025_06D3_06FB_CPU.md).
+
+**Host re-run after the change:** this audit PASS. 177 unpack and 187 address cases, all equal. Coverage:
+
+| Body | Coverage |
+| --- | --- |
+| `+1153` | 166/166 |
+| `+12FB` | 229/229 |
+| `+06D3` | 16/16 |
+| `+06FB` | 28/28 |
+

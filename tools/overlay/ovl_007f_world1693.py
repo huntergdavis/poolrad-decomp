@@ -125,9 +125,10 @@ def run_c(lib, fn, m, c, call, budget, limits=None):
     return status, bytes(ram), events, writes, bytes(ega), cpu, left.value, diag
 
 
-def run_original(m, c, decoded, budget):
+def run_original(m, c, decoded, budget, stops=None):
     """The original bytes in Unicorn with the independent EGA device. One unit of budget per executed instruction in the unit-0x7F bodies that carry one (not +0020 or +003A) and in the 13AB closure;
-    the stop is the return to the entry frame's address (RETURNED), the budget (LIMIT, CPU at the next unexecuted counted instruction), or a return that goes elsewhere (TRANSFER)."""
+    the stop is the return to the entry frame's address (RETURNED), the budget (LIMIT, CPU at the next unexecuted counted instruction), or a return that goes elsewhere (TRANSFER).
+    `stops` (optional) maps (kind, ip) to a named stop reached outside the decoded bodies (SYSTEM's RunError entry, for a caller of FreeMem)."""
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INSN
     from unicorn import x86_const as R
     uc = Uc(UC_ARCH_X86, UC_MODE_16); backing = (ctypes.c_uint8 * SIZE).from_buffer_copy(m); device = D.PythonEga()
@@ -160,6 +161,8 @@ def run_original(m, c, decoded, budget):
             if target != expected:
                 status[0] = 'TRANSFER'; uc.emu_stop(); return
         kind = KIND_OF.get(cs)
+        if stops and (kind, ip) in stops:
+            status[0] = stops[(kind, ip)]; uc.emu_stop(); return
         if (kind, ip) not in decoded:
             raise AssertionError(('unexpected original PC', kind, hex(cs), hex(ip)))
         counted = (kind == 'w' and not (0x20 <= ip < 0x54)) or kind == 'res13'
