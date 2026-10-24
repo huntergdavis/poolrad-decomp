@@ -16,7 +16,7 @@ def report(run, route):
     result['seed_pin']=seed_file.read_text().strip() if seed_file.exists() else ''
     if result['seed_pin']:
         result['seed_pin_observed']=('# PINNED RandSeed := '+result['seed_pin'].upper()+' ') in (run/'observer.draws').read_text()
-    if result['mode']=='observer':
+    if result['mode'] in ('observer', 'dispatch'):   # a dispatch run's observer counts arrivals the same way
         result['forced_kill'] = summary['shutdown'].startswith('SIGKILL')
         result['counts_scope'] = ('last periodic snapshot; zero is inconclusive'
                                   if result['forced_kill'] else 'report file; final flush expected on normal or SIGTERM exit')
