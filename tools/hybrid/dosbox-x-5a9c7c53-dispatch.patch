@@ -340,10 +340,10 @@ index 0000000..d36b184
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..8cfe9ff
+index 0000000..8ca22f3
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1100 @@
+@@ -0,0 +1,1133 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -464,6 +464,9 @@ index 0000000..8cfe9ff
 +#include "poolrad/recovered/overlay_u3b0_leaf_0067.h"
 +#include "poolrad/recovered/overlay_u7f_entry0_0000_cpu.h"
 +#include "poolrad/recovered/overlay_u7f_record_word_add_003a.h"
++#include "poolrad/recovered/resident_00ba_link_flags_2e46_cpu.h"
++#include "poolrad/recovered/resident_00ba_party_count_23db_cpu.h"
++#include "poolrad/recovered/resident_00ba_sidecar_remove_1509_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -511,7 +514,7 @@ index 0000000..8cfe9ff
 +PR_SAME_LAYOUT(pr_r0802_0716_cpu); PR_SAME_LAYOUT(pr_filepos_cpu); PR_SAME_LAYOUT(pr_u6f_insert_cpu); PR_SAME_LAYOUT(pr_u9b_0000_cpu);
 +PR_SAME_LAYOUT(pr_u9b_0255_cpu); PR_SAME_LAYOUT(pr_u9b_0329_cpu); PR_SAME_LAYOUT(pr_u3ce_014e_cpu); PR_SAME_LAYOUT(pr_u3b4_case_cpu);
 +PR_SAME_LAYOUT(pr_u1c_goto_cpu); PR_SAME_LAYOUT(pr_u25_01b6_cpu); PR_SAME_LAYOUT(pr_u7d_02f2_cpu); PR_SAME_LAYOUT(pr_u3b9_048f_cpu);
-+PR_SAME_LAYOUT(pr_u7f_003a_cpu); PR_SAME_LAYOUT(pr_u7f_0508_cpu); PR_SAME_LAYOUT(pr_u7f_05e0_cpu); PR_SAME_LAYOUT(pr_u3b0_0000_cpu); PR_SAME_LAYOUT(pr_u3b0_0067_cpu); PR_SAME_LAYOUT(pr_u3b0_0711_cpu); PR_SAME_LAYOUT(pr_u3b0s_cpu); PR_SAME_LAYOUT(pr_u3b0_0b03_cpu); PR_SAME_LAYOUT(pr_u3b0_0cc5_cpu); PR_SAME_LAYOUT(pr_u3b0_07a4_cpu); PR_SAME_LAYOUT(pr_u3b0_0969_cpu);
++PR_SAME_LAYOUT(pr_res_2e46_cpu); PR_SAME_LAYOUT(pr_res_23db_cpu); PR_SAME_LAYOUT(pr_res_1509_cpu); PR_SAME_LAYOUT(pr_u7f_003a_cpu); PR_SAME_LAYOUT(pr_u7f_0508_cpu); PR_SAME_LAYOUT(pr_u7f_05e0_cpu); PR_SAME_LAYOUT(pr_u3b0_0000_cpu); PR_SAME_LAYOUT(pr_u3b0_0067_cpu); PR_SAME_LAYOUT(pr_u3b0_0711_cpu); PR_SAME_LAYOUT(pr_u3b0s_cpu); PR_SAME_LAYOUT(pr_u3b0_0b03_cpu); PR_SAME_LAYOUT(pr_u3b0_0cc5_cpu); PR_SAME_LAYOUT(pr_u3b0_07a4_cpu); PR_SAME_LAYOUT(pr_u3b0_0969_cpu);
 +PR_SAME_LAYOUT(pr_u25_06d3_cpu); PR_SAME_LAYOUT(pr_u25_06fb_cpu); PR_SAME_LAYOUT(pr_u25_18eb_cpu); PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
 +PR_SAME_LAYOUT(pr_u86_323d_cpu); PR_SAME_LAYOUT(pr_res_2199_cpu); PR_SAME_LAYOUT(pr_u6a_0159_cpu); PR_SAME_LAYOUT(pr_u6a_019c_cpu);
 +PR_SAME_LAYOUT(pr_u77_0901_cpu); PR_SAME_LAYOUT(pr_u6a_0214_cpu); PR_SAME_LAYOUT(pr_res00ba_cpu); PR_SAME_LAYOUT(pr_r00ba_clear_cpu);
@@ -643,6 +646,10 @@ index 0000000..8cfe9ff
 +    {"OVL_03B0_0969", 0x0000, 0x0969, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03B0_0B03", 0x0000, 0x0B03, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03B0_0CC5", 0x0000, 0x0CC5, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batch 11a: par-d2's RES_00BA raw entries (#1520, #1522, #1524) */
++    {"RES_00BA_2E46", 0x00BA, 0x2E46, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* link flags, composes 2E03; RETF 4 */
++    {"RES_00BA_23DB", 0x00BA, 0x23DB, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* party count; RETF */
++    {"RES_00BA_1509", 0x00BA, 0x1509, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* sidecar remove, found path only (guard); RETF 8 */
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -682,6 +689,9 @@ index 0000000..8cfe9ff
 +};
 +static const int NBODY = (int)(sizeof bodies / sizeof bodies[0]);
 +static unsigned long long stub_declined = 0;   /* arrivals whose overlay-stub precondition did not hold (the original ran) */
++/* RES_00BA_1509 runs as C only on its FOUND path (PM i22841): a null record or a record not in the character's +0C8h list takes the
++ * message-prompt path (0709:0BF5 with ReadKey), which this dispatch cannot replay, so the guard declines it before anything runs. */
++static unsigned long long guard_1509_found = 0, guard_1509_null = 0, guard_1509_not_found = 0;
 +/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
 + * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
 + * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
@@ -769,6 +779,7 @@ index 0000000..8cfe9ff
 +    if (!log) return;
 +    if (bus_mode == 1) fprintf(log, "# route mode: routed_returned=%llu routed_stops=%llu\n", routed_returned, routed_stops);
 +    fprintf(log, "# overlay-stub precondition declined: %llu\n", stub_declined);
++    fprintf(log, "# RES_00BA_1509 guard: found %llu (run as C), declined null %llu, declined not found %llu\n", guard_1509_found, guard_1509_null, guard_1509_not_found);
 +    for (int b = 0; b < NBODY; ++b) {
 +        const Body &x = bodies[b];
 +        if (x.index < 0) continue;
@@ -849,6 +860,11 @@ index 0000000..8cfe9ff
 + * 0 RETURNED, 1 ARGUMENT, 2 a stop. `m` holds the model's CPU afterwards. */
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
++    /* batch 11a */
++    if (!strcmp(x.id, "RES_00BA_2E46")) { int st = pr_res_00ba_link_flags_2e46_cpu(MemBase, RAM, (pr_res_2e46_cpu *)&m);
++        return st == PR_RES_2E46_RETURNED ? 0 : st == PR_RES_2E46_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "RES_00BA_23DB")) { size_t budget = (size_t)1u << 20; int st = pr_res_00ba_party_count_23db_cpu(MemBase, RAM, (pr_res_23db_cpu *)&m, &budget);
++        return st == PR_RES_23DB_RETURNED ? 0 : st == PR_RES_23DB_ARGUMENT ? 1 : 2; }
 +    /* batch 10 (R1) */
 +    if (!strcmp(x.id, "OVL_007F_0000")) { size_t budget = (size_t)1u << 24; pr_u7f_0000_diagnostic d;
 +        int st = pr_u7f_entry0_0000_cpu(MemBase, RAM, (pr_res00ba_cpu *)&m, &budget, &d);
@@ -1187,6 +1203,23 @@ index 0000000..8cfe9ff
 +        if (MemBase[st0 & K] != 0xEAu || (MemBase[(st0 + 1u) & K] | (MemBase[(st0 + 2u) & K] << 8)) != 0x0350u) { ++stub_declined; return 1; }
 +        int st = pr_u68_up_preflight_068d_cpu(bus, RAM, (pr_u68_068d_cpu *)&m);
 +        return st == PR_U68_068D_RETURNED ? 0 : st == PR_U68_068D_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_00BA_1509")) {
++        /* The guard: read the frame (record at SS:SP+4, character at SS:SP+8) and walk the list from character+0C8h through +2Ah
++         * links, bounded; decline (the original runs, nothing changed) unless the record is found. */
++        const size_t K = RAM - 1u;
++        auto w = [&](uint16_t seg, uint16_t off) -> uint16_t { size_t a = (((size_t)seg << 4) + off) & K; return (uint16_t)(MemBase[a] | (MemBase[(a + 1u) & K] << 8)); };
++        uint16_t ro = w(m.ss, (uint16_t)(m.sp + 4u)), rs = w(m.ss, (uint16_t)(m.sp + 6u)), co = w(m.ss, (uint16_t)(m.sp + 8u)), cs_ = w(m.ss, (uint16_t)(m.sp + 10u));
++        if (!(ro | rs)) { ++guard_1509_null; return 1; }
++        uint16_t no = w(cs_, (uint16_t)(co + 0xC8u)), ns = w(cs_, (uint16_t)(co + 0xCAu)); bool found = (no == ro && ns == rs);
++        for (unsigned k = 0; !found && (no | ns) && k < 4096u; ++k) {
++            uint16_t lo = w(ns, (uint16_t)(no + 0x2Au)), ls = w(ns, (uint16_t)(no + 0x2Cu));
++            if (lo == ro && ls == rs) found = true; else { no = lo; ns = ls; }
++        }
++        if (!found) { ++guard_1509_not_found; return 1; }
++        ++guard_1509_found;
++        size_t budget = B; pr_res_1509_env env; memset(&env, 0, sizeof env); env.freemem_steps = 1u << 20; pr_res_1509_diagnostic d;
++        int st = pr_res_00ba_sidecar_remove_1509_cpu(bus, RAM, (pr_res_1509_cpu *)&m, &budget, &env, &d);
++        return st == PR_RES_1509_RETURNED ? 0 : st == PR_RES_1509_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_007F_0054")) { size_t budget = B << 4; pr_u7f_0054_diagnostic d; int st = pr_u7f_0054_cpu(bus, RAM, (pr_res00ba_cpu *)&m, &budget, &d);
 +        return st == PR_U7F_0054_RETURNED ? 0 : st == PR_U7F_0054_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_03B0_07A4")) { pr_u3b0_07a4_limits l = {B, B, B, B, B}; pr_u3b0_07a4_diagnostic d;
