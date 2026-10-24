@@ -6,7 +6,8 @@ Usage: resident_ds_operands.py SEG:START:END [SEG:START:END ...]
 Decodes the loader-expanded START.EXE image (hash-checked, as the resident audits do) from SEG:START up to END and
 prints every instruction whose operand is a DS-relative absolute address (`[0x49f3]`), plus every call and RETF. This
 is the factor-2 evidence an identity argument cites for a resident body: which game cells the body itself reads or
-writes. ES:, SS: and register-based operands are not listed; argument-borne state needs its own caller trace.
+writes. NOT listed: ES:/SS: operands, register-based [reg+disp] operands, and explicit ds: override operands; an
+argument for a body that uses any of those needs its own decode. Argument-borne state needs its own caller trace.
 
 Only offsets and decoded instructions are printed. Game media stays under resources/.
 """

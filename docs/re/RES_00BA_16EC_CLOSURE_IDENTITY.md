@@ -22,7 +22,7 @@ python3 tools/overlay/resident_ds_operands.py 00BA:16EC:17E3 0709:0768:09E3 0709
 ```
 
 - `far_call_sites.py` (#1510) prints every relocated `LCALL` in GAME.OVR, keyed by stub paragraph and printed in hex.
-- `resident_ds_operands.py` is new here. It decodes the hash-checked, loader-expanded START.EXE image (`a42a57e6…`) and prints
+- `resident_ds_operands.py` is new here. It lists DS-absolute operands only; its docstring names what it skips. It decodes the hash-checked, loader-expanded START.EXE image (`a42a57e6…`) and prints
   each body's DS-absolute operands and calls. `test_resident_ds_operands.py` pins the exact cell sets.
 - Owner classes come from `overlay_function_ledger.csv` (body ranges) and `overlay_classification.csv`.
 - The spans are the measured ones: 16EC from par-d2's decode (i23380), and 0768 from
@@ -98,7 +98,9 @@ dereferences.
   through stub `0428:002A` to `OVL_040C_015D`.
 - This is the 06FB precedent: a display service with no memory operand, where constants are not game state and argument
   use alone is never enough.
-- 16EC's one call passes only constants: `(0, 16h, 26h, 11h, 1)`.
+- Every caller passes only immediates. 16EC's one call passes `(0, 16h, 26h, 11h, 1)`, and the three overlay sites
+  (`6Ah +04F7`, `77h +0073`, `77h +11B8`) each push five `mov al,imm; push ax` pairs (par-e's review of #1551,
+  re-checked by decode).
 
 **Consequence.** 16EC reaches `03F1:0000` on the in-domain branch `[49F3] <> 5` with `[6DDA] = 0`.
 - Under the strict-scope rule (par-e, i22846), a stop there makes a 16EC model incomplete.
