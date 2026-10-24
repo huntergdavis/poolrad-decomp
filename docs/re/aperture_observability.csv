@@ -78,6 +78,7 @@ overlay_u25_init_01b6.c,flat,no,no
 overlay_u25_load_word_0e0c.c,flat,no,no
 overlay_u25_loader_0000.c,flat,no,no
 overlay_u25_move.c,flat,no,no
+overlay_u25_move_19db_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_party_index_0756.c,flat,no,no
 overlay_u25_skip_1ea6.c,flat,no,no
 overlay_u25_slot_value_0136.c,flat,no,no
