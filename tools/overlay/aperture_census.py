@@ -65,6 +65,8 @@ PAIR_SOURCES = {
     ("overlay_u23_append_0239_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-character literal at CS:022E into the body-frame temporary SS:[BP-13h] (0256..0260)"),
     ("overlay_u38_0cc3_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 26-byte message at CS:0CA8 into the body-frame temporary [BP-28h] (0D3A..0D44)"),
     ("overlay_u38_0cc3_cpu.c", "pr_system_freemem_0254"): ("global", "read", "FreeMem(node, 13h) at 0EED..0EF7: the node is the list node found from the global head DS:[6DBB] ([BP-8]/[BP-6]); the model reaches the node itself through the bus, FreeMem is flat"),
+    ("resident_00ba_sidecar_remove_1509_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the messages at CS:14CE / CS:14E2 into the body-frame temporaries [BP-18h] / [BP-2Bh] (151A..1524, 15A9..15B3)"),
+    ("resident_00ba_sidecar_remove_1509_cpu.c", "pr_system_freemem_0254"): ("caller-argument", "read", "FreeMem(record, 3Fh) at 15E1..15EC: the record is the caller's far pointer SS:[BP+6]/[BP+8]; the model unlinks it through the bus, FreeMem is flat (declared exclusion in the header)"),
     ("overlay_u7f_0a88_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0A7D into a body-frame temporary (docs/re/OVL_007F_0A88_CPU.md)"),
     ("overlay_u7f_0203_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 39-byte message at CS:01DB into the body-frame temporary [BP-2Ah]"),
     ("overlay_u7f_044c_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-byte message at CS:0441 into the body-frame temporary [BP-0Bh]"),
