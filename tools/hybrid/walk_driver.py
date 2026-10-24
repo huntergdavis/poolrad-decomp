@@ -20,7 +20,8 @@ and saves the frame as extraNN-<key>. The tail stops early, with the stage named
 exit 8 ("route diverged") if a random-encounter prompt (COMBAT) appears, or if WALK_EXPECT is set and a step settles on
 a prompt containing none of its expected words: those runs are not the route.
 Optional combat route (route 3, PM i21589): WALK_COMBAT=1. After 14,4 the party paces Down/Up until the encounter menu
-(COMBAT/WAIT/FLEE) settles (budget SEEK_STEPS steps, default 60; exit 9 if none), presses c (Combat), then, until the area
+(COMBAT/WAIT/FLEE) settles (budget SEEK_STEPS steps, default 60; exit 9 if none; exit 11 if a step's prompt never settles,
+a slow host, which earlier read as exit 9), presses c (Combat), then, until the area
 menu (AREA/SEARCH/LOOK) settles again (budget COMBAT_BUDGET_S, default 1500; an unreadable prompt may last COMBAT_IDLE_S, default 300): q (Quick: the computer fights for that
 character) on every character's combat menu, Return on every PRESS ENTER/RETURN screen, e (Exit) then y on the treasure
 menu. A settled prompt matching none of these stops with exit 10 and the frame saved, so the route never presses a key
@@ -236,7 +237,11 @@ if os.environ.get("WALK_COMBAT"):
         k = "Down" if step % 2 == 0 else "Up"
         key(k)
         while True:
-            txt = settle(f"seek{step:02d}-{k}", 60) or ""
+            txt = settle(f"seek{step:02d}-{k}", 60)
+            if txt is None:                # a slow host, not a screen: settle again before judging it
+                txt = settle(f"seek{step:02d}-{k}-again", 180)
+            if txt is None:
+                stop(11, f"seek step {step}: the prompt did not settle within 240 s (host too slow?)")
             if has(txt, *CONTINUE) and not has(txt, *ENCOUNTER):
                 key("Return"); continue
             break
