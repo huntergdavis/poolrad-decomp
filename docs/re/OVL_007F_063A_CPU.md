@@ -64,6 +64,7 @@ CPU state to compensate; full RAM comparison uses the backing buffer.
 
 A media-free, one-byte reproduction is
 [repro_unicorn_retf_memory_hooks.py](../../tools/overlay/repro_unicorn_retf_memory_hooks.py).
+Unicorn oracles must not register full-range MEM_READ hooks (RETF corruption, see the repro).
 Run `python3 tools/overlay/repro_unicorn_retf_memory_hooks.py`. It places
 `CB` (RETF) at 6000:0639 and a synthetic return frame `(0655,6000)` at
 2000:7FD0. Its code hook stops before the second instruction; memory hooks
