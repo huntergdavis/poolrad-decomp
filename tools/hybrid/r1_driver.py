@@ -49,11 +49,20 @@ def automatic_status(text):
         'BATTLE' in text and not any(word in text for word in ('YES', 'HES', 'NO')))
 
 
+def single_exit_prompt(text):
+    """Accept only the measured single Exit control, never a clipped Next menu."""
+    text = text.strip().upper()
+    return text if text in ('EXIT', 'EXT', 'EXT.') else ''
+
+
 class Route:
     def __init__(self, data):
         self.data = data
         records = canonical_start(data['start']) + data['states']
         self.records = {r['name']: r for r in records}
+        self.exact_prompt_states = set(data.get('exact_prompt_states', []))
+        if self.exact_prompt_states - self.records.keys():
+            raise ValueError('unknown exact-prompt state')
         if len(self.records) != len(records):
             raise ValueError('duplicate gate names')
         for r in self.records.values():
@@ -76,7 +85,10 @@ class Route:
         if automatic_status(observation.get('prompt', '')):
             return None
         return next((self.records[n] for n in self.allowed
-                     if matches(self.records[n], observation)), None)
+                     if matches(self.records[n], observation) and
+                     (n not in self.exact_prompt_states or
+                      observation.get('prompt', '').upper().strip(' .') in
+                      self.records[n]['gate'])), None)
 
     def idle(self, observation):
         text = observation.get('prompt', '')
@@ -137,6 +149,14 @@ class Driver:
                                    *extra], capture_output=True, text=True, timeout=120)
             return ' '.join(result.stdout.upper().split())
         observation = {'prompt': ocr(crop, '7'), 'frame': str(path.relative_to(self.run))}
+        if not observation['prompt']:
+            single = self.frames / 'single-exit.png'
+            self.command(['convert', str(path), '-crop', '110x26+190+562',
+                          '-scale', '400%', str(single)])
+            fallback = single_exit_prompt(ocr(single, '7'))
+            if fallback:
+                observation['prompt'] = fallback
+                observation['ocr_fallback'] = 'single_exit_crop'
         if any(self.route.records[n].get('source') == 'digits'
                for n in self.route.allowed):
             observation['digits'] = ocr(path, '11', ['-c', 'tessedit_char_whitelist=0123456789,NSWE:'])
