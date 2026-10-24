@@ -1,5 +1,7 @@
 /* U25 +1153/+12FB and exact string dependencies; see U25_STRING_CORES.md. */
 #include "poolrad/recovered/overlay_u25_string_cores.h"
+#include "poolrad/recovered/overlay_u25_address_class_06fb_cpu.h"
+#include "poolrad/recovered/overlay_u25_char_remap_06d3_cpu.h"
 
 #define RAM_MASK (PR_U25_STRINGS_RAM_SIZE - 1u)
 #define ARITH_FLAGS 0x08D5u
@@ -1169,4 +1171,34 @@ pr_u25_strings_status pr_u25_string_by_address_12fb(
         cpu->sp < 0x0218u || cpu->sp > 0xFFF8u)
         return PR_U25_STRINGS_ARGUMENT;
     return body_12fb(ram, cpu, system_cs, &max_iterations);
+}
+
+/* The shared raw entries for +06D3 and +06FB (docs/re/OVL_0025_06D3_06FB_CPU.md). Each one runs the unchanged static body
+ * above, which is the code +1153 and +12FB call, on a copy of the caller's 14 words. */
+#define COPY_CPU(d, s) do { (d)->ax = (s)->ax; (d)->bx = (s)->bx; (d)->cx = (s)->cx; (d)->dx = (s)->dx; (d)->si = (s)->si; \
+    (d)->di = (s)->di; (d)->bp = (s)->bp; (d)->sp = (s)->sp; (d)->cs = (s)->cs; (d)->ip = (s)->ip; (d)->ds = (s)->ds; (d)->es = (s)->es; \
+    (d)->ss = (s)->ss; (d)->flags = (s)->flags; } while (0)
+
+pr_u25_06d3_status pr_u25_char_remap_06d3_cpu(uint8_t *ram, size_t ram_size, pr_u25_06d3_cpu *cpu)
+{
+    pr_u25_strings_cpu c; uint16_t ret_ip, ret_cs; size_t none = 0;
+    if (ram == NULL || cpu == NULL || ram_size != PR_U25_06D3_RAM_SIZE || cpu->ip != 0x06D3u || cpu->sp < 0x0004u || cpu->sp > 0xFFFAu)
+        return PR_U25_06D3_ARGUMENT;
+    ret_ip = read16(ram, cpu->ss, cpu->sp); ret_cs = read16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
+    COPY_CPU(&c, cpu);
+    (void)body_06d3(ram, &c, 0u, &none);                 /* a leaf: always PR_U25_STRINGS_OK */
+    COPY_CPU(cpu, &c);
+    return (cpu->ip == ret_ip && cpu->cs == ret_cs) ? PR_U25_06D3_RETURNED : PR_U25_06D3_TRANSFER;
+}
+
+pr_u25_06fb_status pr_u25_address_class_06fb_cpu(uint8_t *ram, size_t ram_size, pr_u25_06fb_cpu *cpu)
+{
+    pr_u25_strings_cpu c; uint16_t ret_ip, ret_cs; size_t none = 0;
+    if (ram == NULL || cpu == NULL || ram_size != PR_U25_06FB_RAM_SIZE || cpu->ip != 0x06FBu || cpu->sp < 0x0004u || cpu->sp > 0xFFFAu)
+        return PR_U25_06FB_ARGUMENT;
+    ret_ip = read16(ram, cpu->ss, cpu->sp); ret_cs = read16(ram, cpu->ss, (uint16_t)(cpu->sp + 2u));
+    COPY_CPU(&c, cpu);
+    (void)body_06fb(ram, &c, 0u, &none);                 /* a leaf: always PR_U25_STRINGS_OK */
+    COPY_CPU(cpu, &c);
+    return (cpu->ip == ret_ip && cpu->cs == ret_cs) ? PR_U25_06FB_RETURNED : PR_U25_06FB_TRANSFER;
 }

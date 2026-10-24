@@ -17,8 +17,8 @@ OVL_0025_0136,checker,u25_slot_value_0136_audit.py
 OVL_0025_01B6,checker,u25_init_01b6_audit.py
 OVL_0025_0482,audit,tools/overlay/u25_step_probe_0482_composed_audit.py
 OVL_0025_06AF,checker,ecl_helpers_original_audit.py
-OVL_0025_06D3,checker,ecl_helpers_original_audit.py
-OVL_0025_06FB,checker,ecl_helpers_original_audit.py
+OVL_0025_06D3,checker,ecl_helpers_original_audit.py;u25_06d3_06fb_cpu_audit.py
+OVL_0025_06FB,checker,ecl_helpers_original_audit.py;u25_06d3_06fb_cpu_audit.py
 OVL_0025_0756,audit,tests/recovered/check_overlay_u25_party_index_0756.py
 OVL_0025_0E0C,checker,u25_load_word_0e0c_audit.py
 OVL_0025_0F53,checker,u25_store_string_0f53_composed_audit.py

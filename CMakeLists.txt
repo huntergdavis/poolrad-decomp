@@ -2442,6 +2442,11 @@ if(BUILD_TESTING)
     target_include_directories(poolrad_overlay_u25_string_cores_tests PRIVATE include)
     add_test(NAME poolrad_overlay_u25_string_cores_tests
              COMMAND poolrad_overlay_u25_string_cores_tests)
+    add_executable(poolrad_overlay_u25_06d3_06fb_cpu_tests
+                   tests/recovered/test_overlay_u25_06d3_06fb_cpu.c)
+    target_link_libraries(poolrad_overlay_u25_06d3_06fb_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u25_06d3_06fb_cpu_tests
+             COMMAND poolrad_overlay_u25_06d3_06fb_cpu_tests)
     add_executable(poolrad_overlay_u3c2_entry4_057b_tests
                    tests/recovered/test_overlay_u3c2_entry4_057b.c
                    src/recovered/overlay_u3c2_entry4_057b.c)
