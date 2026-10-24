@@ -103,4 +103,25 @@ ffeebbd5822542894ec0c8090025e735b58f9aafe09e97d2781321d42a00902f  MON8ITM.DAX
 3. The two `ES:[DI]` callers of `+0026` (`007D+01FE`, `0086+2481`) read a node's type byte (closure over item 2).
 4. The DS-table scan is a sweep, not a proof of no writer.
 
-**Declared precondition** for any credit statement built on this: item effect bytes and list node types come from data in 1..139 (and `7Fh < +3E`), edited saves excluded. The model refuses every other value, so the composed claim holds on the domain 1..139 regardless.
+## 7. The declared precondition (par-e ruling i22829: acceptable for strict credit; the node-type closure is not required)
+
+Strict credit of `OVL_009E_0000` rests on the shipped-game domain, an **atomic refusal outside it**, and the words below. This is an **environment assumption**, labelled as such; it is not a proof that the refused indices are unreachable.
+
+**Assumption.** Every index byte that reaches the dispatcher comes from shipped game data and lies in 1..139 (and a `+3Eh` dispatched by the `0077` sites lies in 128..139), or is zero where a guard excludes it. For any index outside 1..139 the model **REFUSES atomically**: CPU, RAM and budget untouched, nothing called. (The original has no range test: from index 140 up it jumps through non-handler data past the table, so the refusal is strictly safer than the original.)
+
+**What the assumption names and does not close:**
+1. **Three data sources were not scanned**: the `ITEMS` item-definition table, ECL-generated treasure, and saved games (`SAVGAM*.DAT`, `CHRDATA*.SAV` beyond the `.ITM` records). The scanned sources are the 28 shipped `.ITM` items and the 301 `MON*ITM.DAX` items.
+2. **The immediate 0 and 254 removal-chain path.** `0086+21E7` passes the immediate 0 and `0038+1FC5` passes the immediate 254 into `+1656`, which forwards its type byte to `+0026`; `+0026` dispatches that byte through `+00A1` only for a matching node whose byte `+4` is nonzero. **Index 254 therefore dispatches only through a type-254 node with a nonzero `+4`; that such a node can exist is neither shown nor excluded here, and the same holds for a type-0 node.** The appenders' constants are all in 1..124 and 8 of the 39 append sites are not constants (section 5).
+3. **Edited saves are excluded.** A save file with an item effect byte or node type outside the domain can reach the refusal; no code argument bounds hand-edited data.
+
+**If the 254 path (or any other path to an index outside 1..139) is ever shown reachable from SHIPPED data, the credit is REOPENED, not caveated.**
+
+**Reproducible commands** (read-only; need the ignored game media; `inputs` prints the SHA-256 of every file read):
+- `python3 tools/overlay/u9e_index_sites.py inputs`
+- `python3 tools/overlay/u9e_index_sites.py sites` (the 16 direct sites and their index source)
+- `python3 tools/overlay/u9e_index_sites.py callers FFFF 1 160` (function `+0160`: 140 callers, all immediates 1..126)
+- `python3 tools/overlay/u9e_index_sites.py callers 2A 3 26`, `callers 84 5 1656`, `callers 52 4 E52` (the removal chain and the appenders)
+- `python3 tools/overlay/u9e_index_sites.py tables` (the three DS tables: 24 values, all in 1..139)
+- **`python3 tools/overlay/u9e_index_sites.py items`: the shipped-data scan, 28 `.ITM` + 301 `MON*ITM.DAX` items, no effect byte `+3Ch/+3Dh/+3Eh` is 140 or above.**
+
+**The refusal proof is pinned by the C test.** `tests/recovered/test_overlay_u9e_dispatch_0000_cpu.c` (the loop under "REFUSED") runs **all 117 refused index bytes** (0 and 140..255 plus the high-byte noise of the index word): each returns `PR_U9E_0000_REFUSED` with the CPU struct, all 1 MiB of RAM and the budget byte-identical before and after, and `diagnostic.slot` equal to the index. The composed Unicorn differential (`u9e_dispatch_0000_audit.py`, the `refused-*` cases) checks the same against the original bytes.

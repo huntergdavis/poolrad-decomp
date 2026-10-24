@@ -1,43 +1,43 @@
 {
   "artifacts_sha256": {
-    "classification": "79e430b6e1a098039c1e166ddabf30b8af9ed0bc7377437b29e5dfb79bf0ac74",
-    "full_c_map": "070585df472dae8ed0f6e672f60b54bba52a110fa512344a6dc559540bad53cd",
+    "classification": "fe47996ceea93f323919dbbd3bed5a6eec19a1086936b0614ff1353afdd9a468",
+    "full_c_map": "f2a1759d68748e9fbf4743790437e30b584ef1077db3510d414004cbb4d54955",
     "inventory": "6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8",
     "ledger": "6a4bd0a5029a2ee2d674d5dcc974e30d7da1a8af0edc918966c6f150690968eb",
     "near_calls": "a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c",
     "resident_audit": "ba3c3703dfb20172777eafa171b8885db9b6e7a68740dda905ecd0bbf481d111",
-    "reviewed_identities": "206bd58b83b645cf4e03d5af5375a3be4f8dd6991b86b722a48cf5873b0c67b0"
+    "reviewed_identities": "2caf37c3b5b19f6d3523467b79d0d8868616eac258d1d8a6e09d5fec214d2642"
   },
   "inputs": {
     "game_ovr_sha256": "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614",
     "start_exe_sha256": "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
   },
   "queue_originals": 898,
-  "queue_sha256": "972d878ef7206076e83bd9f947c5b563c66dc2aa9be72da2c87d1864c5165fbc",
+  "queue_sha256": "408330445e3f95686cee5ff4506b1972da6c12f290372023871d0402f4ae0ccc",
   "reviewed_change": {
-    "approval_reference": "acceptance of OVL_007F_0A88 (VP i22054, reviewer par-e): evidence PR #1484, identity by par-a (U7F_IDENTITY_ARGUMENTS.md at 7806e3a8); reproduced on main 6fac2396: Unicorn 732 cases, 87/87 body starts, 1,159 closure starts; 382 returned / 343 LIMIT / 7 TRANSFER; MULW split 2, shift-AF split 34; mutation 20/22 caught; survivors 'SHL without OF' and 'OR AL,AL tests 16 bits' are equivalent (every SHL operand is a fresh CBW of a byte; AL from +0054 is 0/1; both checked in the bytes); native 37 cases on /usr/bin/dosbox-x 2026.01.02 (SHA-256 99d74601...), not the pinned 5a9c7c53 build",
+    "approval_reference": "acceptance of OVL_0025_07BC (PM i22309, reviewer par-e): evidence PR #1492, identity by par-a (U25_IDENTITY_ARGUMENTS.md at 2c7d77af); reproduced at 58a0a276 (code byte-identical on 9ff74887): Unicorn 3,593 cases, 268/268 instructions (hook 233 + 0756 35), 0 unvisited, 0 declared flag-split arrivals; mutation 17/17 caught; native 39 cases on /usr/bin/dosbox-x 2026.01.02 (SHA-256 99d74601...), not the pinned 5a9c7c53 build",
     "approved_by": "PM",
-    "body_bytes": 210,
-    "body_sha256": "3e0eb89c3eb4beb862487bf9646c68f61bebcb70b203ce4578379c289759070a",
-    "evidence_doc": "docs/re/OVL_007F_0A88_CPU.md",
+    "body_bytes": 696,
+    "body_sha256": "6ec8c66f021fed88e9a816e2cf45a8b927889f036600c9b0d6c0d61ca96a5451",
+    "evidence_doc": "docs/re/U25_LOAD_HOOK_07BC.md",
     "game_identity": true,
-    "original_id": "OVL_007F_0A88",
-    "review_pr": 1484,
-    "reviewed_commit": "7806e3a8d3580f09d48a2e353b542498e1f83aed",
+    "original_id": "OVL_0025_07BC",
+    "review_pr": 1492,
+    "reviewed_commit": "2c7d77afb024448676a8f881f4b3ec86feab8307",
     "status": "approved",
     "strict_full_c": true
   },
   "schema_version": 1,
   "strict_full_c_by_domain": {
-    "overlay": 239,
+    "overlay": 241,
     "resident": 47
   },
-  "strict_full_c_originals": 286,
-  "unknown_ownership": 478,
+  "strict_full_c_originals": 288,
+  "unknown_ownership": 476,
   "verified_game_by_domain": {
-    "overlay": 283,
+    "overlay": 285,
     "resident": 48
   },
-  "verified_game_identities": 331,
+  "verified_game_identities": 333,
   "whole_game_denominator": "unknown"
 }
