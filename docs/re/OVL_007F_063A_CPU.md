@@ -61,6 +61,29 @@ unrestricted Unicorn memory hooks perturb RETF: SP advances but IP stays
 at 0639, causing a second return. Both no-hook and aperture-only traces
 return normally to 0655. The audit changes neither the original bytes nor
 CPU state to compensate; full RAM comparison uses the backing buffer.
+
+A media-free, one-byte reproduction is
+[repro_unicorn_retf_memory_hooks.py](../../tools/overlay/repro_unicorn_retf_memory_hooks.py).
+Run `python3 tools/overlay/repro_unicorn_retf_memory_hooks.py`. It places
+`CB` (RETF) at 6000:0639 and a synthetic return frame `(0655,6000)` at
+2000:7FD0. Its code hook stops before the second instruction; memory hooks
+only log accesses and never inspect or modify CPU state. Measured with
+Unicorn **2.1.4**:
+
+| Memory observer | Next CS:IP | SP after RETF |
+| --- | --- | --- |
+| None | 6000:0655 | 7FD4 |
+| Full-range READ | 6000:0639 (would repeat RETF) | 7FD4 |
+| Full-range WRITE | 6000:0655 | 7FD4 |
+| Full-range READ + WRITE | 6000:0639 (would repeat RETF) | 7FD4 |
+| Aperture-only READ | 6000:0655 | 7FD4 |
+
+Both failing variants log exactly two reads: physical 27FD0 and 27FD2,
+two bytes each. This demonstrates observer-induced control-flow corruption;
+it does not establish whether another audit detects or conceals that fault.
+The reproducer also accepts normal returns from a future corrected Unicorn
+and reports the installed version and every observed state.
+
 Native fixtures additionally require all six loaded/captured 64 KiB regions below
 A0000. The original-only recurrence assumes no interrupts or external
 memory mutations, matching the standalone model's execution environment.
