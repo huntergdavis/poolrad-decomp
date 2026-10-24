@@ -123,7 +123,8 @@ Three fixup-backed calls to entry stub 008F:002F supply caller evidence:
 unit 0023:+0663 (fixup 0666, caller 053E), unit 001E:+0DF4 (fixup 0DF7,
 caller 0D09), and unit 0020:+106A (fixup 106D, caller 0ECD). Independently,
 the body reads the party root at 0640/0643 and 08A8/08AB, checks node status
-+84h at 0732, reads/writes indexed +88h words, updates +102h at 08CD,
++84h at 0732, reads/writes indexed +88h words, reads +102h at 08CD
+and updates node totals through +003A,
 follows +104h/+106h links, and writes residual pool dwords at 09D6/09DA.
 
 The role interpretation reuses the caller analysis in
@@ -141,7 +142,7 @@ in PM message i22421. Identity integration and credit remain reviewer-owned.
 `--compile-only` builds without game media. `--unicorn` compares CPU14,
 the remaining budget, stop class and every byte of 1 MiB RAM against original
 instructions. FLAGS differences must satisfy the explicitly pinned
-last-writer MUL/shift rule in `pinned_shift_flags.py`; no bits are masked.
+last-writer MUL/DIV/shift rules in `pinned_shift_flags.py`; no bits are masked.
 Each caller arithmetic instruction is modeled separately, including INC/DEC
 preserving CF and pinned SHL AF=1. No caller flag-folding assumption is used.
 
@@ -160,12 +161,41 @@ bus writes. Assertions must remain enabled when building that test.
 The focused `poolrad_overlay_u7f_063a_cpu_tests` CTest passed on 2026-10-23
 with `-UNDEBUG`, no build type, and assertions enabled (one test, zero
 failures). Its independent distribution, residual, divide-error, guard,
-argument-atomicity and bus-mechanism assertions all ran. The complete
-original-byte receipts and parity verdict remain pending.
+argument-atomicity and bus-mechanism assertions all ran.
 
-The pinned-native diagnostic passed all 16 completed-call cases, including
+The pinned-native full run passed all 16 completed-call cases, including
 status mixtures, cap residuals, large/negative pools, class mixtures, stack
 endpoints, odd SP, record wrap and a node word crossing FFFF. All CPU14 words
 and five 64 KiB RAM regions matched without masks. The separate cyclic-list
 probe repeated full CPU14 and 1 MiB RAM at +05F7 after a 3,328-instruction
 period (steps 32 and 3360); the unbounded C callee was not invoked.
+
+## Measured result and parity review
+
+The complete `--unicorn --native --mutate` run exited zero on 2026-10-23.
+The [public receipt](OVL_007F_063A_CPU_REPORT.json) records the source pins,
+executable-file hashes, case counts, native result hashes and mutation
+failures, with the machine-specific binary path removed.
+
+| Check | Measured result |
+| --- | --- |
+| Original-byte differential | 630 fixtures plus 385 caller-instruction budget boundaries: **1,015/1,015** comparisons passed |
+| Instruction starts | **385/385**, no missing starts |
+| Conditional outcomes | **34/34**, no missing or declared-infeasible edges |
+| State compared | CPU14, remaining budget, stop class and **all 1,048,576 RAM bytes** per comparison |
+| Stops | 162 RETURNED, 15 CALLEE (divide error), 3 TRANSFER, 835 LIMIT |
+| FLAGS | 833 exact arrivals; 182 declared shift-AF arrivals; zero masks and zero observed MUL/DIV splits |
+| Domain checks | Zero aperture accesses; 995 completed +05E0 calls in compared traces; early-budget inputs separately checked through the original +05E0 prefix |
+| Constructed exclusions | Two separate passing families, excluded from parity totals: cyclic-list recurrence and aperture count divergence (original 1, flat C 0 at +0655) |
+| Pinned native | **16/16**, CPU14 plus five 64 KiB regions each, no masks |
+| Compiled mutations | **4/4 rejected**: cleared SHL AF, changed node store, wrong residual flag, inverted cap branch; each unchanged baseline passed first |
+| Synthetic CTest | **1/1 passed**, assertions enabled |
+
+| Review field | Assessment |
+| --- | --- |
+| target_function | OVL_007F_063A, original [063A,0A01), entry 3 |
+| source_candidates | `overlay_u7f_063a_cpu.c:pr_u7f_063a_run` plus the six named composed callees |
+| signals | Pinned bytes/instruction boundaries, live call frames and relocations, independent two-factor identity, full caller coverage, full-state comparisons, pinned native corroboration, synthetic semantic assertions and rejected mutations |
+| score | 1,015/1,015 differential comparisons; 385/385 starts; 34/34 outcomes; 16/16 native cases; 4/4 mutations rejected |
+| verdict | **match within the declared interface and input domain** |
+| review_notes | Finite +05E0 traversal and inherited flat-callee/aperture limits remain explicit and constructed. Native capture clears IF and covers five RAM regions. These measurements do not claim arbitrary EGA-composition parity or execution of cyclic lists. Credit and merge require independent review. |
