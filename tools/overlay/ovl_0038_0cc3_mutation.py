@@ -8,7 +8,7 @@ from res0709_printer_0626_cpu_audit import ROOT, check
 
 MODEL = ROOT / 'src/recovered/overlay_u38_0cc3_cpu.c'
 CASES = ('empty-list', 'no-key', 'key-wrong-type', 'key-high-word-differs', 'rec3-low-f', 'kind-f', 'unlink-head', 'unlink-middle', 'unlink-tail',
-         'live-1010', 'table-count-0', 'table-count-2', 'table-count-5', 'table-zero-dword-on-cell', 'table-high-word-only', 'coords--1--1',
+         'live-1010', 'table-count-0', 'table-count-2', 'table-count-5', 'table-zero-dword-on-cell', 'table-low-word-only', 'table-high-word-only', 'stop-after-shr', 'stop-after-cbw', 'stop-after-mul', 'grid-in-aperture', 'coords--1--1',
          'coords--128--128', 'dxy-signed', 'steps-high', 'mode1', 'runerror-offset-4', 'freemem-offset-8', 'cycle-no-key', 'grid-on-node+04',
          'grid-on-frame+04', 'flags-0a87', 'sp-0200') + tuple(f'budget-{b}' for b in (0, 3, 30, 60, 120, 201, 240))
 MUTANTS = (

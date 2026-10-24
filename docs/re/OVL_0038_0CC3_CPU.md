@@ -89,7 +89,7 @@ Budget: each instruction of this body costs one unit. The callees cost none; 169
 
 | Stop | Class | Pinned by |
 | --- | --- | --- |
-| RETURNED | RETURN | Unicorn: 136 of 453 cases; native (not-found walk): NATIVE_COUNT |
+| RETURNED | RETURN | Unicorn: 136 of 453 cases; native (not-found walk): 16 of 16 |
 | RUNERROR | architectural: FreeMem's RunError 204 on an invalid block, CPU at SYSTEM:00E2 | Unicorn: 2 cases, `runerror-offset-4` (a block at offset 4) and `runerror-outside-heap` (a block above HeapPtr); both runs reach SYSTEM:00E2 |
 | LIMIT | host cap | Unicorn: 313 cases. The budget sweeps, the three cyclic lists, and the alias cases whose map or node writes make the walk cyclic (`grid-on-frame-08/-06`, `grid-on-node+04/+06`, `grid-on-list-head`, `node-on-frame`) stop with equal state at the same arrival |
 | TRANSFER | control transfer | Unicorn: 2 cases, `grid-on-frame+02/+04` (the map cell over the return address); the oracle stops at the same garbage address |
@@ -141,9 +141,64 @@ Cases:
 
 1,821 s on the heavy wrapper.
 
-MUTATION_RESULTS
+### Mutation
 
-NATIVE_RESULTS
+**24 deliberate mutants, 24 caught by the differential.** The run used the `ovl_0038_0cc3_mutation.py` case subset. It took two
+rounds, both stated here.
+
+**Round 1:** 19 caught. The mutants:
+- the type shift;
+- the key's high word;
+- the type, link and live-flag offsets;
+- the message offset;
+- the table stride, and the loop bound JA→JAE;
+- the 1Fh and 1Eh marks;
+- the row width 51;
+- the saved-byte offset;
+- three cells instead of four;
+- the head store;
+- the FreeMem size;
+- RETF 8;
+- the TRANSFER check;
+- RunError read as CALLEE;
+- the 1693 call not charged to the budget.
+
+**5 survived.** Each was a **gap in the cases**, not an equivalence:
+- *The overlap test ignores the high word.* The fixture called `table-high-word-only` built a **low**-word-only entry. It is now
+  `table-low-word-only`, and a true high-word-only entry was added.
+- *SHR leaves AF clear*, *the step table zero-extended* and *MUL clears SF*. Each differs only at a budget stop inside a
+  window of a few instructions. Three targeted stops were added at budgets measured with the C model:
+  - 9, after `SHR AX,CL`;
+  - 65, after the `CBW` at 0D7E of a negative step;
+  - 515, at 0F75 after the re-stamp `MUL`, with SF set by the `ADD` at 0F6E.
+- *The map write bypasses the bus.* No case put the map in the aperture. `grid-in-aperture` (map at A000:1000, compared
+  through the EGA planes) was added.
+
+**Round 2:** with the extended subset, all 5 are caught:
+- `stop-after-cbw` (AX 00FF vs FFFF);
+- `table-high-word-only`;
+- `stop-after-shr` (the declared AF split demands AF);
+- `stop-after-mul` (the split expects SF kept);
+- `grid-in-aperture` (the planes).
+
+The six new or changed cases match the original exactly in the differential.
+
+### Native corroboration (partial; packaged DOSBox-X, not the pinned build)
+
+DOSBox-X normal core, 386. **16 synthetic cases, all on the NOT-FOUND walk.** `+0CC3` runs as original bytes under a real
+DOS, and the data, stack, node and record segments are loaded by real DOS reads. Cases:
+- an empty list;
+- one other key, the right key with the wrong type, and a high-word mismatch;
+- five non-matching nodes;
+- type nibbles 0 and Fh, and a record low nibble of Fh;
+- five flag images;
+- SP at both bounds, and an odd SP.
+
+Against the C model on identical state, all 14 CPU words and **4,194,752 bytes** match: **0 mismatches, no masks.**
+IF is cleared in every native case.
+
+The host's packaged `/usr/bin/dosbox-x` was used (SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`),
+not the pinned `5a9c7c53` build. Every found path goes through 1693's EGA display, so it is not run natively; see Not established.
 
 ## Not established
 

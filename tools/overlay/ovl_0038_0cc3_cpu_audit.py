@@ -131,7 +131,7 @@ def fixture(bodies, *, nodes=(), key=0x00011234, kind=3, rec3_low=0x5, count=2, 
     m[physical(ds, 0x6715)] = count
     for j, (live, x, y) in enumerate(table, 1):
         at = 0x66D6 + 7 * j
-        put16(m, ds, at, 0x2222 if live else 0); put16(m, ds, at + 2, 0x0001 if live == 1 else 0)
+        put16(m, ds, at, 0x2222 if live in (1, 2) else 0); put16(m, ds, at + 2, 0x0001 if live in (1, 3) else 0)   # 1 both words, 2 low only, 3 high only
         m[physical(ds, at + 4)] = x & 0xFF; m[physical(ds, at + 5)] = y & 0xFF
     places = nodes_at or [node_at(k) for k in range(len(nodes))]
     for k, n in enumerate(nodes):
@@ -264,7 +264,12 @@ def cases(quick=False):
     for count in (0, 1, 2, 5):
         add(f'table-count-{count}', count=count, table=((1, 10, 5), (1, 11, 5), (0, 10, 6), (2, 11, 6), (1, 99, 99)), nodes=(N(K, x=10, y=5),))
     add('table-zero-dword-on-cell', count=1, table=((0, 10, 5),), nodes=(N(K, x=10, y=5),))
-    add('table-high-word-only', count=1, table=((2, 10, 5),), nodes=(N(K, x=10, y=5),))
+    add('table-low-word-only', count=1, table=((2, 10, 5),), nodes=(N(K, x=10, y=5),))
+    add('table-high-word-only', count=1, table=((3, 10, 5),), nodes=(N(K, x=10, y=5),))
+    add('stop-after-shr', budget=9, nodes=(N(K, x=20, y=6),), steps=(4, 4, 4, 4))      # the SHR at 0CD4 is the last FLAGS writer here
+    add('stop-after-cbw', budget=65, nodes=(N(K, x=20, y=6),), steps=(4, 4, 4, 4))     # just after 0D7E's CBW of a negative step
+    add('stop-after-mul', budget=515, nodes=(N(K, x=20, y=6), N(K + 1, x=10, y=0xFE)), steps=(5, 5, 5, 5))   # 0F75: MULW keeps the SF the ADD at 0F6E set
+    add('grid-in-aperture', nodes=(N(K, x=10, y=5), N(K + 1, x=30, y=2)), grid=(0xA000, 0x1000))            # the map reads/writes go to the EGA planes
     for x, y in ((0, 0), (-1, -1), (0x7F, 0x7F), (-0x80, -0x80), (49, 3)):
         add(f'coords-{x}-{y}', nodes=(N(K, x=x & 0xFF, y=y & 0xFF),), table=((1, x, y),), count=1)
     add('dxy-signed', dxy=((0, 0), (-3, 2), (4, -5), (-128, 127), (127, -128)) + ((0, 0),) * 4, steps=(1, 2, 3, 4), nodes=(N(K, x=20, y=6),))
