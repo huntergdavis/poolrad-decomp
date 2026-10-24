@@ -22,6 +22,16 @@ class CensusTest(unittest.TestCase):
         root = self.tree(**{"a.c": "static void zero_ah(cpu_t *c){ c->flags &= 1; }\nstatic int add(int a){ return a; }\n"})
         self.assertEqual([(f, fn) for f, fn, _, _ in census.helpers(root)], [("a.c", "zero_ah")])
 
+    def test_a_comment_or_newline_between_the_signature_and_the_brace_is_still_a_helper(self):
+        # par-d2 i23004: "static T f(args)   /* comment */" with "{" on the next line was never hashed.
+        root = self.tree(**{"a.c": "static void logic(cpu_t *c)   /* AND/OR/XOR */\n{\n    c->flags &= ~0x08D5u;\n}\n"
+                                   "static void inc8(cpu_t *c) // CF kept\n{ c->flags |= 1u; }\n"
+                                   "static void spaced(cpu_t *c)\n\n{ c->flags = 0u; }\n"
+                                   "void pr_body(cpu_t *c) /* public,\n   two-line note */\n{ c->flags ^= 2u; }\n"
+                                   "static void proto(cpu_t *c); /* a prototype */\nstatic int plain(int a)\n{ return a; }\n"})
+        self.assertEqual([(f, fn) for f, fn, _, _ in census.helpers(root)],
+                         [("a.c", "logic"), ("a.c", "inc8"), ("a.c", "spaced"), ("a.c", "pr_body")])
+
     def test_copies_modulo_names_share_a_row_and_a_changed_body_does_not(self):
         root = self.tree(**{"a.c": "static void s(pr_a *cpu){ cpu->flags |= 0x10u; }\n",
                             "b.c": "static void s(pr_b *cpu){ cpu->flags |= 0x10u; /* note */ }\n",
@@ -51,6 +61,11 @@ class InlineDetectorTest(unittest.TestCase):
     def test_non_static_body_with_inline_flags_is_found(self):
         found = {(name, function) for name, function, _, _ in census.helpers()}
         self.assertIn(("overlay_u5e_half_0e52.c", "pr_u5e_half_0e52"), found)   # the PM i21766 miss
+
+    def test_commented_signature_helpers_in_the_tree_are_found(self):
+        found = {(name, function) for name, function, _, _ in census.helpers()}
+        self.assertIn(("overlay_u25_entry4_0341_cpu.c", "dec16_flags"), found)   # par-d2 i23004: '{' after a comment
+        self.assertIn(("resident_0802_0105_cpu.c", "cmp_flags"), found)
 
 
 class MacroHashTest(unittest.TestCase):

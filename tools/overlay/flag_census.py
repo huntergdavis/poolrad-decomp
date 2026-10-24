@@ -25,10 +25,14 @@ ROOT = Path(__file__).resolve().parents[2]
 TSV = ROOT / "docs/re/FLAG_SEMANTICS_CENSUS.tsv"
 COLUMNS = ["hash", "n_helpers", "files", "instruction", "assumed_rule", "pinned_rule_and_citation", "agent_verdict",
            "stored_flags_verdict(FillFlags)", "detail", "classified_by", "branched_on"]
-FUNCTION = re.compile(r"^static\s+[A-Za-z0-9_ \*]+?\b([A-Za-z0-9_]+)\s*\(([^)]*)\)\s*\{", re.M)
+# Between ")" and "{" a definition may carry whitespace, newlines and comments: "static T f(args)   /* note */" with
+# "{" on the next line was invisible to the census (29 helpers in 21 files, par-d2 i23004). A block comment is
+# matched without re.S, so it cannot run past its own "*/" into the next function; a ";" still ends a prototype.
+GAP = r"(?:\s|/\*(?:[^*]|\*(?!/))*\*/|//[^\n]*)*"
+FUNCTION = re.compile(r"^static\s+[A-Za-z0-9_ \*]+?\b([A-Za-z0-9_]+)\s*\(([^)]*)\)" + GAP + r"\{", re.M)
 # Non-static definitions too: a body function that computes FLAGS inline (OVL_005E_0E52, PM i21766) was invisible
 # to a static-only scan. Unindented, not a declaration, not a control statement.
-PUBLIC = re.compile(r"^(?!static\b)(?:[A-Za-z_][A-Za-z0-9_]*[ \t\*]+)+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;{)]*)\)\s*\{", re.M)
+PUBLIC = re.compile(r"^(?!static\b)(?:[A-Za-z_][A-Za-z0-9_]*[ \t\*]+)+([A-Za-z_][A-Za-z0-9_]*)\s*\(([^;{)]*)\)" + GAP + r"\{", re.M)
 WRITES_FLAGS = re.compile(r"\bflags\s*(?:&=|\|=|\^=|=(?!=))")
 UNCLASSIFIED = "UNCLASSIFIED"
 
