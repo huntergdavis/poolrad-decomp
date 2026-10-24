@@ -45,7 +45,7 @@ int main(void)
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 26 && n[3] == 61 && n[4] == 1 && n[5] == 9);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 22 && n[3] == 61 && n[4] == 1 && n[5] == 13);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
@@ -109,6 +109,31 @@ int main(void)
     c = setup(r, 42); r[at(DS_, 0x681A)] = 0x02; budget = 100000;
     assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
     assert(r[at(DS_, 0x681A)] == 0x01u && c.ax == 0x0001u && c.flags == 0x0212u);
+    /* ADAPTED batch S, hand-checked (flags start 0202h; AX = the slot number at entry, AH = 0):
+     *  slot 10 +03E1 [6819]=02h (mask hit), [6818]=83h, [6816]=FEh: AX = 0041h, [6818]=41h, [6816]=01h; the ADD is the last flag writer: FEh+3 = 01h carry, AF=1 (bit 4 of FEh^03h^01h), OF=0, PF=0 (one one) -> 0202|1|10h = 0213h
+     *  slot 10 +03E1 [6819]=01h (mask clear): AX = 0000h (AL = the masked 0), OR AL,AL: ZF, PF -> 0246h, [6818] and [6816] untouched
+     *  slot 20 +06E4 [6819]=01h, [6818]=81h, [6816]=7Fh: AX = 0040h, [6818]=40h, [6816]=82h; ADD 7Fh+3: CF=0, AF=1, SF=1, OF=1 (positive+positive = negative), PF=1 (82h has two ones) -> 0202|10h|80h|800h|4 = 0A96h
+     *  slot 29 +0A3D [6818]=80h: DX = 20h, AX = 60h, [6818]=60h; SUB AX,DX 0080h-0020h: CF=0, AF=0, ZF=0, SF=0, OF=0, PF=1 (60h has two ones) -> 0206h
+     *  slot 113 +2A28 [6819]=01h, [681C]=03h, [6818]=10h: three iterations (10h -> 0Dh, never below 03h), locals [BP-2]=03h and [BP-1]=03h (S0-20, S0-19 here), AX = 0003h, CMP 3,3: ZF, PF -> 0246h
+     *  slot 113 +2A28 [6819]=01h, [681C]=00h: JA at once, AL=1, [BP-2]=00h, [BP-1] untouched (A5h), CMP 1,0 -> 0202h (no flag set: PF is clear, one one in 01h) */
+    c = setup(r, 10); r[at(DS_, 0x6819)] = 0x02; r[at(DS_, 0x6818)] = 0x83; r[at(DS_, 0x6816)] = 0xFE; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x41u && r[at(DS_, 0x6816)] == 0x01u && c.ax == 0x0041u && c.flags == 0x0213u);
+    c = setup(r, 10); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x6818)] = 0x83; r[at(DS_, 0x6816)] = 0xFE; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x83u && r[at(DS_, 0x6816)] == 0xFEu && c.ax == 0x0000u && c.flags == 0x0246u);
+    c = setup(r, 20); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x6818)] = 0x81; r[at(DS_, 0x6816)] = 0x7F; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x40u && r[at(DS_, 0x6816)] == 0x82u && c.ax == 0x0040u && c.flags == 0x0A96u);
+    c = setup(r, 29); r[at(DS_, 0x6818)] = 0x80; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x60u && c.ax == 0x0060u && c.dx == 0x0020u && c.flags == 0x0206u);
+    c = setup(r, 113); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x681C)] = 0x03; r[at(DS_, 0x6818)] = 0x10; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x0Du && c.ax == 0x0003u && c.flags == 0x0246u && r[at(SS_, (uint16_t)(S0 - 20u))] == 0x03u && r[at(SS_, (uint16_t)(S0 - 19u))] == 0x03u);
+    c = setup(r, 113); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x681C)] = 0x00; r[at(DS_, 0x6818)] = 0x10; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x10u && c.ax == 0x0001u && c.flags == 0x0202u && r[at(SS_, (uint16_t)(S0 - 20u))] == 0x00u && r[at(SS_, (uint16_t)(S0 - 19u))] == 0xA5u);
     /* the budget sweep: LIMIT stops at each instruction start in order */
     {
         static const uint16_t IPS[] = {0x0000, 0x0001, 0x0003, 0x0006, 0x0009, 0x000C, 0x000F, 0x0012, 0x0013, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0022, 0x0023};
