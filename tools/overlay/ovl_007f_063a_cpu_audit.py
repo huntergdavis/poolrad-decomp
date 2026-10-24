@@ -17,7 +17,7 @@ import sys
 import tempfile
 import time
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16
-from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE
+from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_MEM_READ, UC_HOOK_MEM_WRITE, UC_MEM_READ
 from unicorn import x86_const as U
 import ovl_007f_0054_cpu_audit as B
 from ovl_007f_0000_cpu_audit import check
@@ -173,6 +173,10 @@ def original(state,decoded,budget):
     return status,bytes(backing),out,left,seen,edges,writer,trace,domain
 
 def compare(name,state,decoded,lib,budget):
+    if budget<10:
+        prefix=original(state,decoded,10)
+        check(prefix[8]['party_count_entries']==prefix[8]['party_count_returns']==1,
+              f'{name}: early budget fixture must independently prove finite +05E0')
     e=original(state,decoded,budget);a=run_c(lib,state,budget)
     check(a[0]==e[0],f'{name}: stop C {a[0]} original {e[0]}')
     check(a[3]==e[3],f'{name}: budget C {a[3]} original {e[3]}')
@@ -201,7 +205,8 @@ def cases(quick=False):
         add('kinds-'+str(len(sts)),statuses=sts,kinds=tuple((0x0C,0x12,0x13,0x1D,0xFF,0)[i] for i in range(len(sts))),pools=(7,8,9,10,11,12,13))
     for sp in (SP_MIN,SP_MIN+1,0x7FFF,0xF001,SP_MAX-1,SP_MAX):add(f'sp-{sp:04x}',sp=sp)
     for flags in (2,0x202,0x602,0xAD7,0xE57,0x7202):add(f'flags-{flags:04x}',flags=flags)
-    for off in (0,0xFE00,0xFEF8,0xFEFC,0xFF00,0xFFF0):add(f'offset-{off:04x}',statuses=(0,),rec_off=off)
+    for off in (0,0xFE00,0xFEF8,0xFEF9,0xFEFC,0xFEFD,0xFF00,0xFF77,0xFFF0,0xFFFF):
+        add(f'offset-{off:04x}',statuses=(0,),rec_off=off)
     for seg in (0,0xFFF0,0xFFFF):add(f'a20-{seg:04x}',statuses=(0,),rec_seg=seg,rec_off=0x100)
     add('relocated',w_cs=0x6100,res_cs=0x7200,sys_cs=0x7600)
     add('ss-ds',ds=0x2000)
@@ -224,6 +229,7 @@ def cases(quick=False):
 
 def differential(bodies,decoded,lib,quick=False,only=None):
     chosen=[c for c in cases(quick) if only is None or c[0] in only]
+    check(bool(chosen),'no differential cases selected')
     seen=set();edges=set();stops={};splits={};start=time.time();finite_calls=0;cuts={}
     for i,(name,kw,budget) in enumerate(chosen):
         if i%20==0:print(f'[{i+1}/{len(chosen)}] {name}',flush=True)
@@ -277,6 +283,11 @@ def exclusions(bodies,decoded,lib):
             put16(m,0x3000,0x204,0x100);put16(m,0x3000,0x206,0x3000)
         uc=Uc(UC_ARCH_X86,UC_MODE_16);uc.mem_map(0,2*SIZE)
         uc.mem_write(0,bytes(m));uc.mem_write(SIZE,bytes(m))
+        if mode!='self-cycle':
+            # With fixed read mode/map 0 and no aperture stores, the visible
+            # memory is exactly plane 0. Keep underlying RAM m independent.
+            plane=bytearray(65536);plane[0x184]=0xB3
+            uc.mem_write(0xA0000,bytes(plane))
         for (field,_),reg in zip(Cpu._fields_,REGISTERS):uc.reg_write(reg,getattr(c,field))
         steps=0;repeat=None;states={};arrived=False;aperture_reads=[]
         # A real backward edge into the party loop; derive it from original bytes.
@@ -285,10 +296,8 @@ def exclusions(bodies,decoded,lib):
         def memory(em,access,address,size,value,user):
             if 0xA0000<=address<0xC0000:
                 check(mode!='self-cycle','cycle fixture reached aperture')
+                check(access==UC_MEM_READ,'constructed read-only EGA prefix unexpectedly writes aperture')
                 aperture_reads.append(dict(address=address,size=size))
-                # Plane 0 contains a B3 status and a terminating zero link.
-                payload=bytes(0xB3 if p==0xA0184 else 0 for p in range(address,address+size))
-                em.mem_write(address,payload)
         def hook(em,address,size,user):
             nonlocal steps,repeat,arrived
             steps+=1;cs=em.reg_read(U.UC_X86_REG_CS);ip=em.reg_read(U.UC_X86_REG_IP)
@@ -301,14 +310,15 @@ def exclusions(bodies,decoded,lib):
                     repeat=dict(first_step=states[key],repeat_step=steps,period=steps-states[key],loop_ip=loop)
                     em.emu_stop()
                 else:states[key]=steps
-        uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_MEM_READ,memory)
+        uc.hook_add(UC_HOOK_CODE,hook);uc.hook_add(UC_HOOK_MEM_READ|UC_HOOK_MEM_WRITE,memory)
         uc.emu_start(physical(c.cs,c.ip),2*SIZE,count=20000)
         if mode=='self-cycle':
             check(repeat is not None and not arrived,'cyclic original must repeat before +05E0 returns')
             receipts.append(dict(family=mode,cases=1,original_full_state_repeat=repeat,c_model_run=False,
                 state='DS party head 3000:0100; status 00; next=3000:0100; no interrupts or external writes'))
         else:
-            check(arrived and aperture_reads,'aperture prefix must return from +05E0')
+            check(arrived and aperture_reads,f'aperture prefix must return from +05E0: arrived={arrived}, steps={steps}, '
+                  f"PC={uc.reg_read(U.UC_X86_REG_CS):04X}:{uc.reg_read(U.UC_X86_REG_IP):04X}, reads={aperture_reads[:12]}")
             actual_count=uc.reg_read(U.UC_X86_REG_AX)&255
             flat=run_c(lib,state,10)
             check(flat[0]=='LIMIT' and flat[2].ip==0x655,'flat comparison stops at same prefix')
@@ -316,6 +326,7 @@ def exclusions(bodies,decoded,lib):
             receipts.append(dict(family=mode,cases=1,original_party_count=actual_count,flat_c_party_count=flat[2].ax&255,
                 prefix_stop='063A through 0655',aperture_reads=aperture_reads,
                 state='DS party head A000:0100; underlying RAM status 80; EGA plane 0 status B3; both next links zero; read mode/map 0'))
+        print(f'PASS exclusion {mode}: {json.dumps(receipts[-1])}',flush=True)
     return dict(families=2,cases=2,results=receipts,claimed_parity_cases=0)
 
 def mutations(directory,bodies,decoded,baseline_lib):
@@ -367,4 +378,7 @@ def main():
         if args.mutate:report['mutations']=mutations(tmp,bodies,decoded,lib)
     if args.json:args.json.write_text(json.dumps(report,indent=2)+'\n')
     print(json.dumps(report,indent=2))
-if __name__=='__main__':main()
+if __name__=='__main__':
+    # The native helper imports this module; retain one ctypes Diag identity.
+    sys.modules['ovl_007f_063a_cpu_audit']=sys.modules[__name__]
+    main()

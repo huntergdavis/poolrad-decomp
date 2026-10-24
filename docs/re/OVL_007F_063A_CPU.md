@@ -52,8 +52,10 @@ These two families are excluded from parity totals. For every claimed
 Unicorn parity case, memory hooks require zero reads or writes in physical
 [A0000,C0000), code fetches stay outside it, and each entered +05E0 must
 return before C is invoked. Thus neither a cyclic count traversal nor an
-aperture-reaching access can overlap the claimed fixture set. Native
-fixtures additionally require all six loaded/captured 64 KiB regions below
+aperture-reaching access can overlap the claimed fixture set.
+For budgets that stop before +05E0, a separate ten-counted-instruction
+original prefix proves its termination on the same input first.
+Native fixtures additionally require all six loaded/captured 64 KiB regions below
 A0000. The original-only recurrence assumes no interrupts or external
 memory mutations, matching the standalone model's execution environment.
 
@@ -125,4 +127,8 @@ rejection. The synthetic CTest independently checks distribution, cap
 residuals, divide error, argument atomicity, budget and code guards, and
 bus writes. Assertions must remain enabled when building that test.
 
-Measured receipts and the parity verdict will be recorded after validation.
+The focused `poolrad_overlay_u7f_063a_cpu_tests` CTest passed on 2026-10-23
+with `-UNDEBUG`, no build type, and assertions enabled (one test, zero
+failures). Its independent distribution, residual, divide-error, guard,
+argument-atomicity and bus-mechanism assertions all ran. The complete
+original-byte/native receipts and parity verdict remain pending.

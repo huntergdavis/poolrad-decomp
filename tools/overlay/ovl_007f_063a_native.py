@@ -43,7 +43,8 @@ def _native(bodies, lib, binary, digest, quick):
         ('above-cap',dict(totals=(1601,0xFFFF),pools=(19,7,0,0,0,0,0))),
         ('mixed-classes',dict(kinds=(0x12,0x1D))),
         ('sp-min',dict(sp=C.SP_MIN)),('sp-max',dict(sp=C.SP_MAX)),
-        ('sp-odd',dict(sp=0x7FFF)),('offset-wrap',dict(statuses=(0,),rec_off=0xFF00))]
+        ('sp-odd',dict(sp=0x7FFF)),('offset-wrap',dict(statuses=(0,),rec_off=0xFF00)),
+        ('word-cross-ffff',dict(statuses=(0,),rec_off=0xFF77))]
     cases += [(f'flags-{f:04x}',dict(flags=f)) for f in (2,0xAD7,0xE57)]
     report=[]
     for index,(name,kw) in enumerate(cases):
