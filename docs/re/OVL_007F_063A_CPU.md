@@ -10,6 +10,10 @@ The second pass does not repeat the first pass's status test. Its available
 capacity is the unsigned word subtraction `threshold - node_total`, including
 wraparound for an already oversized total. These are original behaviors,
 not additional eligibility or saturation rules imposed by the C model.
+Nonpositive signed pool dwords take the zero-share path. Division quotients
+and remainders are narrowed to local words, and final residual high words
+are zero. Thus the ordinary small-positive-pool conservation examples are
+not a claim of conservation over all signed 32-bit inputs.
 
 ## Claim and composition
 
@@ -95,7 +99,9 @@ The role interpretation reuses the caller analysis in
 arguments in [U7F_IDENTITY_ARGUMENTS.md](U7F_IDENTITY_ARGUMENTS.md), and
 [U7F_05E0_NATIVE_REACH_FULLC_GATE.md](U7F_05E0_NATIVE_REACH_FULLC_GATE.md).
 The priced claim was approved in PM message i22398 after claim i22389.
-Identity integration and credit remain reviewer-owned.
+The independent identity argument was re-decoded by the reviewer in
+[PR #1507](https://github.com/huntergdavis/poolrad-decomp/pull/1507), confirmed
+in PM message i22421. Identity integration and credit remain reviewer-owned.
 
 ## Validation contract
 

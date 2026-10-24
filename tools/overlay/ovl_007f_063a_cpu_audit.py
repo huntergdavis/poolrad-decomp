@@ -224,12 +224,15 @@ def cases(quick=False):
 
 def differential(bodies,decoded,lib,quick=False,only=None):
     chosen=[c for c in cases(quick) if only is None or c[0] in only]
-    seen=set();edges=set();stops={};splits={};start=time.time();finite_calls=0
+    seen=set();edges=set();stops={};splits={};start=time.time();finite_calls=0;cuts={}
     for i,(name,kw,budget) in enumerate(chosen):
         if i%20==0:print(f'[{i+1}/{len(chosen)}] {name}',flush=True)
         state=fixture(bodies,**kw);e,a=compare(name,state,decoded,lib,budget)
         seen|=e[4];edges|=e[5];stops[e[0]]=stops.get(e[0],0)+1
         finite_calls+=e[8]['party_count_returns']
+        for tick,key in enumerate(e[7]):
+            if key[0]=='w' and ENTRY<=key[1]<END:
+                cuts.setdefault(key,(name,kw,tick))
         if a[2].flags!=e[2].flags:
             rule=e[6].rule or 'shift';splits[rule]=splits.get(rule,0)+1
         for (kind,off),blob in bodies.items():
@@ -238,10 +241,23 @@ def differential(bodies,decoded,lib,quick=False,only=None):
     wanted={('w',i) for k,i in decoded if k=='w' and ENTRY<=i<END}
     branches={(('w',a),('w',dest)) for (k,a),ins in decoded.items() if k=='w' and ENTRY<=a<END and ins.mnemonic.startswith('j') and ins.mnemonic!='jmp'
               for dest in (a+ins.size,int(ins.op_str,0))}
+    cut_count=0
+    if not quick and only is None:
+        check(wanted<=seen,f'incomplete body coverage: {[hex(i) for _,i in sorted(wanted-seen)]}')
+        check(branches<=edges,f'incomplete conditional coverage: {sorted(branches-edges)}')
+        for key,(name,kw,budget) in sorted(cuts.items()):
+            if cut_count%40==0:print(f'budget boundary {cut_count+1}/{len(cuts)}: {key[1]:04X}',flush=True)
+            e,a=compare(f'cut-{key[1]:04X}-{name}',fixture(bodies,**kw),decoded,lib,budget)
+            check(e[0]=='LIMIT' and e[2].ip==key[1],f'budget cut did not stop at {key}')
+            finite_calls+=e[8]['party_count_returns'];cut_count+=1
+            stops[e[0]]=stops.get(e[0],0)+1
+            if a[2].flags!=e[2].flags:
+                rule=e[6].rule or 'shift';splits[rule]=splits.get(rule,0)+1
     return dict(cases=len(chosen),stops=stops,body_starts=len(seen&wanted),body_total=len(wanted),
         missing_starts=[f'{i:04X}' for _,i in sorted(wanted-seen)],conditional_edges=len(edges&branches),conditional_total=len(branches),
         missing_edges=[f'{a[1]:04X}->{b[1]:04X}' for a,b in sorted(branches-edges)],declared_flag_splits=splits,
-        flags_masks=0,ram_bytes=SIZE,cpu_words=14,seconds=round(time.time()-start,1),
+        flags_masks=0,ram_bytes=SIZE,cpu_words=14,budget_boundary_cases=cut_count,total_comparisons=len(chosen)+cut_count,
+        seconds=round(time.time()-start,1),
         domain=dict(aperture_accesses=0,completed_party_count_calls=finite_calls,
                     assertion='Every original memory access outside A0000..BFFFF; every entered +05E0 returns before C executes.'))
 
