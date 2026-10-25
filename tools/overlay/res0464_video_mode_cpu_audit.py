@@ -8,6 +8,7 @@ INT 10h stub at the vector (sets the BIOS mode byte 0040:0049 := AL and IRETs), 
 Unicorn: CPU14 + full 1 MiB, unmasked. DOSBox-X: the image is read from IMAGE.BIN, IVT[10h] points at the stub in the
 oracle COM, the routine is far-called and returns to a capture label. Media and generated programs stay under ignored
 resources/."""
+from native_emulator_provenance import describe_dosbox
 import argparse, ctypes, json, os, random, struct, subprocess, tempfile
 from hashlib import sha256
 from pathlib import Path
@@ -273,8 +274,9 @@ def native(image, sites, spans, fs):
     out = directory / 'RESULT.BIN'
     if out.exists():
         out.unlink()
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
     with (directory / 'dosbox.log').open('w') as log:
-        subprocess.run(['/usr/bin/dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
+        subprocess.run([emulator['path'], '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=600)
     data = out.read_bytes(); rec = 28 + sum(n for _, _, n in regions)
@@ -301,7 +303,7 @@ def native(image, sites, spans, fs):
             got = bytes(ram[physical(seg, off):physical(seg, off) + length])
             check(got == r[at:at + length], f'native {name} {label} region {seg:04x}:{off:04x}')
             at += length
-    return dict(cases=len(rows), regions=[f'{s:04X}:{o:04X}+{n:X}' for s, o, n in regions], result_sha256=sha256(data).hexdigest(),
+    return dict(dosbox_x=emulator, cases=len(rows), regions=[f'{s:04X}:{o:04X}+{n:X}' for s, o, n in regions], result_sha256=sha256(data).hexdigest(),
                 image_bin_sha256=sha256(image_reloc).hexdigest())
 
 

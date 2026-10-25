@@ -5,6 +5,7 @@ Per case the oracle COM loads the text segment (TextRec, buffer, string and the 
 sets InOutRes DS:[4426], pushes the routine's frame with a far return to a capture label, and jumps to the entry. After
 return it records CPU14, a 1 KiB stack window, the 64 KiB text segment and DS:4420..442F. Interrupts stay off around the
 call; nothing in SYSTEM is stubbed."""
+from native_emulator_provenance import describe_dosbox
 import ctypes, os, struct, subprocess
 from hashlib import sha256
 from res0709_ega_reset_0000_cpu_audit import Cpu, ROOT, SIZE, physical, put16, check
@@ -91,8 +92,9 @@ def native(image, sites, fs, A):
     out = directory / 'RESULT.BIN'
     if out.exists():
         out.unlink()
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
     with (directory / 'dosbox.log').open('w') as log:
-        subprocess.run(['/usr/bin/dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
+        subprocess.run([emulator['path'], '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=600)
     result = out.read_bytes(); rec = 28 + WINDOW + 65536 + 16
@@ -117,5 +119,5 @@ def native(image, sites, fs, A):
         if mine != r[28:]:
             diff = [i for i, (x, y) in enumerate(zip(mine, r[28:])) if x != y]
             raise ValueError(f'native bytes {n} {name} {o}: {[(hex(i), hex(mine[i]), hex(r[28 + i])) for i in diff[:16]]} ({len(diff)}) cpu {want}')
-    return dict(cases=len(rows), compared=['CPU14', f'stack {WINDOW} B', 'text segment 64 KiB', 'DS:4420+10'], flag_masks=0,
+    return dict(dosbox_x=emulator, cases=len(rows), compared=['CPU14', f'stack {WINDOW} B', 'text segment 64 KiB', 'DS:4420+10'], flag_masks=0,
                 result_sha256=sha256(result).hexdigest(), image_bin_sha256=sha256(image_reloc).hexdigest())

@@ -6,6 +6,7 @@ top 8 KiB of the stack segment and the 1951 row targets) from INPUT.BIN, sets al
 far-jumps to 015D with a far return to a capture label. Interrupts stay off around the call. The error branch (QUIT ends
 the process) and video modes other than 0 and 2 (the sequencer OUTs and A000 stores would drive the real adapter) are
 Unicorn-only. Every region is compared, with CPU14, against the C model rerun on the same fixture."""
+from native_emulator_provenance import describe_dosbox
 import ctypes, os, struct, subprocess
 from hashlib import sha256
 from res0709_ega_reset_0000_cpu_audit import Cpu, ROOT, SIZE, physical, put16, check
@@ -93,8 +94,9 @@ def native(A, code, fixups, body_ips, f, regions=REGIONS, directory=None):
     out = directory / 'RESULT.BIN'
     if out.exists():
         out.unlink()
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
     with (directory / 'dosbox.log').open('w') as log:
-        subprocess.run(['/usr/bin/dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
+        subprocess.run([emulator['path'], '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=900)
     result = out.read_bytes(); rec = 28 + sum(n for _, n in REGIONS)
@@ -117,5 +119,5 @@ def native(A, code, fixups, body_ips, f, regions=REGIONS, directory=None):
         if mine != r[28:]:
             diff = [i for i, (x, y) in enumerate(zip(mine, r[28:])) if x != y]
             raise ValueError(f'native bytes {name}: {[(hex(i), hex(mine[i]), hex(r[28 + i])) for i in diff[:8]]} ({len(diff)})')
-    return dict(cases=len(rows), stops=stops, compared=['CPU14'] + [f'{s:05X}+{n:X}' for s, n in REGIONS], flag_masks=0,
+    return dict(dosbox_x=emulator, cases=len(rows), stops=stops, compared=['CPU14'] + [f'{s:05X}+{n:X}' for s, n in REGIONS], flag_masks=0,
                 result_sha256=sha256(result).hexdigest(), image_bin_sha256=sha256(image_reloc).hexdigest())

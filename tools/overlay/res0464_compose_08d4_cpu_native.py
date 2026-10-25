@@ -4,6 +4,7 @@ A COM program loads per-case DS, source tile set, destination object and aux-mas
 8800:08D4 and the original SYSTEM Move at 6000:1685 (the two far-call segment words patched to 6000h, as in the Unicorn
 fixture), pushes the eight argument words and calls far. After return it records CPU14, a 1 KiB stack window and the four
 64 KiB segments. Nothing in the body or Move is stubbed; interrupts stay off around the call."""
+from native_emulator_provenance import describe_dosbox
 import ctypes, os, struct, subprocess
 from hashlib import sha256
 from res0464_compose_08d4_cpu_audit import (ROOT, SIZE, CS, SYS, DS, SRC, DST, AUX, ENTRY, SEGWORDS, MOVE, FLAGS, Cpu, Bus, WRITE_FN,
@@ -90,8 +91,9 @@ def native(code, lib):
     out = directory / 'RESULT.BIN'
     if out.exists():
         out.unlink()
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
     with (directory / 'dosbox.log').open('w') as log:
-        subprocess.run(['/usr/bin/dosbox-x', '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
+        subprocess.run([emulator['path'], '-conf', str(directory / 'dosbox.conf'), '-fastlaunch', '-exit', '-noconsole'],
                        env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT,
                        check=True, timeout=900)
     result = out.read_bytes()
@@ -112,9 +114,6 @@ def native(code, lib):
         if mine != rec[28:]:
             diff = [i for i, (a, b) in enumerate(zip(mine, rec[28:])) if a != b]
             raise ValueError(f'native memory {n}: first {[hex(i) for i in diff[:6]]} ({len(diff)} bytes)')
-    binary = '/usr/bin/dosbox-x'
-    probe = subprocess.run([binary, '--version'], capture_output=True, text=True, env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'))
-    version = next(line.split(',')[0].strip() for line in (probe.stdout + probe.stderr).splitlines() if 'DOSBox-X version' in line)
-    return dict(cases=len(specs), dosbox_x=dict(path=binary, sha256=sha256(open(binary, 'rb').read()).hexdigest(), version=version),
+    return dict(cases=len(specs), dosbox_x=emulator,
                 cpu_words=14, stack_bytes=WINDOW, segment_bytes=len(SEGS) * 65536, flag_masks=0, core='normal', cpu='386',
                 result_sha256=sha256(result).hexdigest(), com_segment=f'{segment:04X}')

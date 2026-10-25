@@ -4,6 +4,7 @@
 Adapts the native landing-marker/byte-seeding harness from U6F repair
 45314d7179e53ca5ccd1a882623bfce5319c6d6d. Owner media stays ignored.
 """
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -154,7 +155,8 @@ def main():
         print('prepared 39 original-byte native wrap programs');return
     env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy',
              XDG_CONFIG_HOME=str(directory/'.config'),XDG_CACHE_HOME=str(directory/'.cache'),XDG_DATA_HOME=str(directory/'.local'))
-    command=['bwrap','--die-with-parent','--unshare-net','--ro-bind','/','/','--dev-bind','/dev','/dev','--bind',str(directory),str(directory),'--chdir',str(directory),'/usr/bin/dosbox-x','-conf',str(config),'-fastlaunch','-exit','-noconsole']
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
+    command=['bwrap','--die-with-parent','--unshare-net','--ro-bind','/','/','--dev-bind','/dev','/dev','--bind',str(directory),str(directory),'--chdir',str(directory),emulator['path'],'-conf',str(config),'-fastlaunch','-exit','-noconsole']
     with (directory/'dosbox.log').open('w') as log:
         process=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         started=time.monotonic()
@@ -212,7 +214,7 @@ def main():
     print('Wrapped-profile mismatches',problems)
     print('Legacy contiguous CS mismatches',len(legacy_mismatches))
     for name,digest in results:print(name,digest)
-    print('DOSBox SHA256',sha256(Path('/usr/bin/dosbox-x').read_bytes()).hexdigest())
+    print('DOSBox identity', emulator)
     base.check(len(unicorn_divergences)==26, 'Unicorn boundary census changed')
     base.check(len(legacy_mismatches)==24, 'legacy negative control changed')
     if not args.diagnose:base.check(not problems,'C/native wrap regression')
@@ -221,7 +223,7 @@ def main():
         undefined_af_mask_cases=masked_cases,unicorn_divergences=unicorn_divergences,
         c_mismatches=problems,legacy_mismatches=legacy_mismatches,
         capture_sha256=dict(results),
-        dosbox_sha256=sha256(Path('/usr/bin/dosbox-x').read_bytes()).hexdigest())
+        dosbox_x=emulator, dosbox_sha256=emulator['sha256'])
     if args.report:args.report.write_text(json.dumps(report,indent=2)+"\n")
     print('synthetic boundary frames; undefined OR AF declared; no natural game reach')
 
