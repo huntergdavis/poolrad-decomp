@@ -86,6 +86,8 @@ resident_00ba_display_1693_cpu.c,pr_system_strstore_0b25,yes,caller-argument,rea
 resident_00ba_display_1816_cpu.c,pr_system_strload_0b0b,yes,code-literal,header,unreachable-by-construction,yes
 resident_00ba_sidecar_remove_1509_cpu.c,pr_system_freemem_0254,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_00ba_sidecar_remove_1509_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
+resident_00ba_window_16ec_cpu.c,pr_r0709_delay_wrapper_0dbe_cpu,no,-,-,no-pointer,yes
+resident_00ba_window_16ec_cpu.c,pr_system_strstore_0b25,yes,caller-argument+local,read,can-reach-under-a-corrupt-pointer,yes
 resident_0464_blit_1951_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_0464_compose_08d4_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_0709_glyph_01df_cpu.c,pr_system_upcase_182a,no,-,-,no-pointer,yes

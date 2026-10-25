@@ -13,9 +13,9 @@ static void written(void *ctx,uint16_t offset,uint8_t value) { (void)ctx;(void)o
 static void far_site(uint8_t *m,unsigned cs,unsigned at,unsigned target,unsigned seg)
 { m[p(cs,at)]=0x9A;put(m,cs,at+1u,target);put(m,cs,at+3u,seg); }
 /* The window (x1, y1, x2, y2), the text at 4000:0100, the cursor; callee code sites as the 06A7 and 0DD3 tests plant them. */
-static pr_r0709_printer_cpu setup(pr_bus *b,unsigned x1,unsigned y1,unsigned x2,unsigned y2,const char *text,unsigned clear)
+static pr_r0709_printer_0768_regs setup(pr_bus *b,unsigned x1,unsigned y1,unsigned x2,unsigned y2,const char *text,unsigned clear)
 {
-    pr_r0709_printer_cpu c={0x1234,0x3456,0x5678,0x789A,0x9ABC,0xBCDE,0x7777,0x8000,0x8800,0x768,0x5000,0x1111,0x2000,0x602};
+    pr_r0709_printer_0768_regs c={0x1234,0x3456,0x5678,0x789A,0x9ABC,0xBCDE,0x7777,0x8000,0x8800,0x768,0x5000,0x1111,0x2000,0x602};
     unsigned i;const unsigned args[]={0x7000,0x9001,0x0100,0x4000,0xA500|clear,0xA505,0xA500|y2,0xA500|x2,0xA500|y1,0xA500|x1};
     const unsigned sites[]={0xE41,0xE63,0xF18,0xF35,0xF52,0xF6F,0xE8E,0xEA8};
     memset(b->ram,0xA5,PR_BUS_RAM_SIZE);pr_ega_reset(b->ega);
@@ -54,7 +54,7 @@ static pr_r0709_printer_cpu setup(pr_bus *b,unsigned x1,unsigned y1,unsigned x2,
     outs=writes=0;return c;
 }
 static const pr_r0709_printer_budget wide={65536,65536,65536,65536,100000000u,65536,65536,65536};
-static int run(pr_bus *b,pr_r0709_printer_cpu *c,size_t words,size_t scans,pr_r0709_printer_diagnostic *d)
+static int run(pr_bus *b,pr_r0709_printer_0768_regs *c,size_t words,size_t scans,pr_r0709_printer_diagnostic *d)
 {
     pr_r0709_printer_budget k=wide;k.word_loopbacks=words;k.scan_loopbacks=scans;
     return pr_r0709_printer_0768_cpu(b,PR_BUS_RAM_SIZE,c,&k,d);
@@ -65,7 +65,7 @@ int main(void)
     uint8_t *ram=malloc(PR_BUS_RAM_SIZE),*copy=malloc(PR_BUS_RAM_SIZE),*cycle=malloc(PR_BUS_RAM_SIZE);
     pr_ega *ega=malloc(sizeof *ega);
     pr_port_env env={NULL,out,NULL};pr_bus bus={ram,ega,&env,written,NULL};
-    pr_r0709_printer_cpu c,before,first;pr_r0709_printer_diagnostic d;
+    pr_r0709_printer_0768_regs c,before,first;pr_r0709_printer_diagnostic d;
     CHECK(ram && copy && cycle && ega);
     /* Two words that fit: HELLO+space at columns 1..6, WORLD at 7..11; one glyph is 34 OUTs and 64 VRAM writes (06A7 test). */
     c=setup(&bus,1,1,20,5,"HELLO WORLD",0);
