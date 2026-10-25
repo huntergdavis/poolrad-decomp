@@ -41,6 +41,7 @@ EXE_SHA = "d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd"
 UNIT, ENTRY, END = 0x1C, 0x3171, 0x31B3
 DISPATCH_REL = 0x2F2D
 BODY_SHA = "4055cdf54a816923efbebe1bed325b67193264be3f6c20491f4f383d692aa489"
+CHECKER_ROWS = ("OVL_001C_3171",)
 SIZE = 1 << 20
 
 UNIT_CS, STACK_SS, STACK_SP, DATA_DS = 0x2000, 0x3000, 0x1000, 0x4000
@@ -82,13 +83,35 @@ def source():
     return ovr, at, body
 
 
-def build(directory, mutate=False):
+MUTATIONS = {
+    # the three defects a reviewer found, or that the old single mutant covered
+    "bias": ("(uint16_t)(di + 0x6700u)", "(uint16_t)(di + 0x6701u)"),
+    "ax_entry": ("    cpu->ax = entry;                                   /* 3174 mov ax,[bp+6] */\n", ""),
+    "add_ax": ("    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n",
+               "    cpu->ax = result;\n    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n"),
+    "flags_xor": ("    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n",
+                  "    flags ^= 0x08D5u;\n    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n"),
+    # flips only when the ADD operands differ in bit 0, so a non-final dispatch can be
+    # wrong while the final word still matches; only the rolling hash sees it.
+    "flags_pcodd": ("    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n",
+                    "    if (((left ^ right) & 1u) != 0u) flags ^= 0x08D5u;\n    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */\n"),
+    # review-d's exact boundary-reproduction: flip only OF, immediately before the
+    # dispatch, on nonterminal opcodes. The old rolling hash cancelled modulo 65536.
+    "of_nonterminal": ("        push16(ram, ram_size, cpu, body_cs);                           /* 31A4 push cs */",
+                       "        if (((uint8_t)cpu->ax != 0u) && ((uint8_t)cpu->ax != 0xFFu))\n"
+                       "            cpu->flags ^= 0x0800u;\n"
+                       "        push16(ram, ram_size, cpu, body_cs);                           /* 31A4 push cs */"),
+}
+
+
+def build(directory, mutate=None):
     source_path = ROOT / "src/recovered/overlay_u1c_run_3171_cpu.c"
     text = source_path.read_text()
-    name = "u1c_3171" + ("_mutant" if mutate else "")
+    name = "u1c_3171" + (("_" + mutate) if mutate else "")
     if mutate:
-        text = text.replace("(uint16_t)(di + 0x6700u)", "(uint16_t)(di + 0x6701u)")
-        check("0x6701u" in text, "mutation did not apply")
+        old, new = MUTATIONS[mutate]
+        check(old in text, f"mutation {mutate} site absent")
+        text = text.replace(old, new, 1)
     path = directory / (name + ".c")
     path.write_text(text)
     so = directory / (name + ".so")
@@ -109,7 +132,7 @@ def build(directory, mutate=False):
     return lib, dispatch_t
 
 
-def setup_ram(script, entry, stop, stop2, latch, es=0, ds_edge=False):
+def setup_ram(script, entry, stop, stop2, latch, buf_off=0, buf_es=0x5000, es=0, ds_edge=False):
     """Build the initial flat RAM, shared by both sides."""
     ram = bytearray(SIZE)
     base = UNIT_CS << 4
@@ -120,14 +143,14 @@ def setup_ram(script, entry, stop, stop2, latch, es=0, ds_edge=False):
         at = (dbase + off) & 0xFFFFF
         ram[at:at + len(data)] = data
     put_ds(0x49ED, entry.to_bytes(2, "little"))
-    put_ds(0x49DE, BUF_OFF.to_bytes(2, "little"))
-    put_ds(0x49E0, BUF_ES.to_bytes(2, "little"))
+    put_ds(0x49DE, buf_off.to_bytes(2, "little"))
+    put_ds(0x49E0, buf_es.to_bytes(2, "little"))
     put_ds(0x442E, bytes([stop]))
     put_ds(0x49FF, bytes([stop2]))
     put_ds(0x6F7F, bytes([latch]))
     put_ds(0x6F7E, b"\xAA")
     for i, opcode in enumerate(script):
-        at = ((BUF_ES << 4) + ((BUF_OFF + entry + i + 0x6700) & 0xFFFF)) & 0xFFFFF
+        at = ((buf_es << 4) + ((buf_off + entry + i + 0x6700) & 0xFFFF)) & 0xFFFFF
         ram[at] = opcode
     # caller stack: [SP]=return IP, [SP+2]=caller CS, [SP+4]=entry argument
     sbase = (STACK_SS << 4) & 0xFFFFF
@@ -163,7 +186,8 @@ def run_original(ram, lib):
             uc_.reg_write(UC_X86_REG_SP, (sp + 4) & 0xFFFF)
             buf = (ctypes.c_uint8 * SIZE).from_buffer_copy(uc_.mem_read(0, SIZE))
             cpu = Cpu()
-            cpu.ds = uc_.reg_read(UC_X86_REG_DS) & 0xFFFF
+            for name, reg in zip(NAMES, REGISTERS):
+                setattr(cpu, name, uc_.reg_read(reg) & 0xFFFF)
             lib.pr_u1c_3171_dispatch_double(buf, SIZE, ctypes.byref(cpu), None)
             uc_.mem_write(0, bytes(buf))
             counts[0] += 1
@@ -196,15 +220,58 @@ def run_c(ram, lib, dispatch_t):
 
 
 def cases():
-    yield "advance-then-stop", dict(script=[2, 0], entry=0, stop=0, stop2=0, latch=0)
-    yield "stop-immediately", dict(script=[0], entry=0, stop=0, stop2=0, latch=0)
-    yield "second-stop-byte", dict(script=[1, 0xFF], entry=0, stop=0, stop2=0, latch=0)
-    yield "stop-byte-preset", dict(script=[2], entry=0, stop=1, stop2=0, latch=0)
-    yield "second-stop-preset", dict(script=[2], entry=0, stop=0, stop2=1, latch=0)
-    yield "nonzero-entry", dict(script=[3, 4, 0], entry=7, stop=0, stop2=0, latch=0)
-    yield "latch-carried", dict(script=[9, 0], entry=0, stop=0, stop2=0, latch=0x5A)
-    yield "many-steps", dict(script=[1] * 12 + [0], entry=0, stop=0, stop2=0, latch=0)
-    yield "wrap-pc", dict(script=[5, 0], entry=0xFF00, stop=0, stop2=0, latch=0)
+    """Every case is labelled by how it was chosen.
+
+    adversarial: hand-picked to exercise a distinct instruction-semantics shape
+                 (both stop paths, latch carry, long run, 16-bit PC wrap).
+    regression:  the two exact cases codex-review-d found failing at 72c1625a;
+                 they are kept verbatim and each has a dedicated mutant.
+    sweep:       the small cross-product entry x stop x stop2 x buffer offset,
+                 chosen from the instruction semantics, not from passing cases.
+    """
+    adversarial = [
+        ("advance-then-stop", dict(script=[2, 0], entry=0, stop=0, stop2=0, latch=0)),
+        ("stop-immediately", dict(script=[0], entry=0, stop=0, stop2=0, latch=0)),
+        ("second-stop-byte", dict(script=[1, 0xFF], entry=0, stop=0, stop2=0, latch=0)),
+        ("stop-byte-preset", dict(script=[2], entry=0, stop=1, stop2=0, latch=0)),
+        ("second-stop-preset", dict(script=[2], entry=0, stop=0, stop2=1, latch=0)),
+        ("nonzero-entry", dict(script=[3, 4, 0], entry=7, stop=0, stop2=0, latch=0)),
+        ("latch-carried", dict(script=[9, 0], entry=0, stop=0, stop2=0, latch=0x5A)),
+        ("many-steps", dict(script=[1] * 12 + [0], entry=0, stop=0, stop2=0, latch=0)),
+        ("wrap-pc", dict(script=[5, 0], entry=0xFF00, stop=0, stop2=0, latch=0)),
+    ]
+    for label, spec in adversarial:
+        yield label, spec, "adversarial"
+    # the two exact reviewer regressions (named, inputs unchanged)
+    yield ("regress-entry7-stop2-1",
+           dict(script=[3, 4, 0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
+    yield ("regress-bufoff-advance",
+           dict(script=[2, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
+    # the same two defects with script [0] (the reviewers' other fixture shape)
+    yield ("regress-entry7-stop2-1-zero",
+           dict(script=[0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
+    yield ("regress-bufoff-advance-zero",
+           dict(script=[0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
+    # a non-default buffer SEGMENT, so BUF_ES is a per-case axis, not a constant
+    yield ("es-6000",
+           dict(script=[1, 0], entry=0, stop=0, stop2=0, latch=0,
+                buf_off=0x0100, buf_es=0x6000), "adversarial")
+    # first dispatch has odd PC, last has even: a non-final flags change must be caught
+    yield ("flags-nonfinal",
+           dict(script=[1, 0], entry=1, stop=0, stop2=0, latch=0, buf_off=0), "adversarial")
+    # review-d's boundary controls around the 7FFF/8000 buffer-offset boundary
+    for off in (0x7FFE, 0x7FFF, 0x8000):
+        yield (f"of-collision-{off:04x}",
+               dict(script=[1, 1, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=off),
+               "adversarial")
+    # systematic sweep: 4 x 2 x 2 x 4 = 64 cases
+    for entry in (0, 1, 7, 0xFFFF):
+        for stop in (0, 1):
+            for stop2 in (0, 1):
+                for buf_off in (0, 1, 0x0100, 0xFF00):
+                    label = f"sweep-e{entry:04X}-s{stop}-s2{stop2}-b{buf_off:04X}"
+                    yield (label, dict(script=[1, 0], entry=entry, stop=stop, stop2=stop2,
+                                       latch=0, buf_off=buf_off), "sweep")
 
 
 def compare(label, ram, lib, dispatch_t):
@@ -225,30 +292,58 @@ def compare(label, ram, lib, dispatch_t):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind the C model only; no media, no differential")
     args = parser.parse_args(argv)
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        try:
+            with tempfile.TemporaryDirectory(prefix="poolrad-u1c3171-") as temp:
+                build(Path(temp))
+        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+            print(f"CHECKER_BUILD_FAILED: {error}", file=sys.stderr)
+            return 1
+        print("CHECKER_BUILD_OK")
+        return 0
     ovr, at, body = source()
     global source_bytes
     source_bytes = body
     print(f"OVL_001C_3171 span {ENTRY:04X}..{END:04X} file {at} sha256 {BODY_SHA[:16]}...")
+    print("span digest is a pre-filter: it proves DIFFER, never SAME; the differential below is the evidence.")
     with tempfile.TemporaryDirectory() as tmp:
         directory = Path(tmp)
         lib, dispatch_t = build(directory)
-        mutant, mutant_t = build(directory, mutate=True)
+        mutants = {name: build(directory, name) for name in MUTATIONS}
+        want = list(cases())
         total = 0
-        for label, spec in cases():
+        for label, spec, kind in want:
             ram = setup_ram(**spec)
             total += compare(label, ram, lib, dispatch_t)
-            print(f"  AGREE {label}")
-        failures = 0
-        for label, spec in cases():
-            ram = setup_ram(**spec)
-            try:
-                compare(label, ram, mutant, mutant_t)
-            except ValueError:
-                failures += 1
-        check(failures >= 1, "the mutated C did not differ on any case: the differential cannot fail")
-        print(f"mutant killed on {failures}/{len(list(cases()))} cases")
-        print(f"PASS: {len(list(cases()))} cases, {total} dispatches, full 1 MiB RAM + 14 CPU words")
+            print(f"  AGREE [{kind}] {label}")
+        # each mutant must die, and the two regression cases must be the killers of
+        # their own defect (not merely one of many incidental failures).
+        required = {"bias": None, "ax_entry": "regress-entry7-stop2-1",
+                    "add_ax": "regress-bufoff-advance", "flags_xor": "advance-then-stop",
+                    "flags_pcodd": "flags-nonfinal",
+                    "of_nonterminal": "of-collision-7fff"}
+        for name, (mlib, mdispatch) in mutants.items():
+            killed = []
+            for label, spec, _kind in want:
+                ram = setup_ram(**spec)
+                try:
+                    compare(label, ram, mlib, mdispatch)
+                except ValueError:
+                    killed.append(label)
+            check(killed, f"mutant {name} survived every case")
+            if required[name] is not None:
+                check(required[name] in killed,
+                      f"mutant {name} was not killed by its regression case {required[name]}")
+            suffix = f" (incl. {required[name]})" if required[name] else ""
+            print(f"  mutant {name}: killed on {len(killed)}/{len(want)} cases{suffix}")
+        kinds = {kind: sum(1 for _l, _s, k in want if k == kind) for kind in
+                 ("adversarial", "regression", "sweep")}
+        print(f"PASS: {len(want)} cases ({kinds['adversarial']} adversarial, "
+              f"{kinds['regression']} regression, {kinds['sweep']} sweep), "
+              f"{total} dispatches, full 1 MiB RAM + 14 CPU words")
     return 0
 
 

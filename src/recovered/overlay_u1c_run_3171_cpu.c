@@ -70,7 +70,7 @@ static void add16_flags(pr_u1c_3171_cpu *cpu, uint16_t left, uint16_t right)
     if (result == 0u) flags |= 0x0040u;
     if ((result & 0x8000u) != 0u) flags |= 0x0080u;
     if (((~(left ^ right)) & (left ^ result) & 0x8000u) != 0u) flags |= 0x0800u;
-    cpu->ax = result;
+    /* ADD DI,AX writes DI, not AX; this helper must only publish flags. */
     cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~FLAG_MASK) | flags);
 }
 
@@ -91,6 +91,22 @@ int pr_u1c_3171_dispatch_double(uint8_t *ram, size_t ram_size,
 {
     uint8_t opcode;
     (void)context;
+    /* Audit observation, not body behaviour: the ADD DI,AX flags are live when the
+     * dispatcher is entered (nothing between ADD and the far call changes them). Record
+     * them so the differential can see them; the original side records the same word. */
+    {
+        /* Audit observation, not body behaviour: record the ORDERED per-dispatch
+         * arithmetic-FLAGS word in 64 slots (0F00h..0F7Fh) plus the observation count
+         * at 0F80h. Both sides run this same double, so a change on any dispatch -- and
+         * the sequence length -- is compared directly. A rolling hash was removed: its
+         * 16-bit arithmetic admitted a demonstrated modular cancellation. */
+        uint16_t observed = (uint16_t)(cpu->flags & 0x08D5u);
+        uint16_t n = read16(ram, ram_size, cpu->ds, 0x0F80u);
+        if (n < 64u) {
+            write16(ram, ram_size, cpu->ds, (uint16_t)(0x0F00u + 2u * n), observed);
+        }
+        write16(ram, ram_size, cpu->ds, 0x0F80u, (uint16_t)(n + 1u));
+    }
     opcode = read8(ram, ram_size, cpu->ds, 0x6F7Fu);
     if (opcode == 0x00u) {
         write8(ram, ram_size, cpu->ds, 0x442Eu, 1u);
@@ -113,7 +129,8 @@ int pr_u1c_run_3171(uint8_t *ram, size_t ram_size, pr_u1c_3171_cpu *cpu,
     push16(ram, ram_size, cpu, cpu->bp);              /* 3171 push bp */
     cpu->bp = cpu->sp;                                /* 3172 mov bp,sp */
     entry = read16(ram, ram_size, cpu->ss, (uint16_t)(cpu->bp + 6u));
-    write16(ram, ram_size, cpu->ds, 0x49EDu, entry);  /* 3174..3177 */
+    cpu->ax = entry;                                   /* 3174 mov ax,[bp+6] */
+    write16(ram, ram_size, cpu->ds, 0x49EDu, entry);   /* 3177 */
     write8(ram, ram_size, cpu->ds, 0x442Eu, 0u);      /* 317A */
 
     for (;;) {
@@ -127,6 +144,7 @@ int pr_u1c_run_3171(uint8_t *ram, size_t ram_size, pr_u1c_3171_cpu *cpu,
         write8(ram, ram_size, cpu->ds, 0x6F7Eu,
                read8(ram, ram_size, cpu->ds, 0x6F7Fu));                /* 318D..3190 */
         pc = read16(ram, ram_size, cpu->ds, 0x49EDu);                  /* 3193 */
+        cpu->ax = pc;                                                  /* 3193 mov ax,[0x49ED] */
         di = read16(ram, ram_size, cpu->ds, 0x49DEu);                  /* 3196 les di */
         es = read16(ram, ram_size, cpu->ds, 0x49E0u);                  /* 3196 les es */
         before = di;
