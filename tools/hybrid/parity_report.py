@@ -88,7 +88,9 @@ def report(original, replacement):
     if not dispatch:
         raise ValueError('replacement dispatch list is empty')
     routed = b['routed_returns']
-    if not routed:
+    if a['routed_returns'] != 0 or a['routed_stops'] != 0:
+        raise ValueError('original capture contains routed C execution')
+    if routed <= 0:
         raise ValueError('no measured C route returns in replacement run')
     return dict(schema=1, case=a['case'], result='PASS' if equal else 'FAIL',
                 input_manifest_sha256=digest(inputs[0]), save_state_id=digest('\n'.join(save_files).encode()),

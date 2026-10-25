@@ -26,7 +26,8 @@ class ReceiptTests(unittest.TestCase):
             (path / 'checkpoint.vram').write_bytes(bytes(16))
             (path / 'checkpoint.rgb').write_bytes(bytes(3))
             regs = dict.fromkeys('eax ebx ecx edx esi edi ebp esp eip cs ds es ss fs gs flags'.split(), 0)
-            data = dict(schema=1, id='RES_FAKE_0000', case='loaded', arrival=1, routed_returns=1, routed_stops=0,
+            data = dict(schema=1, id='RES_FAKE_0000', case='loaded', arrival=1,
+                        routed_returns=int(path == self.right), routed_stops=0,
                         registers=regs, video=dict(vmemsize=16),
                         frame=dict(width=1, height=1, format='RGB24',
                                    sha256=hashlib.sha256(bytes(3)).hexdigest()))
@@ -91,6 +92,14 @@ class ReceiptTests(unittest.TestCase):
     def test_different_registry_rejected(self):
         (self.right / 'registry.tsv').write_text('different')
         with self.assertRaisesRegex(ValueError, 'registries'):
+            report(self.left, self.right)
+
+    def test_original_with_c_execution_rejected(self):
+        path = self.left / 'checkpoint.json'
+        data = json.loads(path.read_text())
+        data['routed_returns'] = 1
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'original capture'):
             report(self.left, self.right)
 
     def test_ambiguous_signature_rejected(self):
