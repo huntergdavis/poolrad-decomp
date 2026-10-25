@@ -114,6 +114,136 @@ class DeclaredBoundaryTest(unittest.TestCase):
         scq.require_not_declared_boundary("OVL_0038_12B2")
 
 
+class ReadyHelperTest(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[2]
+    ID = "RES_03F1_0000"
+
+    def committed(self, **kwargs):
+        def rows(name):
+            with (self.ROOT / f"docs/re/{name}.csv").open() as handle:
+                return list(csv.DictReader(handle))
+        return scq.load_ready_helpers(rows("overlay_classification"),
+                                     rows("strict_full_c_addresses"),
+                                     rows("reviewed_function_identities"), self.ROOT, **kwargs)
+
+    def classes(self):
+        return {owner: "game_evidenced" for owner, _, _ in scq.READY_HELPER_CANDIDATES[self.ID]["callers"]}
+
+    def test_exact_set_and_both_resident_refusals_on_base(self):
+        members, assessments = self.committed()
+        self.assertEqual(set(scq.READY_HELPER_CANDIDATES), {self.ID})
+        self.assertEqual(members, frozenset())
+        self.assertEqual(assessments[0]["reasons"], [
+            "caller RES_00BA_16EC is unresolved", "caller RES_03F1_02E8 is unresolved"])
+        self.assertFalse(assessments[0]["member"])
+        self.assertFalse(assessments[0]["eligible"])
+        self.assertEqual([(r["id"], r["site"], r["classification"]) for r in assessments[0]["callers"]], [
+            ("OVL_006A_04A1", "04F7", "game_evidenced"),
+            ("OVL_0077_004A", "0073", "game_evidenced"),
+            ("OVL_0077_0EF8", "11B8", "game_evidenced"),
+            ("RES_00BA_16EC", "177B", "unresolved"),
+            ("RES_03F1_02E8", "032A", "unresolved")])
+        with self.assertRaisesRegex(ValueError, "RES_03F1_02E8 is unresolved"):
+            self.committed(members={self.ID})
+
+    def test_each_gate_is_required(self):
+        candidate = scq.READY_HELPER_CANDIDATES[self.ID]
+        self.assertTrue(scq.assess_ready_helper(self.ID, candidate, self.classes())["eligible"])
+        for factors in ((), (1,), (1, 2), (2, 3)):
+            result = scq.assess_ready_helper(self.ID, dict(candidate, refused_factors=factors), self.classes())
+            self.assertIn("not refused on factor 2 alone", result["reasons"])
+        for key in ("evidence_doc", "audit"):
+            result = scq.assess_ready_helper(self.ID, dict(candidate, **{key: "missing"}), self.classes())
+            self.assertFalse(result["eligible"])
+        result = scq.assess_ready_helper(self.ID, candidate, self.classes(), image=bytes(65536))
+        self.assertIn("original body hash differs from full evidence", result["reasons"])
+        self.assertFalse(scq.assess_ready_helper(self.ID, dict(candidate, callers=()), self.classes())["eligible"])
+        # Every individual caller can veto; another helper is not game evidence.
+        for owner in self.classes():
+            for weak in ("unresolved", "helper_candidate", "ready_helper", "driver_internal"):
+                classes = dict(self.classes(), **{owner: weak})
+                self.assertFalse(scq.assess_ready_helper(self.ID, candidate, classes)["eligible"])
+
+    def test_eligibility_does_not_automatically_promote(self):
+        candidate = dict(scq.READY_HELPER_CANDIDATES[self.ID],
+                         callers=(("OVL_0019_0010", 0x15, "overlay_far_fixup"),))
+        _, _, classes = fixture()
+        members, result = scq.load_ready_helpers(classes, [], [], candidates={self.ID: candidate})
+        self.assertTrue(result[0]["eligible"])
+        self.assertEqual(members, frozenset())
+        members, _ = scq.load_ready_helpers(classes, [], [], candidates={self.ID: candidate}, members={self.ID})
+        self.assertEqual(members, {self.ID})
+
+    def test_members_are_never_credits_or_manifest_rows(self):
+        inventory, ledger, classes = fixture()
+        for key in ("strict_rows", "identity_rows", "partial_rows"):
+            args = dict(strict_rows=[], identity_rows=[], partial_rows=[])
+            args[key] = [dict(id=self.ID)]
+            with self.assertRaisesRegex(ValueError, "ready_helper members can never appear"):
+                scq.load_queue(inventory, ledger, classes, near=None, ready_helpers={self.ID}, **args)
+
+    def test_reviewed_resident_identity_can_satisfy_caller_gate_without_credit(self):
+        candidate = dict(scq.READY_HELPER_CANDIDATES[self.ID],
+                         callers=(("RES_00BA_16EC", 0x177B, "resident_far_fixup"),))
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for field in ("evidence_doc", "audit"):
+                path = root / candidate[field]
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes((self.ROOT / candidate[field]).read_bytes())
+            review = dict(id="RES_00BA_16EC", evidence_doc="docs/re/identity.md",
+                          reviewed_commit="a" * 40, review_pr="123", body_bytes="247", body_sha256="b" * 64)
+            (root / review["evidence_doc"]).write_text(f"RES_00BA_16EC PASS {review['body_sha256']}\n")
+            members, assessments = scq.load_ready_helpers([], [], [], root, members={self.ID},
+                candidates={self.ID: candidate}, resident_identities=[review])
+            self.assertEqual(members, {self.ID})
+            self.assertEqual(assessments[0]["callers"][0]["classification"], "reviewed_identity")
+            for changes in (dict(reviewed_commit="pending"), dict(evidence_doc="missing"),
+                            dict(body_sha256="c" * 64), dict(review_pr="0")):
+                with self.assertRaisesRegex(ValueError, "caller.*(identity|provenance)"):
+                    scq.load_ready_helpers([], [], [], root, members={self.ID}, candidates={self.ID: candidate},
+                                           resident_identities=[dict(review, **changes)])
+
+    def test_ready_helper_reaches_direct_and_transitive_callers_without_credit(self):
+        inventory, ledger, classes = fixture()
+        graph = callgraph()
+        graph["edges"].append(dict(kind="far_fixup_confirmed", unit=0x19, site=0x24,
+                                   src_func=0x20, seg=0x3F1, off=0, resolution="resident"))
+        mentions, files, branches = evidence()
+        files["OVL_0019_0020"] = ["src/recovered/synthetic.c"]
+        for members, expected in ((frozenset(), False), ({self.ID}, True)):
+            state = scq.load_queue(inventory, ledger, classes,
+                                   [dict(id="OVL_0019_0010", evidence_doc="docs/re/synthetic.md")],
+                                   None, ready_helpers=members)
+            result = scq.build_queue(state, graph, inventory["units"], ledger, classes,
+                                     mentions, files, branches, {})
+            rows = {r["id"]: r for r in result["rows"]}
+            self.assertEqual(rows["OVL_0019_0020"]["callee_readiness"]["composable"], expected)
+            self.assertEqual(rows["OVL_0019_0030"]["callee_readiness"]["composable"], expected)
+            self.assertFalse(state["strict_resident_ids"])
+        helper = next(t for t in rows["OVL_0019_0020"]["callee_readiness"]["targets"] if t.get("id") == self.ID)
+        self.assertEqual(helper["readiness"], "ready_helper")
+
+    def test_original_census_includes_near_caller_and_refuses_omissions(self):
+        media = self.ROOT / "resources/DOS/POOLRAD"
+        if not (media / "START.EXE").is_file():
+            self.skipTest("owner media absent")
+        try:
+            import capstone  # noqa: F401
+        except ImportError:
+            self.skipTest("Capstone absent")
+        def rows(name):
+            with (self.ROOT / f"docs/re/{name}.csv").open() as handle:
+                return list(csv.DictReader(handle))
+        args = ((media / "START.EXE").read_bytes(), (media / "GAME.OVR").read_bytes(),
+                rows("overlay_function_ledger"), rows("resident_callable_ledger"))
+        scq.verify_ready_helper_callers(*args)
+        candidate = scq.READY_HELPER_CANDIDATES[self.ID]
+        omitted = dict(candidate, callers=candidate["callers"][:-1])
+        with self.assertRaisesRegex(ValueError, "caller census changed"):
+            scq.verify_ready_helper_callers(*args, candidates={self.ID: omitted})
+
+
 class DriverInternalTest(unittest.TestCase):
     """A driver-internal body composes as ready but can never be credited (VP i19925)."""
 

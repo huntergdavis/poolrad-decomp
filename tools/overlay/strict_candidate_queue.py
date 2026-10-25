@@ -50,6 +50,8 @@ FRESHNESS_INPUTS = {
     "driver_internal": "docs/re/driver_internal_models.csv",
     "resident_runtime": "docs/re/resident_runtime_models.csv",
     "identities": "docs/re/reviewed_function_identities.csv",
+    "ready_helper_rules": "tools/overlay/strict_candidate_queue.py",
+    "resident_ledger": "docs/re/resident_callable_ledger.csv",
 }
 STALE_EXIT = 2
 REGENERATE = ("  python3 tools/overlay/strict_candidate_queue.py \\\n"
@@ -409,6 +411,161 @@ RESIDENT_RUNTIME_FIELDS = DRIVER_INTERNAL_FIELDS
 RESIDENT_RUNTIME_ID = re.compile(r"RES_(?!08AE_)[0-9A-F]{4}_[0-9A-F]{4}")
 RESIDENT_LEDGER = "docs/re/resident_callable_ledger.csv"
 
+# PM i23493(2), clarified by i23747 and VP i23751: ALL callers, including
+# resident near callers, must have game evidence. A candidate is not a member.
+# Membership is an explicit reviewed act, never an automatic promotion. On
+# 6d369fe3 both resident callers below are unresolved, so the exact set is empty.
+READY_HELPER_MEMBERS = frozenset()
+# Reviewed resident caller identities not yet strict. Entries use the same
+# provenance fields as reviewed_function_identities.csv (which is overlay-only).
+# Add only after the identity review lands on main; #1551 is not on 6d369fe3.
+READY_HELPER_RESIDENT_IDENTITIES = ()
+READY_HELPER_CANDIDATES = {
+    "RES_03F1_0000": dict(
+        evidence_doc="docs/re/RES_03F1_BOX_0000_CPU.md",
+        audit="tools/overlay/res03f1_box_0000_cpu_audit.py",
+        body_sha256="fae6cb41423bcd48237e75a08f5eda70642254eac8449373291d57f34120a8a4",
+        body_bytes=311, refused_factors=(2,),
+        # (owner, call instruction offset, evidence kind). 0329 is PUSH CS;
+        # the CALL at 032A belongs to 02E8, not to the strict clear at 0137.
+        callers=(("OVL_006A_04A1", 0x04F7, "overlay_far_fixup"),
+                 ("OVL_0077_004A", 0x0073, "overlay_far_fixup"),
+                 ("OVL_0077_0EF8", 0x11B8, "overlay_far_fixup"),
+                 ("RES_00BA_16EC", 0x177B, "resident_far_fixup"),
+                 ("RES_03F1_02E8", 0x032A, "resident_near_push_cs"))),
+}
+for _helper_id, _helper in READY_HELPER_CANDIDATES.items():
+    for _field in ("evidence_doc", "audit"):
+        FRESHNESS_INPUTS[f"ready_helper_{_helper_id}_{_field}"] = _helper[_field]
+for _identity in READY_HELPER_RESIDENT_IDENTITIES:
+    FRESHNESS_INPUTS[f"ready_helper_identity_{_identity['id']}"] = _identity["evidence_doc"]
+
+
+def verify_ready_helper_callers(exe, ovr, ledger_rows, resident_rows, candidates=None):
+    """Re-derive all direct callers from original bytes; refuse a stale census.
+
+    Overlay sites require loader fixups. Resident far sites use the expanded
+    image's relocation stream; resident near sites use the existing decoded
+    candidate-seeded path walk, including its near-call closure. Unknown
+    owners or extra sites cannot disappear into an overlay-only summary.
+    """
+    from far_call_sites import sites
+    from resident_loader_map import unpack, relocations, word
+    from resident_callable_coverage import near_closure
+    candidates = READY_HELPER_CANDIDATES if candidates is None else candidates
+    image = bytes(unpack(exe)[0])
+    fixups, _ = relocations(exe, image)
+    starts = {number(row["image_offset"]): row["id"] for row in resident_rows}
+    seeds, walk = near_closure(image, set(starts))
+    require(not walk["invalid"] and not walk["truncated"], "ready_helper caller decode incomplete")
+    for identifier, candidate in candidates.items():
+        seg, off = key_of_id(identifier)
+        found = set()
+        for unit, site, _ in sites(exe, ovr, seg, off):
+            owners = [row for row in ledger_rows if number(row["unit"]) == unit
+                      and number(row["offset"]) <= site < number(row["offset"]) + number(row["bound"])]
+            require(len(owners) == 1, f"ready_helper caller has no unique overlay owner: {unit:04X}:{site:04X}")
+            found.add((ovl_id(unit, number(owners[0]["offset"])), site, "overlay_far_fixup"))
+        target = 16 * seg + off
+        far = {fixup - 3 for fixup in fixups if fixup >= 3 and image[fixup - 3] == 0x9A
+               and 16 * word(image, fixup) + word(image, fixup - 2) == target}
+        for kind, callsites in (("resident_far_fixup", far),
+                                ("resident_near_push_cs", walk["near"].get(target, set()))):
+            for site in callsites:
+                start = max((start for start in seeds if start <= site), default=-1)
+                owner = starts.get(start, "unknown")
+                require(owner.startswith("RES_"), f"ready_helper resident caller owner unresolved at {site:05X}")
+                owner_seg, _ = key_of_id(owner)
+                if kind == "resident_near_push_cs":
+                    require(image[site - 1] == 0x0E, f"ready_helper near caller lacks PUSH CS at {site:05X}")
+                found.add((owner, site - 16 * owner_seg, kind))
+        require(found == set(candidate["callers"]),
+                f"ready_helper {identifier} caller census changed: "
+                f"missing={sorted(set(candidate['callers']) - found)}, extra={sorted(found - set(candidate['callers']))}")
+    return image
+
+
+def assess_ready_helper(identifier, candidate, caller_classes, root=ROOT, image=None):
+    """Narrow admission predicate; return every refusal, never partial readiness.
+
+    Original-byte audit execution is an acceptance obligation, recorded in the
+    evidence document; exports check that document, its registered audit and
+    the original span. Caller sites are pinned to the audited executable and
+    independently re-derived by measure_ready_helpers.py.
+    """
+    reasons = []
+    document = Path(root) / candidate["evidence_doc"]
+    audit = Path(root) / candidate["audit"]
+    if not (candidate["evidence_doc"].startswith("docs/re/")
+            and ".." not in candidate["evidence_doc"].split("/")
+            and document.is_file() and identifier in document.read_text()
+            and candidate["body_sha256"] in document.read_text()
+            and audit.is_file() and re.search(
+                rf"CHECKER_ROWS\s*=\s*\([^)]*['\"]{re.escape(identifier)}['\"]",
+                audit.read_text())):
+        reasons.append("missing full evidence or registered original-byte audit")
+    if image is not None:
+        seg, off = key_of_id(identifier)
+        body = image[16 * seg + off:16 * seg + off + candidate["body_bytes"]]
+        if hashlib.sha256(body).hexdigest() != candidate["body_sha256"]:
+            reasons.append("original body hash differs from full evidence")
+    if tuple(candidate["refused_factors"]) != (2,):
+        reasons.append("not refused on factor 2 alone")
+    callers = [dict(id=owner, site=f"{site:04X}", kind=kind,
+                    classification=caller_classes.get(owner, "unresolved"))
+               for owner, site, kind in candidate["callers"]]
+    if not callers:
+        reasons.append("no evidenced callers")
+    for caller in callers:
+        if caller["classification"] not in ("game_evidenced", "game_verified", "strict", "reviewed_identity"):
+            reasons.append(f"caller {caller['id']} is {caller['classification']}")
+    return dict(id=identifier, eligible=not reasons, reasons=reasons, callers=callers)
+
+
+def load_ready_helpers(classification_rows, strict_rows, identity_rows, root=ROOT,
+                       image=None, members=None, candidates=None, resident_identities=None):
+    """Validate the explicit never-credit set and report deferred candidates."""
+    members = READY_HELPER_MEMBERS if members is None else frozenset(members)
+    candidates = READY_HELPER_CANDIDATES if candidates is None else candidates
+    require(members <= candidates.keys(), "ready_helper member has no candidate evidence")
+    classes = {ovl_id(number(row["unit"]), number(row["offset"])): row["classification"]
+               for row in classification_rows}
+    # Reviewed identities are stronger than game_evidenced. Unmerged PRs and
+    # identity arguments without a reviewed declaration do not qualify.
+    for row in identity_rows:
+        document = Path(root) / row.get("evidence_doc", "")
+        if document.is_file() and row["id"] in document.read_text():
+            classes[row["id"]] = "reviewed_identity"
+    resident_identities = (READY_HELPER_RESIDENT_IDENTITIES if resident_identities is None
+                           else resident_identities)
+    for row in resident_identities:
+        document = row["evidence_doc"]
+        require(re.fullmatch(r"RES_[0-9A-F]{4}_[0-9A-F]{4}", row["id"])
+                and re.fullmatch(r"[0-9a-f]{40}", row["reviewed_commit"])
+                and str(row["review_pr"]).isdigit() and int(row["review_pr"]) > 0
+                and re.fullmatch(r"[0-9a-f]{64}", row["body_sha256"])
+                and str(row["body_bytes"]).isdigit() and int(row["body_bytes"]) > 0
+                and document.startswith("docs/re/") and ".." not in document.split("/")
+                and (Path(root) / document).is_file(), "ready_helper caller lacks reviewed identity provenance")
+        text = (Path(root) / document).read_text()
+        require(row["id"] in text and row["body_sha256"] in text,
+                "ready_helper caller identity document lacks its address/body hash")
+        classes[row["id"]] = "reviewed_identity"
+    for row in strict_rows:
+        require_not_driver_internal(row["id"], members, "strict_full_c_addresses.csv", "ready_helper")
+        classes[row["id"]] = "strict"
+    for row in identity_rows:
+        require_not_driver_internal(row["id"], members, "reviewed_function_identities.csv", "ready_helper")
+    for row in resident_identities:
+        require_not_driver_internal(row["id"], members, "ready-helper resident identities", "ready_helper")
+    assessments = [assess_ready_helper(identifier, candidate, classes, root, image)
+                   for identifier, candidate in sorted(candidates.items())]
+    for assessment in assessments:
+        assessment["member"] = assessment["id"] in members
+        require(not assessment["member"] or assessment["eligible"],
+                f"ready_helper {assessment['id']} refused: {'; '.join(assessment['reasons'])}")
+    return members, assessments
+
 
 def _direct_near_target(ins):
     """Target of a direct near branch or call: the instruction's single immediate operand; None if indirect."""
@@ -626,7 +783,8 @@ def require_not_declared_boundary(row_id):
 
 
 def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
-               partial_rows=None, driver_internal=frozenset(), identity_rows=(), resident_runtime=frozenset()):
+               partial_rows=None, driver_internal=frozenset(), identity_rows=(), resident_runtime=frozenset(),
+               ready_helpers=frozenset()):
     """Validated join: reuse function_queue's overlay row construction."""
     for endpoint, terminal in RUNTIME_COVERED_TERMINALS.items():
         require(endpoint not in RUNTIME_COVERED_ENDPOINTS or terminal in DECLARED_BOUNDARY_ENDPOINTS,
@@ -644,6 +802,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
         for row_ in rows_:
             require_not_driver_internal(row_["id"], driver_internal, table)
             require_not_driver_internal(row_["id"], resident_runtime, table, "resident_runtime")
+            require_not_driver_internal(row_["id"], ready_helpers, table, "ready_helper")
     near_validated = False
     if near is not None:
         check_inputs(near)
@@ -713,7 +872,7 @@ def load_queue(inventory, ledger_rows, classification_rows, strict_rows, near,
                 full_models=full_models, partial_models=partial_models,
                 resident_full=resident_full, resident_callback=resident_callback,
                 driver_internal=frozenset(driver_internal), resident_runtime=frozenset(resident_runtime),
-                near_validated=near_validated)
+                ready_helpers=frozenset(ready_helpers), near_validated=near_validated)
 
 
 # Evidence shapes that mention an address without modelling it: a test assertion
@@ -843,17 +1002,19 @@ def runtime_readiness(seg, off):
     return "runtime_unmapped"
 
 
-def resident_target_ready(res_id, resident_full, driver_internal=frozenset(), resident_runtime=frozenset()):
+def resident_target_ready(res_id, resident_full, driver_internal=frozenset(), resident_runtime=frozenset(),
+                          ready_helpers=frozenset()):
     """Transitive-pass mirror of callee_evidence's resident readiness classes."""
     if res_id in RAW_CPU_INTERFACE_CAVEATS:
         return False
     return (res_id in DECLARED_BOUNDARY_ENDPOINTS or res_id in driver_internal
-            or res_id in resident_runtime or res_id in resident_full)
+            or res_id in resident_runtime or res_id in ready_helpers or res_id in resident_full)
 
 
 def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_id,
                     partial_models, transitively_unready, resident_full,
-                    resident_callback, endpoints, driver_internal=frozenset(), resident_runtime=frozenset()):
+                    resident_callback, endpoints, driver_internal=frozenset(), resident_runtime=frozenset(),
+                    ready_helpers=frozenset()):
     source_id = ovl_id(*key)
     targets, seen = [], set()
     for edge in edges_by_source.get(key, []):
@@ -891,6 +1052,7 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
                          else "declared_boundary" if res_id in DECLARED_BOUNDARY_ENDPOINTS
                          else "driver_internal" if res_id in driver_internal
                          else "resident_runtime" if res_id in resident_runtime
+                         else "ready_helper" if res_id in ready_helpers
                          else "resident_covered" if res_id in resident_full
                          else "resident_callback" if res_id in resident_callback
                          else "resident_unmapped")
@@ -908,10 +1070,10 @@ def callee_evidence(key, edges_by_source, strict_overlay, main_files, class_by_i
     caveats = sorted((dict(id=target["id"], note=RAW_CPU_INTERFACE_CAVEATS[target["id"]])
                       for target in targets if target.get("id") in RAW_CPU_INTERFACE_CAVEATS),
                      key=lambda item: item["id"])
-    # declared_boundary, driver_internal and resident_runtime compose like ready dependencies, but are never credits.
+    # Declared boundaries and the three noncredit classes compose without credit.
     ready = (counts["strict"] + counts["modeled"] + counts["resident_covered"]
              + counts["runtime_covered"] + counts["declared_boundary"] + counts["driver_internal"]
-             + counts["resident_runtime"])
+             + counts["resident_runtime"] + counts["ready_helper"])
     unready = (counts["untranslated"] + counts["resident_unmapped"]
                + counts["resident_callback"] + counts["runtime_unmapped"]
                + counts["partial"] + counts["modeled_blocked"] + counts["verified"]
@@ -1025,7 +1187,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                 changed = True
             elif any(not resident_target_ready(res_id, state["resident_full"],
                                                state.get("driver_internal", frozenset()),
-                                               state.get("resident_runtime", frozenset()))
+                                               state.get("resident_runtime", frozenset()),
+                                               state.get("ready_helpers", frozenset()))
                      for res_id in resident_edges.get(node, ())):
                 ready[node] = False
                 changed = True
@@ -1045,7 +1208,8 @@ def build_queue(state, callgraph, units, ledger_rows, classification_rows, menti
                                   transitively_unready, state["resident_full"],
                                   state["resident_callback"], endpoints,
                                   state.get("driver_internal", frozenset()),
-                                  state.get("resident_runtime", frozenset()))
+                                  state.get("resident_runtime", frozenset()),
+                                  state.get("ready_helpers", frozenset()))
         callers = caller_evidence(key, far_by_target, near_by_target, ovr, unit_ovr)
         prior = prior_evidence(cid, main_files, mentions[cid], branch_hits.get(cid, []),
                                commit_hits.get(cid, []), state["strict_overlay"],
@@ -1162,12 +1326,19 @@ def main():
     parser.add_argument("--no-git", action="store_true", help="skip branch and commit scans")
     parser.add_argument("--json", required=True)
     parser.add_argument("--discards", help="write the detector's discard report (every rejected mention, its rule) here")
+    parser.add_argument("--without-ready-helpers", action="store_true",
+                        help="counterfactual export with ready-helper membership disabled")
     args = parser.parse_args()
     paths = {"inventory": Path(args.inventory), "callgraph": Path(args.callgraph),
              "ledger": Path(args.ledger), "classification": Path(args.classification),
              "strict_map": Path(args.strict_map), "partial_models": Path(args.partial_models),
              "driver_internal": Path(args.driver_internal), "resident_runtime": Path(args.resident_runtime),
-             "identities": Path(args.identities)}
+             "identities": Path(args.identities),
+             "ready_helper_rules": Path(__file__),
+             "resident_ledger": Path(args.repo) / RESIDENT_LEDGER}
+    for name, relative in FRESHNESS_INPUTS.items():
+        if name.startswith("ready_helper_") and name != "ready_helper_rules":
+            paths[name] = Path(args.repo) / relative
     if args.near_calls:
         paths["near_calls"] = Path(args.near_calls)
     if args.ovr:
@@ -1190,10 +1361,10 @@ def main():
         runtime_text = blobs["resident_runtime"].decode()
         runtime_rows = csv_rows(blobs["resident_runtime"])
         image = None
-        if driver_rows or runtime_rows:
+        if driver_rows or runtime_rows or READY_HELPER_CANDIDATES:
             # A member must be closure-complete; that is decided from the bytes, so the check cannot be skipped.
             exe_path = Path(args.exe)
-            require(exe_path.is_file(), f"driver_internal or resident_runtime has members, so the closure check needs "
+            require(exe_path.is_file(), f"readiness classes need the original-byte check and "
                                         f"START.EXE: {exe_path}")
             exe = exe_path.read_bytes()
             require(hashlib.sha256(exe).hexdigest() == DIGESTS["start_exe_sha256"],
@@ -1209,11 +1380,19 @@ def main():
                                                  fields=csv.DictReader(runtime_text.splitlines()).fieldnames,
                                                  image=image, strict_ids=strict_residents,
                                                  driver_internal=driver_internal)
+        if READY_HELPER_CANDIDATES:
+            require("ovr" in blobs, "ready_helper caller verification requires --ovr GAME.OVR")
+            verify_ready_helper_callers(exe, blobs["ovr"], csv_rows(blobs["ledger"]),
+                                        csv_rows(blobs["resident_ledger"]))
+        ready_helpers, helper_assessments = load_ready_helpers(
+            csv_rows(blobs["classification"]), csv_rows(blobs["strict_map"]),
+            csv_rows(blobs["identities"]), repo, image)
         state = load_queue(inventory, csv_rows(blobs["ledger"]),
                            csv_rows(blobs["classification"]),
                            csv_rows(blobs["strict_map"]), near,
                            csv_rows(blobs["partial_models"]), driver_internal,
-                           csv_rows(blobs["identities"]), resident_runtime)
+                           csv_rows(blobs["identities"]), resident_runtime,
+                           frozenset() if args.without_ready_helpers else ready_helpers)
         main_files = scan_main_files(repo, state["all_ids"])
         state["pinned_spans"] = pinned_spans(repo)
         for identifier, evidence in sorted(state["full_models"].items()):
@@ -1233,6 +1412,9 @@ def main():
                              dict(ovr=blobs["ovr"]) if "ovr" in blobs else None, git_view)
     except (ValueError, KeyError, TypeError) as error:
         parser.exit(2, f"strict candidate queue refused: {error}\n")
+    result["ready_helpers"] = dict(
+        enabled=not args.without_ready_helpers, members=sorted(state["ready_helpers"]),
+        candidates=helper_assessments)
     result["artifacts_sha256"] = {name: hashlib.sha256(blob).hexdigest()
                                   for name, blob in sorted(blobs.items())}
     discards = result.pop("discards")
