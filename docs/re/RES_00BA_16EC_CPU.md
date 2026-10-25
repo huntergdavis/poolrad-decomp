@@ -2,7 +2,8 @@
 
 This is **evidence work, not a strict unlock**. The candidate translates
 `00BA:[16EC,17E3)` (247 bytes, 116 instruction starts, `RETF 0Ch` at 17E0)
-and composes its display, printer, box, delay and string-copy callees. It
+and composes its display, printer, box, delay and string-copy callees.
+The current refreshed base is `4b0ce9fd6bb57fc5c40691411eb750b012f39ba3`. It
 adds no strict, identity, runtime-membership or REPLACED row.
 
 The branch starts from `a611ec51b86dfdce65033dc553b2a42ad0f8f22a` and resumes
@@ -57,7 +58,11 @@ checks cover the local string, branch colour and `RETF 0Ch` frame.
 
 The initial full run **failed** at `m5-f0-w0-max`: the original exceeded
 six million instructions on the 255-byte message. This is not a passing
-comparison. A diagnostic rerun retains per-case failures and exits nonzero
+comparison. The existing [printer evidence](RES_0709_PRINTER_0768_CPU.md)
+explains that a final word ending at index 255 never terminates inside
+06A7 because its byte index wraps; that callee has a declared LIMIT.
+This is a known original-program limitation, but the t24 checker has not
+yet compared a finite prefix at that callee limit. A diagnostic rerun retains per-case failures and exits nonzero
 if any occur. The full 386-case set includes both display branches, wait
 and colour choices, empty/long messages, stack edges, frame aliases,
 flags, graphics modes, instruction-budget boundaries and seeded worlds.

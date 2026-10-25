@@ -42,7 +42,7 @@ int main(void)
     CHECK(!memcmp(&c,&saved,sizeof c) && !memcmp(ram,before,PR_BUS_RAM_SIZE));
     c=setup(&bus); budget=3;
     CHECK(pr_res_00ba_window_16ec_cpu(&bus,PR_BUS_RAM_SIZE,&c,&budget,&env,&d)==PR_RES_16EC_LIMIT);
-    CHECK(c.ip==0x16F3 && c.bp==0x8FFE && c.sp==0x8EFC && c.flags==0x0206 && budget==0);
+    CHECK(c.ip==0x16F3 && c.bp==0x8FFE && c.sp==0x8EFC && c.flags==0x0286 && budget==0);
     CHECK(get(ram,c.ss,0x8FFE)==0x7777 && get(ram,c.ss,0x9000)==0xBEEF);
     c=setup(&bus); budget=11;
     CHECK(pr_res_00ba_window_16ec_cpu(&bus,PR_BUS_RAM_SIZE,&c,&budget,&env,&d)==PR_RES_16EC_LIMIT);
