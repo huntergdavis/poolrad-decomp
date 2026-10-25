@@ -7,6 +7,8 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import sys
+from emulator_provenance import MissingProvenance, read_receipt
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -17,6 +19,7 @@ def require(condition, reason):
 
 
 def snapshot(run):
+    emulator = read_receipt(run)
     summary = json.loads((run / 'r1-summary.json').read_text())
     require(summary['success'] and summary['error'] is None, f'{run}: route failed')
     require(summary['shutdown'] == 'SIGTERM', f'{run}: incomplete shutdown')
@@ -48,7 +51,9 @@ def snapshot(run):
     hashes = {name: hashlib.sha256((run / name).read_bytes()).hexdigest()
               for name in ('r1-driver.py', 'r1-route.json', 'r1-registry.tsv', '.oracle-input-sha256')}
     hashes['binary'] = (run / 'r1-hashes.txt').read_text().split()[0]
+    hashes['emulator-receipt'] = hashlib.sha256((run / 'emulator.json').read_bytes()).hexdigest()
     return dict(run=str(run), mode=(run / 'r1-mode.txt').read_text().strip(), hashes=hashes,
+                emulator=emulator,
                 actions=[(r['name'], r['key']) for r in summary['gates']],
                 final_pixels=summary['final_pixels_sha256'], rng=rng, counters=counters,
                 sequence_rows=last_n, elapsed_s=summary['gates'][-1]['elapsed_s'])
@@ -57,6 +62,7 @@ def snapshot(run):
 def pair(a, b):
     require(a['mode'] == b['mode'] == 'original', 'pair must contain two original runs')
     checks = {field: a[field] == b[field] for field in ('hashes', 'actions', 'final_pixels', 'rng')}
+    checks['same_emulator_sha256'] = a['hashes']['binary'] == b['hashes']['binary']
     require(all(checks.values()), f'original pair differs: {checks}')
     return checks
 
@@ -93,6 +99,7 @@ def main():
         current = snapshot(path)
         require(current['mode'] == 'dispatch', 'expected dispatch run')
         checks = {field: a[field] == current[field] for field in ('hashes', 'actions', 'final_pixels')}
+        checks['same_emulator_sha256'] = a['hashes']['binary'] == current['hashes']['binary']
         require(all(checks.values()), f'{name} route differs: {checks}')
         rng_equal = a['rng'] == current['rng']
         if name == 'v1':
@@ -121,4 +128,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except MissingProvenance as error:
+        print('native evidence CANNOT_RUN: ' + str(error), file=sys.stderr)
+        sys.exit(4)

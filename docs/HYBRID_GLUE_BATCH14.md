@@ -1,6 +1,6 @@
-# R3 batch 14: adapter implementation and validation status (t73)
+# R3 batch 14: adapters and validation protocol (t73)
 
-**Native validation is pending. This is not a replacement receipt.**
+**Native receipts are required for replacement review. This document is not a replacement receipt.**
 The parked R3 route and nine adapters from `9727cbe8` are ported onto
 `ceb665018d911d61891e7f39df778a5e6de1a020`. The tenth target, `OVL_0038_010D`,
 now has a direct entry to the existing dispatcher slot-1 adapter. No credit
@@ -53,11 +53,16 @@ The parked route has 41 states and 29 visual gates. Actor, combat actor,
 spell and cursor observations must match before an input is selected.
 The gray-background glyph threshold is opt-in for R3. Candidate metadata
 names the ten targets so the shared route reporter can process dispatch
-runs. The synthetic hybrid suite currently contains 49 tests, including
+runs. The synthetic hybrid suite includes
 wrong actor/spell/cursor controls and incomplete-trace refusal controls.
 
 Fresh validation must use one frozen binary, driver, route, registry and
 game-input set for two pinned original runs before either dispatch run.
+Each run's `emulator.json` records the resolved executable path, version,
+SHA-256, version exit code, launch-verified hash and `pinned_build_used: false`. An instrumented build from pinned
+source is not a certified pinned binary. `R1_BUILD_RECEIPT` attaches the
+private build's source revision, compiler version and commands; its binary hash must match.
+The launcher executes the same resolved path recorded in that receipt.
 `r3_report.py` requires matching original-pair hashes, actions, post-pin RNG
 values and final pixels. V1 additionally requires matching RNG observations
 and zero dispatch state differences. Routed C RNG calls are absent from
@@ -70,14 +75,15 @@ For routed runs it subtracts actual C returns from observed entries;
 observing a target at entry does not mean its original body executed.
 These are execution counts, not new recovery or replacement credits.
 
-## Reproduction and remaining work
+## Reproduction and acceptance gates
 
 All heavy commands go through `/home/hunter/workspace/poolrad-heavy.sh`.
-Private files are under ignored `resources/`; the resource symlink is not
-tracked. The isolated emulator uses pinned DOSBox-X
+Private files and local resource layouts remain under ignored `resources/`.
+The isolated emulator uses pinned DOSBox-X
 `5a9c7c53481c2e933948039c33256776653f4faf` and the cumulative dispatch patch.
 
 ```sh
+export R1_BUILD_RECEIPT=resources/hybrid/build-provenance.json
 /home/hunter/workspace/poolrad-heavy.sh python3 tools/hybrid/check_r3_010d.py --out resources/checks/010d-final
 /home/hunter/workspace/poolrad-heavy.sh python3 -m unittest discover -s tools/hybrid -p 'test_*.py'
 tools/run_media_checks.sh
@@ -91,9 +97,10 @@ After that pair passes, use dispatch mode with
 V1 and set it to `route` for the routed run. Pass both resulting directories
 to `r3_report.py` through `--v1` and `--route`.
 
-**Not yet verified:** fresh native original pair, V1, routed comparison,
+**Required before acceptance:** fresh native original pair, V1, routed comparison,
 per-target original-execution reductions, and native behavior of this
-combined patch. Earlier R3x receipts are historical, not substitutes.
+combined patch. The PR receipt names the exact tested head and measured results.
+Earlier R3x receipts are historical, not substitutes.
 The route does not establish Bakshi's Sleep or off-route coverage.
 
 The first native build caught an author porting error: the new adapter

@@ -4,11 +4,32 @@ import json
 from pathlib import Path
 import unittest
 import tempfile
+import hashlib
+import os
+from unittest.mock import patch
 from r1_report import report
-from r1_driver import Route, matches, single_exit_prompt, decode_coordinate, decode_font_cells
+from r1_driver import Route, RouteFailure, verify_emulator, matches, single_exit_prompt, decode_coordinate, decode_font_cells
 
 
 class RouteTest(unittest.TestCase):
+    def test_changed_or_redirected_emulator_cannot_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run = Path(directory)
+            binary = run / 'synthetic-binary'
+            binary.write_bytes(b'synthetic executable identity')
+            digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+            (run / 'emulator.json').write_text(json.dumps(dict(path=str(binary), sha256=digest)))
+            with patch.dict(os.environ, POOLRAD_DOSBOX_X=str(binary)):
+                verify_emulator(run)
+                self.assertEqual(json.loads((run / 'emulator.json').read_text())['launch_verified_sha256'], digest)
+                binary.write_bytes(b'changed')
+                with self.assertRaises(RouteFailure) as error:
+                    verify_emulator(run)
+                self.assertEqual(error.exception.code, 4)
+            with patch.dict(os.environ, POOLRAD_DOSBOX_X='/different/binary'):
+                with self.assertRaises(RouteFailure):
+                    verify_emulator(run)
+
     def test_actor_gate_refuses_missing_or_wrong_actor(self):
         route = Route(dict(self.route.data, actor_gates={'area_view': 'ALPHA'}))
         route.allowed = ['area_view']

@@ -4,6 +4,8 @@ import argparse
 import csv
 import json
 from pathlib import Path
+import sys
+from emulator_provenance import MissingProvenance, read_receipt
 
 
 def report(run, route):
@@ -37,11 +39,18 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run',type=Path)
     args=parser.parse_args()
+    try:
+        emulator = read_receipt(args.run)
+    except MissingProvenance as error:
+        print('native evidence CANNOT_RUN: ' + str(error), file=sys.stderr)
+        return 4
     route=json.loads((args.run/'r1-route.json').read_text())
     result=report(args.run,route)
+    result['emulator'] = emulator
     (args.run/'r1-report.json').write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result,indent=2))
+    return 0
 
 
 if __name__=='__main__':
-    main()
+    sys.exit(main())

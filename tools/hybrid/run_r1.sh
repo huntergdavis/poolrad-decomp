@@ -38,14 +38,20 @@ fi
 # Preserve only explicit harness inputs, never inherited hybrid controls.
 while IFS= read -r name; do unset "$name"; done < <(compgen -A variable PR_HYBRID_)
 export PATH="$PWD/resources/hybrid/bin:$PATH"
-[[ -x resources/hybrid/bin/dosbox-x ]] || { echo 'private emulator missing' >&2; exit 2; }
+[[ -x resources/hybrid/bin/dosbox-x ]] || { echo 'emulator provenance CANNOT_RUN: private emulator missing' >&2; exit 4; }
+export POOLRAD_DOSBOX_X=$(realpath -e resources/hybrid/bin/dosbox-x)
 run=$(tools/oracle/prepare_run.sh "$1")
+provenance_args=()
+if [[ -n ${R1_BUILD_RECEIPT:-} ]]; then
+    provenance_args=(--build-receipt "$R1_BUILD_RECEIPT")
+fi
+python3 tools/hybrid/emulator_provenance.py "$POOLRAD_DOSBOX_X" "${provenance_args[@]}" --out "$run/emulator.json"
 printf 'run=%s mode=%s route=%s seed=%s dispatch=%s bus_mode=%s\n' "$run" "$mode" "$route" "${seed:-unset}" "${dispatch:+list}" "${bus_mode:-v1}"
 printf '%s\n' "$mode" > "$run/r1-mode.txt"
 printf '%s\n' "$seed" > "$run/r1-seed.txt"
 cp "tools/hybrid/routes/$route.json" "$run/r1-route.json"
 cp tools/hybrid/r1_driver.py "$run/r1-driver.py"
-sha256sum "$(command -v dosbox-x)" "$run/r1-driver.py" "$run/r1-route.json" > "$run/r1-hashes.txt"
+sha256sum "$POOLRAD_DOSBOX_X" "$run/r1-driver.py" "$run/r1-route.json" > "$run/r1-hashes.txt"
 if [[ -n $registry ]]; then
     cp -- "$registry" "$run/r1-registry.tsv"
     export PR_HYBRID_REGISTRY=$run/r1-registry.tsv PR_HYBRID_LOG=$run/observer

@@ -16,7 +16,8 @@ if [[ $run_dir != "$repo_dir"/resources/oracle-runs/* ||
   exit 1
 fi
 command -v bwrap >/dev/null
-command -v dosbox-x >/dev/null
+dosbox_binary=$(command -v "${POOLRAD_DOSBOX_X:-dosbox-x}")
+dosbox_binary=$(realpath -e -- "$dosbox_binary")
 
 mkdir -p "$run_dir/.config" "$run_dir/.cache" "$run_dir/.local/share" "$run_dir/.dosbox-saves"
 export XDG_CONFIG_HOME=$run_dir/.config
@@ -26,6 +27,6 @@ export SDL_AUDIODRIVER=dummy
 
 exec bwrap --unshare-net --ro-bind / / --dev-bind /dev /dev \
   --bind "$run_dir" "$run_dir" --chdir "$run_dir" \
-  dosbox-x -defaultconf -defaultmapper -nogui -fastlaunch \
+  "$dosbox_binary" -defaultconf -defaultmapper -nogui -fastlaunch \
   -savedir "$run_dir/.dosbox-saves" "$@" \
   -c "mount c $run_dir" -c 'c:' -c 'cd \POOLRAD' -c 'START'

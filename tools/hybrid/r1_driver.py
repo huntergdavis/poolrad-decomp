@@ -24,6 +24,23 @@ class RouteFailure(RuntimeError):
         self.code = code
 
 
+def verify_emulator(run):
+    """Refuse a missing or changed executable immediately before launch."""
+    try:
+        path = run / 'emulator.json'
+        identity = json.loads(path.read_text())
+        binary = Path(identity['path'])
+        digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+        if not binary.is_absolute() or os.environ.get('POOLRAD_DOSBOX_X') != str(binary):
+            raise ValueError('launch path differs from emulator receipt')
+        if digest != identity['sha256']:
+            raise ValueError('executable changed after provenance capture')
+        identity['launch_verified_sha256'] = digest
+        path.write_text(json.dumps(identity, sort_keys=True, indent=2) + '\n')
+    except (OSError, ValueError, KeyError) as error:
+        raise RouteFailure(4, 'emulator provenance CANNOT_RUN: ' + str(error)) from error
+
+
 def canonical_start(next_state):
     def state(name, gate, key, expected, **extra):
         return dict(name=name, gate=gate, key=key, expect_next=expected,
@@ -365,6 +382,7 @@ class Driver:
         return observation
 
     def run_route(self):
+        verify_emulator(self.run)
         with (self.run / 'launch.log').open('w') as out:
             self.emu = subprocess.Popen([
                 'tools/oracle/launch.sh', str(self.run), '-set', 'cpu core=normal',
