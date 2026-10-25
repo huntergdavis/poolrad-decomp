@@ -15,6 +15,9 @@
 #include "poolrad/recovered/overlay_u38_roll_effect_27d9_cpu.h"
 #include "poolrad/recovered/overlay_u38_roll_gate_2915_cpu.h"
 #include "poolrad/recovered/overlay_u38_sidecar_1472_cpu.h"
+#include "poolrad/recovered/overlay_u38_effect_match_12b2.h"
+#include "poolrad/recovered/overlay_u38_record_roll_2d38.h"
+#include "poolrad/recovered/overlay_u38_target_mask81_25bc.h"
 #include "poolrad/recovered/overlay_u38_sidecar_flag_0918.h"
 #include "poolrad/recovered/resident_00ba_sidecar_lookup_2199_cpu.h"
 #include "poolrad/recovered/overlay_u38_string_match_cpu.h"
@@ -88,7 +91,7 @@ static const slot_t SLOTS[256] = {
     {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
     {K_RAW, 0x00E3, 0x0041, 0x11F9, 0x00380000u | 0x11F9u},
     {K_RAW, 0x00E8, 0x0041, 0x1276, 0x00380000u | 0x1276u},
-    {K_GAP_SEMANTIC, 0x00ED, 0x0041, 0x12B2, 0x00380000u | 0x12B2u},
+    {K_ADAPTED, 0x00ED, 0x0041, 0x12B2, 0x00380000u | 0x12B2u},
     {K_GAP_UNCREDITED, 0x00F2, 0x0041, 0x12FB, 0x00380000u | 0x12FBu},
     {K_RAW, 0x00F7, 0x0041, 0x133F, 0x00380000u | 0x133Fu},
     {K_RAW, 0x00F7, 0x0041, 0x133F, 0x00380000u | 0x133Fu},
@@ -133,7 +136,7 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x019C, 0x0041, 0x2556, 0x00380000u | 0x2556u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_ADAPTED, 0x01A1, 0x0041, 0x25A2, 0x00380000u | 0x25A2u},
-    {K_GAP_SEMANTIC, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
+    {K_ADAPTED, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
     {K_GAP_UNCREDITED, 0x01AB, 0x0041, 0x2610, 0x00380000u | 0x2610u},
     {K_RAW, 0x01B0, 0x0041, 0x264B, 0x00380000u | 0x264Bu},
     {K_GAP_SEMANTIC, 0x01B5, 0x0041, 0x268A, 0x00380000u | 0x268Au},
@@ -161,7 +164,7 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x0223, 0x0041, 0x2B7D, 0x00380000u | 0x2B7Du},
     {K_GAP_UNCREDITED, 0x0228, 0x0041, 0x2BC8, 0x00380000u | 0x2BC8u},
     {K_GAP_UNCREDITED, 0x022D, 0x0041, 0x2C1C, 0x00380000u | 0x2C1Cu},
-    {K_GAP_SEMANTIC, 0x0232, 0x0041, 0x2D38, 0x00380000u | 0x2D38u},
+    {K_ADAPTED, 0x0232, 0x0041, 0x2D38, 0x00380000u | 0x2D38u},
     {K_RAW, 0x0237, 0x0041, 0x2D88, 0x00380000u | 0x2D88u},
     {K_RAW, 0x023C, 0x0041, 0x2DE4, 0x00380000u | 0x2DE4u},
     {K_RAW, 0x0241, 0x0041, 0x2E08, 0x00380000u | 0x2E08u},
@@ -863,11 +866,18 @@ static int h_0918(call_t *m)
     return s;
 }
 
+
+/* ---- raw tier: the four credited CPU-level models that already compose their callees (their evidence documents are not named *_CPU.md, so the slots were listed as semantic) ----
+ * +12B2 composes +0C06; +25BC composes +101D and the resident far call; +2D38 composes U9E entry 9 and the SYSTEM roll. */
+ADAPT(h_12b2, pr_u38_101d_cpu, pr_u38_effect_match_12b2(m->ram, m->size, &x))
+ADAPT_T(h_25bc, pr_u38_target_mask81_25bc_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg))
+ADAPT(h_2d38, pr_u38_2d38_cpu, pr_u38_record_roll_2d38(m->ram, m->size, &x, &m->status_raw))
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0918, h_0918}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0918, h_0918}, {0x12B2, h_12b2}, {0x25BC, h_25bc_t}, {0x2D38, h_2d38}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},

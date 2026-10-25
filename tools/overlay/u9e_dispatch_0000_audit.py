@@ -38,7 +38,7 @@ SP_MIN, SP_MAX = 0x0200, 0xFFEE
 STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'LIMIT', 6: 'CALLEE', 7: 'TRANSFER'}
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
-ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700, 0x0377, 0x03AC, 0x0918}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
+ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700, 0x0377, 0x03AC, 0x0918, 0x12B2, 0x25BC, 0x2D38}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
 RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
@@ -579,6 +579,22 @@ def cases(src, per_slot=16, quick=False):
             for layout in ("a", "nw"):
                 for v22 in (0x00, 0xFF):
                     sidecar("seq" + "".join("H" if t == 0x18 else "m" for t in combo), list(combo), layout, v22)
+    # wiring batch W1: slots 49 +12B2, 94 +25BC, 122 +2D38 (credited CPU-level models that already compose their callees)
+    for s3 in (0x00, 0x10, 0x1F, 0x0F, 0xFF):
+        for r10e in (0, 1, 2):
+            for v22 in (0x00, 0x80, 0xFF):
+                for lab, roff, soff in (("a", 0x0100, 0x0200), ("w", 0xFF00, 0xFFFE)):
+                    padd("12b2", 49, f"{s3:02x}-{r10e:02x}-{v22:02x}-{lab}", [0x5A, soff, SSEG, roff, RSEG], pk(SSEG, soff, {3: s3}) + pk(RSEG, roff, {0x10E: r10e}) + ds({0x6822: v22, 0x6816: 0x7F}))
+    for v in (0x00, 0x01, 0x80, 0x81, 0x7E, 0xFF):
+        for v18 in (0x00, 0x01, 0x02, 0x81, 0xFF):
+            add(f"adapt25bc-{v:02x}-{v18:02x}", 94, poke=[(DS, 0x5589 + 16 * i, bytes([v])) for i in range(256)] + ds({0x6818: v18}))
+    for p2e in (0x56, 0x55, 0x00):
+        for v19 in (0x00, 0x01, 0x08, 0x09, 0x06):
+            for seed in (0x0000, 0x0001, 0x1234, 0xFFFF):
+                padd("2d38", 122, f"{p2e:02x}-{v19:02x}-{seed:04x}", [0x5A, 0x0100, SSEG, 0x0100, RSEG],
+                     pk(RSEG, 0x0100, {0xCC: 0x00, 0xCD: 0x03, 0xCE: PSEG & 0xFF, 0xCF: PSEG >> 8}) + pk(PSEG, 0x0300, {0x2E: p2e}) + ds({0x5D92: 0x00, 0x5D93: 0x01, 0x5D94: RSEG & 0xFF, 0x5D95: RSEG >> 8, 0x6819: v19, 0x4428: seed & 0xFF, 0x4429: seed >> 8}))
+    for v19 in (0x00, 0x01, 0x08, 0x09, 0x06):
+        padd("2d38", 122, f"nil-{v19:02x}", [0x5A, 0x0100, SSEG, 0x0100, RSEG], pk(RSEG, 0x0100, {0xCC: 0, 0xCD: 0, 0xCE: 0, 0xCF: 0}) + ds({0x5D92: 0x00, 0x5D93: 0x01, 0x5D94: RSEG & 0xFF, 0x5D95: RSEG >> 8, 0x6819: v19}))
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -616,7 +632,7 @@ def differential(src, lib, base, only=None, keep_going=False):
         if extra.get('code_written'):
             code_written.append(name)
     return dict(cases=len(cs), compared=len(cs) - len(skipped) - len(failures), end_states=stops, dispatcher_starts=f'{len(seen_all)}/16', skipped_nonterminating=len(skipped),
-                skipped=skipped[:10], failures=failures, split_states=split_states, code_written_equal=code_written[:20], per_slot={s: sorted(set(v)) for s, v in sorted(per_slot.items())}, seconds=round(time.time() - t0, 1))
+                skipped=skipped[:200], failures=failures, split_states=split_states, code_written_equal=code_written[:20], per_slot={s: sorted(set(v)) for s, v in sorted(per_slot.items())}, seconds=round(time.time() - t0, 1))
 
 
 # ---------------------------------------------------------------------------------------------------- mutation
@@ -791,6 +807,12 @@ MUTANTS = (
     ('+0918 skips the handler model', [('s = (int)pr_u38_sidecar_flag_0918(m->ram, m->size, &x, res2199_lookup, m); COPY(m->cpu, &x);', 's = ((void)pr_u38_sidecar_flag_0918, 0); COPY(m->cpu, &x);')]),
     ('+0918 the model result is not copied back', [('s = (int)pr_u38_sidecar_flag_0918(m->ram, m->size, &x, res2199_lookup, m); COPY(m->cpu, &x);', 's = (int)pr_u38_sidecar_flag_0918(m->ram, m->size, &x, res2199_lookup, m);')]),
     ('+0918 the lookup is replaced by a stub that finds nothing', [('COPY(&c, cpu); st = pr_res_00ba_2199_cpu(ram, size, &c, m->lim->loopbacks); COPY(cpu, &c);\n    return st == PR_RES_2199_OK;', 'COPY(&c, cpu); (void)ram; (void)size; st = PR_RES_2199_OK; COPY(cpu, &c); (void)m;\n    return st == PR_RES_2199_OK;')]),
+    ('+12B2 skips the model', [('ADAPT(h_12b2, pr_u38_101d_cpu, pr_u38_effect_match_12b2(m->ram, m->size, &x))', 'ADAPT(h_12b2, pr_u38_101d_cpu, ((void)pr_u38_effect_match_12b2, 0))')]),
+    ('+12B2 runs the model on a scratch CPU', [('ADAPT(h_12b2, pr_u38_101d_cpu, pr_u38_effect_match_12b2(m->ram, m->size, &x))', 'ADAPT(h_12b2, pr_u38_101d_cpu, pr_u38_effect_match_12b2(m->ram, m->size, &(pr_u38_101d_cpu){0}))')]),
+    ('+25BC skips the model', [('ADAPT_T(h_25bc, pr_u38_target_mask81_25bc_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg))', 'ADAPT_T(h_25bc, ((void)pr_u38_target_mask81_25bc_cpu, 0))')]),
+    ('+25BC uses the Unicorn shift profile', [('ADAPT_T(h_25bc, pr_u38_target_mask81_25bc_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg))', 'ADAPT_T(h_25bc, pr_u38_target_mask81_25bc_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_UNICORN, &dg))')]),
+    ('+2D38 skips the model', [('ADAPT(h_2d38, pr_u38_2d38_cpu, pr_u38_record_roll_2d38(m->ram, m->size, &x, &m->status_raw))', 'ADAPT(h_2d38, pr_u38_2d38_cpu, ((void)pr_u38_record_roll_2d38, 0))')]),
+    ('+2D38 runs the model on a scratch CPU', [('ADAPT(h_2d38, pr_u38_2d38_cpu, pr_u38_record_roll_2d38(m->ram, m->size, &x, &m->status_raw))', 'ADAPT(h_2d38, pr_u38_2d38_cpu, pr_u38_record_roll_2d38(m->ram, m->size, &(pr_u38_2d38_cpu){0}, &m->status_raw))')]),
     ('the gap kind of an uncredited slot is reported as semantic', [("sl->kind == K_GAP_SEMANTIC ? PR_U9E_0000_GAP_SEMANTIC :", "sl->kind != K_RAW ? PR_U9E_0000_GAP_SEMANTIC :")]),
 )
 MUTANT_CASES_EXTRA = ('adapt', 'transfer-133f-', 'refused-', 'gap001-', 'gap004-', 'gap088-', 'gap135-', 'sp-', 'flags-', 'budget-slot16-', 'budget-slot004-')
