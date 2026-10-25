@@ -20,8 +20,14 @@ import capstone
 ROOT = Path(__file__).resolve().parents[2]
 OVR = ROOT / 'resources/DOS/POOLRAD/GAME.OVR'
 DOC_LIMIT = 14000
+# Shared registries that list many bodies; naming an offset there is not a body-specific argument.
+GENERIC_DOCS = {'FUNCTION_LEDGER.md'}
 SRC_LIMIT = 16000
 VERDICT = re.compile(r'^VERDICT:\s*(AGREE|DISAGREE)\b(.*)$', re.M)
+
+
+class Refused(Exception):
+    pass
 
 
 def ledger_row(body_id):
@@ -64,11 +70,20 @@ def seed_fault(src):
 def build_prompt(body_id, seed=False):
     row = ledger_row(body_id)
     doc_path = evidence_doc(body_id)
-    doc = (ROOT / doc_path).read_text()[:DOC_LIMIT]
-    srcs = sorted(set(re.findall(r'src/recovered/[A-Za-z0-9_]+\.c', doc)))
+    full = (ROOT / doc_path).read_text()
+    # Precondition: a generic doc cannot ground this body, and a model cannot know that.
+    off = row['offset'][2:].upper()
+    named = re.search(rf'(?<![0-9A-Fa-f]){off}(?![0-9A-Fa-f])', full, re.I) or body_id in full
+    if Path(doc_path).name in GENERIC_DOCS or not named:
+        raise Refused(f'{body_id}: {doc_path} is generic or never names start offset {row["offset"]}')
+    doc = full[:DOC_LIMIT]
+    srcs = sorted({f'src/recovered/{n}.c' for n in re.findall(r'([A-Za-z0-9_]+)\.c\b', doc)
+                   if (ROOT / f'src/recovered/{n}.c').exists()})
     own = [s for s in srcs if body_id[4:8].lower() in s and body_id[9:].lower() in s]
     src_path = (own or srcs[:1] or [None])[0]
-    src = (ROOT / src_path).read_text()[:SRC_LIMIT] if src_path else '(no source named in the doc)'
+    if not src_path:
+        raise Refused(f'{body_id}: {doc_path} names no recovered C source')
+    src = (ROOT / src_path).read_text()[:SRC_LIMIT]
     seeded = None
     if seed:
         src, seeded = seed_fault(src)
@@ -102,28 +117,36 @@ VERDICT: DISAGREE <one specific claim, with the address and what the bytes show>
 """}
 
 
-def run_model(model, prompt, timeout):
-    t0 = time.time()
-    try:
-        p = subprocess.run(['nice', '-n', '15', 'opencode', 'run', '--pure', '-m', model, '--format', 'json', prompt],
-                           capture_output=True, text=True, timeout=timeout, cwd='/tmp')
-    except subprocess.TimeoutExpired:
-        return {'status': 'FAIL_TIMEOUT', 'secs': round(time.time() - t0)}
+def run_model(model, prompt, timeout, tag):
+    pf = Path(f'{tag}.prompt')
+    outf = Path(f'{tag}.raw')
+    pf.write_text(prompt)
+    p = subprocess.run([str(ROOT / 'tools/free_run.sh'), '--model', model, '--prompt-file', str(pf),
+                        '--out', str(outf), '--timeout', str(timeout)], capture_output=True, text=True)
+    rep = dict(kv.split('=', 1) for kv in p.stdout.split() if '=' in kv)
+    out = {'wait_s': int(rep.get('wait_s', -1)), 'secs': int(rep.get('wall_s', -1)), 'rc': p.returncode}
+    if p.returncode == 65:
+        out.update(status='REFUSED_MODEL', error=p.stderr[:300])
+        return out
+    raw = outf.read_text() if outf.exists() else ''
     text, err = [], None
-    for line in p.stdout.splitlines():
+    for line in raw.splitlines():
         try:
             ev = json.loads(line)
         except ValueError:
             continue
-        if ev.get('type') == 'text':
+        if isinstance(ev, dict) and ev.get('type') == 'text':
             text.append(ev.get('part', {}).get('text', ''))
-        if ev.get('type') == 'error':
+        if isinstance(ev, dict) and ev.get('type') == 'error':
             err = json.dumps(ev.get('error'))[:300]
-    out = {'secs': round(time.time() - t0), 'rc': p.returncode, 'text': ''.join(text)}
-    if err:
+    out['text'] = ''.join(text) if text else (raw if not raw.lstrip().startswith('{') else '')
+    if p.returncode == 124:
+        out['status'] = 'FAIL_TIMEOUT'
+    elif err:
         out['status'], out['error'] = 'FAIL_ENDPOINT', err
     elif not out['text'].strip():
-        out['status'], out['stderr'] = 'FAIL_NO_TEXT', p.stderr[-300:]
+        out['status'] = 'FAIL_NO_TEXT'
+        out['stderr'] = (Path(f'{outf}.err').read_text() if Path(f'{outf}.err').exists() else '')[-300:]
     else:
         v = VERDICT.findall(out['text'])
         out['status'] = 'FAIL_NO_VERDICT' if not v else 'OK'
@@ -148,10 +171,15 @@ def main():
     out.mkdir(parents=True, exist_ok=True)
     for i, body_id in enumerate(a.ids, 1):
         print(f'START {i}/{len(a.ids)} {body_id} {a.model}', flush=True)
-        b = build_prompt(body_id, a.seed)
+        try:
+            b = build_prompt(body_id, a.seed)
+        except Refused as e:
+            print(f'REFUSED {e}', flush=True)
+            (out / f'{body_id}.refused.json').write_text(json.dumps({'id': body_id, 'status': 'REFUSED_INPUT', 'reason': str(e)}))
+            continue
         rec = {k: b[k] for k in ('id', 'doc', 'source', 'bytes', 'seeded')}
         rec['model'] = a.model
-        rec.update(run_model(a.model, b['prompt'], a.timeout))
+        rec.update(run_model(a.model, b['prompt'], a.timeout, str(out / f'{body_id}.{a.model.replace("/", "_")}{".seed" if a.seed else ""}')))
         (out / f'{body_id}.{a.model.split("/")[-1]}{".seed" if a.seed else ""}.json').write_text(json.dumps(rec, indent=1))
         print(f'DONE {body_id} {rec["status"]} {rec.get("verdict", "")} {rec["secs"]}s', flush=True)
 
