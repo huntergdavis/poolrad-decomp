@@ -65,6 +65,14 @@ comparison still passes for every mutant case, while the new boundary comparison
 kills the mutant. Thus an unrelated final-state failure cannot establish this
 specific improvement.
 
+The independent review's retained mutant (Dunking Sheep inbox `i25007`) instead
+replaced the ADD flag assignment with XOR of the incoming flags, leaving CMP
+intact. The companion reproduces that variant separately and reports its final
+and boundary outcomes separately. It explicitly discards the now-unused local
+`flags` value so the copy still compiles with the author's `-Werror` settings;
+the discarded value has no side effects. The generic mandatory control remains
+the exact XOR of the correctly computed result.
+
 ```sh
 ../poolrad-heavy.sh python3 tools/overlay/check_intermediate_flags_3171.py \
   --candidate-root /path/to/candidate-checkout \

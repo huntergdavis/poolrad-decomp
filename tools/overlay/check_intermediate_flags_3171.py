@@ -15,7 +15,7 @@ import shutil
 import subprocess
 import tempfile
 
-from intermediate_flags import ARITH, Contract, Trace, hook_unicorn
+from intermediate_flags import ARITH, Contract, FlagObservationError, Trace, compare, hook_unicorn
 
 ROOT = Path(__file__).resolve().parents[2]
 AUDIT = Path("tools/overlay/u1c_run_3171_cpu_audit.py")
@@ -23,6 +23,7 @@ SOURCE = Path("src/recovered/overlay_u1c_run_3171_cpu.c")
 HEADER = Path("include/poolrad/recovered/overlay_u1c_run_3171_cpu.h")
 SITE = "3171:add-di-ax-before-dispatch"
 ANCHOR = "        add16_flags(cpu, before, pc);"
+ASSIGNMENT = "cpu->flags = (uint16_t)((cpu->flags & (uint16_t)~FLAG_MASK) | flags);"
 
 
 def require(condition, reason):
@@ -118,6 +119,30 @@ def run(candidate_root):
             mutant[label] = pair
         control = contract.require_wrong_flags(SITE, mutant)
         receipt = contract.receipt()
+
+        # Independent review i25007 used a different mutant: replace the ADD
+        # assignment with XOR of incoming flags, leaving CMP intact. Reproduce
+        # it separately; its delta need not be exactly ARITH versus correct ADD.
+        require(text.count(ASSIGNMENT) == 2, "reviewer mutant needs the two known flag assignments")
+        (mutant_root / SOURCE).write_text(text.replace(
+            ASSIGNMENT, "(void)flags; cpu->flags ^= FLAG_MASK; /* reviewer ADD mutant */", 1))
+        reviewer_dir = directory / "reviewer-mutant"
+        reviewer_dir.mkdir()
+        audit.ROOT = mutant_root
+        reviewed_mutant, reviewed_type = audit.build(reviewer_dir)
+        audit.ROOT = root
+        reviewer_killed = []
+        for label, case in cases:
+            pair, _ = observed_compare(audit, label, audit.setup_ram(**case), reviewed_mutant, reviewed_type)
+            want, got = pair[0].checked(), pair[1].checked()
+            require(want == baseline[label][0].checked(), "reviewer mutant changed original observations")
+            require([e.site for e in want] == [e.site for e in got],
+                    "reviewer mutant changed event order/count, not only flags")
+            try:
+                compare(*pair, label)
+            except FlagObservationError:
+                reviewer_killed.append(label)
+        require(reviewer_killed, "reviewer wrong-ADD mutant survived boundary comparison")
     require(hashes == {str(path): hashlib.sha256((root / path).read_bytes()).hexdigest()
                        for path in (AUDIT, SOURCE, HEADER)}, "candidate files changed during audit")
     return {"result": "PASS", "candidate_sha256": hashes,
@@ -126,6 +151,10 @@ def run(candidate_root):
             "body_sha256": audit.BODY_SHA, "baseline_final_state_cases": len(cases),
             "baseline_dispatches": dispatches, "legacy_final_state_mutant_kills": 0,
             "boundary_mutant_kills": len(control["killed"]), "flags": receipt,
+            "reviewer_replacement_mutant": {
+                "mutation": "replace ADD assignment with XOR of incoming arithmetic flags; CMP intact",
+                "cases": len(cases), "legacy_final_state_mutant_kills": 0,
+                "boundary_mutant_kills": len(reviewer_killed), "killed": reviewer_killed},
             "scope": "declared ADD-to-dispatch boundary; real dispatcher substituted",
             "not_verified": ["native execution", "real dispatcher semantics", "natural reachability",
                              "every arithmetic producer in this or other bodies", "row acceptance"]}
