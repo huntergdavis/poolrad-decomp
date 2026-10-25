@@ -37,6 +37,8 @@ SITES = {0x0355: ('fill', 0xAF8, 0x16A8), 0x035F: ('rowclear', 0x3C5, 0x2F), 0x0
 PASS = [(0x035F, 'rowclear'), (0x0377, 'strload'), (0x037C, 'print'), (0x0396, 'str'), (0x03A6, 'strload'), (0x03B0, 'strcat'), (0x03C0, 'strload'), (0x03D3, 'load')]
 SOURCES = list(dict.fromkeys(list(E.SOURCES) + ['overlay_u25_entry4_0341_cpu', 'overlay_u3b0_row_clear_06fb_cpu']))
 ONLY = []
+BUILD_RECEIPTS = []
+BUILD_RECEIPT_PATH = None
 
 
 class Env0341(ctypes.Structure):
@@ -96,11 +98,21 @@ def source():
                 u25_stub=f'{u25["memory_segment"]:04X}:{stub25:04X}')
 
 
-def library(directory, override=None):
+def library(directory, override=None, mutation_label=None):
     import subprocess
     path = directory / ('u25_0341_mut.so' if override else 'u25_0341.so')
-    subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include')] +
-                   [str((override or {}).get(s, ROOT / f'src/recovered/{s}.c')) for s in SOURCES] + ['-o', str(path)], check=True)
+    command = ['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-O2', '-fPIC', '-shared', '-I', str(ROOT / 'include')] + \
+              [str((override or {}).get(s, ROOT / f'src/recovered/{s}.c')) for s in SOURCES] + ['-o', str(path)]
+    compiled = subprocess.run(command, check=False)
+    if BUILD_RECEIPT_PATH is not None:
+        BUILD_RECEIPTS.append(dict(argv=command, exit_code=compiled.returncode,
+            name=mutation_label or 'unmutated',
+            variant='mutant' if override else 'unmutated',
+            source_sha256={s: sha256(Path(p).read_bytes()).hexdigest() for s, p in (override or {}).items()},
+            object_sha256=sha256(path.read_bytes()).hexdigest() if compiled.returncode == 0 else None,
+            finished_at=subprocess.check_output(['date', '+%Y-%m-%d %H:%M:%S %Z'], text=True).strip()))
+        BUILD_RECEIPT_PATH.write_text(json.dumps(BUILD_RECEIPTS, indent=2) + '\n')
+    compiled.check_returncode()  # outside every differential catch: failed builds cannot count as kills
     lib = ctypes.CDLL(str(path))
     f = lib.pr_u25_entry4_0341_cpu
     f.argtypes = [ctypes.POINTER(E.B5.Bus), ctypes.c_size_t, ctypes.POINTER(Cpu), ctypes.POINTER(Env0341), ctypes.POINTER(Diag0341)]
@@ -198,6 +210,8 @@ def cases():
         n = rng.choice((2, 3, 17, 255, 256, 1000, 0x1E00, rng.randrange(2, 0x2000)))
         add(f'random{k}', b1=raw(n), regs=tuple(rng.randrange(65536) for _ in range(7)), flags=rng.choice(E.Q.FLAGS + E.DIRTY_FLAGS), digit=rng.randrange(256),
             hi=rng.randrange(256), id=rng.randrange(1, 255), seed=rng.randrange(2 ** 32), keys=(K['a'],))
+    # Append after the random cases so the original 74 fixtures remain identical.
+    add('bufptr-in-returned-block', bufptr_in_block=True, alias=True)
     return out
 
 
@@ -268,21 +282,35 @@ def expected_buffer(o, raw, spec, ram):
 # ---------------------------------------------------------------------------------------------------- the differential
 def differential(ctx6, ctx25, reloc, stub, f, lib):
     specs = [x for x in cases() if not ONLY or any(t in x[0] for t in ONLY)]
+    if 'bufptr-in-returned-block' in ONLY:
+        specs.sort(key=lambda case: case[0] != 'bufptr-in-returned-block')
     ctx6['cond_at'] = {}
-    stats = dict(stops={}, calls=0); seen25, non_arch = set(), []; limit_cases = []; buffer_cases = 0; edge_taken = set()
+    stats = dict(stops={}, calls=0); seen25, non_arch = set(), []; limit_cases = []; buffer_cases = 0; edge_taken = set(); pointer_alias_cases = []
     for index, (name, o0) in enumerate(specs):
         o = E.normalise(o0); t0 = time.time()
         print(f'[{index + 1}/{len(specs)}] {name}: START', file=sys.stderr, flush=True)
         stall = o.pop('stall', False)
-        if o.pop('bufptr_in_block', False):
+        pointer_alias = o.pop('bufptr_in_block', False)
+        if pointer_alias:
             ds_at = (E.BASE + E.SEG['data']) * 16 + 0x49DE
-            para = ds_at >> 4
-            o['L'] = dict(heap=para); o['heap_paras'] = 0x0200
-            first = (ds_at - para * 16) & 0xFFFF                     # where in the block the variable DS:[49DE] sits
-            data = bytearray(rng_bytes(0x200, seed=0x49DE)); newbuf = (0x7C00, 0x0000)
+            first = ds_at & 15
+            data = bytearray([0x77] * 32); newbuf = (0x7C00, 0x0000)
+            data[:2] = b'\x12\x34'  # two distinct header bytes keep the packed allocation at 16 bytes
             data[first:first + 4] = struct.pack('<HH', newbuf[1], newbuf[0])
+            # 0716 allocates its packed buffer through 0020 BEFORE its returned
+            # block. Both allocations round to eight bytes. Position the second
+            # allocation at the paragraph containing the pointer variable.
+            packed_bytes = len(E.A716.rle_pack(data))
+            packed_allocation = (packed_bytes + 7) & ~7
+            block_at = ds_at - first
+            heap_at = block_at - packed_allocation
+            check(heap_at % 16 == 0, 'alias fixture heap must be paragraph aligned')
+            o['L'] = dict(heap=heap_at >> 4); o['heap_paras'] = 0x0200
             o['b1'] = bytes(data); o['newbuf'] = newbuf
         m, c, spec = build(ctx6, ctx25, reloc, stub, o)
+        if pointer_alias:
+            check(m[ds_at:ds_at + 4] == struct.pack('<HH', spec['buf'][1], spec['buf'][0]),
+                  f'{name}: initial pointer cell must name the FillChar destination')
         if stall:
             spec['blobs']['b1'] = E.M.stall_archive(o['id'])
         r = E.run_c(f, lib, m, c, spec, diag_cls=Diag0341, status_map=STATUS, make_env=make_env(spec['retries']))
@@ -329,15 +357,44 @@ def differential(ctx6, ctx25, reloc, stub, f, lib):
                 for k in range(min(n, 0x1E00)):
                     check(u['ram'][physical(seg, off + k)] == raw[2 + k], f'{name}: relocated buffer byte {k}')
                 buffer_cases += 1
+        if pointer_alias:
+            check(st == 'RETURN', f'{name}: alias must reach the post-load Move and return, got {st}')
+            moves = [call for call in u['calls'] if call[0:2] == (0x03F3, 'move') and call[2][1] == spec['w_cs']]
+            check(len(moves) == 1, f'{name}: expected one original Move frame')
+            words = moves[0][2]
+            returned_block = (words[6], (words[5] - 2) & 0xFFFF)
+            returned_at = physical(*returned_block)
+            check(returned_at == block_at and returned_at <= ds_at and ds_at + 4 <= returned_at + len(data),
+                  f'{name}: DS:[49DE] must lie wholly inside the actual returned block')
+            check(spec['buf'] != newbuf and (words[4], words[3]) == newbuf,
+                  f'{name}: Move must use the overwritten pointer, not the initial FillChar destination')
+            spec['buf_at_move'] = newbuf
+            check_calls(name, o, u['calls'], u['stop'], spec, u['ram'], d.retries_taken)
+            for result in (r, u):
+                check(result['ram'][ds_at:ds_at + 4] == struct.pack('<HH', newbuf[1], newbuf[0]),
+                      f'{name}: final pointer must retain the decoded value')
+                at = physical(*newbuf); copied = len(data) - 2
+                check(result['ram'][at:at + copied] == bytes(data[2:]), f'{name}: redirected payload')
+                check(result['ram'][at + copied:at + BUFLEN] == m[at + copied:at + BUFLEN],
+                      f'{name}: no FillChar on the newly selected destination')
+                old_at = physical(*spec['buf'])
+                check(result['ram'][old_at:old_at + BUFLEN] == bytes(BUFLEN),
+                      f'{name}: initial destination is cleared but receives no copied payload')
+            pointer_alias_cases.append(dict(name=name, stop=st, pointer_cell=f'{ds_at:05X}',
+                returned_block=f'{returned_block[0]:04X}:{returned_block[1]:04X}', block_bytes=len(data),
+                packed_bytes=packed_bytes, packed_allocation_bytes=packed_allocation,
+                pointer_offset_in_block=ds_at-returned_at, original_buffer=f'{spec["buf"][0]:04X}:{spec["buf"][1]:04X}',
+                move_destination=f'{newbuf[0]:04X}:{newbuf[1]:04X}', copied_bytes=len(data)-2))
         stats['stops'][st] = stats['stops'].get(st, 0) + 1; stats['calls'] += d.calls
         seen25 |= spec['seen_w']
         print(f'[{index + 1}/{len(specs)}] {name}: {st}, {time.time() - t0:.1f}s', file=sys.stderr, flush=True)
     if ONLY:
-        return dict(only=ONLY, cases=len(specs), end_states=stats['stops'])
+        return dict(only=ONLY, cases=len(specs), end_states=stats['stops'], pointer_alias_cases=pointer_alias_cases)
     check(seen25 == ctx25['dec_ips'], f'0341 starts missing {sorted(ctx25["dec_ips"] - seen25)}')
     return dict(cases=len(specs), end_states=dict(sorted(stats['stops'].items())), non_architectural_stops=len(non_arch), non_architectural=non_arch,
                 far_calls_composed=stats['calls'], starts=f'{len(seen25)}/{len(ctx25["dec_ips"])}', retry_loop=dict(limit_cases=limit_cases),
-                buffer_cases_checked=buffer_cases, dirty_flag_images=[f'{x:04X}' for x in E.DIRTY_FLAGS], cpu_words=14, ram_bytes=SIZE, flag_masks=0)
+                buffer_cases_checked=buffer_cases, pointer_alias_cases=pointer_alias_cases,
+                dirty_flag_images=[f'{x:04X}' for x in E.DIRTY_FLAGS], cpu_words=14, ram_bytes=SIZE, flag_masks=0)
 
 
 def aperture_demo(ctx6, ctx25, reloc, stub, f, lib):
@@ -359,7 +416,7 @@ def rng_bytes(n, seed):
     return bytes(r.randrange(256) for _ in range(n))
 
 
-MUTANT_CASES = ('size-64', 'size-2', 'size-3', 'retry-id-missing', 'retry-budget-0', 'mode1', 'digit-10', 'sp-min', 'buf-inside-block', 'file-absent-prompt-then-appears')
+MUTANT_CASES = ('bufptr-in-returned-block', 'size-64', 'size-2', 'size-3', 'retry-id-missing', 'retry-budget-0', 'mode1', 'digit-10', 'sp-min', 'buf-inside-block', 'file-absent-prompt-then-appears')
 MUTANTS = (
     ('FillChar count 1E01h', "c->ax = 0x1E00u; push(&m, c->ax);", "c->ax = 0x1E01u; push(&m, c->ax);"),
     ('FillChar value 1', "set_al(c, 0u); push(&m, c->ax); /* 0352 MOV AL,0; PUSH AX */", "set_al(c, 1u); push(&m, c->ax); /* 0352 MOV AL,0; PUSH AX */"),
@@ -387,23 +444,46 @@ def mutation_check(ctx6, ctx25, reloc, stub):
         check(src.count(old) == 1, f'mutant text occurs once: {name}')
         with tempfile.TemporaryDirectory(prefix='u25-0341-mut-') as tmp:
             path = Path(tmp) / 'mutant.c'; path.write_text(src.replace(old, new))
-            mf, mlib = library(Path(tmp), override={'overlay_u25_entry4_0341_cpu': path})
+            mf, mlib = library(Path(tmp), override={'overlay_u25_entry4_0341_cpu': path}, mutation_label=name)
             try:
                 differential(ctx6, ctx25, reloc, stub, mf, mlib)
                 out.append((name, 'SURVIVED'))
             except (ValueError, AssertionError) as e:
                 out.append((name, 'CAUGHT: ' + str(e)[:80]))
         print(f'[mutant {k + 1}/{len(MUTANTS)}] {out[-1][1][:60]} ({time.time() - t0:.0f}s)', file=sys.stderr, flush=True)
+    # The new case must reject a model that caches the first LES destination.
+    # Compile outside the catch: a build failure is never a caught mutant.
+    src = (ROOT / 'src/recovered/overlay_u25_entry4_0341_cpu.c').read_text()
+    first_load = next(line for line in src.splitlines() if '/* 0348 LES DI,[49DEh] */' in line)
+    second_load = next(line for line in src.splitlines() if '/* 03E7 LES DI,[49DEh] */' in line)
+    check(src.count(first_load) == src.count(second_load) == 1, 'pointer reload mutation sites are unique')
+    src = src.replace(first_load, first_load + '\n    uint16_t saved_buffer_off = c->di, saved_buffer_seg = c->es;')
+    src = src.replace(second_load, '    c->di = saved_buffer_off; c->es = saved_buffer_seg; /* deliberately stale destination */')
+    ONLY[:] = ['bufptr-in-returned-block']
+    name = 'Move reuses the pre-load buffer pointer'
+    print(f'[alias mutant] START {name}', file=sys.stderr, flush=True)
+    with tempfile.TemporaryDirectory(prefix='u25-0341-alias-mut-') as tmp:
+        path = Path(tmp) / 'mutant.c'; path.write_text(src)
+        mf, mlib = library(Path(tmp), override={'overlay_u25_entry4_0341_cpu': path}, mutation_label=name)
+        try:
+            differential(ctx6, ctx25, reloc, stub, mf, mlib)
+            out.append((name, 'SURVIVED'))
+        except (ValueError, AssertionError) as e:
+            out.append((name, 'CAUGHT: ' + str(e)[:80]))
+    print(f'[alias mutant] {out[-1][1]}', file=sys.stderr, flush=True)
     ONLY[:] = []
     return out
 
 
 def main():
+    global BUILD_RECEIPT_PATH
     p = argparse.ArgumentParser()
     for flag in ('--compile-only', '--unicorn', '--native', '--mutate', '--demo'):
         p.add_argument(flag, action='store_true')
     p.add_argument('--output', type=Path); p.add_argument('--only', nargs='*', default=[]); a = p.parse_args()
     ONLY[:] = a.only
+    BUILD_RECEIPTS.clear()
+    BUILD_RECEIPT_PATH = a.output.with_suffix('.compiled-mutants.json') if a.mutate and a.output else None
     with tempfile.TemporaryDirectory(prefix='u25-0341-') as tmp:
         f, lib = library(Path(tmp))
         if a.compile_only:
@@ -423,7 +503,9 @@ def main():
             report['aperture_demo'] = aperture_demo(ctx6, ctx25, reloc, stub, f, lib)
         if a.mutate:
             results = mutation_check(ctx6, ctx25, reloc, stub)
-            report['mutation'] = dict(cases=list(MUTANT_CASES), results=results, caught=sum(1 for _, r in results if r.startswith('CAUGHT')), total=len(results))
+            report['mutation'] = dict(cases=list(MUTANT_CASES), alias_case='bufptr-in-returned-block', results=results,
+                                      caught=sum(1 for _, r in results if r.startswith('CAUGHT')), total=len(results))
+            check(report['mutation']['caught'] == report['mutation']['total'], 'one or more compiled mutants survived')
         if a.native:
             import ovl_0025_0341_native
             report['native'] = ovl_0025_0341_native.native(ctx6, ctx25, f, lib, sys.modules[__name__])
