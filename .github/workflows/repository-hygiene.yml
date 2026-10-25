@@ -96,6 +96,8 @@ jobs:
       # broken claim and flag an audit that lacks the check it targets.
       - name: Test infeasible-exclusion fail-closed harness
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_exclusion_fail_closed.py'
+      - name: Conditional dependency contract has no members and keeps conditions in claims
+        run: python3 -m unittest discover -s tools/overlay -p 'test_conditional_dependency_contract.py'
       # A body or checker must land with its evidence document and CHECKER_ROWS.
       # Needs full history so the merge-base diff resolves.
       - name: Refuse unpaired bodies and checkers

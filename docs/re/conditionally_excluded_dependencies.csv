@@ -1,0 +1,1 @@
+body_id,dependency_id,call_site,entry_condition,readiness_rule,exclusion_statement,ceiling,evidence_doc,control_command,control_receipt,body_sha256,dependency_sha256,frame_pin,stub_pin,caller_census_pin,checker_pin,review_pr,reviewed_commit
