@@ -9,7 +9,8 @@
   "hybrid-b11a-route-pin-r3",
   "hybrid-b11-r2-route",
   "hybrid-b12-r4-route",
-  "hybrid-b12-r2-route"
+  "hybrid-b12-r2-route",
+  "hybrid-b15-r4-route"
  ],
  "excluded": "DOS-service bodies run with services replayed (shadow by design): RES_0802_025D, RES_0802_02EB, RES_0802_050F, RES_0802_05CD, RES_0802_06E7, RES_0802_0716, RES_0899_0059. Bodies composed inside a routed parent but with 0 own arrivals are not counted. Earlier unpinned runs b6e/b7d are superseded by these pinned runs.",
  "bodies": [
@@ -252,6 +253,20 @@
    }
   },
   {
+   "id": "OVL_0025_1815",
+   "proven_at": "2026-10-25T12:04:08Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b15-r4-route (R4 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 2760a9e8; observer.dispatch summary line for this body)",
+    "routed_returns": 24,
+    "arrivals": 24,
+    "stops_handed_back": 0,
+    "pixel_bar": "final.png raw-RGB sha256 1b7c8943aee2baadcbe3ee15249bc93f8f541c9f75792445d39e4b20a0e31bb3 equals both pinned all-original R4 r4-original-a and r4-original-b final.png; 0 of 786432 pixels differ (independently re-measured for t72)",
+    "condition": "R4 shop/temple route, pinned seed 12345678, test-harness run; all 33 observed post-pin RNG values equal both originals. LIMIT: final-frame and observed-draw parity, not a full-state comparison; draws inside routed C are not observed. 19DB unloaded-slot STUB path was not exercised."
+   }
+  },
+  {
    "id": "OVL_0025_18EB",
    "proven_at": "2026-10-24T07:50:20Z",
    "evidence": {
@@ -263,6 +278,20 @@
     "stops_handed_back": 0,
     "pixel_bar": "final frame frames/0291-final.png raw-RGB sha256 eada8752f3546439 == pinned all-original hybrid-pin2-r3-a frames/0290-final.png raw-RGB sha256 eada8752f3546439; 0 of 786432 pixels differ",
     "condition": "route 3 (combat), pinned seed 12345678, test-harness run; LIMIT: identity is the final frame plus the 60 observed post-pin draws (draws inside routed C are not observed), not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_0025_19DB",
+   "proven_at": "2026-10-25T12:04:08Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b15-r4-route (R4 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 2760a9e8; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final.png raw-RGB sha256 1b7c8943aee2baadcbe3ee15249bc93f8f541c9f75792445d39e4b20a0e31bb3 equals both pinned all-original R4 r4-original-a and r4-original-b final.png; 0 of 786432 pixels differ (independently re-measured for t72)",
+    "condition": "R4 shop/temple route, pinned seed 12345678, test-harness run; all 33 observed post-pin RNG values equal both originals. LIMIT: final-frame and observed-draw parity, not a full-state comparison; draws inside routed C are not observed. 19DB unloaded-slot STUB path was not exercised."
    }
   },
   {
@@ -753,6 +782,34 @@
     "stops_handed_back": 0,
     "pixel_bar": "final frame final.png raw-RGB sha256 1b7c8943aee2baad == pinned all-original R4 r4-original-a and r4-original-b final.png raw-RGB sha256 1b7c8943aee2baad (RGBA 008650a6d2d674d1); 0 of 786432 pixels differ",
     "condition": "R4 route (shop Buy, Sune temple), pinned seed 12345678, test-harness run; all 33 post-pin RandSeed draws equal the all-original run; LIMIT: identity is the final frame plus those draws, not a full-state comparison"
+   }
+  },
+  {
+   "id": "OVL_007F_0130",
+   "proven_at": "2026-10-25T12:04:08Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b15-r4-route (R4 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 2760a9e8; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final.png raw-RGB sha256 1b7c8943aee2baadcbe3ee15249bc93f8f541c9f75792445d39e4b20a0e31bb3 equals both pinned all-original R4 r4-original-a and r4-original-b final.png; 0 of 786432 pixels differ (independently re-measured for t72)",
+    "condition": "R4 shop/temple route, pinned seed 12345678, test-harness run; all 33 observed post-pin RNG values equal both originals. LIMIT: final-frame and observed-draw parity, not a full-state comparison; draws inside routed C are not observed. 19DB unloaded-slot STUB path was not exercised."
+   }
+  },
+  {
+   "id": "OVL_007F_0185",
+   "proven_at": "2026-10-25T12:04:08Z",
+   "evidence": {
+    "kind": "pixels",
+    "differing": 0,
+    "run_ref": "poolrad-par-b resources/oracle-runs/hybrid-b15-r4-route (R4 route, run_r1.sh dispatch mode, PR_HYBRID_BUS_MODE=route, build 2760a9e8; observer.dispatch summary line for this body)",
+    "routed_returns": 1,
+    "arrivals": 1,
+    "stops_handed_back": 0,
+    "pixel_bar": "final.png raw-RGB sha256 1b7c8943aee2baadcbe3ee15249bc93f8f541c9f75792445d39e4b20a0e31bb3 equals both pinned all-original R4 r4-original-a and r4-original-b final.png; 0 of 786432 pixels differ (independently re-measured for t72)",
+    "condition": "R4 shop/temple route, pinned seed 12345678, test-harness run; all 33 observed post-pin RNG values equal both originals. LIMIT: final-frame and observed-draw parity, not a full-state comparison; draws inside routed C are not observed. 19DB unloaded-slot STUB path was not exercised."
    }
   },
   {
