@@ -9,7 +9,7 @@
  * [BP+0Ch] a far pointer B.
  *   [BP+6] non-zero: B+10Eh := (A+3 AND 40h) >> 6; when B+84h = B3h, B+84h := 0. Return.
  *   [BP+6] zero, A+3 bit 5 set: DS:6825 := 64h. Return.
- *   [BP+6] zero, A+3 bit 5 clear: A+3 := low byte of (A+3 + 20h + CBW(B+10Eh) << 6); B+10Eh := A+3 >> 7; B+10Fh := 1;
+ *   [BP+6] zero, A+3 bit 5 clear: A+3 := low byte of (A+3 + 20h + (CBW(B+10Eh) << 6)); B+10Eh := A+3 >> 7; B+10Fh := 1;
  *     when B+84h <= 7Fh (unsigned), B+84h := B3h; the far pointer at B+108h is followed and its words +0Ah/+0Ch := 0;
  *     then 00BA:23DB (the party count) through its merged model; then DS:6825 := 64h.
  * Every far pointer is reread with LES at each use, in source order. Entered after a far call: [SP] IP, [SP+2] CS, then

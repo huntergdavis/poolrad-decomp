@@ -103,14 +103,14 @@ def build(image_reloc, code, fixups, *, name='case', sel=1, a3=0x40, b10e=0x01, 
     return m, c, dict(name=name), [], {}
 
 
-def run_unicorn(name, m, c, body_ips, ovseg):
+def run_unicorn(name, m, c, body_ips, ovseg, party_budget=None):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_INSN
     from unicorn import x86_const as R
     uc = Uc(UC_ARCH_X86, UC_MODE_16); backing = (ctypes.c_uint8 * SIZE).from_buffer_copy(m)
     uc.mem_map_ptr(0, SIZE, 7, ctypes.addressof(backing)); uc.mem_map_ptr(SIZE, SIZE, 7, ctypes.addressof(backing))
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
-    s = dict(stop=None, prev=None, steps=0); seen, edges = set(), set()
+    s = dict(stop=None, prev=None, steps=0, party_steps=0); seen, edges = set(), set()
 
     def code_hook(em, address, size, user):
         cs = uc.reg_read(R.UC_X86_REG_CS); ip = uc.reg_read(R.UC_X86_REG_IP)
@@ -125,6 +125,11 @@ def run_unicorn(name, m, c, body_ips, ovseg):
                 s['prev'] = ip
         elif not (cs == BASE + 0x00BA and RES23DB[0] <= ip < RES23DB[1]):
             s['stop'] = 'TRANSFER'; return uc.emu_stop()
+        if party_budget is not None and cs == BASE + 0x00BA and RES23DB[0] <= ip < RES23DB[1]:
+            # Stop BEFORE the next resident instruction, exactly like its STEP budget.
+            if s['party_steps'] == party_budget:
+                s['stop'] = 'CALLEE'; return uc.emu_stop()
+            s['party_steps'] += 1
         s['steps'] += 1
         if s['steps'] > 200000:
             s['stop'] = 'RUNAWAY'; uc.emu_stop()
@@ -134,7 +139,7 @@ def run_unicorn(name, m, c, body_ips, ovseg):
     uc.hook_add(UC_HOOK_CODE, code_hook); uc.hook_add(UC_HOOK_INTR, refuse)
     uc.hook_add(UC_HOOK_INSN, refuse, None, 1, 0, R.UC_X86_INS_IN); uc.hook_add(UC_HOOK_INSN, refuse, None, 1, 0, R.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=250000)
-    check(s['stop'] == 'RETURN', f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in (('RETURN', 'CALLEE') if party_budget is not None else ('RETURN',)), f'original stop {name}: {s["stop"]}')
     return uc, backing, s['stop'], seen, edges
 
 
@@ -144,11 +149,13 @@ def run_c(f, m, c, envspec, keys, stubs, budget=1 << 20):
     return status, actual, bytes(ram), None, cs.value
 
 
-def compare(name, state, body_ips, f, ovseg):
+def compare(name, state, body_ips, f, ovseg, party_budget=None):
     m, c, envspec, keys, stubs = state
-    uc, backing, ustop, seen, edges = run_unicorn(name, m, c, body_ips, ovseg)
-    status, actual, ram, _, callee = run_c(f, m, c, envspec, keys, stubs)
+    uc, backing, ustop, seen, edges = run_unicorn(name, m, c, body_ips, ovseg, party_budget)
+    status, actual, ram, _, callee = run_c(f, m, c, envspec, keys, stubs, budget=(1 << 20) if party_budget is None else party_budget)
     check(status == ustop, f'C status {name}: {status} original {ustop} (23DB status {callee})')
+    if ustop == 'CALLEE':
+        check(callee == 2, f'23DB status {name}: {callee}, expected LIMIT=2')
     if ram != bytes(backing):
         diff = [hex(i) for i, (a, b) in enumerate(zip(ram, bytes(backing))) if a != b]
         raise ValueError(f'RAM {name}: {diff[:8]} ({len(diff)} bytes)')
@@ -219,6 +226,21 @@ def differential(image_reloc, code, fixups, body_ips, f, only=None):
     return report
 
 
+PARTY_STOP_BUDGETS = (0, 1, 3, 5, 12, 20)
+
+
+def party_stop_differential(image_reloc, code, fixups, body_ips, f):
+    """Compare actual resident prefixes, including the CS hidden by a normal RETF."""
+    results = []
+    for budget in PARTY_STOP_BUDGETS:
+        name = f'party-budget-{budget}'
+        state = build(image_reloc, code, fixups, name=name, sel=0, a3=0x10, party=3)
+        stop, _, _, callee = compare(name, state, body_ips, f, OVSEG, party_budget=budget)
+        check(stop == 'CALLEE' and callee == 2, f'{name}: did not reach the resident limit')
+        results.append(dict(name=name, budget=budget, stop=stop, callee_status=callee))
+    return dict(cases=len(results), cpu_words=14, ram_bytes=SIZE, flag_masks=0, results=results)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     for flag in ('--compile-only', '--unicorn', '--native'):
@@ -236,6 +258,7 @@ def main():
                                 sha256=hashlib.sha256(body).hexdigest()))
         if a.unicorn:
             report['unicorn'] = differential(image_reloc, code, fixups, body_ips, f)
+            report['party_stops'] = party_stop_differential(image_reloc, code, fixups, body_ips, f)
         if a.native:
             import ovl040c_015d_cpu_native as N
             report['native'] = N.native(sys.modules[__name__], code, fixups, body_ips, f, directory=ROOT / 'resources/u38-0400/native')
