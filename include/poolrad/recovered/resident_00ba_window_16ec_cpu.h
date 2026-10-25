@@ -57,7 +57,9 @@ typedef struct {
  * words are read from RAM. This body's own accesses are flat (the stack frame and DS:49F3/6DDA). The flags follow the pinned DOSBox-X stored
  * rules (CMP byte: the six arithmetic flags; XOR AH,AH: logic; INC AX: CF kept); the callees keep theirs. Each instruction of THIS body
  * consumes one unit of *budget (the callees are bounded by env). Exactly 1 MiB of A20-off RAM; entry SP in [0800h,FFF0h], so the 102h-byte
- * frame and the callees' frames (0768 needs SP >= 0300h at its entry) stay inside the stack segment. Code is immutable. */
+ * frame and the callees' frames (0768 needs SP >= 0300h at its entry) stay inside the stack segment.
+ * CONTRACT: code, DS, stack, string operands and flat-runtime operands must not alias A0000..AFFFF; the body does not guard those aliases.
+ * EGA observability covers the bus-aware display callees only. Code is immutable. */
 pr_res_16ec_status pr_res_00ba_window_16ec_cpu(pr_bus *bus, size_t ram_size, pr_res_16ec_cpu *cpu, size_t *budget, const pr_res_16ec_env *env,
                                                pr_res_16ec_diagnostic *diagnostic);
 #endif

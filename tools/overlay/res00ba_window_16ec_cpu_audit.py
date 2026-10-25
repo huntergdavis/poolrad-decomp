@@ -212,7 +212,7 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, budget):
     uc.hook_add(UC_HOOK_INSN, port_out, None, 1, 0, RR.UC_X86_INS_OUT)
     uc.emu_start(physical(c.cs, c.ip), 2 * SIZE, count=7000000)
     writer.finish(uc)
-    check(s['stop'] in ('RETURNED', 'EXIT', 'BREAK', 'TRANSFER', 'LIMIT', 'OVERLAY'), f'original stop {name}: {s["stop"]}')
+    check(s['stop'] in ('RETURNED', 'EXIT', 'BREAK', 'TRANSFER', 'LIMIT', 'OVERLAY'), f'original stop {name}: {s["stop"]}, at {uc.reg_read(RR.UC_X86_REG_CS):04x}:{uc.reg_read(RR.UC_X86_REG_IP):04x}, steps {s["steps"]}, last environment {env.log[-3:]}')
     return uc, backing, env, s['stop'], seen, edges, device, ega_events, s['left'], writer
 
 
@@ -263,12 +263,15 @@ def compare(state, body_ips, f, lib):
             problem = declared_flags_split(actual.flags, want_v, writer)
             check(problem is None, f'{name}: {problem}'); split_used(actual.flags, want_v, writer); continue
         check(getattr(actual, n) == want_v, f'{name}: CPU {n} C {getattr(actual, n):04x} original {want_v:04x}')
+    if ustop == 'RETURNED':
+        check((actual.cs, actual.ip, actual.sp, actual.bp) == (RETURN_TO[0], RETURN_TO[1], (c.sp + 0x10) & 0xFFFF, c.bp),
+              f'{name}: independent RETF 0Ch frame rule')
     return ustop, seen, edges, ram, d
 
 
 def statement(state, stop, ram):
     """Without the C model, on plain RETURNED cases: the local copy of the message (StrStore, at most FFh) at [BP-100h], the colour byte at
-    [BP-101h] on the second branch, and the return frame (SP+10h)."""
+    [BP-101h] on the second branch, with the return-frame rule checked separately in compare()."""
     m, c, envspec, keys, stubs, info = state
     if stop != 'RETURNED' or not info['plain'] or info['msg'] is None:
         return 0
@@ -317,31 +320,83 @@ def cases(quick=False):
     return out
 
 
-def differential(image_reloc, code, fixups, body_ips, f, lib, quick=False, only=None):
-    t0 = time.time(); stops = {}; stated = 0; seen = set(); edges = set()
+def differential(image_reloc, code, fixups, body_ips, f, lib, quick=False, only=None, keep_going=False):
+    t0 = time.time(); stops = {}; stated = 0; seen = set(); edges = set(); failures = []
     for k in SPLIT_BY_RULE:
         SPLIT_BY_RULE[k] = 0
     cs = [c for c in cases(quick) if only is None or c[0] in only]
+    check(bool(cs), 'no cases selected')
+    if only is not None:
+        check(set(only) <= {name for name, _ in cs}, 'unknown case names')
     for index, (name, kw) in enumerate(cs):
         if index % 10 == 0:
             print(f'[{index + 1}/{len(cs)}] {name}: START', file=sys.stderr, flush=True)
         state = build(name, image_reloc, code, fixups, **kw)
-        stop, s, e, ram, d = compare(state, body_ips, f, lib)
+        try:
+            stop, s, e, ram, d = compare(state, body_ips, f, lib)
+            stated += statement(state, stop, ram)
+        except (ValueError, AssertionError) as error:
+            if not keep_going:
+                raise
+            failures.append(dict(case=name, error=str(error)))
+            print(f'FAIL {name}: {error}', file=sys.stderr, flush=True)
+            continue
         stops[stop] = stops.get(stop, 0) + 1; seen |= s; edges |= e
-        stated += statement(state, stop, ram)
     conds = {a: (int(i.op_str, 16), a + i.size) for a, i in body_ips.items() if i.mnemonic.startswith('j') and i.mnemonic != 'jmp'}
     outcomes = {(a, t) for a, ts in conds.items() for t in ts}
-    check(only is not None or seen == set(body_ips), f'starts not reached {sorted(hex(a) for a in set(body_ips) - seen)}')
-    check(only is not None or outcomes <= edges, f'outcomes not reached {sorted(outcomes - edges)}')
-    return dict(cases=len(cs), stops=dict(sorted(stops.items())), starts=f'{len(seen & set(body_ips))}/{len(body_ips)}', outcomes=f'{len(outcomes & edges)}/{len(outcomes)}',
+    check(bool(failures) or only is not None or seen == set(body_ips), f'starts not reached {sorted(hex(a) for a in set(body_ips) - seen)}')
+    check(bool(failures) or only is not None or outcomes <= edges, f'outcomes not reached {sorted(outcomes - edges)}')
+    return dict(cases=len(cs), compared=len(cs)-len(failures), failures=failures, stops=dict(sorted(stops.items())), starts=f'{len(seen & set(body_ips))}/{len(body_ips)}', outcomes=f'{len(outcomes & edges)}/{len(outcomes)}',
                 independent_statements=stated, cpu_words=14, ram_bytes=SIZE, flag_masks=0, declared_splits=dict(SPLIT_BY_RULE), seconds=round(time.time() - t0, 1))
+
+
+MUTANTS = (
+    ('mode selector 5 becomes 4', 'rd8(ram, c->ds, 0x49F3u), 0x05u', 'rd8(ram, c->ds, 0x49F3u), 0x04u'),
+    ('colour 11 becomes 10', 'c->bp + (-257)), 0x11u)', 'c->bp + (-257)), 0x10u)'),
+    ('message copy cap zero', 'c->ax = 0x00FFu;', 'c->ax = 0x0000u;'),
+    ('wait branch always skips', 'if ((c->flags & 0x0040u)) { c->ip = 0x17DDu;', 'if (1) { c->ip = 0x17DDu;'),
+    ('return drops two argument bytes', 'c->sp + 0x0Cu', 'c->sp + 0x0Au'),
+    ('instruction budget unchanged', '--*budget; } while (0)', '(void)budget; } while (0)'),
+)
+MUTATION_CASES = ('m5-f0-w0', 'm5-f0-w1', 'm3-f0-w0', 'm3-f1-w0', 'budget-m5-0', 'budget-m5-3', 'budget-m5-11', 'budget-m5-12')
+
+
+def mutations(image_reloc, code, fixups, body_ips, f, lib, directory):
+    # A compiler failure or a failing baseline never counts as a killed mutation.
+    baseline = differential(image_reloc, code, fixups, body_ips, f, lib, only=MUTATION_CASES)
+    print(f'Mutation baseline PASS: {baseline["compared"]} cases', file=sys.stderr, flush=True)
+    baseline_path = Path(directory) / 'mutation-baseline.json'
+    baseline_path.write_text(json.dumps(baseline, sort_keys=True, indent=2) + '\n')
+    original = (ROOT / 'src/recovered/resident_00ba_window_16ec_cpu.c').read_text()
+    results = []
+    for index, (name, old, new) in enumerate(MUTANTS):
+        check(original.count(old) == 1, f'mutation must change exactly one site: {name}')
+        work = Path(directory) / f'mutant-{index}'; work.mkdir(exist_ok=True)
+        candidate = work / 'candidate.c'; candidate.write_text(original.replace(old, new))
+        try:
+            mf, ml = library(work, {'resident_00ba_window_16ec_cpu': candidate})
+        except subprocess.CalledProcessError as error:
+            results.append(dict(name=name, verdict='COMPILE-ERROR', reason=error.stderr.decode(errors='replace')))
+            continue
+        try:
+            differential(image_reloc, code, fixups, body_ips, mf, ml, only=MUTATION_CASES)
+        except (ValueError, AssertionError) as error:
+            results.append(dict(name=name, verdict='CAUGHT', reason=str(error)))
+        else:
+            results.append(dict(name=name, verdict='SURVIVED'))
+        print(f'Mutation {name}: {results[-1]["verdict"]}', file=sys.stderr, flush=True)
+    return dict(baseline=baseline, results=results, total=len(results), caught=sum(r['verdict']=='CAUGHT' for r in results))
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    for flag in ('--compile-only', '--unicorn', '--quick', '--mutate', '--native'):
+    for flag in ('--compile-only', '--unicorn', '--quick', '--mutate', '--native', '--keep-going'):
         p.add_argument(flag, action='store_true')
-    p.add_argument('--output', type=Path); a = p.parse_args()
+    p.add_argument('--only', nargs='+'); p.add_argument('--output', type=Path); a = p.parse_args()
+    if a.native:
+        p.error('native 16EC oracle is not implemented; no native parity claim')
+    if not (a.compile_only or a.unicorn or a.mutate):
+        p.error('select --compile-only, --unicorn, or --mutate')
     with tempfile.TemporaryDirectory(prefix='r16ec-') as tmp:
         f, lib = library(tmp)
         if a.compile_only:
@@ -352,10 +407,16 @@ def main():
         code, fixups, _, _ = O.source()
         report = dict(target=meta)
         if a.unicorn:
-            report['unicorn'] = differential(image_reloc, code, fixups, body_ips, f, lib, a.quick)
+            report['unicorn'] = differential(image_reloc, code, fixups, body_ips, f, lib, a.quick, a.only, a.keep_going)
+        if a.mutate:
+            mutation_dir = a.output.parent / (a.output.stem + '-artifacts') if a.output else Path(tmp) / 'mutations'
+            mutation_dir.mkdir(parents=True, exist_ok=True)
+            report['mutations'] = mutations(image_reloc, code, fixups, body_ips, f, lib, mutation_dir)
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(report, sort_keys=True, indent=2) + '\n')
     print(json.dumps(report, sort_keys=True))
+    if report.get('unicorn', {}).get('failures') or (a.mutate and report['mutations']['caught'] != report['mutations']['total']):
+        raise SystemExit(1)
 
 
 if __name__ == '__main__':
