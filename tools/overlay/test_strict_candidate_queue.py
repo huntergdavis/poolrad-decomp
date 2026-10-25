@@ -469,7 +469,21 @@ class ResidentRuntimeTest(unittest.TestCase):
             rows = list(reader)
             members = scq.load_resident_runtime(rows, self.ROOT, fields=reader.fieldnames)
         self.assertEqual(tuple(reader.fieldnames), scq.RESIDENT_RUNTIME_FIELDS)
-        self.assertEqual(members, frozenset({"RES_0802_0175"}))  # 0175 joined after 0040's strict credit (par-e)
+        self.assertEqual(members, frozenset({"RES_0802_0000", "RES_0802_0020", "RES_0802_0175"}))  # t76 admits heap wrappers; 0175 joined after 0040's strict credit (par-e)
+
+    def test_committed_runtime_members_have_complete_original_closures(self):
+        exe = self.ROOT / "resources/DOS/POOLRAD/START.EXE"
+        if not exe.is_file():
+            self.skipTest("owner media absent")
+        from resident_ds_operands import load_image
+        image = load_image(exe)
+        with (self.ROOT / "docs/re/resident_runtime_models.csv").open() as handle:
+            rows = list(csv.DictReader(handle))
+        with (self.ROOT / "docs/re/strict_full_c_addresses.csv").open() as handle:
+            strict = {r["id"] for r in csv.DictReader(handle)}
+        members = scq.load_resident_runtime(rows, self.ROOT, image=image, strict_ids=strict)
+        self.assertEqual(members, {"RES_0802_0000", "RES_0802_0020", "RES_0802_0175"})
+        self.assertFalse(members & strict)
 
     def test_0175_closure_is_complete_once_0040_is_strict(self):
         """t30 side (ii): 0175's closure is 0040. It was refused on the real image until 0040 was strict; 0040's
