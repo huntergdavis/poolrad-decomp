@@ -103,7 +103,176 @@
         133336
       ],
       "original_sha256": "b46af1076a44c59ec4ec82986d62a175c6ddf3846f09c44b41c867fd34c77807",
-      "replacement_sha256": "0f7252ac1669ca1cef1c51ae5d18d46c6d9a3714851f7a14c909973d3b47bcbc"
+      "replacement_sha256": "0f7252ac1669ca1cef1c51ae5d18d46c6d9a3714851f7a14c909973d3b47bcbc",
+      "localization": {
+        "status": "classified",
+        "model": "poolrad-v1.3-observed-1264:02fd-layout",
+        "masked_bytes": 0,
+        "total_differing_bytes": 111,
+        "range_convention": "physical [start, end), bytes",
+        "regions": {
+          "bios_timer": [
+            1132,
+            1136
+          ],
+          "randseed": [
+            101928,
+            101932
+          ],
+          "stack_below_sp": [
+            119136,
+            135012
+          ],
+          "stack_at_or_above_sp": [
+            135012,
+            135520
+          ]
+        },
+        "categories": {
+          "bios_timer": {
+            "differing_bytes": 2,
+            "ranges": [
+              [
+                1132,
+                1134
+              ]
+            ]
+          },
+          "randseed": {
+            "differing_bytes": 4,
+            "ranges": [
+              [
+                101928,
+                101932
+              ]
+            ]
+          },
+          "stack_below_sp": {
+            "differing_bytes": 98,
+            "ranges": [
+              [
+                130816,
+                130818
+              ],
+              [
+                130819,
+                130822
+              ],
+              [
+                131796,
+                131797
+              ],
+              [
+                131803,
+                131806
+              ],
+              [
+                132430,
+                132432
+              ],
+              [
+                132434,
+                132435
+              ],
+              [
+                132438,
+                132439
+              ],
+              [
+                132442,
+                132444
+              ],
+              [
+                133326,
+                133340
+              ],
+              [
+                133512,
+                133516
+              ],
+              [
+                133772,
+                133774
+              ],
+              [
+                133775,
+                133786
+              ],
+              [
+                134230,
+                134232
+              ],
+              [
+                134241,
+                134257
+              ],
+              [
+                134258,
+                134261
+              ],
+              [
+                134262,
+                134266
+              ],
+              [
+                134838,
+                134850
+              ],
+              [
+                134952,
+                134953
+              ],
+              [
+                134956,
+                134958
+              ],
+              [
+                134968,
+                134969
+              ],
+              [
+                134994,
+                134996
+              ],
+              [
+                134997,
+                135006
+              ]
+            ]
+          },
+          "stack_at_or_above_sp": {
+            "differing_bytes": 7,
+            "ranges": [
+              [
+                135062,
+                135063
+              ],
+              [
+                135065,
+                135067
+              ],
+              [
+                135069,
+                135071
+              ],
+              [
+                135073,
+                135075
+              ]
+            ]
+          },
+          "unclassified": {
+            "differing_bytes": 0,
+            "ranges": []
+          }
+        },
+        "scope": "Address membership only; no first-writer, cause, liveness, or semantic-equivalence conclusion. Unknown images/layouts stay unclassified.",
+        "sources": [
+          "DOSBox-X 5a9c7c53 include/bios.h: BIOS_TIMER; src/ints/bios.cpp: INT8_Handler",
+          "docs/re/RANDOM_GENERATOR.md: RandSeed DS:4428..442B",
+          "docs/re/REVIEW_LANE_HANDOFF.md: EXEPACK SS:SP=14F2:4000 and stack-geometry limits"
+        ]
+      }
     },
     "vram": {
       "bytes": 2097152,
