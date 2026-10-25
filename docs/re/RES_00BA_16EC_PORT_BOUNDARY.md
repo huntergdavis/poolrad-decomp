@@ -244,23 +244,10 @@ these are local experiment artifacts, not a shipped native parity harness.
 | START.EXE | `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd` |
 | GAME.OVR | `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` |
 
-## NOT-CLOSABLE: the remaining obligation
-
-The display boundary has moved from an untested assumption to a conditional
-site-local proof with an executed original-code violation, plus one native
-box-bypass predicate. It is still insufficient to establish that the rest
-of the dependency closure is off the port path. For box-taking arrivals,
-live preservation of the caller's control frame remains unproved, and its
-violation demonstrably reaches a callee that the EGA-attached model refuses.
-The one observed mode-5 point neither proves all arrivals bypass the box nor
-validates the mode-5 clear/title/printer and common-tail effects. Cold loading
-and the bounded printer/termination contract also remain unresolved.
-
-The next evidence would have to establish a defined port entry contract and
-validate its live selector/frame/object/loading conditions, including the
-remaining selected callees. Additional synthetic coverage alone cannot
-discharge that obligation. This document is a conditional evidence step;
-it supplies no readiness, membership, identity, credit, or unlock verdict.
+The separate [closure-status document](RES_00BA_16EC_CLOSURE_STATUS.md)
+records the NOT-CLOSABLE assessment, individual removal tests, and the
+freshness check. The conditional proof and its original-code violation
+above do not themselves discharge any closure obligation.
 
 ## Still not verified
 
@@ -283,3 +270,7 @@ Recall before analysis: Dunking Sheep memory returned session
 step reuses the published [harness plan](RES_00BA_16EC_PORT_HARNESS.md),
 [one-hop list](RES_00BA_16EC_ONE_HOP_TARGETS.md), #1558's world/comparator,
 and the box/tile evidence above. Their old closure counts are not remeasured.
+
+Follow-up recall session `01a1386e-bea7-7883-8ddd-06fd2be8db9b` suggested
+checking the PUSH-CS/near-CALL frame form. The native/original byte check
+above, rather than that prior session, establishes this observed frame.
