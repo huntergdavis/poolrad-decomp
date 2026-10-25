@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """DOSBox-X original-chain CPU14/DS/stack captures for U3C2 +0909."""
+# NOT_A_ROW_CHECKER: native companion of u3c2_caller_0909_audit.py.
+from native_emulator_provenance import describe_dosbox
 from loaded_stub_fixtures import native_stub_patch
 import ctypes
 from hashlib import sha256
@@ -66,6 +68,7 @@ def assembly(paths,case,decoded):
     return '\n'.join(a)+'\n'
 
 def main():
+    dosbox_x=describe_dosbox('dosbox-x')
     OUT.mkdir(parents=True,exist_ok=True);bodies,decoded=source();blobs={'caller':bytearray(0xBD9),'pair':bytearray(0x68),'sys':bytearray(0xA57)}
     for (kind,start),data in bodies.items():blobs[kind][start:start+len(data)]=data
     paths=[]
@@ -85,7 +88,7 @@ def main():
         assert com.stat().st_size<0xEF00
         cfg=d/'dosbox.conf';cfg.write_text('[sdl]\noutput=surface\n[dosbox]\nmemsize=16\n[cpu]\ncore=normal\ncputype=386\ncycles=max\n[mixer]\nnosound=true\n[midi]\nmididevice=none\n[autoexec]\nmount c '+str(d)+'\nc:\nORACLE.COM\nexit\n')
         output=d/'RESULT.BIN';output.unlink(missing_ok=True)
-        with (d/'dosbox.log').open('w') as log:subprocess.run(['dosbox-x','-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=45)
+        with (d/'dosbox.log').open('w') as log:subprocess.run([dosbox_x['path'],'-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=45)
         result=output.read_bytes();assert len(result)==HEADER+65536,(index,len(result))
         cs,pair,system,ss,ds,retip,retcs=struct.unpack_from('<7H',result);regs=struct.unpack_from('<14H',result,14)
         m,c,_,_=fixture(**case,cs=cs,pair=pair,system=system,ss=ss,ds=ds);c.flags &= ~0x200
@@ -98,6 +101,6 @@ def main():
             actual=result[offset:offset+n];expected=bytes(m[physical(ss,start):physical(ss,start)+n]);assert actual==expected,(index,'stack',hex(start),[(i,a,b) for i,(a,b) in enumerate(zip(actual,expected)) if a!=b][:10]);offset+=n
         actual=result[HEADER:];expected=bytes(m[physical(ds,0):physical(ds,0)+65536]);assert actual==expected,(index,'DS',[(hex(i),a,b) for i,(a,b) in enumerate(zip(actual,expected)) if a!=b][:12])
         hashes.append(sha256(result).hexdigest());print('PASS native',index,flush=True)
-    report=dict(target='OVL_03C2_0909',cases=len(cases),full_returns=len(cases),cpu_words=14,stack_bytes=STACK_BYTES,data_bytes=65536,masked_flags=0,capture_sha256=hashes,native_route_measured=False,wrapped_frames_measured=False)
+    report=dict(dosbox_x=dosbox_x,target='OVL_03C2_0909',cases=len(cases),full_returns=len(cases),cpu_words=14,stack_bytes=STACK_BYTES,data_bytes=65536,masked_flags=0,capture_sha256=hashes,native_route_measured=False,wrapped_frames_measured=False)
     (OUT/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print(json.dumps(report,sort_keys=True))
 if __name__=='__main__':main()
