@@ -63,6 +63,21 @@ class PortBoundaryTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f'{name} body pin mismatch'):
                     B.pin_bodies(*bodies)
 
+    def test_real_move_alias_breaks_preservation(self):
+        baseline = B.alias_state(self.data, False)
+        state = B.alias_state(self.data, True)
+        # The worlds differ only in the initial Move-object destination pointer.
+        allowed = {B.A.physical(state[1].ds, off) for off in range(0x5E4E, 0x5E52)}
+        changed = {i for i, (a, b) in enumerate(zip(baseline[0], state[0])) if a != b}
+        self.assertTrue(changed)
+        self.assertTrue(changed <= allowed)
+        trace, stop = B.measure(baseline, self.data[3])
+        B.validate(trace, stop, box=True)
+        trace, stop = B.measure(state, self.data[3])
+        B.validate_alias(trace, stop, state)
+        with self.assertRaisesRegex(ValueError, 'tile count'):
+            B.validate(trace, stop, box=True)
+
 
 if __name__ == '__main__':
     unittest.main()
