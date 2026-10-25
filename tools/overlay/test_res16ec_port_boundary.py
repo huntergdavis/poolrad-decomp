@@ -74,6 +74,7 @@ class PortBoundaryTests(unittest.TestCase):
         trace, stop = B.measure(baseline, self.data[3])
         B.validate(trace, stop, box=True)
         trace, stop = B.measure(state, self.data[3])
+        print('Pre-registered alias observation: ' + B.json.dumps(dict(stop=stop, **trace.report()), sort_keys=True), flush=True)
         B.validate_alias(trace, stop, state)
         with self.assertRaisesRegex(ValueError, 'tile count'):
             B.validate(trace, stop, box=True)
