@@ -19,6 +19,7 @@ import struct
 import subprocess
 import tempfile
 
+from native_emulator_provenance import describe_dosbox
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
 from overlay_inventory import find_units, parse_mz
 from resident_loader_map import unpack
@@ -273,6 +274,7 @@ def native_cases():
 
 
 def native_audit(target, code, function):
+    dosbox_x = describe_dosbox("dosbox-x")
     directory = ROOT / "resources/oracle-runs/u3c2-002e-synthetic"
     directory.mkdir(parents=True, exist_ok=True)
     unit = bytearray(code)
@@ -338,7 +340,7 @@ def native_audit(target, code, function):
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
     with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+        subprocess.run([dosbox_x["path"], "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
                        env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
     result = result_path.read_bytes()
     check(len(result) == 8 + len(cases) * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
@@ -374,7 +376,7 @@ def native_audit(target, code, function):
     print(f"DOSBox-X normal-core/386 synthetic cases passed: {len(cases)} ({swaps} with swaps); all 14 CPU words, the {FRAME_SIZE}-byte stack "
           f"window and the {REC_SIZE:#x}-byte record table; no mask")
     print(f"native result SHA-256 {digest}; COM segment {segment:04x}; Move copied to {MOVE_N:04X}:0A3F")
-    return dict(cases=len(cases), with_swaps=swaps, result_sha256=digest)
+    return dict(dosbox_x=dosbox_x, cases=len(cases), with_swaps=swaps, result_sha256=digest)
 
 
 def main():
