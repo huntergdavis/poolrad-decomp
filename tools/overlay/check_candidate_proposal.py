@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Byte-compare a candidate-scout proposal against the owner GAME.OVR.
+"""Verify a candidate-scout proposal's span identity against the owner GAME.OVR.
 
-A candidate proposal is a claim: "this body id lives at this unit-relative
-offset, is this many bytes, and these are its original bytes". The claim is
-mechanically checkable and this tool checks exactly that, nothing else. It does
-NOT verify the semantic C, the caller/callee contracts, or any credit decision.
+A candidate proposal is a claim: "this body id lives at this unit-relative offset, is
+this many bytes, at this file offset, with this SHA-256". This tool checks exactly that,
+by reading the span from the game file and hashing it. Original bytes are not quoted in
+the proposal, so nothing derived from the game is committed in the doc.
 
 Proposal format, one block per candidate, anywhere in the document:
 
@@ -12,23 +12,22 @@ Proposal format, one block per candidate, anywhere in the document:
     UNIT: 0x1c
     REL_OFFSET: 0x0292
     LENGTH: 78
+    FILE_OFFSET: 4056
     SHA256: <64 hex>
-    BYTES:
-    ```bytes
-    55 89 e5 ...
-    ```
 
 RUN:
     python3 tools/overlay/check_candidate_proposal.py docs/re/CANDIDATE_SCOUT_DS41B_BATCH1.md
 
 Prints one line per candidate:
 
-    BYTES MATCH: 78 bytes at 4056 are byte-identical to GAME.OVR (sha256 ...)
-    BYTES DIFFER: OVL_... first difference at +N (offset F): file xx, claimed yy
-    NO BYTES: OVL_... has no `bytes` block
-    UNIT UNRESOLVED: OVL_... unit 0x1c not in the inventory
+    SPAN MATCH: 78 bytes at 4056 sha256 ...
+    SHA256 MISMATCH: OVL_... claims ... but the span digest is ...
+    FILE_OFFSET MISMATCH: OVL_... claims N but unit+offset resolve to M
+    LENGTH OUT OF RANGE / NO SHA256 / UNIT UNRESOLVED / BAD FIELDS
 
-Exit 0 only if every candidate matches. Media stays under ignored resources/.
+A present SHA256 must match; a missing one is a failure, because the digest is the only
+identity claim left once the bytes are not quoted. Exit 0 only if every candidate matches.
+Media stays under ignored resources/.
 """
 from __future__ import annotations
 
@@ -44,39 +43,28 @@ from overlay_inventory import find_units, parse_mz  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_OVR = ROOT / "resources/DOS/POOLRAD/GAME.OVR"
 DEFAULT_EXE = ROOT / "resources/DOS/POOLRAD/START.EXE"
-FIELD_RE = re.compile(r"^(BODY|UNIT|REL_OFFSET|LENGTH|SHA256):\s*(\S+)\s*$")
-BYTES_RE = re.compile(r"^```bytes\s*$([\s\S]*?)^```\s*$", re.M)
+FIELD_RE = re.compile(r"^(BODY|UNIT|REL_OFFSET|LENGTH|FILE_OFFSET|SHA256):\s*(\S+)\s*$")
 
 
 def blocks(text):
-    """Yield (fields, bytes_text) for each BODY: block that precedes a bytes fence."""
-    lines = text.splitlines()
+    """Yield one field dict per BODY: block."""
     current = {}
-    for lineno, line in enumerate(lines):
+    for line in text.splitlines():
         m = FIELD_RE.match(line)
-        if m:
-            key, value = m.group(1), m.group(2)
-            if key == "BODY" and current.get("BODY"):
-                yield current, None
-                current = {}
-            current[key] = value
+        if not m:
             continue
-        if line.strip() == "BYTES:" and current.get("BODY"):
-            m2 = BYTES_RE.search("\n".join(lines[lineno:]))
-            dump = m2.group(1) if m2 else None
-            yield current, dump
+        key, value = m.group(1), m.group(2)
+        if key == "BODY" and current.get("BODY"):
+            yield current
             current = {}
+        current[key] = value
     if current.get("BODY"):
-        yield current, None
+        yield current
 
 
-def hexbytes(dump):
-    if not dump:
-        return None
-    raw = re.sub(r"[^0-9A-Fa-f]", "", dump)
-    if len(raw) % 2:
-        raw = raw[:-1]
-    return bytes.fromhex(raw)
+def digest_matches(claimed, actual):
+    """A present SHA256 must equal the span digest; an absent one is a failure."""
+    return claimed is not None and claimed.lower() == actual
 
 
 def main(argv):
@@ -98,18 +86,14 @@ def main(argv):
     text = Path(args.proposal).read_text(errors="replace")
     failures = 0
     found = 0
-    for fields, dump in blocks(text):
+    for fields in blocks(text):
         found += 1
         body = fields["BODY"]
-        expected = hexbytes(dump)
-        if expected is None:
-            print(f"NO BYTES: {body} has no `bytes` block")
-            failures += 1
-            continue
         try:
             unit = int(fields.get("UNIT", ""), 0)
             rel = int(fields.get("REL_OFFSET", ""), 0)
             length = int(fields.get("LENGTH", "0"), 0)
+            file_offset = int(fields["FILE_OFFSET"], 0) if "FILE_OFFSET" in fields else None
         except ValueError as exc:
             print(f"BAD FIELDS: {body}: {exc}")
             failures += 1
@@ -119,28 +103,26 @@ def main(argv):
             failures += 1
             continue
         at = units[unit]["ovr_offset"] + rel
-        if length and len(expected) != length:
-            print(f"LENGTH MISMATCH: {body} claims {length} bytes, block has {len(expected)}")
+        if file_offset is not None and file_offset != at:
+            print(f"FILE_OFFSET MISMATCH: {body} claims {file_offset} but unit+offset resolve to {at}")
             failures += 1
-        file_bytes = ovr[at:at + len(expected)]
-        digest = sha256(file_bytes).hexdigest()
-        if file_bytes == expected:
-            extra = ""
-            if fields.get("SHA256") and fields["SHA256"].lower() != digest:
-                extra = f" WARNING: claimed sha256 {fields['SHA256'][:16]}... != {digest[:16]}..."
-            print(f"BYTES MATCH: {len(expected)} bytes at {at} are byte-identical to GAME.OVR"
-                  f" (sha256 {digest}{extra})")
-        else:
+            continue
+        if length <= 0 or at + length > len(ovr):
+            print(f"LENGTH OUT OF RANGE: {body} length {length} at file {at} (file {len(ovr)} bytes)")
             failures += 1
-            for i, (x, y) in enumerate(zip(file_bytes, expected)):
-                if x != y:
-                    print(f"BYTES DIFFER: {body} first difference at +{i} (offset {at + i}):"
-                          f" file {x:02x}, claimed {y:02x}")
-                    print(f"   file   : {' '.join(f'{v:02x}' for v in file_bytes[:48])}")
-                    print(f"   claimed: {' '.join(f'{v:02x}' for v in expected[:48])}")
-                    break
-            else:
-                print(f"BYTES DIFFER: {body} claimed block is longer than the file slice")
+            continue
+        span = ovr[at:at + length]
+        digest = sha256(span).hexdigest()
+        claimed = fields.get("SHA256")
+        if claimed is None:
+            print(f"NO SHA256: {body} has no digest claim")
+            failures += 1
+            continue
+        if not digest_matches(claimed, digest):
+            print(f"SHA256 MISMATCH: {body} claims {claimed} but the span digest is {digest}")
+            failures += 1
+            continue
+        print(f"SPAN MATCH: {length} bytes at {at} sha256 {digest}")
     if not found:
         print("NO CANDIDATES: the proposal has no BODY: blocks", file=sys.stderr)
         return 2
