@@ -44,11 +44,13 @@ missing, a reason ID or removal criterion differs from its companion record, or
 required discharge references are absent. The unit control supplies an
 explicitly synthetic discharge for each of NC1 through NC5 and requires
 the stale document to fail, then requires the corrected open set to pass.
+An additional control discharges all five and rejects a retained
+NOT-CLOSABLE headline; removing open reasons does not itself grant closure.
 The fixtures are not actual proofs or review verdicts. They are included
 in `tools/run_media_checks.sh` discovery.
 
-The focused freshness run passed five tests, zero skips (0.036 seconds),
-including the five per-reason stale-discharge subcases. Its receipt is
+The focused freshness run passed six tests, zero skips (0.038 seconds),
+including the five per-reason stale-discharge subcases and stale headline. Its receipt is
 `resources/t131/closure-freshness.log`. These are consistency controls, not
 executed discharges of the five obligations.
 

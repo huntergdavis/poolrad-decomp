@@ -6,6 +6,12 @@ import unittest
 import res16ec_closure_status as S
 
 
+def synthetic_discharge():
+    return dict(reviewer='synthetic reviewer fixture', review_ref='synthetic fixture only',
+                proof_ref='not an actual proof', scope='fixture scope',
+                reviewed_head='a' * 40, proof_sha256='b' * 64)
+
+
 class ClosureStatusTests(unittest.TestCase):
     def setUp(self):
         self.state = json.loads(S.STATE.read_text())
@@ -20,10 +26,7 @@ class ClosureStatusTests(unittest.TestCase):
             with self.subTest(reason=ident):
                 state = copy.deepcopy(self.state)
                 row = next(row for row in state['obligations'] if row['id'] == ident)
-                row.update(state='discharged', discharge=dict(
-                    reviewer='synthetic reviewer fixture', review_ref='synthetic fixture only',
-                    proof_ref='not an actual proof', scope='fixture scope',
-                    reviewed_head='a' * 40, proof_sha256='b' * 64))
+                row.update(state='discharged', discharge=synthetic_discharge())
                 # Ensure the stale claim is present even after future real discharges.
                 stale = self.document
                 if not any(line.startswith(f'| {ident} |') for line in stale.splitlines()):
@@ -32,7 +35,23 @@ class ClosureStatusTests(unittest.TestCase):
                     S.check(state, stale)
                 corrected = '\n'.join(line for line in stale.splitlines()
                                       if not line.startswith(f'| {ident} |'))
+                if all(row['state'] == 'discharged' for row in state['obligations']):
+                    corrected = corrected.replace('**NOT-CLOSABLE on the currently recorded evidence.**',
+                                                  'No recorded open reasons; review still required.')
                 self.assertNotIn(ident, S.check(state, corrected))
+
+    def test_all_dispositions_closed_rejects_stale_verdict(self):
+        for row in self.state['obligations']:
+            row.update(state='discharged', discharge=synthetic_discharge())
+        document = '\n'.join(line for line in self.document.splitlines()
+                             if not any(line.startswith(f'| {ident} |') for ident in S.IDS))
+        if '**NOT-CLOSABLE on the currently recorded evidence.**' not in document:
+            document += '\n**NOT-CLOSABLE on the currently recorded evidence.**\n'
+        with self.assertRaisesRegex(ValueError, 'NOT-CLOSABLE verdict'):
+            S.check(self.state, document)
+        corrected = document.replace('**NOT-CLOSABLE on the currently recorded evidence.**',
+                                     'No recorded open reasons; review still required.')
+        self.assertEqual(S.check(self.state, corrected), [])
 
     def test_discharge_without_review_reference_is_rejected(self):
         self.state['obligations'][0].update(state='discharged', discharge=None)
