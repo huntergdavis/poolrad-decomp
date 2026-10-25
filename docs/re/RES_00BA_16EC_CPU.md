@@ -63,7 +63,7 @@ explains that a final word ending at index 255 never terminates inside
 06A7 because its byte index wraps; that callee has a declared LIMIT.
 This is a known original-program limitation, but the t24 checker has not
 yet compared a finite prefix at that callee limit. A diagnostic rerun retains per-case failures and exits nonzero
-if any occur. The full 386-case set includes both display branches, wait
+if any occur. The original 386-case set (388 after adding the boundary pair) includes both display branches, wait
 and colour choices, empty/long messages, stack edges, frame aliases,
 flags, graphics modes, instruction-budget boundaries and seeded worlds.
 Final diagnostic results will be recorded here before review is requested.
@@ -106,3 +106,28 @@ Reproduce from the repository root with the audit Python environment:
 
 All executable media, derived artifacts and full reports stay under ignored
 `resources/`; the resources symlink is not tracked.
+
+## Boundary probe added after the first failure
+
+The failing input is synthetic and exact: a Pascal length byte `FFh`
+followed by 255 copies of `79h` (`y`), mode5, colour flag0, wait0, row3,
+title `Ti`. The original-side instruction watchdog fired before the model
+ran on that case. The initial log is retained in
+`resources/t24-16ec/initial-runaway.log`; a second redundant diagnostic was
+interrupted and is retained separately, not counted as a completed run.
+
+Original-byte checks now pin the `06B5` byte comparison, `06BA` unsigned
+`JA` exit, byte index increment and `070E` loop-back. With an unchanged
+end byte255, the unsigned byte index cannot exceed the end, and increment
+wraps modulo256. This is the original's index-width boundary, not evidence
+that a larger watchdog would let the call return.
+
+The separate `boundary-254` and `boundary-255` cases differ only in message
+length. Both use 256 permitted `06A7` loop-backs. The original is stopped
+before JMP070E at the same loop-count limit as the C callee. The expected
+outcomes are RETURNED for254 and LIMIT at070E for255, with the normal full
+state comparison in both. A LIMIT comparison establishes a finite prefix,
+not a normal return or unrestricted native behavior. The six existing
+`*-max` cases retain their exact255-byte strings and use this same declared
+limit in the final388-case set. The original6-million-instruction RUNAWAY
+remains a separate historical result; it is not relabelled a passing return.

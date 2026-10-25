@@ -70,7 +70,16 @@ def source(image, sites):
     check([(i.address, i.op_str) for i in ins if i.mnemonic in ('ret', 'retf')] == [(0x17E0, '0xc')], 'the only return is RETF 0Ch at 17E0')
     check(sorted(s - b for s in sites if b + ENTRY <= s < b + END) == [a + 3 for a, _, _ in FAR_SITES], 'the seven far-call segment words are the only relocations')
     check(not [i for i in ins if i.mnemonic in ('int', 'in', 'out')], 'no interrupt or port instruction')
-    return body, {i.address: i for i in ins}, dict(span='00BA:[16EC,17E3)', bytes=247, instructions=116, sha256=sha256(body).hexdigest(), image_sha256=Q.IMAGE_DIGEST)
+    text_code = bytes(image[0x0709 * 16 + 0x06A7:0x0709 * 16 + 0x0714])
+    text_ins = {i.address: i for i in Cs(CS_ARCH_X86, CS_MODE_16).disasm(text_code, 0x06A7)}
+    check(text_ins[0x06B5].mnemonic == 'cmp' and text_ins[0x06B5].op_str.replace(' ', '') == 'al,byteptrss:[di-0x104]', '06A7 compares byte index against byte end')
+    check(text_ins[0x06BA].mnemonic == 'ja' and int(text_ins[0x06BA].op_str, 16) == 0x0710, '06A7 exits only for unsigned index>end')
+    increments = [i.address for i in text_ins.values() if i.mnemonic == 'inc' and i.op_str.replace(' ', '') == 'byteptrss:[di-0x103]']
+    check(len(increments) == 1, '06A7 increments the index as a byte')
+    check(text_ins[0x070E].mnemonic == 'jmp' and int(text_ins[0x070E].op_str, 16) == 0x06AA, '06A7 loop-back')
+    return body, {i.address: i for i in ins}, dict(span='00BA:[16EC,17E3)', bytes=247, instructions=116, sha256=sha256(body).hexdigest(), image_sha256=Q.IMAGE_DIGEST,
+        text_boundary=dict(body_sha256=sha256(text_code).hexdigest(), compare='0709:06B5', unsigned_exit='0709:06BA', byte_increment=increments[0], loop_back='0709:070E', index_bits=8,
+                           reason='For unchanged end=255 no unsigned byte index is greater than end; increment wraps modulo256.'))
 
 
 def library(directory, override=None):
@@ -87,7 +96,7 @@ def library(directory, override=None):
 
 def build(name, image_reloc, code, fixups, *, mode5=True, flag6dda=0, wait=0, row=3, msg=b'Hello', title=b'Ti', words=None, keys=(0x1E61,),
           loaded=True, sp=0xF000, flags=0x0202, regs=None, gmode=1, speed=0, calibration=2, cursor=(1, 1), gate=0, msg_at=MSG, title_at=TITLE,
-          writes=(), budget=BUDGET, high=0xA500):
+          writes=(), budget=BUDGET, high=0xA500, text_loopbacks=65536):
     """The tile world, the display state, then this case's mode byte, DS:6DDA, message, frame and registers, all from the case's name."""
     rng = random.Random(f'RES_00BA_16EC/{name}')
     m, c, envspec, kl, stubs = O.build(image_reloc, code, fixups, keys=keys, mode=gmode, sp=sp, flags=flags, seed=rng.randrange(1 << 30))
@@ -123,10 +132,10 @@ def build(name, image_reloc, code, fixups, *, mode5=True, flag6dda=0, wait=0, ro
             m[physical(seg, (off + j) & 0xFFFF)] = v
     r = regs or tuple(rng.randrange(65536) for _ in range(7))
     c = Cpu(r[0], r[1], r[2], r[3], r[4], r[5], r[6], sp, BASE + SEG16EC, ENTRY, ds, 0x1111, SS, (flags | 0x0002) & ~0x0100)
-    return m, c, envspec, kl, stubs, dict(name=name, budget=budget, sp=sp, mode5=mode5, wait=wait, row=row, msg=msg, plain=not writes)
+    return m, c, envspec, kl, stubs, dict(name=name, budget=budget, sp=sp, mode5=mode5, wait=wait, row=row, msg=msg, plain=not writes, text_loopbacks=text_loopbacks)
 
 
-def run_unicorn(name, m, c, envspec, keys, body_ips, budget):
+def run_unicorn(name, m, c, envspec, keys, body_ips, budget, text_loopbacks=65536):
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_INSN
     from unicorn import x86_const as RR
     env = Q.Env(**envspec); script = list(keys); device = M.new_device()
@@ -143,12 +152,18 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, budget):
         uc.mem_map_ptr(origin + 0xB0000, 0x50000, 7, ctypes.addressof(backing) + 0xB0000)
     for (n, _), reg in zip(Cpu._fields_, REGISTERS):
         uc.reg_write(reg, getattr(c, n))
-    s = dict(stop=None, steps=0, left=budget, prev=None); seen = set(); edges = set(); ega_events = []; writer = LastFlagWriter()
+    s = dict(stop=None, steps=0, left=budget, prev=None, text_loops=0); seen = set(); edges = set(); ega_events = []; writer = LastFlagWriter()
     here = BASE + SEG16EC; sysc = BASE + Q.SEG['system']; crt = BASE + O.CRT
 
     def code(em, address, size, user):
         cs = uc.reg_read(RR.UC_X86_REG_CS); ip = uc.reg_read(RR.UC_X86_REG_IP)
         writer.finish(uc)
+        if (cs, ip) == (BASE + 0x0709, 0x06A7):
+            s['text_loops'] = 0
+        if (cs, ip) == (BASE + 0x0709, 0x070E):
+            if s['text_loops'] == text_loopbacks:
+                s['stop'] = 'LIMIT'; return uc.emu_stop()
+            s['text_loops'] += 1
         if (cs, ip) == (sysc, 0x00E9):
             s['stop'] = 'EXIT'; return uc.emu_stop()
         if (cs, ip) == (crt, 0x014B):
@@ -216,13 +231,13 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, budget):
     return uc, backing, env, s['stop'], seen, edges, device, ega_events, s['left'], writer
 
 
-def run_c(f, lib, m, c, envspec, keys, stubs, budget):
+def run_c(f, lib, m, c, envspec, keys, stubs, budget, text_loopbacks=65536):
     keep = []
     q, env = Q.c_env(envspec, keep)
     ke = K.KeyEnv(q, K.keyboard(env, keys, keep), None, 64)
     text = O.T.c_driver(stubs, False, keep)
     box = BX.Env03(O.Env15(O.VideoEnv(q.video, None), text, ke, 1 << 20), 1 << 20)
-    e = Env16(65536, 65536, 65536, 65536, P.Budget(65536, 65536, 65536, 65536, 10 ** 8, 65536, 65536, 65536), M.Env0BF5(ke, 65536, 65536, 65536), 64,
+    e = Env16(65536, 65536, 65536, 65536, P.Budget(65536, 65536, text_loopbacks, 65536, 10 ** 8, 65536, 65536, 65536), M.Env0BF5(ke, 65536, 65536, 65536), 64,
               box, 10 ** 8, 65536, 65536)
     actual = Cpu.from_buffer_copy(c); ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m)
     ega = M.Ega(); lib.pr_ega_reset(ctypes.byref(ega))
@@ -245,8 +260,8 @@ def run_c(f, lib, m, c, envspec, keys, stubs, budget):
 def compare(state, body_ips, f, lib):
     m, c, envspec, keys, stubs, info = state
     name = info['name']
-    uc, backing, uenv, ustop, seen, edges, device, uega, uleft, writer = run_unicorn(name, m, c, envspec, keys, body_ips, info['budget'])
-    status, actual, ram, cenv, d, cega, cwrites, cstate, cleft = run_c(f, lib, m, c, envspec, keys, stubs, info['budget'])
+    uc, backing, uenv, ustop, seen, edges, device, uega, uleft, writer = run_unicorn(name, m, c, envspec, keys, body_ips, info['budget'], info['text_loopbacks'])
+    status, actual, ram, cenv, d, cega, cwrites, cstate, cleft = run_c(f, lib, m, c, envspec, keys, stubs, info['budget'], info['text_loopbacks'])
     want = {'BREAK': 'KEY', 'EXIT': ('EXIT', 'KEY')}.get(ustop, ustop)
     check(status == want or (isinstance(want, tuple) and status in want), f'{name}: C {status} (callee {d.callee}/{d.callee_status} site {d.site:04x}) original {ustop}')
     check(cleft == uleft, f'{name}: budget left C {cleft} original {uleft}')
@@ -266,6 +281,11 @@ def compare(state, body_ips, f, lib):
     if ustop == 'RETURNED':
         check((actual.cs, actual.ip, actual.sp, actual.bp) == (RETURN_TO[0], RETURN_TO[1], (c.sp + 0x10) & 0xFFFF, c.bp),
               f'{name}: independent RETF 0Ch frame rule')
+    if name == 'boundary-254':
+        check(ustop == status == 'RETURNED', '254-byte boundary must return')
+    if name == 'boundary-255':
+        check(ustop == status == 'LIMIT' and actual.cs == BASE + 0x0709 and actual.ip == 0x070E,
+              '255-byte boundary must stop before06A7 loop-back070E')
     return ustop, seen, edges, ram, d
 
 
@@ -299,7 +319,9 @@ def cases(quick=False):
                 for row in (0, 1, 7, 0x10):
                     add(f'{tag}-row{row:02x}', mode5=mode5, flag6dda=f6, wait=wait, row=row)
                 for msg, label in ((b'', 'empty'), (b'A', 'one'), (b'x' * 38, 'line'), (b'word ' * 20, 'wrap'), (b'y' * 255, 'max')):
-                    add(f'{tag}-{label}', mode5=mode5, flag6dda=f6, wait=wait, msg=msg)
+                    add(f'{tag}-{label}', mode5=mode5, flag6dda=f6, wait=wait, msg=msg, text_loopbacks=256 if label == 'max' else 65536)
+    add('boundary-254', msg=b'y' * 254, text_loopbacks=256)
+    add('boundary-255', msg=b'y' * 255, text_loopbacks=256)
     for gm in (0, 2, 3):
         add(f'gmode{gm}-m5', gmode=gm); add(f'gmode{gm}-box', mode5=False, gmode=gm)
     add('box-unloaded-stub', mode5=False, loaded=False)

@@ -418,6 +418,7 @@ resident_00ba_party_count_23db_cpu.c,flat,no,no
 resident_00ba_sidecar_lookup_2199_cpu.c,flat,no,no
 resident_00ba_sidecar_remove_1509_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_target_reset_2637_cpu.c,flat,no,no
+resident_00ba_window_16ec_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_zero_test_23b7_cpu.c,flat,no,no
 resident_03f1_box_0000_cpu.c,bus,yes-with-ega-oracle,no
 resident_03f1_clear_0137_cpu.c,bus,yes-with-ega-oracle,yes
