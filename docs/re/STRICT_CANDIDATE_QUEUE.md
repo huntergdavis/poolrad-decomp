@@ -1,5 +1,113 @@
 # Strict full-C candidate queue
 
+## Ready helpers: t81, measured on `6d369fe3`
+
+PM decision i23493(2)/(A), clarified in i23747 and VP i23751: a fully
+modelled helper may compose without credit only when **all** of these hold:
+
+1. Its own full evidence document exists and its audit runs from the original bytes.
+2. It is refused on **factor 2 alone**. Missing evidence or identity is unfinished work.
+3. **Every caller** is `game_evidenced` or stronger, including resident far and
+   near callers. A resident caller may qualify by strict credit or a reviewed
+   two-factor identity on main. Another ready helper does not qualify as a caller.
+
+`READY_HELPER_CANDIDATES` pins the evidence and complete direct-caller census;
+`READY_HELPER_MEMBERS` is the separate reviewed membership set. Eligibility does
+not automatically grant membership. `load_ready_helpers` refuses an ineligible
+member, and `load_queue` refuses member rows in the strict, identity and partial
+model tables. Accepted members use `readiness=ready_helper` in both the direct
+and transitive passes, **never credit**. Existing terminal declarations still apply.
+Resident caller identity declarations have their own provenance-checked list,
+`READY_HELPER_RESIDENT_IDENTITIES`, because the reviewed-identity CSV is overlay-only.
+Declarations require the reviewed commit/PR, body hash/size and an evidence document
+on main; an unmerged PR is not a declaration. That list is currently empty.
+
+The original-byte caller check rederives overlay relocation-backed calls,
+resident loader-relocated far calls and decoded resident near calls; an omitted,
+additional or unknown-owner site refuses the export. The near-call census uses
+the existing resident candidate-seeded path walk, with its documented seed
+assumption. It is static caller evidence, not runtime observation. Exports pin
+the rule source, resident ledger, helper evidence document and registered audit,
+as well as the existing inputs; old exports must be regenerated.
+
+**Exact membership on this base: empty.** `RES_03F1_0000` is the one deferred
+candidate. Its own [full evidence](RES_03F1_BOX_0000_CPU.md) is present and its
+original-byte audit reproduced. Its factor-2-only refusal follows the PM handoff
+and #1551's reviewed argument; #1551 is still unmerged on this base. Two resident
+callers fail the all-callers condition:
+
+| Caller | Call site | Evidence kind | Class on `6d369fe3` |
+| --- | --- | --- | --- |
+| `OVL_006A_04A1` | `006A:+04F7` | overlay far, segment fixup | `game_evidenced` |
+| `OVL_0077_004A` | `0077:+0073` | overlay far, segment fixup | `game_evidenced` |
+| `OVL_0077_0EF8` | `0077:+11B8` | overlay far, segment fixup | `game_evidenced` |
+| `RES_00BA_16EC` | `00BA:+177B` | resident far, loader fixup | `unresolved` |
+| `RES_03F1_02E8` | `03F1:+032A` | resident near, preceding PUSH CS | `unresolved` |
+
+The last caller is **02E8**, whose body is `[02E8,0367)`, ending with `RETF 10h`
+at `0364`. `0329` is PUSH CS; `032A` is CALL 0000. It is not inside strict
+`03F1:0137`. #1551's proposed 16EC identity cannot be counted as landed and would
+not resolve 02E8. The exact empty set and both refusal reasons are pinned in tests.
+
+### Paired measurement
+
+Base and fetched main: `6d369fe3b7242dc00f84f32e0d761b51c8d519fd`.
+Both full exports use the same tree, `--no-git`, inventory/callgraph/near-call
+products and hash-checked START.EXE/GAME.OVR. Disabling the rule changes only
+membership, keeping the caller/evidence checks. No credit table is changed.
+
+| Measure | WITHOUT | WITH |
+| --- | ---: | ---: |
+| ready-helper members | 0 | 0 |
+| strict candidate rows | 432 | 432 |
+| composable bodies | 50 | 50 |
+| CREDITED | 288 | 288 |
+| REPLACED | 112 | 112 |
+| candidate readiness rows changed | — | 0 |
+
+**NO EFFECT: WITH and WITHOUT totals are identical, and no candidate readiness
+row changes.** There are no admitted members to ablate individually. The deferred
+03F1 candidate is assessed explicitly above; it must not be reported as a member
+with a successful unlock. The existing nine driver-internal members are unchanged.
+
+The original-byte audit reproduced 311 bytes / 145 instructions, body SHA-256
+`fae6cb41423bcd48237e75a08f5eda70642254eac8449373291d57f34120a8a4`:
+56 Unicorn cases, CPU14 + 1 MiB, zero flag masks, 145/145 starts, 8/8 outcomes,
+1,124 composed tile calls. Stops: 48 RETURN, 6 EXIT, 1 BREAK, 1 OVERLAY.
+Native: 16 RETURN cases, CPU14 and the documented selected memory regions,
+zero flag masks; result SHA-256
+`0b57f9c894a636c9816395c41a1386ca2e34c51ab7cfbddbdbdc5745f8f8b2aa`.
+Native does not compare the whole 1 MiB; see the original evidence for excluded cases.
+
+### 16EC consequence, separate from admission
+
+A diagnostic export **assuming the entire RES_00BA_16EC closure is ready** changes
+50 to 64 composable bodies: 14 rows, of which these seven are dispatch handlers:
+`OVL_0038_017F`, `OVL_0038_0233`, `OVL_0038_070F`, `OVL_0038_0C4B`,
+`OVL_0038_10DE`, `OVL_0038_23EC`, `OVL_0038_2556`.
+The other seven are `OVL_002F_0FFF`, `OVL_006A_036C`, `OVL_006A_05A4`,
+`OVL_0086_12A5`, `OVL_0086_1F41`, `OVL_0086_2EE5`, `OVL_0086_331A`.
+These are measured consequences of the stated counterfactual, **not a promise or
+an unlock achieved by t81**. CREDITED/REPLACED remain 288/112 even in that diagnostic.
+
+Reproduce through the shared heavy-job wrapper (private outputs stay in ignored
+`resources/`; the resources symlink is never committed):
+
+```sh
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
+  /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/measure_ready_helpers.py \
+  --expected-base 6d369fe3 --output-dir resources/t81-ready-helper/paired
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
+  /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res03f1_box_0000_cpu_audit.py \
+  --unicorn --native --output resources/t81-ready-helper/03f1-audit.json
+```
+
+`measurement.json` records all input hashes, both totals, every caller's class,
+per-member ablations when members exist, changed readiness rows and the separately
+labelled 16EC diagnostic. The tool refuses accounting inputs differing from the
+stated base. `--without-ready-helpers` is also available on the queue CLI itself.
+
+
 `tools/overlay/strict_candidate_queue.py` ranks the **non-strict overlay
 originals** as strict full-C work candidates and records, for each one, any
 prior translation found in the main tree, inlined bodies, unmerged branches or

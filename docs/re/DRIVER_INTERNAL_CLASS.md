@@ -172,3 +172,30 @@ The driver set is **769 B over 9 bodies**. Non-driver work is **956 B over 6 bod
   - Both have fixup-backed callers inside game_verified functions.
   - The class stays `08AE`-only.
 - If the proof completes, `0010` becomes creditable with **no strict or identity row for any 08AE body**. `02AE`, `0709_0BF5`, `0802_02EB` and the two gateways also become eligible on their own identity.
+
+
+## Sibling class: ready helpers (t81)
+
+The PM's i23493(2)/(A) rule, kept narrow by i23747 and VP i23751, adds a
+separate `ready_helper` class; the nine driver-internal members above stay unchanged.
+A helper needs its own full evidence and original-byte audit, a refusal on factor 2
+**alone**, and **every** caller at `game_evidenced` or stronger. Resident callers
+must have strict credit or reviewed two-factor identity on main. A ready-helper
+caller does not satisfy that condition. Missing identity/evidence cannot be waived.
+
+The exact ready-helper member set on `6d369fe3` is **empty**. The sole assessed
+candidate, `RES_03F1_0000`, is refused because `RES_00BA_16EC` and
+`RES_03F1_02E8` are unresolved callers. The latter's call is `03F1:+032A`
+(after PUSH CS at `0329`), not a call from strict `03F1:0137`.
+The membership set and both reasons are pinned in `test_strict_candidate_queue.py`.
+
+The same-base WITH/WITHOUT exports both measure **432 candidates / 50 composable /
+CREDITED 288 / REPLACED 112**. No readiness row changes: **the rule has no effect
+on this base**. There are no admitted ready-helper members to ablate. The candidate's
+original-byte audit reproduced 56 Unicorn and 16 native cases.
+
+The complete caller-class table, hashes, limits, reproduction command and seven
+handler closures in the separately labelled 16EC counterfactual are recorded in
+[the queue receipt](STRICT_CANDIDATE_QUEUE.md#ready-helpers-t81-measured-on-6d369fe3).
+Membership is readiness only; the loader forbids ready-helper rows in strict,
+reviewed identity and partial-model tables. No credit is created by this class.
