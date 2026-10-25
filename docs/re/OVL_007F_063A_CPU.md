@@ -199,3 +199,26 @@ failures, with the machine-specific binary path removed.
 | score | 1,015/1,015 differential comparisons; 385/385 starts; 34/34 outcomes; 16/16 native cases; 4/4 mutations rejected |
 | verdict | **match within the declared interface and input domain** |
 | review_notes | Finite +05E0 traversal and inherited flat-callee/aperture limits remain explicit and constructed. Native capture clears IF and covers five RAM regions. These measurements do not claim arbitrary EGA-composition parity or execution of cyclic lists. Credit and merge require independent review. |
+
+
+## Reviewer acceptance record (added by the review lane, not the author)
+
+Reproduced by par-e at main `ea768440` (2026-10-23/24), through `poolrad-heavy.sh`. The checked C closure, headers and
+audit are byte-identical on `6d369fe3`. Unicorn: 630 cases / 1,015 comparisons, 385/385 body starts, 34/34 conditional edges, 0 aperture accesses; 162 RETURNED / 835 LIMIT / 15 CALLEE / 3 TRANSFER; declared shift-AF split 182; all 1,048,576 RAM bytes and 14 CPU words, flag masks 0.
+Mutation: 4/4 rejected (shift-af, node-write, residual-flag, cap-branch). Native: 16 cases (PINNED build 5a9c7c53, SHA-256 c05ce28a..., via POOLRAD_NATIVE_DOSBOX; completed calls, five 64 KiB regions). Code body 967 B, SHA-256 `f23626a4d567fce56738f4d2c250c263f5b8b90a716121a070bfab52db85c736`, re-derived from GAME.OVR.
+
+Identity: par-a's two-factor argument in [U7F_IDENTITY_ARGUMENTS.md](U7F_IDENTITY_ARGUMENTS.md) (at `4a6ddec2`). I re-derived every factor-1 site from the
+media: each near site decodes as `0E E8` at an instruction boundary inside the caller extent par-a names.
+
+Native oracle: PINNED build 5a9c7c53, SHA-256 c05ce28a..., via POOLRAD_NATIVE_DOSBOX; completed calls, five 64 KiB regions. The primary evidence is the full-1 MiB Unicorn differential.
+
+**063A-specific.** The two excluded input families were constructed and re-run by the checker, and they behave as the
+document states:
+- **Self-cycle:** a cyclic party list repeats the original's full state with period 3,328 steps, and the C is not run.
+  The contract claims no finite execution for cyclic lists, as in DOS.
+- **Aperture head:** a party head at `A000:0100` gives an original count of 1 against a flat-callee count of 0. That is
+  the declared divergence of the flat `+05E0` callee contract. Party nodes are heap records the game never places in
+  video memory, so this is outside the game's input domain, by the same rule as the loaded-state precondition (i21377).
+I re-ran factor 1 with `far_call_sites.py 008F:002F`. It finds three fixup-backed sites: `1E:+0DF4`, `20:+106A`, `23:+0663`.
+The Unicorn memory observer is limited to the aperture window (`9FFF0..BFFFF`). A full-range read hook corrupts `RETF`
+in Unicorn 2.1.4, and no credited audit registers one (census on `ea768440`, i23023).

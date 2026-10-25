@@ -154,3 +154,23 @@ rejection.
 ## Evidence kind (2026-10-22)
 
 Registering `CHECKER_ROWS = ('OVL_03BD_057A',)` moves this row in `docs/re/credit_evidence_kind.csv` from `unit-test` to `checker`, regenerated with `credit_evidence_kind.py --write`. **The credit count does not move**; only the recorded kind of evidence gets stronger.
+
+## SHL OF follows the pinned rule (2026-10-24)
+
+The widened flag census (PR #1540) found that `shl16` (`05D6 MOV CL,4; SHL AX,CL`) set OF to MSB(result) XOR
+MSB(operand). Pinned DOSBox-X `t_SHLw` (flags.cpp:719-727) sets OF to MSB(result) XOR CF, where CF is bit
+(16 − count). The two agree only for a count of 1. The helper now uses the pinned rule for every count (PM i23047).
+
+**Nothing observable changes.** `05DE ADD DI,AX` overwrites all six arithmetic flags before any reader, so the body's
+outputs are the same. The census row for `shl16` is now `agree`.
+
+**Re-run after the change** (heavy FIFO, 2026-10-24):
+
+| Check | Result |
+| --- | --- |
+| Unicorn | 874 of 874 cases, unmasked CPU14 + 1 MiB; 45/45 body starts, 18/18 leaf starts, 14/14 outcomes; 817 independent statements |
+| Native DOSBox-X | 34 of 34, 11,142,072 bytes compared, no masks |
+| Mutations | 9 of 11 caught (8 by the differential, 1 by the C test); the same two documented equivalents survive |
+| C test | `poolrad_overlay_u3bd_cell_057a_cpu_tests` passes, built with asserts on (`CMAKE_BUILD_TYPE` empty, no `NDEBUG`) |
+
+Every mutation case is one of the 874 Unicorn cases, all of which pass unmutated (the baseline).
