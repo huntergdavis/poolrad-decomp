@@ -56,6 +56,8 @@ def check(state, document):
                         f'{ident}: discharge missing valid {field}')
             require(ident not in stated, f'{ident}: stale open reason after recorded discharge')
     require(set(stated) == open_ids, 'documented reasons differ from recorded open set')
+    require(bool(open_ids) == ('**NOT-CLOSABLE on the currently recorded evidence.**' in document),
+            'NOT-CLOSABLE verdict does not match recorded open reasons')
     return sorted(open_ids)
 
 
