@@ -1,907 +1,919 @@
 {
- "version": 2,
- "name": "r3",
- "font_text": true,
- "start": "area_camp",
- "terminal": "final",
- "actor_gates": {
-  "magic_thr": "THRENDER GRONE",
-  "magic_bak": "BAKSHI",
-  "magic_exit": "BAKSHI"
- },
- "states": [
-  {
-   "name": "area_camp",
-   "gate": [
-    "AREA"
-   ],
-   "key": "e",
-   "expect_next": [
-    "camp_magic"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "camp_magic",
-   "gate": [
-    "CAMP"
-   ],
-   "key": "m",
-   "expect_next": [
-    "magic_thr"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "magic_thr",
-   "gate": [
-    "SCRIBE"
-   ],
-   "key": "End",
-   "expect_next": [
-    "magic_bak"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "magic_bak",
-   "gate": [
-    "SCRIBE"
-   ],
-   "key": "c",
-   "expect_next": [
-    "detect_select"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "detect_select",
-   "gate": [
-    "CHOOSE SPELL"
-   ],
-   "key": "Home",
-   "expect_next": [
-    "detect_cast"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "detect_cast",
-   "gate": [
-    "CHOOSE SPELL"
-   ],
-   "key": "c",
-   "expect_next": [
-    "detect_consumed"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "detect_consumed",
-   "gate": [
-    "CHOOSE SPELL"
-   ],
-   "key": "e",
-   "expect_next": [
-    "magic_exit"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "magic_exit",
-   "gate": [
-    "SCRIBE"
-   ],
-   "key": "e",
-   "expect_next": [
-    "camp_exit"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "camp_exit",
-   "gate": [
-    "CAMP"
-   ],
-   "key": "e",
-   "expect_next": [
-    "seek_down"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "seek_down",
-   "gate": [
-    "AREA"
-   ],
-   "key": "Down",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "continue_up",
-    "seek_up"
-   ],
-   "timeout_s": 300,
-   "max_visits": 75
-  },
-  {
-   "name": "seek_up",
-   "gate": [
-    "AREA"
-   ],
-   "key": "Up",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "continue_down",
-    "seek_down"
-   ],
-   "timeout_s": 300,
-   "max_visits": 75
-  },
-  {
-   "name": "continue_up",
-   "gate": [
-    "CONTINUE",
-    "ENTER",
-    "RETURN"
-   ],
-   "key": "Return",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "continue_up",
-    "seek_up"
-   ],
-   "timeout_s": 300,
-   "max_visits": 75
-  },
-  {
-   "name": "continue_down",
-   "gate": [
-    "CONTINUE",
-    "ENTER",
-    "RETURN"
-   ],
-   "key": "Return",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "continue_down",
-    "seek_down"
-   ],
-   "timeout_s": 300,
-   "max_visits": 75
-  },
-  {
-   "name": "encounter",
-   "gate": [
-    "COMBAT",
-    "FLEE"
-   ],
-   "key": "c",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "combat_continue"
-   ],
-   "timeout_s": 300,
-   "max_visits": 3
-  },
-  {
-   "name": "combat_continue",
-   "gate": [
-    "CONTINUE",
-    "ENTER",
-    "RETURN"
-   ],
-   "key": "Return",
-   "expect_next": [
-    "combat_007",
-    "encounter",
-    "combat_continue"
-   ],
-   "timeout_s": 300,
-   "max_visits": 12
-  },
-  {
-   "name": "combat_007",
-   "gate": [
-    "MOVE VIEW AIM USE QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_008"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_008",
-   "gate": [
-    "GUARD DELAY QUIT SPEED EXIT"
-   ],
-   "key": "g",
-   "expect_next": [
-    "combat_009"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_009",
-   "gate": [
-    "MOVE VIEW AIM USE QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_010"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_010",
-   "gate": [
-    "GUARD DELAY QUIT SPEED EXIT"
-   ],
-   "key": "g",
-   "expect_next": [
-    "combat_011"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_011",
-   "gate": [
-    "MOVE VIEW AIM USE CAST QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_012"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_012",
-   "gate": [
-    "DELAY QUIT SPEED EXIT"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_013"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_013",
-   "gate": [
-    "MOVE VIEW AIM USE QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_014"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_014",
-   "gate": [
-    "GUARD DELAY QUIT SPEED EXIT"
-   ],
-   "key": "g",
-   "expect_next": [
-    "combat_015"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_015",
-   "gate": [
-    "MOVE VIEW AIM USE CAST TURN QUICK DONE"
-   ],
-   "key": "c",
-   "expect_next": [
-    "combat_016"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_016",
-   "gate": [
-    "CHOOSE SPELL: CAST EXIT"
-   ],
-   "key": "Home",
-   "expect_next": [
-    "combat_017"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_017",
-   "gate": [
-    "CHOOSE SPELL: CAST EXIT"
-   ],
-   "key": "Home",
-   "expect_next": [
-    "combat_018"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_018",
-   "gate": [
-    "CHOOSE SPELL: CAST EXIT"
-   ],
-   "key": "c",
-   "expect_next": [
-    "combat_019"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_019",
-   "gate": [
-    "MOVE VIEW AIM USE CAST QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_020"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_020",
-   "gate": [
-    "GUARD DELAY QUIT SPEED EXIT"
-   ],
-   "key": "g",
-   "expect_next": [
-    "combat_021"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_021",
-   "gate": [
-    "MOVE VIEW AIM USE CAST QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_022"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_022",
-   "gate": [
-    "DELAY QUIT SPEED EXIT"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_023"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_023",
-   "gate": [
-    "MOVE VIEW AIM USE CAST QUICK DONE"
-   ],
-   "key": "c",
-   "expect_next": [
-    "combat_024"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_024",
-   "gate": [
-    "CHOOSE SPELL: CAST EXIT"
-   ],
-   "key": "c",
-   "expect_next": [
-    "combat_025"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_025",
-   "gate": [
-    "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
-   ],
-   "key": "n",
-   "expect_next": [
-    "combat_026"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_026",
-   "gate": [
-    "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
-   ],
-   "key": "t",
-   "expect_next": [
-    "combat_028"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_028",
-   "gate": [
-    "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
-   ],
-   "key": "t",
-   "expect_next": [
-    "combat_029"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_029",
-   "gate": [
-    "MOVE VIEW AIM USE CAST TURN QUICK DONE"
-   ],
-   "key": "d",
-   "expect_next": [
-    "combat_030"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_030",
-   "gate": [
-    "GUARD DELAY QUIT SPEED EXIT"
-   ],
-   "key": "g",
-   "expect_next": [
-    "combat_031"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_031",
-   "gate": [
-    "MOVE VIEW AIM USE QUICK DONE"
-   ],
-   "key": "q",
-   "expect_next": [
-    "combat_032"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "combat_032",
-   "gate": [
-    "MOVE VIEW AIM USE CAST QUICK DONE"
-   ],
-   "key": "q",
-   "expect_next": [
-    "final"
-   ],
-   "timeout_s": 300,
-   "max_visits": 1
-  },
-  {
-   "name": "final",
-   "gate": [
-    "MOVE VIEW AIM USE CAST TURN QUICK DONE"
-   ],
-   "key": null,
-   "expect_next": [],
-   "timeout_s": 300,
-   "max_visits": 1
-  }
- ],
- "combat_cursor": true,
- "visual_gates": {
-  "detect_select": {
-   "spell_title": "BAKSHI'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS",
-    "DETECT MAGIC",
-    "SLEEP"
-   ],
-   "selected_spell": [
-    "SLEEP"
-   ],
-   "selected_spell_y": [
-    328
-   ]
-  },
-  "detect_cast": {
-   "spell_title": "BAKSHI'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS",
-    "DETECT MAGIC",
-    "SLEEP"
-   ],
-   "selected_spell": [
-    "DETECT MAGIC"
-   ],
-   "selected_spell_y": [
-    312
-   ]
-  },
-  "detect_consumed": {
-   "spell_title": "BAKSHI'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS",
-    "SLEEP"
-   ],
-   "selected_spell": [
-    "SLEEP"
-   ],
-   "selected_spell_y": [
-    312
-   ]
-  },
-  "combat_007": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_008": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_009": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    3
-   ]
-  },
-  "combat_010": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    3
-   ]
-  },
-  "combat_011": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    2,
-    4
-   ]
-  },
-  "combat_012": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    2,
-    4
-   ]
-  },
-  "combat_013": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_014": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_015": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    3
-   ]
-  },
-  "combat_016": {
-   "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "BLESS",
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS"
-   ],
-   "selected_spell": [
-    "CURE LIGHT WOUNDS"
-   ],
-   "selected_spell_y": [
-    312
-   ],
-   "spell_bar": null,
-   "combat_cursor": null
-  },
-  "combat_017": {
-   "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "BLESS",
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS"
-   ],
-   "selected_spell": [
-    "CURE LIGHT WOUNDS"
-   ],
-   "selected_spell_y": [
-    296
-   ],
-   "spell_bar": null,
-   "combat_cursor": null
-  },
-  "combat_018": {
-   "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "BLESS",
-    "CURE LIGHT WOUNDS",
-    "CURE LIGHT WOUNDS"
-   ],
-   "selected_spell": [
-    "BLESS"
-   ],
-   "selected_spell_y": [
-    280
-   ],
-   "spell_bar": null,
-   "combat_cursor": null
-  },
-  "combat_019": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_020": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_021": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    4
-   ]
-  },
-  "combat_022": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    4
-   ]
-  },
-  "combat_023": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    4
-   ]
-  },
-  "combat_024": {
-   "spell_title": "DARKSTAR'S SPELLS IN MEMORY",
-   "spell_rows": [
-    "SLEEP"
-   ],
-   "selected_spell": [
-    "SLEEP"
-   ],
-   "selected_spell_y": [
-    280
-   ],
-   "spell_bar": null,
-   "combat_cursor": null
-  },
-  "combat_025": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "SPELL:SLEEP",
-   "combat_cursor": [
-    3,
-    4
-   ]
-  },
-  "combat_026": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "SPELL:SLEEP",
-   "combat_cursor": [
-    4,
-    4
-   ]
-  },
-  "combat_028": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "SPELL:BLESS",
-   "combat_cursor": [
-    2,
-    3
-   ]
-  },
-  "combat_029": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    2,
-    3
-   ]
-  },
-  "combat_030": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    2,
-    3
-   ]
-  },
-  "combat_031": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    2
-   ]
-  },
-  "combat_032": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    5,
-    2
-   ]
-  },
-  "final": {
-   "spell_title": null,
-   "spell_rows": [],
-   "selected_spell": [],
-   "selected_spell_y": [],
-   "spell_bar": "",
-   "combat_cursor": [
-    3,
-    3
-   ]
-  }
- },
- "combat_actor_gates": {
-  "combat_007": "PHINEAS",
-  "combat_008": "PHINEAS",
-  "combat_009": "THRENDER GRONE",
-  "combat_010": "THRENDER GRONE",
-  "combat_011": "DARKSTAR",
-  "combat_012": "DARKSTAR",
-  "combat_013": "PHINEAS",
-  "combat_014": "PHINEAS",
-  "combat_015": "BROTHER SEAN",
-  "combat_016": "IN MEMORY",
-  "combat_017": "IN MEMORY",
-  "combat_018": "IN MEMORY",
-  "combat_019": "RHIANNON",
-  "combat_020": "RHIANNON",
-  "combat_021": "DARKSTAR",
-  "combat_022": "DARKSTAR",
-  "combat_023": "DARKSTAR",
-  "combat_024": "EMORY",
-  "combat_025": "DARKSTAR",
-  "combat_026": "ORC",
-  "combat_028": "BROTHER SEAN",
-  "combat_029": "BROTHER SEAN",
-  "combat_030": "BROTHER SEAN",
-  "combat_031": "PHINEAS",
-  "combat_032": "RHIANNON",
-  "final": "BROTHER SEAN"
- },
- "glyph_bright": 128
+  "version": 2,
+  "name": "r3",
+  "font_text": true,
+  "start": "area_camp",
+  "terminal": "final",
+  "actor_gates": {
+    "magic_thr": "THRENDER GRONE",
+    "magic_bak": "BAKSHI",
+    "magic_exit": "BAKSHI"
+  },
+  "states": [
+    {
+      "name": "area_camp",
+      "gate": [
+        "AREA"
+      ],
+      "key": "e",
+      "expect_next": [
+        "camp_magic"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "camp_magic",
+      "gate": [
+        "CAMP"
+      ],
+      "key": "m",
+      "expect_next": [
+        "magic_thr"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "magic_thr",
+      "gate": [
+        "SCRIBE"
+      ],
+      "key": "End",
+      "expect_next": [
+        "magic_bak"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "magic_bak",
+      "gate": [
+        "SCRIBE"
+      ],
+      "key": "c",
+      "expect_next": [
+        "detect_select"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "detect_select",
+      "gate": [
+        "CHOOSE SPELL"
+      ],
+      "key": "Home",
+      "expect_next": [
+        "detect_cast"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "detect_cast",
+      "gate": [
+        "CHOOSE SPELL"
+      ],
+      "key": "c",
+      "expect_next": [
+        "detect_consumed"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "detect_consumed",
+      "gate": [
+        "CHOOSE SPELL"
+      ],
+      "key": "e",
+      "expect_next": [
+        "magic_exit"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "magic_exit",
+      "gate": [
+        "SCRIBE"
+      ],
+      "key": "e",
+      "expect_next": [
+        "camp_exit"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "camp_exit",
+      "gate": [
+        "CAMP"
+      ],
+      "key": "e",
+      "expect_next": [
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "seek_down",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Down",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "seek_up",
+      "gate": [
+        "AREA"
+      ],
+      "key": "Up",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "continue_down",
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "continue_up",
+      "gate": [
+        "CONTINUE",
+        "ENTER",
+        "RETURN"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "continue_up",
+        "seek_up"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "continue_down",
+      "gate": [
+        "CONTINUE",
+        "ENTER",
+        "RETURN"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "continue_down",
+        "seek_down"
+      ],
+      "timeout_s": 300,
+      "max_visits": 75
+    },
+    {
+      "name": "encounter",
+      "gate": [
+        "COMBAT",
+        "FLEE"
+      ],
+      "key": "c",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "combat_continue"
+      ],
+      "timeout_s": 300,
+      "max_visits": 3
+    },
+    {
+      "name": "combat_continue",
+      "gate": [
+        "CONTINUE",
+        "ENTER",
+        "RETURN"
+      ],
+      "key": "Return",
+      "expect_next": [
+        "combat_007",
+        "encounter",
+        "combat_continue"
+      ],
+      "timeout_s": 300,
+      "max_visits": 12
+    },
+    {
+      "name": "combat_007",
+      "gate": [
+        "MOVE VIEW AIM USE QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_008"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_008",
+      "gate": [
+        "GUARD DELAY QUIT SPEED EXIT"
+      ],
+      "key": "g",
+      "expect_next": [
+        "combat_009"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_009",
+      "gate": [
+        "MOVE VIEW AIM USE QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_010"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_010",
+      "gate": [
+        "GUARD DELAY QUIT SPEED EXIT"
+      ],
+      "key": "g",
+      "expect_next": [
+        "combat_011"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_011",
+      "gate": [
+        "MOVE VIEW AIM USE CAST QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_012"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_012",
+      "gate": [
+        "DELAY QUIT SPEED EXIT"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_013"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_013",
+      "gate": [
+        "MOVE VIEW AIM USE QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_014"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_014",
+      "gate": [
+        "GUARD DELAY QUIT SPEED EXIT"
+      ],
+      "key": "g",
+      "expect_next": [
+        "combat_015"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_015",
+      "gate": [
+        "MOVE VIEW AIM USE CAST TURN QUICK DONE"
+      ],
+      "key": "c",
+      "expect_next": [
+        "combat_016"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_016",
+      "gate": [
+        "CHOOSE SPELL: CAST EXIT"
+      ],
+      "key": "Home",
+      "expect_next": [
+        "combat_017"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_017",
+      "gate": [
+        "CHOOSE SPELL: CAST EXIT"
+      ],
+      "key": "Home",
+      "expect_next": [
+        "combat_018"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_018",
+      "gate": [
+        "CHOOSE SPELL: CAST EXIT"
+      ],
+      "key": "c",
+      "expect_next": [
+        "combat_019"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_019",
+      "gate": [
+        "MOVE VIEW AIM USE CAST QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_020"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_020",
+      "gate": [
+        "GUARD DELAY QUIT SPEED EXIT"
+      ],
+      "key": "g",
+      "expect_next": [
+        "combat_021"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_021",
+      "gate": [
+        "MOVE VIEW AIM USE CAST QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_022"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_022",
+      "gate": [
+        "DELAY QUIT SPEED EXIT"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_023"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_023",
+      "gate": [
+        "MOVE VIEW AIM USE CAST QUICK DONE"
+      ],
+      "key": "c",
+      "expect_next": [
+        "combat_024"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_024",
+      "gate": [
+        "CHOOSE SPELL: CAST EXIT"
+      ],
+      "key": "c",
+      "expect_next": [
+        "combat_025"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_025",
+      "gate": [
+        "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
+      ],
+      "key": "n",
+      "expect_next": [
+        "combat_026"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_026",
+      "gate": [
+        "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
+      ],
+      "key": "t",
+      "expect_next": [
+        "combat_028"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_028",
+      "gate": [
+        "AIM:NEXT PREV MANUAL TARGET CENTER EXIT"
+      ],
+      "key": "t",
+      "expect_next": [
+        "combat_029"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_029",
+      "gate": [
+        "MOVE VIEW AIM USE CAST TURN QUICK DONE"
+      ],
+      "key": "d",
+      "expect_next": [
+        "combat_030"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_030",
+      "gate": [
+        "GUARD DELAY QUIT SPEED EXIT"
+      ],
+      "key": "g",
+      "expect_next": [
+        "combat_031"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_031",
+      "gate": [
+        "MOVE VIEW AIM USE QUICK DONE"
+      ],
+      "key": "q",
+      "expect_next": [
+        "combat_032"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "combat_032",
+      "gate": [
+        "MOVE VIEW AIM USE CAST QUICK DONE"
+      ],
+      "key": "q",
+      "expect_next": [
+        "final"
+      ],
+      "timeout_s": 300,
+      "max_visits": 1
+    },
+    {
+      "name": "final",
+      "gate": [
+        "MOVE VIEW AIM USE CAST TURN QUICK DONE"
+      ],
+      "key": null,
+      "expect_next": [],
+      "timeout_s": 300,
+      "max_visits": 1
+    }
+  ],
+  "combat_cursor": true,
+  "visual_gates": {
+    "detect_select": {
+      "spell_title": "BAKSHI'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS",
+        "DETECT MAGIC",
+        "SLEEP"
+      ],
+      "selected_spell": [
+        "SLEEP"
+      ],
+      "selected_spell_y": [
+        328
+      ]
+    },
+    "detect_cast": {
+      "spell_title": "BAKSHI'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS",
+        "DETECT MAGIC",
+        "SLEEP"
+      ],
+      "selected_spell": [
+        "DETECT MAGIC"
+      ],
+      "selected_spell_y": [
+        312
+      ]
+    },
+    "detect_consumed": {
+      "spell_title": "BAKSHI'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS",
+        "SLEEP"
+      ],
+      "selected_spell": [
+        "SLEEP"
+      ],
+      "selected_spell_y": [
+        312
+      ]
+    },
+    "combat_007": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_008": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_009": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        3
+      ]
+    },
+    "combat_010": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        3
+      ]
+    },
+    "combat_011": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        2,
+        4
+      ]
+    },
+    "combat_012": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        2,
+        4
+      ]
+    },
+    "combat_013": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_014": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_015": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        3
+      ]
+    },
+    "combat_016": {
+      "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "BLESS",
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS"
+      ],
+      "selected_spell": [
+        "CURE LIGHT WOUNDS"
+      ],
+      "selected_spell_y": [
+        312
+      ],
+      "spell_bar": null,
+      "combat_cursor": null
+    },
+    "combat_017": {
+      "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "BLESS",
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS"
+      ],
+      "selected_spell": [
+        "CURE LIGHT WOUNDS"
+      ],
+      "selected_spell_y": [
+        296
+      ],
+      "spell_bar": null,
+      "combat_cursor": null
+    },
+    "combat_018": {
+      "spell_title": "BROTHER SEAN'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "BLESS",
+        "CURE LIGHT WOUNDS",
+        "CURE LIGHT WOUNDS"
+      ],
+      "selected_spell": [
+        "BLESS"
+      ],
+      "selected_spell_y": [
+        280
+      ],
+      "spell_bar": null,
+      "combat_cursor": null
+    },
+    "combat_019": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_020": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_021": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        4
+      ]
+    },
+    "combat_022": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        4
+      ]
+    },
+    "combat_023": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        4
+      ]
+    },
+    "combat_024": {
+      "spell_title": "DARKSTAR'S SPELLS IN MEMORY",
+      "spell_rows": [
+        "SLEEP"
+      ],
+      "selected_spell": [
+        "SLEEP"
+      ],
+      "selected_spell_y": [
+        280
+      ],
+      "spell_bar": null,
+      "combat_cursor": null
+    },
+    "combat_025": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "SPELL:SLEEP",
+      "combat_cursor": [
+        3,
+        4
+      ]
+    },
+    "combat_026": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "SPELL:SLEEP",
+      "combat_cursor": [
+        4,
+        4
+      ]
+    },
+    "combat_028": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "SPELL:BLESS",
+      "combat_cursor": [
+        2,
+        3
+      ]
+    },
+    "combat_029": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        2,
+        3
+      ]
+    },
+    "combat_030": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        2,
+        3
+      ]
+    },
+    "combat_031": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        2
+      ]
+    },
+    "combat_032": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        5,
+        2
+      ]
+    },
+    "final": {
+      "spell_title": null,
+      "spell_rows": [],
+      "selected_spell": [],
+      "selected_spell_y": [],
+      "spell_bar": "",
+      "combat_cursor": [
+        3,
+        3
+      ]
+    }
+  },
+  "combat_actor_gates": {
+    "combat_007": "PHINEAS",
+    "combat_008": "PHINEAS",
+    "combat_009": "THRENDER GRONE",
+    "combat_010": "THRENDER GRONE",
+    "combat_011": "DARKSTAR",
+    "combat_012": "DARKSTAR",
+    "combat_013": "PHINEAS",
+    "combat_014": "PHINEAS",
+    "combat_015": "BROTHER SEAN",
+    "combat_016": "IN MEMORY",
+    "combat_017": "IN MEMORY",
+    "combat_018": "IN MEMORY",
+    "combat_019": "RHIANNON",
+    "combat_020": "RHIANNON",
+    "combat_021": "DARKSTAR",
+    "combat_022": "DARKSTAR",
+    "combat_023": "DARKSTAR",
+    "combat_024": "EMORY",
+    "combat_025": "DARKSTAR",
+    "combat_026": "ORC",
+    "combat_028": "BROTHER SEAN",
+    "combat_029": "BROTHER SEAN",
+    "combat_030": "BROTHER SEAN",
+    "combat_031": "PHINEAS",
+    "combat_032": "RHIANNON",
+    "final": "BROTHER SEAN"
+  },
+  "glyph_bright": 128,
+  "candidates": [
+    "OVL_0038_0000",
+    "OVL_0038_010D",
+    "OVL_0038_133F",
+    "OVL_0038_2992",
+    "OVL_0038_2DE4",
+    "OVL_005E_32E6",
+    "OVL_0086_0729",
+    "OVL_0086_07D6",
+    "OVL_009E_0E52",
+    "RES_00BA_26C2"
+  ]
 }

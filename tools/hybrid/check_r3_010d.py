@@ -186,6 +186,10 @@ def main():
                   cases=len(expected), argument_refusals=refused,
                   cpu_words=14, ram_bytes=SIZE, masks=0, negative_controls=controls,
                   original_media_sha256={'START.EXE': EXE_SHA, 'GAME.OVR': OVR_SHA},
+                  source_sha256={str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
+                                 for p in (SOURCE, SEMANTIC, Path(__file__),
+                                           ROOT / 'include/poolrad/recovered/overlay_u9e_dispatch_0000_cpu.h')},
+                  head_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip(),
                   scope='Direct-entry adapter only; no native route or recovery credit')
     (args.out / 'result.json').write_text(json.dumps(report, indent=2) + '\n')
     print(json.dumps(report, sort_keys=True))

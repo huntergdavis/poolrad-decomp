@@ -142,6 +142,14 @@ class Route:
         self.actor_gates = data.get('actor_gates', {})
         self.combat_actor_gates = data.get('combat_actor_gates', {})
         self.visual_gates = data.get('visual_gates', {})
+        for label, gates in (('actor', self.actor_gates),
+                             ('combat actor', self.combat_actor_gates),
+                             ('visual', self.visual_gates)):
+            if gates.keys() - self.records.keys():
+                raise ValueError('unknown ' + label + ' gate state')
+        if any(not isinstance(value, dict) or not value
+               for value in self.visual_gates.values()):
+            raise ValueError('visual gate must require at least one field')
         self.message_gates = data.get('message_gates', {})
         if self.message_gates.keys() - self.records.keys():
             raise ValueError('unknown message gate state')

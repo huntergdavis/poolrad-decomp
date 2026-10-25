@@ -66,6 +66,7 @@ pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9
 /* Direct hybrid entry for unit 0x38 +010D, reusing the dispatcher's existing
  * semantic adapter (PUSH BP, ADD [6825],5, INC [6822], POP BP, RETF 0Ah).
  * Contract: exactly 1 MiB A20-off RAM, IP 010Dh, SP in [0200h,FFEEh].
+ * Loaded instruction bytes must remain unchanged by stack/data writes.
  * ARGUMENT leaves CPU and RAM untouched. No budget is needed for this leaf.
  * This exposes existing behavior; it does not certify new recovery credit. */
 pr_u9e_0000_status pr_u38_entry2_010d_cpu(uint8_t *ram, size_t ram_size, pr_u9e_0000_cpu *cpu);
