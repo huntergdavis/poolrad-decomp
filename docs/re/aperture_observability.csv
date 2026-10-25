@@ -63,6 +63,7 @@ overlay_u20_list_walk_11ac_cpu.c,flat,no,no
 overlay_u20_party_award_0355_cpu.c,flat,no,no
 overlay_u23_append_0239_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_alloc_1951_cpu.c,flat,no,no
+overlay_u25_compare_strings_1815_cpu.c,flat,no,no
 overlay_u25_compare_words_18eb_cpu.c,flat,no,no
 overlay_u25_entry13_1684.c,flat,no,no
 overlay_u25_entry14_1788.c,flat,no,no
