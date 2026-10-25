@@ -1,4 +1,6 @@
 """Original +02FA groups under DOSBox-X normal/386; explicit pre-handler trap."""
+# NOT_A_ROW_CHECKER: native helper imported by u9e_sidecar_groups_02fa_cpu_audit.py --native; this companion is not the row-checker entry point.
+from native_emulator_provenance import describe_dosbox
 from loaded_stub_fixtures import loaded_sites
 import ctypes,os,struct,subprocess
 from hashlib import sha256
@@ -98,7 +100,8 @@ def native(bodies,decoded,function):
     cfg=directory/'dosbox.conf';cfg.write_text('[sdl]\noutput=surface\n[dosbox]\nmemsize=16\n[cpu]\ncore=normal\ncputype=386\ncycles=max\n[mixer]\nnosound=true\n[midi]\nmididevice=none\n[autoexec]\nmount c '+str(directory.resolve())+'\nc:\nORACLE.COM\nexit\n')
     output=directory/'RESULT.BIN'
     if output.exists():output.unlink()
-    with (directory/'dosbox.log').open('w') as log:subprocess.run(['dosbox-x','-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
+    emulator = describe_dosbox('dosbox-x')
+    with (directory/'dosbox.log').open('w') as log:subprocess.run([emulator['path'],'-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
     result=output.read_bytes();check(len(result)==6+len(specs)*RECORD,f'native result length {len(result)}')
     segment,returned,count=struct.unpack_from('<3H',result);check(count==len(specs),'native count');stops={}
     for j,(name,case) in enumerate(specs):
@@ -112,6 +115,6 @@ def native(bodies,decoded,function):
         if actual!=record[30:]:
             diff=[(hex(i),a,b) for i,(a,b) in enumerate(zip(actual,record[30:])) if a!=b];raise ValueError(f'native RAM {name}: {diff[:8]} ({len(diff)} bytes)')
         stops[str(status)]=stops.get(str(status),0)+1
-    return dict(cases=len(specs),stops=stops,cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,nodes_bytes=65536,
+    return dict(dosbox_x=emulator,cases=len(specs),stops=stops,cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,nodes_bytes=65536,
         flag_masks=0,boundary_traps='far JMP at U9E001E or inner or outer bad-binding checkpoints; captured CS:IP names the replaced instruction',
         result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')

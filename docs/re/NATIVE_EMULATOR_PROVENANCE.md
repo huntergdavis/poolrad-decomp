@@ -27,8 +27,9 @@ file. Existing flat hash fields remain aliases of the recorded executable hash.
 No parity comparisons, case selection, masks, C bodies, or credit tables change.
 
 Per VP scope ruling i24207, legacy bare-PATH launchers are deferred to **t108**.
-[The handoff census](native_emulator_path_launchers.csv) lists **200 command
-lists in 185 files**: command-list
+[The handoff census](native_emulator_path_launchers.csv) started with **200 command
+lists in 185 files**. After t108 batch 1 below, **198 command lists in 183 files**
+remain. These are command-list
 literals whose first element is `dosbox-x`, including lists assigned to a
 variable before launch. It is an inventory of remaining PATH selection, not a
 claim that every listed harness lacks every metadata field. Dynamically built
@@ -70,3 +71,47 @@ The full overlay suite passes **336 tests, 2 skipped**.
 The canonical accounting audit reproduces **290** strict originals and queue
 SHA-256 `ce7a5462da1f8f8b85c187c1d476a3b8fc8c4ddd0a6877ab5b5c638520ca3049`.
 This task adds **zero** credit.
+
+## t108 batch 1: U9E sidecar providers and wrapped-launcher diagnostics
+
+Base: fresh main `c5e9f5d84da641880ce2c70cff6bcedd30430cc8`, measured
+2026-10-25. The first family is the two closely related U9E sidecar providers,
+`u9e_sidecar_0160_cpu_native.py` and `u9e_sidecar_groups_02fa_cpu_native.py`.
+They share deterministic CPU14/stack/data/node comparisons and the same report
+structure, making a small first migration whose existing results can be
+compared exactly. Both now resolve PATH through the t107 helper, launch its
+returned executable, and attach its `dosbox_x` metadata.
+
+| Provider | Native cases before / after | RESULT.BIN SHA-256 before = after |
+| --- | ---: | --- |
+| U9E:0160 | 113 / 113 | `ae56a0ca8b57e07921f65e169aaf7fa24aa458fd54456c633df75239e1c77921` |
+| U9E:02FA | 77 / 77 | `d75264b1686c8b44f6a74f57416ad35586fdca9cdaa7a0a14d433bc64a89dbc6` |
+
+After removing only the new `dosbox_x` field, each entire before/after report
+is identical. The existing boundary traps, stop counts, comparison windows,
+zero flag masks and original body hashes remain unchanged. Both identify the
+same DOSBox-X version/hash and unpinned status recorded for t107 above.
+
+The U6F and U77 wrapped-return launchers now include the process exit code,
+log path and final 4,096 log characters in their failure exception. Real runs
+through this worktree's resources symlink confirm that bubblewrap's bind
+failure is visible in the exception. This improves diagnosis; it does not
+change the bind or automatically repair the symlink layout.
+
+Successful runs using an isolated real resources directory also pass:
+**U6F 15 frames**, **U77 39 frames**. Their entire reports, including every
+capture hash, match the saved t107 baselines. All four touched native harnesses
+were rerun. The seven provenance tests and static name-binding checks for the
+four changed files pass.
+
+Local before/after reports, expected failure logs, and isolated wrapped-return
+fixture are under ignored `resources/t108-batch1/`. The other **183** files in
+the remaining PATH census were **not rerun or migrated** in this batch;
+dynamic command construction still needs separate inspection as noted above.
+No C, credit, identity, membership, manifest, or REPLACED data changes.
+
+The four batch-1 native companions carry explicit `NOT_A_ROW_CHECKER`
+markers naming their owning audit. The U9E modules are imported by the audits
+under `--native`; the U6F/U77 wrap programs are supplemental directed native
+instruments. These comments correct the pairing gate classification without
+changing executable Python, row registration, or native measurements.

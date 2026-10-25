@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Directed U6F original RETF 8 and complete-body wrap frames; not game reach."""
+# NOT_A_ROW_CHECKER: directed native RETF wrap instrument supplementing u6f_vector_merge_032f_audit.py; not the row-checker entry point.
 from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
@@ -146,7 +147,10 @@ def main():
                 if time.monotonic()-started>30 or (directory/'dosbox.log').stat().st_size>2097152:
                     raise RuntimeError('native time/log bound exceeded')
                 time.sleep(.1)
-            base.check(process.returncode==0,'native process failed')
+            if process.returncode != 0:
+                log_path = directory / 'dosbox.log'
+                detail = log_path.read_text(errors='replace')[-4096:].strip()
+                base.check(False, f'native process failed (exit {process.returncode}); {log_path} tail:\n{detail or "(empty log)"}')
         finally:
             if process.poll() is None:
                 os.killpg(process.pid,signal.SIGTERM)

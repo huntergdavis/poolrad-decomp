@@ -4,6 +4,7 @@
 Adapts the native landing-marker/byte-seeding harness from U6F repair
 45314d7179e53ca5ccd1a882623bfce5319c6d6d. Owner media stays ignored.
 """
+# NOT_A_ROW_CHECKER: directed native RETF wrap instrument supplementing check_overlay_u77_active_select_27df.py; not the row-checker entry point.
 from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
@@ -165,7 +166,10 @@ def main():
                 if time.monotonic()-started>90 or (directory/'dosbox.log').stat().st_size>2097152:
                     raise RuntimeError('native time/log bound exceeded')
                 time.sleep(.1)
-            base.check(process.returncode==0,'native process failed')
+            if process.returncode != 0:
+                log_path = directory / 'dosbox.log'
+                detail = log_path.read_text(errors='replace')[-4096:].strip()
+                base.check(False, f'native process failed (exit {process.returncode}); {log_path} tail:\n{detail or "(empty log)"}')
         finally:
             if process.poll() is None:
                 os.killpg(process.pid,signal.SIGTERM)
