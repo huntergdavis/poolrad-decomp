@@ -7,14 +7,18 @@ their emit_* generators, so re-running any emitter silently dropped the fixes. T
 - media-free (runs in CI): every flag helper in a generated file appears verbatim in its
   emitter's template, so a hand edit to a helper without the template fails here;
 - with the owner START.EXE under resources/: each emitter's own --check reproduces its
-  .c and .h byte for byte. Without the media it is skipped and says so; it never passes.
+  .c and .h byte for byte. Without the media this suite FAILS with an explicit REFUSED
+  diagnostic. Media-free CI explicitly reports NOT RUN and runs only the media-free
+  cases below. tools/run_media_checks.sh is the required local reproduction gate.
 """
 # NOT_A_ROW_CHECKER: checks that emit_* generators reproduce their committed outputs; it checks no registered row
 import re
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[2]
 OVERLAY = ROOT / "tools/overlay"
@@ -50,14 +54,27 @@ class EmitterTest(unittest.TestCase):
                                   f"{output} has a flag helper its emitter does not generate")
 
     def test_emitters_reproduce_outputs_with_media(self):
-        if not MEDIA.exists():
-            self.skipTest("owner START.EXE not under resources/: emitter --check NOT run")
+        if not MEDIA.is_file():
+            self.fail("REFUSED: owner START.EXE missing under resources/DOS/POOLRAD/: "
+                      "emitter --check NOT run; supply owner media to run this gate")
         for emitter in EMITTERS:
             with self.subTest(emitter=emitter):
                 run = subprocess.run([sys.executable, f"{emitter}.py", "--check"], cwd=OVERLAY,
                                      capture_output=True, text=True, timeout=600)
                 self.assertEqual(run.returncode, 0, run.stdout + run.stderr)
                 self.assertIn("EMIT_CHECK OK", run.stdout)
+
+
+class MissingMediaTest(unittest.TestCase):
+    def test_missing_media_fails_before_any_emitter_runs(self):
+        # An isolated absent path exercises the real test without moving shared media.
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(sys.modules[__name__], "MEDIA", Path(directory) / "START.EXE"):
+                with patch.object(subprocess, "run") as run:
+                    case = EmitterTest("test_emitters_reproduce_outputs_with_media")
+                    with self.assertRaisesRegex(AssertionError, "REFUSED:.*emitter --check NOT run"):
+                        case.test_emitters_reproduce_outputs_with_media()
+                    run.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -26,8 +26,18 @@ jobs:
         run: python3 -m unittest discover -s tools/overlay -p 'test_count_assert_tests.py'
       - name: Folded-flags liveness tool (t44) on synthetic bytes, including codex-poolrad2's regressions
         run: python3 -m unittest discover -s tools/overlay -p 'test_flag_fold_liveness.py'
-      - name: Flag helpers in generated sources come from their emitters
-        run: python3 -m unittest discover -s tools/overlay -p 'test_emitters_reproduce_sources.py'
+      - name: Emitter coverage — media checks NOT RUN without owner media
+        run: |
+          if [ -f resources/DOS/POOLRAD/START.EXE ]; then
+            python3 -m unittest discover -s tools/overlay -p 'test_emitters_reproduce_sources.py' -v
+          else
+            echo "::warning::media checks NOT RUN: no owner media; require local tools/run_media_checks.sh receipt"
+            echo "media checks NOT RUN: no owner media. CI checks templates and refusal behavior only; require local tools/run_media_checks.sh receipt." >> "$GITHUB_STEP_SUMMARY"
+            PYTHONPATH=tools/overlay python3 -m unittest -v \
+              test_emitters_reproduce_sources.EmitterTest.test_emitter_set_is_pinned \
+              test_emitters_reproduce_sources.EmitterTest.test_flag_helpers_in_outputs_come_from_templates \
+              test_emitters_reproduce_sources.MissingMediaTest
+          fi
       - name: Declared AF-after-shift split allows AF alone, only after a non-zero shift
         run: python3 -m unittest discover -s tools/overlay -p 'test_pinned_shift_flags.py'
       - name: Test candidate pricer input handling
