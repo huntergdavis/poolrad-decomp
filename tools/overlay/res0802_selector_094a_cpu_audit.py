@@ -165,12 +165,20 @@ def cases(smoke=False):
 
 
 class Engine:
-    """Persistent emulator, freshly reset full RAM and CPU for every case."""
-    def __init__(self, body):
+    """CPU resets each case; identical RAM persists only after full comparison.
+
+    Every byte the pinned body can read before writing is explicitly seeded.
+    fresh_memory retains the slower independent-baseline mode for cross-checks.
+    """
+    def __init__(self, body, fresh_memory=False):
         self.body = body
+        self.fresh_memory = fresh_memory
+        self.agreed = True
         self.original = (ctypes.c_uint8 * SIZE)()
         self.c_ram = (ctypes.c_uint8 * SIZE)()
         self.template = ctypes.create_string_buffer(bytes(range(256)) * (SIZE // 256))
+        ctypes.memmove(self.original, self.template, SIZE)
+        ctypes.memmove(self.c_ram, self.template, SIZE)
         self.uc = Uc(UC_ARCH_X86, UC_MODE_16)
         for base in (0, SIZE):
             self.uc.mem_map_ptr(base, SIZE, UC_PROT_ALL, ctypes.addressof(self.original))
@@ -179,6 +187,10 @@ class Engine:
         self.memcmp.restype = ctypes.c_int
 
     def run(self, change, lib):
+        require(self.agreed, "previous case failed: refusing to reuse divergent state")
+        if self.fresh_memory:
+            ctypes.memmove(self.original, self.template, SIZE)
+            ctypes.memmove(self.c_ram, self.template, SIZE)
         cpu = Cpu(0xA65B, 0x1357, 0x2468, 0xABCD, 0x5678, 0x6789,
                   0x4321, 0x8000, 0x1802, ENTRY, 0x3000, 0x6000, 0x7000, 0x0ED7)
         for name, value in change.items():
@@ -192,33 +204,35 @@ class Engine:
         # relocation-free body rather than omit that input or overwrite code.
         cpu.cs = next(cs for cs in (0x1802, 0x4802, 0x8802)
                       if not touched & set(range(physical(cs, ENTRY), physical(cs, ENTRY) + 19)))
-        ctypes.memmove(self.original, self.template, SIZE)
+        def put8(at, value):
+            self.original[at] = self.c_ram[at] = value
         def put16(off, value):
             at = physical(cpu.ss, off)
-            self.original[at], self.original[(at + 1) & MASK] = value & 255, value >> 8
+            put8(at, value & 255)
+            put8((at + 1) & MASK, value >> 8)
         put16(cpu.sp - 2, 0xDEAD)
         put16(cpu.sp, change.get("return_ip", 0x1234))
         put16(cpu.sp + 2, change.get("return_cs", 0x9000))
         put16(cpu.sp + 4, change.get("argument", 0xA55A))
         # Shared physical bytes cannot take independent values. Data is seeded
         # after the frame; the report describes this ordering for alias cases.
-        self.original[physical(cpu.ds, 0x5376)] = change.get("old", 0x3C)
-        self.original[physical(cpu.ds, 0x5377)] = change.get("saved", 0xC3)
+        put8(physical(cpu.ds, 0x5376), change.get("old", 0x3C))
+        put8(physical(cpu.ds, 0x5377), change.get("saved", 0xC3))
         at = physical(cpu.cs, ENTRY)
         self.uc.mem_write(at, self.body)  # also invalidates translated code
-        ctypes.memmove(self.c_ram, self.original, SIZE)
+        ctypes.memmove(ctypes.addressof(self.c_ram) + at, self.body, len(self.body))
         c_cpu = Cpu.from_buffer_copy(cpu)
-        for name, reg in zip(NAMES, REGS):
-            self.uc.reg_write(reg, getattr(cpu, name))
+        self.uc.reg_write_batch([(reg, getattr(cpu, name)) for name, reg in zip(NAMES, REGS)])
         self.uc.emu_start((cpu.cs << 4) + ENTRY, 2 * SIZE, count=8)
         lib.audit_selector(self.c_ram, ctypes.byref(c_cpu))
         mismatches = {}
-        for name, reg in zip(NAMES, REGS):
-            original = self.uc.reg_read(reg) & 0xFFFF
+        self.last_original_cpu = tuple(v & 0xFFFF for v in self.uc.reg_read_batch(REGS))
+        for name, original in zip(NAMES, self.last_original_cpu):
             candidate = getattr(c_cpu, name)
             if original != candidate:
                 mismatches[name] = dict(original=original, candidate=candidate)
         same_ram = self.memcmp(self.original, self.c_ram, SIZE) == 0
+        self.agreed = not mismatches and same_ram
         return dict(cpu=mismatches, ram_equal=same_ram)
 
 
@@ -243,6 +257,7 @@ def audit(smoke=False, progress=False):
         mutants = {}
         for mutant in ("flip_cf", "early_argument"):
             lib = library(directory, mutant)
+            engine = Engine(body)
             for index, (group, change) in enumerate(cases(True), 1):
                 result = engine.run(change, lib)
                 if result["cpu"] or not result["ram_equal"]:

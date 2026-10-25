@@ -1,6 +1,7 @@
 """Media-dependent regression checks for the isolated 094A evidence harness."""
 from collections import Counter
 from pathlib import Path
+import tempfile
 from unittest import mock
 import unittest
 
@@ -69,6 +70,29 @@ class SelectorEvidenceTests(unittest.TestCase):
         receipt = checker_execution.source_map(audit.ROOT, [path], check_checker_builds._cc_commands)[path]
         self.assertEqual(receipt["sources"], [audit.C_SOURCE])
         self.assertEqual(receipt["conservative"], [])
+
+    def test_reused_ram_matches_fresh_cases_and_rejects_divergence(self):
+        body, _ = audit.pin_source()
+        with tempfile.TemporaryDirectory(prefix="094a-fixture-") as td:
+            lib = audit.library(Path(td))
+            reused, fresh = audit.Engine(body), audit.Engine(body, fresh_memory=True)
+            for change in ({}, {"ds": 0x1360}, {"ss": 0xFFFF, "sp": 0x11},
+                           {"sp": 2}, {"sp": 0xFFF9}, {"flags": 0x7ED7},
+                           {"ds": 0x2000, "ss": 0x2000, "sp": 0x5373, "old": 0},
+                           {"ds": 0x2000, "ss": 0x2000, "sp": 0x5378, "bp": 0xFFFF}):
+                self.assertEqual(reused.run(change, lib), {"cpu": {}, "ram_equal": True})
+                self.assertEqual(fresh.run(change, lib), {"cpu": {}, "ram_equal": True})
+                self.assertEqual(reused.last_original_cpu, fresh.last_original_cpu)
+
+            class BadStore:
+                @staticmethod
+                def audit_selector(ram, cpu):
+                    lib.audit_selector(ram, cpu)
+                    ram[0xFFEED] ^= 1  # unrelated byte, outside this case's inputs/writes
+
+            self.assertFalse(reused.run({}, BadStore)["ram_equal"])
+            with self.assertRaisesRegex(ValueError, "previous case failed"):
+                reused.run({}, lib)
 
 
 if __name__ == "__main__":

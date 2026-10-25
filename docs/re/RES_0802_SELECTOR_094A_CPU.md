@@ -83,11 +83,18 @@ a digest over every group/input tuple.
 | BX/CX/DX/SI/DI/ES | Walking-one and walking-zero sentinels for each bit | 192 |
 | Baseline | Distinct register/frame/data sentinels | 1 |
 
-Each case resets all RAM and CPU. The frame is seeded before the data bytes;
+Each case resets all 14 CPU words and identically seeds every RAM byte the
+body can read before writing. The frame is seeded before the data bytes;
 when physical bytes overlap, the final data seeds win. Overlapping bytes
 cannot independently hold both logical inputs. The normal selector/argument
-product does not overlap the frame. Background RAM repeats 0..255; unread
-bytes are not exhaustively varied.
+product does not overlap the frame. Both RAM images initially repeat 0..255;
+background state then persists only after a successful full-RAM comparison.
+Identical input/code writes preserve their equality before the next case.
+An engine refuses another case after any mismatch; each mutant starts a new
+engine. No RAM byte is masked or excluded from comparison. A separate
+fresh-RAM mode cross-checks alias, A20, stack-edge, flags, and code-placement
+fixtures, and an injected unrelated-byte store proves divergence stops reuse.
+Unread background bytes are not exhaustively varied.
 
 The original runs all eight instructions, including far return. The C runs
 the existing static helper. Every case compares **14 CPU words and all
