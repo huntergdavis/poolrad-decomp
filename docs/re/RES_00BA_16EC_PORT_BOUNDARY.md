@@ -1,7 +1,8 @@
 # 16EC's conditional display boundary (t131)
 
 **A narrower tile path can be established under an explicit frame-preservation
-condition. Sufficiency for the live port is not established.** This is an
+condition, and one native selector checkpoint satisfies the box-bypass
+predicate. The whole port boundary remains NOT-CLOSABLE on this evidence.** This is an
 evidence step from #1558, not another recovered body and not a readiness,
 identity, credit, replacement, or downstream-unlock claim. The reviewer decides
 those separately. No accounting product is changed.
@@ -184,10 +185,89 @@ available to the selected Python:
 tools/run_media_checks.sh
 ```
 
+## One native selector observation, not native parity
+
+At author head `5a724d4842cef4af799340f2e862145535ab63c2`, a private original-only
+probe captured the first watched arrival immediately before `00BA:1707`.
+It used the existing t116 configurable checkpoint binary, with a unique
+32-byte masked signature across the expanded resident image and overlay
+code. It cleared inherited dispatch/checkpoint settings, enabled no C
+dispatch and requested no seed pin. The RAM dump's entire 247-byte 16EC
+body, after normalizing loader relocation words, matches the pinned body.
+
+| Observed metadata | Value |
+| --- | --- |
+| Live CS:IP / load base | `08DE:1707` / `0824h` |
+| Watched arrival / instruction counter | 1 / 423317518 |
+| `DS:49F3` at the mode read | **5** |
+| `DS:6DDA` snapshot (not read on this branch) | 0 |
+| Inferred entry SP / current-frame relation | `3E98h` / `SP = BP-102h` |
+| Local message length after StrStore | 1 |
+| Return frame | `08DE:0A1E` |
+| Routed C returns / stops | 0 / 0 |
+
+The return frame matches the original `PUSH CS; near CALL 16EC` sequence
+at `00BA:0A1A`, including its four live instruction bytes. An initial
+direct-far-call-only check returned false; the near-call check explains
+that result without changing the snapshot or claiming caller identity.
+
+**Inference from the pinned branch:** mode 5 selects the path that bypasses
+the `177B` box call. This is one measured selector point, not an observation
+of branch completion, a frequency, or an invariant over other arrivals.
+The selected mode-5 path still calls `03F1:0137`, `00BA:1816`, and
+`0709:0768`; the common tail can also delay and clear. Their live effects
+have not been compared here. In particular this does not reopen t100's NO.
+The snapshot has opcode `CDh` at the tile overlay stub, rather than the
+loaded jump used by the synthetic box cases. No loader execution or correct
+loaded tile target is established by observing a bypass predicate.
+
+The route driver had reached its encounter gate after loading the save.
+The probe deliberately interrupted the route at the checkpoint and shut
+down only its own disposable emulator (SIGTERM). It did not complete the
+route. The checkpoint contains RAM, VGA memory, and registers, not a full
+machine restore state; a saved frame is not a presentation fence. No C
+candidate was executed from this state.
+
+Private receipts are retained under
+`resources/oracle-runs/t131-first-selector-v1/` (`checkpoint.*`,
+`t131-provenance.json`, `t131-attempt.json`) and
+`resources/t131/native-selector.json`. The private probe/analyzer are
+`resources/t131/native_capture.py` and `resources/t131/analyze_native.py`;
+these are local experiment artifacts, not a shipped native parity harness.
+
+| Provenance item | SHA-256 |
+| --- | --- |
+| Checkpoint binary | `fc66e91e8e8d48cc0b176bc350febab753bff297f2d93fc6c1e9d1f21cb6efae` |
+| Checkpoint header | `becb1b8712d3d1bae8d0fb654e92299b1133930beb863b6b721ba26bc5957d78` |
+| Checkpoint JSON | `ba2ac14dc4dfb340cbcee99415d930ab541331d00f5397bb66a7e8bbf478dad2` |
+| Checkpoint RAM | `034e0dd9f3b876e20cf923a88fdd7797e07cfe2e7c138ab16ab10e1762e1f72e` |
+| START.EXE | `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd` |
+| GAME.OVR | `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614` |
+
+## NOT-CLOSABLE: the remaining obligation
+
+The display boundary has moved from an untested assumption to a conditional
+site-local proof with an executed original-code violation, plus one native
+box-bypass predicate. It is still insufficient to establish that the rest
+of the dependency closure is off the port path. For box-taking arrivals,
+live preservation of the caller's control frame remains unproved, and its
+violation demonstrably reaches a callee that the EGA-attached model refuses.
+The one observed mode-5 point neither proves all arrivals bypass the box nor
+validates the mode-5 clear/title/printer and common-tail effects. Cold loading
+and the bounded printer/termination contract also remain unresolved.
+
+The next evidence would have to establish a defined port entry contract and
+validate its live selector/frame/object/loading conditions, including the
+remaining selected callees. Additional synthetic coverage alone cannot
+discharge that obligation. This document is a conditional evidence step;
+it supplies no readiness, membership, identity, credit, or unlock verdict.
+
 ## Still not verified
 
-- Live 16EC selector values, frame/object aliasing, message/title lengths,
-  actual loaded-stub state, and a correct live overlay target.
+- Selectors across other live 16EC arrivals; live frame/object preservation;
+  title lengths or general message-length bounds; a correct live loaded
+  overlay target. The one post-StrStore mode/length and stub-opcode snapshot
+  above does not establish those invariants.
 - Native 16EC CPU/RAM/EGA parity, live C dispatch, and live frame parity.
 - Overlay-manager execution or a proof that cold stubs cannot occur.
 - Universal termination or exclusion of #1558's 255-byte printer boundary.
