@@ -387,8 +387,9 @@ The command checks `resources/DOS/POOLRAD/{START.EXE,GAME.OVR}`, uses the shared
 `../poolrad-heavy.sh`, runs every `tools/overlay/test_*.py` test plus
 `tests/recovered/test_u6a_0824_fullc_gate.py`, and exits nonzero on missing media,
 missing wrapper, test failure, or skipped coverage. Install the checker Python
-dependencies and provide current accounting/queue products under ignored
-`resources/`; missing or stale derived inputs cannot be counted as a pass.
+dependencies and provide current accounting products under ignored `resources/`.
+The command regenerates a missing or stale queue export from those products;
+missing products or skipped coverage cannot be counted as a pass.
 New media-dependent unittest files outside these discovered locations must be
 added to `tools/run_media_checks.py`. This is the repository's media-dependent
 unittest gate, not execution of every standalone row audit or native emulator.

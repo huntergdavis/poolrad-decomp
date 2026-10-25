@@ -17,6 +17,19 @@ def main():
     # The recovered capture-gate suite also reads original overlay bytes; its
     # captures are synthetic and this does not establish native execution.
     sys.path.insert(0, str(ROOT / "tools/overlay"))
+    import json
+    import price_candidates
+    import strict_candidate_queue
+    queue = Path(price_candidates.DEFAULT_QUEUE)
+    products = ROOT / "resources/function-accounting-current"
+    missing_products = [name for name in ("inventory.json", "callgraph.json", "near.json")
+                        if not (products / name).is_file()]
+    if missing_products:
+        print("media checks NOT RUN: missing accounting products: " +
+              ", ".join(missing_products), file=sys.stderr)
+        return 4
+    if not queue.is_file() or strict_candidate_queue.stale_inputs(json.loads(queue.read_text()), ROOT):
+        price_candidates.generate_queue(queue)
     suite = unittest.TestSuite()
     for directory, pattern in (("tools/overlay", "test_*.py"),
                                ("tests/recovered", "test_u6a_0824_fullc_gate.py")):
