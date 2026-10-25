@@ -7,7 +7,9 @@ evidence step from #1558, not another recovered body and not a readiness,
 identity, credit, replacement, or downstream-unlock claim. The reviewer decides
 those separately. No accounting product is changed.
 
-Base: `ceb665018d911d61891e7f39df778a5e6de1a020`.
+Initial evidence base: `ceb665018d911d61891e7f39df778a5e6de1a020`.
+The final tree is rebased on `c318fd47`; historical measured heads below
+are retained in the `codex/t131-measured-history` branch.
 The runnable evidence is `tools/overlay/res16ec_port_boundary.py`; its tests
 are automatically discovered by `tools/run_media_checks.sh`.
 
@@ -167,6 +169,15 @@ contract: violating it reaches an existing model boundary. The follow-up
 checker records the original-only violation and the C guard separately;
 it must not turn their different stops into parity. The fixture and prediction
 are unchanged, and no recovered C body is repaired or broadened.
+
+The follow-up checker passed at `e252dbbae9b9ee09ac7a844184e544cd0b602787`:
+**ten full-state comparisons** (the nine boundary cases plus the alias
+baseline), one original-only alias violation, and the separately checked
+C guard observation. The original violation still exits while C returns
+CALLEE (callee 6/6, nested tile site `01C5`). This run verifies the
+separate accounting of those outcomes; it does not repair or erase their
+parity failure. The JSON/log receipts are
+`resources/t131/boundary-final.json` and `boundary-final.log`.
 
 The boundary covered here is the `00BA:177B` call, its fixed box frame,
 `0428:002A` loaded target, and the resulting tile/Move/1951 composition.
