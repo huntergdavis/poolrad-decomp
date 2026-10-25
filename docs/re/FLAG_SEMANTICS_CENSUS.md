@@ -98,8 +98,10 @@ carried the claim "IDIV leaves the flags alone in both tested engines", which co
 re-run is what settles it. `overlay_u33_party_attach_12e1_cpu.c` already modelled IDIVW.
 
 `FLAG_FOLDED_SITES.tsv` lists every folded-flags site by file and line (109 sites in 54 files at this commit, found by comment
-text, so a fold with no comment is not listed). Each is an unverified deadness claim: show from the ORIGINAL bytes that no branch,
-PUSHF, INT, hook/stop point or return observes the folded flags, or compute them. `classified_by` in the census TSV says whether a
+text, so a fold with no comment is not listed). These began as unverified deadness claims.
+[The t44 coverage index](FLAG_FOLDED_COVERAGE.md) now maps all 109 historical rows to the existing original-byte proofs,
+including branch/carry consumers and already-computed exposed flags. The individual proof contracts still apply;
+a reference match alone is not a liveness verdict. `classified_by` in the census TSV says whether a
 row was read only by a sub-agent ("agent only") or also by hand when fixed.
 
 ## Inline FLAGS writes in non-static bodies (2026-10-23)
