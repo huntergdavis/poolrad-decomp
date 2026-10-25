@@ -1,4 +1,5 @@
 model,kind,aperture_observable,declared_exclusion
+candidate_ecl_doubles.c,flat,no,no
 crt_keypressed_02fd_cpu.c,flat,no,no
 crt_readkey_030f_cpu.c,flat,no,no
 dos_gettime_00a2_cpu.c,flat,no,no
@@ -46,6 +47,8 @@ overlay_u1c_random_0234.c,flat,no,no
 overlay_u1c_return_0a9f.c,flat,no,no
 overlay_u1c_return_0a9f_cpu.c,flat,no,no
 overlay_u1c_run_3171_cpu.c,flat,no,no
+overlay_u1c_save_0292_cpu.c,flat,no,no
+overlay_u1c_save_table_0ebc_cpu.c,flat,no,no
 overlay_u1c_script_call_frame_31a4.c,flat,no,no
 overlay_u1c_script_jmp_31a8.c,flat,no,no
 overlay_u1c_script_les_di_3196.c,flat,no,no
