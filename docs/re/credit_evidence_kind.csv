@@ -171,8 +171,8 @@ OVL_007F_0000,checker,ovl_007f_0000_cpu_audit.py
 OVL_007F_003A,checker,u7f_record_word_add_003a_audit.py
 OVL_007F_0054,checker,ovl_007f_0054_cpu_audit.py
 OVL_007F_00A8,checker,u7f_weighted_00a8_audit.py
-OVL_007F_0130,unit-test,poolrad_overlay_u7f_div5_tests
-OVL_007F_0185,unit-test,poolrad_overlay_u7f_div5_dwords_tests
+OVL_007F_0130,checker,ovl_007f_div5_leaves_cpu_audit.py
+OVL_007F_0185,checker,ovl_007f_div5_leaves_cpu_audit.py
 OVL_007F_0203,checker,ovl_007f_0203_cpu_audit.py
 OVL_007F_044C,checker,ovl_007f_044c_cpu_audit.py
 OVL_007F_0508,checker,u7f_clear_0508_audit.py
