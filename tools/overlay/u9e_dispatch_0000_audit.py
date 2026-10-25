@@ -39,7 +39,7 @@ STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'L
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
 ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700, 0x0377, 0x03AC, 0x0918, 0x12B2, 0x25BC, 0x2D38, 0x04BA}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
-RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
+RAW_DEFERRED = {0x0400, 0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
 LIMITS = dict(loopbacks=4096, system_calls=4096, heap_steps=4096, links=4096)
@@ -870,7 +870,9 @@ def mutation_check(src, base, libdir, only_mutants=None):
     for s in raw:
         first.setdefault(src['slots'][s]['entry'], s)
     names = [f"slot{s:03d}-random{k}" for s in first.values() for k in range(3)]
-    differential(src, library(libdir), base, only=list(names) + list(MUTANT_CASES_EXTRA))        # the unmutated library MUST pass the case set the mutants are judged on (a failing baseline would 'catch' every mutant)
+    baseline = differential(src, library(libdir), base, only=list(names) + list(MUTANT_CASES_EXTRA))        # the unmutated library MUST pass the case set the mutants are judged on (a failing baseline would 'catch' every mutant)
+    print(f"Mutation baseline PASS: {baseline['cases']} cases, {baseline['compared']} compared", file=sys.stderr, flush=True)
+    (Path(libdir) / 'mutation-baseline.json').write_text(json.dumps(baseline, sort_keys=True, indent=2) + '\n')
     for k, (name, edits) in enumerate(MUTANTS):
         if only_mutants is not None and k not in only_mutants:
             continue
@@ -881,12 +883,13 @@ def mutation_check(src, base, libdir, only_mutants=None):
         with tempfile.TemporaryDirectory(prefix='u9e-mut-') as tmp:
             path = Path(tmp) / 'mutant.c'; path.write_text(text)
             work = Path(tmp) / 'objs'; work.mkdir()
-            for o in Path(libdir).glob('*.o'):
+            for o in Path(libdir).resolve().glob('*.o'):
                 if o.stem != 'overlay_u9e_dispatch_0000_cpu':
                     (work / o.name).symlink_to(o)
             try:
                 mlib = library(work, override={'overlay_u9e_dispatch_0000_cpu': path})
-            except subprocess.CalledProcessError:
+            except subprocess.CalledProcessError as error:
+                print(error.stderr, file=sys.stderr, flush=True)
                 out.append((name, 'COMPILE-ERROR')); continue
             try:
                 differential(src, mlib, base, only=list(names) + list(MUTANT_CASES_EXTRA))
@@ -895,7 +898,7 @@ def mutation_check(src, base, libdir, only_mutants=None):
                 out.append((name, 'CAUGHT: ' + str(e)[:90]))
         print(f'[mutant {k + 1}/{len(MUTANTS)}] {out[-1][1][:70]} ({time.time() - t0:.0f}s)', file=sys.stderr, flush=True)
     d = sum(1 for _, r in out if r.startswith('CAUGHT:')); c = sum(1 for _, r in out if r.endswith('CAUGHT BY THE C TEST'))
-    return dict(total=len(out), caught=d + c, caught_by_differential=d, caught_by_c_test=c, results=out,
+    return dict(baseline=baseline, total=len(out), caught=d + c, caught_by_differential=d, caught_by_c_test=c, results=out,
                 proven_equivalent=[n for n, r in out if r.startswith('SURVIVED') and not r.endswith('CAUGHT BY THE C TEST') and n in EQUIVALENT],
                 survivors=[n for n, r in out if r == 'COMPILE-ERROR' or (r.startswith('SURVIVED') and not r.endswith('CAUGHT BY THE C TEST') and n not in EQUIVALENT)])   # a mutant that does not build is never excused
 

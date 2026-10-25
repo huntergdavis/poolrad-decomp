@@ -39,6 +39,8 @@ Eleven far call sites (`lcall 00B0:0025`) and five near ones (inside unit 0x9E).
 
 ### Slot by slot (the VP's condition 1: every slot of the 256-slot domain has a verdict)
 
+**Current t74 table:** 42 raw + 31 adapted = 73 composed; four semantic, 60 uncredited and two deferred gaps; 117 refused indices. Slot 11 is credited by #1554 and deferred until separately wired. The phase-1 counts below are historical.
+
 Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model, composed in phase 1)**; **named gap (phase 2): credited handler, semantic model, not composed** (the handler is strict-credited but its model is a semantic or ledger translation that needs a frame-to-struct adapter and a full-RAM comparison; phase 2 builds those, each as its own small PR); **named gap: uncredited handler Y** (no strict model; the body stops with a stop that names the slot and Y); **non-handler** (not a function pointer; the body refuses). The 139 slots 1..139 split into **42 phase-1 modelled slots** (31 distinct raw-CPU credited handlers; some handlers occupy several slots), **35 phase-2 slots** (32 distinct credited handlers with semantic models), **1 deferred slot** (slot 135, `OVL_0038_3134`: a credited raw-CPU model whose world is the 1693 display closure) and **61 named-gap slots** (54 distinct uncredited handlers: the 53 stored by `31A2` plus `OVL_0086_30D9` at slot 88). Slot 0 and slots 140..255 are non-handlers. The raw-versus-semantic split is read from the handler's evidence-document name (`*_CPU.md` is a raw-CPU model) and is confirmed per handler when it is composed.
 
 | slot | address | stub | handler | verdict | closure B (bodies) |
@@ -54,7 +56,7 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | 8 | 6848h | 0041:0048 | OVL_0038_0377 | modelled with credited handler OVL_0038_0377 (semantic model through a phase-2 adapter, global active-character pointer DS:[5D92] with wrap-exact copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 9 | 684Ch | 0041:004D | OVL_0038_03AC | modelled with credited handler OVL_0038_03AC (semantic model through a phase-2 adapter, global active-character pointer DS:[5D92] with wrap-exact copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 10 | 6850h | 0041:0052 | OVL_0038_03E1 | modelled with credited handler OVL_0038_03E1 (semantic model through a phase-2 adapter; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
-| 11 | 6854h | 0041:0057 | OVL_0038_0400 | **named gap: uncredited handler OVL_0038_0400** | 186 (1) |
+| 11 | 6854h | 0041:0057 | OVL_0038_0400 | **named gap (deferred): credited by #1554, raw-CPU model not composed here** | - |
 | 12 | 6858h | 0041:005C | OVL_0038_04BA | **modelled with credited CPU-level handler through adapter; constructed candidate-list evidence (t74)** | - |
 | 13 | 685Ch | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
 | 14 | 6860h | 0041:0061 | OVL_0038_05D6 | modelled with credited handler OVL_0038_05D6 (semantic model through a phase-2 adapter with wrap-exact far-pointer copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
