@@ -74,6 +74,7 @@
   "tools/overlay/res0802_06e7_cpu_audit.py": {"args": ["--unicorn"]},
   "tools/overlay/res0802_0716_composed_audit.py": {"args": ["--unicorn"]},
   "tools/overlay/res0802_0716_cpu_audit.py": {"args": ["--unicorn"]},
+  "tools/overlay/res0802_selector_094a_cpu_audit.py": {"args": []},
   "tools/overlay/res0899_quit_0000_cpu_audit.py": {"args": ["--unicorn"]},
   "tools/overlay/res0899_readkey_0059_cpu_audit.py": {"args": ["--unicorn"]},
   "tools/overlay/res08ae_byte_181a_cpu_audit.py": {"args": ["--unicorn"]},
