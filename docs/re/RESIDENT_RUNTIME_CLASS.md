@@ -134,3 +134,59 @@ Measured on main `f9b145ef` with the owner media; pinned by `test_price_row_clos
   updated when 0040 is ready.
 - **Proposed row (TEXT only, review fields blank):** `RES_0802_0175,docs/re/RES_0802_0175_CPU.md,<review_pr>,<reviewed_commit>,<body sha in the doc>,30`.
   The committed table is untouched, so the empty-class pin stands.
+
+
+## t76 admission: FreeMem and GetMem wrappers
+
+The non-author Codex acceptance adds `RES_0802_0000` and `RES_0802_0020`
+from merged PRs #1340 (head `9387ffa8cd9ba532d01b977801bfaa05c768b03a`)
+and #1338 (head `a15535841459c1e20b03ecaf487c773f1072b638`). The committed
+set becomes exactly **0000, 0020, 0175**; both queue/pricer membership pins
+move with the table. Independent reviewer: pi-review-2. This is readiness
+membership, never identity or strict credit for these wrappers.
+
+Both are outside 08AE and absent from overlay-called resident ledger rows.
+Their complete 32-byte bodies each have 12 starts, no conditional branches
+and one runtime-covered heap callee: FreeMem `0AF8:0254` or GetMem `0AF8:023F`.
+The real loader-image closure guard accepts the complete three-member set.
+A test now runs that guard on the committed membership when media is present;
+existing refusal tests continue to reject unresolved callees and credit overlap.
+
+Independent reruns through `poolrad-heavy.sh` reproduce:
+
+| Member | Unicorn | Native | Independent checks | Body starts |
+| --- | ---: | ---: | ---: | ---: |
+| `RES_0802_0000` | 37 (33 RETURN, 4 RUNERROR) | 18 (15 RETURN, 3 RUNERROR) | 21 | 12/12 |
+| `RES_0802_0020` | 48 (41 RETURN, 6 RUNERROR, 1 HEAP_ERROR) | 26 (24 RETURN, 2 RUNERROR) | 32 | 12/12 |
+
+Unicorn compares CPU14 and all 1 MiB with zero flag masks. Native compares
+CPU14 plus the documented stack, pointer and heap-variable windows. The
+native executable is the declared **unpinned** DOSBox-X 2026.01.02 build,
+SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`.
+It is not claimed as the pinned source build. Native result hashes exactly
+match the body evidence notes. The declared RunError capture, stack bounds,
+step caps, and GetMem HeapError stop remain in force.
+
+Evidence and reproducible commands:
+[FreeMem wrapper](RES_0802_0000_CPU.md),
+[GetMem wrapper](RES_0802_0020_CPU.md). Reports remain under ignored
+`resources/t76-runtime/`; no original bytes or native captures are committed.
+
+
+The isolated runtime-membership comparison on base
+`a611ec51b86dfdce65033dc553b2a42ad0f8f22a` uses identical inventory,
+callgraph and validated-near inputs with `--no-git`. Before and after:
+**431 candidates, 49 composable, 289 strict, 125 replaced**. No direct
+callee-readiness row changes. A diagnostic walk starting inside `0716`
+(with only that strict root removed from the terminal set so the walk is
+non-vacuous) prices `0716:564 + 0020:32 + 0000:32` before and only
+`0716:564` after: **628 -> 564 bytes**, exactly the two heap wrappers.
+This is a pricing diagnostic, not a new credit or whole-closure completion.
+No strict grant is included in this admission.
+
+Final validation on the admission-only tree: the full overlay unittest suite
+passes **329 tests, two skips**; the focused real-image membership test also
+passes. Canonical `function_queue_audit.py` regenerates all ledgers and the
+queue byte-identically, retaining the base accounting pin `4a6f855a…`.
+Strict, identity, classifier, checkpoint and REPLACED files are byte-identical
+to the base. The ready-helper membership set is untouched and remains empty.
