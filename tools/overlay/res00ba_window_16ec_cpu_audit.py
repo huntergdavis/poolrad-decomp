@@ -412,13 +412,15 @@ def mutations(image_reloc, code, fixups, body_ips, f, lib, directory):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    for flag in ('--compile-only', '--unicorn', '--quick', '--mutate', '--native', '--keep-going'):
+    for flag in ('--compile-only', '--unicorn', '--quick', '--mutate', '--native', '--keep-going', '--reproduce-runaway'):
         p.add_argument(flag, action='store_true')
     p.add_argument('--only', nargs='+'); p.add_argument('--output', type=Path); a = p.parse_args()
     if a.native:
         p.error('native 16EC oracle is not implemented; no native parity claim')
-    if not (a.compile_only or a.unicorn or a.mutate):
-        p.error('select --compile-only, --unicorn, or --mutate')
+    if not (a.compile_only or a.unicorn or a.mutate or a.reproduce_runaway):
+        p.error('select --compile-only, --unicorn, --mutate, or --reproduce-runaway')
+    if a.reproduce_runaway and (a.unicorn or a.mutate or a.compile_only):
+        p.error('--reproduce-runaway is a separate original-only experiment')
     with tempfile.TemporaryDirectory(prefix='r16ec-') as tmp:
         f, lib = library(tmp)
         if a.compile_only:
@@ -428,6 +430,17 @@ def main():
         image_reloc = Q.relocate(image, sites, BASE)
         code, fixups, _, _ = O.source()
         report = dict(target=meta)
+        if a.reproduce_runaway:
+            state = build('m5-f0-w0-max', image_reloc, code, fixups, mode5=True, flag6dda=0, wait=0, msg=b'y' * 255, text_loopbacks=65536)
+            m, c, envspec, keys, stubs, info = state
+            try:
+                run_unicorn(info['name'], m, c, envspec, keys, body_ips, info['budget'], info['text_loopbacks'])
+            except ValueError as error:
+                check('RUNAWAY' in str(error), f'watchdog experiment failed differently: {error}')
+                report['original_watchdog'] = dict(case=info['name'], message='FF followed by255 copies79h', instructions=6000000,
+                    outcome='RUNAWAY', evidence=str(error), c_model_run=False, parity_claim=False)
+            else:
+                raise ValueError('original did not reproduce the recorded watchdog stop')
         if a.unicorn:
             report['unicorn'] = differential(image_reloc, code, fixups, body_ips, f, lib, a.quick, a.only, a.keep_going)
         if a.mutate:

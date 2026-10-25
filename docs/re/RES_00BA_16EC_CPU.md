@@ -1,133 +1,170 @@
-# RES_00BA_16EC window message: candidate CPU model, closure blocked
+# RES_00BA_16EC: bounded CPU composition, no strict unlock
 
-This is **evidence work, not a strict unlock**. The candidate translates
-`00BA:[16EC,17E3)` (247 bytes, 116 instruction starts, `RETF 0Ch` at 17E0)
-and composes its display, printer, box, delay and string-copy callees.
-The current refreshed base is `4b0ce9fd6bb57fc5c40691411eb750b012f39ba3`. It
-adds no strict, identity, runtime-membership or REPLACED row.
+This candidate models `00BA:[16EC,17E3)` and composes its existing callees
+**within the declared modelled domain**. On the 255-byte message below,
+the bounded model stops with LIMIT where the unbounded original does not
+terminate. This intentional modelling difference excludes a claim of equal
+termination over all inputs. This PR records modelled composition; it
+grants no identity, no strict credit and unlocks no closure. These receipts
+support modelling only, not identity or credit admission.
 
-The branch starts from `a611ec51b86dfdce65033dc553b2a42ad0f8f22a` and resumes
+The branch starts from fresh main `a611ec51b86dfdce65033dc553b2a42ad0f8f22a`
+and is refreshed through `4b0ce9fd6bb57fc5c40691411eb750b012f39ba3`. It resumes
 par-d2's parked `b17239fdefa85df13c7f9208aa5c1d1e20e0d878`. Reused evidence:
-[16EC's identity](RES_00BA_16EC_CLOSURE_IDENTITY.md),
-[the t100 NO result](RES_03F1_02E8_IDENTITY.md), and the existing raw models
-named below. The original task's 1,193-byte one-hop figure is an earlier
-closure price, not this body's size and not newly verified C bytes.
+[16EC's separate identity argument](RES_00BA_16EC_CLOSURE_IDENTITY.md),
+[t100's NO result](RES_03F1_02E8_IDENTITY.md), and the existing raw callee
+models. The task's historical 1,193-byte one-hop price is not this body's
+size or newly verified C bytes.
 
-## Exact blocker
+## Target, behavior and contract
 
-16EC has a passing identity argument, but its in-domain dependency
-`RES_03F1_0000` is not an eligible ready-helper member. The near caller
-`RES_03F1_02E8` still lacks the required argument-borne identity evidence:
-t100 measured literal text at all 27 overlay and seven resident direct
-sites. Game cells gate those branches; they do not supply the text object.
-Composing 03F1_0000's existing candidate model does not waive that gate.
-This PR therefore does not unlock 16EC or any downstream row.
+The original body is **247 bytes / 116 instruction starts**, with seven
+far calls, three near calls and its sole `RETF 0Ch` at 17E0. Body SHA-256:
+`c8507a56b6044087a23b724d368ac78558bae1ce5fb42f6eace1d29985feb929`.
+The checker reads and validates the extent, call sites and relocation words
+from the local original image; media are not committed.
 
-## Candidate behavior and contract
+SYSTEM `0B25` copies the caller's Pascal string into `[BP-100h]`.
+`DS:49F3 == 5` chooses one display branch. Otherwise `DS:6DDA` selects
+colour 11h/12h; colour 11h also draws a box. The branches clear, display a
+title and print the local message. Nonzero `[BP+6]` adds delay and clearing
+before return. Call-site opcode/offset guards retain CODE stops, and each
+far segment is read live from the relocated instruction.
 
-The body copies the caller's Pascal string into `[BP-100h]` via SYSTEM
-`0B25`, then chooses a display branch using `DS:49F3 == 5`. The other branch
-selects colour 11h/12h from `DS:6DDA`; colour 11h also draws a box. Both
-branches clear, display a title, and print the local message. A nonzero
-`[BP+6]` calls the delay wrapper and near clear before the far return.
+The candidate uses `03F1:0137`, near 1816, `0709:0768`, `03F1:0000`,
+`0709:0DBE` and near 17E3. The printer's STOP_BF5 invokes 0709:0BF5 and resumes
+at 0999; the box follows its loaded stub intoOVL_040C_015D. Those callees'
+limits and transfers remain observable. The printer register typedef is
+renamed to avoid a collision with the other display-printer header; its
+layout and function ABI remain unchanged.
 
-The seven far-call sites and three near-call sites are checked against the
-original. The model checks each call opcode/offset at execution and reads
-its relocated segment from RAM. Its closure uses `03F1:0137`, near `1816`,
-`0709:0768`, `03F1:0000`, `0709:0DBE`, and near `17E3`. The printer's
-`STOP_BF5` invokes `0709:0BF5` and resumes at `0999`; the box follows the
-loaded stub into `OVL_040C_015D`. Named limits and transfer stops remain
-observable; callbacks do not pretend that an unmodelled callee returned.
+Entry requires 1 MiB RAM, IP16EC, SP0800h..FFF0h, valid CPU/bus, budget and
+environment. Each own-body instruction consumes one budget unit; separate
+environment limits bound callees. Code is immutable. Own stack/DS accesses
+and flat runtime string operands exclude A0000h..AFFFFh aliases by contract,
+without a dynamic guard. EGA observability covers bus-aware display
+accesses, not those excluded aliases. This is CPU-level modelling, not a
+native hardware or gameplay comparison.
 
-Entry requires 1 MiB RAM, IP 16EC, SP in 0800h..FFF0h, valid CPU/bus,
-budget and environment pointers. Each own-body instruction consumes one
-budget unit; separate environment limits bound the callees. Code is
-immutable. Own stack/DS accesses and flat runtime string operands exclude
-A0000h..AFFFFh aliases by contract, without a dynamic guard. The bus/EGA
-comparison covers display accesses through bus-aware callees, not those
-excluded aliases. The printer register typedef is renamed to avoid a
-collision when its header is included with the existing display printer.
+## The 254/255 boundary and unequal termination
 
-## Validation and negative evidence
+The initial failing case, `m5-f0-w0-max`, is exact and synthetic:
+Pascal `FFh` followed by 255 copies of `79h` (`y`), mode 5, colour-flag 0,
+wait 0, row 3 and title `Ti`. **The original ran past the six-million-instruction
+watchdog; the C model had not run on that case.** The initial failure log
+is retained under `resources/t24-16ec/initial-runaway.log`. A second redundant
+diagnostic was interrupted and retained separately; it is not a completed
+run or a passing comparison.
 
-The checker compares CPU14, every RAM byte, EGA state, ordered EGA port
-writes, VRAM write operands, environment events, stop reason and remaining
-budget. Flags use the existing explicitly declared pinned DOSBox-X splits
-for callee shifts/MUL/DIV; there is no blanket FLAGS mask. Independent
-checks cover the local string, branch colour and `RETF 0Ch` frame.
+The existing [printer evidence](RES_0709_PRINTER_0768_CPU.md) documents the
+06A7 byte-index boundary. The new original-byte checks pin CMP at 06B5,
+unsigned JA at 06BA, the byte increment at 0705 and JMP070E back to06AA.
+For unchanged end-byte 255, an unsigned byte index cannot exceed the end;
+increment wraps modulo256. The06A7 body hash is
+`c9674dcc914fe3e3bb0ed3d54e58776e351f7d3888ccfd15d5b4320d97241bc5`.
+This is original nontermination, not evidence that raising a watchdog would
+make the call return.
 
-The initial full run **failed** at `m5-f0-w0-max`: the original exceeded
-six million instructions on the 255-byte message. This is not a passing
-comparison. The existing [printer evidence](RES_0709_PRINTER_0768_CPU.md)
-explains that a final word ending at index 255 never terminates inside
-06A7 because its byte index wraps; that callee has a declared LIMIT.
-This is a known original-program limitation, but the t24 checker has not
-yet compared a finite prefix at that callee limit. A diagnostic rerun retains per-case failures and exits nonzero
-if any occur. The original 386-case set (388 after adding the boundary pair) includes both display branches, wait
-and colour choices, empty/long messages, stack edges, frame aliases,
-flags, graphics modes, instruction-budget boundaries and seeded worlds.
-Final diagnostic results will be recorded here before review is requested.
+The focused pair differs only in message length. Both sides get256
+permitted06A7 loop-backs: the C API returns LIMIT, and the original oracle
+is instrumented to stop before the same 257th JMP070E arrival. **2/2 full
+state comparisons passed**:
 
-Six mutations cover mode selection, colour, copy length, wait handling,
-return cleanup and budget consumption. The same eight selected cases must
-pass unmodified before mutation compilation starts; the baseline is saved
-first. Compiler failures are not kills. Boundary C tests check invalid
-arguments and SP, budget stops, call-site guards, and a synthetic string
-copy without original game media. These checks are pending in this draft.
+| Synthetic Pascal message | C result | Instrumented original result |
+| --- | --- | --- |
+| length 254 +254 copies 79h | RETURNED | RETURNED |
+| length 255 +255 copies 79h | LIMIT at 0709:070E | external LIMIT at 0709:070E |
 
-There is **no native 16EC oracle** in this PR: `--native` fails explicitly.
-The parked checker had accepted `--native` and `--mutate` without executing
-either; this PR removes that misleading behavior and implements mutations.
-The two new flag-helper census rows are source classifications against
-DOSBox-X `5a9c7c53481c2e933948039c33256776653f4faf`, not native evidence.
+The model's LIMIT versus the unbounded original's nontermination is an
+**intentional modelling difference**. The six-million-instruction watchdog
+and256-loop-back limit count different events; they are not interchangeable.
+The pair establishes matching state at a finite prefix, not equal
+unbounded termination. All six existing `*-max` inputs retain their255-byte
+strings and use that declared finite-prefix limit in the final audit.
+A passing audit must not be read as the original runaway disappearing.
 
-## Review record
+Exact synthetic Pascal-message hashes:
 
-- target_function: `RES_00BA_16EC`, complete 247-byte body.
-- source_candidates: `resident_00ba_window_16ec_cpu.c`, resumed from the
-  parked model; no alternate source candidate is asserted.
-- signals: exact decoded extent/return, seven far and three near calls,
-  mode/colour constants, stack string object, composed side effects, and
-  original-byte state comparisons.
-- score: incomplete evidence; no numerical confidence or strict score.
-- verdict: **UNVERIFIED full parity; strict closure BLOCKED**.
-- review_notes: original timeout unresolved; native evidence absent;
-  aperture aliases excluded; declared callee flag splits; ready-helper
-  membership unresolved. Names and plausible behavior alone are insufficient.
+- 254:`4c7468562e9c216692a7b7e8aec6cf66f19b087d4e8b45027c70c9e1c6de5696`
+- 255:`24096c8197152e6ad03a2eb074c2a36c0dfe2422564991e12b47f5aebf6a9943`
 
-Reproduce from the repository root with the audit Python environment:
+`--reproduce-runaway` separately reruns the original-only watchdog
+experiment and reports RUNAWAY,`c_model_run:false`,`parity_claim:false`.
+It cannot supply a C parity result. The standalone reproduction confirmed RUNAWAY after 6,000,001 hook
+arrivals, at loaded CS:IP1709:0437; no C model ran in that experiment.
+Both the initial failure and this separate JSON receipt remain preserved.
+
+## Validation receipts
+
+Comparisons cover CPU14, all 1,048,576 RAM bytes, EGA state, ordered EGA
+OUT events, VRAM write operands, environment events, stop and remaining
+budget. Callee shift/MUL/DIV flags use explicitly counted pinned DOSBox-X
+splits; no blanket FLAGS mask is used. Independent rules check the local
+string, branch colour and RETF0Ch frame. Case worlds have name-based seeds.
+
+The full **388/388 comparisons passed**, with zero failures: 247 RETURNED,
+140 LIMIT and one OVERLAY; 116/116 starts, 6/6 branch outcomes, 243 independent
+statement checks and zero shift/MUL/DIV flag splits observed. No earlier
+case outcome changed during the final run. The cases cover both display
+branches, colour/wait options, message lengths, graphics modes, flags,
+stack edges, frame aliases, own-instruction budgets and seeded worlds.
+The separate boundary pair has2 comparisons, one RETURNED/one LIMIT,
+zero failures and zero flag splits. No earlier cases were removed.
+
+Other completed checks, all heavy work through `poolrad-heavy.sh`:
+
+- Six compiled mutations caught after an8/8 clean baseline:116/116 starts,
+  6/6 branch outcomes, four RETURNED/four LIMIT, four independent statement
+  checks and zero flag splits. Mode-selector, colour, copy-cap, wait-branch,
+  return-cleanup and budget mutations fail on state/budget differences;
+  no compiler failure counts as a kill.
+- Baseline saved before mutants at `2026-10-25 06:05:31 PDT` (`date -r`),
+  SHA `598988648aa47d208734c581f31d69feee7e5b13c60bf0090cc9a214a7f68382`.
+- CMake build and two C tests:24 new boundary checks plus27 existing printer
+  checks passed. Synthetic C fixtures need no original media.
+- Fifteen flag/aperture static tests passed; full overlay suite 329 tests,
+  two skips, passed. New flag rows classify the used rules against pinned
+  DOSBox-X source `5a9c7c53481c2e933948039c33256776653f4faf`.
+- `--native` refuses with exit2: **no native comparison run**. The parked
+  checker had silently accepted `--native` and `--mutate` without running
+  either; native now refuses and mutations run a required baseline first.
+- Canonical accounting regenerated twice with identical pin
+  `ce7a5462da1f8f8b85c187c1d476a3b8fc8c4ddd0a6877ab5b5c638520ca3049`.
+  Strict 290/evidence-kind290, verified identities 335, REPLACED 125 and
+  runtime-membership 3 remain unchanged, as do all six accounting files.
+
+## Exact strict blocker and review record
+
+`RES_03F1_0000` remains represented by `RES_IMAGE_03F10`: classification
+unresolved,`strict_full_c=0`,`game_or_library=unknown`. t100 found no passing
+argument-borne identity for its near caller02E8: all 27 overlay and seven
+resident direct sites use literal text; game cells gate the branch rather
+than supply the text object. Thus03F1_0000 is still ineligible for the
+ready-helper class. 16EC's separate identity argument does not make its
+unready dependency disappear. No 16EC membership or downstream unlock is
+claimed; no strict, identity, runtime, REPLACED or checkpoint row is edited.
+
+- target_function:`RES_00BA_16EC`, complete247-byte body.
+- source_candidates:`resident_00ba_window_16ec_cpu.c`, resumed parked model.
+- signals: exact extent/return, seven far and three near calls, mode/colour
+  constants, stack string object, original-byte state comparisons and
+  negative boundary evidence.
+- score: scoped modelling evidence; no identity or strict score.
+- verdict: bounded CPU composition supported within the declared domain; unbounded
+  termination differs intentionally; strict closure BLOCKED.
+- review_notes: no native oracle; aperture exclusions; explicit callee
+  flag splits; original255-byte nontermination and artificial LIMIT;
+  ready-helper membership unresolved. Names alone establish no parity.
+
+Reproduce with the repository's Capstone/Unicorn Python environment:
 
 ```sh
-/home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res00ba_window_16ec_cpu_audit.py --unicorn --keep-going --output resources/t24-16ec/diagnostic-full.json
+/home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res00ba_window_16ec_cpu_audit.py --unicorn --keep-going --output resources/t24-16ec/complete.json
+/home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res00ba_window_16ec_cpu_audit.py --unicorn --only boundary-254 boundary-255 --output resources/t24-16ec/boundary.json
+/home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res00ba_window_16ec_cpu_audit.py --reproduce-runaway --output resources/t24-16ec/original-watchdog.json
 /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res00ba_window_16ec_cpu_audit.py --mutate --output resources/t24-16ec/mutations.json
-/home/hunter/workspace/poolrad-heavy.sh cmake --build resources/t24-16ec/build --target poolrad_resident_00ba_window_16ec_cpu_tests poolrad_resident_0709_printer_0768_cpu_tests -j2
 /home/hunter/workspace/poolrad-heavy.sh ctest --test-dir resources/t24-16ec/build -R '^poolrad_resident_(00ba_window_16ec|0709_printer_0768)_cpu_tests$' --output-on-failure
 ```
 
-All executable media, derived artifacts and full reports stay under ignored
+All media, derived artifacts and full reports stay under ignored
 `resources/`; the resources symlink is not tracked.
-
-## Boundary probe added after the first failure
-
-The failing input is synthetic and exact: a Pascal length byte `FFh`
-followed by 255 copies of `79h` (`y`), mode5, colour flag0, wait0, row3,
-title `Ti`. The original-side instruction watchdog fired before the model
-ran on that case. The initial log is retained in
-`resources/t24-16ec/initial-runaway.log`; a second redundant diagnostic was
-interrupted and is retained separately, not counted as a completed run.
-
-Original-byte checks now pin the `06B5` byte comparison, `06BA` unsigned
-`JA` exit, byte index increment and `070E` loop-back. With an unchanged
-end byte255, the unsigned byte index cannot exceed the end, and increment
-wraps modulo256. This is the original's index-width boundary, not evidence
-that a larger watchdog would let the call return.
-
-The separate `boundary-254` and `boundary-255` cases differ only in message
-length. Both use 256 permitted `06A7` loop-backs. The original is stopped
-before JMP070E at the same loop-count limit as the C callee. The expected
-outcomes are RETURNED for254 and LIMIT at070E for255, with the normal full
-state comparison in both. A LIMIT comparison establishes a finite prefix,
-not a normal return or unrestricted native behavior. The six existing
-`*-max` cases retain their exact255-byte strings and use this same declared
-limit in the final388-case set. The original6-million-instruction RUNAWAY
-remains a separate historical result; it is not relabelled a passing return.
