@@ -65,6 +65,7 @@ OVL_0038_01C3,unit-test,poolrad_overlay_unit38_effects_next_tests
 OVL_0038_0377,checker,ecl_helpers_original_audit.py
 OVL_0038_03AC,checker,ecl_helpers_original_audit.py
 OVL_0038_03E1,checker,ecl_helpers_original_audit.py
+OVL_0038_0400,checker,ovl038_0400_cpu_audit.py
 OVL_0038_04BA,checker,u38_pair_04ba_audit.py
 OVL_0038_05D6,unit-test,poolrad_overlay_unit38_effects_tests
 OVL_0038_0647,audit,tools/overlay/u38_dispatch_nop_audit.py
