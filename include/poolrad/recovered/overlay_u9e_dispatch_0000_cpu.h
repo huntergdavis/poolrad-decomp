@@ -25,7 +25,8 @@ typedef enum {
     PR_U9E_0000_GAP_DEFERRED     /* credited raw model whose world (the 1693 display closure) is not composed here */
 } pr_u9e_0000_gap;
 
-/* Host caps for the composed handlers' own limits (they carry loop-back, SYSTEM-call and heap caps, not instruction budgets). */
+/* Host caps for the composed handlers: loop-back, SYSTEM-call and heap caps.
+ * Slot 11 also uses loopbacks as the resident party-count instruction budget. */
 typedef struct {
     unsigned loopbacks, system_calls, heap_steps;
     size_t links;
@@ -44,12 +45,21 @@ typedef struct {
  * The body forwards the five words, computes DI = 4 * INDEX and executes LCALL [DI+6828h].
  *
  * DOMAIN (declared and ASSERTED): INDEX must be 1..139. Anything else (0 and 140..255) is REFUSED before any instruction runs: CPU, RAM and budget untouched, nothing called.
- * COVERAGE: only the slots whose kind is RAW below are composed with their handler's model (the raw-CPU credited handlers). Every other slot in 1..139 STOPS at the LCALL with GAP
+ * COVERAGE: slots whose kind is RAW or ADAPTED below are composed with their handler's model. Every other slot in 1..139 STOPS at the LCALL with GAP
  * and a named gap kind; the dispatcher is NOT modelled for those slots, and no caller may read a RETURNED stop as covering them.
  *
  * Contract: exactly 1 MiB of A20-off RAM, IP 0000, entry SP in [0200h,FFEEh]; the table words at DS:6828h+4*INDEX and the loaded stub (EAh, offset, segment) must be the original's
  * (CODE otherwise). Each dispatcher instruction consumes one unit of budget; the stub JMP and the composed handlers consume none (they carry their own caps in limits). Pinned flags: SHL sets AF.
  * LIMIT leaves the next unexecuted counted instruction in cpu->cs:ip. diagnostic may be NULL. */
+/* The +01C3/+24D9/+268A/+2E37 semantic adapters require input records to
+ * be disjoint from their stack frames and the DS globals they write; those
+ * frames must also be disjoint from DS state. Their
+ * semantic APIs expose these as separate objects; arbitrary aliases are
+ * outside this contract. +2E37 uses limits.loopbacks as a node cap and
+ * reports CALLEE with PR_U38_WALK_LIMIT on exhaustion, never RETURNED.
+ * Slot 11 passes limits.loopbacks as the resident party-count instruction
+ * budget. Code must remain immutable; video-memory bus effects are outside
+ * this flat-RAM contract. See OVL_009E_0000_CPU.md for measured scope. */
 pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9e_0000_cpu *cpu, size_t *budget,
                                             const pr_u9e_0000_limits *limits, pr_u9e_0000_diagnostic *diagnostic);
 

@@ -39,7 +39,8 @@ STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'REFUSED', 3: 'GAP', 4: 'CODE', 5: 'L
 KIND = {0: 'refused', 1: 'raw', 2: 'semantic-gap', 3: 'uncredited-gap', 4: 'deferred-gap', 5: 'adapted'}
 COMPOSED = (1, 5)                # kinds whose handler is run (a raw model or a semantic model through its adapter)
 ADAPTED = {0x010D, 0x011D, 0x0C06, 0x0C15, 0x171F, 0x25A2, 0x2A6D, 0x2B63, 0x10C1, 0x03E1, 0x06E4, 0x0A3D, 0x2A28, 0x013B, 0x05D6, 0x064E, 0x0BAC, 0x0C26, 0x1452, 0x2490, 0x2700, 0x0377, 0x03AC, 0x0918, 0x12B2, 0x25BC, 0x2D38, 0x04BA}               # unit-0x38 entries whose credited SEMANTIC model is composed through a phase-2 adapter
-RAW_DEFERRED = {0x0400, 0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
+ADAPTED |= {0x01C3, 0x24D9, 0x268A, 0x2E37}
+RAW_DEFERRED = {0x3134}          # credited raw model whose world (the 1693 display closure and the bus) is not composed here
 BUDGET = 100000
 LIST_ENTRIES = {0x1363, 0x1472, 0x1730, 0x2814, 0x27D9}     # the handlers that walk a record's linked list and allocate
 LIMITS = dict(loopbacks=4096, system_calls=4096, heap_steps=4096, links=4096)
@@ -623,6 +624,65 @@ def cases(src, per_slot=16, quick=False):
         label = "d" + "".join({0x0C: "c", 0x26: "q", 0x17: "x"}[t] for t in combo)
         for srcmode in ("lo", "first"):
             cand(label, 38, list(combo), srcmode, "a")
+    # t75: explicit separated objects, including wrapping effective addresses
+    # and word operands whose first byte is at FFFFh (second byte contiguous).
+    def far_poke(seg, off, field, target):
+        ts, to = target
+        if field == 0x108:  # LES reads one contiguous four-byte operand.
+            return [(seg, (off + field) & 0xFFFF, struct.pack('<HH', to, ts))]
+        return [(seg, (off + field) & 0xFFFF, struct.pack('<H', to)),
+                (seg, (off + field + 2) & 0xFFFF, struct.pack('<H', ts))]
+
+    layouts = (("plain", 0x0100, 0xAB00, 0x0400),
+               ("wrap", 0xFEFF, 0xFFF8, 0xFF70),
+               ("word", 0xFEF7, 0xFFF5, 0xFF37))
+    for label, ro, po, qo in layouts:
+        chain = far_poke(RSEG, ro, 0x108, (PSEG, po)) + far_poke(PSEG, po, 0xA, (QSEG, qo))
+        for v in (0, 4, 9, 10, 12, 0x80, 0xFF):
+            for before in (0, 0x0F, 0x7E, 0x80, 0xFE, 0xFF):
+                padd('01c3', 6, f'{label}-{v:02x}-{before:02x}', [0, 0x100, SSEG, ro, RSEG],
+                     chain + pk(QSEG, qo, {0x9F: v}) + ds({0x6818: before, 0x6822: before, 0x6819: 0x55}))
+    # The local belongs to the handler: dispatcher entry SP - 18 is BP,
+    # so [BP-1] is entry SP - 19, including when the record crosses FFFFh.
+    for tag, slot, gates in (('24d9', 90, (0, 1, 0x80)), ('268a', 97, (2, 4, 0, 0x80))):
+        for gate in gates:
+            for value in (0, 3, 4, 6, 7, 10, 11, 13, 14, 17, 18, 20, 21, 0xFF):
+                for residue in (0, 0xFF):
+                    for before in (0x0F, 0xFF):
+                        ro = 0xFFF0 if residue else 0x100
+                        padd(tag, slot, f'{gate:02x}-{value:02x}-{residue:02x}-{before:02x}',
+                             [0, 0x100, SSEG, ro, RSEG], pk(RSEG, ro, {0x14: value}) +
+                             ds({0x682A: gate, 0x6816: before}) + [(SS, 0x8000 - 19, bytes([residue]))])
+    for label, ro, po, qo in layouts:
+        for count in (0, 1, 2, 6):
+            for pattern in ('inactive', 'miss', '76-first', '76-last', '98-fc', '98-miss'):
+                for preset in (0, 0x80):
+                    ns = SSEG
+                    offsets = [(0xFFD5 if label == 'word' else 0xFFD0) if j == 0 and label != 'plain'
+                               else 0x200 + 0x80 * j for j in range(count)]
+                    chain = far_poke(RSEG, ro, 0x108, (PSEG, po)) + far_poke(PSEG, po, 0xA, (QSEG, qo))
+                    chain += far_poke(QSEG, qo, 0xC8, (ns, offsets[0]) if count else (0, 0))
+                    for j, no in enumerate(offsets):
+                        vals = {0x34: 0 if pattern == 'inactive' else 1, 0x2F: 0, 0x30: 0, 0x31: 0}
+                        if pattern == '76-first' and j == 0: vals[0x2F] = 0x76
+                        if pattern == '76-last' and j == count - 1: vals[0x31] = 0x76
+                        if pattern.startswith('98') and j == count - 1:
+                            vals[0x30] = 0x98; vals[0x31] = 0xFC if pattern == '98-fc' else 0xFB
+                        chain += pk(ns, no, vals) + far_poke(ns, no, 0x2A, (ns, offsets[j + 1]) if j + 1 < count else (0, 0))
+                    padd('2e37', 126, f'{label}-{count}-{pattern}-{preset:02x}', [0, 0x100, SSEG, ro, RSEG],
+                         chain + ds({0x681E: preset}))
+    # Slot 11: every branch including the real resident party-count closure.
+    for sel in (0, 1, 0x80):
+        for a3 in (0, 0x20, 0x40, 0x80, 0xFF):
+            for b10e in (0, 1, 0x80):
+                for b84 in (0x7F, 0x80, 0xB3):
+                    chain = pk(SSEG, 0x100, {3: a3}) + pk(RSEG, 0x100, {0x10E: b10e, 0x84: b84})
+                    chain += far_poke(RSEG, 0x100, 0x108, (PSEG, 0x100))
+                    # Two party nodes, one contributes at offset 0 and one at 1.
+                    chain += far_poke(DS, 0, 0x5D96, (QSEG, 0x100))
+                    chain += pk(QSEG, 0x100, {0x10D: 0, 0x10E: 0}) + far_poke(QSEG, 0x100, 0x104, (QSEG, 0x300))
+                    chain += pk(QSEG, 0x300, {0x10D: 0, 0x10E: 1}) + far_poke(QSEG, 0x300, 0x104, (0, 0))
+                    padd('0400', 11, f'{sel:02x}-{a3:02x}-{b10e:02x}-{b84:02x}', [sel, 0x100, SSEG, 0x100, RSEG], chain)
     for tag, delta in (("final", 0), ("handler", -16), ("final-ip", -3), ("args", 6)):
         sp = 0x8000
         target = struct.pack("<HH", (sp + delta) & 0xFFFF, SS)
@@ -682,6 +742,26 @@ EQUIVALENT = {      # a survivor named here carries a written proof
 }
 
 MUTANTS = (
+    ('t75 +01C3 drops the local class byte', [('m->ram[physical(c->ss, (uint16_t)(c->bp - 1u))] = (uint8_t)klass;', '(void)klass;')]),
+    ('t75 +01C3 clears AH', [('set_al_(c, (uint8_t)klass); add8_flags(c, a6818, (uint8_t)klass);', 'c->ax = (uint16_t)klass; add8_flags(c, a6818, (uint8_t)klass);')]),
+    ('t75 +01C3 flags use the stored value', [('add8_flags(c, a6818, (uint8_t)klass);', 'add8_flags(c, st.b6818, (uint8_t)klass);')]),
+    ('t75 +01C3 skips semantic effects', [('pr_u38_entry6(&st, rec, chain_resolve, &x, &klass) != PR_U38_OK', '(void)pr_u38_entry6, 0')]),
+    ('t75 chain word reads wrap within the segment', [('out[k + 1u] = (uint8_t)(v >> 8u);', 'out[k + 1u] = xb_byte(m, seg, off, k + 1u);')]),
+    ('t75 chain LES wraps within the segment', [('rec[0x108u + k] = m->ram[(at + k) & MASK];', 'rec[0x108u + k] = xb_byte(m, seg, off, 0x108u + k);')]),
+    ('t75 +24D9 uses the 268A gate', [('static int h_24d9(call_t *m) { return range_adapter(m, 0); }', 'static int h_24d9(call_t *m) { return range_adapter(m, 1); }')]),
+    ('t75 +268A uses the 24D9 gate', [('static int h_268a(call_t *m) { return range_adapter(m, 1); }', 'static int h_268a(call_t *m) { return range_adapter(m, 0); }')]),
+    ('t75 range residue replaced by zero', [('residue = rd8(m->ram, c->ss, (uint16_t)(c->bp - 1u));', 'residue = 0;')]),
+    ('t75 range loses AH of the sum', [('c->ax = (uint16_t)(before + bracket);', 'c->ax = (uint8_t)(before + bracket);')]),
+    ('t75 range uses byte ADD flags', [('add16_flags(c, before, (uint16_t)bracket);', 'add8_flags(c, before, (uint8_t)bracket);')]),
+    ('t75 range fails to store bracket local', [('m->ram[physical(c->ss, (uint16_t)(c->bp - 1u))] = (uint8_t)bracket;', '(void)bracket;')]),
+    ('t75 +2E37 inner counter stops at two', [('m->ram[physical(c->ss, (uint16_t)(c->bp - 5u))] = 3u;', 'm->ram[physical(c->ss, (uint16_t)(c->bp - 5u))] = 2u;')]),
+    ('t75 +2E37 loses the link segment local', [('wr16(m->ram, c->ss, (uint16_t)(c->bp - 2u), c->dx);', '(void)c->dx;')]),
+    ('t75 +2E37 zeroes DX', [('c->ax = (uint16_t)(c->ax | c->dx); /* top-of-loop OR, including nil */', 'c->ax = (uint16_t)(c->ax | c->dx); c->dx = 0; /* top-of-loop OR, including nil */')]),
+    ('t75 +2E37 caps the walk at four nodes', [('m->lim->loopbacks, &nodes, &matched);', '4u, &nodes, &matched);')]),
+    ('t75 +2E37 tests flag before nil', [('if (c->ax == 0u) logic16_flags(c, c->ax); else sub8_flags(c, st.b681e, 0u);', 'if (st.b681e) sub8_flags(c, st.b681e, 0u); else logic16_flags(c, c->ax);')]),
+    ('t75 +2E37 omits semantic flag writeback', [('ds_set8(m->ram, c, 0x681Eu, st.b681e);', '(void)st.b681e;')]),
+    ('t75 +0400 routes to NOP', [('{0x0400, h_0400}', '{0x0400, h_nop}')]),
+    ('t75 +0400 gives party count zero budget', [('pr_u38_handler_0400_cpu(m->ram, m->size, &x, LIM->loopbacks, &m->status_raw)', 'pr_u38_handler_0400_cpu(m->ram, m->size, &x, 0, &m->status_raw)')]),
     ('REFUSED lets index 140 through', [("if (idx == 0u || idx >= 140u)", "if (idx == 0u || idx >= 141u)")]),
     ('REFUSED lets index 0 through', [("if (idx == 0u || idx >= 140u)", "if (idx >= 140u)")]),
     ('the budget is not read before the slot verdict (GAP beats LIMIT)', [("    if (*budget == 0u) return PR_U9E_0000_LIMIT;                                                      /* 001E LCALL", "    /* 001E LCALL")]),
@@ -863,14 +943,16 @@ def c_test_verdict(tmp, mutant_path):
     return ': CAUGHT BY THE C TEST' if r.returncode != 0 else ': the C test also passes'
 
 
-def mutation_check(src, base, libdir, only_mutants=None):
+def mutation_check(src, base, libdir, only_mutants=None, only_cases=None):
     out = []; text0 = (ROOT / 'src/recovered/overlay_u9e_dispatch_0000_cpu.c').read_text()
     raw = [s for s in range(1, 140) if src['slots'][s]['kind'] in COMPOSED]
     first = {}
     for s in raw:
         first.setdefault(src['slots'][s]['entry'], s)
     names = [f"slot{s:03d}-random{k}" for s in first.values() for k in range(3)]
-    baseline = differential(src, library(libdir), base, only=list(names) + list(MUTANT_CASES_EXTRA))        # the unmutated library MUST pass the case set the mutants are judged on (a failing baseline would 'catch' every mutant)
+    selected = only_cases if only_cases is not None else list(names) + list(MUTANT_CASES_EXTRA)
+    baseline = differential(src, library(libdir), base, only=selected)        # the unmutated library MUST pass the case set the mutants are judged on (a failing baseline would 'catch' every mutant)
+    check(baseline['compared'] > 0, 'mutation baseline compared no cases')
     print(f"Mutation baseline PASS: {baseline['cases']} cases, {baseline['compared']} compared", file=sys.stderr, flush=True)
     (Path(libdir) / 'mutation-baseline.json').write_text(json.dumps(baseline, sort_keys=True, indent=2) + '\n')
     for k, (name, edits) in enumerate(MUTANTS):
@@ -892,7 +974,7 @@ def mutation_check(src, base, libdir, only_mutants=None):
                 print(error.stderr, file=sys.stderr, flush=True)
                 out.append((name, 'COMPILE-ERROR')); continue
             try:
-                differential(src, mlib, base, only=list(names) + list(MUTANT_CASES_EXTRA))
+                differential(src, mlib, base, only=selected)
                 out.append((name, 'SURVIVED the differential' + c_test_verdict(tmp, path)))
             except (ValueError, AssertionError) as e:
                 out.append((name, 'CAUGHT: ' + str(e)[:90]))
@@ -925,7 +1007,8 @@ def main():
             report['callers'] = caller_fixtures(src, lib, base, tries=60)
         if a.mutate:
             only = None if not a.mutant_filter else {k for k, (n, _) in enumerate(MUTANTS) if any(f in n for f in a.mutant_filter.split("|"))}
-            report['mutation'] = mutation_check(src, base, libdir, only_mutants=only)
+            check(only is None or only, 'mutant filter selected no mutations')
+            report['mutation'] = mutation_check(src, base, libdir, only_mutants=only, only_cases=a.only)
     if a.output:
         a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(report, sort_keys=True, indent=2, default=str) + '\n')
     print(json.dumps(report, sort_keys=True, default=str)[:3000])
