@@ -400,3 +400,13 @@ set, template-helper and missing-media refusal tests only. A green CI result
 does not certify emitter reproduction or the full owner-media suite. The
 local command runs all eight emitters with `--check`; it never repairs generated
 files as part of verification. Media and derived captures stay ignored.
+
+## Media-host differential gate (t79)
+
+Before merging recovered-C changes, run the affected registered checker
+contracts with `check_checker_builds.py --execute ROWS`, or select shared-source
+dependents with `--all-touching FILE`. CI's compile-only result is insufficient.
+Follow [the media-host execution rule](CHECKER_EXECUTION_GATE.md), including its
+conservative source-selection scope and 0/1/4 result contract. This runs on a
+media host, not in CI, and the gate itself serializes jobs through the shared
+heavy-job wrapper. Retain its receipt under ignored `resources/`.
