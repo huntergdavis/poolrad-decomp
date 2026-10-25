@@ -77,7 +77,7 @@ def git(root, *args):
     return subprocess.check_output(["git", "-C", str(root), *args], text=True).strip()
 
 
-def _cc_commands(tree, root):
+def _cc_commands(tree, root, strict=False):
     """Every `subprocess.run([...])` whose argv starts with a C compiler.
 
     Source lists are frequently assembled into a module- or function-level
@@ -92,10 +92,26 @@ def _cc_commands(tree, root):
 
     def ev(node, depth=0, env=None):
         env = env or {}
-        if depth > 8:
+        if depth > 32:
             raise ValueError("deep")
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             return node.value
+        if isinstance(node, (ast.List, ast.Tuple)):
+            out = []
+            for item in node.elts:
+                if isinstance(item, ast.Starred):
+                    out.extend(ev(item.value, depth + 1, env))
+                else:
+                    out.append(ev(item, depth + 1, env))
+            return out
+        if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+            return ev(node.left, depth + 1, env) + ev(node.right, depth + 1, env)
+        if isinstance(node, ast.JoinedStr):
+            return "".join(ev(part.value, depth + 1, env) if isinstance(part, ast.FormattedValue)
+                           else part.value for part in node.values)
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "split" and not node.args):
+            return ev(node.func.value, depth + 1, env).split()
         if isinstance(node, ast.Name):
             if node.id in env:
                 return env[node.id]
@@ -122,14 +138,35 @@ def _cc_commands(tree, root):
 
     def argv_of(node):
         """Flatten a list expression, expanding `*name` splats in place."""
-        if not isinstance(node, (ast.List, ast.Tuple)):
+        def elements(expr, depth=0):
+            if not isinstance(expr, ast.AST):
+                raise ValueError("unresolved compiler command")
+            if depth > 32:
+                raise ValueError("deep compiler argument expression")
+            if isinstance(expr, (ast.List, ast.Tuple)):
+                return expr.elts
+            if isinstance(expr, ast.BinOp) and isinstance(expr.op, ast.Add):
+                return elements(expr.left, depth + 1) + elements(expr.right, depth + 1)
+            if isinstance(expr, ast.Name) and expr.id in constants:
+                return elements(constants[expr.id], depth + 1)
+            values = ev(expr)
+            if not isinstance(values, list):
+                raise ValueError("not a compiler argument list")
+            return [ast.Constant(value=v) for v in values]
+        try:
+            items = elements(node)
+        except ValueError:
+            if strict:
+                raise ValueError("opaque concatenated compiler inputs")
             return None
         out = None
-        for element in node.elts:
+        for element in items:
             if isinstance(element, ast.Starred):
                 try:
                     value = ev(element.value)
                 except ValueError:
+                    if strict:
+                        raise ValueError("opaque expanded compiler inputs")
                     return None
                 if not isinstance(value, list):
                     return None
@@ -138,6 +175,11 @@ def _cc_commands(tree, root):
             try:
                 out = (out or []) + [ev(element)]
             except ValueError:
+                if strict:
+                    if out and out[-1] in ("-o", "-I", "-L"):
+                        out.append("<dynamic-option>")
+                        continue
+                    raise ValueError("opaque compiler input")
                 # Un-evaluable tail (typically the -o destination): stop here
                 # and let the caller substitute its own probe output.
                 return (out or []) + [None]
@@ -148,6 +190,20 @@ def _cc_commands(tree, root):
         if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
                 and node.func.attr == "run" and node.args):
             continue
+        if strict:
+            candidate = node.args[0]
+            if isinstance(candidate, ast.Name):
+                candidate = constants.get(candidate.id)
+            while isinstance(candidate, ast.BinOp) and isinstance(candidate.op, ast.Add):
+                candidate = candidate.left
+            if not isinstance(candidate, (ast.List, ast.Tuple)) or not candidate.elts:
+                continue
+            try:
+                compiler = ev(candidate.elts[0])
+            except ValueError:
+                continue
+            if compiler not in ("cc", "gcc", "clang"):
+                continue
         argv = argv_of(node.args[0])
         if argv is None and isinstance(node.args[0], ast.Name):
             try:
@@ -327,7 +383,62 @@ def main(argv=None):
                              "instead, because main moves under the PR head")
     parser.add_argument("--sweep", action="store_true",
                         help="best-effort compile of every checker; never gates (exit 0)")
+    parser.add_argument("--execute", action="store_true",
+                        help="run the selected real differentials on a media host (0 agree / 1 fail / 4 cannot run)")
+    parser.add_argument("--all-touching", type=Path,
+                        help="execute every registered checker selected by a shared recovered C source")
+    parser.add_argument("--selection-only", action="store_true",
+                        help="print derived execution selection without claiming agreement")
     args = parser.parse_args(argv)
+    if args.execute or args.all_touching or args.selection_only:
+        import checker_execution as execution
+        try:
+            if args.sweep or (args.all and args.rows):
+                raise ValueError("choose one execution selection; --sweep is build-only")
+            missing = missing_dependencies()
+            if missing:
+                raise ValueError(environment_message(missing))
+            problem = precondition_error(ROOT, args.base_ref, require_current_main=True)
+            if problem:
+                raise ValueError(problem)
+            registry = discover(ROOT)
+            source_receipt = {}
+            if args.all_touching:
+                if args.rows or args.all:
+                    raise ValueError("--all-touching cannot be combined with rows or --all")
+                source = args.all_touching
+                if source.is_absolute():
+                    source = source.resolve().relative_to(ROOT.resolve())
+                else:
+                    source = Path(os.path.normpath(source))
+                if source not in execution.cmake_sources(ROOT) or not (ROOT / source).is_file():
+                    raise ValueError("source is not a current recovered CMake source: " + str(source))
+                source_receipt = execution.source_map(ROOT, sorted({p for ps in registry.values() for p in ps}), _cc_commands)
+                paths = sorted(p for p, receipt in source_receipt.items() if str(source) in receipt['sources'])
+                if not paths:
+                    raise ValueError("no registered checker maps to " + str(source))
+            else:
+                paths = select(registry, sorted(registry) if args.all else args.rows)
+            profiles = execution.load_profiles(ROOT)
+            absent = [str(p) for p in paths if str(p) not in profiles]
+            if absent:
+                raise ValueError("no differential execution profile: " + ', '.join(absent))
+            if args.selection_only:
+                print(json.dumps(dict(scope="selection only; no execution or agreement", checkers=[
+                    dict(checker=str(p), rows=sorted(r for r, ps in registry.items() if p in ps),
+                         args=profiles[str(p)]['args'], **source_receipt.get(p, {})) for p in paths]), indent=2))
+                return 0
+            metadata = dict(base_commit=git(ROOT, "rev-parse", args.base_ref), head_commit=git(ROOT, "rev-parse", "HEAD"),
+                            selection={str(p): source_receipt[p] for p in paths if p in source_receipt},
+                            gate_sha256={p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in
+                                         ("tools/overlay/check_checker_builds.py", "tools/overlay/checker_execution.py", execution.PROFILES)})
+            status, report = execution.execute(ROOT, registry, paths, profiles, args.output, metadata=metadata)
+            if args.output:
+                args.output.write_text(json.dumps(report, indent=2) + "\n")
+            return status
+        except (ValueError, OSError, subprocess.CalledProcessError) as exc:
+            print("CANNOT_RUN: " + str(exc))
+            return execution.CANNOT_RUN
     missing = missing_dependencies()
     if missing and not getattr(args, "compile_only", False):
         print(environment_message(missing))
