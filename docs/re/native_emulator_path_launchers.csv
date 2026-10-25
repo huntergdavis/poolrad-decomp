@@ -197,5 +197,3 @@ tools/overlay/u9e_entry16_10e4_native.py,145
 tools/overlay/u9e_entry17_110d_native.py,160
 tools/overlay/u9e_list_append_0e52_cpu_audit.py,409
 tools/overlay/u9e_list_release_0026_native.py,90
-tools/overlay/u9e_sidecar_0160_cpu_native.py,91
-tools/overlay/u9e_sidecar_groups_02fa_cpu_native.py,101
