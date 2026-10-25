@@ -40,7 +40,8 @@ callers. The known Unicorn/DOSBox far-return stack-top disagreement is
 outside this interval.
 
 RAM is a writable 1 MiB A20-off image, also mapped at the high alias in
-Unicorn. Code remains immutable. DS/SS and data/frame aliases are admitted.
+Unicorn. The C CPU state object is separate from guest RAM. Code remains
+immutable. DS/SS and data/frame aliases are admitted.
 The body uses load-base 1000, 4000, or 8000 (CS 1802/4802/8802), choosing a
 placement disjoint from case data and stack writes. A colliding swept input
 is preserved by relocating the body, not omitted.
@@ -140,7 +141,33 @@ Admitting or crediting 094A alone does not unlock any of those bodies.
 
 ## Validation receipt
 
-Implementation and measurements are in progress. No PASS is claimed here yet.
+The registered differential returned **AGREE, exit 0**, at
+b598dada0a050bb5812a8cc002fb50f44d3e5754 on 2026-10-25:
+**600,505 cases by construction**, 14 CPU words and the full 1 MiB compared
+without masks, in **932.256 seconds**. The seven focused regression tests
+also passed, including the fresh-RAM cross-check, poisoned unrelated byte,
+bad-media refusal, complete dimension enumeration, and exact source selection.
+
+The full parameter-sequence digest is
+e7074448ad1cf467adf545b5358d07f0f308729d60310adce2919aab410cb5ec.
+The production candidate digest is
+c4d3cd66df8ab08c2cd9c64ec1d7fd13e42cb9bec5db2db05816f928868073b4;
+the audit digest is
+d8100cc023a751958372374dcdadf52ef40b964e1f1e3de61888b250224f9c10.
+Toolchain: Python 3.14.4, Capstone 5.0.7, Unicorn 2.1.4, GCC 15.2.0.
+
+Both required mutants were killed. The CF mutant fails the first baseline
+case: original flags 0ED7 versus mutant 0ED6, with identical RAM. The ordering
+mutant's first witness is case 2,450 of the reduced deterministic mutant
+search: DS=SS=2000, entry SP=5373, old selector=00. The original returns
+AX=A600, CS=0000; the mutant returns AX=A6C3, CS=C300 and different RAM.
+DS:5377 aliases the argument byte, and DS:5376 aliases the high byte of the
+return CS. Mutant search stops on the first mismatch; it is not an exhaustive
+mutant run or a measurement of natural reachability.
+
+Private receipts are retained under resources/t144-094a/. The final PR
+description carries the required owner-media receipt for its exact head;
+the focused differential alone does not establish that gate.
 
 Run on the owner-media host, one heavy job at a time:
 
@@ -148,17 +175,19 @@ Run on the owner-media host, one heavy job at a time:
     /path/to/python tools/overlay/check_checker_builds.py --execute RES_0802_094A
     PATH=/path/to/venv/bin:$PATH tools/run_media_checks.sh
 
-The execution profile adds one key. Remove it and require equality with the
-parent JSON; deleting its one added line must also reproduce the parent file
-byte-for-byte. No accounting, identity, readiness, or production source changes.
+The execution profile adds one key. Removing it reproduced the parent JSON;
+deleting its one added line also reproduced the parent file byte-for-byte.
+Both checks passed. The execution gate selects exactly the existing production
+source, with no conservative fallback to unrelated sources. No accounting,
+identity, readiness, or production source changes.
 
 | Parity report field | Finding |
 | --- | --- |
 | target_function | RES_0802:094A, 19-byte selector-push body |
 | source_candidates | Existing static selector_push in overlay_u25_store_word_0c77.c |
 | signals | Loader/body/caller pins, no-callee shape, exact frame/alias order, CPU/RAM differential, flag and ordering mutants |
-| score | Pending execution and independent review |
-| verdict | unclear pending measured sweep and reviewer verdict |
+| score | Pinned body/callers; 600,505-case agreement; both required mutants killed; seven regression tests passed |
+| verdict | likely_match within the stated contract; independent reviewer verdict pending |
 | review_notes | Only this body under the stated contract; no credit or caller unlock |
 
 NOT VERIFIED: all-state Cartesian parity; TF/interrupt delivery; excluded
