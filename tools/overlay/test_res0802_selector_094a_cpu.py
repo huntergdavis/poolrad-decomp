@@ -1,5 +1,6 @@
 """Media-dependent regression checks for the isolated 094A evidence harness."""
 from collections import Counter
+from pathlib import Path
 from unittest import mock
 import unittest
 
@@ -12,7 +13,7 @@ class SelectorEvidenceTests(unittest.TestCase):
         cls.report = audit.audit(smoke=True)
 
     def test_smoke_compares_complete_cpu_and_ram(self):
-        self.assertEqual(self.report["cases"], 981)
+        self.assertEqual(self.report["cases"], 2773)
         self.assertEqual(self.report["cpu_words"], 14)
         self.assertEqual(self.report["ram_bytes"], 1 << 20)
         self.assertEqual(self.report["masks"], [])
@@ -45,11 +46,11 @@ class SelectorEvidenceTests(unittest.TestCase):
                 flags.add(change["flags"])
             if group == "selector_argument_product":
                 pairs.add((change["old"], change["argument"] & 255))
-        self.assertEqual(sum(counts.values()), 598713)
+        self.assertEqual(sum(counts.values()), 600505)
         for name, seen in words.items():
             expected = set(range(2, 0xFFFA)) if name == "sp" else set(range(65536))
             self.assertEqual(seen, expected, name)
-        self.assertEqual(len(flags), 256)
+        self.assertEqual(len(flags), 2048)
         self.assertTrue(all((f & 0x100) == 0 for f in flags))
         self.assertEqual(len(pairs), 65536)
         self.assertEqual(counts["frame_alias_old"], 2048)
@@ -60,6 +61,14 @@ class SelectorEvidenceTests(unittest.TestCase):
         with mock.patch.object(audit, "START_SHA", "0" * 64):
             with self.assertRaisesRegex(ValueError, "START.EXE hash"):
                 audit.pin_source()
+
+    def test_gate_selects_only_the_actual_production_source(self):
+        import check_checker_builds
+        import checker_execution
+        path = Path("tools/overlay/res0802_selector_094a_cpu_audit.py")
+        receipt = checker_execution.source_map(audit.ROOT, [path], check_checker_builds._cc_commands)[path]
+        self.assertEqual(receipt["sources"], [audit.C_SOURCE])
+        self.assertEqual(receipt["conservative"], [])
 
 
 if __name__ == "__main__":

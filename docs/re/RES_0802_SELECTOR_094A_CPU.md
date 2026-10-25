@@ -45,8 +45,8 @@ The body uses load-base 1000, 4000, or 8000 (CS 1802/4802/8802), choosing a
 placement disjoint from case data and stack writes. A colliding swept input
 is preserved by relocating the body, not omitted.
 
-Canonical flags have bit 1 set; CF/PF/AF/ZF/SF/IF/DF/OF vary independently;
-all other bits are clear. TF and interrupt delivery are excluded. IF is
+Declared flags have bit 1 set; CF/PF/AF/ZF/SF/IF/DF/OF, both IOPL bits,
+and NT vary independently; all other bits are clear. TF and interrupt delivery are excluded. IF is
 tested as preserved state, with no asynchronous interrupt injected.
 Flat RAM does not emulate hardware memory devices.
 
@@ -66,7 +66,7 @@ these two argument shapes. No live caller SP, continuation, or closure is certif
 
 ## Cases chosen by dimensions
 
-Default execution enumerates **598,713 cases by construction**. Counts describe
+Default execution enumerates **600,505 cases by construction**. Counts describe
 test coverage, not frequency during play. The deterministic generator records
 a digest over every group/input tuple.
 
@@ -75,7 +75,7 @@ a digest over every group/input tuple.
 | BP, DS, SS, AX | Every 16-bit value for each word separately | 262,144 |
 | Return IP, return CS, argument word | Every 16-bit value for each word separately | 196,608 |
 | Entry SP | Every admitted value 0002..FFF9 | 65,528 |
-| Flags | All 256 combinations of the eight admitted bits | 256 |
+| Flags | All 2,048 combinations of the eleven admitted bits | 2,048 |
 | Prior DS:5377 | Every byte, checking independence from overwritten state | 256 |
 | Prior selector x argument low byte | Full 256 x 256 product; argument high byte A5 | 65,536 |
 | Frame aliases | DS:5376 aligned to every byte from entry SP-2 through SP+5; separately sweep old selector and argument low byte | 4,096 |
@@ -92,7 +92,7 @@ bytes are not exhaustively varied.
 The original runs all eight instructions, including far return. The C runs
 the existing static helper. Every case compares **14 CPU words and all
 1,048,576 RAM bytes, with no masks**. A mismatch fails the run. The reduced
-981-case --smoke mode checks the harness; it cannot replace the default sweep.
+2,773-case --smoke mode checks the harness; it cannot replace the default sweep.
 
 This is exhaustive **one dimension at a time** with specified byte/alias
 products, not the Cartesian product of all state. CS placements and unread

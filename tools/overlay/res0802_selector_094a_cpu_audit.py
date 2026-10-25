@@ -36,7 +36,7 @@ CHECKER_ROWS = ("RES_0802_094A",)
 SOURCES = ["overlay_u25_store_word_0c77"]
 C_SOURCE = "src/recovered/overlay_u25_store_word_0c77.c"
 SP_MIN, SP_MAX = 2, 0xFFF9
-FLAG_BITS = (0, 2, 4, 6, 7, 9, 10, 11)
+FLAG_BITS = (0, 2, 4, 6, 7, 9, 10, 11, 12, 13, 14)
 NAMES = "ax bx cx dx si di bp sp cs ip ds es ss flags".split()
 REGS = (UC_X86_REG_AX, UC_X86_REG_BX, UC_X86_REG_CX, UC_X86_REG_DX,
         UC_X86_REG_SI, UC_X86_REG_DI, UC_X86_REG_BP, UC_X86_REG_SP,
@@ -120,7 +120,8 @@ def library(directory, mutant="none"):
     out = directory / (mutant + ".so")
     subprocess.run(["cc", "-std=c11", "-O2", "-Wall", "-Wextra", "-Wpedantic", "-Werror",
                     "-Wconversion", "-Wsign-conversion", "-Wshadow", "-fPIC", "-shared",
-                    "-I", str(ROOT / "include"), str(wrapper), "-o", str(out)], check=True)
+                    "-I", str(ROOT / "include"), "-x", "c", "-", "-o", str(out)],
+                   input=wrapper.read_text(), text=True, check=True)
     lib = ctypes.CDLL(str(out))
     lib.audit_selector.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.POINTER(Cpu)]
     lib.audit_selector.restype = None
@@ -136,8 +137,9 @@ def cases(smoke=False):
             yield name, {name: v}
     for v in (range(SP_MIN, SP_MAX + 1) if not smoke else (2, 3, 0x5373, 0x5376, 0xFFF8, 0xFFF9)):
         yield "sp", {"sp": v}
-    for v in range(256):
+    for v in range(1 << len(FLAG_BITS)):
         yield "flags", {"flags": 2 | sum(((v >> i) & 1) << b for i, b in enumerate(FLAG_BITS))}
+    for v in range(256):
         yield "prior_save", {"saved": v}
     byte_values = range(256) if not smoke else (0, 1, 127, 128, 254, 255)
     for old in byte_values:
@@ -183,7 +185,7 @@ class Engine:
             if name in NAMES:
                 setattr(cpu, name, value)
         require(SP_MIN <= cpu.sp <= SP_MAX, "case outside admitted entry-SP window")
-        require(cpu.flags & ~0x0ED7 == 0 and cpu.flags & 2, "noncanonical or TF flags")
+        require(cpu.flags & ~0x7ED7 == 0 and cpu.flags & 2, "reserved or TF flags")
         touched = {physical(cpu.ss, cpu.sp + d) for d in range(-2, 6)}
         touched |= {physical(cpu.ds, 0x5376), physical(cpu.ds, 0x5377)}
         # A sweep may place data at the usual code location. Relocate the
