@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """RES_08AE +137C original-byte parity: unmasked Unicorn CPU14 + 1 MiB under a declared, scripted,
 fail-closed DOS-vector/port environment; synthetic native run (frame mechanics only)."""
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -333,8 +334,9 @@ def native_audit(span, function):
     if result_path.exists():
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
+    emulator = describe_dosbox("dosbox-x")
     with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+        subprocess.run([emulator["path"], "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
                        env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=600)
     result = result_path.read_bytes()
     check(len(result) == 8 + NATIVE_CASES * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
@@ -379,12 +381,11 @@ def native_audit(span, function):
         check(slot_c == extra[0:4] and shadow_c == extra[4:8] and extra[8:10] == b"\0\0",
               f"native case {n} slot/shadow/refusal differ: C={slot_c.hex()}/{shadow_c.hex()} DOS={extra.hex()}")
     digest = sha256(result).hexdigest()
-    dosbox = Path("/usr/bin/dosbox-x")
     print(f"137C DOSBox-X normal-core/386 synthetic cases passed: {NATIVE_CASES}; all 14 CPU words, the 256-byte stack window, "
           f"the 4-byte slot CS:1378..137B and the shadow vector entry; result SHA-256 {digest}")
-    return dict(cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes_compared=WINDOW_SIZE + 8,
+    return dict(dosbox_x=emulator, cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes_compared=WINDOW_SIZE + 8,
                 ram_bytes_not_compared=SIZE - WINDOW_SIZE - 8, synthetic_frames=True, real_int21=True, shadow_vector_table=True,
-                port_writes_observed=False, dosbox_x_sha256=sha256(dosbox.read_bytes()).hexdigest(), pinned_build_used=False)
+                port_writes_observed=False, dosbox_x_sha256=emulator["sha256"], pinned_build_used=False)
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)

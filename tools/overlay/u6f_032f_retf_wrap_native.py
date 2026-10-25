@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Directed U6F original RETF 8 and complete-body wrap frames; not game reach."""
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -135,7 +136,8 @@ def main():
         print('prepared fifteen original-byte native wrap programs');return
     env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy',
              XDG_CONFIG_HOME=str(directory/'.config'),XDG_CACHE_HOME=str(directory/'.cache'),XDG_DATA_HOME=str(directory/'.local'))
-    command=['bwrap','--die-with-parent','--unshare-net','--ro-bind','/','/','--dev-bind','/dev','/dev','--bind',str(directory),str(directory),'--chdir',str(directory),'/usr/bin/dosbox-x','-conf',str(config),'-fastlaunch','-exit','-noconsole']
+    emulator = describe_dosbox('/usr/bin/dosbox-x')
+    command=['bwrap','--die-with-parent','--unshare-net','--ro-bind','/','/','--dev-bind','/dev','/dev','--bind',str(directory),str(directory),'--chdir',str(directory),emulator['path'],'-conf',str(config),'-fastlaunch','-exit','-noconsole']
     with (directory/'dosbox.log').open('w') as log:
         process=subprocess.Popen(command,env=env,stdout=log,stderr=subprocess.STDOUT,start_new_session=True)
         started=time.monotonic()
@@ -177,10 +179,10 @@ def main():
     print('Unicorn divergences',unicorn_divergences)
     print('C gate mismatches',problems)
     for name,digest in results:print(name,digest)
-    print('DOSBox SHA256',sha256(Path('/usr/bin/dosbox-x').read_bytes()).hexdigest())
+    print('DOSBox identity', emulator)
     if not args.diagnose:base.check(not problems,'C/native wrap regression')
     if args.report:
-        args.report.write_text(base.json.dumps(dict(original_frames=15,
+        args.report.write_text(base.json.dumps(dict(dosbox_x=emulator, original_frames=15,
             complete_body_cases=12, retf_only_cases=3, cpu_words=14,
             ram_bytes_per_case=229, unicorn_divergences=unicorn_divergences,
             c_mismatches=problems, capture_sha256=dict(results)), indent=2)+"\n")
