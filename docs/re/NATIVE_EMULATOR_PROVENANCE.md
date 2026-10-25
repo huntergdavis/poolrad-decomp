@@ -28,7 +28,7 @@ No parity comparisons, case selection, masks, C bodies, or credit tables change.
 
 Per VP scope ruling i24207, legacy bare-PATH launchers are deferred to **t108**.
 [The handoff census](native_emulator_path_launchers.csv) started with **200 command
-lists in 185 files**. After t108 batch 1 below, **198 command lists in 183 files**
+lists in 185 files**. After t108 batch 2 below, **195 command lists in 180 files**
 remain. These are command-list
 literals whose first element is `dosbox-x`, including lists assigned to a
 variable before launch. It is an inventory of remaining PATH selection, not a
@@ -115,3 +115,41 @@ markers naming their owning audit. The U9E modules are imported by the audits
 under `--native`; the U6F/U77 wrap programs are supplemental directed native
 instruments. These comments correct the pairing gate classification without
 changing executable Python, row registration, or native measurements.
+
+## t108 batch 2: U3C6 getters, range and step providers
+
+Base: fresh main `ceb665018d911d61891e7f39df778a5e6de1a020`, measured
+2026-10-25. The three providers `u3c6_slot_getters_cpu_native.py`,
+`u3c6_in_range_06e9_native.py`, and `u3c6_step_071a_native.py` now resolve
+PATH through the shared t107 helper, launch its returned path, and attach
+`dosbox_x` to their reports. Their owning audit names appear in explicit
+`NOT_A_ROW_CHECKER` markers.
+
+| Provider | Native cases before / after | Result SHA-256 before = after |
+| --- | ---: | --- |
+| Four U3C6 slot getters | 192 / 192 | `1668a7bd0d181493910c5f940062912e898d75920538b972037b317ca7e0d2fb` |
+| U3C6:06E9 range | 1024 / 1024 | `9f86b6215bc329ffdef25c99d2c27b106dccf2263a2a495f1411057da508f0e9` |
+| U3C6:06E9 wrapped range | 16 / 16 | `b61fb3f0802cc1436538c98ac2a7162269e37d35423b818376027aaee147d834` |
+| U3C6:071A step | 26 / 26 | 26 individual capture hashes match; aggregate below |
+
+The step aggregate is SHA-256 of the ordered 26-hash JSON array encoded with
+compact separators (no spaces or newline): `f225ed2681d67e678cb46a7abaac3d7a5825895995c9e7731d56f483167e1fff`.
+After removing only the added `dosbox_x` field, all four complete reports are
+identical. The selected emulator identity was checked before and after each
+phase: `DOSBox-X version 2026.01.02 SDL2`, version exit status **1**,
+SHA-256 `99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3`, `pinned_build_used: false`.
+
+Comparison scope is unchanged: CPU14 plus 64 stack bytes and 65,536 DS bytes
+for the getters; CPU14 plus 64 frame bytes for range and 104 for wrapped
+range; CPU14 plus 240 stack bytes for step. All use zero flag masks. The
+range provider still reports no loader-dispatch or natural-route measurement;
+step still reports no LES segment-seam or natural-route measurement. These
+are directed native fixtures, not whole-game native coverage.
+
+The census removes exactly these three provider command lists: **195 command
+lists in 180 files** remain. A fresh AST scan matches that set, excluding
+`test_*.py` synthetic command-list fixtures. No other legacy launchers were
+migrated or rerun in this batch. Source copies and before/after receipts are
+under ignored `resources/t108-batch2/`; every heavy run uses `poolrad-heavy.sh`.
+No C body, comparison mask, case selection, identity, membership, manifest,
+credit or REPLACED data changes.

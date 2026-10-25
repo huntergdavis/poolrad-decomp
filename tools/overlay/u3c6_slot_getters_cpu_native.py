@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """Synthetic direct calls into original getters, DOSBox-X normal/386."""
+# NOT_A_ROW_CHECKER: native companion of u3c6_slot_getters_cpu_audit.py.
+from native_emulator_provenance import describe_dosbox
 import ctypes,os,struct,subprocess
 from hashlib import sha256
 from u3c6_slot_getters_cpu_audit import ROOT,SIZE,CS,DS,FLAGS,ENTRIES,Cpu,physical,put16,build,check
 
 def native(code,function):
+    dosbox_x=describe_dosbox('dosbox-x')
     directory=ROOT/'resources/u3c6-getters/native';directory.mkdir(parents=True,exist_ok=True)
     cases=[(entry,count,flags,k) for entry in ENTRIES for count in (0,1,2,5,127,128,254,255) for k,flags in enumerate(FLAGS)]
     low=0xEFC0;window=64;record_size=28+window+65536;inputs=bytearray();fixtures=[]
@@ -49,7 +52,7 @@ def native(code,function):
     config=directory/'dosbox.conf';config.write_text('[sdl]\noutput=surface\n[dosbox]\nmemsize=16\n[cpu]\ncore=normal\ncputype=386\ncycles=max\n[mixer]\nnosound=true\n[midi]\nmididevice=none\n[autoexec]\nmount c '+str(directory.resolve())+'\nc:\nORACLE.COM\nexit\n')
     output=directory/'RESULT.BIN'
     if output.exists():output.unlink()
-    with (directory/'dosbox.log').open('w') as log:subprocess.run(['dosbox-x','-conf',str(config),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
+    with (directory/'dosbox.log').open('w') as log:subprocess.run([dosbox_x['path'],'-conf',str(config),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=120)
     result=output.read_bytes();check(len(result)==6+len(cases)*record_size,f'native length {len(result)}')
     segment,returned,got=struct.unpack_from('<3H',result);check(got==len(cases),'native count')
     for n,(m,entry,flags,off,seg) in enumerate(fixtures):
@@ -62,4 +65,4 @@ def native(code,function):
             check(getattr(c,name)==want,f'native {n}/{name}: {getattr(c,name):04x}/{want:04x}')
         check(bytes(ram[p:p+window])==record[28:28+window],f'native stack {n}')
         check(bytes(ram[physical(DS,0):physical(DS,0)+65536])==record[28+window:],f'native DS {n}')
-    return dict(cases=len(cases),cases_per_identity=len(cases)//4,cpu_words=14,stack_bytes=window,ds_bytes=65536,flag_masks=0,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')
+    return dict(dosbox_x=dosbox_x,cases=len(cases),cases_per_identity=len(cases)//4,cpu_words=14,stack_bytes=window,ds_bytes=65536,flag_masks=0,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')
