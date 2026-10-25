@@ -1,5 +1,7 @@
 """Original display execution on DOSBox-X EGA: plain state/planes plus OUT trace.
 Guest trace mechanics reuse res0709_ega_reset_0000_cpu_audit.py."""
+# NOT_A_ROW_CHECKER: native companion of res00ba_display_1816_cpu_audit.py.
+from native_emulator_provenance import describe_dosbox
 import os,struct,subprocess
 from hashlib import sha256
 from res00ba_display_1816_cpu_audit import ROOT,SIZE,CS,DS,SYS,ENTRY,Cpu,FLAGS,physical,put16,install,run_c,check,build,FONT,STRING,DISPLAY
@@ -65,6 +67,7 @@ def setup(traced,bodies):
     for r,v in zip('ax bx cx dx si di bp'.split(),REGS):t.append(f'mov {r},{v}')
     return t+['popf','call dword ptr cs:[target]']
 def native(bodies,lib):
+    dosbox_x=describe_dosbox('dosbox-x')
     directory=ROOT/'resources/display1816/native';directory.mkdir(parents=True,exist_ok=True)
     specs=specifications()
     data=bytearray()
@@ -142,7 +145,7 @@ def native(bodies,lib):
     output=directory/'RESULT.BIN'
     if output.exists():output.unlink()
     with (directory/'dosbox.log').open('w') as log:
-        subprocess.run(['dosbox-x','-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
+        subprocess.run([dosbox_x['path'],'-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
     result=output.read_bytes()
     check(len(result)==6+len(specs)*(RECORD+TRACE_BYTES),f'native output length {len(result)}')
     segment,returned,count=struct.unpack_from('<3H',result);check(count==len(specs),'native header count')
@@ -166,6 +169,6 @@ def native(bodies,lib):
             logged.append((port,value,size,cs,ip))
         check(logged==events,f'native OUT trace {n}: {logged}/{events}')
         outs+=count
-    return dict(cases=len(specs),cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,string_bytes=65536,plane_bytes=4*65536,
+    return dict(dosbox_x=dosbox_x,cases=len(specs),cpu_words=14,stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,string_bytes=65536,plane_bytes=4*65536,
         traced_out_events=outs,pre_call_code_cases=7,pre_out_port_cases=4,ega_font_read_cases=2,flag_masks=0,machine='ega',video_mode='0Dh',core='normal',cpu='386',
         result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')

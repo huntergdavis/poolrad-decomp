@@ -1,9 +1,6 @@
 harness,command_list_line
 tools/overlay/ega_hw_native_audit.py,128
 tools/overlay/party_reorder_oracle.py,315
-tools/overlay/res00ba_clear_17e3_cpu_native.py,145
-tools/overlay/res00ba_display_1693_cpu_native.py,97
-tools/overlay/res00ba_display_1816_cpu_native.py,145
 tools/overlay/res03f1_clear_0137_cpu_native.py,141
 tools/overlay/res0464_bitmap_release_2595_native.py,91
 tools/overlay/res0709_clear_0dd3_cpu_native.py,142

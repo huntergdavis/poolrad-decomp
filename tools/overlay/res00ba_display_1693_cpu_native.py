@@ -2,6 +2,8 @@
 Original code is loaded at rebound segments; far-JMP capture traps are declared.
 No successful callee stubs and no native full-1MiB claim.
 """
+# NOT_A_ROW_CHECKER: native companion of res00ba_display_1693_cpu_audit.py.
+from native_emulator_provenance import describe_dosbox
 import os,struct,subprocess
 from hashlib import sha256
 from res00ba_display_1693_cpu_audit import ROOT,SIZE,CS,DS,SYS,ENTRY,Cpu,FLAGS,physical,put16,install,run_c,check,build,FONT,STRING,DISPLAY,CLEAR,DELAY,SEGMENTS,ROOT_CALLS,stop_name
@@ -29,6 +31,7 @@ def fixture(case,bodies,segment=0x0814,returned=0,bios=0x55):
     return m,c
 
 def native(bodies,lib):
+    dosbox_x=describe_dosbox('dosbox-x')
     directory=ROOT/'resources/display1693/native';directory.mkdir(parents=True,exist_ok=True)
     specs=specifications();payload=bytearray()
     for case in specs:
@@ -94,7 +97,7 @@ def native(bodies,lib):
     output=directory/'RESULT.BIN'
     if output.exists():output.unlink()
     with (directory/'dosbox.log').open('w') as log:
-        subprocess.run(['dosbox-x','-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
+        subprocess.run([dosbox_x['path'],'-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
     result=output.read_bytes();check(len(result)==6+len(specs)*(RECORD+1),f'native output length {len(result)}')
     segment,returned,count=struct.unpack_from('<3H',result);check(count==len(specs),'native header count')
     stops={}
@@ -119,4 +122,4 @@ def native(bodies,lib):
         at=hi
     if at<SIZE:masked.append((at,SIZE))
     ranges=lambda spans:[dict(start=f'{lo:05X}',end_exclusive=f'{hi:05X}',bytes=hi-lo) for lo,hi in spans]
-    return dict(cases=len(specs),stops=stops,native_captured_ranges=ranges(captured),native_masked_ranges=ranges(masked),native_masked_bytes=sum(hi-lo for lo,hi in masked),cpu_words=14,ram_bytes=WINDOW+3*65536,ram_comparison='partial; all other backing RAM is masked in this native snapshot',stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,string_bytes=65536,plane_bytes=4*65536,flag_masks=0,controller_state='not captured natively; independently compared in Python EGA differential',machine='ega',video_mode='0Dh',core='normal',cpu='386',result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',synthetic_callee_stubs=0,capture='far JMP replaces reached instruction before CALL/OUT; snapshot reports that original boundary')
+    return dict(dosbox_x=dosbox_x,cases=len(specs),stops=stops,native_captured_ranges=ranges(captured),native_masked_ranges=ranges(masked),native_masked_bytes=sum(hi-lo for lo,hi in masked),cpu_words=14,ram_bytes=WINDOW+3*65536,ram_comparison='partial; all other backing RAM is masked in this native snapshot',stack_bytes=WINDOW,ds_bytes=65536,font_bytes=65536,string_bytes=65536,plane_bytes=4*65536,flag_masks=0,controller_state='not captured natively; independently compared in Python EGA differential',machine='ega',video_mode='0Dh',core='normal',cpu='386',result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}',synthetic_callee_stubs=0,capture='far JMP replaces reached instruction before CALL/OUT; snapshot reports that original boundary')
