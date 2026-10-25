@@ -17,12 +17,17 @@ from r1_driver import Driver
 
 
 class ParityDriver(Driver):
-    def __init__(self, run, case, total):
+    def __init__(self, run, case, total, gate_timeout=900):
         data = dict(version=2, name='parity-' + case, start='final', terminal='final',
                     font_text=True, navigation_states={'at15_4': [15, 4], 'final': [15, 4]},
                     states=[dict(name='final', gate=['15,4'], source='digits', key=None,
                                  expect_next=[], timeout_s=300, max_visits=1)])
         super().__init__(run, data, total)
+        if gate_timeout <= 0 or total < gate_timeout:
+            raise ValueError('total must cover the positive per-gate timeout')
+        for record in self.route.records.values():
+            record['timeout_s'] = gate_timeout
+        os.environ['COMBAT_IDLE_S'] = str(gate_timeout)
         self.route.records['at15_4'].update(key='Right' if case == 'turn' else None,
                                           expect_next=['final'])
         self.case = case
@@ -72,9 +77,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('run', type=Path)
     parser.add_argument('case', choices=['loaded', 'turn'])
-    parser.add_argument('--total', type=int, default=900)
+    parser.add_argument('--total', type=int, default=3600)
+    parser.add_argument('--gate-timeout', type=int, default=900)
     args = parser.parse_args()
-    driver = ParityDriver(args.run.resolve(), args.case, args.total)
+    driver = ParityDriver(args.run.resolve(), args.case, args.total, args.gate_timeout)
     try:
         driver.run_route()
     finally:
