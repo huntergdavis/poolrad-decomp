@@ -1,0 +1,333 @@
+{
+  "source": {
+    "body_bytes": 967,
+    "body_instructions": 385,
+    "body_sha256": "f23626a4d567fce56738f4d2c250c263f5b8b90a716121a070bfab52db85c736",
+    "file_offset": 152259,
+    "near_sites": {
+      "1618": 1504,
+      "1885": 84,
+      "1960": 58,
+      "2000": 84,
+      "2053": 58,
+      "2156": 58,
+      "2247": 0,
+      "2333": 58,
+      "2430": 58
+    },
+    "far_sites": {
+      "1636": 5800,
+      "1653": 5800,
+      "1722": 2678,
+      "1769": 2678
+    },
+    "runtime": [
+      {
+        "start": 2678,
+        "end": 2788,
+        "instructions": 55,
+        "sha256": "131b97677c63a6daa216f4219868f045485e35f999a551feb16daf4ec50d69e5"
+      },
+      {
+        "start": 5800,
+        "end": 5820,
+        "instructions": 7,
+        "sha256": "f1c5fade96970aa1dd1a9ffc2d876c7aea57bef8680d929d9f65d6c5190e17f7"
+      }
+    ]
+  },
+  "exclusions": {
+    "families": 2,
+    "cases": 2,
+    "results": [
+      {
+        "family": "self-cycle",
+        "cases": 1,
+        "original_full_state_repeat": {
+          "first_step": 32,
+          "repeat_step": 3360,
+          "period": 3328,
+          "loop_ip": 1527
+        },
+        "c_model_run": false,
+        "state": "DS party head 3000:0100; status 00; next=3000:0100; no interrupts or external writes"
+      },
+      {
+        "family": "aperture-read-map-0",
+        "cases": 1,
+        "original_party_count": 1,
+        "flat_c_party_count": 0,
+        "prefix_stop": "063A through 0655",
+        "aperture_reads": [
+          {
+            "address": 655748,
+            "size": 1
+          },
+          {
+            "address": 655748,
+            "size": 1
+          },
+          {
+            "address": 655876,
+            "size": 2
+          },
+          {
+            "address": 655878,
+            "size": 2
+          }
+        ],
+        "state": "DS party head A000:0100; underlying RAM status 80; EGA plane 0 status B3; both next links zero; read mode/map 0"
+      }
+    ],
+    "claimed_parity_cases": 0
+  },
+  "unicorn": {
+    "cases": 630,
+    "stops": {
+      "RETURNED": 162,
+      "CALLEE": 15,
+      "TRANSFER": 3,
+      "LIMIT": 835
+    },
+    "body_starts": 385,
+    "body_total": 385,
+    "missing_starts": [],
+    "conditional_edges": 34,
+    "conditional_total": 34,
+    "missing_edges": [],
+    "declared_flag_splits": {
+      "shift": 182
+    },
+    "flags_masks": 0,
+    "ram_bytes": 1048576,
+    "cpu_words": 14,
+    "budget_boundary_cases": 385,
+    "total_comparisons": 1015,
+    "seconds": 344.7,
+    "domain": {
+      "aperture_accesses": 0,
+      "completed_party_count_calls": 995,
+      "assertion": "Every original memory access outside A0000..BFFFF; every entered +05E0 returns before C executes."
+    }
+  },
+  "native": {
+    "profile": "DOSBox-X normal/386",
+    "binary": "dosbox-x (selected by POOLRAD_NATIVE_DOSBOX or the local resources build)",
+    "binary_sha256": "c05ce28a60258c320c5a209a477603d91fb2b7558c0cc03919e518ddd99eb457",
+    "pinned_build_used": true,
+    "source_revision": "5a9c7c53481c2e933948039c33256776653f4faf",
+    "cases": 16,
+    "results": [
+      {
+        "case": "shares-remainders",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "a56275d8d12ceb58b9ace33a24fe13c96d11cd7e24b13f56b924937b6eb555a4"
+      },
+      {
+        "case": "empty",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "7696ec4130d86ca746bb785cfad89e8614c9de312ae2c0c046288309219f6d0e"
+      },
+      {
+        "case": "cap-residual",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "ed4806f30a43b24d7e2b8bb1f2e6de8be42de0255ccbdce6f1e1432e2e186f06"
+      },
+      {
+        "case": "status-mixed",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "104a1c6c156a5d08b635630aac451370e7327d33ac049b85b71a72e847ff12b9"
+      },
+      {
+        "case": "negative-pools",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "25bdda5e21c1ca2678bfe15aae82edbd6f762724bb6265bf571f317378ea44d4"
+      },
+      {
+        "case": "large-pools",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "eda960235f9d84b8379dca82da0c3d36925950962ded7dbf0c25082be39a4970"
+      },
+      {
+        "case": "above-cap",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "6ca81e469a7fb43e03ce8020958ba02bc00d6ff08ba97a63044313c7a0f84370"
+      },
+      {
+        "case": "mixed-classes",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "30be9580c3eb12031aa943e53c77c5b268b66bf70bead671198fea25bfe0cd91"
+      },
+      {
+        "case": "sp-min",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "0d383fdf9055a0aa2e165d4e5ce55830e19bb30785c196dcaf8586646154fa82"
+      },
+      {
+        "case": "sp-max",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "65c3f86f6bdc6f04c855341dacb7a8ae65a587d48df099024806708a2c1e78da"
+      },
+      {
+        "case": "sp-odd",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "7907e8f904e5d1d32a3d294885560f0b4f0d19a91af1f59758227ff7aa998f46"
+      },
+      {
+        "case": "offset-wrap",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "4227bb20da73af98ec146b8c511418ff0d8d24ae2e53a041a117f35840d62677"
+      },
+      {
+        "case": "word-cross-ffff",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "8bcf01993c05f4bdbfa64a4c3944be0520aa74db7d85fb4e230364599b10b5f8"
+      },
+      {
+        "case": "flags-0002",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "a56275d8d12ceb58b9ace33a24fe13c96d11cd7e24b13f56b924937b6eb555a4"
+      },
+      {
+        "case": "flags-0ad7",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "0556191014d59c12fb345f4b4de6596699163ef3ff1357efcfb8493d7a9e2a89"
+      },
+      {
+        "case": "flags-0e57",
+        "cpu_words": 14,
+        "ram_bytes": 327680,
+        "flags_masks": 0,
+        "result_sha256": "0556191014d59c12fb345f4b4de6596699163ef3ff1357efcfb8493d7a9e2a89"
+      }
+    ],
+    "limitations": "Completed calls only; IF cleared; five 64 KiB RAM regions, not all 1 MiB; flat-memory oracle, no EGA aperture claim."
+  },
+  "mutations": [
+    {
+      "mutation": "shift-af",
+      "rejected": true,
+      "case": "budget-33",
+      "mismatch": "budget-33: flags C=0246, original=0246 (declared AF split after a non-zero shift expects 0256) (last writer shl at 0x60689)"
+    },
+    {
+      "mutation": "node-write",
+      "rejected": true,
+      "case": "shares",
+      "mismatch": "('shares', 'RAM', [('0x30188', 12, 10), ('0x3018a', 6, 4), ('0x3018c', 1, 0), ('0x3018e', 1, 0), ('0x30190', 1, 0), ('0x30192', 1, 0), ('0x30194', 1, 0), ('0x30388', 10, 9), ('0x3038a', 4, 3), ('0x3038c', 1, 0), ('0x3038e', 1, 0), ('0x30390', 1, 0)], 14)"
+    },
+    {
+      "mutation": "residual-flag",
+      "rejected": true,
+      "case": "shares",
+      "mismatch": "('shares', 'RAM', [('0x16dc0', 1, 0)], 1)"
+    },
+    {
+      "mutation": "cap-branch",
+      "rejected": true,
+      "case": "cap",
+      "mismatch": "cap: budget C 98460 original 98388"
+    }
+  ],
+  "raw_receipt_sha256": "90d838dc4bbdf4bfd61f27a2250d9b2e3ff60aaa69017aeb9850b47f07209442",
+  "executable_file_sha256": {
+    "src/recovered/overlay_u7f_063a_cpu.c": "e5764e634abd78c4b46e874bf3c6fea3ad6fa5547ab471a946c5a1f3dc649baa",
+    "include/poolrad/recovered/overlay_u7f_063a_cpu.h": "a006fae7f03629f1502d97159c798f0ff846e7e7e30d1d61fefb446cce2c08b8",
+    "tools/overlay/ovl_007f_063a_cpu_audit.py": "56298282047951102f73dd838f1cf2ded82cbf1ad676e595cac25b698ef6027f",
+    "tools/overlay/ovl_007f_063a_native.py": "13579bb24510af40cfe97b2960f10feba57a69b6a092a62825016370cf5b1bb7",
+    "tests/recovered/test_overlay_u7f_063a_cpu.c": "297c57774408e271d1b10895aaecfc1c48bdb8b3f3b77c7f20a87716a9860174"
+  },
+  "ctest": {
+    "target": "poolrad_overlay_u7f_063a_cpu_tests",
+    "tests": 1,
+    "failures": 0,
+    "assertions_enabled": true,
+    "build_type": "",
+    "c_flags": "-UNDEBUG -std=c11 -UNDEBUG"
+  },
+  "parity_review": {
+    "target_function": "OVL_007F_063A",
+    "source_candidates": [
+      "pr_u7f_063a_run"
+    ],
+    "signals": [
+      "pinned original bytes",
+      "two-factor game identity",
+      "six real composed callees",
+      "full caller coverage",
+      "CPU14/all-RAM comparison",
+      "pinned native",
+      "synthetic CTest",
+      "compiled mutations"
+    ],
+    "score": {
+      "full_state": "1015/1015",
+      "starts": "385/385",
+      "conditional_outcomes": "34/34",
+      "native": "16/16",
+      "mutations_rejected": "4/4"
+    },
+    "verdict": "match",
+    "review_notes": "Within the documented finite-list and aperture-disjoint parity domain; no strict-credit or merge decision."
+  },
+  "composed_source_sha256": {
+    "include/poolrad/recovered/ega_hw.h": "f25ac91d8d005a5e1e158226c0d98f24be0c7d0c5983d92909659a36021df5b6",
+    "include/poolrad/recovered/memory_bus.h": "39846f1d27007d3a00e481e3a1f67d6a2160feb477d88d215c03c0e475706dca",
+    "include/poolrad/recovered/overlay_u6c_record_table_sum_3f31.h": "a7d61c2ce44f002ee40c3a3ff880cdc862988e3f9dd155cdf8b01f24ac113e33",
+    "include/poolrad/recovered/overlay_u7f_0054_cpu.h": "b9964f6ae9a79b60ea4afc6f4d8fdee95eea88daeec4958ebde378db36aba203",
+    "include/poolrad/recovered/overlay_u7f_063a_cpu.h": "a006fae7f03629f1502d97159c798f0ff846e7e7e30d1d61fefb446cce2c08b8",
+    "include/poolrad/recovered/overlay_u7f_entry0_0000_cpu.h": "7c8afc8d9c8666fcd60a7ab17e4144b9c84db9c2bb82bdbbc4e90f6566ceae26",
+    "include/poolrad/recovered/overlay_u7f_party_count_05e0.h": "93386bf7a06c045ecd19c319b63cf75784ce8fedba55d34e01a56f7966a633e4",
+    "include/poolrad/recovered/overlay_u7f_record_word_add_003a.h": "823b8234aa129795d579df64c2f5298a1332dd7889f1be1b18b8ee112ea8e9df",
+    "include/poolrad/recovered/overlay_u9e_entry16_10e4.h": "ec0a39d1783ee124e144c5a2b80c2c5adaa3be42b4a07d3929b6276b74328e36",
+    "include/poolrad/recovered/overlay_u9e_entry17_110d.h": "b774f2ccc25328f9c2009650a141731487d75f251a001a7bec678a94bf83bd01",
+    "include/poolrad/recovered/port_env.h": "8025754f03b006d29030aeab3b27366d5d324ab1f3d6d589e87c5c04b2342f2e",
+    "include/poolrad/recovered/resident_00ba_character_0bb8_cpu.h": "7347204c5393f75dfba5ccc6fc58df2a8eca2b85d07e0e8b8569284095b5c3f2",
+    "include/poolrad/recovered/system_fillchar_bus_16a8_cpu.h": "b0e6c78a8bd987a87652b3503eead349e03995e1478d2231502de4ae6421586f",
+    "include/poolrad/recovered/system_longdiv_0a76_cpu.h": "600fa07cb699a88e6322562befecc2b6877f2ba73be69b06236525615de9eb50",
+    "include/poolrad/recovered/system_runtime_leaves_cpu.h": "a56b7a82d04b0843a8b7cce9d7d41febfa73d75f95e9b5ce3c60b9cff27e426e",
+    "src/recovered/ega_hw.c": "63ffb7defb74f50f3a97abae69ceee3014f2b1152bee84ef4fd57ea4e10f60a6",
+    "src/recovered/memory_bus.c": "3cd82d18ff9514595ea3664893a668f01011dd9c4300017f8bd0975182c356ea",
+    "src/recovered/overlay_u7f_0054_cpu.c": "527722e5af632e9cf90d2089b06b59424920725880cab6f4e3b415a91ee61a73",
+    "src/recovered/overlay_u7f_063a_cpu.c": "e5764e634abd78c4b46e874bf3c6fea3ad6fa5547ab471a946c5a1f3dc649baa",
+    "src/recovered/overlay_u7f_entry0_0000_cpu.c": "d71b51258155c4c7bb44a9168fca4a7f38a37a6f070f5f814e7f6683b53c00c5",
+    "src/recovered/overlay_u7f_party_count_05e0.c": "2b57ad8f8328ed1448ccd85b852b2dc76d960b1861b9c781d4c5304449e47292",
+    "src/recovered/overlay_u7f_record_word_add_003a.c": "c69e0bfbdcd2cbac3a2091e5443d76b04105f15127ea117076c14abd42107202",
+    "src/recovered/overlay_u9e_entry16_10e4.c": "cd35c04bec6c5d429f8ffd0363c0e0516f3edfec6f96d1cdb9e70c8e97dc0b0b",
+    "src/recovered/overlay_u9e_entry17_110d.c": "5b1427604df3c62fafc3b3ba3b8d416f9dc5e2a4787f2b94f49b0071ee4a4c28",
+    "src/recovered/resident_00ba_character_0bb8_cpu.c": "2b97cfd906773d6f326417fe909cda3e929b837ae24a218f4a8668a9bbc5d4bd",
+    "src/recovered/resident_00ba_character_helpers_cpu.c": "71e04e861079a18a773b0a0cd07a74a736e088e7b094ca43a3045aabfbf19123",
+    "src/recovered/system_fillchar_bus_16a8_cpu.c": "0ab94fcb03bbe7abfa9c9b43df54fda3bc804b6e8df7023b0da4ce2202ce9cd4",
+    "src/recovered/system_longdiv_0a76_cpu.c": "e9d9ce3cda03797a8a63d25a8324d5926c32cd08006c71d41464323601fe8e26"
+  }
+}

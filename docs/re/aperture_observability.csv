@@ -63,6 +63,7 @@ overlay_u20_list_walk_11ac_cpu.c,flat,no,no
 overlay_u20_party_award_0355_cpu.c,flat,no,no
 overlay_u23_append_0239_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_alloc_1951_cpu.c,flat,no,no
+overlay_u25_compare_words_18eb_cpu.c,flat,no,no
 overlay_u25_entry13_1684.c,flat,no,no
 overlay_u25_entry14_1788.c,flat,no,no
 overlay_u25_entry1_0136.c,flat,no,no
@@ -77,6 +78,7 @@ overlay_u25_init_01b6.c,flat,no,no
 overlay_u25_load_word_0e0c.c,flat,no,no
 overlay_u25_loader_0000.c,flat,no,no
 overlay_u25_move.c,flat,no,no
+overlay_u25_move_19db_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u25_party_index_0756.c,flat,no,no
 overlay_u25_skip_1ea6.c,flat,no,no
 overlay_u25_slot_value_0136.c,flat,no,no
@@ -110,6 +112,7 @@ overlay_u33_party_attach_12e1_cpu.c,flat,no,no
 overlay_u33_place_search_1577.c,flat,no,no
 overlay_u33_stamp_block_02ba.c,flat,no,no
 overlay_u33_stamp_square_0377.c,flat,no,no
+overlay_u38_0cc3_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u38_append_1363_cpu.c,flat,no,no
 overlay_u38_character_compare_1276_cpu.c,flat,no,no
 overlay_u38_character_loop_11f9_cpu.c,flat,no,no
@@ -342,12 +345,14 @@ overlay_u7d_zero.c,flat,no,no
 overlay_u7f_0054_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u7f_0203_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_044c_cpu.c,bus,yes-with-ega-oracle,no
+overlay_u7f_063a_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u7f_0a88_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_caller_1010.c,flat,no,no
 overlay_u7f_clear_0508.c,flat,no,no
 overlay_u7f_coin_type_0b93_cpu.c,flat,no,no
 overlay_u7f_div5.c,flat,no,no
 overlay_u7f_div5_dwords.c,flat,no,no
+overlay_u7f_div5_leaves_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_entry0_0000_cpu.c,flat,no,yes
 overlay_u7f_number_0294_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u7f_party_count_05e0.c,flat,no,no
@@ -406,7 +411,10 @@ resident_00ba_clear_17e3_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_display_1693_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_display_1816_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_link_check_2e03_cpu.c,flat,no,no
+resident_00ba_link_flags_2e46_cpu.c,flat,no,no
+resident_00ba_party_count_23db_cpu.c,flat,no,no
 resident_00ba_sidecar_lookup_2199_cpu.c,flat,no,no
+resident_00ba_sidecar_remove_1509_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_target_reset_2637_cpu.c,flat,no,no
 resident_00ba_zero_test_23b7_cpu.c,flat,no,no
 resident_03f1_box_0000_cpu.c,bus,yes-with-ega-oracle,no

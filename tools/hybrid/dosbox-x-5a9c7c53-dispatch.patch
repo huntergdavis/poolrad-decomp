@@ -180,10 +180,10 @@ index 0000000..f880355
 +#endif
 diff --git a/src/cpu/pr_hybrid_observer.h b/src/cpu/pr_hybrid_observer.h
 new file mode 100644
-index 0000000..011606d
+index 0000000..d36b184
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_observer.h
-@@ -0,0 +1,152 @@
+@@ -0,0 +1,154 @@
 +/* Poolrad hybrid executor, STAGE 0: OBSERVER ONLY (docs/HYBRID_EXECUTOR_SCOPE.md in the poolrad-decomp repo, VP i20556).
 + *
 + * Counts arrivals at credited entry points. It never changes guest state: it reads guest bytes and writes host files.
@@ -326,6 +326,8 @@ index 0000000..011606d
 +                    (unsigned long long)tv.tv_sec * 1000ull + (unsigned long long)(tv.tv_usec / 1000), cs, ip, seed);
 +            fflush(draws);
 +        }
++        if (draws && e.id.compare(0, 7, "SAMPLE_") == 0)            /* a sampled return (e.g. GetMem's success RETF): DX:AX at that instruction */
++            { fprintf(draws, "# SAMPLE %s %llu DX:AX=%04X:%04X\n", e.id.c_str(), (unsigned long long)e.count, (unsigned)reg_dx, (unsigned)reg_ax); fflush(draws); }
 +        if ((arrivals & 4095u) == 0) report();
 +    }
 +}
@@ -338,10 +340,10 @@ index 0000000..011606d
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..2ff6a2a
+index 0000000..cd81151
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1021 @@
+@@ -0,0 +1,1193 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -445,6 +447,37 @@ index 0000000..2ff6a2a
 +#include "poolrad/recovered/overlay_u5e_direction_gate_17f6.h"
 +#include "poolrad/recovered/overlay_u3c6_slot_getters_cpu.h"
 +#include "poolrad/recovered/resident_00ba_link_check_2e03_cpu.h"
++#include "poolrad/recovered/resident_00ba_zero_test_23b7_cpu.h"
++#include "poolrad/recovered/overlay_u25_char_remap_06d3_cpu.h"
++#include "poolrad/recovered/overlay_u25_address_class_06fb_cpu.h"
++#include "poolrad/recovered/overlay_u25_compare_words_18eb_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_07a4_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_step_scan_0b03_cpu.h"
++#include "poolrad/recovered/overlay_u7f_clear_0508.h"
++#include "poolrad/recovered/overlay_u3b0_cursor_step_0cc5_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_0969_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_leaf_0711.h"
++#include "poolrad/recovered/overlay_u3b0_entry1_0000.h"
++#include "poolrad/recovered/overlay_u7f_party_count_05e0.h"
++#include "poolrad/recovered/overlay_u7f_0054_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_space_scan_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_leaf_0067.h"
++#include "poolrad/recovered/overlay_u7f_entry0_0000_cpu.h"
++#include "poolrad/recovered/overlay_u7f_record_word_add_003a.h"
++#include "poolrad/recovered/resident_00ba_link_flags_2e46_cpu.h"
++#include "poolrad/recovered/resident_00ba_party_count_23db_cpu.h"
++#include "poolrad/recovered/resident_00ba_sidecar_remove_1509_cpu.h"
++#include "poolrad/recovered/overlay_u6a_party_before_14a9.h"
++#include "poolrad/recovered/overlay_u6a_party_after_1601.h"
++#include "poolrad/recovered/overlay_u7d_update_03a3.h"
++#include "poolrad/recovered/overlay_u7d_update_047a_cpu.h"
++#include "poolrad/recovered/overlay_u7d_two_digits_0565_cpu.h"
++#include "poolrad/recovered/overlay_u7d_entry_05f0_cpu.h"
++#include "poolrad/recovered/overlay_u86_string_node_028d.h"
++#include "poolrad/recovered/overlay_u86_list_build_059c_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_0a08_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_entry_0c33_cpu.h"
++#include "poolrad/recovered/overlay_u3b0_dispose_11f3_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -492,13 +525,15 @@ index 0000000..2ff6a2a
 +PR_SAME_LAYOUT(pr_r0802_0716_cpu); PR_SAME_LAYOUT(pr_filepos_cpu); PR_SAME_LAYOUT(pr_u6f_insert_cpu); PR_SAME_LAYOUT(pr_u9b_0000_cpu);
 +PR_SAME_LAYOUT(pr_u9b_0255_cpu); PR_SAME_LAYOUT(pr_u9b_0329_cpu); PR_SAME_LAYOUT(pr_u3ce_014e_cpu); PR_SAME_LAYOUT(pr_u3b4_case_cpu);
 +PR_SAME_LAYOUT(pr_u1c_goto_cpu); PR_SAME_LAYOUT(pr_u25_01b6_cpu); PR_SAME_LAYOUT(pr_u7d_02f2_cpu); PR_SAME_LAYOUT(pr_u3b9_048f_cpu);
-+PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
++PR_SAME_LAYOUT(pr_u6a_14a9_cpu); PR_SAME_LAYOUT(pr_u6a_1601_cpu); PR_SAME_LAYOUT(pr_u7d_03a3_cpu); PR_SAME_LAYOUT(pr_u7d_0565_cpu); PR_SAME_LAYOUT(pr_u7d_05f0_cpu); PR_SAME_LAYOUT(pr_u86_028d_cpu); PR_SAME_LAYOUT(pr_u86_059c_cpu); PR_SAME_LAYOUT(pr_u3b0_0a08_cpu); PR_SAME_LAYOUT(pr_u3b0_0c33_cpu); PR_SAME_LAYOUT(pr_u3b0_11f3_cpu);
++PR_SAME_LAYOUT(pr_res_2e46_cpu); PR_SAME_LAYOUT(pr_res_23db_cpu); PR_SAME_LAYOUT(pr_res_1509_cpu); PR_SAME_LAYOUT(pr_u7f_003a_cpu); PR_SAME_LAYOUT(pr_u7f_0508_cpu); PR_SAME_LAYOUT(pr_u7f_05e0_cpu); PR_SAME_LAYOUT(pr_u3b0_0000_cpu); PR_SAME_LAYOUT(pr_u3b0_0067_cpu); PR_SAME_LAYOUT(pr_u3b0_0711_cpu); PR_SAME_LAYOUT(pr_u3b0s_cpu); PR_SAME_LAYOUT(pr_u3b0_0b03_cpu); PR_SAME_LAYOUT(pr_u3b0_0cc5_cpu); PR_SAME_LAYOUT(pr_u3b0_07a4_cpu); PR_SAME_LAYOUT(pr_u3b0_0969_cpu);
++PR_SAME_LAYOUT(pr_u25_06d3_cpu); PR_SAME_LAYOUT(pr_u25_06fb_cpu); PR_SAME_LAYOUT(pr_u25_18eb_cpu); PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
 +PR_SAME_LAYOUT(pr_u86_323d_cpu); PR_SAME_LAYOUT(pr_res_2199_cpu); PR_SAME_LAYOUT(pr_u6a_0159_cpu); PR_SAME_LAYOUT(pr_u6a_019c_cpu);
 +PR_SAME_LAYOUT(pr_u77_0901_cpu); PR_SAME_LAYOUT(pr_u6a_0214_cpu); PR_SAME_LAYOUT(pr_res00ba_cpu); PR_SAME_LAYOUT(pr_r00ba_clear_cpu);
 +PR_SAME_LAYOUT(pr_r0709_screen_cpu); PR_SAME_LAYOUT(pr_u3bd_lookup_cpu); PR_SAME_LAYOUT(pr_u3bd_0155_cpu); PR_SAME_LAYOUT(pr_u3bd_057a_cpu); PR_SAME_LAYOUT(pr_u68_068d_cpu);
 +PR_SAME_LAYOUT(pr_u3c2_057b_cpu); PR_SAME_LAYOUT(pr_u33_0221_cpu); PR_SAME_LAYOUT(pr_u3c2_01a0_cpu); PR_SAME_LAYOUT(pr_u33_012b_cpu); PR_SAME_LAYOUT(pr_u3c2_0422_cpu); PR_SAME_LAYOUT(pr_u3c6_06e9_cpu); PR_SAME_LAYOUT(pr_u33_01ad_cpu);
 +PR_SAME_LAYOUT(pr_u33_0615_cpu); PR_SAME_LAYOUT(pr_u33_040f_cpu); PR_SAME_LAYOUT(pr_u33_0377_cpu); PR_SAME_LAYOUT(pr_u33_02ba_cpu); PR_SAME_LAYOUT(pr_u5e_0e52_cpu); PR_SAME_LAYOUT(pr_u3c2_002e_cpu); PR_SAME_LAYOUT(pr_u3c6_03a0_cpu); PR_SAME_LAYOUT(pr_u31_128d_cpu); PR_SAME_LAYOUT(pr_u33_1434_cpu); PR_SAME_LAYOUT(pr_u31_0675_cpu); PR_SAME_LAYOUT(pr_u2f_0131_cpu); PR_SAME_LAYOUT(pr_u3c6_0068_cpu); PR_SAME_LAYOUT(pr_u3c2_0909_cpu);
-+PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu); PR_SAME_LAYOUT(pr_res_2e03_cpu);
++PR_SAME_LAYOUT(pr_u9e_entry8_compose_cpu); PR_SAME_LAYOUT(pr_u3c6_071a_cpu); PR_SAME_LAYOUT(pr_u3c6_04be_cpu); PR_SAME_LAYOUT(pr_r0709_text_cpu); PR_SAME_LAYOUT(pr_u3c6_0cb9_cpu); PR_SAME_LAYOUT(pr_u5e_263d_cpu); PR_SAME_LAYOUT(pr_u3c6_getter_cpu); PR_SAME_LAYOUT(pr_res_2e03_cpu); PR_SAME_LAYOUT(pr_res_23b7_cpu);
 +PR_SAME_LAYOUT(pr_res_2637_cpu); PR_SAME_LAYOUT(pr_r0709_delay_cpu); PR_SAME_LAYOUT(pr_r0709_skip_cpu); PR_SAME_LAYOUT(pr_target_cpu); PR_SAME_LAYOUT(pr_roll_chain_cpu); PR_SAME_LAYOUT(pr_r00ba_1693_cpu); PR_SAME_LAYOUT(pr_u33_1577_cpu); PR_SAME_LAYOUT(pr_u5e_2879_cpu); PR_SAME_LAYOUT(pr_u38_string_match_cpu); PR_SAME_LAYOUT(pr_u6c_3291_cpu); PR_SAME_LAYOUT(pr_u6c_0000_cpu); PR_SAME_LAYOUT(pr_u2f_122b_cpu); PR_SAME_LAYOUT(pr_u38_11f9_cpu); PR_SAME_LAYOUT(pr_u25_0f53_cpu); PR_SAME_LAYOUT(pr_u7f_0f7e_cpu); PR_SAME_LAYOUT(pr_u25_0482_cpu); PR_SAME_LAYOUT(pr_u25_1951_cpu); PR_SAME_LAYOUT(pr_u1c_return_cpu); PR_SAME_LAYOUT(pr_u1c_gosub_cpu); PR_SAME_LAYOUT(pr_u33_12e1_cpu); PR_SAME_LAYOUT(pr_u33_0810_cpu); PR_SAME_LAYOUT(pr_u33_0000_cpu); PR_SAME_LAYOUT(pr_u20_0355_cpu); PR_SAME_LAYOUT(pr_u1c_cmon_cpu); PR_SAME_LAYOUT(pr_u25_1fb1_cpu); PR_SAME_LAYOUT(pr_u1c_delay_cpu); PR_SAME_LAYOUT(pr_u77_27df_cpu); PR_SAME_LAYOUT(pr_reset_cpu); PR_SAME_LAYOUT(pr_system_close_cpu); PR_SAME_LAYOUT(pr_blockread_cpu); PR_SAME_LAYOUT(pr_seek_cpu);
 +struct Body {
 +    const char *id; uint16_t seg, entry; unsigned pop; int bus; int index;
@@ -603,6 +638,42 @@ index 0000000..2ff6a2a
 +    /* batch 8 (route 3): the remaining credited raw/bus entries route 3 reaches; returns detected dynamically */
 +    /* batch 8b: U3C6 entries 12/13/14/15 through the existing raw slot-getter model (found by the pre-claim grep) */
 +    {"RES_00BA_2E03", 0x00BA, 0x2E03, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* the new raw model (#1494); RETF 4 */
++    {"RES_00BA_23B7", 0x00BA, 0x23B7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* the shared raw entry carved out of 0255 (#1504); RETF 4 */
++    /* batch 9: the U25 leaves (#1516 carve-out, #1514 new raw model) */
++    {"OVL_0025_06D3", 0x0000, 0x06D3, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* text-code remap; RETF 2 */
++    {"OVL_0025_06FB", 0x0000, 0x06FB, 6, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* address classifier; RETF 2 */
++    {"OVL_0025_18EB", 0x0000, 0x18EB, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* word compare, composes SYSTEM FillChar; RETF 4 */
++    /* batch 10: the R1 route (loot Pool/Share, View Items; codex #1517); pop 0 = return detected dynamically */
++    {"OVL_007F_0000", 0x0000, 0x0000, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_003A", 0x0000, 0x003A, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_0054", 0x0000, 0x0054, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_0508", 0x0000, 0x0508, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_05E0", 0x0000, 0x05E0, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0000", 0x0000, 0x0000, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0067", 0x0000, 0x0067, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0711", 0x0000, 0x0711, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_07A4", 0x0000, 0x07A4, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_08D7", 0x0000, 0x08D7, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0923", 0x0000, 0x0923, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0969", 0x0000, 0x0969, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0B03", 0x0000, 0x0B03, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0CC5", 0x0000, 0x0CC5, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batch 11a: par-d2's RES_00BA raw entries (#1520, #1522, #1524) */
++    {"RES_00BA_2E46", 0x00BA, 0x2E46, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* link flags, composes 2E03; RETF 4 */
++    {"RES_00BA_23DB", 0x00BA, 0x23DB, 4, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* party count; RETF */
++    {"RES_00BA_1509", 0x00BA, 0x1509, 12, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},    /* sidecar remove, found path only (guard); RETF 8 */
++    /* batch 11: the R2 route (camp: Magic, Rest, Order; codex #1526); pop 0 = return detected dynamically */
++    {"OVL_006A_14A9", 0x0000, 0x14A9, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_006A_1601", 0x0000, 0x1601, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007D_03A3", 0x0000, 0x03A3, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007D_047A", 0x0000, 0x047A, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007D_0565", 0x0000, 0x0565, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007D_05F0", 0x0000, 0x05F0, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0086_028D", 0x0000, 0x028D, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0086_059C", 0x0000, 0x059C, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0A08", 0x0000, 0x0A08, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_0C33", 0x0000, 0x0C33, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_03B0_11F3", 0x0000, 0x11F3, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -641,7 +712,23 @@ index 0000000..2ff6a2a
 +    {"OVL_0077_27DF", 0x0000, 0x27DF, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +};
 +static const int NBODY = (int)(sizeof bodies / sizeof bodies[0]);
++/* The hand-back diagnostic (PM i22495, i22862): the last model's raw status, and the code bytes at a stop. For a far call
++ * (9A) also the first bytes at its target, so a stub reads as loaded (EA jmp far) or cold (CD 3F, INT 3Fh). */
++static int last_raw = -9;
++static std::string stop_bytes(uint16_t cs, uint16_t ip) {
++    const size_t K = RAM - 1u; size_t a = (((size_t)cs << 4) + ip) & K; char b[160];
++    int n = snprintf(b, sizeof b, " raw=%d code=%02X %02X %02X %02X %02X", last_raw, MemBase[a], MemBase[(a + 1u) & K], MemBase[(a + 2u) & K], MemBase[(a + 3u) & K], MemBase[(a + 4u) & K]);
++    if (MemBase[a] == 0x9Au && n > 0 && n < (int)sizeof b) {
++        uint16_t to = (uint16_t)(MemBase[(a + 1u) & K] | (MemBase[(a + 2u) & K] << 8)), ts = (uint16_t)(MemBase[(a + 3u) & K] | (MemBase[(a + 4u) & K] << 8));
++        size_t t = (((size_t)ts << 4) + to) & K;
++        snprintf(b + n, sizeof b - (size_t)n, " target %04X:%04X=%02X %02X %02X", ts, to, MemBase[t], MemBase[(t + 1u) & K], MemBase[(t + 2u) & K]);
++    }
++    return b;
++}
 +static unsigned long long stub_declined = 0;   /* arrivals whose overlay-stub precondition did not hold (the original ran) */
++/* RES_00BA_1509 runs as C only on its FOUND path (PM i22841): a null record or a record not in the character's +0C8h list takes the
++ * message-prompt path (0709:0BF5 with ReadKey), which this dispatch cannot replay, so the guard declines it before anything runs. */
++static unsigned long long guard_1509_found = 0, guard_1509_null = 0, guard_1509_not_found = 0;
 +/* The DOS-service replay (bus = 2): each INT 21h the original issues inside its window, with the registers at the INT, the
 + * registers at its return and the RAM delta across it (DOS's interrupt frame below SP, the PSP handle table). The C's
 + * service callbacks must ask for the recorded calls in order (all 14 registers equal); each applies the recorded delta and
@@ -729,6 +816,7 @@ index 0000000..2ff6a2a
 +    if (!log) return;
 +    if (bus_mode == 1) fprintf(log, "# route mode: routed_returned=%llu routed_stops=%llu\n", routed_returned, routed_stops);
 +    fprintf(log, "# overlay-stub precondition declined: %llu\n", stub_declined);
++    fprintf(log, "# RES_00BA_1509 guard: found %llu (run as C), declined null %llu, declined not found %llu\n", guard_1509_found, guard_1509_null, guard_1509_not_found);
 +    for (int b = 0; b < NBODY; ++b) {
 +        const Body &x = bodies[b];
 +        if (x.index < 0) continue;
@@ -809,11 +897,65 @@ index 0000000..2ff6a2a
 + * 0 RETURNED, 1 ARGUMENT, 2 a stop. `m` holds the model's CPU afterwards. */
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
++    /* batch 11 (R2) */
++    if (!strcmp(x.id, "OVL_006A_14A9")) { int st = pr_u6a_party_before_14a9(MemBase, RAM, (pr_u6a_14a9_cpu *)&m); last_raw = st; return st == PR_U6A_14A9_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_006A_1601")) { int st = pr_u6a_party_after_1601(MemBase, RAM, (pr_u6a_1601_cpu *)&m); last_raw = st; return st == PR_U6A_1601_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_007D_03A3")) { int st = pr_u7d_update_03a3(MemBase, RAM, (pr_u7d_03a3_cpu *)&m); last_raw = st;
++        return st == PR_U7D_03A3_OK ? 0 : st == PR_U7D_03A3_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007D_047A")) { pr_u7d_047a_diagnostic d; int st = pr_u7d_update_047a_cpu(MemBase, RAM, (pr_u7d_047a_cpu *)&m, 1u << 20, &d); last_raw = st;
++        return st == PR_U7D_047A_RETURNED ? 0 : st == PR_U7D_047A_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007D_0565")) { pr_u7d_0565_callee cal; int cst = -1; int st = pr_u7d_two_digits_0565_cpu(MemBase, RAM, (pr_u7d_0565_cpu *)&m, &cal, &cst); last_raw = st;
++        return st == PR_U7D_0565_OK ? 0 : st == PR_U7D_0565_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0086_028D")) { pr_u86_028d_diagnostic d; int st = pr_u86_string_node_028d(MemBase, RAM, (pr_u86_028d_cpu *)&m, (size_t)1u << 20, 1u << 20, &d); last_raw = st;
++        return st == PR_U86_028D_OK ? 0 : st == PR_U86_028D_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0086_059C")) { const size_t L = (size_t)1u << 20; pr_u86_059c_limits l = {L, L, {L, L, {L, L, 1u << 20, 1u << 20}}}; pr_u86_059c_diagnostic d;
++        int st = pr_u86_list_build_059c_cpu(MemBase, RAM, (pr_u86_059c_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U86_059C_OK ? 0 : st == PR_U86_059C_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_03B0_11F3")) { int hst = -1; int st = pr_u3b0_dispose_11f3_cpu(MemBase, RAM, (pr_u3b0_11f3_cpu *)&m, 1u << 20, 1u << 20, &hst); last_raw = st;
++        return st == PR_U3B0_11F3_RETURNED ? 0 : st == PR_U3B0_11F3_ARGUMENT ? 1 : 2; }
++    /* batch 11a */
++    if (!strcmp(x.id, "RES_00BA_2E46")) { int st = pr_res_00ba_link_flags_2e46_cpu(MemBase, RAM, (pr_res_2e46_cpu *)&m); last_raw = st;
++        return st == PR_RES_2E46_RETURNED ? 0 : st == PR_RES_2E46_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "RES_00BA_23DB")) { size_t budget = (size_t)1u << 20; int st = pr_res_00ba_party_count_23db_cpu(MemBase, RAM, (pr_res_23db_cpu *)&m, &budget); last_raw = st;
++        return st == PR_RES_23DB_RETURNED ? 0 : st == PR_RES_23DB_ARGUMENT ? 1 : 2; }
++    /* batch 10 (R1) */
++    if (!strcmp(x.id, "OVL_007F_0000")) { size_t budget = (size_t)1u << 24; pr_u7f_0000_diagnostic d;
++        int st = pr_u7f_entry0_0000_cpu(MemBase, RAM, (pr_res00ba_cpu *)&m, &budget, &d); last_raw = st;
++        return st == PR_U7F_0000_RETURNED ? 0 : st == PR_U7F_0000_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007F_003A")) { int st = pr_u7f_record_word_add_003a(MemBase, RAM, (pr_u7f_003a_cpu *)&m); last_raw = st;
++        return st == PR_U7F_003A_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_007F_0508")) { if (!sys_cs) return 1; int st = pr_u7f_clear_0508(MemBase, RAM, (pr_u7f_0508_cpu *)&m, sys_cs, (size_t)1u << 20, (size_t)1u << 20); last_raw = st;
++        return st == PR_U7F_0508_OK ? 0 : st == PR_U7F_0508_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007F_05E0")) { int st = pr_u7f_party_count_05e0(MemBase, RAM, (pr_u7f_05e0_cpu *)&m); last_raw = st;
++        return st == PR_U7F_05E0_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_03B0_0000")) { int st = pr_u3b0_entry1_0000(MemBase, RAM, (pr_u3b0_0000_cpu *)&m); last_raw = st;
++        return st == PR_U3B0_0000_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_03B0_0067")) { int st = pr_u3b0_leaf_0067(MemBase, RAM, (pr_u3b0_0067_cpu *)&m); last_raw = st;
++        return st == PR_U3B0_0067_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_03B0_0711")) { int st = pr_u3b0_leaf_0711(MemBase, RAM, (pr_u3b0_0711_cpu *)&m); last_raw = st;
++        return st == PR_U3B0_0711_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_03B0_08D7") || !strcmp(x.id, "OVL_03B0_0923")) { int cst = -1;
++        int st = x.entry == 0x08D7u ? pr_u3b0_lead_spaces_08d7_cpu(MemBase, RAM, (pr_u3b0s_cpu *)&m, &cst)
++                                    : pr_u3b0_trail_spaces_0923_cpu(MemBase, RAM, (pr_u3b0s_cpu *)&m, &cst); last_raw = st;
++        return st == PR_U3B0S_OK ? 0 : st == PR_U3B0S_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_03B0_0B03")) { int cst = -1; int st = pr_u3b0_step_scan_0b03_cpu(MemBase, RAM, (pr_u3b0_0b03_cpu *)&m, 1u << 20, &cst); last_raw = st;
++        return st == PR_U3B0_0B03_OK ? 0 : st == PR_U3B0_0B03_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_03B0_0CC5")) { int cst = -1, lst = -1; int st = pr_u3b0_cursor_step_0cc5_cpu(MemBase, RAM, (pr_u3b0_0cc5_cpu *)&m, 1u << 20, &cst, &lst); last_raw = st;
++        return st == PR_U3B0_0CC5_OK ? 0 : st == PR_U3B0_0CC5_ARGUMENT ? 1 : 2; }
++    /* batch 9 */
++    if (!strcmp(x.id, "OVL_0025_06D3")) { int st = pr_u25_char_remap_06d3_cpu(MemBase, RAM, (pr_u25_06d3_cpu *)&m); last_raw = st;
++        return st == PR_U25_06D3_RETURNED ? 0 : st == PR_U25_06D3_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0025_06FB")) { int st = pr_u25_address_class_06fb_cpu(MemBase, RAM, (pr_u25_06fb_cpu *)&m); last_raw = st;
++        return st == PR_U25_06FB_RETURNED ? 0 : st == PR_U25_06FB_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0025_18EB")) { int st = pr_u25_compare_words_18eb_cpu(MemBase, RAM, (pr_u25_18eb_cpu *)&m); last_raw = st;
++        return st == PR_U25_18EB_RETURNED ? 0 : st == PR_U25_18EB_ARGUMENT ? 1 : 2; }
 +    /* batch 8 */
-+    if (!strcmp(x.id, "RES_00BA_2E03")) { int st = pr_res_00ba_link_check_2e03_cpu(MemBase, RAM, (pr_res_2e03_cpu *)&m);
++    if (!strcmp(x.id, "RES_00BA_23B7")) { int st = pr_res_00ba_zero_test_23b7_cpu(MemBase, RAM, (pr_res_23b7_cpu *)&m); last_raw = st;
++        return st == PR_RES_23B7_RETURNED ? 0 : st == PR_RES_23B7_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "RES_00BA_2E03")) { int st = pr_res_00ba_link_check_2e03_cpu(MemBase, RAM, (pr_res_2e03_cpu *)&m); last_raw = st;
 +        return st == PR_RES_2E03_RETURNED ? 0 : st == PR_RES_2E03_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C6_0BE7") || !strcmp(x.id, "OVL_03C6_0C0F") || !strcmp(x.id, "OVL_03C6_0C37") || !strcmp(x.id, "OVL_03C6_0C5F")) {
-+        int st = pr_u3c6_slot_getter_cpu(MemBase, RAM, (pr_u3c6_getter_cpu *)&m, (size_t)1u << 20);
++        int st = pr_u3c6_slot_getter_cpu(MemBase, RAM, (pr_u3c6_getter_cpu *)&m, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U3C6_GETTER_OK ? 0 : st == PR_U3C6_GETTER_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_005E_263D") || !strcmp(x.id, "OVL_005E_2574") || !strcmp(x.id, "OVL_005E_17F6")) {
 +        /* These models take U3C6's and U3C2's code segments as a layout and never read the stubs (census class (b);
@@ -832,85 +974,85 @@ index 0000000..2ff6a2a
 +        pr_u5e_263d_layout lay; lay.slots_cs = seg_ret[0]; lay.predicate_cs = seg_ret[2];
 +        int st = !strcmp(x.id, "OVL_005E_263D") ? pr_u5e_direction_263d(MemBase, RAM, (pr_u5e_263d_cpu *)&m, &lay, (size_t)1u << 20)
 +               : !strcmp(x.id, "OVL_005E_2574") ? pr_u5e_direction_match_2574(MemBase, RAM, (pr_u5e_263d_cpu *)&m, &lay, (size_t)1u << 20)
-+                                               : pr_u5e_direction_gate_17f6(MemBase, RAM, (pr_u5e_263d_cpu *)&m, &lay, (size_t)1u << 20);
++                                               : pr_u5e_direction_gate_17f6(MemBase, RAM, (pr_u5e_263d_cpu *)&m, &lay, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U5E_263D_OK ? 0 : st == PR_U5E_263D_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "RES_00BA_2637")) { int st = pr_res_00ba_target_reset_2637_cpu(MemBase, RAM, (pr_res_2637_cpu *)&m);
++    if (!strcmp(x.id, "RES_00BA_2637")) { int st = pr_res_00ba_target_reset_2637_cpu(MemBase, RAM, (pr_res_2637_cpu *)&m); last_raw = st;
 +        return st == PR_RES_2637_OK ? 0 : st == PR_RES_2637_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "RES_0709_0DBE")) { int cst = -1; int st = pr_r0709_delay_wrapper_0dbe_cpu(MemBase, RAM, (pr_r0709_delay_cpu *)&m, (uint64_t)1u << 24, &cst);
++    if (!strcmp(x.id, "RES_0709_0DBE")) { int cst = -1; int st = pr_r0709_delay_wrapper_0dbe_cpu(MemBase, RAM, (pr_r0709_delay_cpu *)&m, (uint64_t)1u << 24, &cst); last_raw = st;
 +        return st == PR_R0709_DELAY_CPU_OK ? 0 : st == PR_R0709_DELAY_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "RES_0709_0714")) { int st = pr_r0709_skip_spaces_0714_cpu(MemBase, RAM, (pr_r0709_skip_cpu *)&m, 1u << 20);
++    if (!strcmp(x.id, "RES_0709_0714")) { int st = pr_r0709_skip_spaces_0714_cpu(MemBase, RAM, (pr_r0709_skip_cpu *)&m, 1u << 20); last_raw = st;
 +        return st == PR_R0709_SKIP_OK ? 0 : st == PR_R0709_SKIP_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "RES_00BA_2E8B")) { int st = pr_res_target_select_2e8b_cpu(MemBase, RAM, (pr_target_cpu *)&m);
++    if (!strcmp(x.id, "RES_00BA_2E8B")) { int st = pr_res_target_select_2e8b_cpu(MemBase, RAM, (pr_target_cpu *)&m); last_raw = st;
 +        return st == PR_TARGET_RETURNED ? 0 : st == PR_TARGET_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_009E_0E2E")) { pr_roll_chain_diagnostic d0e2e; int st = pr_u9e_roll_latch_0e2e_cpu(MemBase, RAM, (pr_roll_chain_cpu *)&m, 1u << 20, &d0e2e);
++    if (!strcmp(x.id, "OVL_009E_0E2E")) { pr_roll_chain_diagnostic d0e2e; int st = pr_u9e_roll_latch_0e2e_cpu(MemBase, RAM, (pr_roll_chain_cpu *)&m, 1u << 20, &d0e2e); last_raw = st;
 +        return st == PR_ROLL_CHAIN_RETURNED ? 0 : st == PR_ROLL_CHAIN_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_1577")) { int cst = -1; int st = pr_u33_place_search_1577(MemBase, RAM, (pr_u33_1577_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0033_1577")) { int cst = -1; int st = pr_u33_place_search_1577(MemBase, RAM, (pr_u33_1577_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U33_1577_OK ? 0 : st == PR_U33_1577_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_005E_2879")) { int st = pr_u5e_party_value_2879(MemBase, RAM, (pr_u5e_2879_cpu *)&m, (size_t)1u << 20);
++    if (!strcmp(x.id, "OVL_005E_2879")) { int st = pr_u5e_party_value_2879(MemBase, RAM, (pr_u5e_2879_cpu *)&m, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U5E_2879_OK ? 0 : st == PR_U5E_2879_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0038_0947")) { int cst = -1; int st = pr_u38_string_match_0947_cpu(MemBase, RAM, (pr_u38_string_match_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0038_0947")) { int cst = -1; int st = pr_u38_string_match_0947_cpu(MemBase, RAM, (pr_u38_string_match_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U38_STRING_MATCH_OK ? 0 : st == PR_U38_STRING_MATCH_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_006C_3291")) { if (!sys_cs || !known_sys) return 1; pr_u6c_3291_limits l3291 = {1u << 20, 1u << 20, 1u << 20}; pr_u6c_3291_diagnostic d3291; int st = pr_u6c_record_unlink_3291_cpu(MemBase, RAM, (pr_u6c_3291_cpu *)&m, (uint16_t)(known_sys - 0x0AF8u + 0x0464u), sys_cs, &l3291, &d3291);
++    if (!strcmp(x.id, "OVL_006C_3291")) { if (!sys_cs || !known_sys) return 1; pr_u6c_3291_limits l3291 = {1u << 20, 1u << 20, 1u << 20}; pr_u6c_3291_diagnostic d3291; int st = pr_u6c_record_unlink_3291_cpu(MemBase, RAM, (pr_u6c_3291_cpu *)&m, (uint16_t)(known_sys - 0x0AF8u + 0x0464u), sys_cs, &l3291, &d3291); last_raw = st;
 +        return st == PR_U6C_3291_OK ? 0 : st == PR_U6C_3291_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_006C_0000")) { pr_u6c_0000_limits l0000 = {1u << 20, 1u << 20}; pr_u6c_0000_diagnostic d0000; int st = pr_u6c_record_release_0000_cpu(MemBase, RAM, (pr_u6c_0000_cpu *)&m, &l0000, &d0000);
++    if (!strcmp(x.id, "OVL_006C_0000")) { pr_u6c_0000_limits l0000 = {1u << 20, 1u << 20}; pr_u6c_0000_diagnostic d0000; int st = pr_u6c_record_release_0000_cpu(MemBase, RAM, (pr_u6c_0000_cpu *)&m, &l0000, &d0000); last_raw = st;
 +        return st == PR_U6C_0000_OK ? 0 : st == PR_U6C_0000_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_002F_122B")) { int st = pr_u2f_record_link_clear_122b(MemBase, RAM, (pr_u2f_122b_cpu *)&m);
++    if (!strcmp(x.id, "OVL_002F_122B")) { int st = pr_u2f_record_link_clear_122b(MemBase, RAM, (pr_u2f_122b_cpu *)&m); last_raw = st;
 +        return st == PR_U2F_122B_OK ? 0 : st == PR_U2F_122B_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0038_11F9")) { int cst = -1; int st = pr_u38_character_loop_11f9_cpu(MemBase, RAM, (pr_u38_11f9_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0038_11F9")) { int cst = -1; int st = pr_u38_character_loop_11f9_cpu(MemBase, RAM, (pr_u38_11f9_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U38_11F9_OK ? 0 : st == PR_U38_11F9_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_12FB")) { if (!sys_cs) return 1; int st = pr_u25_string_by_address_12fb(MemBase, RAM, (pr_u25_strings_cpu *)&m, sys_cs, (size_t)1u << 20);
++    if (!strcmp(x.id, "OVL_0025_12FB")) { if (!sys_cs) return 1; int st = pr_u25_string_by_address_12fb(MemBase, RAM, (pr_u25_strings_cpu *)&m, sys_cs, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U25_STRINGS_OK ? 0 : st == PR_U25_STRINGS_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_0F53")) { int cst = -1; int st = pr_u25_store_string_0f53_composed(MemBase, RAM, (pr_u25_0f53_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0025_0F53")) { int cst = -1; int st = pr_u25_store_string_0f53_composed(MemBase, RAM, (pr_u25_0f53_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U25_0F53_OK ? 0 : st == PR_U25_0F53_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_007F_0F7E")) { int st = pr_u7f_state_flags_0f7e(MemBase, RAM, (pr_u7f_0f7e_cpu *)&m);
++    if (!strcmp(x.id, "OVL_007F_0F7E")) { int st = pr_u7f_state_flags_0f7e(MemBase, RAM, (pr_u7f_0f7e_cpu *)&m); last_raw = st;
 +        return st == PR_U7F_0F7E_OK ? 0 : st == PR_U7F_0F7E_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_0482")) { int st = pr_u25_step_probe_0482_fullstate(MemBase, RAM, (pr_u25_0482_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0025_0482")) { int st = pr_u25_step_probe_0482_fullstate(MemBase, RAM, (pr_u25_0482_cpu *)&m); last_raw = st;
 +        return st == PR_U25_0482_OK ? 0 : st == PR_U25_0482_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_1951")) { int cst = -1; pr_u25_1951_callee c1951; int st = pr_u25_alloc_1951_cpu(MemBase, RAM, (pr_u25_1951_cpu *)&m, 1u << 20, &c1951, &cst);
++    if (!strcmp(x.id, "OVL_0025_1951")) { int cst = -1; pr_u25_1951_callee c1951; int st = pr_u25_alloc_1951_cpu(MemBase, RAM, (pr_u25_1951_cpu *)&m, 1u << 20, &c1951, &cst); last_raw = st;
 +        return st == PR_U25_1951_OK ? 0 : st == PR_U25_1951_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_001C_0A9F")) { int cst = -1; int st = pr_u1c_return_0a9f_cpu(MemBase, RAM, (pr_u1c_return_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_001C_0A9F")) { int cst = -1; int st = pr_u1c_return_0a9f_cpu(MemBase, RAM, (pr_u1c_return_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U1C_RETURN_CPU_RETURNED ? 0 : st == PR_U1C_RETURN_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_001C_0111")) { if (!sys_cs) return 1; pr_u1c_gosub_limits l0111 = {sys_cs, (size_t)1u << 20, (size_t)1u << 20, 1u << 20}; pr_u1c_gosub_diagnostic d0111; int st = pr_u1c_gosub_0111_cpu(MemBase, RAM, (pr_u1c_gosub_cpu *)&m, &l0111, &d0111);
++    if (!strcmp(x.id, "OVL_001C_0111")) { if (!sys_cs) return 1; pr_u1c_gosub_limits l0111 = {sys_cs, (size_t)1u << 20, (size_t)1u << 20, 1u << 20}; pr_u1c_gosub_diagnostic d0111; int st = pr_u1c_gosub_0111_cpu(MemBase, RAM, (pr_u1c_gosub_cpu *)&m, &l0111, &d0111); last_raw = st;
 +        return st == PR_U1C_GOSUB_OK ? 0 : st == PR_U1C_GOSUB_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_12E1")) { if (!sys_cs || !known_sys) return 1; int cst = -1; size_t b12e1 = (size_t)1u << 24; int st = pr_u33_party_attach_12e1_cpu(MemBase, RAM, (pr_u33_12e1_cpu *)&m, (uint16_t)(known_sys - 0x0AF8u + 0x00BAu), sys_cs, &b12e1, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0033_12E1")) { if (!sys_cs || !known_sys) return 1; int cst = -1; size_t b12e1 = (size_t)1u << 24; int st = pr_u33_party_attach_12e1_cpu(MemBase, RAM, (pr_u33_12e1_cpu *)&m, (uint16_t)(known_sys - 0x0AF8u + 0x00BAu), sys_cs, &b12e1, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U33_12E1_RETURNED ? 0 : st == PR_U33_12E1_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_0810")) { pr_u33_0810_callee c0810; int st = pr_u33_neighbourhood_0810(MemBase, RAM, (pr_u33_0810_cpu *)&m, &c0810);
++    if (!strcmp(x.id, "OVL_0033_0810")) { pr_u33_0810_callee c0810; int st = pr_u33_neighbourhood_0810(MemBase, RAM, (pr_u33_0810_cpu *)&m, &c0810); last_raw = st;
 +        return st == PR_U33_0810_OK ? 0 : st == PR_U33_0810_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_0000")) { int cst = -1; int st = pr_u33_grid_roll_0000(MemBase, RAM, (pr_u33_0000_cpu *)&m, &cst);
++    if (!strcmp(x.id, "OVL_0033_0000")) { int cst = -1; int st = pr_u33_grid_roll_0000(MemBase, RAM, (pr_u33_0000_cpu *)&m, &cst); last_raw = st;
 +        return st == PR_U33_0000_OK ? 0 : st == PR_U33_0000_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0020_0355")) { int cst = -1; int st = pr_u20_party_award_0355_cpu(MemBase, RAM, (pr_u20_0355_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0020_0355")) { int cst = -1; int st = pr_u20_party_award_0355_cpu(MemBase, RAM, (pr_u20_0355_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U20_0355_OK ? 0 : st == PR_U20_0355_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_001C_125D")) { pr_u1c_cmon_cpu_diagnostic d125d; int st = pr_u1c_clearmonsters_125d_cpu(MemBase, RAM, (pr_u1c_cmon_cpu *)&m, 1u << 20, 1u << 20, &d125d);
++    if (!strcmp(x.id, "OVL_001C_125D")) { pr_u1c_cmon_cpu_diagnostic d125d; int st = pr_u1c_clearmonsters_125d_cpu(MemBase, RAM, (pr_u1c_cmon_cpu *)&m, 1u << 20, 1u << 20, &d125d); last_raw = st;
 +        return st == PR_U1C_CMON_CPU_RETURNED ? 0 : st == PR_U1C_CMON_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_1FB1")) { int cst = -1; int st = pr_u25_entry23_1fb1_composed(MemBase, RAM, (pr_u25_1fb1_cpu *)&m, 1u << 20, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_0025_1FB1")) { int cst = -1; int st = pr_u25_entry23_1fb1_composed(MemBase, RAM, (pr_u25_1fb1_cpu *)&m, 1u << 20, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U25_1FB1_OK ? 0 : st == PR_U25_1FB1_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_001C_271F")) { pr_u1c_delay_cpu_report r271f; int st = pr_u1c_delay_271f_cpu(MemBase, RAM, (pr_u1c_delay_cpu *)&m, (uint64_t)1u << 24, &r271f);
++    if (!strcmp(x.id, "OVL_001C_271F")) { pr_u1c_delay_cpu_report r271f; int st = pr_u1c_delay_271f_cpu(MemBase, RAM, (pr_u1c_delay_cpu *)&m, (uint64_t)1u << 24, &r271f); last_raw = st;
 +        return st == PR_U1C_DELAY_CPU_OK ? 0 : st == PR_U1C_DELAY_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0077_27DF")) { int st = pr_u77_active_select_27df_run(MemBase, RAM, (pr_u77_27df_cpu *)&m, PR_U77_27DF_RETF_WRAPPED_SS);
++    if (!strcmp(x.id, "OVL_0077_27DF")) { int st = pr_u77_active_select_27df_run(MemBase, RAM, (pr_u77_27df_cpu *)&m, PR_U77_27DF_RETF_WRAPPED_SS); last_raw = st;
 +        return st == PR_U77_27DF_OK ? 0 : st == PR_U77_27DF_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_0899_0104")) {
-+        int st = pr_r0899_idle_0104_cpu(MemBase, force_argument ? RAM - 1u : RAM, (pr_r0899_idle_cpu *)&m);
++        int st = pr_r0899_idle_0104_cpu(MemBase, force_argument ? RAM - 1u : RAM, (pr_r0899_idle_cpu *)&m); last_raw = st;
 +        return st == PR_R0899_IDLE_OK ? 0 : st == PR_R0899_IDLE_ARGUMENT ? 1 : 2;
 +    }
 +    if (!strcmp(x.id, "RES_0464_2595")) {
 +        pr_r0464_2595_diagnostic d;
-+        int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d);
++        int st = pr_r0464_bitmap_release_2595_cpu(MemBase, RAM, (pr_r0464_2595_cpu *)&m, sys_cs, force_stop ? 0u : 65535u, &d); last_raw = st;
 +        return st == PR_R0464_2595_RETURNED ? 0 : st == PR_R0464_2595_ARGUMENT ? 1 : 2;
 +    }
-+    if (!strcmp(x.id, "OVL_0086_3413")) { int st = pr_u86_procvars_3413(MemBase, RAM, (pr_u86_3413_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0086_3413")) { int st = pr_u86_procvars_3413(MemBase, RAM, (pr_u86_3413_cpu *)&m); last_raw = st;
 +        return st == PR_U86_3413_OK ? 0 : 1; }
-+    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0038_31A2")) { int st = pr_u38_effects_install_31a2(MemBase, RAM, (pr_u38_31a2_cpu *)&m); last_raw = st;
 +        return st == PR_U38_31A2_OK ? 0 : 1; }
-+    if (!strcmp(x.id, "OVL_0025_0136")) { int st = pr_u25_slot_value_0136(MemBase, RAM, (pr_u25_slot_value_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0025_0136")) { int st = pr_u25_slot_value_0136(MemBase, RAM, (pr_u25_slot_value_cpu *)&m); last_raw = st;
 +        return st == PR_U25_SLOT_VALUE_OK ? 0 : st == PR_U25_SLOT_VALUE_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0025_0000")) {
 +        if (!sys_cs) return 1;
-+        int st = pr_u25_load_operands_0000(MemBase, RAM, (pr_u25_0000_cpu *)&m, sys_cs, 1u << 20, 1u << 20);
++        int st = pr_u25_load_operands_0000(MemBase, RAM, (pr_u25_0000_cpu *)&m, sys_cs, 1u << 20, 1u << 20); last_raw = st;
 +        return st == PR_U25_0000_OK ? 0 : st == PR_U25_0000_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0025_0E0C")) { int st = pr_u25_load_word_0e0c(MemBase, RAM, (pr_u25_load_word_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0025_0E0C")) { int st = pr_u25_load_word_0e0c(MemBase, RAM, (pr_u25_load_word_cpu *)&m); last_raw = st;
 +        return st == PR_U25_LOAD_WORD_OK ? 0 : st == PR_U25_LOAD_WORD_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_00BA_1037")) { pr_res_1037_callee cal; int cst = -1;
-+        int st = pr_res_00ba_1037_cpu(MemBase, RAM, (pr_res_1037_cpu *)&m, &cal, &cst);
++        int st = pr_res_00ba_1037_cpu(MemBase, RAM, (pr_res_1037_cpu *)&m, &cal, &cst); last_raw = st;
 +        return st == PR_RES_1037_OK ? 0 : st == PR_RES_1037_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_001C_0B52")) {
 +        /* 0B52 far-calls U25 +1EA6 through stub 002B:008E and its model assumes the stub is LOADED (it takes U25's CS as
@@ -920,95 +1062,95 @@ index 0000000..2ff6a2a
 +        if (MemBase[stub & (RAM - 1u)] != 0xEAu || (MemBase[(stub + 1u) & (RAM - 1u)] | (MemBase[(stub + 2u) & (RAM - 1u)] << 8)) != 0x1EA6u) {
 +            ++stub_declined; return 1; }
 +        uint16_t u25 = (uint16_t)(MemBase[(stub + 3u) & (RAM - 1u)] | (MemBase[(stub + 4u) & (RAM - 1u)] << 8));
-+        int st = pr_u1c_if_0b52(MemBase, RAM, (pr_u1c_0b52_cpu *)&m, u25, sys_cs, 1u << 20, 1u << 20);
++        int st = pr_u1c_if_0b52(MemBase, RAM, (pr_u1c_0b52_cpu *)&m, u25, sys_cs, 1u << 20, 1u << 20); last_raw = st;
 +        return st == PR_U1C_0B52_OK ? 0 : st == PR_U1C_0B52_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_006F_032F")) { int st = pr_u6f_vector_merge_032f(MemBase, RAM, (pr_u6f_032f_cpu *)&m);
++    if (!strcmp(x.id, "OVL_006F_032F")) { int st = pr_u6f_vector_merge_032f(MemBase, RAM, (pr_u6f_032f_cpu *)&m); last_raw = st;
 +        return st == PR_U6F_VECTOR_032F_OK ? 0 : st == PR_U6F_VECTOR_032F_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0025_1EA6")) {
 +        if (!sys_cs) return 1;
-+        int st = pr_u25_skip_statement_1ea6(MemBase, RAM, (pr_u25_1ea6_cpu *)&m, sys_cs, 1u << 20, 1u << 20);
++        int st = pr_u25_skip_statement_1ea6(MemBase, RAM, (pr_u25_1ea6_cpu *)&m, sys_cs, 1u << 20, 1u << 20); last_raw = st;
 +        return st == PR_U25_1EA6_OK ? 0 : st == PR_U25_1EA6_ARGUMENT ? 1 : 2; }
 +    const uint16_t res0464 = known_sys ? (uint16_t)(known_sys - 0x0AF8u + 0x0464u) : 0;
-+    if (!strcmp(x.id, "OVL_0025_06AF")) { int st = pr_u25_word_06af(MemBase, RAM, (pr_u25_0000_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0025_06AF")) { int st = pr_u25_word_06af(MemBase, RAM, (pr_u25_0000_cpu *)&m); last_raw = st;
 +        return st == PR_U25_0000_OK ? 0 : st == PR_U25_0000_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_006F_1446")) { pr_u6f_insert_cpu_callee cal; int cst = -1;
-+        int st = pr_u6f_party_insert_1446_cpu(MemBase, RAM, (pr_u6f_insert_cpu *)&m, 1u << 20, &cal, &cst);
++        int st = pr_u6f_party_insert_1446_cpu(MemBase, RAM, (pr_u6f_insert_cpu *)&m, 1u << 20, &cal, &cst); last_raw = st;
 +        return st == PR_U6F_INSERT_CPU_OK ? 0 : st == PR_U6F_INSERT_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_009B_0000")) { int st = pr_u9b_entry_zero_0000(MemBase, RAM, (pr_u9b_0000_cpu *)&m);
++    if (!strcmp(x.id, "OVL_009B_0000")) { int st = pr_u9b_entry_zero_0000(MemBase, RAM, (pr_u9b_0000_cpu *)&m); last_raw = st;
 +        return st == PR_U9B_0000_OK ? 0 : st == PR_U9B_0000_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_009B_0255")) { int st = pr_u9b_record_table_0255(MemBase, RAM, (pr_u9b_0255_cpu *)&m);
++    if (!strcmp(x.id, "OVL_009B_0255")) { int st = pr_u9b_record_table_0255(MemBase, RAM, (pr_u9b_0255_cpu *)&m); last_raw = st;
 +        return st == PR_U9B_0255_OK ? 0 : st == PR_U9B_0255_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_009B_0329")) { int st = pr_u9b_record_fields_0329(MemBase, RAM, (pr_u9b_0329_cpu *)&m);
++    if (!strcmp(x.id, "OVL_009B_0329")) { int st = pr_u9b_record_fields_0329(MemBase, RAM, (pr_u9b_0329_cpu *)&m); last_raw = st;
 +        return st == PR_U9B_0329_OK ? 0 : st == PR_U9B_0329_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03CE_014E")) {
 +        if (!sys_cs || !res0464) return 1;
-+        pr_u3ce_014e_diagnostic d; int st = pr_u3ce_bitmap_pair_release_014e_cpu(MemBase, RAM, (pr_u3ce_014e_cpu *)&m, res0464, sys_cs, 1u << 20, &d);
++        pr_u3ce_014e_diagnostic d; int st = pr_u3ce_bitmap_pair_release_014e_cpu(MemBase, RAM, (pr_u3ce_014e_cpu *)&m, res0464, sys_cs, 1u << 20, &d); last_raw = st;
 +        return st == PR_U3CE_014E_RETURNED ? 0 : st == PR_U3CE_014E_ARGUMENT ? 1 : 2; }
 +    if (!strncmp(x.id, "OVL_03B4_", 9)) {
 +        int st = x.entry == 0x00C7 ? pr_u3b4_case_map_00c7(MemBase, RAM, (pr_u3b4_case_cpu *)&m)
 +               : x.entry == 0x00FB ? pr_u3b4_case_map_00fb(MemBase, RAM, (pr_u3b4_case_cpu *)&m)
-+                                   : pr_u3b4_case_map_012f(MemBase, RAM, (pr_u3b4_case_cpu *)&m);
++                                   : pr_u3b4_case_map_012f(MemBase, RAM, (pr_u3b4_case_cpu *)&m); last_raw = st;
 +        return st == PR_U3B4_CASE_OK ? 0 : st == PR_U3B4_CASE_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_001C_00F4")) {
 +        if (!sys_cs) return 1;
 +        pr_u1c_goto_limits lim = {sys_cs, 1u << 20, 1u << 20}; pr_u1c_goto_callee cal; int cst = -1;
-+        int st = pr_u1c_goto_00f4_cpu(MemBase, RAM, (pr_u1c_goto_cpu *)&m, &lim, &cal, &cst);
++        int st = pr_u1c_goto_00f4_cpu(MemBase, RAM, (pr_u1c_goto_cpu *)&m, &lim, &cal, &cst); last_raw = st;
 +        return st == PR_U1C_GOTO_OK ? 0 : st == PR_U1C_GOTO_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0025_01B6")) {
 +        if (!sys_cs) return 1;
-+        int st = pr_u25_script_init_01b6(MemBase, RAM, (pr_u25_01b6_cpu *)&m, sys_cs, 1u << 20, 1u << 20, 1u << 20);
++        int st = pr_u25_script_init_01b6(MemBase, RAM, (pr_u25_01b6_cpu *)&m, sys_cs, 1u << 20, 1u << 20, 1u << 20); last_raw = st;
 +        return st == PR_U25_01B6_OK ? 0 : st == PR_U25_01B6_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_007D_02F2")) { int st = pr_u7d_carry_02f2(MemBase, RAM, (pr_u7d_02f2_cpu *)&m);
++    if (!strcmp(x.id, "OVL_007D_02F2")) { int st = pr_u7d_carry_02f2(MemBase, RAM, (pr_u7d_02f2_cpu *)&m); last_raw = st;
 +        return st == PR_U7D_02F2_OK ? 0 : st == PR_U7D_02F2_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03B9_048F")) {
 +        if (!sys_cs || !res0464) return 1;
-+        pr_u3b9_048f_diagnostic d; int st = pr_u3b9_bitmap_set_release_048f_cpu(MemBase, RAM, (pr_u3b9_048f_cpu *)&m, res0464, sys_cs, 1u << 20, 1u << 20, &d);
++        pr_u3b9_048f_diagnostic d; int st = pr_u3b9_bitmap_set_release_048f_cpu(MemBase, RAM, (pr_u3b9_048f_cpu *)&m, res0464, sys_cs, 1u << 20, 1u << 20, &d); last_raw = st;
 +        return st == PR_U3B9_048F_RETURNED ? 0 : st == PR_U3B9_048F_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0025_1153")) {
 +        if (!sys_cs) return 1;
-+        int st = pr_u25_unpack_text_1153(MemBase, RAM, (pr_u25_strings_cpu *)&m, sys_cs, 1u << 20);
++        int st = pr_u25_unpack_text_1153(MemBase, RAM, (pr_u25_strings_cpu *)&m, sys_cs, 1u << 20); last_raw = st;
 +        return st == PR_U25_STRINGS_OK ? 0 : st == PR_U25_STRINGS_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_001C_18F8")) {
 +        if (!sys_cs) return 1;
 +        pr_u1c_18f8_limits lim = {sys_cs, 1u << 20, 1u << 20, 1u << 20, 1u << 20}; pr_u1c_18f8_diagnostic d;
-+        int st = pr_u1c_on_goto_18f8_cpu(MemBase, RAM, (pr_u1c_18f8_cpu *)&m, &lim, &d);
++        int st = pr_u1c_on_goto_18f8_cpu(MemBase, RAM, (pr_u1c_18f8_cpu *)&m, &lim, &d); last_raw = st;
 +        return st == PR_U1C_18F8_OK ? 0 : st == PR_U1C_18F8_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0033_0615")) {
-+        int st = pr_u33_grid_pattern_0615(MemBase, RAM, (pr_u33_0615_cpu *)&m);
++        int st = pr_u33_grid_pattern_0615(MemBase, RAM, (pr_u33_0615_cpu *)&m); last_raw = st;
 +        return st == PR_U33_0615_OK ? 0 : st == PR_U33_0615_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0033_040F")) {
-+        int st = pr_u33_grid_pattern_040f(MemBase, RAM, (pr_u33_040f_cpu *)&m);
++        int st = pr_u33_grid_pattern_040f(MemBase, RAM, (pr_u33_040f_cpu *)&m); last_raw = st;
 +        return st == PR_U33_040F_OK ? 0 : st == PR_U33_040F_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0033_0377")) {
-+        int st = pr_u33_stamp_square_0377(MemBase, RAM, (pr_u33_0377_cpu *)&m);
++        int st = pr_u33_stamp_square_0377(MemBase, RAM, (pr_u33_0377_cpu *)&m); last_raw = st;
 +        return st == PR_U33_0377_OK ? 0 : st == PR_U33_0377_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0033_02BA")) {
-+        int st = pr_u33_stamp_block_02ba(MemBase, RAM, (pr_u33_02ba_cpu *)&m);
++        int st = pr_u33_stamp_block_02ba(MemBase, RAM, (pr_u33_02ba_cpu *)&m); last_raw = st;
 +        return st == PR_U33_02BA_OK ? 0 : st == PR_U33_02BA_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_005E_0E52")) {
-+        int st = pr_u5e_half_0e52(MemBase, RAM, (pr_u5e_0e52_cpu *)&m);
++        int st = pr_u5e_half_0e52(MemBase, RAM, (pr_u5e_0e52_cpu *)&m); last_raw = st;
 +        return st == PR_U5E_0E52_OK ? 0 : st == PR_U5E_0E52_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C2_002E")) {
-+        int cst = -1; int st = pr_u3c2_record_sort_002e_cpu(MemBase, RAM, (pr_u3c2_002e_cpu *)&m, 1u << 20, &cst);
++        int cst = -1; int st = pr_u3c2_record_sort_002e_cpu(MemBase, RAM, (pr_u3c2_002e_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U3C2_002E_OK ? 0 : st == PR_U3C2_002E_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C6_03A0")) {
 +        if (!sys_cs) return 1;
-+        int st = pr_u3c6_rebuild_03a0(MemBase, RAM, (pr_u3c6_03a0_cpu *)&m, sys_cs, (size_t)1u << 20, (size_t)1u << 20);
++        int st = pr_u3c6_rebuild_03a0(MemBase, RAM, (pr_u3c6_03a0_cpu *)&m, sys_cs, (size_t)1u << 20, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U3C6_03A0_OK ? 0 : st == PR_U3C6_03A0_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0031_128D")) {
-+        int cst = -1; int st = pr_u31_table_value_128d_cpu(MemBase, RAM, (pr_u31_128d_cpu *)&m, &cst);
++        int cst = -1; int st = pr_u31_table_value_128d_cpu(MemBase, RAM, (pr_u31_128d_cpu *)&m, &cst); last_raw = st;
 +        return st == PR_U31_128D_OK ? 0 : st == PR_U31_128D_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0033_1434")) {
-+        int cst = -1; int st = pr_u33_cell_claim_1434(MemBase, RAM, (pr_u33_1434_cpu *)&m, &cst);
++        int cst = -1; int st = pr_u33_cell_claim_1434(MemBase, RAM, (pr_u33_1434_cpu *)&m, &cst); last_raw = st;
 +        return st == PR_U33_1434_OK ? 0 : st == PR_U33_1434_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_0031_0675")) {
-+        pr_u31_0675_callee c0675; int st = pr_u31_step_gate_0675(MemBase, RAM, (pr_u31_0675_cpu *)&m, 1u << 20, &c0675);
++        pr_u31_0675_callee c0675; int st = pr_u31_step_gate_0675(MemBase, RAM, (pr_u31_0675_cpu *)&m, 1u << 20, &c0675); last_raw = st;
 +        return st == PR_U31_0675_OK ? 0 : st == PR_U31_0675_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_002F_0131")) {
-+        int cst = -1; int st = pr_u2f_party_pick_0131(MemBase, RAM, (pr_u2f_0131_cpu *)&m, &cst);
++        int cst = -1; int st = pr_u2f_party_pick_0131(MemBase, RAM, (pr_u2f_0131_cpu *)&m, &cst); last_raw = st;
 +        return st == PR_U2F_0131_OK ? 0 : st == PR_U2F_0131_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C6_0068")) {
-+        int st = pr_u3c6_slot_offsets_0068(MemBase, RAM, (pr_u3c6_0068_cpu *)&m, 1u << 20);
++        int st = pr_u3c6_slot_offsets_0068(MemBase, RAM, (pr_u3c6_0068_cpu *)&m, 1u << 20); last_raw = st;
 +        return st == PR_U3C6_0068_OK ? 0 : st == PR_U3C6_0068_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03C2_0909")) {
 +        /* 0909 far-calls U3C6 +0000 through stub 03E0:0025 and takes U3C6's CS as pair_cs (stub census class (c); par-e
@@ -1018,42 +1160,42 @@ index 0000000..2ff6a2a
 +        if (MemBase[stub & (RAM - 1u)] != 0xEAu || (MemBase[(stub + 1u) & (RAM - 1u)] | (MemBase[(stub + 2u) & (RAM - 1u)] << 8)) != 0x0000u) {
 +            ++stub_declined; return 1; }
 +        uint16_t pair = (uint16_t)(MemBase[(stub + 3u) & (RAM - 1u)] | (MemBase[(stub + 4u) & (RAM - 1u)] << 8));
-+        int st = pr_u3c2_caller_0909(MemBase, RAM, (pr_u3c2_0909_cpu *)&m, pair, (size_t)1u << 20, (size_t)1u << 20, 1u << 20);
++        int st = pr_u3c2_caller_0909(MemBase, RAM, (pr_u3c2_0909_cpu *)&m, pair, (size_t)1u << 20, (size_t)1u << 20, 1u << 20); last_raw = st;
 +        return st == PR_U3C2_0909_OK ? 0 : st == PR_U3C2_0909_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_009E_0DE3")) { int st = pr_u9e_entry8_fullstate_compose_0de3(MemBase, RAM, (pr_u9e_entry8_compose_cpu *)&m, 1u << 20);
++    if (!strcmp(x.id, "OVL_009E_0DE3")) { int st = pr_u9e_entry8_fullstate_compose_0de3(MemBase, RAM, (pr_u9e_entry8_compose_cpu *)&m, 1u << 20); last_raw = st;
 +        return st == PR_U9E_ENTRY8_COMPOSE_RETURNED ? 0 : st == PR_U9E_ENTRY8_COMPOSE_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C6_071A")) { int st = pr_u3c6_step_071a(MemBase, RAM, (pr_u3c6_071a_cpu *)&m, (size_t)1u << 20);
++    if (!strcmp(x.id, "OVL_03C6_071A")) { int st = pr_u3c6_step_071a(MemBase, RAM, (pr_u3c6_071a_cpu *)&m, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U3C6_071A_OK ? 0 : st == PR_U3C6_071A_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C6_04BE")) { int st = pr_u3c6_04be_cpu_run(MemBase, RAM, (pr_u3c6_04be_cpu *)&m, PR_U3C6_04BE_RETF_WRAPPED_SS);
++    if (!strcmp(x.id, "OVL_03C6_04BE")) { int st = pr_u3c6_04be_cpu_run(MemBase, RAM, (pr_u3c6_04be_cpu *)&m, PR_U3C6_04BE_RETF_WRAPPED_SS); last_raw = st;
 +        return st == PR_U3C6_04BE_CPU_RETURNED ? 0 : st == PR_U3C6_04BE_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C6_0CB9")) { int st = pr_u3c6_0cb9_cpu_run(MemBase, RAM, (pr_u3c6_0cb9_cpu *)&m, PR_U3C6_0CB9_RETF_WRAPPED_SS);
++    if (!strcmp(x.id, "OVL_03C6_0CB9")) { int st = pr_u3c6_0cb9_cpu_run(MemBase, RAM, (pr_u3c6_0cb9_cpu *)&m, PR_U3C6_0CB9_RETF_WRAPPED_SS); last_raw = st;
 +        return st == PR_U3C6_0CB9_CPU_RETURNED ? 0 : st == PR_U3C6_0CB9_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C2_057B")) { int st = pr_u3c2_entry4_057b(MemBase, RAM, (pr_u3c2_057b_cpu *)&m);
++    if (!strcmp(x.id, "OVL_03C2_057B")) { int st = pr_u3c2_entry4_057b(MemBase, RAM, (pr_u3c2_057b_cpu *)&m); last_raw = st;
 +        return st == PR_U3C2_057B_OK ? 0 : st == PR_U3C2_057B_REJECT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_0221")) { int st = pr_u33_clipped_writer_0221(MemBase, RAM, (pr_u33_0221_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0033_0221")) { int st = pr_u33_clipped_writer_0221(MemBase, RAM, (pr_u33_0221_cpu *)&m); last_raw = st;
 +        return st == PR_U33_0221_OK ? 0 : st == PR_U33_0221_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C2_01A0")) { int st = pr_u3c2_line_init_01a0(MemBase, RAM, (pr_u3c2_01a0_cpu *)&m);
++    if (!strcmp(x.id, "OVL_03C2_01A0")) { int st = pr_u3c2_line_init_01a0(MemBase, RAM, (pr_u3c2_01a0_cpu *)&m); last_raw = st;
 +        return st == PR_U3C2_01A0_OK ? 0 : st == PR_U3C2_01A0_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_012B")) { int st = pr_u33_cell_lookup_012b(MemBase, RAM, (pr_u33_012b_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0033_012B")) { int st = pr_u33_cell_lookup_012b(MemBase, RAM, (pr_u33_012b_cpu *)&m); last_raw = st;
 +        return st == PR_U33_012B_OK ? 0 : st == PR_U33_012B_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C2_0422")) { int st = pr_u3c2_line_check_0422(MemBase, RAM, (pr_u3c2_0422_cpu *)&m, (size_t)1u << 20);
++    if (!strcmp(x.id, "OVL_03C2_0422")) { int st = pr_u3c2_line_check_0422(MemBase, RAM, (pr_u3c2_0422_cpu *)&m, (size_t)1u << 20); last_raw = st;
 +        return st == PR_U3C2_0422_OK ? 0 : st == PR_U3C2_0422_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_03C6_06E9")) { int st = pr_u3c6_in_range_06e9(MemBase, RAM, (pr_u3c6_06e9_cpu *)&m);
++    if (!strcmp(x.id, "OVL_03C6_06E9")) { int st = pr_u3c6_in_range_06e9(MemBase, RAM, (pr_u3c6_06e9_cpu *)&m); last_raw = st;
 +        return st == PR_U3C6_06E9_OK ? 0 : st == PR_U3C6_06E9_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0033_01AD")) { int st = pr_u33_cell_pair_01ad(MemBase, RAM, (pr_u33_01ad_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0033_01AD")) { int st = pr_u33_cell_pair_01ad(MemBase, RAM, (pr_u33_01ad_cpu *)&m); last_raw = st;
 +        return st == PR_U33_01AD_OK ? 0 : st == PR_U33_01AD_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03BD_0155")) { size_t budget = 1u << 20;
-+        int st = pr_u3bd_entry1_0155_cpu(MemBase, RAM, (pr_u3bd_0155_cpu *)&m, &budget);
++        int st = pr_u3bd_entry1_0155_cpu(MemBase, RAM, (pr_u3bd_0155_cpu *)&m, &budget); last_raw = st;
 +        return st == PR_U3BD_0155_RETURNED ? 0 : st == PR_U3BD_0155_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "OVL_03BD_047B") || !strcmp(x.id, "OVL_03BD_0350")) {
 +        int st = x.entry == 0x047Bu ? pr_u3bd_nibble_047b_fullstate(MemBase, RAM, (pr_u3bd_lookup_cpu *)&m)
-+                                    : pr_u3bd_field_0350_fullstate(MemBase, RAM, (pr_u3bd_lookup_cpu *)&m);
++                                    : pr_u3bd_field_0350_fullstate(MemBase, RAM, (pr_u3bd_lookup_cpu *)&m); last_raw = st;
 +        return st == PR_U3BD_LOOKUP_OK ? 0 : st == PR_U3BD_LOOKUP_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_0086_323D")) { int st = pr_u86_record_predicate_323d(MemBase, RAM, (pr_u86_323d_cpu *)&m);
++    if (!strcmp(x.id, "OVL_0086_323D")) { int st = pr_u86_record_predicate_323d(MemBase, RAM, (pr_u86_323d_cpu *)&m); last_raw = st;
 +        return st == PR_U86_323D_OK ? 0 : st == PR_U86_323D_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "RES_00BA_2199")) { int st = pr_res_00ba_2199_cpu(MemBase, RAM, (pr_res_2199_cpu *)&m, 1u << 20);
++    if (!strcmp(x.id, "RES_00BA_2199")) { int st = pr_res_00ba_2199_cpu(MemBase, RAM, (pr_res_2199_cpu *)&m, 1u << 20); last_raw = st;
 +        return st == PR_RES_2199_OK ? 0 : st == PR_RES_2199_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_006A_0159")) { int st = pr_u6a_record_clear_high_0159(MemBase, RAM, (pr_u6a_0159_cpu *)&m);
++    if (!strcmp(x.id, "OVL_006A_0159")) { int st = pr_u6a_record_clear_high_0159(MemBase, RAM, (pr_u6a_0159_cpu *)&m); last_raw = st;
 +        return st == PR_U6A_0159_OK ? 0 : st == PR_U6A_0159_ARGUMENT ? 1 : 2; }
 +    /* 0214 and 019C call unit 0x86 +323D through the overlay stub 0096:003E, and the models assume it is LOADED (a far JMP
 +     * to +323D). When it is not, the original goes through the overlay manager, which loads the unit with DOS calls the
@@ -1064,46 +1206,46 @@ index 0000000..2ff6a2a
 +        if (MemBase[stub & (RAM - 1u)] != 0xEAu || (MemBase[(stub + 1u) & (RAM - 1u)] | (MemBase[(stub + 2u) & (RAM - 1u)] << 8)) != 0x323Du) {
 +            ++stub_declined; return 1; }
 +    }
-+    if (!strcmp(x.id, "OVL_006A_019C")) { int st = pr_u6a_link_high_clear_019c(MemBase, RAM, (pr_u6a_019c_cpu *)&m);
++    if (!strcmp(x.id, "OVL_006A_019C")) { int st = pr_u6a_link_high_clear_019c(MemBase, RAM, (pr_u6a_019c_cpu *)&m); last_raw = st;
 +        return st == PR_U6A_019C_OK ? 0 : st == PR_U6A_019C_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(x.id, "OVL_006A_0214")) { int cst = -1; int st = pr_u6a_record_walk_0214(MemBase, RAM, (pr_u6a_0214_cpu *)&m, 1u << 20, &cst);
++    if (!strcmp(x.id, "OVL_006A_0214")) { int cst = -1; int st = pr_u6a_record_walk_0214(MemBase, RAM, (pr_u6a_0214_cpu *)&m, 1u << 20, &cst); last_raw = st;
 +        return st == PR_U6A_0214_OK ? 0 : st == PR_U6A_0214_ARGUMENT ? 1 : 2; }
 +    if (!strncmp(x.id, "RES_00BA_", 9) && x.bus == 0 && strcmp(x.id, "RES_00BA_2199") && strcmp(x.id, "RES_00BA_1037")) {
 +        size_t budget = (size_t)1u << 24;                       /* the RES 00BA character chain, dispatched on the entry IP */
 +        int st = x.entry < 0x1000u ? pr_res00ba_core_cpu(MemBase, RAM, (pr_res00ba_cpu *)&m, &budget)
-+                                   : pr_res00ba_helpers_cpu(MemBase, RAM, (pr_res00ba_cpu *)&m, &budget);
++                                   : pr_res00ba_helpers_cpu(MemBase, RAM, (pr_res00ba_cpu *)&m, &budget); last_raw = st;
 +        return st == PR_RES00BA_OK ? 0 : st == PR_RES00BA_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(x.id, "RES_0802_050F")) { pr_r0802_050f_diagnostic d;
-+        int st = pr_r0802_050f(MemBase, RAM, (pr_r0802_050f_cpu *)&m, 1u << 24, &d);
++        int st = pr_r0802_050f(MemBase, RAM, (pr_r0802_050f_cpu *)&m, 1u << 24, &d); last_raw = st;
 +        return st == PR_R0802_050F_RETURNED ? 0 : st == PR_R0802_050F_ARGUMENT ? 1 : 2; }
-+    int cs_ = -1; int st = pr_u3b0_item_split_00cb_cpu(MemBase, RAM, (pr_u3b0_00cb_cpu *)&m, &cs_);
++    int cs_ = -1; int st = pr_u3b0_item_split_00cb_cpu(MemBase, RAM, (pr_u3b0_00cb_cpu *)&m, &cs_); last_raw = st;
 +    return st == PR_U3B0_00CB_OK ? 0 : st == PR_U3B0_00CB_ARGUMENT ? 1 : 2;
 +}
 +/* One runner for every pr_bus body: 0 RETURNED, 1 ARGUMENT, 2 a stop. Budgets are generous declared caps. */
 +static int run_bus(pr_bus *bus, Cpu14 &m) {
 +    const char *id = bodies[cur].id; const size_t B = (size_t)1u << 20;
-+    if (!strcmp(id, "RES_0709_01DF")) { pr_r0709_glyph_cpu_diagnostic d; int st = pr_r0709_glyph_01df_cpu(bus, RAM, (pr_r0709_glyph_cpu *)&m, B, &d);
++    if (!strcmp(id, "RES_0709_01DF")) { pr_r0709_glyph_cpu_diagnostic d; int st = pr_r0709_glyph_01df_cpu(bus, RAM, (pr_r0709_glyph_cpu *)&m, B, &d); last_raw = st;
 +        return st == PR_R0709_GLYPH_CPU_OK ? 0 : st == PR_R0709_GLYPH_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_0709_05EB")) { pr_r0709_space_cpu_diagnostic d; int st = pr_r0709_space_05eb_cpu(bus, RAM, (pr_r0709_space_cpu *)&m, B, &d);
++    if (!strcmp(id, "RES_0709_05EB")) { pr_r0709_space_cpu_diagnostic d; int st = pr_r0709_space_05eb_cpu(bus, RAM, (pr_r0709_space_cpu *)&m, B, &d); last_raw = st;
 +        return st == PR_R0709_SPACE_CPU_OK ? 0 : st == PR_R0709_SPACE_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_0709_0626")) { pr_r0709_printer_cpu_diagnostic d; int st = pr_r0709_printer_0626_cpu(bus, RAM, (pr_r0709_printer_cpu *)&m, B, B, &d);
++    if (!strcmp(id, "RES_0709_0626")) { pr_r0709_printer_cpu_diagnostic d; int st = pr_r0709_printer_0626_cpu(bus, RAM, (pr_r0709_printer_cpu *)&m, B, B, &d); last_raw = st;
 +        return st == PR_R0709_PRINTER_CPU_OK ? 0 : st == PR_R0709_PRINTER_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_03F1_0137")) { pr_r03f1_clear_cpu_diagnostic d; int st = pr_r03f1_clear_0137_cpu(bus, RAM, (pr_r03f1_clear_cpu *)&m, B, B, &d);
++    if (!strcmp(id, "RES_03F1_0137")) { pr_r03f1_clear_cpu_diagnostic d; int st = pr_r03f1_clear_0137_cpu(bus, RAM, (pr_r03f1_clear_cpu *)&m, B, B, &d); last_raw = st;
 +        return st == PR_R03F1_CLEAR_CPU_OK ? 0 : st == PR_R03F1_CLEAR_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_00BA_1816")) { pr_r00ba_display_cpu_diagnostic d; int st = pr_r00ba_display_1816_cpu(bus, RAM, (pr_r00ba_display_cpu *)&m, B, B, &d);
++    if (!strcmp(id, "RES_00BA_1816")) { pr_r00ba_display_cpu_diagnostic d; int st = pr_r00ba_display_1816_cpu(bus, RAM, (pr_r00ba_display_cpu *)&m, B, B, &d); last_raw = st;
 +        return st == PR_R00BA_DISPLAY_CPU_OK ? 0 : st == PR_R00BA_DISPLAY_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_00BA_1693")) { pr_r00ba_1693_diagnostic d1693; int st = pr_r00ba_display_1693_cpu(bus, RAM, (pr_r00ba_1693_cpu *)&m, B, B, B, B, (uint64_t)B, &d1693);
++    if (!strcmp(id, "RES_00BA_1693")) { pr_r00ba_1693_diagnostic d1693; int st = pr_r00ba_display_1693_cpu(bus, RAM, (pr_r00ba_1693_cpu *)&m, B, B, B, B, (uint64_t)B, &d1693); last_raw = st;
 +        return st == PR_R00BA_1693_OK ? 0 : st == PR_R00BA_1693_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_0709_06A7")) { pr_r0709_text_cpu_diagnostic d; int st = pr_r0709_text_06a7_cpu(bus, RAM, (pr_r0709_text_cpu *)&m, B, B, (uint64_t)B, &d);
++    if (!strcmp(id, "RES_0709_06A7")) { pr_r0709_text_cpu_diagnostic d; int st = pr_r0709_text_06a7_cpu(bus, RAM, (pr_r0709_text_cpu *)&m, B, B, (uint64_t)B, &d); last_raw = st;
 +        return st == PR_R0709_TEXT_CPU_OK ? 0 : st == PR_R0709_TEXT_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_0709_0DD3")) { pr_r0709_clear_cpu_diagnostic d; int st = pr_r0709_clear_0dd3_cpu(bus, RAM, (pr_r0709_clear_cpu *)&m, B, B, &d);
++    if (!strcmp(id, "RES_0709_0DD3")) { pr_r0709_clear_cpu_diagnostic d; int st = pr_r0709_clear_0dd3_cpu(bus, RAM, (pr_r0709_clear_cpu *)&m, B, B, &d); last_raw = st;
 +        return st == PR_R0709_CLEAR_CPU_OK ? 0 : st == PR_R0709_CLEAR_CPU_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_0077_0901")) { pr_u77_0901_limits l = {B, B, B, B}; pr_u77_0901_diagnostic d;
-+        int st = pr_u77_party_0901_cpu(bus, RAM, (pr_u77_0901_cpu *)&m, &l, &d);
++        int st = pr_u77_party_0901_cpu(bus, RAM, (pr_u77_0901_cpu *)&m, &l, &d); last_raw = st;
 +        return st == PR_U77_0901_OK ? 0 : st == PR_U77_0901_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_00BA_17E3")) { pr_r00ba_clear_cpu_diagnostic d; int st = pr_r00ba_clear_17e3_cpu(bus, RAM, (pr_r00ba_clear_cpu *)&m, B, B, &d);
++    if (!strcmp(id, "RES_00BA_17E3")) { pr_r00ba_clear_cpu_diagnostic d; int st = pr_r00ba_clear_17e3_cpu(bus, RAM, (pr_r00ba_clear_cpu *)&m, B, B, &d); last_raw = st;
 +        return st == PR_R00BA_CLEAR_CPU_OK ? 0 : st == PR_R00BA_CLEAR_CPU_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "RES_0709_0CAB")) { pr_r0709_screen_cpu_diagnostic d; int st = pr_r0709_screen_0cab_cpu(bus, RAM, (pr_r0709_screen_cpu *)&m, B, &d);
++    if (!strcmp(id, "RES_0709_0CAB")) { pr_r0709_screen_cpu_diagnostic d; int st = pr_r0709_screen_0cab_cpu(bus, RAM, (pr_r0709_screen_cpu *)&m, B, &d); last_raw = st;
 +        return st == PR_R0709_SCREEN_CPU_OK ? 0 : st == PR_R0709_SCREEN_CPU_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_0068_068D")) {
 +        /* 068D far-calls unit 0x3BD +0350 through the stub its LCALL names (CS:06C1/06C3). The model reads the stub too and stops OVERLAY
@@ -1112,12 +1254,44 @@ index 0000000..2ff6a2a
 +        uint16_t so = (uint16_t)(MemBase[(c + 0x06C1u) & K] | (MemBase[(c + 0x06C2u) & K] << 8)), ss_ = (uint16_t)(MemBase[(c + 0x06C3u) & K] | (MemBase[(c + 0x06C4u) & K] << 8));
 +        size_t st0 = ((size_t)ss_ << 4) + so;
 +        if (MemBase[st0 & K] != 0xEAu || (MemBase[(st0 + 1u) & K] | (MemBase[(st0 + 2u) & K] << 8)) != 0x0350u) { ++stub_declined; return 1; }
-+        int st = pr_u68_up_preflight_068d_cpu(bus, RAM, (pr_u68_068d_cpu *)&m);
++        int st = pr_u68_up_preflight_068d_cpu(bus, RAM, (pr_u68_068d_cpu *)&m); last_raw = st;
 +        return st == PR_U68_068D_RETURNED ? 0 : st == PR_U68_068D_ARGUMENT ? 1 : 2; }
-+    if (!strcmp(id, "OVL_03BD_057A")) { int st = pr_u3bd_cell_057a_cpu(bus, RAM, (pr_u3bd_057a_cpu *)&m);
++    if (!strcmp(id, "OVL_007D_05F0")) { pr_u7d_05f0_limits l = {B, B, B}; pr_u7d_05f0_diagnostic d; int st = pr_u7d_entry_05f0_cpu(bus, RAM, (pr_u7d_05f0_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U7D_05F0_OK ? 0 : st == PR_U7D_05F0_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03B0_0A08")) { pr_u3b0_0a08_limits l = {B, B}; pr_u3b0_0a08_diagnostic d; int st = pr_u3b0_entry_0a08_cpu(bus, RAM, (pr_u3b0_0a08_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U3B0_0A08_OK ? 0 : st == PR_U3B0_0A08_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03B0_0C33")) { pr_u3b0_0c33_limits l; l.step_loopbacks = 1u << 20; l.display.row_loopbacks = l.display.clear_loopbacks = l.display.rect_loopbacks = l.display.printer_loopbacks = l.display.glyph_loopbacks = B;
++        pr_u3b0_0c33_diagnostic d; int st = pr_u3b0_entry_0c33_cpu(bus, RAM, (pr_u3b0_0c33_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U3B0_0C33_OK ? 0 : st == PR_U3B0_0C33_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "RES_00BA_1509")) {
++        /* The guard: read the frame (record at SS:SP+4, character at SS:SP+8) and walk the list from character+0C8h through +2Ah
++         * links, bounded; decline (the original runs, nothing changed) unless the record is found. */
++        const size_t K = RAM - 1u;
++        auto w = [&](uint16_t seg, uint16_t off) -> uint16_t { size_t a = (((size_t)seg << 4) + off) & K; return (uint16_t)(MemBase[a] | (MemBase[(a + 1u) & K] << 8)); };
++        uint16_t ro = w(m.ss, (uint16_t)(m.sp + 4u)), rs = w(m.ss, (uint16_t)(m.sp + 6u)), co = w(m.ss, (uint16_t)(m.sp + 8u)), cs_ = w(m.ss, (uint16_t)(m.sp + 10u));
++        if (!(ro | rs)) { ++guard_1509_null; return 1; }
++        uint16_t no = w(cs_, (uint16_t)(co + 0xC8u)), ns = w(cs_, (uint16_t)(co + 0xCAu)); bool found = (no == ro && ns == rs);
++        for (unsigned k = 0; !found && (no | ns) && k < 4096u; ++k) {
++            uint16_t lo = w(ns, (uint16_t)(no + 0x2Au)), ls = w(ns, (uint16_t)(no + 0x2Cu));
++            if (lo == ro && ls == rs) found = true; else { no = lo; ns = ls; }
++        }
++        if (!found) { ++guard_1509_not_found; return 1; }
++        ++guard_1509_found;
++        size_t budget = B; pr_res_1509_env env; memset(&env, 0, sizeof env); env.freemem_steps = 1u << 20; pr_res_1509_diagnostic d;
++        int st = pr_res_00ba_sidecar_remove_1509_cpu(bus, RAM, (pr_res_1509_cpu *)&m, &budget, &env, &d); last_raw = st;
++        return st == PR_RES_1509_RETURNED ? 0 : st == PR_RES_1509_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_007F_0054")) { size_t budget = B << 4; pr_u7f_0054_diagnostic d; int st = pr_u7f_0054_cpu(bus, RAM, (pr_res00ba_cpu *)&m, &budget, &d); last_raw = st;
++        return st == PR_U7F_0054_RETURNED ? 0 : st == PR_U7F_0054_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03B0_07A4")) { pr_u3b0_07a4_limits l = {B, B, B, B, B}; pr_u3b0_07a4_diagnostic d;
++        int st = pr_u3b0_entry_07a4_cpu(bus, RAM, (pr_u3b0_07a4_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U3B0_07A4_OK ? 0 : st == PR_U3B0_07A4_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03B0_0969")) { pr_u3b0_0969_limits l = {B, B}; pr_u3b0_0969_diagnostic d;
++        int st = pr_u3b0_entry_0969_cpu(bus, RAM, (pr_u3b0_0969_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U3B0_0969_OK ? 0 : st == PR_U3B0_0969_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_03BD_057A")) { int st = pr_u3bd_cell_057a_cpu(bus, RAM, (pr_u3bd_057a_cpu *)&m); last_raw = st;
 +        return st == PR_U3BD_057A_RETURNED ? 0 : st == PR_U3BD_057A_ARGUMENT ? 1 : 2; }
 +    pr_u3b0_01da_limits lim = {B, B}; pr_u3b0_01da_diagnostic d;
-+    int st = pr_u3b0_entry_01da_cpu(bus, RAM, (pr_u3b0_01da_cpu *)&m, &lim, &d);
++    int st = pr_u3b0_entry_01da_cpu(bus, RAM, (pr_u3b0_01da_cpu *)&m, &lim, &d); last_raw = st;
 +    return st == PR_U3B0_01DA_OK ? 0 : st == PR_U3B0_01DA_ARGUMENT ? 1 : 2;
 +}
 +/* ROUTE: at the bus body's entry, before its first instruction, the C runs with the routed bus on the live guest and the
@@ -1133,7 +1307,7 @@ index 0000000..2ff6a2a
 +    if (cls == 1) { line("ROUTED_ARGUMENT", "nothing changed; the original runs"); cur = -1; return false; }
 +    put(from14(E, m));
 +    if (cls == 0) { ++x.returned_seen; ++routed_returned; }
-+    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "stop at %04X:%04X", m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", buf); }
++    else { ++x.stops_seen; ++routed_stops; char buf[64]; snprintf(buf, sizeof buf, "stop at %04X:%04X", m.cs, m.ip); line("ROUTED_STOP_HANDED_BACK", std::string(buf) + stop_bytes(m.cs, m.ip)); }
 +    cur = -1; return true;
 +}
 +/* The replaying service callbacks (both INT 21h contracts share the 14-word CPU layout). */
@@ -1312,7 +1486,7 @@ index 0000000..2ff6a2a
 +        }
 +        ++x.stops_seen;                                       /* a stop: the original continues from the C's partial state */
 +        char where[64]; snprintf(where, sizeof where, "stop at %04X:%04X%s", m.cs, m.ip, force_stop ? " (heap steps 0)" : "");
-+        line("C_STOPPED_HANDING_BACK", where);
++        line("C_STOPPED_HANDING_BACK", std::string(where) + stop_bytes(m.cs, m.ip));
 +        state = MIDBODY; steps = 0; interrupted = false; irq0 = pr_hw_irqs; return true;
 +    }
 +    if (x.bus == 2 && state == ORIGINAL) {                     /* record the original's INT 21h calls */

@@ -15,6 +15,11 @@
 #include "poolrad/recovered/overlay_u38_roll_effect_27d9_cpu.h"
 #include "poolrad/recovered/overlay_u38_roll_gate_2915_cpu.h"
 #include "poolrad/recovered/overlay_u38_sidecar_1472_cpu.h"
+#include "poolrad/recovered/overlay_u38_effect_match_12b2.h"
+#include "poolrad/recovered/overlay_u38_record_roll_2d38.h"
+#include "poolrad/recovered/overlay_u38_target_mask81_25bc.h"
+#include "poolrad/recovered/overlay_u38_sidecar_flag_0918.h"
+#include "poolrad/recovered/resident_00ba_sidecar_lookup_2199_cpu.h"
 #include "poolrad/recovered/overlay_u38_string_match_cpu.h"
 #include "poolrad/recovered/overlay_u38_target_gate_2ae6.h"
 #include "poolrad/recovered/overlay_u38_target_index_gate_2a87.h"
@@ -22,6 +27,7 @@
 #include "poolrad/recovered/overlay_u38_target_reset_2b7d.h"
 #include "poolrad/recovered/overlay_unit38_effects.h"
 #include "poolrad/recovered/ecl_helpers.h"
+#include "poolrad/recovered/overlay_unit38_effects_next.h"
 #include <string.h>
 
 #define MASK (PR_U9E_0000_RAM_SIZE - 1u)
@@ -39,41 +45,41 @@ static const slot_t SLOTS[256] = {
     {K_REFUSED, 0, 0, 0, 0},
     {K_ADAPTED, 0x002A, 0x0041, 0x010D, 0x00380000u | 0x010Du},
     {K_ADAPTED, 0x002F, 0x0041, 0x011D, 0x00380000u | 0x011Du},
-    {K_GAP_SEMANTIC, 0x0034, 0x0041, 0x013B, 0x00380000u | 0x013Bu},
+    {K_ADAPTED, 0x0034, 0x0041, 0x013B, 0x00380000u | 0x013Bu},
     {K_GAP_UNCREDITED, 0x0039, 0x0041, 0x017F, 0x00380000u | 0x017Fu},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_GAP_SEMANTIC, 0x003E, 0x0041, 0x01C3, 0x00380000u | 0x01C3u},
     {K_GAP_UNCREDITED, 0x0043, 0x0041, 0x0233, 0x00380000u | 0x0233u},
-    {K_GAP_SEMANTIC, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
-    {K_GAP_SEMANTIC, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
-    {K_GAP_SEMANTIC, 0x0052, 0x0041, 0x03E1, 0x00380000u | 0x03E1u},
+    {K_ADAPTED, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
+    {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
+    {K_ADAPTED, 0x0052, 0x0041, 0x03E1, 0x00380000u | 0x03E1u},
     {K_GAP_UNCREDITED, 0x0057, 0x0041, 0x0400, 0x00380000u | 0x0400u},
     {K_GAP_SEMANTIC, 0x005C, 0x0041, 0x04BA, 0x00380000u | 0x04BAu},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x0061, 0x0041, 0x05D6, 0x00380000u | 0x05D6u},
+    {K_ADAPTED, 0x0061, 0x0041, 0x05D6, 0x00380000u | 0x05D6u},
     {K_GAP_UNCREDITED, 0x0066, 0x0041, 0x05EB, 0x00380000u | 0x05EBu},
     {K_RAW, 0x006B, 0x0041, 0x0647, 0x00380000u | 0x0647u},
-    {K_GAP_SEMANTIC, 0x0070, 0x0041, 0x064E, 0x00380000u | 0x064Eu},
+    {K_ADAPTED, 0x0070, 0x0041, 0x064E, 0x00380000u | 0x064Eu},
     {K_RAW, 0x0075, 0x0041, 0x0679, 0x00380000u | 0x0679u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x007A, 0x0041, 0x06E4, 0x00380000u | 0x06E4u},
+    {K_ADAPTED, 0x007A, 0x0041, 0x06E4, 0x00380000u | 0x06E4u},
     {K_GAP_UNCREDITED, 0x007F, 0x0041, 0x070F, 0x00380000u | 0x070Fu},
     {K_GAP_UNCREDITED, 0x0084, 0x0041, 0x0775, 0x00380000u | 0x0775u},
     {K_GAP_UNCREDITED, 0x0089, 0x0041, 0x07E0, 0x00380000u | 0x07E0u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x008E, 0x0041, 0x0918, 0x00380000u | 0x0918u},
+    {K_ADAPTED, 0x008E, 0x0041, 0x0918, 0x00380000u | 0x0918u},
     {K_RAW, 0x0093, 0x0041, 0x0947, 0x00380000u | 0x0947u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_GAP_UNCREDITED, 0x0098, 0x0041, 0x09C0, 0x00380000u | 0x09C0u},
-    {K_GAP_SEMANTIC, 0x009D, 0x0041, 0x0A3D, 0x00380000u | 0x0A3Du},
+    {K_ADAPTED, 0x009D, 0x0041, 0x0A3D, 0x00380000u | 0x0A3Du},
     {K_GAP_UNCREDITED, 0x00A2, 0x0041, 0x0A65, 0x00380000u | 0x0A65u},
     {K_RAW, 0x00F7, 0x0041, 0x133F, 0x00380000u | 0x133Fu},
     {K_GAP_UNCREDITED, 0x00A7, 0x0041, 0x0B1B, 0x00380000u | 0x0B1Bu},
-    {K_GAP_SEMANTIC, 0x00AC, 0x0041, 0x0BAC, 0x00380000u | 0x0BACu},
+    {K_ADAPTED, 0x00AC, 0x0041, 0x0BAC, 0x00380000u | 0x0BACu},
     {K_GAP_UNCREDITED, 0x00B1, 0x0041, 0x0BCF, 0x00380000u | 0x0BCFu},
     {K_ADAPTED, 0x00B6, 0x0041, 0x0C06, 0x00380000u | 0x0C06u},
     {K_ADAPTED, 0x00BB, 0x0041, 0x0C15, 0x00380000u | 0x0C15u},
-    {K_GAP_SEMANTIC, 0x00C0, 0x0041, 0x0C26, 0x00380000u | 0x0C26u},
+    {K_ADAPTED, 0x00C0, 0x0041, 0x0C26, 0x00380000u | 0x0C26u},
     {K_GAP_SEMANTIC, 0x005C, 0x0041, 0x04BA, 0x00380000u | 0x04BAu},
     {K_GAP_UNCREDITED, 0x00C5, 0x0041, 0x0C4B, 0x00380000u | 0x0C4Bu},
     {K_GAP_UNCREDITED, 0x00CA, 0x0041, 0x0CC3, 0x00380000u | 0x0CC3u},
@@ -81,11 +87,11 @@ static const slot_t SLOTS[256] = {
     {K_ADAPTED, 0x00D4, 0x0041, 0x10C1, 0x00380000u | 0x10C1u},
     {K_GAP_UNCREDITED, 0x00D9, 0x0041, 0x10DE, 0x00380000u | 0x10DEu},
     {K_GAP_UNCREDITED, 0x00DE, 0x0041, 0x1168, 0x00380000u | 0x1168u},
-    {K_GAP_SEMANTIC, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
-    {K_GAP_SEMANTIC, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
+    {K_ADAPTED, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
+    {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
     {K_RAW, 0x00E3, 0x0041, 0x11F9, 0x00380000u | 0x11F9u},
     {K_RAW, 0x00E8, 0x0041, 0x1276, 0x00380000u | 0x1276u},
-    {K_GAP_SEMANTIC, 0x00ED, 0x0041, 0x12B2, 0x00380000u | 0x12B2u},
+    {K_ADAPTED, 0x00ED, 0x0041, 0x12B2, 0x00380000u | 0x12B2u},
     {K_GAP_UNCREDITED, 0x00F2, 0x0041, 0x12FB, 0x00380000u | 0x12FBu},
     {K_RAW, 0x00F7, 0x0041, 0x133F, 0x00380000u | 0x133Fu},
     {K_RAW, 0x00F7, 0x0041, 0x133F, 0x00380000u | 0x133Fu},
@@ -94,7 +100,7 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x0101, 0x0041, 0x135C, 0x00380000u | 0x135Cu},
     {K_RAW, 0x0106, 0x0041, 0x1363, 0x00380000u | 0x1363u},
     {K_GAP_UNCREDITED, 0x010B, 0x0041, 0x1399, 0x00380000u | 0x1399u},
-    {K_GAP_SEMANTIC, 0x0110, 0x0041, 0x1452, 0x00380000u | 0x1452u},
+    {K_ADAPTED, 0x0110, 0x0041, 0x1452, 0x00380000u | 0x1452u},
     {K_RAW, 0x0115, 0x0041, 0x1472, 0x00380000u | 0x1472u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_RAW, 0x011A, 0x0041, 0x1490, 0x00380000u | 0x1490u},
@@ -125,16 +131,16 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x0188, 0x0041, 0x23C2, 0x00380000u | 0x23C2u},
     {K_GAP_UNCREDITED, 0x018D, 0x0041, 0x23EC, 0x00380000u | 0x23ECu},
     {K_GAP_UNCREDITED, 0x015B, 0x0096, 0x30D9, 0x00860000u | 0x30D9u},
-    {K_GAP_SEMANTIC, 0x0192, 0x0041, 0x2490, 0x00380000u | 0x2490u},
+    {K_ADAPTED, 0x0192, 0x0041, 0x2490, 0x00380000u | 0x2490u},
     {K_GAP_SEMANTIC, 0x0197, 0x0041, 0x24D9, 0x00380000u | 0x24D9u},
     {K_GAP_UNCREDITED, 0x019C, 0x0041, 0x2556, 0x00380000u | 0x2556u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_ADAPTED, 0x01A1, 0x0041, 0x25A2, 0x00380000u | 0x25A2u},
-    {K_GAP_SEMANTIC, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
+    {K_ADAPTED, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
     {K_GAP_UNCREDITED, 0x01AB, 0x0041, 0x2610, 0x00380000u | 0x2610u},
     {K_RAW, 0x01B0, 0x0041, 0x264B, 0x00380000u | 0x264Bu},
     {K_GAP_SEMANTIC, 0x01B5, 0x0041, 0x268A, 0x00380000u | 0x268Au},
-    {K_GAP_SEMANTIC, 0x01BA, 0x0041, 0x2700, 0x00380000u | 0x2700u},
+    {K_ADAPTED, 0x01BA, 0x0041, 0x2700, 0x00380000u | 0x2700u},
     {K_GAP_UNCREDITED, 0x01BF, 0x0041, 0x2730, 0x00380000u | 0x2730u},
     {K_RAW, 0x01C4, 0x0041, 0x27D9, 0x00380000u | 0x27D9u},
     {K_RAW, 0x01C9, 0x0041, 0x2814, 0x00380000u | 0x2814u},
@@ -149,7 +155,7 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x01F6, 0x0041, 0x29D9, 0x00380000u | 0x29D9u},
     {K_RAW, 0x01FB, 0x0041, 0x29F0, 0x00380000u | 0x29F0u},
     {K_RAW, 0x0200, 0x0041, 0x2A11, 0x00380000u | 0x2A11u},
-    {K_GAP_SEMANTIC, 0x0205, 0x0041, 0x2A28, 0x00380000u | 0x2A28u},
+    {K_ADAPTED, 0x0205, 0x0041, 0x2A28, 0x00380000u | 0x2A28u},
     {K_ADAPTED, 0x020A, 0x0041, 0x2A6D, 0x00380000u | 0x2A6Du},
     {K_RAW, 0x020F, 0x0041, 0x2A87, 0x00380000u | 0x2A87u},
     {K_RAW, 0x0214, 0x0041, 0x2AE6, 0x00380000u | 0x2AE6u},
@@ -158,7 +164,7 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x0223, 0x0041, 0x2B7D, 0x00380000u | 0x2B7Du},
     {K_GAP_UNCREDITED, 0x0228, 0x0041, 0x2BC8, 0x00380000u | 0x2BC8u},
     {K_GAP_UNCREDITED, 0x022D, 0x0041, 0x2C1C, 0x00380000u | 0x2C1Cu},
-    {K_GAP_SEMANTIC, 0x0232, 0x0041, 0x2D38, 0x00380000u | 0x2D38u},
+    {K_ADAPTED, 0x0232, 0x0041, 0x2D38, 0x00380000u | 0x2D38u},
     {K_RAW, 0x0237, 0x0041, 0x2D88, 0x00380000u | 0x2D88u},
     {K_RAW, 0x023C, 0x0041, 0x2DE4, 0x00380000u | 0x2DE4u},
     {K_RAW, 0x0241, 0x0041, 0x2E08, 0x00380000u | 0x2E08u},
@@ -574,11 +580,304 @@ static int h_10c1(call_t *m)
     return 0;
 }
 
+
+static void sub16_flags(cpu_t *c, uint16_t a, uint16_t b)               /* SUB AX,DX with the pinned stored rule: CF borrow, AF=(a^b^r)&10h, ZF, SF at bit 15, OF, PF = low byte */
+{
+    uint16_t r = (uint16_t)(a - b), f = parity((uint8_t)r);
+    if (a < b) f |= 0x0001u;
+    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x8000u) f |= 0x0080u;
+    if ((uint16_t)((a ^ b) & (a ^ r)) & 0x8000u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void load_n(const uint8_t *ram, const cpu_t *c, pr_u38n_state *st)
+{
+    st->b6816 = ds8(ram, c, 0x6816); st->b6818 = ds8(ram, c, 0x6818); st->b6819 = ds8(ram, c, 0x6819); st->b681c = ds8(ram, c, 0x681C);
+    st->b6822 = ds8(ram, c, 0x6822); st->b682a = ds8(ram, c, 0x682A);
+    st->scratch_6826.offset = rd16(ram, c->ds, 0x6826u); st->scratch_6826.segment = rd16(ram, c->ds, 0x6828u);
+}
+static void store_n(uint8_t *ram, const cpu_t *c, const pr_u38n_state *st)
+{
+    ds_set8(ram, c, 0x6816, st->b6816); ds_set8(ram, c, 0x6818, st->b6818); ds_set8(ram, c, 0x6819, st->b6819); ds_set8(ram, c, 0x681C, st->b681c);
+    ds_set8(ram, c, 0x6822, st->b6822); ds_set8(ram, c, 0x682A, st->b682a);
+    wr16(ram, c->ds, 0x6826u, st->scratch_6826.offset); wr16(ram, c->ds, 0x6828u, st->scratch_6826.segment);
+}
+/* the registers and flags of the gated "halve [6818], add 3 to [6816]" shape (+03E1 mask 02h, +06E4 mask 01h): MOV AL,[6819]; AND AL,mask; OR AL,AL; JE skip; MOV AL,[6818]; XOR AH,AH; SHR AX,1; MOV [6818],AL; ADD byte [6816],3.
+ * Gate clear: AL = 0, FLAGS = the OR's. Gate set: AX = [6818] >> 1 and the ADD is the last flag writer (it overwrites the SHR's). */
+static void gated_halve_add3_regs(cpu_t *c, uint8_t mask, uint8_t a6819, uint8_t a6818, uint8_t a6816)
+{
+    uint8_t masked = (uint8_t)(a6819 & mask);
+    logic8_flags(c, masked); set_al_(c, masked);
+    if (masked) { c->ax = (uint16_t)(a6818 >> 1); add8_flags(c, a6816, 3u); }
+}
+/* +03E1 (pr_rec_u38_entry10) */
+static int h_03e1(call_t *m)
+{
+    pr_rec_modifier_state mods; unsigned applied = 0; uint8_t a6819, a6818, a6816;
+    frame_enter(m);
+    load_mods(m->ram, m->cpu, &mods); a6819 = mods.b6819; a6818 = mods.b6818; a6816 = mods.b6816;
+    if (pr_rec_u38_entry10(&mods, &applied) != PR_REC_EFFECT_OK) return 1;
+    store_mods(m->ram, m->cpu, &mods);
+    gated_halve_add3_regs(m->cpu, 0x02u, a6819, a6818, a6816);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +06E4 (pr_u38_entry18) */
+static int h_06e4(call_t *m)
+{
+    pr_u38_state st; unsigned paths = 0; uint8_t a6819, a6818, a6816;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a6819 = st.b6819; a6818 = st.b6818; a6816 = st.b6816;
+    if (pr_u38_entry18(&st, &paths) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    gated_halve_add3_regs(m->cpu, 0x01u, a6819, a6818, a6816);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +0A3D: MOV AL,[6818]; XOR AH,AH; SHR AX,1; SHR AX,1; MOV DX,AX; MOV AL,[6818]; XOR AH,AH; SUB AX,DX; MOV [6818],AL (pr_u38_entry25): DX = a >> 2, AX = a - DX, FLAGS = the 16-bit SUB's */
+static int h_0a3d(call_t *m)
+{
+    pr_u38_state st; uint8_t a;
+    frame_enter(m);
+    load_state(m->ram, m->cpu, &st); a = st.b6818;
+    if (pr_u38_entry25(&st) != PR_U38_OK) return 1;
+    store_state(m->ram, m->cpu, &st);
+    m->cpu->dx = (uint16_t)(a >> 2); m->cpu->ax = (uint16_t)(a - (a >> 2));
+    sub16_flags(m->cpu, a, (uint16_t)(a >> 2));
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +2A28 (pr_u38_entry97): SUB SP,2 makes the locals [BP-2] (the limit [681C]) and [BP-1] (the loop counter). Gate clear: AL = 0, the OR's flags, no local written. Limit 0: [BP-2] = 0, AL = 1,
+ * FLAGS = CMP 1,0 (JA taken). Otherwise the counter runs 1..limit: [BP-1] = limit and AL = limit at the end, FLAGS = CMP limit,limit (equal), [BP-2] = limit. */
+static int h_2a28(call_t *m)
+{
+    pr_u38n_state st; unsigned iterations = 0; uint8_t a6819, limit;
+    cpu_t *c = m->cpu;
+    frame_enter(m);
+    load_n(m->ram, c, &st); a6819 = st.b6819; limit = st.b681c;
+    if (pr_u38_entry97(&st, &iterations) != PR_U38_OK) return 1;
+    store_n(m->ram, c, &st);
+    logic8_flags(c, (uint8_t)(a6819 & 1u)); set_al_(c, (uint8_t)(a6819 & 1u));
+    if (a6819 & 1u) {
+        m->ram[physical(c->ss, (uint16_t)(c->bp - 2u))] = limit;
+        set_al_(c, 1u); sub8_flags(c, 1u, limit);
+        if (limit >= 1u) {
+            m->ram[physical(c->ss, (uint16_t)(c->bp - 1u))] = limit;
+            set_al_(c, limit); sub8_flags(c, limit, limit);
+        }
+    }
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+
+
+/* ---- batch P: handlers that read or write far-pointer records. The semantic models take FLAT host pointers, so each far pointer is copied in with the original's 16-bit offset wrap
+ * (ES:[DI+k] wraps at 64 KiB inside the segment), the model runs on the copies, and only the bytes the model changed are written back (the models write at most one record, so aliasing between
+ * two pointers cannot make the copies disagree with the original). Registers (ES:DI = the last LES) and FLAGS (the last writer) are derived per handler. */
+#define XB_BYTES 0x120u
+typedef struct { call_t *m; unsigned n; uint16_t seg[4], off[4]; size_t len[4]; uint8_t orig[4][XB_BYTES], cur[4][XB_BYTES]; } xb_t;
+static uint8_t xb_byte(const call_t *m, uint16_t seg, uint16_t off, unsigned k) { return m->ram[physical(seg, (uint16_t)(off + k))]; }
+static uint8_t *xb_get(xb_t *x, uint16_t seg, uint16_t off, size_t need)
+{
+    unsigned k, i = x->n++;
+    if (i >= 4u || need > XB_BYTES) { x->n--; return NULL; }
+    x->seg[i] = seg; x->off[i] = off; x->len[i] = need;
+    for (k = 0; k < XB_BYTES; ++k) x->orig[i][k] = x->cur[i][k] = xb_byte(x->m, seg, off, k);
+    return x->cur[i];
+}
+static void xb_flush(xb_t *x)
+{
+    unsigned i, k;
+    for (i = 0; i < x->n; ++i)
+        for (k = 0; k < XB_BYTES; ++k)
+            if (x->cur[i][k] != x->orig[i][k]) x->m->ram[physical(x->seg[i], (uint16_t)(x->off[i] + k))] = x->cur[i][k];
+}
+static uint8_t *xb_resolve(void *ctx, pr_u38_far_ptr p, size_t need) { return xb_get((xb_t *)ctx, p.segment, p.offset, need); }
+static void far_arg(const call_t *m, unsigned bp_off, uint16_t *seg, uint16_t *off) { *off = bp16(m->ram, m->cpu, bp_off); *seg = bp16(m->ram, m->cpu, bp_off + 2u); }
+static void set_es_di(cpu_t *c, uint16_t seg, uint16_t off) { c->es = seg; c->di = off; }
+
+/* +05D6 (pr_u38_entry13): LES DI,[BP+8]; MOV AL,ES:[DI+3]; LES DI,[BP+0C]; MOV ES:[DI+15h],AL. No flag writer: FLAGS stay. */
+static int h_05d6(call_t *m)
+{
+    xb_t xs, *x = &xs; uint16_t rs, ro, ss_, so; uint8_t *rec, *src; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m);
+    far_arg(m, 0x0Cu, &rs, &ro); far_arg(m, 0x08u, &ss_, &so);
+    rec = xb_get(x, rs, ro, 0x16u); src = xb_get(x, ss_, so, 4u);
+    if (rec && src && pr_u38_entry13(rec, src) == PR_U38_OK) {
+        xb_flush(x); set_al_(m->cpu, src[3]); set_es_di(m->cpu, rs, ro);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+/* +064E (pr_u38_entry16): record[111h] = max(record[111h], 39h); INC byte [6816]; CMP byte [681B],0Fh (the last flag writer); [681B]==0Fh clears [6818]. */
+static int h_064e(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; unsigned paths = 0; uint16_t rs, ro; uint8_t *rec, a681b; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    load_state(m->ram, m->cpu, &st); a681b = st.b681b;
+    rec = xb_get(x, rs, ro, 0x112u);
+    if (rec && pr_u38_entry16(&st, rec, &paths) == PR_U38_OK) {
+        xb_flush(x); store_state(m->ram, m->cpu, &st);
+        sub8_flags(m->cpu, a681b, 0x0Fu); set_es_di(m->cpu, rs, ro);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+/* +0BAC (pr_u38_entry28): SUB [6822],4; SUB record[111h],4; SUB record[112h],4; SUB byte [6816],4 (the last flag writer) */
+static int h_0bac(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; uint16_t rs, ro; uint8_t *rec, a6816; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    load_state(m->ram, m->cpu, &st); a6816 = st.b6816;
+    rec = xb_get(x, rs, ro, 0x113u);
+    if (rec && pr_u38_entry28(&st, rec) == PR_U38_OK) {
+        xb_flush(x); store_state(m->ram, m->cpu, &st);
+        sub8_flags(m->cpu, a6816, 4u); set_es_di(m->cpu, rs, ro);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+/* +0C26 (pr_u38_entry32): LES DI,[BP+0C]; LES DI,ES:[DI+108h] (P); CMP byte ES:[DI+3],0 (the flag writer); JLE skip; [681E]=1; [6822]=FFh */
+static int h_0c26(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; unsigned paths = 0; uint16_t rs, ro, ps, po; uint8_t *rec; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    load_state(m->ram, m->cpu, &st);
+    rec = xb_get(x, rs, ro, 0x10Cu);
+    if (rec && pr_u38_entry32(&st, rec, xb_resolve, x, &paths) == PR_U38_OK) {
+        po = (uint16_t)(rec[0x108] | rec[0x109] << 8); ps = (uint16_t)(rec[0x10A] | rec[0x10B] << 8);
+        store_state(m->ram, m->cpu, &st); xb_flush(x);
+        sub8_flags(m->cpu, xb_byte(m, ps, po, 3u), 0u); set_es_di(m->cpu, ps, po);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+/* +1452 (pr_u38_entry48): P = far pointer at record[108h]; P[6] = 0; CMP byte [681D],0 (the flag writer); [681D] != 0 clears [681A] */
+static int h_1452(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; unsigned paths = 0; uint16_t rs, ro, ps, po; uint8_t *rec, a681d; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    load_state(m->ram, m->cpu, &st); a681d = st.b681d;
+    rec = xb_get(x, rs, ro, 0x10Cu);
+    if (rec && pr_u38_entry48(&st, rec, xb_resolve, x, &paths) == PR_U38_OK) {
+        po = (uint16_t)(rec[0x108] | rec[0x109] << 8); ps = (uint16_t)(rec[0x10A] | rec[0x10B] << 8);
+        store_state(m->ram, m->cpu, &st); xb_flush(x);
+        sub8_flags(m->cpu, a681d, 0u); set_es_di(m->cpu, ps, po);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+/* +2490 (pr_u38_entry74): path A ([6DE3]==0 && [6822]==0): AL = source[3] & 0Fh stored back, FLAGS = the AND's; path B1 (bit 4 set): AL = source[3] & 10h, FLAGS = OR AL,AL;
+ * path B2 (bit 4 clear): [6822]=FFh, AL = source[3] | 10h stored back, FLAGS = the OR's. ES:DI = the source pointer. */
+static int h_2490(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; unsigned paths = 0; uint16_t ss_, so; uint8_t *src, s3, al; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x08u, &ss_, &so);
+    load_state(m->ram, m->cpu, &st);
+    src = xb_get(x, ss_, so, 4u);
+    if (src) {
+        s3 = src[3];
+        if (pr_u38_entry74(&st, src, &paths) == PR_U38_OK) {
+            xb_flush(x); store_state(m->ram, m->cpu, &st);
+            if (paths == PR_U38_PATH_EFFECT) al = (uint8_t)(s3 & 0x0Fu);
+            else if (paths == PR_U38_PATH_SECOND) al = (uint8_t)(s3 | 0x10u);
+            else al = (uint8_t)(s3 & 0x10u);
+            logic8_flags(m->cpu, al); set_al_(m->cpu, al); set_es_di(m->cpu, ss_, so);
+            frame_leave(m, 0x0Au); rc = 0;
+        }
+    }
+    return rc;
+}
+/* +2700 (pr_u38_entry82): record[11Bh] += 3; AL = record[11Bh]; CMP AL,record[32h] (the flag writer); JBE keeps, else record[11Bh] = AL = record[32h] */
+static int h_2700(call_t *m)
+{
+    xb_t xs, *x = &xs; unsigned paths = 0; uint16_t rs, ro; uint8_t *rec, v, lim; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    rec = xb_get(x, rs, ro, 0x11Cu);
+    if (rec) {
+        v = (uint8_t)(rec[0x11B] + 3u); lim = rec[0x32];
+        if (pr_u38_entry82(rec, &paths) == PR_U38_OK) {
+            xb_flush(x); sub8_flags(m->cpu, v, lim); set_al_(m->cpu, v > lim ? lim : v); set_es_di(m->cpu, rs, ro);
+            frame_leave(m, 0x0Au); rc = 0;
+        }
+    }
+    return rc;
+}
+/* +013B (pr_u38_entry4): P = far pointer at record[108h]; AX = P[0Ah], DX = P[0Ch]; [6826:6828] = Q (those two words); CMP byte ES:[DI+9Fh],4 on Q; JNE end; ADD [6822],2; ADD byte [6818],2 (the last flag writer on that path) */
+static int h_013b(call_t *m)
+{
+    xb_t xs, *x = &xs; pr_u38_state st; unsigned paths = 0; uint16_t rs, ro, ps, po; uint8_t *rec, a6818, q9f; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m); far_arg(m, 0x0Cu, &rs, &ro);
+    load_state(m->ram, m->cpu, &st); a6818 = st.b6818;
+    rec = xb_get(x, rs, ro, 0x10Cu);
+    if (rec && pr_u38_entry4(&st, rec, xb_resolve, x, &paths) == PR_U38_OK) {
+        po = (uint16_t)(rec[0x108] | rec[0x109] << 8); ps = (uint16_t)(rec[0x10A] | rec[0x10B] << 8);
+        store_state(m->ram, m->cpu, &st); xb_flush(x);
+        m->cpu->ax = (uint16_t)(xb_byte(m, ps, po, 0xAu) | xb_byte(m, ps, po, 0xBu) << 8); m->cpu->dx = (uint16_t)(xb_byte(m, ps, po, 0xCu) | xb_byte(m, ps, po, 0xDu) << 8);
+        q9f = xb_byte(m, st.scratch_6826.segment, st.scratch_6826.offset, 0x9Fu);
+        if (q9f == 4u) add8_flags(m->cpu, a6818, 2u); else sub8_flags(m->cpu, q9f, 4u);
+        set_es_di(m->cpu, st.scratch_6826.segment, st.scratch_6826.offset);
+        frame_leave(m, 0x0Au); rc = 0;
+    }
+    return rc;
+}
+
+
+/* ---- batch P2: +0377 and +03AC read the GLOBAL active-character pointer DS:[5D92] (offset), DS:[5D94] (segment) and compare the record byte +0A0h with three constants (+0377: 2, 5, 8; +03AC: 0, 3, 6):
+ * LES DI,[5D92]; CMP byte ES:[DI+0A0h],k1; JE body; LES DI,[5D92]; CMP ...,k2; JE body; LES DI,[5D92]; CMP ...,k3; JNE end; body: ADD byte [6816],2; SUB byte [6822],2.
+ * A match leaves the SUB as the last flag writer; no match leaves the third CMP (against k3) and no data change. ES:DI is the record pointer on every path; AX is untouched. The models take the full 285-byte record. */
+static int gated_alignment(call_t *m, int second, uint8_t k3)
+{
+    xb_t xs, *x = &xs; pr_rec_modifier_state mods; unsigned applied = 0; uint16_t rs, ro; uint8_t *rec, a6822, b;
+    cpu_t *c = m->cpu; int rc = 1;
+    memset(&xs, 0, sizeof xs); x->m = m; frame_enter(m);
+    ro = rd16(m->ram, c->ds, 0x5D92u); rs = rd16(m->ram, c->ds, 0x5D94u);
+    load_mods(m->ram, c, &mods); a6822 = mods.b6822;
+    rec = xb_get(x, rs, ro, PR_REC_CHAR_RECORD_SIZE);
+    if (rec) {
+        b = rec[0xA0];
+        if ((second ? pr_rec_u38_entry9(&mods, rec, &applied) : pr_rec_u38_entry8(&mods, rec, &applied)) == PR_REC_EFFECT_OK) {
+            store_mods(m->ram, c, &mods); xb_flush(x);
+            if (applied) sub8_flags(c, a6822, 2u); else sub8_flags(c, b, k3);
+            set_es_di(c, rs, ro);
+            frame_leave(m, 0x0Au); rc = 0;
+        }
+    }
+    return rc;
+}
+static int h_0377(call_t *m) { return gated_alignment(m, 0, 8u); }
+static int h_03ac(call_t *m) { return gated_alignment(m, 1, 6u); }
+
+
+/* ---- +0918 (slot 25): a credited CPU-level model with a CALLBACK for the resident sidecar lookup BA:2199 (SUB SP,4; PUSH [5D94]; PUSH [5D92]; MOV AL,18h; PUSH AX; LEA DI,[BP-4]; PUSH SS; PUSH DI; LCALL BA:2199;
+ * OR AL,AL; JNE; MOV [681E],1; SUB byte [6822],4). The callback is the credited raw-CPU model of the resident routine (pr_res_00ba_2199_cpu), so the composition is handler + resident callee, both
+ * credited, both compared against the ORIGINAL bytes (the original really runs the resident code in the composed world). A lookup that hits the host loop-back cap aborts the handler (CALLEE). */
+static int res2199_lookup(void *ctx, uint8_t *ram, size_t size, pr_u38_0918_cpu *cpu)
+{
+    call_t *m = (call_t *)ctx; pr_res_2199_cpu c; pr_res_2199_status st;
+    COPY(&c, cpu); st = pr_res_00ba_2199_cpu(ram, size, &c, m->lim->loopbacks); COPY(cpu, &c);
+    return st == PR_RES_2199_OK;
+}
+static int h_0918(call_t *m)
+{
+    pr_u38_0918_cpu x; int s;
+    COPY(&x, m->cpu); s = (int)pr_u38_sidecar_flag_0918(m->ram, m->size, &x, res2199_lookup, m); COPY(m->cpu, &x);
+    return s;
+}
+
+
+/* ---- raw tier: the four credited CPU-level models that already compose their callees (their evidence documents are not named *_CPU.md, so the slots were listed as semantic) ----
+ * +12B2 composes +0C06; +25BC composes +101D and the resident far call; +2D38 composes U9E entry 9 and the SYSTEM roll. */
+ADAPT(h_12b2, pr_u38_101d_cpu, pr_u38_effect_match_12b2(m->ram, m->size, &x))
+ADAPT_T(h_25bc, pr_u38_target_mask81_25bc_cpu(m->ram, m->size, &x, PR_TARGET_SHIFT_DOSBOX386, &dg))
+ADAPT(h_2d38, pr_u38_2d38_cpu, pr_u38_record_roll_2d38(m->ram, m->size, &x, &m->status_raw))
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
-    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
+    {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0918, h_0918}, {0x12B2, h_12b2}, {0x25BC, h_25bc_t}, {0x2D38, h_2d38}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
     {0x2976, h_2976}, {0x2984, h_2984}, {0x2992, h_2992}, {0x2DE4, h_2de4}, {0x2E08, h_2e08},

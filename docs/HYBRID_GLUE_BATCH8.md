@@ -125,3 +125,17 @@ commit `355cffff`**, which was pushed to #1488's branch after that PR had merged
   - `hybrid-b8d-v1-walk-b`: **0 px, no encounter on the 14,4 step**, 0 non-equal.
 - **The walk pixel bar was RNG-exposed** (the 14,4 step draws once), until the seed pin of
   [re/RANDOM_GENERATOR.md](re/RANDOM_GENERATOR.md) stage 2, which this same change adds. Pinned walks reproduce at 0 px.
+
+## Batch 8e: `RES_00BA_23B7` through its new raw model (#1504)
+
+`RES_00BA_23B7` is glued through `pr_res_00ba_zero_test_23b7_cpu` (raw, RETF 4: dispatch pop 8). It runs ahead of the
+generic `RES_00BA` branch in `run_c`. The entry list is now 116. Build `af3000ec`, on main `fae95767`.
+
+- **Route-3 V1, `hybrid-b8e-v1-r3-a`:** driver_rc 0, the route completed on the first try, non-equal 0, stub declines 0.
+  - `RES_00BA_23B7`: 633 arrivals and 632 / 632 equal. The remaining arrival, number 316, was `INTERRUPTED`: a
+    hardware interrupt fell inside the window, so the original result was kept and nothing was compared.
+  - `RES_00BA_2E03`: 122 / 122 equal.
+  - The route-3 count is now **52**.
+- **Walk regression, `hybrid-b8e-v1-walk`:** **0 px, no encounter on the 14,4 step**, 0 non-equal, unpinned.
+- **Same runs:** the GetMem live sample of [re/LES_WRAP_REACHABILITY.md](re/LES_WRAP_REACHABILITY.md) rode along on
+  them. See that note.

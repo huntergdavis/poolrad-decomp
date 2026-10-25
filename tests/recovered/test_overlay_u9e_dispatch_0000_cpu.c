@@ -45,9 +45,11 @@ int main(void)
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 26 && n[3] == 61 && n[4] == 1 && n[5] == 9);
+        assert(n[0] == 117 && n[1] == 42 && n[2] == 6 && n[3] == 61 && n[4] == 1 && n[5] == 29);
         assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
+        /* wiring batch W1: three credited CPU-level models composed with their callees; the loaded original code they need is not in this test's RAM, so only the table is pinned here (the composed differential is in the audit) */
+        assert(pr_u9e_dispatch_0000_slot_kind(49) == 5 && pr_u9e_dispatch_0000_slot_entry(49) == 0x12B2u && pr_u9e_dispatch_0000_slot_kind(94) == 5 && pr_u9e_dispatch_0000_slot_entry(94) == 0x25BCu && pr_u9e_dispatch_0000_slot_kind(122) == 5 && pr_u9e_dispatch_0000_slot_entry(122) == 0x2D38u);
         assert(pr_u9e_dispatch_0000_slot_stub_seg(88) == 0x96u && pr_u9e_dispatch_0000_slot_stub_off(88) == 0x015Bu && pr_u9e_dispatch_0000_slot_id(88) == 0x008630D9u);
     }
     /* REFUSED: every index outside 1..139 leaves CPU, RAM and budget exactly as they were and calls nothing */
@@ -57,10 +59,10 @@ int main(void)
         assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_REFUSED);
         assert(memcmp(&c, &saved, sizeof c) == 0 && memcmp(r, before, PR_U9E_0000_RAM_SIZE) == 0 && budget == b0 && d.slot == (int)i);
     }
-    /* GAP: slot 4 (uncredited +017F), slot 3 (semantic +013B), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
+    /* GAP: slot 4 (uncredited +017F), slot 6 (semantic +01C3), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
     {
         static const struct { unsigned slot; pr_u9e_0000_gap gap; uint32_t id; } G[] = {
-            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {3, PR_U9E_0000_GAP_SEMANTIC, 0x0038013Bu}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
+            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {6, PR_U9E_0000_GAP_SEMANTIC, 0x003801C3u}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
         for (i = 0; i < 4; ++i) {
             c = setup(r, G[i].slot); budget = 100000;
             assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_GAP);
@@ -109,6 +111,96 @@ int main(void)
     c = setup(r, 42); r[at(DS_, 0x681A)] = 0x02; budget = 100000;
     assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
     assert(r[at(DS_, 0x681A)] == 0x01u && c.ax == 0x0001u && c.flags == 0x0212u);
+    /* ADAPTED batch S, hand-checked (flags start 0202h; AX = the slot number at entry, AH = 0):
+     *  slot 10 +03E1 [6819]=02h (mask hit), [6818]=83h, [6816]=FEh: AX = 0041h, [6818]=41h, [6816]=01h; the ADD is the last flag writer: FEh+3 = 01h carry, AF=1 (bit 4 of FEh^03h^01h), OF=0, PF=0 (one one) -> 0202|1|10h = 0213h
+     *  slot 10 +03E1 [6819]=01h (mask clear): AX = 0000h (AL = the masked 0), OR AL,AL: ZF, PF -> 0246h, [6818] and [6816] untouched
+     *  slot 20 +06E4 [6819]=01h, [6818]=81h, [6816]=7Fh: AX = 0040h, [6818]=40h, [6816]=82h; ADD 7Fh+3: CF=0, AF=1, SF=1, OF=1 (positive+positive = negative), PF=1 (82h has two ones) -> 0202|10h|80h|800h|4 = 0A96h
+     *  slot 29 +0A3D [6818]=80h: DX = 20h, AX = 60h, [6818]=60h; SUB AX,DX 0080h-0020h: CF=0, AF=0, ZF=0, SF=0, OF=0, PF=1 (60h has two ones) -> 0206h
+     *  slot 113 +2A28 [6819]=01h, [681C]=03h, [6818]=10h: three iterations (10h -> 0Dh, never below 03h), locals [BP-2]=03h and [BP-1]=03h (S0-20, S0-19 here), AX = 0003h, CMP 3,3: ZF, PF -> 0246h
+     *  slot 113 +2A28 [6819]=01h, [681C]=00h: JA at once, AL=1, [BP-2]=00h, [BP-1] untouched (A5h), CMP 1,0 -> 0202h (no flag set: PF is clear, one one in 01h) */
+    c = setup(r, 10); r[at(DS_, 0x6819)] = 0x02; r[at(DS_, 0x6818)] = 0x83; r[at(DS_, 0x6816)] = 0xFE; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x41u && r[at(DS_, 0x6816)] == 0x01u && c.ax == 0x0041u && c.flags == 0x0213u);
+    c = setup(r, 10); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x6818)] = 0x83; r[at(DS_, 0x6816)] = 0xFE; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x83u && r[at(DS_, 0x6816)] == 0xFEu && c.ax == 0x0000u && c.flags == 0x0246u);
+    c = setup(r, 20); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x6818)] = 0x81; r[at(DS_, 0x6816)] = 0x7F; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x40u && r[at(DS_, 0x6816)] == 0x82u && c.ax == 0x0040u && c.flags == 0x0A96u);
+    c = setup(r, 29); r[at(DS_, 0x6818)] = 0x80; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x60u && c.ax == 0x0060u && c.dx == 0x0020u && c.flags == 0x0206u);
+    c = setup(r, 113); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x681C)] = 0x03; r[at(DS_, 0x6818)] = 0x10; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x0Du && c.ax == 0x0003u && c.flags == 0x0246u && r[at(SS_, (uint16_t)(S0 - 20u))] == 0x03u && r[at(SS_, (uint16_t)(S0 - 19u))] == 0x03u);
+    c = setup(r, 113); r[at(DS_, 0x6819)] = 0x01; r[at(DS_, 0x681C)] = 0x00; r[at(DS_, 0x6818)] = 0x10; budget = 100000;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED);
+    assert(r[at(DS_, 0x6818)] == 0x10u && c.ax == 0x0001u && c.flags == 0x0202u && r[at(SS_, (uint16_t)(S0 - 20u))] == 0x00u && r[at(SS_, (uint16_t)(S0 - 19u))] == 0xA5u);
+    /* ADAPTED batch P1 (pointer handlers), hand-checked. The frame words are [BP+6] byte, [BP+8]/[BP+0A] one far pointer (offset, segment), [BP+0C]/[BP+0E] the record far pointer; AX at entry = the slot number.
+     * PW(seg, off, k, v) writes ES:[off+k] with the original's 16-bit offset wrap. Flags start 0202h.
+     *  slot 14 +05D6 source 6C00:0200 [3]=9Ch, record 6000:0100: record[15h] = 9Ch, AL = 9Ch, ES:DI = 6000:0100, no flag writer: FLAGS stay as the dispatcher's second SHL left them (0212h: AF set by the pinned shift rule)
+     *  slot 33 +0BAC record 6000:FEFF (record[111h], [112h] wrap to 6000:0010/0011) = 03h/80h, [6822]=00h, [6816]=04h: FFh/7Ch, [6822]=FCh, [6816]=00h, the last SUB 4-4: ZF, PF -> 0246h
+     *  slot 3 +013B P = 6400:0300, Q = 6800:0400 (P[0Ah..0Dh]), Q[9Fh]=4, [6822]=[6818]=FEh: both become 00h, ADD FEh+2: CF, AF (bit 4 of FEh^02h^00h), ZF, PF -> 0257h; AX = 0400h, DX = 6800h, ES:DI = 6800:0400, scratch [6826:6828] = Q
+     *  slot 98 +2700 record[11Bh]=FEh, [32h]=20h: FEh+3 = 01h <= 20h keeps 01h; CMP 01h,20h = E1h: CF, SF, PF -> 0287h, AL = 01h. Second: 30h+3 = 33h > 20h clamps to 20h; CMP 33h,20h = 13h (odd parity): flags 0202h, AL = 20h
+     *  slot 89 +2490 source 6C00:FFFE (source[3] wraps to 6C00:0001): 35h, [6DE3]=0,[6822]=0: source[3] = 05h = AL, AND flags (PF) -> 0206h; with [6822]=FFh bit 4 set: AL = 10h, flags 0202h, nothing stored; source[3]=25h (bit 4 clear): [6822]=FFh, 35h stored, AL = 35h, flags 0206h
+     *  slot 17 +064E record[111h]=20h -> 39h, [6816]=FFh -> 00h, [681B]=0Fh clears [6818]; CMP 0Fh,0Fh: ZF, PF -> 0246h
+     *  slot 37 +0C26 record[108h] -> P = 6400:0300, P[3]=05h > 0: [681E]=01h, [6822]=FFh; CMP 05h,0: PF -> 0206h; ES:DI = P
+     *  slot 58 +1452 record[108h] -> P = 6400:FFFC (P[6] wraps to 6400:0002 = 77h -> 00h), [681D]=01h clears [681A]; CMP 01h,0: flags 0202h; ES:DI = P */
+#define PW(seg, off, k, v) (r[at((seg), (uint16_t)((off) + (k)))] = (uint8_t)(v))
+#define FRAME(sofs, sseg, rofs, rseg) do { put16(r, SS_, (uint16_t)(S0 + 6u), (sofs)); put16(r, SS_, (uint16_t)(S0 + 8u), (sseg)); put16(r, SS_, (uint16_t)(S0 + 10u), (rofs)); put16(r, SS_, (uint16_t)(S0 + 12u), (rseg)); } while (0)
+#define RUN() do { budget = 100000; assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_RETURNED); } while (0)
+    c = setup(r, 14); FRAME(0x0200, 0x6C00, 0x0100, 0x6000); PW(0x6C00, 0x0200, 3, 0x9C); RUN();
+    assert(r[at(0x6000, 0x0115)] == 0x9Cu && c.ax == 0x009Cu && c.es == 0x6000u && c.di == 0x0100u && c.flags == 0x0212u);
+    c = setup(r, 33); FRAME(0x0100, 0x6C00, 0xFEFF, 0x6000); PW(0x6000, 0xFEFF, 0x111, 0x03); PW(0x6000, 0xFEFF, 0x112, 0x80); r[at(DS_, 0x6822)] = 0x00; r[at(DS_, 0x6816)] = 0x04; RUN();
+    assert(r[at(0x6000, 0x0010)] == 0xFFu && r[at(0x6000, 0x0011)] == 0x7Cu && r[at(DS_, 0x6822)] == 0xFCu && r[at(DS_, 0x6816)] == 0x00u && c.flags == 0x0246u && c.es == 0x6000u && c.di == 0xFEFFu && c.ax == 0x0021u);
+    c = setup(r, 3); FRAME(0x0100, 0x6C00, 0x0100, 0x6000);
+    PW(0x6000, 0x0100, 0x108, 0x00); PW(0x6000, 0x0100, 0x109, 0x03); PW(0x6000, 0x0100, 0x10A, 0x00); PW(0x6000, 0x0100, 0x10B, 0x64);
+    PW(0x6400, 0x0300, 0xA, 0x00); PW(0x6400, 0x0300, 0xB, 0x04); PW(0x6400, 0x0300, 0xC, 0x00); PW(0x6400, 0x0300, 0xD, 0x68); PW(0x6800, 0x0400, 0x9F, 0x04);
+    r[at(DS_, 0x6822)] = 0xFE; r[at(DS_, 0x6818)] = 0xFE; RUN();
+    assert(r[at(DS_, 0x6822)] == 0x00u && r[at(DS_, 0x6818)] == 0x00u && c.flags == 0x0257u && c.ax == 0x0400u && c.dx == 0x6800u && c.es == 0x6800u && c.di == 0x0400u && get16(r, DS_, 0x6826u) == 0x0400u && get16(r, DS_, 0x6828u) == 0x6800u);
+    c = setup(r, 98); FRAME(0x0100, 0x6C00, 0x0100, 0x6000); PW(0x6000, 0x0100, 0x11B, 0xFE); PW(0x6000, 0x0100, 0x32, 0x20); RUN();
+    assert(r[at(0x6000, 0x021B)] == 0x01u && c.ax == 0x0001u && c.flags == 0x0287u);
+    c = setup(r, 98); FRAME(0x0100, 0x6C00, 0x0100, 0x6000); PW(0x6000, 0x0100, 0x11B, 0x30); PW(0x6000, 0x0100, 0x32, 0x20); RUN();
+    assert(r[at(0x6000, 0x021B)] == 0x20u && c.ax == 0x0020u && c.flags == 0x0202u);
+    c = setup(r, 89); FRAME(0xFFFE, 0x6C00, 0x0100, 0x6000); PW(0x6C00, 0xFFFE, 3, 0x35); r[at(DS_, 0x6DE3)] = 0; r[at(DS_, 0x6822)] = 0; RUN();
+    assert(r[at(0x6C00, 0x0001)] == 0x05u && c.ax == 0x0005u && c.flags == 0x0206u && c.es == 0x6C00u && c.di == 0xFFFEu);
+    c = setup(r, 89); FRAME(0xFFFE, 0x6C00, 0x0100, 0x6000); PW(0x6C00, 0xFFFE, 3, 0x35); r[at(DS_, 0x6DE3)] = 0; r[at(DS_, 0x6822)] = 0xFF; RUN();
+    assert(r[at(0x6C00, 0x0001)] == 0x35u && r[at(DS_, 0x6822)] == 0xFFu && c.ax == 0x0010u && c.flags == 0x0202u);
+    c = setup(r, 89); FRAME(0xFFFE, 0x6C00, 0x0100, 0x6000); PW(0x6C00, 0xFFFE, 3, 0x25); r[at(DS_, 0x6DE3)] = 0; r[at(DS_, 0x6822)] = 0xFF; RUN();
+    assert(r[at(0x6C00, 0x0001)] == 0x35u && r[at(DS_, 0x6822)] == 0xFFu && c.ax == 0x0035u && c.flags == 0x0206u);
+    c = setup(r, 17); FRAME(0x0100, 0x6C00, 0x0100, 0x6000); PW(0x6000, 0x0100, 0x111, 0x20); r[at(DS_, 0x6816)] = 0xFF; r[at(DS_, 0x681B)] = 0x0F; r[at(DS_, 0x6818)] = 0x44; RUN();
+    assert(r[at(0x6000, 0x0211)] == 0x39u && r[at(DS_, 0x6816)] == 0x00u && r[at(DS_, 0x6818)] == 0x00u && c.flags == 0x0246u && c.es == 0x6000u && c.di == 0x0100u && c.ax == 0x0011u);
+    c = setup(r, 37); FRAME(0x0100, 0x6C00, 0x0100, 0x6000);
+    PW(0x6000, 0x0100, 0x108, 0x00); PW(0x6000, 0x0100, 0x109, 0x03); PW(0x6000, 0x0100, 0x10A, 0x00); PW(0x6000, 0x0100, 0x10B, 0x64); PW(0x6400, 0x0300, 3, 0x05); r[at(DS_, 0x681E)] = 0; r[at(DS_, 0x6822)] = 0; RUN();
+    assert(r[at(DS_, 0x681E)] == 0x01u && r[at(DS_, 0x6822)] == 0xFFu && c.flags == 0x0206u && c.es == 0x6400u && c.di == 0x0300u);
+    c = setup(r, 58); FRAME(0x0100, 0x6C00, 0x0100, 0x6000);
+    PW(0x6000, 0x0100, 0x108, 0xFC); PW(0x6000, 0x0100, 0x109, 0xFF); PW(0x6000, 0x0100, 0x10A, 0x00); PW(0x6000, 0x0100, 0x10B, 0x64); PW(0x6400, 0xFFFC, 6, 0x77); r[at(DS_, 0x681D)] = 1; r[at(DS_, 0x681A)] = 0x5A; RUN();
+    assert(r[at(0x6400, 0x0002)] == 0x00u && r[at(DS_, 0x681A)] == 0x00u && c.flags == 0x0202u && c.es == 0x6400u && c.di == 0xFFFCu);
+    /* ADAPTED batch P2 (slots 8, 45 +0377 [matches 2, 5, 8]; 9, 46 +03AC [matches 0, 3, 6]), hand-checked. The record is the GLOBAL active character DS:[5D92] (offset) / DS:[5D94] (segment): here 6000:FF70,
+     * so byte +0A0h wraps to 6000:0010. A match adds 2 to [6816] and subtracts 2 from [6822] (the SUB is the last flag writer); no match leaves the third CMP (against 8 for +0377, 6 for +03AC).
+     *  slot 8, [A0]=05h (match), [6816]=7Fh, [6822]=01h: [6816]=81h, [6822]=FFh; SUB 01h-2: CF, AF (bit 4 of 01h^02h^FFh), SF, PF (FFh) -> 0297h; ES:DI = 6000:FF70; AX = 0008h
+     *  slot 9, [A0]=04h (no match): data unchanged; CMP 04h,6 = FEh: CF, AF, SF (odd parity: no PF) -> 0293h
+     *  slot 8, [A0]=03h (no match for +0377): CMP 03h,8 = FBh: CF, AF, SF -> 0293h */
+    c = setup(r, 8); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x05); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x81u && r[at(DS_, 0x6822)] == 0xFFu && c.flags == 0x0297u && c.es == 0x6000u && c.di == 0xFF70u && c.ax == 0x0008u);
+    c = setup(r, 9); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x04); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u && c.es == 0x6000u && c.di == 0xFF70u);
+    c = setup(r, 8); put16(r, DS_, 0x5D92u, 0xFF70u); put16(r, DS_, 0x5D94u, 0x6000u); PW(0x6000, 0xFF70, 0xA0, 0x03); r[at(DS_, 0x6816)] = 0x7F; r[at(DS_, 0x6822)] = 0x01; RUN();
+    assert(r[at(DS_, 0x6816)] == 0x7Fu && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0293u);
+    /* ADAPTED slot 25 +0918 (the handler composed with the credited resident lookup BA:2199, which the composed world runs for real), hand-checked data effects: the active character DS:[5D92]/[5D94] = 6000:0100,
+     * its sidecar list head at +7Fh (offset) / +81h (segment), 9-byte nodes (type +0, next far pointer +5/+7). Key 18h found: AL = 1, [681E] untouched; not found: AL = 0 and [681E] = 1; both then SUB [6822],4
+     * (05h -> 01h) and leave the SUB's flags 0202h (01h: odd parity, nothing set). Only AL is asserted here (AH, DX and ES:DI come from the resident routine and are compared against the original by the audit). */
+    c = setup(r, 25); put16(r, DS_, 0x5D92u, 0x0100u); put16(r, DS_, 0x5D94u, 0x6000u);
+    put16(r, 0x6000, 0x017F, 0x2000); put16(r, 0x6000, 0x0181, 0x6400);
+    PW(0x6400, 0x2000, 0, 0x17); put16(r, 0x6400, 0x2005, 0x2040); put16(r, 0x6400, 0x2007, 0x6400);
+    PW(0x6400, 0x2040, 0, 0x18); put16(r, 0x6400, 0x2045, 0); put16(r, 0x6400, 0x2047, 0);
+    r[at(DS_, 0x6822)] = 0x05; r[at(DS_, 0x681E)] = 0x55; RUN();
+    assert((c.ax & 0xFFu) == 1u && r[at(DS_, 0x681E)] == 0x55u && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0202u);
+    c = setup(r, 25); put16(r, DS_, 0x5D92u, 0x0100u); put16(r, DS_, 0x5D94u, 0x6000u);
+    put16(r, 0x6000, 0x017F, 0x2000); put16(r, 0x6000, 0x0181, 0x6400);
+    PW(0x6400, 0x2000, 0, 0x17); put16(r, 0x6400, 0x2005, 0); put16(r, 0x6400, 0x2007, 0);
+    r[at(DS_, 0x6822)] = 0x05; r[at(DS_, 0x681E)] = 0x55; RUN();
+    assert((c.ax & 0xFFu) == 0u && r[at(DS_, 0x681E)] == 0x01u && r[at(DS_, 0x6822)] == 0x01u && c.flags == 0x0202u);
     /* the budget sweep: LIMIT stops at each instruction start in order */
     {
         static const uint16_t IPS[] = {0x0000, 0x0001, 0x0003, 0x0006, 0x0009, 0x000C, 0x000F, 0x0012, 0x0013, 0x0016, 0x0018, 0x001A, 0x001C, 0x001E, 0x0022, 0x0023};
