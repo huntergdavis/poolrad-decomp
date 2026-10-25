@@ -373,3 +373,30 @@ Result:
 distinct addresses, each a separate function, so they are correctly counted
 four times. A duplicate-SHA check will flag them; it should not treat them as
 a double count.
+
+
+## Required owner-media receipt (t119)
+
+Every PR and independent reviewer verdict must include the literal line
+`ran run_media_checks.sh: result`, filled with the reviewed head, outcome,
+test count and skips, or the exact NOT RUN reason. A missing/NOT RUN receipt
+is not media validation. Before accepting a change affecting media-dependent
+behavior, run `tools/run_media_checks.sh` from an owner-media checkout.
+
+The command checks `resources/DOS/POOLRAD/{START.EXE,GAME.OVR}`, uses the shared
+`../poolrad-heavy.sh`, runs every `tools/overlay/test_*.py` test plus
+`tests/recovered/test_u6a_0824_fullc_gate.py`, and exits nonzero on missing media,
+missing wrapper, test failure, or skipped coverage. Install the checker Python
+dependencies and provide current accounting products under ignored `resources/`.
+The command regenerates a missing or stale queue export from those products;
+missing products or skipped coverage cannot be counted as a pass.
+New media-dependent unittest files outside these discovered locations must be
+added to `tools/run_media_checks.py`. This is the repository's media-dependent
+unittest gate, not execution of every standalone row audit or native emulator.
+
+Public CI does not possess the owner's game media. It prints a named
+`media checks NOT RUN: no owner media` warning and summary, and runs the emitter
+set, template-helper and missing-media refusal tests only. A green CI result
+does not certify emitter reproduction or the full owner-media suite. The
+local command runs all eight emitters with `--check`; it never repairs generated
+files as part of verification. Media and derived captures stay ignored.
