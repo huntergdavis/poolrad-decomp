@@ -93,14 +93,40 @@ an unlock achieved by t81**. CREDITED/REPLACED remain 288/112 even in that diagn
 Reproduce through the shared heavy-job wrapper (private outputs stay in ignored
 `resources/`; the resources symlink is never committed):
 
+A clean checkout needs the owner's hash-pinned media at the paths below and
+Capstone **5.0.7**. Generate the inventory, callgraph and near-call audit first;
+they are not committed files. This sequence was rerun on code head
+`bf2ff1f56a32e816b4649ab3a7dd7ed70a70e95b`, based on `6d369fe3`, into a previously
+absent input directory. The generator code is unchanged from that base.
+`function_queue_audit.py` also checks the generated ledgers and canonical
+accounting checkpoint pin. **`--inputs` takes the directory, not inventory.json.**
+
 ```sh
 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
+  /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/function_queue_audit.py \
+  --exe resources/DOS/POOLRAD/START.EXE \
+  --ovr resources/DOS/POOLRAD/GAME.OVR \
+  --out-dir resources/t81-ready-helper/repro-inputs-bf2ff1f5
+PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
   /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/measure_ready_helpers.py \
-  --expected-base 6d369fe3 --output-dir resources/t81-ready-helper/paired
+  --expected-base 6d369fe3 \
+  --inputs resources/t81-ready-helper/repro-inputs-bf2ff1f5 \
+  --output-dir resources/t81-ready-helper/repro-measurement-bf2ff1f5
 PYTHONPATH=/tmp/poolrad-capstone:/tmp/poolrad-unicorn:tools/overlay PYTHONDONTWRITEBYTECODE=1 \
   /home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res03f1_box_0000_cpu_audit.py \
   --unicorn --native --output resources/t81-ready-helper/03f1-audit.json
 ```
+
+The regenerated inputs exactly match the original receipt's SHA-256 values:
+
+| Generated file | SHA-256 |
+| --- | --- |
+| `inventory.json` | `6de7664f10eb51dd33b98b5b7e27cde76a3fa3a5f52546b3c09bdcde69eca7f8` |
+| `callgraph.json` | `c180ff957a769ad56f1afdfcdb25900ebb915a7a6098db9c726a89b2793f4dc3` |
+| `near.json` | `a40ba4f2b8115f66e5fcb4e66aaca70e18bd17593d450ef010e1198e720cbd2c` |
+
+The fresh-input paired run reproduced 432/50/288/112 on both sides, the empty
+member set, both caller refusals, zero changed rows and the same 16EC diagnostic.
 
 `measurement.json` records all input hashes, both totals, every caller's class,
 per-member ablations when members exist, changed readiness rows and the separately
