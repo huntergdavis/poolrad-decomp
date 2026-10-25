@@ -52,6 +52,8 @@ class Trace:
         self.box_frames = []
         self.tile_frames = []
         self.box_locals = []
+        self.move_frames = []
+        self.move_return_bases = []
         self.sites = Counter()
         self.selectors = {}
         self.box_bp = None
@@ -71,6 +73,10 @@ class Trace:
             self.box_frames.append(words(sp + 4, 5))
             self.box_bp = (sp - 2) & 65535
         if cs == A.OVSEG:
+            if ip == 0x028B:
+                self.move_frames.append(words(sp, 5))  # count, dst off/seg, src off/seg, before CALL
+            if ip == 0x0290 and self.box_bp is not None:
+                self.move_return_bases.append(words(self.box_bp - 3, 1)[0])
             if ip in dict(A.O.CALL_SITES):
                 self.sites[ip] += 1
             if ip == 0x015D:
@@ -83,6 +89,8 @@ class Trace:
                     tile_calls=len(self.tile_frames),
                     tile_words=sorted({tuple(w[:3]) for w in self.tile_frames}),
                     box_tile_bases=sorted(set(self.box_locals)),
+                    move_frames=self.move_frames,
+                    move_return_bases=self.move_return_bases,
                     tile_sites={f'{site:04X}': self.sites[site] for site, _ in A.O.CALL_SITES})
 
 
@@ -139,21 +147,78 @@ def measure(state, ips, library=None):
     return trace, stop
 
 
+def alias_state(data, overwrite):
+    """Matched initial-memory worlds; no code patch or observer-side write.
+
+    Band 4's object is at 3400:0000 with a two-byte item size. First tile
+    114h rebases to item 14h, so source +17h+14h*2 contains 011Fh.
+    The bad world's destination+17h is the box base-tile local.
+    At 1951, the aliased object's height overlaps the tile body's saved
+    source-offset local (zero), so mode 0 has no rows and returns normally.
+    """
+    state = build('frame-alias', dict(mode5=False, gmode=0), data)
+    ram, cpu = state[:2]
+    seg = A.O.TILES + 0x400
+    for off, value in ((0, 2), (2, 2), (0x11, 2), (0x13, A.O.AUX[0]), (0x15, A.O.AUX[1])):
+        A.put16(ram, seg, off, value)
+    A.put16(ram, cpu.ds, 0x5E4A, 0)
+    A.put16(ram, cpu.ds, 0x5E4C, seg)
+    A.put16(ram, cpu.ds, 0x272A, 0x100)
+    A.put16(ram, seg, 0x17 + 0x14 * 2, 0x11F)
+    if overwrite:
+        box_bp = (cpu.sp - 0x114) & 65535
+        A.put16(ram, cpu.ds, 0x5E4E, (box_bp - 3 - 0x17) & 65535)
+        A.put16(ram, cpu.ds, 0x5E50, cpu.ss)
+    return state
+
+
+def validate_alias(trace, stop, state):
+    require(len(trace.box_frames) == 1 and [w & 255 for w in trace.box_frames[0]] == BOX_ARGS,
+            'alias control changed the caller arguments')
+    require(trace.box_bp == (state[1].sp - 0x114) & 65535, 'alias control box frame geometry')
+    require(trace.box_locals == [0x114, 0x11F], 'alias did not change the next original tile number')
+    require(trace.move_return_bases == [0x11F], 'original Move did not overwrite the box local')
+    require(len(trace.move_frames) == 1, 'expected one original Move before the error')
+    count, off, seg, _, _ = trace.move_frames[0]
+    require(count == 2 and A.physical(seg, off) == A.physical(state[1].ss, trace.box_bp - 3),
+            'original Move destination is not the protected box local')
+    require(len(trace.tile_frames) == 2 and trace.tile_frames[1][2] == 0x11F,
+            'alias control did not break the 92-tile conclusion')
+    require(trace.sites[0x01C5] == 1 and stop == 'EXIT', 'alias error path did not exit')
+    try:
+        validate(trace, stop, box=True)
+    except ValueError as error:
+        require('tile count' in str(error), 'alias rejected for an unexpected reason')
+    else:
+        raise ValueError('violated preservation condition silently re-admitted the exclusion')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     data = inputs()
     results = []
+    controls = []
     with tempfile.TemporaryDirectory(prefix='t131-boundary-') as work:
         library = A.library(work)
         for name, options, box, loaded, null in cases():
             trace, stop = measure(build(name, options, data, null), data[3], library)
             validate(trace, stop, box=box, loaded=loaded, null=null)
             results.append(dict(name=name, stop=stop, **trace.report()))
+        for overwrite in (False, True):
+            state = alias_state(data, overwrite)
+            trace, stop = measure(state, data[3], library)
+            if overwrite:
+                validate_alias(trace, stop, state)
+            else:
+                validate(trace, stop, box=True)
+            controls.append(dict(name='frame-alias-011f-two-tiles-exit' if overwrite else 'frame-alias-baseline',
+                                 synthetic_violation=overwrite, exclusion_available=not overwrite,
+                                 stop=stop, **trace.report()))
     report = dict(head=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=A.ROOT, text=True).strip(),
                   image_sha256=A.Q.IMAGE_DIGEST, body_sha256=PINS, cases=results,
-                  full_state_comparisons=len(results), live_gameplay=False, native=False,
+                  controls=controls, full_state_comparisons=len(results) + len(controls), live_gameplay=False, native=False,
                   claim='Conditional tile-path exclusion only; no identity, readiness or closure verdict.',
                   preconditions=['Pinned immutable code and correct loaded overlay target',
                                  'Callees preserve box frame and each tile argument frame',
@@ -163,7 +228,7 @@ def main():
                                 'Overlay loading', 'Whole 16EC termination', 'Strict readiness'])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
-    print(f'PASS: {len(results)} boundary cases with full-state comparisons; native/live gameplay NOT VERIFIED')
+    print(f'PASS: {len(results)} boundary cases + {len(controls)} preservation controls with full-state comparisons; native/live gameplay NOT VERIFIED')
 
 
 if __name__ == '__main__':

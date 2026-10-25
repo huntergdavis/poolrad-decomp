@@ -110,6 +110,47 @@ The focused owner-media tests passed **5/5**, zero skips (68.379 seconds),
 including the nine-case original-path matrix and both executed mutations.
 The receipt is retained under ignored `resources/t131/focused.log`.
 
+On `333f29624436f323e3fc5125d5450d46299c94ab`, the nine original/C full-state
+comparisons also passed: eight RETURNED and one cold-stub OVERLAY. This
+receipt precedes the preservation control below; it does not validate that
+new control. It is retained under `resources/t131/boundary.json`.
+
+### Preservation-control prediction, recorded before execution
+
+Reviewer request `i24647`, reinforced by VP ruling `i24650` and reviewer
+`i24664`: make the frame-preservation condition itself falsifiable.
+
+The named synthetic initial-memory violation is
+`frame-alias-011f-two-tiles-exit`. Both worlds use mode 0 and a band-4 object
+at `3400:0000` with two-byte tile items. The first item's source bytes encode
+`011Fh`. The worlds differ only in `DS:5E4E/5E50`, the Move-object destination
+pointer. In the violation world, destination+17h is the box's `[BP-3]` local;
+in the baseline it is the normal synthetic object. No guest code is patched
+and the observer writes nothing.
+
+**Prediction:** the baseline returns after 92 tile calls. In the violation,
+the original first Move changes `[box BP-3]` from `0114h` to `011Fh`.
+The following mode-0 1951 returns without rows: the aliased object's height
+overlaps the tile frame's saved source-offset local, which is zero. The
+second box tile is therefore `011Fh`, takes the real tile error branch, and
+exits after **two tile calls**, not 92. The tile-base and count conclusions
+break; no nonzero flag byte is predicted.
+
+The checker must observe that actual Move destination, its completed write,
+the next tile number, the error call and EXIT. It must also explicitly reject
+applying the conditional exclusion to that trace. A premature stop is an
+unfalsified control, not a passing rejection: the assertions fail and the
+command exits nonzero. This is a constructed violation, not a natural-game
+reachability claim. Execution results are not yet recorded in this paragraph.
+
+The boundary covered here is the `00BA:177B` call, its fixed box frame,
+`0428:002A` loaded target, and the resulting tile/Move/1951 composition.
+A new caller, changed frame layout, changed stub/target, or changed object/
+display write contract invalidates reuse and requires a boundary recheck.
+VP rulings `i24650/i24656` do not grant any membership: this PR does not
+define or cite a new admission class, remove a readiness dependency, or
+change the t100 NO result.
+
 Reproduce, one heavy command at a time, with Capstone 5.0.7 / Unicorn 2.1.4
 available to the selected Python:
 
