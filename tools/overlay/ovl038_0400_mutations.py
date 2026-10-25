@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Mutation check of the OVL_0038_0400 C model: each deliberate change must be caught by the smoke subset of the differential
-(ovl038_0400_cpu_audit.SMOKE).
+"""Mutation check of the OVL_0038_0400 C model: each deliberate change must be caught by the smoke returns or resident
+budget-stop comparisons (ovl038_0400_cpu_audit.SMOKE and PARTY_STOP_BUDGETS).
 
-Harness rules (PM i22688, par-c i23059): the UNMUTATED library first runs the same smoke set and the run aborts unless it
-passes; every case's world is seeded from its name (the audit's build), never from run order; every mutant is compile-checked
+Harness rules (PM i22688, par-c i23059): the UNMUTATED library first runs the same smoke set and six resident budget stops; the run aborts unless all
+pass; every case's world is seeded from its name (the audit's build), never from run order; every mutant is compile-checked
 (cc -fsyntax-only) before any run, and a mutant that does not compile is a failure, never 'equivalent'. Each mutant is a
 one-substring change inside one generated `case 0xADDR:` line of src/recovered/overlay_u38_handler_0400_cpu.c.
 """
@@ -26,6 +26,9 @@ MUTANTS = [
     (0x048F, '!((c->flags&1u)||(c->flags&0x40u))', '!(c->flags&1u)', 'JA -> JAE'),
     (0x0494, '(uint8_t)(0xB3u)', '(uint8_t)(0xB4u)', 'B+84h set to B4h'),
     (0x04A4, '0x000Au', '0x0008u', 'C word +0Ah -> +08h'),
+    (0x04AC, 'int s=call_party_count_23db(b,c,dg);', '(void)dg;(void)call_party_count_23db;int s=0;', '23DB call skipped'),
+    (0x04AC, 'int s=call_party_count_23db(b,c,dg);', 'dg->budget=0;int s=call_party_count_23db(b,c,dg);', '23DB party budget forced to zero'),
+    (0x04AC, 'rd16(b,c->cs,0x04AFu)', 'rd16(b,c->cs,0x04ADu)', '23DB far-pointer segment from offset word'),
     (0x04B1, '(uint8_t)(0x64u)', '(uint8_t)(0x65u)', 'DS:6825 := 65h'),
     (0x04B7, 'c->sp+10u', 'c->sp+8u', 'RETF 0Ah -> RETF 8'),
 ]
@@ -60,23 +63,27 @@ def main():
     for label, text in texts:                                   # compile-check every mutant before any run
         with tempfile.TemporaryDirectory(prefix='mut0400-syntax-') as tmp:
             p = Path(tmp) / f'{TARGET}.c'; p.write_text(text)
-            r = subprocess.run(['cc', '-std=c11', '-fsyntax-only', '-I', str(A.ROOT / 'include'), str(p)], capture_output=True, text=True)
+            r = subprocess.run(['cc', '-std=c11', '-Wall', '-Wextra', '-Wpedantic', '-Werror', '-Wno-unused-function', '-fsyntax-only', '-I', str(A.ROOT / 'include'), str(p)], capture_output=True, text=True)
             if r.returncode:
                 raise SystemExit(f'mutant does not compile (a failure, not an equivalent): {label}: {r.stderr[-200:]}')
     image, sites = A.Q.load_image()
     image_reloc = A.Q.relocate(image, sites, A.BASE)
     code, fixups, _, body_ips = A.source()
     with tempfile.TemporaryDirectory(prefix='mut0400-base-') as tmp:   # baseline: the unmutated model on the same cases
-        base = A.differential(image_reloc, code, fixups, body_ips, build(tmp, original), only=A.SMOKE)
+        f = build(tmp, original)
+        base = A.differential(image_reloc, code, fixups, body_ips, f, only=A.SMOKE)
+        stops = A.party_stop_differential(image_reloc, code, fixups, body_ips, f)
     if base['cases'] != len(A.SMOKE) or base['stops'] != {'RETURN': len(A.SMOKE)}:
         raise SystemExit(f'baseline does not pass on the smoke set: {base}')
     print(f'baseline: {base["cases"]} smoke cases pass unmutated', flush=True)
+    print(f'baseline: {stops["cases"]} resident budget stops pass unmutated', flush=True)
     survivors, caught = [], []
     for label, text in texts:
         with tempfile.TemporaryDirectory(prefix='mut0400-') as tmp:
             f = build(tmp, text)
             try:
                 A.differential(image_reloc, code, fixups, body_ips, f, only=A.SMOKE)
+                A.party_stop_differential(image_reloc, code, fixups, body_ips, f)
                 survivors.append(label); print('SURVIVED', label, flush=True)
             except (ValueError, AssertionError) as exc:
                 caught.append(label); print('caught', label, '-', re.sub(r'\s+', ' ', str(exc))[:90], flush=True)
