@@ -17,6 +17,7 @@ overlay_u25_entry4_0341_cpu.c,pr_system_str_1366,yes,local,read,unreachable-by-c
 overlay_u25_entry4_0341_cpu.c,pr_system_strcat_0b98,yes,local,read,unreachable-by-construction,yes
 overlay_u25_entry4_0341_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 overlay_u25_entry5_0411_cpu.c,pr_system_getmem_023f,yes,callee-returned+caller-argument,read,can-reach-under-a-corrupt-pointer,yes
+overlay_u25_move_19db_cpu.c,pr_u3bd_nibble_047b_fullstate,no,-,-,no-pointer,yes
 overlay_u38_0cc3_cpu.c,pr_system_freemem_0254,yes,global,read,can-reach-under-a-corrupt-pointer,yes
 overlay_u38_0cc3_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 overlay_u38_message_3134_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes

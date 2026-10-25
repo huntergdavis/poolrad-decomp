@@ -340,10 +340,10 @@ index 0000000..d36b184
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..cd81151
+index 0000000..3974c1a
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1193 @@
+@@ -0,0 +1,1252 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -478,6 +478,18 @@ index 0000000..cd81151
 +#include "poolrad/recovered/overlay_u3b0_entry_0a08_cpu.h"
 +#include "poolrad/recovered/overlay_u3b0_entry_0c33_cpu.h"
 +#include "poolrad/recovered/overlay_u3b0_dispose_11f3_cpu.h"
++#include "poolrad/recovered/overlay_0077_275b_cpu.h"
++#include "poolrad/recovered/overlay_u77_weighted_28be_cpu.h"
++#include "poolrad/recovered/overlay_u7f_weighted_00a8_cpu.h"
++#include "poolrad/recovered/overlay_u7f_0a88_cpu.h"
++#include "poolrad/recovered/overlay_u7f_coin_type_0b93_cpu.h"
++#include "poolrad/recovered/overlay_u23_append_0239_cpu.h"
++#include "poolrad/recovered/overlay_u6a_record_weight_0000.h"
++#include "poolrad/recovered/overlay_u6a_record_remaining_025c.h"
++#include "poolrad/recovered/overlay_u6a_string_node_0e37.h"
++#include "poolrad/recovered/overlay_u7f_div5_leaves_cpu.h"
++#include "poolrad/recovered/overlay_u25_move_19db_cpu.h"
++#include "poolrad/recovered/overlay_u25_compare_strings_1815_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -525,6 +537,8 @@ index 0000000..cd81151
 +PR_SAME_LAYOUT(pr_r0802_0716_cpu); PR_SAME_LAYOUT(pr_filepos_cpu); PR_SAME_LAYOUT(pr_u6f_insert_cpu); PR_SAME_LAYOUT(pr_u9b_0000_cpu);
 +PR_SAME_LAYOUT(pr_u9b_0255_cpu); PR_SAME_LAYOUT(pr_u9b_0329_cpu); PR_SAME_LAYOUT(pr_u3ce_014e_cpu); PR_SAME_LAYOUT(pr_u3b4_case_cpu);
 +PR_SAME_LAYOUT(pr_u1c_goto_cpu); PR_SAME_LAYOUT(pr_u25_01b6_cpu); PR_SAME_LAYOUT(pr_u7d_02f2_cpu); PR_SAME_LAYOUT(pr_u3b9_048f_cpu);
++PR_SAME_LAYOUT(pr_u7f_div5_cpu); PR_SAME_LAYOUT(pr_u25_19db_cpu); PR_SAME_LAYOUT(pr_u25_1815_cpu);
++PR_SAME_LAYOUT(pr_ovl0077_275b_state); PR_SAME_LAYOUT(pr_u77_28be_cpu); PR_SAME_LAYOUT(pr_u7f_00a8_cpu); PR_SAME_LAYOUT(pr_u7f_0a88_regs); PR_SAME_LAYOUT(pr_u7f_0b93_cpu); PR_SAME_LAYOUT(pr_u23_0239_cpu); PR_SAME_LAYOUT(pr_u6a_0000_cpu); PR_SAME_LAYOUT(pr_u6a_025c_cpu); PR_SAME_LAYOUT(pr_u6a_0e37_cpu);
 +PR_SAME_LAYOUT(pr_u6a_14a9_cpu); PR_SAME_LAYOUT(pr_u6a_1601_cpu); PR_SAME_LAYOUT(pr_u7d_03a3_cpu); PR_SAME_LAYOUT(pr_u7d_0565_cpu); PR_SAME_LAYOUT(pr_u7d_05f0_cpu); PR_SAME_LAYOUT(pr_u86_028d_cpu); PR_SAME_LAYOUT(pr_u86_059c_cpu); PR_SAME_LAYOUT(pr_u3b0_0a08_cpu); PR_SAME_LAYOUT(pr_u3b0_0c33_cpu); PR_SAME_LAYOUT(pr_u3b0_11f3_cpu);
 +PR_SAME_LAYOUT(pr_res_2e46_cpu); PR_SAME_LAYOUT(pr_res_23db_cpu); PR_SAME_LAYOUT(pr_res_1509_cpu); PR_SAME_LAYOUT(pr_u7f_003a_cpu); PR_SAME_LAYOUT(pr_u7f_0508_cpu); PR_SAME_LAYOUT(pr_u7f_05e0_cpu); PR_SAME_LAYOUT(pr_u3b0_0000_cpu); PR_SAME_LAYOUT(pr_u3b0_0067_cpu); PR_SAME_LAYOUT(pr_u3b0_0711_cpu); PR_SAME_LAYOUT(pr_u3b0s_cpu); PR_SAME_LAYOUT(pr_u3b0_0b03_cpu); PR_SAME_LAYOUT(pr_u3b0_0cc5_cpu); PR_SAME_LAYOUT(pr_u3b0_07a4_cpu); PR_SAME_LAYOUT(pr_u3b0_0969_cpu);
 +PR_SAME_LAYOUT(pr_u25_06d3_cpu); PR_SAME_LAYOUT(pr_u25_06fb_cpu); PR_SAME_LAYOUT(pr_u25_18eb_cpu); PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
@@ -674,6 +688,21 @@ index 0000000..cd81151
 +    {"OVL_03B0_0A08", 0x0000, 0x0A08, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03B0_0C33", 0x0000, 0x0C33, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03B0_11F3", 0x0000, 0x11F3, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batches 12 (R4: shop Buy, Sune temple; codex #1535) and 13 (codex expanded observers on R2/R4); pop 0 */
++    {"OVL_0077_275B", 0x0000, 0x275B, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0077_28BE", 0x0000, 0x28BE, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_00A8", 0x0000, 0x00A8, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_0A88", 0x0000, 0x0A88, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_0B93", 0x0000, 0x0B93, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0023_0239", 0x0000, 0x0239, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_006A_0000", 0x0000, 0x0000, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_006A_025C", 0x0000, 0x025C, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_006A_0E37", 0x0000, 0x0E37, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batch 15: par-d2's new raw models for R4's semantic-only bodies (#1541, #1542, #1543); pop 0 */
++    {"OVL_007F_0130", 0x0000, 0x0130, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_007F_0185", 0x0000, 0x0185, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0025_19DB", 0x0000, 0x19DB, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* STUB stop at an unloaded 3BD slot: hand-back, the overlay manager loads it */
++    {"OVL_0025_1815", 0x0000, 0x1815, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -897,6 +926,24 @@ index 0000000..cd81151
 + * 0 RETURNED, 1 ARGUMENT, 2 a stop. `m` holds the model's CPU afterwards. */
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
++    /* batch 15 */
++    if (!strcmp(x.id, "OVL_0025_1815")) { size_t budget = (size_t)1u << 24; int st = pr_u25_compare_strings_1815_cpu(MemBase, RAM, (pr_u25_1815_cpu *)&m, &budget); last_raw = st;
++        return st == PR_U25_1815_RETURNED ? 0 : st == PR_U25_1815_ARGUMENT ? 1 : 2; }
++    /* batches 12 and 13 */
++    if (!strcmp(x.id, "OVL_0077_275B")) { size_t budget = (size_t)1u << 24; pr_ovl0077_275b_diagnostic d; int st = pr_ovl0077_275b_cpu(MemBase, RAM, (pr_ovl0077_275b_state *)&m, &budget, &d); last_raw = st;
++        return st == PR_OVL0077_275B_RETURNED ? 0 : st == PR_OVL0077_275B_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0077_28BE")) { int cst = -1; int st = pr_u77_weighted_28be_cpu(MemBase, RAM, (pr_u77_28be_cpu *)&m, &cst); last_raw = st;
++        return st == PR_U77_28BE_CPU_OK ? 0 : st == PR_U77_28BE_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007F_00A8")) { int cst = -1; int st = pr_u7f_weighted_00a8_cpu(MemBase, RAM, (pr_u7f_00a8_cpu *)&m, &cst); last_raw = st;
++        return st == PR_U7F_00A8_OK ? 0 : st == PR_U7F_00A8_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_007F_0B93")) { int cst = -1; int st = pr_u7f_coin_type_0b93_cpu(MemBase, RAM, (pr_u7f_0b93_cpu *)&m, 1u << 20, &cst); last_raw = st;
++        return st == PR_U7F_0B93_OK ? 0 : st == PR_U7F_0B93_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_006A_0000")) { int st = pr_u6a_record_weight_0000(MemBase, RAM, (pr_u6a_0000_cpu *)&m); last_raw = st;
++        return st == PR_U6A_0000_OK ? 0 : st == PR_U6A_0000_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_006A_025C")) { int st = pr_u6a_record_remaining_025c(MemBase, RAM, (pr_u6a_025c_cpu *)&m); last_raw = st;
++        return st == PR_U6A_025C_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_006A_0E37")) { int cst = -1; int st = pr_u6a_string_node_0e37(MemBase, RAM, (pr_u6a_0e37_cpu *)&m, 1u << 20, &cst); last_raw = st;
++        return st == PR_U6A_0E37_OK ? 0 : st == PR_U6A_0E37_ARGUMENT ? 1 : 2; }
 +    /* batch 11 (R2) */
 +    if (!strcmp(x.id, "OVL_006A_14A9")) { int st = pr_u6a_party_before_14a9(MemBase, RAM, (pr_u6a_14a9_cpu *)&m); last_raw = st; return st == PR_U6A_14A9_OK ? 0 : 1; }
 +    if (!strcmp(x.id, "OVL_006A_1601")) { int st = pr_u6a_party_after_1601(MemBase, RAM, (pr_u6a_1601_cpu *)&m); last_raw = st; return st == PR_U6A_1601_OK ? 0 : 1; }
@@ -1256,6 +1303,18 @@ index 0000000..cd81151
 +        if (MemBase[st0 & K] != 0xEAu || (MemBase[(st0 + 1u) & K] | (MemBase[(st0 + 2u) & K] << 8)) != 0x0350u) { ++stub_declined; return 1; }
 +        int st = pr_u68_up_preflight_068d_cpu(bus, RAM, (pr_u68_068d_cpu *)&m); last_raw = st;
 +        return st == PR_U68_068D_RETURNED ? 0 : st == PR_U68_068D_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_007F_0130") || !strcmp(id, "OVL_007F_0185")) { size_t budget = B; int st = !strcmp(id, "OVL_007F_0130") ? pr_u7f_div5_0130_cpu(bus, RAM, (pr_u7f_div5_cpu *)&m, &budget)
++                                                                                                               : pr_u7f_div5_0185_cpu(bus, RAM, (pr_u7f_div5_cpu *)&m, &budget); last_raw = st;
++        return st == PR_U7F_DIV5_CPU_RETURNED ? 0 : st == PR_U7F_DIV5_CPU_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_0025_19DB")) { size_t budget = B << 4; int st = pr_u25_move_19db_cpu(bus, RAM, (pr_u25_19db_cpu *)&m, &budget); last_raw = st;
++        return st == PR_U25_19DB_RETURNED ? 0 : st == PR_U25_19DB_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_007F_0A88")) { size_t budget = B << 4; pr_u7f_0a88_limits l = {B, B, B, B, (uint64_t)B}; pr_u7f_0a88_diagnostic d;
++        int st = pr_u7f_0a88_cpu(bus, RAM, (pr_u7f_0a88_regs *)&m, &budget, &l, &d); last_raw = st;
++        return st == PR_U7F_0A88_RETURNED ? 0 : st == PR_U7F_0A88_ARGUMENT ? 1 : 2; }
++    if (!strcmp(id, "OVL_0023_0239")) { pr_u23_0239_limits l; l.clear_loopbacks = l.rect_loopbacks = l.printer_loopbacks = l.glyph_loopbacks = B; l.delay_loopbacks = (uint64_t)B;
++        l.resident_budget = B << 4; l.heap_steps = 1u << 20; l.walk_limit = 1u << 20; pr_u23_0239_diagnostic d;
++        int st = pr_u23_append_0239_cpu(bus, RAM, (pr_u23_0239_cpu *)&m, &l, &d); last_raw = st;
++        return st == PR_U23_0239_OK ? 0 : st == PR_U23_0239_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_007D_05F0")) { pr_u7d_05f0_limits l = {B, B, B}; pr_u7d_05f0_diagnostic d; int st = pr_u7d_entry_05f0_cpu(bus, RAM, (pr_u7d_05f0_cpu *)&m, &l, &d); last_raw = st;
 +        return st == PR_U7D_05F0_OK ? 0 : st == PR_U7D_05F0_ARGUMENT ? 1 : 2; }
 +    if (!strcmp(id, "OVL_03B0_0A08")) { pr_u3b0_0a08_limits l = {B, B}; pr_u3b0_0a08_diagnostic d; int st = pr_u3b0_entry_0a08_cpu(bus, RAM, (pr_u3b0_0a08_cpu *)&m, &l, &d); last_raw = st;
