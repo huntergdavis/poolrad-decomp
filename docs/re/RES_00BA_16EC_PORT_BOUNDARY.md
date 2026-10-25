@@ -143,6 +143,30 @@ unfalsified control, not a passing rejection: the assertions fail and the
 command exits nonzero. This is a constructed violation, not a natural-game
 reachability claim. Execution results are not yet recorded in this paragraph.
 
+**Observed result (prediction unchanged):** the original-only matched-world
+test passed at `24d3c1a7aa0fc3acd36c0a04b9bcb9d0bec3a415` (12.695 seconds).
+The baseline returned with 92 calls. In the violation, the real Move copied
+two bytes from `3400:003F` to `7000:EEE9`, the box local. The observed local
+values at tile entries were `0114h`, then `011Fh`; two tile calls occurred.
+Each error site `01C5/01D7/01DC/01E1/01E9` ran once and the original reached
+EXIT. The flag words remained `0100h`; the predicted tile-number and count
+conclusions failed, and the validator refused the exclusion.
+
+**A separate comparison failed and is retained:** the subsequent attempt to
+include this violated world as a full original/C parity case stopped with
+`C CALLEE (callee 6/6, site 177B)` versus original EXIT. This is not a passing
+parity result. The original observation and failed expanded comparison are
+both preserved in `resources/t131/alias-validation.log`.
+
+The existing `flat_only()` guard in `overlay_u40c_tile_015d_cpu.c` refuses
+**every** error-branch callee when EGA is attached; it does not first test an
+actual aperture alias for those calls. The first such call is `01C5`, the
+video-mode restore. Thus the preserved-frame proof matters to the display
+contract: violating it reaches an existing model boundary. The follow-up
+checker records the original-only violation and the C guard separately;
+it must not turn their different stops into parity. The fixture and prediction
+are unchanged, and no recovered C body is repaired or broadened.
+
 The boundary covered here is the `00BA:177B` call, its fixed box frame,
 `0428:002A` loaded target, and the resulting tile/Move/1951 composition.
 A new caller, changed frame layout, changed stub/target, or changed object/

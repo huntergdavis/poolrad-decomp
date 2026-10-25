@@ -208,17 +208,30 @@ def main():
             results.append(dict(name=name, stop=stop, **trace.report()))
         for overwrite in (False, True):
             state = alias_state(data, overwrite)
-            trace, stop = measure(state, data[3], library)
+            trace, stop = measure(state, data[3], None if overwrite else library)
+            candidate = None
             if overwrite:
                 validate_alias(trace, stop, state)
+                # The violated world reaches the existing flat-only error-call
+                # guard with EGA attached. This is NOT a parity comparison:
+                # the original exits, while the candidate refuses at 01C5.
+                m, cpu, env, keys, stubs, info = state
+                cstop, _, _, _, diagnostic, *_ = A.run_c(*library, m, cpu, env, keys, stubs,
+                                                       info['budget'], info['text_loopbacks'])
+                require(cstop == 'CALLEE' and diagnostic.callee == 6 and diagnostic.callee_status == 6
+                        and diagnostic.box.tile.site == 0x01C5, 'violated world candidate guard changed')
+                candidate = dict(stop=cstop, callee=diagnostic.callee, callee_status=diagnostic.callee_status,
+                                 tile_site=f'{diagnostic.box.tile.site:04X}', parity=False,
+                                 original_status_matches=False)
             else:
                 validate(trace, stop, box=True)
             controls.append(dict(name='frame-alias-011f-two-tiles-exit' if overwrite else 'frame-alias-baseline',
                                  synthetic_violation=overwrite, exclusion_available=not overwrite,
-                                 stop=stop, **trace.report()))
+                                 full_state_comparison=not overwrite, candidate=candidate, stop=stop, **trace.report()))
     report = dict(head=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=A.ROOT, text=True).strip(),
                   image_sha256=A.Q.IMAGE_DIGEST, body_sha256=PINS, cases=results,
-                  controls=controls, full_state_comparisons=len(results) + len(controls), live_gameplay=False, native=False,
+                  controls=controls, full_state_comparisons=len(results) + 1, original_only_controls=1,
+                  live_gameplay=False, native=False,
                   claim='Conditional tile-path exclusion only; no identity, readiness or closure verdict.',
                   preconditions=['Pinned immutable code and correct loaded overlay target',
                                  'Callees preserve box frame and each tile argument frame',
@@ -228,7 +241,8 @@ def main():
                                 'Overlay loading', 'Whole 16EC termination', 'Strict readiness'])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
-    print(f'PASS: {len(results)} boundary cases + {len(controls)} preservation controls with full-state comparisons; native/live gameplay NOT VERIFIED')
+    print(f'PASS: {len(results)} boundary + 1 baseline full-state comparisons; 1 original-only alias control and C guard observation. '
+          'Alias C/original stops DIFFER; no violation-world parity. Native/live gameplay NOT VERIFIED')
 
 
 if __name__ == '__main__':
