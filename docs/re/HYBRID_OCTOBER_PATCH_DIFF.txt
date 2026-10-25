@@ -1,0 +1,30 @@
+--- January.patch
++++ October.patch
+@@ -12,7 +12,7 @@
+  
+  extern bool do_lds_wraparound;
+  
+-@@ -45,13 +48,13 @@ extern bool ignore_opcode_63;
++@@ -45,11 +48,11 @@ extern bool ignore_opcode_63;
+  #include "debug.h"
+  #endif
+  
+@@ -22,16 +22,14 @@
+ +#define LoadMb(off) pr_lb(off)
+ +#define LoadMw(off) pr_lw(off)
+ +#define LoadMd(off) pr_ld(off)
+- #define LoadMq(off) ((uint64_t)((uint64_t)mem_readd_inline(off+4)<<32 | (uint64_t)mem_readd_inline(off)))
++ #define LoadMq(off) (((uint64_t)mem_readd_inline(off+4)<<(uint64_t)32) | (uint64_t)mem_readd_inline(off))
+ -#define SaveMb(off,val)	mem_writeb_inline(off,val)
+ -#define SaveMw(off,val)	mem_writew_inline(off,val)
+ -#define SaveMd(off,val)	mem_writed_inline(off,val)
+ +#define SaveMb(off,val)	pr_sb(off,val)
+ +#define SaveMw(off,val)	pr_sw(off,val)
+ +#define SaveMd(off,val)	pr_sd(off,val)
+- #define SaveMq(off,val) {mem_writed_inline(off,val&0xffffffff);mem_writed_inline(off+4,(val>>32)&0xffffffff);}
+- 
+- Bitu cycle_count;
++ #define SaveMq(off,val) {mem_writed_inline(off,((uint32_t)(val))&0xffffffff);mem_writed_inline(off+4,(((uint64_t)(val))>>((uint64_t)32))&0xffffffff);}
+ @@ -160,9 +163,14 @@ static INLINE uint32_t Fetchd() {
+  Bits CPU_Core_Normal_Run(void) {
+  	if (CPU_Cycles <= 0)
