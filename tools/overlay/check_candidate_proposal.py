@@ -102,16 +102,37 @@ def main(argv):
             print(f"UNIT UNRESOLVED: {body} unit {unit:#x} not in the inventory")
             failures += 1
             continue
+        if rel < 0:
+            print(f"NEGATIVE OFFSET: {body} REL_OFFSET {rel} is negative")
+            failures += 1
+            continue
         at = units[unit]["ovr_offset"] + rel
+        if at < 0:
+            print(f"NEGATIVE OFFSET: {body} resolves to a negative file offset {at}")
+            failures += 1
+            continue
+        if file_offset is not None and file_offset < 0:
+            print(f"NEGATIVE OFFSET: {body} FILE_OFFSET {file_offset} is negative")
+            failures += 1
+            continue
         if file_offset is not None and file_offset != at:
             print(f"FILE_OFFSET MISMATCH: {body} claims {file_offset} but unit+offset resolve to {at}")
             failures += 1
             continue
-        if length <= 0 or at + length > len(ovr):
-            print(f"LENGTH OUT OF RANGE: {body} length {length} at file {at} (file {len(ovr)} bytes)")
+        # Validate the whole interval BEFORE slicing, then slice once.
+        if length <= 0:
+            print(f"BAD INTERVAL: {body} LENGTH {length} must be positive")
+            failures += 1
+            continue
+        if at + length > len(ovr):
+            print(f"BAD INTERVAL: {body} [{at},{at + length}) exceeds the file ({len(ovr)} bytes)")
             failures += 1
             continue
         span = ovr[at:at + length]
+        if len(span) != length:
+            print(f"BAD INTERVAL: {body} requested {length} bytes but the slice has {len(span)}")
+            failures += 1
+            continue
         digest = sha256(span).hexdigest()
         claimed = fields.get("SHA256")
         if claimed is None:

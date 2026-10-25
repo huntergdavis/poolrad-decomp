@@ -70,6 +70,64 @@ class ProposalTest(unittest.TestCase):
         finally:
             path.unlink()
 
+    def _custom(self, **fields):
+        handle = tempfile.NamedTemporaryFile("w", suffix=".md", delete=False)
+        for key, value in fields.items():
+            handle.write(f"{key}: {value}\n")
+        handle.close()
+        return Path(handle.name)
+
+    @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
+    def test_negative_relative_offset_is_rejected(self):
+        # the reviewer's exact repro: unit 0x1c, REL_OFFSET -3399, LENGTH 1, FILE_OFFSET -1,
+        # SHA-256 of the empty string. An empty slice must never be reported as a span.
+        path = self._custom(BODY="OVL_001C_0292", UNIT="0x1c", REL_OFFSET="-3399",
+                            LENGTH="1", FILE_OFFSET="-1",
+                            SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        try:
+            self.assertEqual(C.main([str(path)]), 1)
+        finally:
+            path.unlink()
+
+    @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
+    def test_negative_file_offset_is_rejected(self):
+        path = self._custom(BODY="OVL_001C_0292", UNIT="0x1c", REL_OFFSET="0x0292",
+                            LENGTH="78", FILE_OFFSET="-1",
+                            SHA256="0" * 64)
+        try:
+            self.assertEqual(C.main([str(path)]), 1)
+        finally:
+            path.unlink()
+
+    @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
+    def test_zero_length_is_rejected(self):
+        path = self._custom(BODY="OVL_001C_0292", UNIT="0x1c", REL_OFFSET="0x0292",
+                            LENGTH="0", FILE_OFFSET="4056",
+                            SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        try:
+            self.assertEqual(C.main([str(path)]), 1)
+        finally:
+            path.unlink()
+
+    @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
+    def test_past_eof_is_rejected(self):
+        path = self._custom(BODY="OVL_001C_0292", UNIT="0x1c", REL_OFFSET="0x0292",
+                            LENGTH="999999", FILE_OFFSET="4056", SHA256="0" * 64)
+        try:
+            self.assertEqual(C.main([str(path)]), 1)
+        finally:
+            path.unlink()
+
+    @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
+    def test_empty_string_digest_is_rejected(self):
+        path = self._custom(BODY="OVL_001C_0292", UNIT="0x1c", REL_OFFSET="0x0292",
+                            LENGTH="1", FILE_OFFSET="4056",
+                            SHA256="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+        try:
+            self.assertEqual(C.main([str(path)]), 1)
+        finally:
+            path.unlink()
+
     @unittest.skipUnless(MEDIA.exists(), "owner GAME.OVR not under ignored resources/")
     def test_missing_digest_exits_nonzero(self):
         path = self._tampered(r"^SHA256: [0-9a-fA-F]{64}$", "SHA256_MISSING: x")
