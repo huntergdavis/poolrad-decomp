@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """DOSBox-X full original +071A chain, CPU14 and all touched stack bytes."""
+# NOT_A_ROW_CHECKER: native companion of u3c6_step_071a_audit.py.
+from native_emulator_provenance import describe_dosbox
 import ctypes
 from hashlib import sha256
 import json
@@ -52,6 +54,7 @@ def assembly(codepath,options):
 
 
 def main():
+    dosbox_x=describe_dosbox('dosbox-x')
     bodies,_=source();OUT.mkdir(parents=True,exist_ok=True);code=bytearray(0xD00)
     for start,b in bodies.items():code[start:start+len(b)]=b
     cp=OUT/'code.bin';cp.write_bytes(code);lib=library(OUT)
@@ -69,7 +72,7 @@ def main():
         cfg=d/'dosbox.conf';cfg.write_text('[sdl]\noutput=surface\n[dosbox]\nmemsize=16\n[cpu]\ncore=normal\ncputype=386\ncycles=max\n[mixer]\nnosound=true\n[midi]\nmididevice=none\n[autoexec]\nmount c '+str(d)+'\nc:\nORACLE.COM\nexit\n')
         output=d/'RESULT.BIN';output.unlink(missing_ok=True)
         with (d/'dosbox.log').open('w') as log:
-            subprocess.run(['dosbox-x','-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=45)
+            subprocess.run([dosbox_x['path'],'-conf',str(cfg),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=45)
         result=output.read_bytes();assert len(result)==RECORD_SIZE,(index,len(result))
         code_cs,ss,ds=struct.unpack_from('<3H',result);regs=struct.unpack_from('<14H',result,6)
         memory,cpu=fixture(ss=ss,ds=ds,cs=code_cs,flags=2,**dict(dict(sp=0xEFF8),**options))
@@ -83,6 +86,6 @@ def main():
         for i in range(16):assert memory[(physical(ss,0)+0x10000+i)&MASK]==result[34+len(STACK_OFFSETS)+i],(index,'extension',i)
         hashes.append(sha256(result).hexdigest())
         print(f'PASS native case {index}: {options}',flush=True)
-    report=dict(target='OVL_03C6_071A',native_cases=len(cases),cpu_words=14,stack_bytes=len(STACK_OFFSETS)+16,masked_flags=0,full_original_chain=True,entry_return_wrap_cases=10,internal_return_wrap_cases=4,les_segment_seams_measured=False,natural_game_route_measured=False,result_sha256=hashes)
+    report=dict(dosbox_x=dosbox_x,target='OVL_03C6_071A',native_cases=len(cases),cpu_words=14,stack_bytes=len(STACK_OFFSETS)+16,masked_flags=0,full_original_chain=True,entry_return_wrap_cases=10,internal_return_wrap_cases=4,les_segment_seams_measured=False,natural_game_route_measured=False,result_sha256=hashes)
     (OUT/'report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n');print(json.dumps(report,sort_keys=True))
 if __name__=='__main__':main()

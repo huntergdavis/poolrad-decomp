@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Native original U3C6 range prefix and complete +06E9 leaf; synthetic data."""
+# NOT_A_ROW_CHECKER: native companion of u3c6_in_range_06e9_audit.py.
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -26,6 +28,7 @@ def case_data(case):
 
 
 def main():
+    dosbox_x=describe_dosbox('dosbox-x')
     directory=ROOT/('resources/u3c6-06e9-parity/native-wrap' if WRAP else 'resources/u3c6-06e9-parity/native');directory.mkdir(parents=True,exist_ok=True)
     body,_,meta=source();code=bytearray(0x800);code[0x6E9:0x71A]=body;code[0x68D:0x699]=meta['caller_prefix']
     code[0x699:0x69E]=bytes([0xEA,0,0,0,0]) # Transparent capture jump after original return.
@@ -82,12 +85,12 @@ def main():
     config=directory/'dosbox.conf';config.write_text('[sdl]\noutput=surface\n[dosbox]\nmemsize=16\n[cpu]\ncore=normal\ncputype=386\ncycles=max\n[mixer]\nnosound=true\n[midi]\nmididevice=none\n[autoexec]\nmount c '+str(directory)+'\nc:\nORACLE.COM\nexit\n')
     result_path=directory/'RESULT.BIN';result_path.unlink(missing_ok=True)
     with (directory/'dosbox.log').open('w') as log:
-        subprocess.run(['dosbox-x','-conf',str(config),'-fastlaunch','-exit','-noconsole'],
+        subprocess.run([dosbox_x['path'],'-conf',str(config),'-fastlaunch','-exit','-noconsole'],
             env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=90)
-    check_native(directory,result_path.read_bytes(),com.read_bytes(),code)
+    check_native(directory,result_path.read_bytes(),com.read_bytes(),code,dosbox_x)
 
 
-def check_native(directory,result,program,code):
+def check_native(directory,result,program,code,dosbox_x):
     if len(result)!=6+COUNT*RECORD_SIZE:raise ValueError(f'native output incomplete: {len(result)}/{6+COUNT*RECORD_SIZE}')
     segment,code_cs,count=struct.unpack_from('<3H',result)
     if count!=COUNT or code_cs==segment:raise ValueError('native loaded-code separation differs')
@@ -109,7 +112,7 @@ def check_native(directory,result,program,code):
         for offset,length,cursor in regions:
             at=physical(segment,offset)
             if memory[at:at+length]!=observed[cursor:cursor+length]:failures.append(dict(case=case,region=f'{offset:05X}',different_offsets=[i for i in range(length) if memory[at+i]!=observed[cursor+i]]))
-    report=dict(target='OVL_03C6_06E9',source_sha256=BODY_SHA,native_cases=count,original_caller_prefix='U3C6:+068D..0698',
+    report=dict(dosbox_x=dosbox_x,target='OVL_03C6_06E9',source_sha256=BODY_SHA,native_cases=count,original_caller_prefix='U3C6:+068D..0698',
         original_return_ip='0699',preserved_AH=True,compared_cpu_words=14,compared_frame_bytes=FRAME_SIZE+(24 if WRAP else 0),entry_sp_vectors=['FFFE','FFFF'] if WRAP else ['EFF8'],comparison_failures=failures,
         masked_flags=0,separate_loaded_code_segment=True,natural_game_route_measured=False,
         loader_dispatch_measured=False,result_sha256=sha256(result).hexdigest())

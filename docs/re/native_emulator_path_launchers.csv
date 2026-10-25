@@ -136,12 +136,9 @@ tools/overlay/u3b9_bitmap_set_release_048f_native.py,94
 tools/overlay/u3c2_caller_0909_native.py,88
 tools/overlay/u3c2_record_sort_002e_audit.py,341
 tools/overlay/u3c6_cell_04be_native.py,137
-tools/overlay/u3c6_in_range_06e9_native.py,85
 tools/overlay/u3c6_rebuild_03a0_native.py,99
 tools/overlay/u3c6_scan_0cb9_native.py,129
-tools/overlay/u3c6_slot_getters_cpu_native.py,52
 tools/overlay/u3c6_slot_offsets_0068_audit.py,313
-tools/overlay/u3c6_step_071a_native.py,72
 tools/overlay/u3ce_bitmap_pair_release_014e_native.py,93
 tools/overlay/u5e_caller_32e6_native.py,93
 tools/overlay/u5e_half_0e52_audit.py,325
