@@ -4,11 +4,62 @@ import json
 from pathlib import Path
 import unittest
 import tempfile
+import hashlib
+import os
+from unittest.mock import patch
 from r1_report import report
-from r1_driver import Route, matches, single_exit_prompt, decode_coordinate, decode_font_cells
+from r1_driver import Route, RouteFailure, verify_emulator, matches, single_exit_prompt, decode_coordinate, decode_font_cells
 
 
 class RouteTest(unittest.TestCase):
+    def test_changed_or_redirected_emulator_cannot_launch(self):
+        with tempfile.TemporaryDirectory() as directory:
+            run = Path(directory)
+            binary = run / 'synthetic-binary'
+            binary.write_bytes(b'synthetic executable identity')
+            digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+            (run / 'emulator.json').write_text(json.dumps(dict(path=str(binary), sha256=digest)))
+            with patch.dict(os.environ, POOLRAD_DOSBOX_X=str(binary)):
+                verify_emulator(run)
+                self.assertEqual(json.loads((run / 'emulator.json').read_text())['launch_verified_sha256'], digest)
+                binary.write_bytes(b'changed')
+                with self.assertRaises(RouteFailure) as error:
+                    verify_emulator(run)
+                self.assertEqual(error.exception.code, 4)
+            with patch.dict(os.environ, POOLRAD_DOSBOX_X='/different/binary'):
+                with self.assertRaises(RouteFailure):
+                    verify_emulator(run)
+
+    def test_actor_gate_refuses_missing_or_wrong_actor(self):
+        route = Route(dict(self.route.data, actor_gates={'area_view': 'ALPHA'}))
+        route.allowed = ['area_view']
+        for observation in ({'prompt': 'AREA'}, {'prompt': 'AREA', 'actor': 'BETA'}):
+            self.assertIsNone(route.choose(observation))
+        self.assertIsNotNone(route.choose({'prompt': 'AREA', 'actor': 'ALPHA'}))
+
+    def test_combat_gate_requires_actor_spell_and_cursor(self):
+        visual = {'selected_spell': ['SPELL'], 'combat_cursor': [4, 7]}
+        route = Route(dict(self.route.data,
+                           combat_actor_gates={'combat_quick': 'ALPHA'},
+                           visual_gates={'combat_quick': visual}))
+        route.allowed = ['combat_quick']
+        correct = dict(prompt='MOVE GUARD QUICK', combat_actor='ALPHA', **visual)
+        self.assertIsNotNone(route.choose(correct))
+        for field, wrong in [('combat_actor', 'BETA'), ('selected_spell', ['OTHER']),
+                             ('combat_cursor', [5, 7])]:
+            self.assertIsNone(route.choose(dict(correct, **{field: wrong})))
+            missing = dict(correct)
+            del missing[field]
+            self.assertIsNone(route.choose(missing))
+
+    def test_new_gate_configuration_rejects_unknown_states_and_empty_visuals(self):
+        for name in ('actor_gates', 'combat_actor_gates', 'visual_gates'):
+            with self.assertRaisesRegex(ValueError, 'unknown'):
+                Route(dict(self.route.data, **{name: {'missing': {'field': 'value'}}}))
+        for value in ({}, [], None):
+            with self.assertRaisesRegex(ValueError, 'visual gate'):
+                Route(dict(self.route.data, visual_gates={'area_view': value}))
+
     def test_exact_coordinate_cells_reject_wrong_or_partial_glyphs(self):
         glyphs = {bytes([i + 1] * 8): ch for i, ch in enumerate('0123456789,')}
         glyphs[bytes(8)] = ' '
