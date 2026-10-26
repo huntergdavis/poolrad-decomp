@@ -1,7 +1,7 @@
 offset,width,name,encoding,valid_range,status,evidence
 0x000,1,name_length,unsigned byte,0..15 conservative reader bound; observed 6..14,VERIFIED,DOS_CHARACTER.md: U6F +07B7/+215D Pascal string use; capacity is observational
 0x001,15,name_storage,raw string bytes and opaque unused tail,encoding and unused-tail rules UNVERIFIED; occupied span is name_length bytes,UNVERIFIED,DOS_CHARACTER.md: name span verified; DOS code page not established
-0x010,1,str_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x010,1,str_display_input,byte; numeric display,UNVERIFIED general range; held-character STR17->16 disk-load/display observed,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
 0x011,1,int_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
 0x012,1,wis_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
 0x013,1,dex_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace

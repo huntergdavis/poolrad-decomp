@@ -55,7 +55,7 @@ values at or below zero. Remaining values are formatted in index order
 and separated by a slash before the output at `+0x03A5..+0x03B4`.
 A signed-positive display condition is not a legal-class-level validator.
 
-## Control witness and pending experiment
+## Control and edited-copy game witnesses
 
 The first character of the held slot-A set was loaded through the original
 game's own menu, using `Return`, `l`, `a`, `v`. No emulator savestate was
@@ -75,9 +75,49 @@ independent Xvfb display and tmux socket with the copied run as the sandbox's
 only writable game tree. It did not use the owner's Play pane or live run.
 
 VP approved a separate copy with only record byte `0x10` changed from STR
-17 to 16 (inbox i26502). The control was completed and stopped before the
-edited run was submitted. The edited screenshot/result is pending; no
-edited-load acceptance is claimed by this draft.
+17 to 16 (inbox i26502). The successful edited run is
+`chared-t174-edit-auto`; its private character-sheet screenshot is
+`resources/oracle-runs/chared-t174-edit-auto/edited-character-sheet.png`,
+SHA-256 `c673e4526283a31f983cc0136e8febc2b2511164cad5c6707c0a3353a066c0e2`.
+Visual inspection shows **STR 16**, with the other five abilities and Level
+unchanged. The displayed THAC0 changed from **19 to 20**. This is an observed
+sheet value, not a combat-execution or general derived-stat correctness test.
+
+The edited character SHA-256 is
+`e29e16f7dfc4abb10ca25fc701166bab71f24e402276390fd6e202d8db5ccf5a`.
+An independent post-run comparison of all **153** installation files in the
+control and edited copies found only `CHRDATA1.SAV` different, at exactly
+one offset, `0x10`. All **153 original source-file hashes** still match the
+pre-experiment copy receipts. All sidecars, world files and game executables
+in the two run copies compare byte-identically. The unchanged slot-A world
+file selects this character as the first member.
+
+Both runs used the same original game menu sequence: `Return`, `l`, `a`,
+`v`. In the successful edited run the detached driver captured the codeword
+prompt, menu, slot chooser, gameplay, and character sheet separately. It
+recorded the actual process executable/hash and command line, including the
+unique edited run mounted as C, before sending input. The game loaded slot A
+from that mount; no emulator savestate was restored. The same character's
+sheet changed from 17 to 16 after the sole disk-byte edit. The input JSONL,
+process identity, intermediate frames, final frames and copy manifests remain
+private under the named runs. `resources/chared-t174/strength-game-proof.json`
+combines the independent comparisons and observation hashes, and the edited
+run's `chared-edit-receipt.json` now records the build that loaded the copy.
+
+The control was completed before the edited run was submitted. Its emulator
+needed termination after capture; the process identity was checked before
+closing only the owned process. An earlier edited run (`chared-t174-edit`)
+exited normally without inputs or captures and **provides no edited-load
+proof**. The successful repeat placed the proven control input sequence and
+captures inside the detached job, so a delayed semaphore grant could not
+leave the test waiting for an inactive assistant turn. All game runs used
+the heavy semaphore, distinct tmux sockets and private Xvfb displays. The
+owner's desk, Play pane and live game were not controlled or modified.
+
+This establishes one specific edit/load/display case: **this character's
+STR 17 to 16** in the pinned original DOS game and owner emulator build. It
+does not establish a general legal range, all derived effects, level edits,
+other ability edits, or party assembly.
 
 ## Prior evidence and limits
 
@@ -94,3 +134,21 @@ No broad ability/level legality, derived combat behavior, arbitrary spell
 editing, newly assembled party, or web UI is established here. Original
 media and private screenshots remain ignored. No function-accounting or
 strict-C credit change is requested.
+
+
+## Validation and review boundary
+
+`python3 tools/character/audit_layout.py` passes with **39 ranges covering
+285 bytes**, no gaps or overlaps, **21 VERIFIED structural/display roles and
+18 UNVERIFIED ranges**. These labels scope the described role, not a blanket
+gameplay-edit guarantee. The original step-1 ledger counts are historical.
+Six original label literals and their length prefixes were checked, and the
+label/value instruction paths above were read from the copied executable.
+No executable implementation or function-accounting files changed.
+
+`ran run_media_checks.sh: not run`; this documentation/ledger slice uses the
+layout-coverage audit, original-byte static inspection, independent full-file
+comparison and the two original-game screenshots. No broader native/C parity
+or gameplay coverage is claimed. Reviewer: **pi-review-2**, assigned by VP
+inbox i26684. Private frames and receipts are supplied for independent review;
+they are not committed to the public repository.
