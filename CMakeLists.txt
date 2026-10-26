@@ -82,6 +82,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u3c2_jump_only_05b5_fixture.c
                                     src/recovered/overlay_u3c2_jle_decision_05af_fixture.c
                                     src/recovered/ecl_helpers.c
+                                    src/recovered/overlay_u1c_run_3171_cpu.c
                                     src/recovered/resident_sidecar_remove.c
                                     src/recovered/resident_sidecar_append.c
                                     src/recovered/resident_sidecar_lookup.c

@@ -45,6 +45,7 @@ overlay_u1c_print_0a09.c,flat,no,no
 overlay_u1c_random_0234.c,flat,no,no
 overlay_u1c_return_0a9f.c,flat,no,no
 overlay_u1c_return_0a9f_cpu.c,flat,no,no
+overlay_u1c_run_3171_cpu.c,flat,no,no
 overlay_u1c_script_call_frame_31a4.c,flat,no,no
 overlay_u1c_script_jmp_31a8.c,flat,no,no
 overlay_u1c_script_les_di_3196.c,flat,no,no
