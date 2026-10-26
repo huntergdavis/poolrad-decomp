@@ -44,12 +44,18 @@ another segment is not a hit. `Trace.record` retains invalid-site/value and
 event-limit errors rather than throwing inside a ctypes callback, where Python
 exceptions can be swallowed. `checked`, `compare` and `Contract` surface those
 errors outside the callback. Install and check both recorders for each case.
-Keep the existing full final CPU/RAM, termination and callback-count comparison.
+Keep the existing final CPU/RAM, termination and callback-count comparison and
+state its RAM coverage, including any instrumentation exclusions.
 
 ## The separate 3171 reproduction
 
 `tools/overlay/check_intermediate_flags_3171.py` imports an explicitly supplied
 candidate audit and builds its C model. It does not modify the author checkout.
+It is explicitly `NOT_A_ROW_CHECKER`. Final-state coverage is inherited from the
+supplied audit. With the external-trace adapter, RAM is compared except for the
+130-byte instrumentation region `[0x40F00, 0x40F82)`; CPU14, status and dispatch
+counts are still compared. This exclusion is the scope correction reported in
+Dunking Sheep inbox `i26006`; it is not a claim of full-RAM equality.
 The t135 reproduction uses PR #1564 head
 `72c1625a5cc6d63fe618b378def13160dbecb3d4`; source/header/audit hashes and media
 hashes are included in the output receipt. Original media stays under this
@@ -81,7 +87,11 @@ the exact XOR of the correctly computed result.
 
 The command writes INCOMPLETE before starting, FAIL on a handled error and PASS
 only after baseline and control completion; a stale passing receipt cannot
-survive an aborted rerun. The synthetic tests in `test_intermediate_flags.py`
+survive an aborted rerun. The receipt's `baseline_final_state_cases` and
+`legacy_final_state_mutant_kills` fields count cases and kills under the supplied
+audit's final-state coverage, including the instrumentation exclusion when using
+the external-trace adapter. A PASS does not establish full-RAM equality or row
+acceptance. The synthetic tests in `test_intermediate_flags.py`
 are automatically discovered by `tools/run_media_checks.sh`. They use independently
 specified flag values at carry, overflow, zero, parity and auxiliary-carry edges,
 including ADD values that are erased by CMP before return.

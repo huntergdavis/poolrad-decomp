@@ -4,6 +4,9 @@
 Supply a candidate checkout containing u1c_run_3171_cpu_audit.py and its C/header.
 Original media comes from this checkout's ignored resources/. Run through the
 shared heavy wrapper. This is a boundary-observation check, not row acceptance.
+Final-state coverage comes from the supplied audit. With the external-trace
+adapter, RAM comparison excludes the 130-byte instrumentation region
+[0x40F00, 0x40F82); CPU14, status and dispatch counts are still compared.
 """
 # NOT_A_ROW_CHECKER: instrumentation proof against an explicitly supplied draft.
 import argparse
@@ -52,7 +55,7 @@ def load_candidate(root):
 
 
 def observed_compare(audit, label, ram, lib, dispatch_type):
-    """Keep the author's full final-state comparison and add both entry traces."""
+    """Keep the supplied audit's final-state coverage and add both entry traces."""
     original, candidate = Trace((SITE,)), Trace((SITE,))
     real_uc = audit.Uc
 
@@ -71,8 +74,10 @@ def observed_compare(audit, label, ram, lib, dispatch_type):
 
     audit.Uc = traced_uc
     try:
-        # This still checks full RAM, CPU14, status and dispatch counts. A crash
-        # or unrelated failure is not caught and cannot masquerade as a flag kill.
+        # RAM coverage is inherited from audit.compare: the external-trace
+        # adapter excludes [0x40F00, 0x40F82), its 130-byte instrumentation region.
+        # CPU14, status and dispatch counts are still compared. A crash or
+        # unrelated failure is not caught and cannot masquerade as a flag kill.
         calls = audit.compare(label, ram, lib, traced_dispatch)
     finally:
         audit.Uc = real_uc
@@ -145,6 +150,8 @@ def run(candidate_root):
         require(reviewer_killed, "reviewer wrong-ADD mutant survived boundary comparison")
     require(hashes == {str(path): hashlib.sha256((root / path).read_bytes()).hexdigest()
                        for path in (AUDIT, SOURCE, HEADER)}, "candidate files changed during audit")
+    # Receipt final-state case/kill counts inherit the supplied audit's coverage;
+    # they do not assert full-RAM equality when instrumentation RAM is excluded.
     return {"result": "PASS", "candidate_sha256": hashes,
             "media_sha256": {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                              for path in (audit.EXE, audit.OVR)},
