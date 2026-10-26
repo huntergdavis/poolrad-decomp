@@ -461,6 +461,14 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/resident_0973_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "rows": [
+      "RES_00BA_0973"
+    ]
+  },
   "tools/overlay/resident_2199_cpu_audit.py": {
     "args": [
       "--unicorn"

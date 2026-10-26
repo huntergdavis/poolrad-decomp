@@ -89,17 +89,17 @@ pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_097
         style = 0x0Du;
     write8(bus->ram, cpu->ss, (uint16_t)(cpu->bp - 1u), (uint8_t)style);
 
-    cpu->ax = read8_at(bus->ram, physical(cpu->ss, (uint16_t)(cpu->bp + 0x0Au)));
+    cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | read8_at(bus->ram, physical(cpu->ss, (uint16_t)(cpu->bp + 0x0Au))));
     push16(bus->ram, cpu, cpu->ax);
-    cpu->ax = read8_at(bus->ram, physical(cpu->ss, (uint16_t)(cpu->bp + 8u)));
+    cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | read8_at(bus->ram, physical(cpu->ss, (uint16_t)(cpu->bp + 8u))));
     push16(bus->ram, cpu, cpu->ax);
-    cpu->ax = style;
+    cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | (style & 0xFFu));
     push16(bus->ram, cpu, cpu->ax);
     destination = (uint16_t)(cpu->bp - 0x0102u);
     push16(bus->ram, cpu, cpu->ss);
     push16(bus->ram, cpu, destination);
     number = read8_at(bus->ram, physical(node_seg, (uint16_t)(node_off + 0x011Bu)));
-    cpu->ax = number;
+    cpu->ax = (uint16_t)((cpu->ax & 0xFF00u) | number);
     push16(bus->ram, cpu, cpu->ax);
     if (bus->ram[physical(cpu->cs, 0x09BBu)] != 0xE8u || read16(bus->ram, cpu->cs, 0x09BCu) != 0x0679u)
         return PR_RES_0973_CODE;
