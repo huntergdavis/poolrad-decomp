@@ -422,6 +422,10 @@ A verdict is one of these three, and the word used matters because a reader six 
   2. A suspended part NEVER counts toward credit, readiness, membership or any denominator, no matter how green the intact part is.
   3. A suspended part must be re-verified on the new head. It is never carried across heads: the same evidence measured on an older sha is historical, not evidence for the current one.
 
+   **Blob-identical restacks are the exception, and they are not a carry.** When a reviewer confirms by explicit blob comparison that every task file is byte-identical to the head the evidence was measured on, that is the *same* evidence on the *same* bytes, and it may be transferred to the restacked head without a re-run. What rule 3 forbids is carrying a measurement made on *different* bytes. Say which comparison you made; "it looked like the same diff" is not a blob check.
+
+**Merge-then-verify, and what the merge is not.** Standing condition 1 says never merge an unverified PR. The desk's blob-identical policy permits one named exception: a restacked head whose task blobs are byte-identical to an accepted head may be merged with the gate run on exact `main` afterwards, provided the reviewer names the gate and the `main` commit it will run on, and the media or browser gate result is reported against that commit. The merge is not the verdict: if the post-merge gate is red, the revert is immediate and the merge carries no credit. Every other PR is gated before merge.
+
 Precedent, 2026-10-25: the byte-dump rule (PR #1575) was "frozen and double-gated" - author gate plus independent gate on the same frozen head - before anyone merged it. The wording is the protection: one green run on a rule-enforcement tool is not a verdict.
 
 ## Parity claims carry their case set, not a count (VP i25889)
@@ -433,3 +437,5 @@ This section exists because a review accepted a CPU-parity claim on the strength
 3. **"The cases were authored by the same lane" is a reason to demand adversarial cases**, not a footnote to excuse the gap. Name the inputs, not the count.
 
 The reviewer may add mutants the author did not write, and should when the body's risk is a wrong operation rather than a missing one: an independently authored mutant that survives a differential is a finding about the differential, not about the mutant.
+
+**Prospective.** This standard applies to verdicts issued after this section merges. Verdicts already issued stand as issued, with the limits they stated: retro-applying it would convert recorded evidence into a rule violation after the fact, and that is worse for the record than a stated gap.
