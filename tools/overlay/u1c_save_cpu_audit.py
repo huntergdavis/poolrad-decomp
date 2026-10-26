@@ -280,6 +280,8 @@ def audit(bod, ovr, units):
         print(f"mutant killed on {killed}/{len(want)} cases")
         print(f"PASS: {len(want)} cases, {counts[0]} dispatches, "
               "full 1 MiB RAM + 14 CPU words")
+        row = "OVL_001C_0292" if bod == "0292" else "OVL_001C_0EBC"
+        print(f"ROW_EXECUTED {row} PASS")
 
 
 def main(argv=None):

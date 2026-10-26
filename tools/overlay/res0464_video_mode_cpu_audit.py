@@ -322,6 +322,8 @@ def main():
                       image_sha256=IMAGE_DIGEST, relocations=len(sites), load_base=f'{BASE:04X}')
         if a.unicorn:
             report['unicorn'] = differential(relocate(image, sites, BASE), spans, fs)
+            for _row in ('RES_0464_00CF', 'RES_0464_00FF'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if a.native:
             report['native'] = native(image, sites, spans, fs)
     if a.output:

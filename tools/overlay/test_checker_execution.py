@@ -1,5 +1,6 @@
 """Execution must prove a differential ran; source selection must not lose dependencies."""
 from pathlib import Path
+import json
 import tempfile
 import unittest
 
@@ -165,6 +166,159 @@ class SourceSelectionTest(unittest.TestCase):
         commands = gate._cc_commands(tree, self.root)
         self.assertIn(str(self.root / 'src/recovered/a.c'), commands[0])
         self.assertIn(str(self.root / 'src/recovered/b.c'), commands[0])
+
+
+class CoverageTest(unittest.TestCase):
+    """A registered row is AGREE only when the declared command executed its differential."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.path = Path('tests/recovered/check_synthetic.py')
+        (self.root / self.path).parent.mkdir(parents=True)
+        for p in execution.MEDIA:
+            target = self.root / p
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'synthetic')
+        self.wrapper = self.root / 'heavy'
+        self.wrapper.write_text('#!/bin/sh\nexec "$@"\n')
+        self.wrapper.chmod(0o755)
+        self.registry = {'OVL_0038_0400': [self.path], 'OVL_0038_133F': [self.path]}
+        (self.root / self.path).write_text('print("1 case agrees")\n')
+
+    def run_profile(self, profile):
+        self.profiles = {str(self.path): profile}
+        return execution.execute(self.root, self.registry, [self.path],
+                                 self.profiles, heavy=self.wrapper)
+
+    def test_declared_rows_emit_not_covered(self):
+        status, report = self.run_profile({'args': ['--compare'], 'rows': ['OVL_0038_0400']})
+        self.assertEqual(status, execution.NOT_COVERED)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'NOT_COVERED'})
+        self.assertEqual(entry['not_covered'], ['OVL_0038_133F'])
+
+    def test_waived_not_covered_does_not_fail(self):
+        status, report = self.run_profile({'args': ['--compare'], 'rows': ['OVL_0038_0400'],
+                                           'waive_not_covered': ['OVL_0038_133F']})
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results']['OVL_0038_133F'], 'NOT_COVERED')
+        self.assertEqual(report['checkers'][0]['result'], 'AGREE')
+
+    def run_script(self, script, profile):
+        (self.root / self.path).write_text(script)
+        self.profiles = {str(self.path): profile}
+        return execution.execute(self.root, self.registry, [self.path],
+                                 self.profiles, heavy=self.wrapper)
+
+    def test_observed_rows_agree(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n'
+            'print("ROW_EXECUTED OVL_0038_133F PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'AGREE'})
+
+    def test_declared_but_not_observed_row_is_not_covered(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, execution.NOT_COVERED)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'NOT_COVERED'})
+        self.assertEqual(entry['coverage_source'], 'stdout')
+
+    def test_marker_for_undeclared_row_is_flagged(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n'
+            'print("ROW_EXECUTED OVL_0038_133F PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400'], 'observe': True})
+        self.assertEqual(status, execution.NOT_COVERED)
+        self.assertEqual(report['checkers'][0]['undeclared_markers'], ['OVL_0038_133F'])
+
+    def test_failing_command_has_no_agree_rows(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\nraise SystemExit(1)\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, 1)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['result'], 'DIFFERENTIAL_FAILED')
+        self.assertNotIn('AGREE', entry['row_results'].values())
+
+    def test_multi_row_profile_without_rows_is_refused(self):
+        self.profiles = {str(self.path): {'args': ['--compare']}}
+        with self.assertRaisesRegex(ValueError, "needs an explicit 'rows'"):
+            execution.execute(self.root, self.registry, [self.path], self.profiles,
+                              heavy=self.wrapper)
+
+    def test_profile_row_not_registered_is_refused(self):
+        self.profiles = {str(self.path): {'args': ['--compare'], 'rows': ['OVL_9999_9999']}}
+        with self.assertRaisesRegex(ValueError, 'not registered'):
+            execution.execute(self.root, self.registry, [self.path], self.profiles,
+                              heavy=self.wrapper)
+
+
+
+class MixedUnitMarkerTest(unittest.TestCase):
+    ROOT = Path(__file__).resolve().parents[2]
+    ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
+
+    def test_cell_owns_two_rows_but_earns_both_unit_prefixes(self):
+        import u33_cell_lookup_012b_audit as cell
+        got = {key: cell.row_id(key) for key in cell.TARGETS}
+        self.assertEqual(got, {
+            '012b': 'OVL_0033_012B', '01ad': 'OVL_0033_01AD',
+            '0350': 'OVL_03BD_0350', '047b': 'OVL_03BD_047B'})
+        self.assertEqual(len({row.split('_')[1] for row in got.values()}), 2)
+        registry = gate.discover(self.ROOT)
+        path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
+        owned = {row for row, paths in registry.items() if path in paths}
+        self.assertEqual(owned, set(self.ROWS))
+        self.assertNotIn('OVL_03BD_0350', owned)
+        self.assertNotIn('OVL_03BD_047B', owned)
+        profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
+        self.assertEqual(set(profiles[str(path)]['rows']), owned)
+
+    def test_cell_two_owned_rows_route_and_agree_with_the_discovered_registry(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
+        (root / path).parent.mkdir(parents=True)
+        for name in execution.MEDIA:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'synthetic')
+        (root / path).write_text(''.join(f'print("ROW_EXECUTED {row} PASS")\n' for row in self.ROWS))
+        wrapper = root / 'heavy'
+        wrapper.write_text('#!/bin/sh\nexec "$@"\n')
+        wrapper.chmod(0o755)
+        registry = gate.discover(self.ROOT)
+        profiles = {str(path): {'args': [], 'rows': list(self.ROWS), 'observe': True}}
+        status, report = execution.execute(root, registry, [path], profiles, heavy=wrapper)
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results'], {row: 'AGREE' for row in self.ROWS})
+        bad = {str(path): {'args': [], 'rows': list(self.ROWS) + ['OVL_03BD_0350'], 'observe': True}}
+        with self.assertRaises(ValueError):
+            execution.execute(root, registry, [path], bad, heavy=wrapper)
+
+    def test_other_per_key_checkers_declare_a_real_single_unit(self):
+        import u33_place_search_1577_audit as place
+        import u33_grid_pair_0d13_audit as grid
+        import u33_stamp_02ba_audit as stamp
+        import u6a_record_weight_0000_audit as weight
+        registry = gate.discover(self.ROOT)
+        expected = {place: 0x33, grid: 0x33, stamp: 0x33, weight: 0x6A}
+        for module, unit in expected.items():
+            units = {target.get('unit') for target in module.TARGETS.values()}
+            self.assertEqual(units, {unit}, module.__name__)
+            path = Path('tools/overlay') / (module.__name__ + '.py')
+            owned = {row for row, paths in registry.items() if path in paths}
+            self.assertEqual({row.split('_')[1] for row in owned}, {f'{unit:04X}'}, module.__name__)
 
 
 if __name__ == '__main__':

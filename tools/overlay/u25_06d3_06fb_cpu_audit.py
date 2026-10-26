@@ -252,6 +252,8 @@ def main():
         bodies, meta = source(); report = dict(target=meta)
         if a.unicorn:
             report['unicorn'] = differential(bodies, lib, a.quick)
+            for _row in ('OVL_0025_06D3', 'OVL_0025_06FB'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if a.native:
             from u25_06d3_06fb_native import native
             report['native'] = native(bodies, lib)

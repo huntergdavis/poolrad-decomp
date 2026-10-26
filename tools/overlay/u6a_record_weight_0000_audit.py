@@ -26,11 +26,11 @@ STUB_LINEAR = (0x0096 << 4) + 0x003E
 CALLEE = dict(unit=0x86, entry=0x323D, end=0x328A, insns=29,
               sha="2ec1f95931eeb474593d0733ece3c8d582ab3a2a4d1c23b9de59d8f0bb5e87cd")
 TARGETS = {
-    "0000": dict(entry=0x0000, end=0x0159, insns=121, retf=0x0156, call=0x008A,
+    "0000": dict(unit=0x6A, entry=0x0000, end=0x0159, insns=121, retf=0x0156, call=0x008A,
                  sha="b361d881a02fc656fa6e5e7ad390b54724164d9f8eab5c751a3b57545da0760a",
                  symbol="pr_u6a_record_weight_0000", source="overlay_u6a_record_weight_0000.c",
                  callers={(0x077A, 0x07A1)}, conditionals=12),
-    "019c": dict(entry=0x019C, end=0x0214, insns=42, retf=0x0211, call=0x01C3,
+    "019c": dict(unit=0x6A, entry=0x019C, end=0x0214, insns=42, retf=0x0211, call=0x01C3,
                  sha="d1c2b5b72d6abc696263f11879fa61be5a86c7ed7d4e0d040d9b2509cba34972",
                  symbol="pr_u6a_link_high_clear_019c", source="overlay_u6a_link_high_clear_019c.c",
                  callers={(0x0214, 0x0240), (0x0B5B, 0x0BC4), (0x0B5B, 0x0E25)}, conditionals=3),
@@ -401,7 +401,11 @@ def main():
                     memory, cpu, lambda ram, state: functions[key](ram, SIZE, ctypes.byref(state)),
                     [(cpu.cs, bodies[key]["call"])], check_target_cs=False)
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, callee, k, functions, args.quick) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, callee, k, functions, args.quick)
+                    print(f"ROW_EXECUTED OVL_006A_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u6a_record_weight_0000_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, callee, functions)

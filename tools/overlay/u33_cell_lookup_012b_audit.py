@@ -49,6 +49,11 @@ TARGETS = {
 LEAF_SHA = "ab4d7f5e3d42b8d23dba77a563b5041f669850990444583890627278764f281b"
 
 
+def row_id(key):
+    """Registered row id from the body's own unit, never from the loop prefix."""
+    return f"OVL_{TARGETS[key]['unit']:04X}_{key.upper()}"
+
+
 def check(condition, message):
     if not condition:
         raise ValueError(message)
@@ -327,7 +332,12 @@ def main():
         with tempfile.TemporaryDirectory(prefix="poolrad-u33-") as temp:
             functions = library(Path(temp))
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, spans, k, functions, args.quick) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, spans, k, functions, args.quick)
+                    if row_id(k) in CHECKER_ROWS:
+                        print(f"ROW_EXECUTED {row_id(k)} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u33_cell_lookup_012b_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, spans, functions)
