@@ -60,6 +60,8 @@ PAIR_TOKEN = re.compile(r"\s*([0-9a-fA-F]{2})(?![0-9A-Za-z])")
 BARE = re.compile(r"(?<![0-9A-Za-z])([0-9a-fA-F]{2}(?:[ \t]+[0-9a-fA-F]{2}){7,})(?![0-9A-Za-z])")
 VALUE_LIST = re.compile(r"(?:\b0x[0-9a-fA-F]{1,3}\s*,\s*){7,}\b0x[0-9a-fA-F]{1,3}")
 MIN_JUSTIFICATION = 20
+DISCLOSURE = ("byte-dump checker: heuristic; known margins: decimal-looking low-value pairs "
+              "outside addressed columns, non-.md files, contiguous hex blobs, encoded content")
 TASK_RE = re.compile(r"^t\d+$")
 EXPIRY_RE = re.compile(r"expires\b", re.I)
 
@@ -198,6 +200,7 @@ def main(argv=None):
     parser.add_argument("--task-status", type=Path,
                         help="read each task's status from a JSON map instead of the CLI")
     args = parser.parse_args(argv)
+    print(DISCLOSURE)  # every run states its own margins; a silent heuristic reads as a guarantee
     try:
         result = scan(args.root, args.paths, args.allowlist)
     except ValueError as error:

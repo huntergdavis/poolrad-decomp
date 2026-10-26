@@ -70,6 +70,14 @@ class ByteDumpTest(unittest.TestCase):
         self.output = buffer.getvalue()
         return code
 
+    def test_every_run_prints_the_heuristic_disclosure(self):
+        clean = self.write("docs/re/clean.md", document("SHA-256 `" + "7f" * 32 + "`\n"))
+        self.assertEqual(self.run_check(clean), 0)
+        self.assertIn("heuristic; known margins", self.output)
+        dumped = self.write("docs/re/dump.md", document("`" + DUMP + "`\n"))
+        self.assertEqual(self.run_check(dumped), 1)
+        self.assertIn("heuristic; known margins", self.output)
+
     def test_a_span_dump_fails(self):
         path = self.write("docs/re/dumped.md", document("The body is:\n\n`" + DUMP + "`\n"))
         self.assertEqual(self.run_check(path), 1)
