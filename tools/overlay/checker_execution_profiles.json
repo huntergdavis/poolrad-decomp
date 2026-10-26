@@ -538,9 +538,7 @@
     "args": []
   },
   "tools/overlay/u1c_save_cpu_audit.py": {
-    "args": [
-      "0292"
-    ]
+    "args": []
   },
   "tools/overlay/u1c_text_2e7d_cpu_audit.py": {
     "args": [

@@ -298,10 +298,23 @@ def main(argv=None):
             return 1
         print("CHECKER_BUILD_OK")
         return 0
-    if not args.body:
-        parser.error("body is required unless --compile-only is used")
     try:
         ovr, units = media()
+    except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
+        sys.exit(f"audit failed: {error}")
+    if not args.body:
+        # All-bodies differential: the checker registers two rows, so one command must
+        # execute BOTH and fail if either fails. No row can be AGREE unless its own
+        # differential ran and passed.
+        failed = 0
+        for bod in sorted(BODIES):
+            try:
+                audit(bod, ovr, units)
+            except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
+                print(f"{bod}: audit failed: {error}", file=sys.stderr)
+                failed = 1
+        return failed
+    try:
         audit(args.body, ovr, units)
     except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
         sys.exit(f"audit failed: {error}")
