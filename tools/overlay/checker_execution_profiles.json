@@ -396,6 +396,9 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/res0802_selector_094a_cpu_audit.py": {
+    "args": []
+  },
   "tools/overlay/res0899_quit_0000_cpu_audit.py": {
     "args": [
       "--unicorn"
