@@ -70,7 +70,7 @@ independent per-file hashes and comparisons are in
 
 For each side, sort all 36 paths by basename, form ASCII lines
 `basename + " " + decimal_size + " " + sha256(file_bytes) + "\n"`, concatenate,
-and SHA-256 the result. Independently calculated values:
+and SHA-256 the result. Manifest ordering is **sorted by basename**, across all four file classes together. Independently calculated values:
 
 ```text
 input  781c8c827f4566b24b31b440596239e743588fdc5b593951c86d98a3be0fff19
