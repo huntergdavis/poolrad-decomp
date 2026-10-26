@@ -1,15 +1,25 @@
 offset,width,name,encoding,valid_range,status,evidence
 0x000,1,name_length,unsigned byte,0..15 conservative reader bound; observed 6..14,VERIFIED,DOS_CHARACTER.md: U6F +07B7/+215D Pascal string use; capacity is observational
 0x001,15,name_storage,raw string bytes and opaque unused tail,encoding and unused-tail rules UNVERIFIED; occupied span is name_length bytes,UNVERIFIED,DOS_CHARACTER.md: name span verified; DOS code page not established
-0x010,2,unknown_010_011,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
-0x012,1,u9b_threshold_input,unsigned byte,game-valid range UNVERIFIED; unsigned comparisons against 12..16,UNVERIFIED,U9B_RECORD_INCR_01AF.md: +01C1/+01DE/+01FB/+0218/+0235; static recheck
-0x013,108,unknown_013_07e,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x010,1,str_display_input,byte; numeric display,UNVERIFIED general range; held-character STR17->16 disk-load/display observed,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x011,1,int_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x012,1,wis_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x013,1,dex_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x014,1,con_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x015,1,cha_display_input,byte; numeric display,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 label loop +0214..02D3 and numeric read +0962..0976; static original-byte trace
+0x016,1,str_suffix_display_input,unsigned byte,UNVERIFIED gameplay-valid range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +097B..0A41; only used when STR=18 and value>0
+0x017,104,unknown_017_07e,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
 0x07F,4,runtime_pointer_07f,LE16 offset then LE16 segment,stale disk value; loader clears; preserve on export,VERIFIED,DOS_CHARACTER.md: U6F +0C77/+0C7B; static recheck; pointed-to meaning UNVERIFIED
 0x083,19,unknown_083_095,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
-0x096,1,party_strength_input_e,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; not an ability-name claim
-0x097,4,unknown_097_09a,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
-0x09B,1,party_strength_input_d,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; not a level-name claim
-0x09C,22,unknown_09c_0b1,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x096,1,level_display_slot_0,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x097,1,level_display_slot_1,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x098,1,level_display_slot_2,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x099,1,level_display_slot_3,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x09A,1,level_display_slot_4,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x09B,1,level_display_slot_5,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x09C,1,level_display_slot_6,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x09D,1,level_display_slot_7,byte; signed-positive values displayed,UNVERIFIED class assignment and legal level range,VERIFIED,DOS_CHARACTER_DISPLAY_FIELDS.md: U77 +0314..03B4; static original-byte trace
+0x09E,20,unknown_09e_0b1,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
 0x0B2,1,u9b_counter_0b2,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 12 and 13; static recheck
 0x0B3,1,u9b_counter_0b3,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 14 and 15; static recheck
 0x0B4,1,u9b_counter_0b4,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 16; static recheck
