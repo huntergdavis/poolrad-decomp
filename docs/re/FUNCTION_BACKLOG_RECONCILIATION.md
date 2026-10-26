@@ -43,6 +43,26 @@ The overlay-manager row remains `unresolved` / ownership `unknown` in the
 queue. Its exclusion is an explicit census-policy join, not a classifier
 repair. Library inference is not an exact stock-Borland source match.
 
+The ten non-SYSTEM **soft exclusions** are listed individually below. For
+the first nine, the alias is the exact row ID in
+`resident_callable_ledger.csv`, whose `classification` is
+`linked_crt_inferred`; the canonical queue preserves that field. Their CRT
+library-tier treatment is read from the census. The tenth instead needs the
+census's overlay-manager segment rule; its queue classification is not CRT.
+
+| Queue ID | Resident ledger row / alias | Exact exclusion evidence |
+| --- | --- | --- |
+| `RES_IMAGE_0A400` | `RPRO_0A400` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A42E` | `RNEAR_0A42E` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A497` | `RNEAR_0A497` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A4E5` | `RNEAR_0A4E5` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A69C` | `RES_0A40_029C` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A6BD` | `RNEAR_0A6BD` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A6FD` | `RES_0A40_02FD` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0A731` | `RNEAR_0A731` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0AA0B` | `RNEAR_0AA0B` | `classification=linked_crt_inferred` |
+| `RES_IMAGE_0AA20` | `RPRO_0AA20` | `original_address=image:0x0AA20 = 0x0AA2*16+0`; census library segment `0xAA2`; queue `classification=unresolved` |
+
 The net difference 83 is **90 exclusions minus seven additions**:
 `898 - 90 = 808` queued non-library bodies; `808 + 7 = 815 CEILING`.
 [function_backlog_census_only.csv](function_backlog_census_only.csv) lists the
@@ -62,6 +82,21 @@ These seven rows are separate from the 898-row queue. Their addresses and
 ingress are read from the prior census, not re-decoded here; their evidence
 state in this join is conservatively `address_only`. The static CEILING
 is inherited, and its census limitations continue to apply.
+
+Their absence from the queue is an **export-input gap, not a different
+function definition**. `function_queue.py:overlay_rows()` emits only
+`inventory["units"][*]["functions"]`. As documented in census correction 1,
+`overlay_inventory.find_units()` scans the packed START.EXE image; unit
+`0x16`'s descriptor is visible only after loader expansion. The inventory
+therefore omits both of that unit's bodies. For residents,
+`function_queue_audit.py` delegates to
+`resident_callable_coverage.audit_coverage()`: its initial set is
+`resident_targets + unmatched_prologues`, followed by candidate-seeded near
+closure. It does not add INT 21h AH=25h vector targets as seeds. The census
+does add that ingress: `RES_08AE_137C` installs `13EA`, which reaches the
+four near helpers. The queue exporter consumes `rows + runtime_rows` from
+the narrower audit; it does not merge the census corrections. This explains
+the seven omissions without altering either export or the CEILING.
 
 ## Evidence states and their source fields
 
@@ -101,6 +136,35 @@ state. The strongest mapped state wins in this order:
 | Duplicate / alias | 0 | 0 | 0 | 0 | 0 | 0 |
 | Unresolved kind | 0 | 0 | 0 | 0 | 0 | 0 |
 | Queue total | 0 | 543 | 0 | 65 | 290 | 898 |
+
+The zero `bytes_recovered` is a consequence of the precedence rule, **not
+absence of recorded bytes**. In the public CSV, 181 rows carry both
+`recorded_body_bytes` and `recorded_body_sha256`: 169 select `credited`, and
+12 select `C_drafted`. None remains exclusively bytes-only. This overlap
+count covers the explicit machine-readable manifests; it does not say the
+other credited rows lack body hashes in their prose evidence. Five examples
+of each stronger state follow; full hashes are in the CSV.
+
+| ID | Selected state | Recorded body bytes | Recorded SHA-256 prefix |
+| --- | --- | ---: | --- |
+| `OVL_0020_0355` | credited | 372 | `72267bd65af83ce8` |
+| `OVL_0023_0239` | credited | 278 | `cfce7e60752c92e3` |
+| `OVL_0025_0136` | credited | 128 | `0dd25983c54922e1` |
+| `OVL_0025_01B6` | credited | 364 | `b1bf2753d995d35f` |
+| `OVL_0025_0482` | credited | 143 | `bcfe56989d4733d2` |
+| `RES_IMAGE_08020` | C drafted | 32 | `a88fd0caa6f04a9c` |
+| `RES_IMAGE_08040` | C drafted | 32 | `94e1c421c6061c22` |
+| `RES_IMAGE_08195` | C drafted | 30 | `8f590b56a4323310` |
+| `RES_IMAGE_08AE0` | C drafted | 108 | `a8e33767ba204b74` |
+| `RES_IMAGE_08B4C` | C drafted | 112 | `f03f1ed3f490c274` |
+
+| State rule | Example and the field that supports it |
+| --- | --- |
+| Address only | Census-only `OVL_0016_0042`: `SUPPLEMENTAL` address and census correction 1; no queue decode joined |
+| Disassembled | `OVL_0017_0000`: overlay ledger `decoded=515` |
+| Bytes recovered predicate | `RES_IMAGE_08020`: resident-runtime manifest `body_bytes=32`, `body_sha256=a88fd0ca…`; final label is C drafted because its registered source is present |
+| C drafted | `OVL_007D_0000`: partial-model manifest plus `DOCUMENTED_SOURCES`, the documented `pr_u7d_list_timer_0000_cpu` entry point, and its existing C definition |
+| Credited | `OVL_0020_0355`: strict map row and canonical queue `strict_full_c=1` |
 
 Source discovery is deliberately limited to explicit registrations and
 documented source citations. Unregistered or inline drafts may exist among
