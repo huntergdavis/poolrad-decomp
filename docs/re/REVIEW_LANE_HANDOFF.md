@@ -7,8 +7,10 @@ whole-game denominator is unknown — never state a completion percentage.
 
 ## Seven standing conditions
 
-1. **Verify before merge.** Never merge an unverified PR. Breaking the claim is
-   the standard: delete a source, inject a bogus id, re-run.
+1. **Verify before merge.** Never merge an unverified PR, with one named exception:
+   merge-then-verify for a blob-identical restack of an accepted, media-gated head
+   (see [Verdict states](#verdict-states-accept-withdrawn-suspended-vp-i25889-cos-i24714)).
+   Breaking the claim is the standard: delete a source, inject a bogus id, re-run.
 2. **Doc truth.** A row is not creditable while its own evidence doc misstates
    its masking or extent. Check the doc sentence against the checker or the
    media bytes *before* crediting, not after.
