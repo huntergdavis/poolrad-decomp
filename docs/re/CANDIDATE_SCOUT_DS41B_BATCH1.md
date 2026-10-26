@@ -19,7 +19,8 @@ quoted in this document. Exit 0 means every span digest matches. It does **not**
 the semantic C; that is the independent reviewer's job.
 
 Each candidate lists what the C models, which callees it composes, and what this packet
-does **not** verify.
+does **not** verify. The C fences are labelled **PSEUDOCODE**: a reading aid with abbreviated
+signatures, not compilable drafts (see the note at each fence).
 
 ---
 
@@ -69,10 +70,30 @@ Disassembly (Capstone, 16-bit):
 
 Semantic C (proposed decode; composes the existing `pr_rec_ecl_*` helpers):
 
+**The C below is PSEUDOCODE, not a compilable translation.** It uses helper names
+that exist in `ecl_helpers.h` but abbreviated signatures that do not: the real calls are
+`pr_rec_ecl_load_operands(state, count)`, `pr_rec_ecl_operand_word(low, high)`,
+`pr_rec_ecl_slot_value(state, slot, &value)` and
+`pr_rec_ecl_store_string(state, address, text, len)`; there is no `e->string` field. The
+`pr_rec_ecl_tag` stub below is explicit and honest, but the rest of each fence is a
+reading aid, not a buildable draft. The real path-complete model for SAVE already exists
+as `pr_rec_ecl_op_save(...)` in `ecl_helpers.h`. The digest/tool fix is carried by the
+BATCH1 scrub PR, not here.
+
 ```c
 /* ECL opcode 0x09 SAVE. Far Pascal, no arguments, RETF.
- * Operands were fetched by the caller; slot 1 is the value, slot 2 its destination. */
-void pr_rec_ecl_op_save(struct pr_ecl *e)
+ * Operands were fetched by the caller; slot 1 is the value, slot 2 its destination.
+ *
+ * NOTE: pr_rec_ecl_tag is NOT a function in include/ or src/. It is defined here as a
+ * stub so this draft is self-contained; the real accessor is the tag[] field of
+ * pr_rec_ecl_loader_state (include/poolrad/recovered/ecl_helpers.h). The real
+ * path-complete model for this body already exists as pr_rec_ecl_op_save(...) there. */
+static uint8_t pr_rec_ecl_tag(pr_rec_ecl_loader_state *e, unsigned slot)
+{
+    return e->tag[slot];
+}
+
+void pr_rec_ecl_op_save_draft(pr_rec_ecl_loader_state *e)
 {
     pr_rec_ecl_load_operands(e, 2);                       /* 0298 */
     uint16_t dest = pr_rec_ecl_operand_word(e, 2);        /* 02A0..02AD, hi[2]<<8|lo[2] */
@@ -137,10 +158,20 @@ Disassembly (Capstone, 16-bit):
 
 Semantic C (proposed decode; composes the existing `pr_rec_ecl_*` helpers):
 
+**The C below is PSEUDOCODE, not a compilable translation.** It uses helper names
+that exist in `ecl_helpers.h` but abbreviated signatures that do not: the real calls are
+`pr_rec_ecl_load_operands(state, count)`, `pr_rec_ecl_operand_word(low, high)`,
+`pr_rec_ecl_slot_value(state, slot, &value)` and
+`pr_rec_ecl_store_string(state, address, text, len)`; there is no `e->string` field. The
+`pr_rec_ecl_tag` stub below is explicit and honest, but the rest of each fence is a
+reading aid, not a buildable draft. The real path-complete model for SAVE already exists
+as `pr_rec_ecl_op_save(...)` in `ecl_helpers.h`. The digest/tool fix is carried by the
+BATCH1 scrub PR, not here.
+
 ```c
 /* ECL opcode 0x35 SAVE TABLE. Far Pascal, no arguments, RETF.
  * dest = operand_word(slot 2) + slot_value(slot 3); value = slot_value(slot 1). */
-void pr_rec_ecl_op_save_table(struct pr_ecl *e)
+void pr_rec_ecl_op_save_table_draft(pr_rec_ecl_loader_state *e)
 {
     pr_rec_ecl_load_operands(e, 3);                       /* 0EC2..0EC5 */
     uint16_t value = pr_rec_ecl_slot_value(e, 1);         /* 0ECA..0ED2 */
