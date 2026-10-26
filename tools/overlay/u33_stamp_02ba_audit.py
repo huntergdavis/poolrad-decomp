@@ -26,9 +26,9 @@ from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, OVR_SHA, REGISTERS
 U33_BASE = 0xC5D1
 CALLER_CS, DS, SS = 0x3000, 0x1000, 0x2000
 TARGETS = {
-    "02ba": dict(entry=0x02BA, end=0x0377, insns=86, retf=0x0374, conditionals=5, symbol="pr_u33_stamp_block_02ba",
+    "02ba": dict(unit=0x33, entry=0x02BA, end=0x0377, insns=86, retf=0x0374, conditionals=5, symbol="pr_u33_stamp_block_02ba",
                  calls=[0x02E1, 0x0315, 0x0327, 0x033C, 0x035E, 0x036E], callers={(0x0810, 0x087E)}),
-    "0377": dict(entry=0x0377, end=0x040F, insns=82, retf=0x040C, conditionals=1, symbol="pr_u33_stamp_square_0377",
+    "0377": dict(unit=0x33, entry=0x0377, end=0x040F, insns=82, retf=0x040C, conditionals=1, symbol="pr_u33_stamp_square_0377",
                  calls=[0x0394, 0x03A4, 0x03B4, 0x03C4, 0x03D6, 0x03E6, 0x03F6, 0x0406], callers={(0x0810, 0x0883)}),
 }
 

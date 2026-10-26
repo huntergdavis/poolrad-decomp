@@ -88,11 +88,14 @@ comparison passes), never from a footer after `main` returns: a selector such as
 `--only 1434` emits only `OVL_0033_1434`, a mode that runs no differential emits
 none, and a declared row the run did not execute is NOT-COVERED (exit 5).
 The row id is derived from the body's own unit metadata, never from the loop prefix.
-A checker spanning two units (for example 012b/01ad in 0033 and 0350/047b in 03BD)
-computes two unit prefixes, but emits a marker only for rows in its own
-`CHECKER_ROWS`: the 03BD callee bodies are exercised and left unmarked, so this
-checker cannot claim their coverage. `MixedUnitMarkerTest` checks the mapping
-against the registry discovered from `CHECKER_ROWS`, not against the profile.
+The cell checker computes unit-correct ids for all four bodies (012b/01ad in
+0033 and 0350/047b in 03BD), but owns only the two 0033 rows. The 03BD callee
+comparisons still run and are left unmarked: they are registered as `unit-test`
+evidence in `credit_evidence_kind.csv`, so making this checker their owner would
+reclassify a credit-evidence table, which is outside this change. The mixed-unit
+test checks the mapping and routes a stub through the registry discovered from
+`CHECKER_ROWS`: the two owned rows AGREE and a profile row the checker does not
+own is refused before launch.
 Single-row profiles need no marker because the mapping is unambiguous.
 
 ```

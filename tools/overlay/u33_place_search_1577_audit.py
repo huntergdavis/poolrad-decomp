@@ -30,10 +30,10 @@ STUB_3BD, STUB_3C6 = 0x03D5, 0x03E0
 STUBS_3BD = {0x2F: 0x0350, 0x2A: 0x047B}
 CALLER_CS, LOOKUP_CS, SCAN_CS, DS, SS = 0x3000, 0x4000, 0x6000, 0x1000, 0x2000
 TARGETS = {
-    "1434": dict(entry=0x1434, end=0x1577, insns=138, retf=0x1574, pops=0x0C, conditionals=8, args=6,
+    "1434": dict(unit=0x33, entry=0x1434, end=0x1577, insns=138, retf=0x1574, pops=0x0C, conditionals=8, args=6,
                  symbol="pr_u33_cell_claim_1434", calls=[(0x150E, "lcall", "0x3e0, 0x70")], callers={(0x1577, 0x19C7)},
                  infeasible=set(), unreachable=set()),
-    "1577": dict(entry=0x1577, end=0x19F5, insns=470, retf=0x19F2, pops=0x02, conditionals=35, args=1,
+    "1577": dict(unit=0x33, entry=0x1577, end=0x19F5, insns=470, retf=0x19F2, pops=0x02, conditionals=35, args=1,
                  symbol="pr_u33_place_search_1577",
                  calls=[(0x17C8, "call", "0x1403"), (0x1894, "call", "0x1ad"), (0x18C8, "call", "0x1403"),
                         (0x1950, "call", "0x1ad"), (0x19C7, "call", "0x1434")], callers={(0x19F5, 0x1C75)},

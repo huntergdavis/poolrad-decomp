@@ -265,42 +265,60 @@ class CoverageTest(unittest.TestCase):
 
 class MixedUnitMarkerTest(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[2]
+    ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
 
-    def test_cell_row_ids_are_earned_from_the_body_unit(self):
+    def test_cell_owns_two_rows_but_earns_both_unit_prefixes(self):
         import u33_cell_lookup_012b_audit as cell
         got = {key: cell.row_id(key) for key in cell.TARGETS}
         self.assertEqual(got, {
             '012b': 'OVL_0033_012B', '01ad': 'OVL_0033_01AD',
             '0350': 'OVL_03BD_0350', '047b': 'OVL_03BD_047B'})
         self.assertEqual(len({row.split('_')[1] for row in got.values()}), 2)
-
-    def test_cell_marks_only_rows_it_owns_in_the_discovered_registry(self):
-        import u33_cell_lookup_012b_audit as cell
         registry = gate.discover(self.ROOT)
         path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
         owned = {row for row, paths in registry.items() if path in paths}
-        self.assertEqual(owned, {'OVL_0033_012B', 'OVL_0033_01AD'})
+        self.assertEqual(owned, set(self.ROWS))
         self.assertNotIn('OVL_03BD_0350', owned)
         self.assertNotIn('OVL_03BD_047B', owned)
-        emitted = {cell.row_id(key) for key in cell.TARGETS if cell.row_id(key) in cell.CHECKER_ROWS}
-        self.assertEqual(emitted, owned)
         profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
-        declared = set(profiles['tools/overlay/u33_cell_lookup_012b_audit.py']['rows'])
-        self.assertEqual(declared, owned)
+        self.assertEqual(set(profiles[str(path)]['rows']), owned)
 
-    def test_other_per_key_checkers_own_a_single_unit(self):
+    def test_cell_two_owned_rows_route_and_agree_with_the_discovered_registry(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
+        (root / path).parent.mkdir(parents=True)
+        for name in execution.MEDIA:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'synthetic')
+        (root / path).write_text(''.join(f'print("ROW_EXECUTED {row} PASS")\n' for row in self.ROWS))
+        wrapper = root / 'heavy'
+        wrapper.write_text('#!/bin/sh\nexec "$@"\n')
+        wrapper.chmod(0o755)
         registry = gate.discover(self.ROOT)
-        expected = {
-            'tools/overlay/u33_place_search_1577_audit.py': '0033',
-            'tools/overlay/u33_grid_pair_0d13_audit.py': '0033',
-            'tools/overlay/u33_stamp_02ba_audit.py': '0033',
-            'tools/overlay/u6a_record_weight_0000_audit.py': '006A',
-        }
-        for name, unit in expected.items():
-            path = Path(name)
+        profiles = {str(path): {'args': [], 'rows': list(self.ROWS), 'observe': True}}
+        status, report = execution.execute(root, registry, [path], profiles, heavy=wrapper)
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results'], {row: 'AGREE' for row in self.ROWS})
+        bad = {str(path): {'args': [], 'rows': list(self.ROWS) + ['OVL_03BD_0350'], 'observe': True}}
+        with self.assertRaises(ValueError):
+            execution.execute(root, registry, [path], bad, heavy=wrapper)
+
+    def test_other_per_key_checkers_declare_a_real_single_unit(self):
+        import u33_place_search_1577_audit as place
+        import u33_grid_pair_0d13_audit as grid
+        import u33_stamp_02ba_audit as stamp
+        import u6a_record_weight_0000_audit as weight
+        registry = gate.discover(self.ROOT)
+        expected = {place: 0x33, grid: 0x33, stamp: 0x33, weight: 0x6A}
+        for module, unit in expected.items():
+            units = {target.get('unit') for target in module.TARGETS.values()}
+            self.assertEqual(units, {unit}, module.__name__)
+            path = Path('tools/overlay') / (module.__name__ + '.py')
             owned = {row for row, paths in registry.items() if path in paths}
-            self.assertTrue(owned, name)
-            self.assertEqual({row.split('_')[1] for row in owned}, {unit}, name)
+            self.assertEqual({row.split('_')[1] for row in owned}, {f'{unit:04X}'}, module.__name__)
 
 
 if __name__ == '__main__':
