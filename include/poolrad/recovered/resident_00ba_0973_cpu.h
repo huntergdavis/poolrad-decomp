@@ -45,7 +45,9 @@ typedef struct {
  * the supplied bus (its EGA effects belong to the caller's world). Flags at
  * the printer are 1037's; the final flags are the printer's.
  * CONTRACT: the node pointer, stack and formatter destination must not alias
- * A0000..AFFFF; the body does not guard those aliases. */
+ * A0000..AFFFF; the body does not guard those aliases.
+ * LOAD-ZERO ONLY: the model requires the resident code at CS=00BA and the
+ * printer at 0709:0626; it is not relocated-load parity. */
 pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_0973_cpu *cpu,
                                         const pr_res_0973_env *env, pr_res_0973_diagnostic *diagnostic);
 #endif

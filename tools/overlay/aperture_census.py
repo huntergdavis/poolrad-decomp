@@ -63,7 +63,7 @@ SOURCES = {
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
     "resident_00ba_window_16ec_cpu.c": ("caller-argument+local", "read", "StrStore copies the caller string at BP+0A/+0C into the local BP-100h buffer; own stack and DS accesses are flat, aperture aliases excluded by contract"),
-    ("resident_00ba_0973_cpu.c", "pr_res_00ba_1037_cpu"): ("caller-argument+local", "read", "the node far pointer at BP+0C/0E and the local BP-0102h string; 1037 reads the fresh byte argument and the dest pointer"),
+    ("resident_00ba_0973_cpu.c", "pr_res_00ba_1037_cpu"): ("local", "read", "1037 receives a byte value, not the node pointer; its destination is the body-built local SS:BP-0102h"),
     ("overlay_u23_append_0239_cpu.c", "pr_system_getmem_023f"): ("callee-returned", "read", "GetMem(3Fh) at 0297..029B and 02FC..0300 takes only the size; the block it returns is the pointer"),
     ("overlay_u23_append_0239_cpu.c", "pr_system_move_0a3f"): ("caller-argument+callee-returned", "read", "Move from ITEM (the far pointer at SS:[BP+0Ah]) into the GetMem block at [BP-4] or [BP-8] (02A6..02B4, 030B..0319)"),
     ("overlay_u23_append_0239_cpu.c", "pr_system_strload_0b0b"): ("code-literal+local", "read", "StrLoad of the 10-character literal at CS:022E into the body-frame temporary SS:[BP-13h] (0256..0260)"),

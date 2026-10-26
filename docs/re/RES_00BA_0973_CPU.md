@@ -41,5 +41,10 @@ conditional outcomes.
 
 The printer and formatter are their accepted models; this audit does not
 re-derive their internal paths. The EGA comparison follows the printer
-audit's A0000-write observation, not a full hardware model. No native,
-full-game, ownership or credit claim is made; ownership is unresolved.
+audit's A0000-write observation, not a full hardware model. The model is
+load-zero only: it requires the resident code at `CS=00BA` and the printer at
+`0709:0626`, and is not relocated-load parity. `--unicorn` is parsed for
+profile symmetry but execution is unconditional. The entry FLAGS are not
+varied (all cases use `0202`); the 15 cases are visited starts/edges, not an
+input-domain proof. No native, full-game, ownership or credit claim is made;
+ownership is unresolved.

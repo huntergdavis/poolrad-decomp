@@ -23,7 +23,6 @@ FMT_ENTRY, FMT_END = 0x1037, 0x1073
 NODE_SEG, NODE_OFF = 0x6000, 0x1000
 RETURN_TO = (0x9001, 0x7000)
 FONT_SEG, FONT_OFF = 0x7000, 0x1000
-FLAGS = (0x0602, 0x0202, 0x0ED7, 0x0647, 0x72D7)
 CHECKER_ROWS = ('RES_00BA_0973',)
 
 
@@ -180,11 +179,11 @@ def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--quick', action='store_true'); ap.add_argument('--compile-only', action='store_true')
     ap.add_argument('--unicorn', action='store_true'); ap.add_argument('--output', type=Path)
     a = ap.parse_args()
-    spec, IMAGE = source()
     with tempfile.TemporaryDirectory(prefix='poolrad-0973-') as d:
         lib, f = library(Path(d))
         if a.compile_only:
             print('CHECKER_BUILD_OK'); return
+        spec, IMAGE = source()
         report = dict(target='RES_00BA_0973', cases=0, ram_bytes=SIZE - 65536, cpu_words=14, flag_masks=0)
         seen, edges, outs, vram = set(), set(), 0, 0
         for name, opts in cases(a.quick):
