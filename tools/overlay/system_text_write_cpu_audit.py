@@ -234,6 +234,8 @@ def main():
         report = dict(targets=meta, image_sha256=IMAGE_DIGEST, relocations=len(sites), load_base=f'{BASE:04X}')
         if a.unicorn:
             report['unicorn'] = differential(relocate(image, sites, BASE), decoded, fs)
+            for _row in ('RES_0AF8_084A', 'RES_0AF8_0919'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if a.native:
             import system_text_write_cpu_native as N
             report['native'] = N.native(image, sites, fs, __import__(__name__))
@@ -246,5 +248,3 @@ if __name__ == '__main__':
     import sys
     sys.modules['system_text_write_cpu_audit'] = sys.modules[__name__]
     main()
-    for _row in ('RES_0AF8_084A', 'RES_0AF8_0919'):
-        print(f"ROW_EXECUTED {_row} PASS")

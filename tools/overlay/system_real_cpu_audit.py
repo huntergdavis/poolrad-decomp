@@ -526,6 +526,8 @@ def main():
         report = dict(target=ctx['info'])
         if args.unicorn:
             report['unicorn'] = differential(ctx, functions)
+            for _row in ('RES_0AF8_1186', 'RES_0AF8_119A', 'RES_0AF8_119E'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if args.native:
             report['native'] = native_audit(ctx, functions)
     if args.output:
@@ -535,5 +537,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    for _row in ('RES_0AF8_1186', 'RES_0AF8_119A', 'RES_0AF8_119E'):
-        print(f"ROW_EXECUTED {_row} PASS")

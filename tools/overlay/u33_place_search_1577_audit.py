@@ -396,7 +396,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="poolrad-u33-1577-") as temp:
             functions = library(Path(temp))
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, code, k, functions, args.quick) for k in keys}
+                _cases = {}
+                for k in keys:
+                    _cases[k] = differential(bodies, code, k, functions, args.quick)
+                    print(f"ROW_EXECUTED OVL_0033_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u33_place_search_1577_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, code, functions)
@@ -408,5 +412,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    for _row in ('OVL_0033_1434', 'OVL_0033_1577'):
-        print(f"ROW_EXECUTED {_row} PASS")

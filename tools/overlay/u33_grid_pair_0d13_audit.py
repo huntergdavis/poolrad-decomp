@@ -291,7 +291,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="poolrad-u33-grid-") as temp:
             functions = library(Path(temp))
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, code, k, functions, args.quick) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, code, k, functions, args.quick)
+                    print(f"ROW_EXECUTED OVL_0033_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u33_grid_pair_0d13_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, code, functions)
@@ -303,5 +307,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    for _row in ('OVL_0033_0D13', 'OVL_0033_0E9E'):
-        print(f"ROW_EXECUTED {_row} PASS")

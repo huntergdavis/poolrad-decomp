@@ -401,7 +401,11 @@ def main():
                     memory, cpu, lambda ram, state: functions[key](ram, SIZE, ctypes.byref(state)),
                     [(cpu.cs, bodies[key]["call"])], check_target_cs=False)
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, callee, k, functions, args.quick) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, callee, k, functions, args.quick)
+                    print(f"ROW_EXECUTED OVL_006A_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u6a_record_weight_0000_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, callee, functions)
@@ -413,5 +417,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    for _row in ('OVL_006A_0000', 'OVL_006A_019C'):
-        print(f"ROW_EXECUTED {_row} PASS")

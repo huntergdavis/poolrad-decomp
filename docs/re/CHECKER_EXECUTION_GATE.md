@@ -82,9 +82,12 @@ profile did not declare is recorded in `undeclared_markers` and the run fails
 (NOT-COVERED). A failing command never prints AGREE for any row; the per-row
 line is the row's actual result, not the checker's success. The receipt records
 `coverage_source` as `stdout` when observe is on, otherwise `profile` (a
-declaration, source-reviewed). The 15 multi-row profiles set `observe` and their
-checkers emit one marker per declared row; single-row profiles need no marker
-because the mapping is unambiguous.
+declaration, source-reviewed). The 15 multi-row profiles set `observe`. Each checker emits the marker at the
+point that row's differential completes (inside the row loop, after the
+comparison passes), never from a footer after `main` returns: a selector such as
+`--only 1434` emits only `OVL_0033_1434`, a mode that runs no differential emits
+none, and a declared row the run did not execute is NOT-COVERED (exit 5).
+Single-row profiles need no marker because the mapping is unambiguous.
 
 ```
 $ python3 -m unittest test_checker_execution   # includes CoverageTest observed-marker controls

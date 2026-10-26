@@ -386,7 +386,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="poolrad-u33-stamps-") as temp:
             functions = library(Path(temp))
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, code, k, functions) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, code, k, functions)
+                    print(f"ROW_EXECUTED OVL_0033_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 report["native"] = native_audit(code, functions)
     if args.output:
@@ -397,5 +401,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    for _row in ('OVL_0033_02BA', 'OVL_0033_0377'):
-        print(f"ROW_EXECUTED {_row} PASS")

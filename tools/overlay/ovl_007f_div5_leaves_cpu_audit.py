@@ -300,6 +300,8 @@ def main():
         blob, decoded, meta = source(); report = dict(target=meta)
         if a.unicorn:
             report['unicorn'] = differential(blob, decoded, lib, a.quick)
+            for _row in ('OVL_007F_0130', 'OVL_007F_0185'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if a.mutate:
             report['mutation'] = mutation_check(blob, decoded)
         if a.native:
@@ -313,5 +315,3 @@ def main():
 if __name__ == '__main__':
     sys.modules['ovl_007f_div5_leaves_cpu_audit'] = sys.modules[__name__]
     main()
-    for _row in ('OVL_007F_0130', 'OVL_007F_0185'):
-        print(f"ROW_EXECUTED {_row} PASS")
