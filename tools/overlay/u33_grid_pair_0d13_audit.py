@@ -33,10 +33,10 @@ SYSTEM_CS, SYSTEM_OFFSET = 0x0AF8, 0x11C0
 STUB_PARAGRAPH, STUB_OFFSET, ENTRY8 = 0x00B0, 0x48, 0x0DE3
 CALLER_CS, DICE_CS, DS, SS = 0x3000, 0x4000, 0x1000, 0x2000
 TARGETS = {
-    "0d13": dict(entry=0x0D13, end=0x0E9E, insns=163, retf=0x0E9D, conditionals=13, sha="",
+    "0d13": dict(unit=0x33, entry=0x0D13, end=0x0E9E, insns=163, retf=0x0E9D, conditionals=13, sha="",
                  symbol="pr_u33_grid_pair_0d13", sites=[0x0DD6, 0x0DE9, 0x0DFD, 0x0E27],
                  flag_calls=[0x0D1E, 0x0D2C, 0x0D3A, 0x0D48, 0x0D56, 0x0E18], callers={(0x11B4, 0x121D)}, infeasible=set()),
-    "0e9e": dict(entry=0x0E9E, end=0x11B4, insns=323, retf=0x11B3, conditionals=18, sha="",
+    "0e9e": dict(unit=0x33, entry=0x0E9E, end=0x11B4, insns=323, retf=0x11B3, conditionals=18, sha="",
                  symbol="pr_u33_grid_bands_0e9e", sites=[0x0F45, 0x0F5E, 0x1026, 0x107B, 0x10D9, 0x1150, 0x116E],
                  flag_calls=[0x0EB9, 0x0ECB, 0x0ED9, 0x0EEB, 0x115F], callers={(0x11B4, 0x1221)}, infeasible=set()),
 }
@@ -291,7 +291,11 @@ def main():
         with tempfile.TemporaryDirectory(prefix="poolrad-u33-grid-") as temp:
             functions = library(Path(temp))
             if args.unicorn:
-                report["unicorn_cases"] = {k: differential(bodies, code, k, functions, args.quick) for k in bodies}
+                _cases = {}
+                for k in bodies:
+                    _cases[k] = differential(bodies, code, k, functions, args.quick)
+                    print(f"ROW_EXECUTED OVL_0033_{k.upper()} PASS")
+                report["unicorn_cases"] = _cases
             if args.native:
                 from u33_grid_pair_0d13_native import native_audit
                 report["native"] = native_audit(ROOT, bodies, code, functions)

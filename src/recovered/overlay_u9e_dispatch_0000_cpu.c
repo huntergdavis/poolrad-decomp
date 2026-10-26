@@ -29,6 +29,8 @@
 #include "poolrad/recovered/overlay_unit38_effects.h"
 #include "poolrad/recovered/ecl_helpers.h"
 #include "poolrad/recovered/overlay_unit38_effects_next.h"
+#include "poolrad/recovered/overlay_unit38_walk.h"
+#include "poolrad/recovered/overlay_u38_handler_0400_cpu.h"
 #include <string.h>
 
 #define MASK (PR_U9E_0000_RAM_SIZE - 1u)
@@ -49,12 +51,12 @@ static const slot_t SLOTS[256] = {
     {K_ADAPTED, 0x0034, 0x0041, 0x013B, 0x00380000u | 0x013Bu},
     {K_GAP_UNCREDITED, 0x0039, 0x0041, 0x017F, 0x00380000u | 0x017Fu},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
-    {K_GAP_SEMANTIC, 0x003E, 0x0041, 0x01C3, 0x00380000u | 0x01C3u},
+    {K_ADAPTED, 0x003E, 0x0041, 0x01C3, 0x00380000u | 0x01C3u},
     {K_GAP_UNCREDITED, 0x0043, 0x0041, 0x0233, 0x00380000u | 0x0233u},
     {K_ADAPTED, 0x0048, 0x0041, 0x0377, 0x00380000u | 0x0377u},
     {K_ADAPTED, 0x004D, 0x0041, 0x03AC, 0x00380000u | 0x03ACu},
     {K_ADAPTED, 0x0052, 0x0041, 0x03E1, 0x00380000u | 0x03E1u},
-    {K_GAP_DEFERRED, 0x0057, 0x0041, 0x0400, 0x00380000u | 0x0400u},
+    {K_RAW, 0x0057, 0x0041, 0x0400, 0x00380000u | 0x0400u},
     {K_ADAPTED, 0x005C, 0x0041, 0x04BA, 0x00380000u | 0x04BAu},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_ADAPTED, 0x0061, 0x0041, 0x05D6, 0x00380000u | 0x05D6u},
@@ -133,14 +135,14 @@ static const slot_t SLOTS[256] = {
     {K_GAP_UNCREDITED, 0x018D, 0x0041, 0x23EC, 0x00380000u | 0x23ECu},
     {K_GAP_UNCREDITED, 0x015B, 0x0096, 0x30D9, 0x00860000u | 0x30D9u},
     {K_ADAPTED, 0x0192, 0x0041, 0x2490, 0x00380000u | 0x2490u},
-    {K_GAP_SEMANTIC, 0x0197, 0x0041, 0x24D9, 0x00380000u | 0x24D9u},
+    {K_ADAPTED, 0x0197, 0x0041, 0x24D9, 0x00380000u | 0x24D9u},
     {K_GAP_UNCREDITED, 0x019C, 0x0041, 0x2556, 0x00380000u | 0x2556u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_ADAPTED, 0x01A1, 0x0041, 0x25A2, 0x00380000u | 0x25A2u},
     {K_ADAPTED, 0x01A6, 0x0041, 0x25BC, 0x00380000u | 0x25BCu},
     {K_GAP_UNCREDITED, 0x01AB, 0x0041, 0x2610, 0x00380000u | 0x2610u},
     {K_RAW, 0x01B0, 0x0041, 0x264B, 0x00380000u | 0x264Bu},
-    {K_GAP_SEMANTIC, 0x01B5, 0x0041, 0x268A, 0x00380000u | 0x268Au},
+    {K_ADAPTED, 0x01B5, 0x0041, 0x268A, 0x00380000u | 0x268Au},
     {K_ADAPTED, 0x01BA, 0x0041, 0x2700, 0x00380000u | 0x2700u},
     {K_GAP_UNCREDITED, 0x01BF, 0x0041, 0x2730, 0x00380000u | 0x2730u},
     {K_RAW, 0x01C4, 0x0041, 0x27D9, 0x00380000u | 0x27D9u},
@@ -169,7 +171,7 @@ static const slot_t SLOTS[256] = {
     {K_RAW, 0x0237, 0x0041, 0x2D88, 0x00380000u | 0x2D88u},
     {K_RAW, 0x023C, 0x0041, 0x2DE4, 0x00380000u | 0x2DE4u},
     {K_RAW, 0x0241, 0x0041, 0x2E08, 0x00380000u | 0x2E08u},
-    {K_GAP_SEMANTIC, 0x0246, 0x0041, 0x2E37, 0x00380000u | 0x2E37u},
+    {K_ADAPTED, 0x0246, 0x0041, 0x2E37, 0x00380000u | 0x2E37u},
     {K_RAW, 0x0264, 0x0041, 0x319B, 0x00380000u | 0x319Bu},
     {K_GAP_UNCREDITED, 0x024B, 0x0041, 0x2EDA, 0x00380000u | 0x2EDAu},
     {K_GAP_UNCREDITED, 0x024B, 0x0041, 0x2EDA, 0x00380000u | 0x2EDAu},
@@ -338,6 +340,7 @@ typedef struct { uint8_t *ram; size_t size; cpu_t *cpu; const pr_u9e_0000_limits
 #define ADAPT(name, type, call) static int name(call_t *m) { type x; int s; COPY(&x, m->cpu); s = (int)(call); COPY(m->cpu, &x); return s; }
 #define LIM m->lim
 ADAPT(h_nop, pr_u38_nop_cpu, pr_u38_dispatch_nop_cpu(m->ram, m->size, &x))
+ADAPT(h_0400, pr_u38_0400_cpu, pr_u38_handler_0400_cpu(m->ram, m->size, &x, LIM->loopbacks, &m->status_raw))
 ADAPT(h_0679, pr_u38_string_match_cpu, pr_u38_string_match_0679_cpu(m->ram, m->size, &x, LIM->loopbacks, &m->status_raw))
 ADAPT(h_0947, pr_u38_string_match_cpu, pr_u38_string_match_0947_cpu(m->ram, m->size, &x, LIM->loopbacks, &m->status_raw))
 ADAPT(h_11f9, pr_u38_11f9_cpu, pr_u38_character_loop_11f9_cpu(m->ram, m->size, &x, LIM->loopbacks, &m->status_raw))
@@ -884,10 +887,153 @@ static int h_04ba(call_t *m)
     return s;
 }
 
+/* ---- t75: the remaining semantic handlers. Input records must not alias
+ * the stack or DS bytes these adapters write, and the stack must not alias
+ * DS state (the semantic APIs separate these objects). Code and the dispatch
+ * table must remain immutable.
+ * Word operands remain physically contiguous even at offset FFFFh. */
+static void copy_record(call_t *m, uint8_t *out, uint16_t seg, uint16_t off, size_t len)
+{
+    size_t k;
+    for (k = 0; k < len; ++k) out[k] = xb_byte(m, seg, off, (unsigned)k);
+}
+static void copy_word(call_t *m, uint8_t *out, uint16_t seg, uint16_t off, unsigned k)
+{
+    uint16_t v = rd16(m->ram, seg, (uint16_t)(off + k));
+    out[k] = (uint8_t)v; out[k + 1u] = (uint8_t)(v >> 8u);
+}
+static uint16_t host_word(const uint8_t *p) { return (uint16_t)(p[0] | (uint16_t)p[1] << 8u); }
+static void add16_flags(cpu_t *c, uint16_t a, uint16_t b)
+{
+    uint16_t r = (uint16_t)(a + b), f = parity((uint8_t)r);
+    if (r < a) f |= 0x0001u;
+    if ((a ^ b ^ r) & 0x10u) f |= 0x0010u;
+    if (!r) f |= 0x0040u;
+    if (r & 0x8000u) f |= 0x0080u;
+    if ((uint16_t)(~(a ^ b) & (a ^ r)) & 0x8000u) f |= 0x0800u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+static void logic16_flags(cpu_t *c, uint16_t r)
+{
+    uint16_t f = parity((uint8_t)r);
+    if (!r) f |= 0x0040u;
+    if (r & 0x8000u) f |= 0x0080u;
+    c->flags = (uint16_t)((c->flags & ~ARITH) | f);
+}
+typedef struct {
+    call_t *m;
+    unsigned phase;
+    int walk;
+    uint8_t bytes[XB_BYTES];
+} chain_t;
+/* Each pointer is consumed before the next resolve: P, Q, then successive
+ * list nodes. No allocation or fixed node count is needed. The semantic
+ * model owns classification/matching; this callback supplies CPU/stack
+ * observations omitted by that API. */
+static uint8_t *chain_resolve(void *ctx, pr_u38_far_ptr p, size_t need)
+{
+    chain_t *x = ctx; call_t *m = x->m; cpu_t *c = m->cpu;
+    uint8_t *b = x->bytes;
+    if (need > sizeof x->bytes) return NULL;
+    copy_record(m, b, p.segment, p.offset, need);
+    set_es_di(c, p.segment, p.offset);
+    if (x->phase == 0u) {
+        copy_word(m, b, p.segment, p.offset, 0x0Au);
+        copy_word(m, b, p.segment, p.offset, 0x0Cu);
+        c->ax = host_word(b + 0x0Au); c->dx = host_word(b + 0x0Cu);
+        wr16(m->ram, c->ds, 0x6826u, c->ax);
+        wr16(m->ram, c->ds, 0x6828u, c->dx);
+    } else if (x->walk) {
+        unsigned link = x->phase == 1u ? 0xC8u : PR_U38_NODE_LINK;
+        if (x->phase > 1u && b[0x34u])
+            m->ram[physical(c->ss, (uint16_t)(c->bp - 5u))] = 3u;
+        copy_word(m, b, p.segment, p.offset, link);
+        copy_word(m, b, p.segment, p.offset, link + 2u);
+        c->ax = host_word(b + link); c->dx = host_word(b + link + 2u);
+        wr16(m->ram, c->ss, (uint16_t)(c->bp - 4u), c->ax);
+        wr16(m->ram, c->ss, (uint16_t)(c->bp - 2u), c->dx);
+        c->ax = (uint16_t)(c->ax | c->dx); /* top-of-loop OR, including nil */
+    }
+    ++x->phase;
+    return b;
+}
+static void chain_record(call_t *m, uint8_t *rec)
+{
+    uint16_t seg, off; size_t at; unsigned k;
+    far_arg(m, 0x0Cu, &seg, &off);
+    copy_record(m, rec, seg, off, 0x10Cu);
+    /* LES is ONE four-byte operand, unlike two MOV-word operands: its
+     * segment half is also physically contiguous across offset FFFFh. */
+    at = physical(seg, (uint16_t)(off + 0x108u));
+    for (k = 0; k < 4u; ++k) rec[0x108u + k] = m->ram[(at + k) & MASK];
+}
+static int h_01c3(call_t *m)
+{
+    pr_u38n_state st; uint8_t rec[0x10Cu], a6818; unsigned klass = 0;
+    chain_t x = {m, 0, 0, {0}}; cpu_t *c = m->cpu;
+    frame_enter(m); load_n(m->ram, c, &st); a6818 = st.b6818;
+    chain_record(m, rec);
+    if (pr_u38_entry6(&st, rec, chain_resolve, &x, &klass) != PR_U38_OK) return 1;
+    m->ram[physical(c->ss, (uint16_t)(c->bp - 1u))] = (uint8_t)klass;
+    ds_set8(m->ram, c, 0x6822u, st.b6822);
+    ds_set8(m->ram, c, 0x6818u, st.b6818);
+    ds_set8(m->ram, c, 0x6819u, st.b6819);
+    set_al_(c, (uint8_t)klass); add8_flags(c, a6818, (uint8_t)klass);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+/* +24D9 and +268A share the range body. On a gate miss the last CMP
+ * supplies flags and ES:DI/AX/DX stay unchanged. On an out-of-range input
+ * [BP-1] is READ, never initialized by the original. */
+static int range_adapter(call_t *m, int second)
+{
+    pr_u38n_state st; pr_u38w_state ws = {0}; uint8_t rec[0x15u] = {0};
+    uint16_t seg = 0, off = 0; unsigned paths = 0, bracket = 0;
+    uint8_t residue, before, gate; cpu_t *c = m->cpu;
+    frame_enter(m); load_n(m->ram, c, &st);
+    gate = st.b682a; before = st.b6816;
+    residue = rd8(m->ram, c->ss, (uint16_t)(c->bp - 1u));
+    if (second ? (gate == 4u || gate == 2u) : gate == 0u) {
+        far_arg(m, 0x0Cu, &seg, &off);
+        copy_record(m, rec, seg, off, sizeof rec);
+    }
+    if (second) {
+        ws.b6816 = st.b6816; ws.b682a = gate;
+        if (pr_u38_entry81(&ws, rec, residue, &paths, &bracket) != PR_U38_OK) return 1;
+        st.b6816 = ws.b6816;
+    } else if (pr_u38_entry75(&st, rec, residue, &paths, &bracket) != PR_U38_OK) return 1;
+    if (paths & PR_U38_PATH_EFFECT) {
+        if (!(paths & PR_U38_PATH_SECOND))
+            m->ram[physical(c->ss, (uint16_t)(c->bp - 1u))] = (uint8_t)bracket;
+        ds_set8(m->ram, c, 0x6816u, st.b6816);
+        c->dx = (uint16_t)bracket; c->ax = (uint16_t)(before + bracket);
+        add16_flags(c, before, (uint16_t)bracket); set_es_di(c, seg, off);
+    } else sub8_flags(c, gate, second ? 2u : 0u);
+    frame_leave(m, 0x0Au);
+    return 0;
+}
+static int h_24d9(call_t *m) { return range_adapter(m, 0); }
+static int h_268a(call_t *m) { return range_adapter(m, 1); }
+static int h_2e37(call_t *m)
+{
+    pr_u38w_state st = {0}; uint8_t rec[0x10Cu]; unsigned nodes = 0, matched = 0;
+    chain_t x = {m, 0, 1, {0}}; cpu_t *c = m->cpu; pr_u38_walk_status status;
+    frame_enter(m); c->sp = (uint16_t)(c->bp - 6u);
+    st.b681e = ds8(m->ram, c, 0x681Eu); chain_record(m, rec);
+    status = pr_u38_entry110(&st, rec, chain_resolve, &x, m->lim->loopbacks, &nodes, &matched);
+    if (status == PR_U38_WALK_ARGUMENT) return (int)status;
+    ds_set8(m->ram, c, 0x681Eu, st.b681e);
+    if (c->ax == 0u) logic16_flags(c, c->ax); else sub8_flags(c, st.b681e, 0u);
+    if (status == PR_U38_WALK_LIMIT) { c->ip = 0x2E77u; return (int)status; }
+    c->sp = c->bp; frame_leave(m, 0x0Au);
+    return 0;
+}
+
 typedef int (*handler_fn)(call_t *);
 typedef struct { uint16_t entry; handler_fn fn; } handler_t;
 /* the loaded stub's far JMP offset (the unit-relative code offset) -> its composed model */
 static const handler_t HANDLERS[] = {
+    {0x01C3, h_01c3}, {0x24D9, h_24d9}, {0x268A, h_268a}, {0x2E37, h_2e37}, {0x0400, h_0400},
     {0x010D, h_010d}, {0x011D, h_011d}, {0x0C06, h_0c06}, {0x0C15, h_0c15}, {0x171F, h_171f}, {0x25A2, h_25a2}, {0x2A6D, h_2a6d}, {0x2B63, h_2b63}, {0x10C1, h_10c1}, {0x03E1, h_03e1}, {0x06E4, h_06e4}, {0x0A3D, h_0a3d}, {0x2A28, h_2a28}, {0x05D6, h_05d6}, {0x064E, h_064e}, {0x0BAC, h_0bac}, {0x0C26, h_0c26}, {0x1452, h_1452}, {0x2490, h_2490}, {0x2700, h_2700}, {0x013B, h_013b}, {0x0377, h_0377}, {0x03AC, h_03ac}, {0x0918, h_0918}, {0x12B2, h_12b2}, {0x25BC, h_25bc_t}, {0x2D38, h_2d38}, {0x04BA, h_04ba}, {0x0647, h_nop}, {0x1355, h_nop}, {0x135C, h_nop}, {0x319B, h_nop},
     {0x0679, h_0679}, {0x0947, h_0947}, {0x11F9, h_11f9}, {0x1276, h_1276}, {0x133F, h_133f}, {0x1490, h_1490},
     {0x29B6, h_29b6}, {0x29CB, h_29cb}, {0x29D9, h_29d9}, {0x29F0, h_29f0}, {0x2A11, h_2a11},
@@ -964,4 +1110,15 @@ pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9
     STEP(); c->ip = pop(ram, c); c->cs = pop(ram, c); c->sp = (uint16_t)(c->sp + 0x000Cu);            /* 0023 RETF 000Ch */
     if (c->ip != ret_ip || c->cs != ret_cs) return PR_U9E_0000_TRANSFER;
     return PR_U9E_0000_RETURNED;
+}
+
+/* Direct entry uses the same adapter as dispatcher slot 1. */
+pr_u9e_0000_status pr_u38_entry2_010d_cpu(uint8_t *ram, size_t ram_size, pr_u9e_0000_cpu *cpu)
+{
+    call_t m;
+    if (!ram || !cpu || ram_size != PR_U9E_0000_RAM_SIZE || cpu->ip != 0x010Du ||
+        cpu->sp < 0x0200u || cpu->sp > 0xFFEEu)
+        return PR_U9E_0000_ARGUMENT;
+    m.ram = ram; m.size = ram_size; m.cpu = cpu; m.lim = NULL; m.status_raw = -1;
+    return h_010d(&m) == 0 ? PR_U9E_0000_RETURNED : PR_U9E_0000_CALLEE;
 }

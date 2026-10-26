@@ -5,6 +5,14 @@ a recovered-C change, a media host must also run the affected registered
 checkers' actual differential contracts. This is a written pre-merge rule,
 not a CI job: original game media remains under ignored `resources/`.
 
+For a body computing arithmetic FLAGS, final-register equality alone does not
+verify intermediate flag writes. New or changed audits must observe each claimed
+producer before its flags are overwritten and require a wrong-arithmetic-FLAGS
+mutation to fail at that observation. Use the shared
+[intermediate flag contract](INTERMEDIATE_FLAG_OBSERVATIONS.md) and state the
+declared sites and any unwitnessed producers. This requirement does not mean the
+existing checker catalogue has already adopted or passed the new control.
+
 Run from a branch that includes freshly fetched `origin/main`:
 
 ```sh
@@ -39,6 +47,60 @@ profile; an absent profile refuses execution instead of silently skipping the
 checker. A profile must be reviewed against its checker's CLI when that changes.
 The runner trusts the reviewed checker's exit contract; it does not turn a
 broken or weakened checker into proof of correctness.
+
+## Coverage: AGREE vs NOT-COVERED
+
+A profile is a claim about which rows its command executes. For a checker that
+owns more than one registered row, the profile must declare
+`"rows": [...]` naming the registered rows its command's own differential
+executes. A single-row checker's default is unambiguous; a multi-row profile
+without `rows` is refused.
+
+The reporter emits AGREE only for covered rows. Any other registered row of the
+same checker is emitted as NOT-COVERED, recorded in the receipt's `row_results`,
+and the run exits 5 unless the profile lists that row in
+`"waive_not_covered": [...]`. A waiver keeps the explicit NOT-COVERED row in the
+receipt; it does not relabel it AGREE. A profile whose `rows` names an
+unregistered row is refused.
+
+Negative controls are in `test_checker_execution.CoverageTest`: a declared
+single row of two gives AGREE + NOT-COVERED and exit 5; a waiver gives exit 0
+with the row still NOT-COVERED; missing `rows` or an unregistered row is
+refused.
+
+### Observed execution markers
+
+Declaring a row is not observing it. A profile may set `"observe": true`; then
+the command must print a machine-readable marker for every row whose
+differential ran and passed:
+
+    ROW_EXECUTED <row id> PASS
+
+The reporter AGREEs only declared rows with such a marker. A declared row
+without a marker is NOT-COVERED (exit 5); a marker for a registered row the
+profile did not declare is recorded in `undeclared_markers` and the run fails
+(NOT-COVERED). A failing command never prints AGREE for any row; the per-row
+line is the row's actual result, not the checker's success. The receipt records
+`coverage_source` as `stdout` when observe is on, otherwise `profile` (a
+declaration, source-reviewed). The 15 multi-row profiles set `observe`. Each checker emits the marker at the
+point that row's differential completes (inside the row loop, after the
+comparison passes), never from a footer after `main` returns: a selector such as
+`--only 1434` emits only `OVL_0033_1434`, a mode that runs no differential emits
+none, and a declared row the run did not execute is NOT-COVERED (exit 5).
+The row id is derived from the body's own unit metadata, never from the loop prefix.
+The cell checker computes unit-correct ids for all four bodies (012b/01ad in
+0033 and 0350/047b in 03BD), but owns only the two 0033 rows. The 03BD callee
+comparisons still run and are left unmarked: they are registered as `unit-test`
+evidence in `credit_evidence_kind.csv`, so making this checker their owner would
+reclassify a credit-evidence table, which is outside this change. The mixed-unit
+test checks the mapping and routes a stub through the registry discovered from
+`CHECKER_ROWS`: the two owned rows AGREE and a profile row the checker does not
+own is refused before launch.
+Single-row profiles need no marker because the mapping is unambiguous.
+
+```
+$ python3 -m unittest test_checker_execution   # includes CoverageTest observed-marker controls
+```
 
 ## Shared-source selection
 

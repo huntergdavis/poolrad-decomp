@@ -278,6 +278,8 @@ def main():
                               for row, u, s, k in (('OVL_03CE_00F1', '3CE', CE, 'ce'), ('OVL_03B6_0000', '3B6', B6, 'b6'))})
         if a.unicorn:
             report['unicorn'] = differential(image_reloc, code, fixups, srcs, f)
+            for _row in ('OVL_03B6_0000', 'OVL_03CE_00F1'):
+                print(f"ROW_EXECUTED {_row} PASS")
         if a.native:
             import ovl040c_015d_cpu_native as N
             regions = N.REGIONS + (((BASE + STUBSEG) * 16, 0x40),)

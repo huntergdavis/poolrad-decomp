@@ -135,7 +135,8 @@ def build(name, image_reloc, code, fixups, *, mode5=True, flag6dda=0, wait=0, ro
     return m, c, envspec, kl, stubs, dict(name=name, budget=budget, sp=sp, mode5=mode5, wait=wait, row=row, msg=msg, plain=not writes, text_loopbacks=text_loopbacks)
 
 
-def run_unicorn(name, m, c, envspec, keys, body_ips, budget, text_loopbacks=65536):
+def run_unicorn(name, m, c, envspec, keys, body_ips, budget, text_loopbacks=65536, observe=None):
+    """Run original bytes; optional observe(uc, cs, ip) must only read state."""
     from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE, UC_HOOK_INTR, UC_HOOK_INSN
     from unicorn import x86_const as RR
     env = Q.Env(**envspec); script = list(keys); device = M.new_device()
@@ -157,6 +158,8 @@ def run_unicorn(name, m, c, envspec, keys, body_ips, budget, text_loopbacks=6553
 
     def code(em, address, size, user):
         cs = uc.reg_read(RR.UC_X86_REG_CS); ip = uc.reg_read(RR.UC_X86_REG_IP)
+        if observe is not None:
+            observe(uc, cs, ip)
         writer.finish(uc)
         if (cs, ip) == (BASE + 0x0709, 0x06A7):
             s['text_loops'] = 0
@@ -257,10 +260,10 @@ def run_c(f, lib, m, c, envspec, keys, stubs, budget, text_loopbacks=65536):
     return status, actual, bytes(ram), env, d, events, writes, bytes(ega), left.value
 
 
-def compare(state, body_ips, f, lib):
+def compare(state, body_ips, f, lib, observe=None):
     m, c, envspec, keys, stubs, info = state
     name = info['name']
-    uc, backing, uenv, ustop, seen, edges, device, uega, uleft, writer = run_unicorn(name, m, c, envspec, keys, body_ips, info['budget'], info['text_loopbacks'])
+    uc, backing, uenv, ustop, seen, edges, device, uega, uleft, writer = run_unicorn(name, m, c, envspec, keys, body_ips, info['budget'], info['text_loopbacks'], observe=observe)
     status, actual, ram, cenv, d, cega, cwrites, cstate, cleft = run_c(f, lib, m, c, envspec, keys, stubs, info['budget'], info['text_loopbacks'])
     want = {'BREAK': 'KEY', 'EXIT': ('EXIT', 'KEY')}.get(ustop, ustop)
     check(status == want or (isinstance(want, tuple) and status in want), f'{name}: C {status} (callee {d.callee}/{d.callee_status} site {d.site:04x}) original {ustop}')

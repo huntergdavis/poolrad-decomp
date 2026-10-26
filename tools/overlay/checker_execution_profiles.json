@@ -1,225 +1,1130 @@
 {
-  "tests/recovered/check_overlay_u38_effect_match_12b2.py": {"args": []},
-  "tests/recovered/check_overlay_u38_link_roll_2b20.py": {"args": []},
-  "tests/recovered/check_overlay_u38_target_mask81_25bc.py": {"args": []},
-  "tests/recovered/native_overlay_u38_effect_match_12b2.py": {"args": []},
-  "tests/recovered/native_overlay_u38_link_roll_2b20.py": {"args": []},
-  "tools/overlay/crt_keypressed_02fd_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/crt_readkey_030f_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/declared_boundary_0af8_00df_audit.py": {"args": []},
-  "tools/overlay/declared_boundary_0af8_00e2_audit.py": {"args": []},
-  "tools/overlay/dos_gettime_00a2_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/dos_intr_000b_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ecl_helpers_original_audit.py": {"args": []},
-  "tools/overlay/ovl038_0400_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl03b6_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl040c_015d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0025_0341_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0025_0411_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0025_1815_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0025_19db_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0033_0b97_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0038_0cc3_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_0068_068d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_006a_0824_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_006f_0ec4_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_0054_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_0203_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_044c_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_063a_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_0a88_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_007f_div5_leaves_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_03bd_0155_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/ovl_03bd_057a_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_clear_17e3_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_display_1693_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_display_1816_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_link_check_2e03_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_link_flags_2e46_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_party_count_23db_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_rec_models_audit.py": {"args": []},
-  "tools/overlay/res00ba_sidecar_remove_1509_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_window_16ec_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res00ba_zero_test_23b7_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res03f1_box_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res03f1_clear_0137_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0464_bitmap_release_2595_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0464_blit_1951_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0464_compose_08d4_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0464_video_mode_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_clear_0dd3_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_delay_0dbe_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_ega_reset_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_glyph_01df_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_msgbox_0bf5_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_page_select_00a0_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_printer_0626_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_printer_0768_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_rect_fill_00b7_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_screen_0cab_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_skip_spaces_0714_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_space_05eb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0709_text_06a7_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0020_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0040_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0105_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0175_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0193_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_025d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_02eb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_050f_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_05cd_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_06e7_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0716_composed_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_0716_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0802_selector_094a_cpu_audit.py": {"args": []},
-  "tools/overlay/res0899_quit_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res0899_readkey_0059_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_byte_181a_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_delay_006c_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_dispatch_00dc_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_entry_017b_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_state_01a5_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_table_1742_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_table_17ae_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_time_0000_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_vector_137c_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res08ae_vector_13b1_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/res26c2_u86_0729_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/resident_2199_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_blockread_14fb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_close_1491_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_filecheck_14b6_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_filepos_1593_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_iocheck_04a9_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_paramstr_16bc_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_real_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_reset_1410_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_seek_1563_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_str_res1037_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_text_write_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/system_val_13b1_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_clear_box_2b14_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_clearmonsters_125d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_compare_and_0aed_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_delay_271f_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_gosub_0111_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_goto_00f4_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_if_0b52_audit.py": {"args": []},
-  "tools/overlay/u1c_on_goto_18f8_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_party_item_scan_266a_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_return_0a9f_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u1c_text_2e7d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u20_list_walk_11ac_cpu_audit.py": {"args": []},
-  "tools/overlay/u23_append_0239_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u25_06d3_06fb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u25_1fb1_composed_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u25_compare_words_18eb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u25_entry20_1cc3_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u25_init_01b6_audit.py": {"args": []},
-  "tools/overlay/u25_load_hook_07bc_audit.py": {"args": []},
-  "tools/overlay/u25_load_word_0e0c_audit.py": {"args": []},
-  "tools/overlay/u25_move_original_audit.py": {"args": []},
-  "tools/overlay/u25_slot_value_0136_audit.py": {"args": []},
-  "tools/overlay/u25_store_string_0f53_composed_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u2f_record_link_clear_122b_audit.py": {"args": []},
-  "tools/overlay/u31_candidate_check_0255_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u31_step_gate_0675_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u31_table_value_128d_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_both_outside_1403_audit.py": {"args": []},
-  "tools/overlay/u33_byte_flags_08a4_audit.py": {"args": []},
-  "tools/overlay/u33_cell_lookup_012b_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_grid_driver_11b4_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_grid_pair_0d13_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_neighbourhood_0810_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_party_attach_12e1_audit.py": {"args": []},
-  "tools/overlay/u33_place_search_1577_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u33_stamp_02ba_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_append_1363_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_character_compare_1276_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_character_loop_11f9_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_clear_cycle_2e08_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_effect_clear_264b_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_effect_scale_clear_2d88_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_effects_install_31a2_audit.py": {"args": []},
-  "tools/overlay/u38_gated_append_001f_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_link_roll_2b20_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_lookup_append_2814_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_message_3134_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_pair_04ba_audit.py": {"args": []},
-  "tools/overlay/u38_roll_append_1730_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_roll_clear_2de4_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_roll_effect_27d9_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_roll_gate_2915_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_sidecar_1472_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_target_gate_2ae6_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_target_index_gate_2a87_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_target_reset_133f_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_target_reset_2b7d_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u38_target_selector_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_cursor_step_0cc5_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_dispose_11f3_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_entry_01da_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_entry_07a4_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_entry_0969_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_entry_0a08_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_entry_0c33_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_item_split_00cb_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_row_clear_06fb_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b0_step_scan_0b03_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3b9_bitmap_set_release_048f_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3c2_caller_0909_audit.py": {"args": []},
-  "tools/overlay/u3c2_record_sort_002e_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3c6_caller_10a7_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3c6_cell_04be_audit.py": {"args": []},
-  "tools/overlay/u3c6_in_range_06e9_audit.py": {"args": []},
-  "tools/overlay/u3c6_rebuild_03a0_audit.py": {"args": []},
-  "tools/overlay/u3c6_scan_0cb9_audit.py": {"args": []},
-  "tools/overlay/u3c6_slot_offsets_0068_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u3c6_step_071a_audit.py": {"args": []},
-  "tools/overlay/u3ce_bitmap_pair_release_014e_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u5e_caller_32e6_audit.py": {"args": []},
-  "tools/overlay/u5e_direction_263d_audit.py": {"args": []},
-  "tools/overlay/u5e_direction_gate_17f6_audit.py": {"args": []},
-  "tools/overlay/u5e_direction_match_2574_audit.py": {"args": []},
-  "tools/overlay/u5e_neighbor_1bf8_audit.py": {"args": []},
-  "tools/overlay/u68_map_update_0109_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u68_movement_flag_04df_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u6a_record_clear_high_0159_audit.py": {"args": []},
-  "tools/overlay/u6a_record_walk_0214_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u6a_record_weight_0000_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u6a_string_node_0e37_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u6c_record_roll_sum_4235_audit.py": {"args": []},
-  "tools/overlay/u6c_record_table_sum_3f31_audit.py": {"args": []},
-  "tools/overlay/u6c_record_tier_3fb3_audit.py": {"args": []},
-  "tools/overlay/u6c_record_unlink_3291_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u6c_record_weighted_408c_audit.py": {"args": []},
-  "tools/overlay/u6f_party_insert_1446_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u77_275b_cpu_audit.py": {"args": []},
-  "tools/overlay/u77_party_0901_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u77_split_17ed_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u77_weighted_28be_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7d_entry_05f0_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7d_two_digits_0565_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7d_update_03a3_native_audit.py": {"args": []},
-  "tools/overlay/u7d_update_047a_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7f_caller_1010_audit.py": {"args": []},
-  "tools/overlay/u7f_clear_0508_audit.py": {"args": []},
-  "tools/overlay/u7f_coin_type_0b93_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7f_number_0294_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7f_party_count_05e0_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7f_record_word_add_003a_audit.py": {"args": []},
-  "tools/overlay/u7f_roll_class_0fd2_cpu_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u7f_weighted_00a8_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u86_list_build_059c_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u86_procvars_3413_audit.py": {"args": []},
-  "tools/overlay/u86_record_predicate_323d_audit.py": {"args": []},
-  "tools/overlay/u86_roll_value_07d6_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u86_sidecar_gate_051c_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u86_sidecar_list_044e_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u86_string_node_028d_audit.py": {"args": ["--unicorn"]},
-  "tools/overlay/u9e_character_pair_115c_audit.py": {"args": []},
-  "tools/overlay/u9e_dispatch_0000_audit.py": {"args": ["--unicorn"]}
+  "tests/recovered/check_overlay_u38_effect_match_12b2.py": {
+    "args": []
+  },
+  "tests/recovered/check_overlay_u38_link_roll_2b20.py": {
+    "args": []
+  },
+  "tests/recovered/check_overlay_u38_target_mask81_25bc.py": {
+    "args": []
+  },
+  "tests/recovered/native_overlay_u38_effect_match_12b2.py": {
+    "args": []
+  },
+  "tests/recovered/native_overlay_u38_link_roll_2b20.py": {
+    "args": []
+  },
+  "tools/overlay/crt_keypressed_02fd_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/crt_readkey_030f_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/declared_boundary_0af8_00df_audit.py": {
+    "args": []
+  },
+  "tools/overlay/declared_boundary_0af8_00e2_audit.py": {
+    "args": []
+  },
+  "tools/overlay/dos_gettime_00a2_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/dos_intr_000b_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ecl_helpers_original_audit.py": {
+    "args": [],
+    "observe": true,
+    "rows": [
+      "OVL_001C_2AEB",
+      "OVL_0025_06AF",
+      "OVL_0025_06D3",
+      "OVL_0025_06FB",
+      "OVL_0025_1815",
+      "OVL_0025_18EB",
+      "OVL_0038_0377",
+      "OVL_0038_03AC",
+      "OVL_0038_03E1",
+      "OVL_0038_0C06",
+      "OVL_0038_0C15"
+    ]
+  },
+  "tools/overlay/ovl038_0400_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl03b6_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_03B6_0000",
+      "OVL_03CE_00F1"
+    ]
+  },
+  "tools/overlay/ovl040c_015d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0025_0341_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0025_0411_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0025_1815_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0025_19db_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0033_0b97_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0038_0cc3_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_0068_068d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_006a_0824_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_006f_0ec4_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_0054_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_0203_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_044c_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_063a_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_0a88_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_007f_div5_leaves_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_007F_0130",
+      "OVL_007F_0185"
+    ]
+  },
+  "tools/overlay/ovl_03bd_0155_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/ovl_03bd_057a_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_clear_17e3_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_display_1693_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_display_1816_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_link_check_2e03_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_link_flags_2e46_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_party_count_23db_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_rec_models_audit.py": {
+    "args": [],
+    "observe": true,
+    "rows": [
+      "RES_00BA_1509",
+      "RES_00BA_15F7",
+      "RES_00BA_23B7",
+      "RES_00BA_23DB",
+      "RES_00BA_2637",
+      "RES_00BA_2E03",
+      "RES_00BA_2E46",
+      "RES_00BA_2E8B"
+    ]
+  },
+  "tools/overlay/res00ba_sidecar_remove_1509_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_window_16ec_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res00ba_zero_test_23b7_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res03f1_box_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res03f1_clear_0137_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0464_bitmap_release_2595_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0464_blit_1951_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0464_compose_08d4_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0464_video_mode_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "RES_0464_00CF",
+      "RES_0464_00FF"
+    ]
+  },
+  "tools/overlay/res0709_clear_0dd3_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_delay_0dbe_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_ega_reset_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_glyph_01df_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_msgbox_0bf5_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_page_select_00a0_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_printer_0626_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_printer_0768_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_rect_fill_00b7_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_screen_0cab_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_skip_spaces_0714_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_space_05eb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0709_text_06a7_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0020_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0040_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0105_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0175_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0193_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_025d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_02eb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_050f_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_05cd_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_06e7_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0716_composed_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_0716_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0802_selector_094a_cpu_audit.py": {
+    "args": []
+  },
+  "tools/overlay/res0899_quit_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res0899_readkey_0059_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_byte_181a_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_delay_006c_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_dispatch_00dc_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_entry_017b_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_state_01a5_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_table_1742_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_table_17ae_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_time_0000_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_vector_137c_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res08ae_vector_13b1_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/res26c2_u86_0729_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/resident_2199_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_blockread_14fb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_close_1491_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_filecheck_14b6_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_filepos_1593_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_iocheck_04a9_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_paramstr_16bc_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_real_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "RES_0AF8_1186",
+      "RES_0AF8_119A",
+      "RES_0AF8_119E"
+    ]
+  },
+  "tools/overlay/system_reset_1410_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_seek_1563_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_str_res1037_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_text_write_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "RES_0AF8_084A",
+      "RES_0AF8_0919"
+    ]
+  },
+  "tools/overlay/system_val_13b1_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_clear_box_2b14_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_clearmonsters_125d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_compare_and_0aed_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_delay_271f_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_gosub_0111_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_goto_00f4_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_if_0b52_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u1c_on_goto_18f8_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_party_item_scan_266a_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_return_0a9f_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u1c_run_3171_cpu_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u1c_save_cpu_audit.py": {
+    "args": [],
+    "observe": true,
+    "rows": [
+      "OVL_001C_0292",
+      "OVL_001C_0EBC"
+    ]
+  },
+  "tools/overlay/u1c_text_2e7d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u20_list_walk_11ac_cpu_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u23_append_0239_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u25_06d3_06fb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_0025_06D3",
+      "OVL_0025_06FB"
+    ]
+  },
+  "tools/overlay/u25_1fb1_composed_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u25_compare_words_18eb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u25_entry20_1cc3_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u25_init_01b6_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u25_load_hook_07bc_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u25_load_word_0e0c_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u25_move_original_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u25_slot_value_0136_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u25_store_string_0f53_composed_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u2f_record_link_clear_122b_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u31_candidate_check_0255_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u31_step_gate_0675_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u31_table_value_128d_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u33_both_outside_1403_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u33_byte_flags_08a4_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u33_cell_lookup_012b_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_0033_012B",
+      "OVL_0033_01AD"
+    ]
+  },
+  "tools/overlay/u33_grid_driver_11b4_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u33_grid_pair_0d13_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_0033_0D13",
+      "OVL_0033_0E9E"
+    ]
+  },
+  "tools/overlay/u33_neighbourhood_0810_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u33_party_attach_12e1_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u33_place_search_1577_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_0033_1434",
+      "OVL_0033_1577"
+    ]
+  },
+  "tools/overlay/u33_stamp_02ba_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_0033_02BA",
+      "OVL_0033_0377"
+    ]
+  },
+  "tools/overlay/u38_append_1363_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_character_compare_1276_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_character_loop_11f9_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_clear_cycle_2e08_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_effect_clear_264b_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_effect_scale_clear_2d88_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_effects_install_31a2_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u38_gated_append_001f_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_link_roll_2b20_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_lookup_append_2814_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_message_3134_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_pair_04ba_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u38_roll_append_1730_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_roll_clear_2de4_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_roll_effect_27d9_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_roll_gate_2915_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_sidecar_1472_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_target_gate_2ae6_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_target_index_gate_2a87_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_target_reset_133f_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_target_reset_2b7d_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u38_target_selector_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_cursor_step_0cc5_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_dispose_11f3_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_entry_01da_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_entry_07a4_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_entry_0969_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_entry_0a08_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_entry_0c33_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_item_split_00cb_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_row_clear_06fb_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b0_step_scan_0b03_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3b9_bitmap_set_release_048f_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3c2_caller_0909_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3c2_record_sort_002e_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3c6_caller_10a7_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3c6_cell_04be_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3c6_in_range_06e9_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3c6_rebuild_03a0_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3c6_scan_0cb9_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3c6_slot_offsets_0068_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u3c6_step_071a_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u3ce_bitmap_pair_release_014e_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u5e_caller_32e6_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u5e_direction_263d_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u5e_direction_gate_17f6_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u5e_direction_match_2574_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u5e_neighbor_1bf8_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u68_map_update_0109_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u68_movement_flag_04df_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u6a_record_clear_high_0159_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u6a_record_walk_0214_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u6a_record_weight_0000_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_006A_0000",
+      "OVL_006A_019C"
+    ]
+  },
+  "tools/overlay/u6a_string_node_0e37_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u6c_record_roll_sum_4235_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u6c_record_table_sum_3f31_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u6c_record_tier_3fb3_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u6c_record_unlink_3291_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u6c_record_weighted_408c_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u6f_party_insert_1446_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u77_275b_cpu_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u77_party_0901_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u77_split_17ed_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u77_weighted_28be_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7d_entry_05f0_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7d_two_digits_0565_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7d_update_03a3_native_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u7d_update_047a_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7f_caller_1010_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u7f_clear_0508_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u7f_coin_type_0b93_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7f_number_0294_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7f_party_count_05e0_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7f_record_word_add_003a_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u7f_roll_class_0fd2_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u7f_weighted_00a8_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u86_list_build_059c_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u86_procvars_3413_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u86_record_predicate_323d_audit.py": {
+    "args": []
+  },
+  "tools/overlay/u86_roll_value_07d6_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u86_sidecar_gate_051c_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u86_sidecar_list_044e_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u86_string_node_028d_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/u9e_character_pair_115c_audit.py": {
+    "args": [],
+    "observe": true,
+    "rows": [
+      "OVL_009E_115C",
+      "RES_00BA_0000",
+      "RES_00BA_01FB",
+      "RES_00BA_0282",
+      "RES_00BA_03A0",
+      "RES_00BA_0BB8",
+      "RES_00BA_10E6",
+      "RES_00BA_1168",
+      "RES_00BA_11EA",
+      "RES_00BA_1282",
+      "RES_00BA_1325",
+      "RES_00BA_13AB"
+    ]
+  },
+  "tools/overlay/u9e_dispatch_0000_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  }
 }

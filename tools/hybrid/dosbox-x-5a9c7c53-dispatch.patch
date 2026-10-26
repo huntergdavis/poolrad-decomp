@@ -340,10 +340,10 @@ index 0000000..d36b184
 +#endif
 diff --git a/src/cpu/pr_hybrid_dispatch.h b/src/cpu/pr_hybrid_dispatch.h
 new file mode 100644
-index 0000000..3974c1a
+index 0000000..a1b3212
 --- /dev/null
 +++ b/src/cpu/pr_hybrid_dispatch.h
-@@ -0,0 +1,1252 @@
+@@ -0,0 +1,1290 @@
 +/* Poolrad hybrid executor: per-body DISPATCH with an in-run check (VP i20596, i20618). Included after pr_hybrid_observer.h.
 + *
 + * Enabled by PR_HYBRID_DISPATCH, a comma-separated list of the bodies this file knows: RES_0899_0104, RES_0464_2595.
@@ -490,6 +490,16 @@ index 0000000..3974c1a
 +#include "poolrad/recovered/overlay_u7f_div5_leaves_cpu.h"
 +#include "poolrad/recovered/overlay_u25_move_19db_cpu.h"
 +#include "poolrad/recovered/overlay_u25_compare_strings_1815_cpu.h"
++#include "poolrad/recovered/overlay_u38_helper_cluster_cpu.h"
++#include "poolrad/recovered/overlay_u38_roll_gate_2915_cpu.h"
++#include "poolrad/recovered/overlay_u38_roll_clear_2de4_cpu.h"
++#include "poolrad/recovered/overlay_u5e_caller_32e6.h"
++#include "poolrad/recovered/overlay_u86_entry3_0729.h"
++#include "poolrad/recovered/overlay_u86_roll_value_07d6.h"
++#include "poolrad/recovered/overlay_u9e_list_append_0e52_cpu.h"
++#include "poolrad/recovered/resident_00ba_class_value_26c2_cpu.h"
++#include "poolrad/recovered/overlay_u38_target_reset_133f_cpu.h"
++#include "poolrad/recovered/overlay_u9e_dispatch_0000_cpu.h"
 +#include "poolrad/recovered/resident_00ba_target_reset_2637_cpu.h"
 +#include "poolrad/recovered/resident_0709_delay_wrapper_0dbe_cpu.h"
 +#include "poolrad/recovered/resident_0709_skip_spaces_0714_cpu.h"
@@ -539,6 +549,7 @@ index 0000000..3974c1a
 +PR_SAME_LAYOUT(pr_u1c_goto_cpu); PR_SAME_LAYOUT(pr_u25_01b6_cpu); PR_SAME_LAYOUT(pr_u7d_02f2_cpu); PR_SAME_LAYOUT(pr_u3b9_048f_cpu);
 +PR_SAME_LAYOUT(pr_u7f_div5_cpu); PR_SAME_LAYOUT(pr_u25_19db_cpu); PR_SAME_LAYOUT(pr_u25_1815_cpu);
 +PR_SAME_LAYOUT(pr_ovl0077_275b_state); PR_SAME_LAYOUT(pr_u77_28be_cpu); PR_SAME_LAYOUT(pr_u7f_00a8_cpu); PR_SAME_LAYOUT(pr_u7f_0a88_regs); PR_SAME_LAYOUT(pr_u7f_0b93_cpu); PR_SAME_LAYOUT(pr_u23_0239_cpu); PR_SAME_LAYOUT(pr_u6a_0000_cpu); PR_SAME_LAYOUT(pr_u6a_025c_cpu); PR_SAME_LAYOUT(pr_u6a_0e37_cpu);
++PR_SAME_LAYOUT(pr_u38c_cpu); PR_SAME_LAYOUT(pr_u38r_cpu); PR_SAME_LAYOUT(pr_u38rc_cpu); PR_SAME_LAYOUT(pr_u5e_32e6_cpu); PR_SAME_LAYOUT(pr_u86_0729_cpu); PR_SAME_LAYOUT(pr_u86_07d6_cpu); PR_SAME_LAYOUT(pr_u9e_0e52_cpu); PR_SAME_LAYOUT(pr_res_26c2_cpu); PR_SAME_LAYOUT(pr_u38_133f_cpu); PR_SAME_LAYOUT(pr_u9e_0000_cpu);
 +PR_SAME_LAYOUT(pr_u6a_14a9_cpu); PR_SAME_LAYOUT(pr_u6a_1601_cpu); PR_SAME_LAYOUT(pr_u7d_03a3_cpu); PR_SAME_LAYOUT(pr_u7d_0565_cpu); PR_SAME_LAYOUT(pr_u7d_05f0_cpu); PR_SAME_LAYOUT(pr_u86_028d_cpu); PR_SAME_LAYOUT(pr_u86_059c_cpu); PR_SAME_LAYOUT(pr_u3b0_0a08_cpu); PR_SAME_LAYOUT(pr_u3b0_0c33_cpu); PR_SAME_LAYOUT(pr_u3b0_11f3_cpu);
 +PR_SAME_LAYOUT(pr_res_2e46_cpu); PR_SAME_LAYOUT(pr_res_23db_cpu); PR_SAME_LAYOUT(pr_res_1509_cpu); PR_SAME_LAYOUT(pr_u7f_003a_cpu); PR_SAME_LAYOUT(pr_u7f_0508_cpu); PR_SAME_LAYOUT(pr_u7f_05e0_cpu); PR_SAME_LAYOUT(pr_u3b0_0000_cpu); PR_SAME_LAYOUT(pr_u3b0_0067_cpu); PR_SAME_LAYOUT(pr_u3b0_0711_cpu); PR_SAME_LAYOUT(pr_u3b0s_cpu); PR_SAME_LAYOUT(pr_u3b0_0b03_cpu); PR_SAME_LAYOUT(pr_u3b0_0cc5_cpu); PR_SAME_LAYOUT(pr_u3b0_07a4_cpu); PR_SAME_LAYOUT(pr_u3b0_0969_cpu);
 +PR_SAME_LAYOUT(pr_u25_06d3_cpu); PR_SAME_LAYOUT(pr_u25_06fb_cpu); PR_SAME_LAYOUT(pr_u25_18eb_cpu); PR_SAME_LAYOUT(pr_r0709_clear_cpu); PR_SAME_LAYOUT(pr_u25_strings_cpu); PR_SAME_LAYOUT(pr_u1c_18f8_cpu);
@@ -703,6 +714,17 @@ index 0000000..3974c1a
 +    {"OVL_007F_0185", 0x0000, 0x0185, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_0025_19DB", 0x0000, 0x19DB, 0, 1, -1, 0,0,0,0,0,0,0,0,0,0,0},     /* STUB stop at an unloaded 3BD slot: hand-back, the overlay manager loads it */
 +    {"OVL_0025_1815", 0x0000, 0x1815, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    /* batch 14: the R3 route (camp Bless, combat Sleep; codex R3/R3x ported to routes/r3.json); pop 0 */
++    {"OVL_0038_0000", 0x0000, 0x0000, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0038_2992", 0x0000, 0x2992, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0038_2DE4", 0x0000, 0x2DE4, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_005E_32E6", 0x0000, 0x32E6, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0086_0729", 0x0000, 0x0729, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0086_07D6", 0x0000, 0x07D6, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_009E_0E52", 0x0000, 0x0E52, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"RES_00BA_26C2", 0x00BA, 0x26C2, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0038_133F", 0x0000, 0x133F, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
++    {"OVL_0038_010D", 0x0000, 0x010D, 0, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0BE7", 0x0000, 0x0BE7, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},      /* RETF 4 */
 +    {"OVL_03C6_0C0F", 0x0000, 0x0C0F, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
 +    {"OVL_03C6_0C37", 0x0000, 0x0C37, 8, 0, -1, 0,0,0,0,0,0,0,0,0,0,0},
@@ -926,6 +948,22 @@ index 0000000..3974c1a
 + * 0 RETURNED, 1 ARGUMENT, 2 a stop. `m` holds the model's CPU afterwards. */
 +static int run_c(Cpu14 &m, bool force_argument, bool force_stop) {
 +    Body &x = bodies[cur];
++    /* batch 14 (R3) */
++    if (!strcmp(x.id, "OVL_0038_0000")) { int st = pr_u38_helper_0000_cpu(MemBase, RAM, (pr_u38c_cpu *)&m); last_raw = st; return st == PR_U38C_OK ? 0 : st == PR_U38C_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0038_2992")) { int cst = -1; int st = pr_u38_entry91_2992_cpu(MemBase, RAM, (pr_u38r_cpu *)&m, 1u << 20, &cst); last_raw = st; return st == PR_U38R_OK ? 0 : st == PR_U38R_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0038_2DE4")) { int cst = -1; int st = pr_u38_roll_clear_2de4_cpu(MemBase, RAM, (pr_u38rc_cpu *)&m, 1u << 20, &cst); last_raw = st; return st == PR_U38RC_OK ? 0 : st == PR_U38RC_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_005E_32E6")) {
++        /* The layout binds the run-time code segments of U3C6 and U3C2 (from the observer's latest arrivals in those units) and SYSTEM;
++         * unknown -> decline, the original runs. A stale binding makes the model stop at a code check, which hands back. */
++        if (!sys_cs || !unit_cs[0x3C6] || !unit_cs[0x3C2]) { ++stub_declined; return 1; }
++        pr_u5e_32e6_layout lay = {unit_cs[0x3C6], unit_cs[0x3C2], sys_cs}; const size_t L = (size_t)1u << 20; pr_u5e_32e6_limits lim = {L, L, L, 1u << 20, L};
++        int st = pr_u5e_caller_32e6(MemBase, RAM, (pr_u5e_32e6_cpu *)&m, &lay, &lim); last_raw = st; return st == PR_U5E_32E6_OK ? 0 : st == PR_U5E_32E6_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0086_0729")) { int st = pr_u86_entry3_0729(MemBase, RAM, (pr_u86_0729_cpu *)&m); last_raw = st; return st == PR_U86_0729_OK ? 0 : st == PR_U86_0729_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0086_07D6")) { int cst = -1; int st = pr_u86_roll_value_07d6(MemBase, RAM, (pr_u86_07d6_cpu *)&m, 1u << 20, &cst); last_raw = st; return st == PR_U86_07D6_OK ? 0 : st == PR_U86_07D6_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_009E_0E52")) { int gst = -1; int st = pr_u9e_list_append_0e52_cpu(MemBase, RAM, (pr_u9e_0e52_cpu *)&m, 1u << 20, (size_t)1u << 20, &gst); last_raw = st; return st == PR_U9E_0E52_OK ? 0 : st == PR_U9E_0E52_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "RES_00BA_26C2")) { int st = pr_res_00ba_26c2_cpu(MemBase, RAM, (pr_res_26c2_cpu *)&m); last_raw = st; return st == PR_RES_26C2_OK ? 0 : 1; }
++    if (!strcmp(x.id, "OVL_0038_133F")) { int st = pr_u38_target_reset_133f_cpu(MemBase, RAM, (pr_u38_133f_cpu *)&m); last_raw = st; return st == PR_U38_133F_OK ? 0 : st == PR_U38_133F_ARGUMENT ? 1 : 2; }
++    if (!strcmp(x.id, "OVL_0038_010D")) { int st = pr_u38_entry2_010d_cpu(MemBase, RAM, (pr_u9e_0000_cpu *)&m); last_raw = st; return st == PR_U9E_0000_RETURNED ? 0 : st == PR_U9E_0000_ARGUMENT ? 1 : 2; }
 +    /* batch 15 */
 +    if (!strcmp(x.id, "OVL_0025_1815")) { size_t budget = (size_t)1u << 24; int st = pr_u25_compare_strings_1815_cpu(MemBase, RAM, (pr_u25_1815_cpu *)&m, &budget); last_raw = st;
 +        return st == PR_U25_1815_RETURNED ? 0 : st == PR_U25_1815_ARGUMENT ? 1 : 2; }

@@ -13,12 +13,14 @@ python3 tools/overlay/check_candidate_proposal.py docs/re/CANDIDATE_SCOUT_DS41B_
 ```
 
 It resolves each `BODY:` block through the repo inventory, adds the unit's `ovr_offset` to
-the body-relative offset, and compares the quoted bytes to the file. Exit 0 means every
-candidate's bytes match. It does **not** prove the semantic C; that is the independent
-reviewer's job.
+the body-relative offset, reads `LENGTH` bytes of `GAME.OVR` there, and compares their
+SHA-256 with the claimed `SHA256` (and checks `FILE_OFFSET`). Original bytes are not
+quoted in this document. Exit 0 means every span digest matches. It does **not** prove
+the semantic C; that is the independent reviewer's job.
 
 Each candidate lists what the C models, which callees it composes, and what this packet
-does **not** verify.
+does **not** verify. The C fences are labelled **PSEUDOCODE**: a reading aid with abbreviated
+signatures, not compilable drafts (see the note at each fence).
 
 ---
 
@@ -30,56 +32,68 @@ REL_OFFSET: 0x0292
 LENGTH: 78
 FILE_OFFSET: 4056
 SHA256: 7f66f8be811fe835d3ed3ab0fc0772f57e10ab39b5b5beda8aa2542262f92ebb
-BYTES:
-```bytes
-55 89 e5 83 ec 04 b0 02 50 9a 2a 00 2b 00 a0 87
-70 50 a0 47 70 50 9a 4d 00 2b 00 89 46 fc 80 3e
-06 70 80 73 18 b0 01 50 9a 25 00 2b 00 89 46 fe
-ff 76 fc ff 76 fe 9a 52 00 2b 00 eb 0d ff 76 fc
-bf c8 70 1e 57 9a 5c 00 2b 00 89 ec 5d cb
-```
 
 Disassembly (Capstone, 16-bit):
 
 ```
-0292 55                 push     bp
-0293 89e5               mov      bp, sp
-0295 83ec04             sub      sp, 4
-0298 b002               mov      al, 2
-029A 50                 push     ax
-029B 9a2a002b00         lcall    0x2b, 0x2a        ; load_operands(2)
-02A0 a08770             mov      al, [0x7087]      ; value_hi[2]
-02A3 50                 push     ax
-02A4 a04770             mov      al, [0x7047]      ; value_lo[2]
-02A7 50                 push     ax
-02A8 9a4d002b00         lcall    0x2b, 0x4d        ; operand_word(slot 2)
-02AD 8946fc             mov      [bp-4], ax        ; dest
-02B0 803e067080         cmp      byte [0x7006], 0x80 ; tag[1]
-02B5 7318               jae      0x2cf
-02B7 b001               mov      al, 1
-02B9 50                 push     ax
-02BA 9a25002b00         lcall    0x2b, 0x25        ; slot_value(1)
-02BF 8946fe             mov      [bp-2], ax        ; value
-02C2 ff76fc             push     [bp-4]            ; dest
-02C5 ff76fe             push     [bp-2]            ; value
-02C8 9a52002b00         lcall    0x2b, 0x52        ; store_word(dest, value)
-02CD eb0d               jmp      0x2dc
-02CF ff76fc             push     [bp-4]            ; dest
-02D2 bfc870             mov      di, 0x70c8        ; string buffer 1 (DS:70C8h)
-02D5 1e                 push     ds
-02D6 57                 push     di
-02D7 9a5c002b00         lcall    0x2b, 0x5c        ; store_string(buf1, dest)
-02DC 89ec               mov      sp, bp
-02DE 5d                 pop      bp
-02DF cb                 retf
+0292  push     bp
+0293  mov      bp, sp
+0295  sub      sp, 4
+0298  mov      al, 2
+029A  push     ax
+029B  lcall    0x2b, 0x2a        ; load_operands(2)
+02A0  mov      al, [0x7087]      ; value_hi[2]
+02A3  push     ax
+02A4  mov      al, [0x7047]      ; value_lo[2]
+02A7  push     ax
+02A8  lcall    0x2b, 0x4d        ; operand_word(slot 2)
+02AD  mov      [bp-4], ax        ; dest
+02B0  cmp      byte [0x7006], 0x80 ; tag[1]
+02B5  jae      0x2cf
+02B7  mov      al, 1
+02B9  push     ax
+02BA  lcall    0x2b, 0x25        ; slot_value(1)
+02BF  mov      [bp-2], ax        ; value
+02C2  push     [bp-4]            ; dest
+02C5  push     [bp-2]            ; value
+02C8  lcall    0x2b, 0x52        ; store_word(dest, value)
+02CD  jmp      0x2dc
+02CF  push     [bp-4]            ; dest
+02D2  mov      di, 0x70c8        ; string buffer 1 (DS:70C8h)
+02D5  push     ds
+02D6  push     di
+02D7  lcall    0x2b, 0x5c        ; store_string(buf1, dest)
+02DC  mov      sp, bp
+02DE  pop      bp
+02DF  retf
 ```
 
 Semantic C (proposed decode; composes the existing `pr_rec_ecl_*` helpers):
 
+**The C below is PSEUDOCODE, not a compilable translation.** It uses helper names
+that exist in `ecl_helpers.h` but abbreviated signatures that do not: the real calls are
+`pr_rec_ecl_load_operands(state, count)`, `pr_rec_ecl_operand_word(low, high)`,
+`pr_rec_ecl_slot_value(state, slot, &value)` and
+`pr_rec_ecl_store_string(state, address, text, len)`; there is no `e->string` field. The
+`pr_rec_ecl_tag` stub below is explicit and honest, but the rest of each fence is a
+reading aid, not a buildable draft. The real path-complete model for SAVE already exists
+as `pr_rec_ecl_op_save(...)` in `ecl_helpers.h`. The digest/tool fix is carried by the
+BATCH1 scrub PR, not here.
+
 ```c
 /* ECL opcode 0x09 SAVE. Far Pascal, no arguments, RETF.
- * Operands were fetched by the caller; slot 1 is the value, slot 2 its destination. */
-void pr_rec_ecl_op_save(struct pr_ecl *e)
+ * Operands were fetched by the caller; slot 1 is the value, slot 2 its destination.
+ *
+ * NOTE: pr_rec_ecl_tag is NOT a function in include/ or src/. It is defined here as a
+ * stub so this draft is self-contained; the real accessor is the tag[] field of
+ * pr_rec_ecl_loader_state (include/poolrad/recovered/ecl_helpers.h). The real
+ * path-complete model for this body already exists as pr_rec_ecl_op_save(...) there. */
+static uint8_t pr_rec_ecl_tag(pr_rec_ecl_loader_state *e, unsigned slot)
+{
+    return e->tag[slot];
+}
+
+void pr_rec_ecl_op_save_draft(pr_rec_ecl_loader_state *e)
 {
     pr_rec_ecl_load_operands(e, 2);                       /* 0298 */
     uint16_t dest = pr_rec_ecl_operand_word(e, 2);        /* 02A0..02AD, hi[2]<<8|lo[2] */
@@ -107,55 +121,57 @@ REL_OFFSET: 0x0ebc
 LENGTH: 76
 FILE_OFFSET: 7170
 SHA256: faa0e052825907531da7a6782f1cd0e6f8f4fc5a2cdc51e8629ed8fb19d0536b
-BYTES:
-```bytes
-55 89 e5 83 ec 08 b0 03 50 9a 2a 00 2b 00 b0 01
-50 9a 25 00 2b 00 89 46 fa a0 87 70 50 a0 47 70
-50 9a 4d 00 2b 00 89 46 fc b0 03 50 9a 25 00 2b
-00 89 46 fe 8b 46 fc 03 46 fe 89 46 f8 ff 76 f8
-ff 76 fa 9a 52 00 2b 00 89 ec 5d cb
-```
 
 Disassembly (Capstone, 16-bit):
 
 ```
-0EBC 55                 push     bp
-0EBD 89e5               mov      bp, sp
-0EBF 83ec08             sub      sp, 8
-0EC2 b003               mov      al, 3
-0EC4 50                 push     ax
-0EC5 9a2a002b00         lcall    0x2b, 0x2a        ; load_operands(3)
-0ECA b001               mov      al, 1
-0ECC 50                 push     ax
-0ECD 9a25002b00         lcall    0x2b, 0x25        ; slot_value(1)
-0ED2 8946fa             mov      [bp-6], ax        ; value
-0ED5 a08770             mov      al, [0x7087]      ; value_hi[2]
-0ED8 50                 push     ax
-0ED9 a04770             mov      al, [0x7047]      ; value_lo[2]
-0EDC 50                 push     ax
-0EDD 9a4d002b00         lcall    0x2b, 0x4d        ; operand_word(slot 2)
-0EE2 8946fc             mov      [bp-4], ax        ; base
-0EE5 b003               mov      al, 3
-0EE7 50                 push     ax
-0EE8 9a25002b00         lcall    0x2b, 0x25        ; slot_value(3)
-0EED 8946fe             mov      [bp-2], ax        ; index
-0EF0 8b46fc             mov      ax, [bp-4]
-0EF3 0346fe             add      ax, [bp-2]
-0EF6 8946f8             mov      [bp-8], ax        ; dest = base + index
-0EF9 ff76f8             push     [bp-8]            ; dest
-0EFC ff76fa             push     [bp-6]            ; value
-0EFF 9a52002b00         lcall    0x2b, 0x52        ; store_word(dest, value)
-0F04 89ec               mov      sp, bp
-0F06 5d                 pop      bp
-0F07 cb                 retf
+0EBC  push     bp
+0EBD  mov      bp, sp
+0EBF  sub      sp, 8
+0EC2  mov      al, 3
+0EC4  push     ax
+0EC5  lcall    0x2b, 0x2a        ; load_operands(3)
+0ECA  mov      al, 1
+0ECC  push     ax
+0ECD  lcall    0x2b, 0x25        ; slot_value(1)
+0ED2  mov      [bp-6], ax        ; value
+0ED5  mov      al, [0x7087]      ; value_hi[2]
+0ED8  push     ax
+0ED9  mov      al, [0x7047]      ; value_lo[2]
+0EDC  push     ax
+0EDD  lcall    0x2b, 0x4d        ; operand_word(slot 2)
+0EE2  mov      [bp-4], ax        ; base
+0EE5  mov      al, 3
+0EE7  push     ax
+0EE8  lcall    0x2b, 0x25        ; slot_value(3)
+0EED  mov      [bp-2], ax        ; index
+0EF0  mov      ax, [bp-4]
+0EF3  ax, [bp-2]
+0EF6  mov      [bp-8], ax        ; dest = base + index
+0EF9  push     [bp-8]            ; dest
+0EFC  push     [bp-6]            ; value
+0EFF  lcall    0x2b, 0x52        ; store_word(dest, value)
+0F04  mov      sp, bp
+0F06  pop      bp
+0F07  retf
 ```
 
 Semantic C (proposed decode; composes the existing `pr_rec_ecl_*` helpers):
 
+**The C below is PSEUDOCODE, not a compilable translation.** It uses helper names
+that exist in `ecl_helpers.h` but abbreviated signatures that do not: the real calls are
+`pr_rec_ecl_load_operands(state, count)`, `pr_rec_ecl_operand_word(low, high)`,
+`pr_rec_ecl_slot_value(state, slot, &value)` and
+`pr_rec_ecl_store_string(state, address, text, len)`; there is no `e->string` field. The
+`pr_rec_ecl_tag` stub below is explicit and honest, but the rest of each fence is a
+reading aid, not a buildable draft. The real path-complete model for SAVE already exists
+as `pr_rec_ecl_op_save(...)` in `ecl_helpers.h`. The digest/tool fix is carried by the
+BATCH1 scrub PR, not here.
+
 ```c
 /* ECL opcode 0x35 SAVE TABLE. Far Pascal, no arguments, RETF.
  * dest = operand_word(slot 2) + slot_value(slot 3); value = slot_value(slot 1). */
-void pr_rec_ecl_op_save_table(struct pr_ecl *e)
+void pr_rec_ecl_op_save_table_draft(pr_rec_ecl_loader_state *e)
 {
     pr_rec_ecl_load_operands(e, 3);                       /* 0EC2..0EC5 */
     uint16_t value = pr_rec_ecl_slot_value(e, 1);         /* 0ECA..0ED2 */
@@ -180,14 +196,6 @@ REL_OFFSET: 0x3171
 LENGTH: 66
 FILE_OFFSET: 16055
 SHA256: 4055cdf54a816923efbebe1bed325b67193264be3f6c20491f4f383d692aa489
-BYTES:
-```bytes
-55 89 e5 8b 46 06 a3 ed 49 c6 06 2e 44 00 80 3e
-2e 44 00 75 24 80 3e ff 49 00 75 1d a0 7f 6f a2
-7e 6f a1 ed 49 c4 3e de 49 03 f8 26 8a 85 00 67
-a2 7f 6f 0e e8 85 fd eb d5 c6 06 2e 44 00 5d ca
-02 00
-```
 
 Length is 66 bytes `[0x3171,0x31B3)`; the following `00` at `+0x31B3` is inter-function
 padding (FUNCTION_LEDGER.md section 1.16). The span ends on `RETF 2`.
@@ -195,28 +203,28 @@ padding (FUNCTION_LEDGER.md section 1.16). The span ends on `RETF 2`.
 Disassembly (Capstone, 16-bit):
 
 ```
-3171 55                 push     bp
-3172 89e5               mov      bp, sp
-3174 8b4606             mov      ax, [bp+6]        ; entry PC
-3177 a3ed49             mov      [0x49ed], ax      ; PC = entry
-317A c6062e4400         mov      byte [0x442e], 0  ; stop byte clear on entry
-317F 803e2e4400         cmp      byte [0x442e], 0
-3184 7524               jne      0x31aa
-3186 803eff4900         cmp      byte [0x49ff], 0
-318B 751d               jne      0x31aa
-318D a07f6f             mov      al, [0x6f7f]      ; current opcode latch
-3190 a27e6f             mov      [0x6f7e], al      ; previous opcode
-3193 a1ed49             mov      ax, [0x49ed]      ; PC
-3196 c43ede49           les      di, [0x49de]      ; script buffer far ptr
-319A 03f8               add      di, ax
-319C 268a850067         mov      al, es:[di+0x6700] ; fetch
-31A1 a27f6f             mov      [0x6f7f], al      ; latch
-31A4 0e                 push     cs
-31A5 e885fd             call     0x2f2d            ; dispatcher
-31A8 ebd5               jmp      0x317f
-31AA c6062e4400         mov      byte [0x442e], 0  ; stop byte clear on exit
-31AF 5d                 pop      bp
-31B0 ca0200             retf     2
+3171  push     bp
+3172  mov      bp, sp
+3174  mov      ax, [bp+6]        ; entry PC
+3177  mov      [0x49ed], ax      ; PC = entry
+317A  mov      byte [0x442e], 0  ; stop byte clear on entry
+317F  cmp      byte [0x442e], 0
+3184  jne      0x31aa
+3186  cmp      byte [0x49ff], 0
+318B  jne      0x31aa
+318D  mov      al, [0x6f7f]      ; current opcode latch
+3190  mov      [0x6f7e], al      ; previous opcode
+3193  mov      ax, [0x49ed]      ; PC
+3196  les      di, [0x49de]      ; script buffer far ptr
+319A  di, ax
+319C  mov      al, es:[di+0x6700] ; fetch
+31A1  mov      [0x6f7f], al      ; latch
+31A4  push     cs
+31A5  call     0x2f2d            ; dispatcher
+31A8  jmp      0x317f
+31AA  mov      byte [0x442e], 0  ; stop byte clear on exit
+31AF  pop      bp
+31B0  retf     2
 ```
 
 Semantic C (proposed decode; the dispatcher stays a callback boundary):

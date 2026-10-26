@@ -1,9 +1,6 @@
 harness,command_list_line
 tools/overlay/ega_hw_native_audit.py,128
 tools/overlay/party_reorder_oracle.py,315
-tools/overlay/res00ba_clear_17e3_cpu_native.py,145
-tools/overlay/res00ba_display_1693_cpu_native.py,97
-tools/overlay/res00ba_display_1816_cpu_native.py,145
 tools/overlay/res03f1_clear_0137_cpu_native.py,141
 tools/overlay/res0464_bitmap_release_2595_native.py,91
 tools/overlay/res0709_clear_0dd3_cpu_native.py,142
@@ -133,8 +130,6 @@ tools/overlay/u3b0_space_scan_native.py,143
 tools/overlay/u3b0_step_scan_0b03_audit.py,366
 tools/overlay/u3b4_case_maps_audit.py,274
 tools/overlay/u3b9_bitmap_set_release_048f_native.py,94
-tools/overlay/u3c2_caller_0909_native.py,88
-tools/overlay/u3c2_record_sort_002e_audit.py,341
 tools/overlay/u3c6_cell_04be_native.py,137
 tools/overlay/u3c6_rebuild_03a0_native.py,99
 tools/overlay/u3c6_scan_0cb9_native.py,129

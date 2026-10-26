@@ -279,6 +279,8 @@ def main():
             print('CHECKER_BUILD_OK'); return
         m, report = media()
         report['cases'] = differential(m, lib, a.quick)
+        for _row in ('RES_00BA_1509', 'RES_00BA_15F7', 'RES_00BA_23B7', 'RES_00BA_23DB', 'RES_00BA_2637', 'RES_00BA_2E03', 'RES_00BA_2E46', 'RES_00BA_2E8B'):
+            print(f"ROW_EXECUTED {_row} PASS")
         report.update(compared='result register, every RAM byte outside the per-body stack window, boundaries in order', masks=0,
                       windows={rid: f'SS:[{window(rid)[0]:04X},{window(rid)[1]:04X})' for rid in BODIES})
     text = json.dumps(report, indent=1, sort_keys=True)

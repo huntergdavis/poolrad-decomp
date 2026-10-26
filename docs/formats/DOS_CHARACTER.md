@@ -6,6 +6,11 @@ alive and unchanged. It provides bounded raw spans and a span for the verified
 length-prefixed name bytes. It does not decode the DOS character encoding or
 interpret stats, sidecar contents, or unknown bytes.
 
+Later t174 evidence maps the [DOS character-sheet operands](DOS_CHARACTER_DISPLAY_FIELDS.md)
+and records one controlled STR edit loaded by the original game. The ledger
+below is the earlier read-only API baseline; the exhaustive evolving byte
+map is [DOS_CHARACTER_EDITOR_LAYOUT.csv](DOS_CHARACTER_EDITOR_LAYOUT.csv).
+
 ## Field ledger
 
 The evidence below is for the supplied DOS v1.3 build. A *verified* shape is

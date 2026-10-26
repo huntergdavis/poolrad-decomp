@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 CANNOT_RUN = 4
+NOT_COVERED = 5
 HEAVY = Path(__file__).resolve().parents[3] / 'poolrad-heavy.sh'
 PROFILES = 'tools/overlay/checker_execution_profiles.json'
 MEDIA = ('resources/DOS/POOLRAD/START.EXE', 'resources/DOS/POOLRAD/GAME.OVR')
@@ -149,6 +150,15 @@ def load_profiles(root):
             raise ValueError(f'invalid execution arguments: {path}')
         if any(a in ('--compile-only', '--quick', '--allow-incomplete') for a in args):
             raise ValueError(f'non-differential or reduced execution profile: {path}')
+        rows = profile.get('rows')
+        if rows is not None and (not isinstance(rows, list) or any(not isinstance(r, str) for r in rows)):
+            raise ValueError(f'invalid covered-rows list: {path}')
+        waived = profile.get('waive_not_covered')
+        if waived is not None and (not isinstance(waived, list) or any(not isinstance(r, str) for r in waived)):
+            raise ValueError(f'invalid waived-rows list: {path}')
+        observe = profile.get('observe')
+        if observe is not None and not isinstance(observe, bool):
+            raise ValueError(f'invalid observe flag: {path}')
     return profiles
 
 
@@ -169,9 +179,30 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
     report['media_sha256'] = {p: hashlib.sha256((root / p).read_bytes()).hexdigest() for p in MEDIA}
     status = 0
     for path in paths:
-        rows = sorted(row for row, owners in registry.items() if path in owners)
-        argv = [str(heavy), sys.executable, str(root / path), *profiles[str(path)]['args']]
-        print('EXECUTE ' + ','.join(rows) + ': ' + str(path), flush=True)
+        registered = sorted(row for row, owners in registry.items() if path in owners)
+        profile = profiles[str(path)]
+        declared = profile.get('rows')
+        if declared is None:
+            # A single-row checker is unambiguous. A multi-row checker MUST say which
+            # rows its command executes; defaulting to all is how AGREE attached to
+            # rows that never ran.
+            if len(registered) > 1:
+                raise ValueError(f"multi-row checker needs an explicit 'rows' list: {path}")
+            covered = registered
+        else:
+            covered = sorted(declared)
+            unknown = sorted(set(covered) - set(registered))
+            if unknown:
+                raise ValueError(f'profile rows not registered for {path}: ' + ', '.join(unknown))
+        observe = bool(profile.get('observe', False))
+        waived = sorted(set(profile.get('waive_not_covered', [])))
+        unknown_w = sorted(set(waived) - set(registered))
+        if unknown_w:
+            raise ValueError(f'waived rows not registered for {path}: ' + ', '.join(unknown_w))
+        uncovered = [row for row in registered if row not in covered]
+        unwaived = [row for row in uncovered if row not in waived]
+        argv = [str(heavy), sys.executable, str(root / path), *profile['args']]
+        print('EXECUTE ' + ','.join(registered) + ': ' + str(path), flush=True)
         try:
             process = subprocess.Popen(argv, cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                        text=True, start_new_session=True)
@@ -192,7 +223,8 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
             done = subprocess.CompletedProcess(argv, process.returncode, stdout, stderr)
         except (OSError, subprocess.TimeoutExpired) as exc:
             # Do not kill an unknown descendant or call an incomplete run agreement.
-            entry = dict(checker=str(path), rows=rows, command=argv, result='CANNOT_RUN', error=str(exc))
+            entry = dict(checker=str(path), rows=registered, command=argv, result='CANNOT_RUN',
+                         row_results={row: 'CANNOT_RUN' for row in registered}, error=str(exc))
             status = CANNOT_RUN
         else:
             text = done.stdout + '\n' + done.stderr
@@ -207,15 +239,49 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
                 result = 'DIFFERENTIAL_FAILED'
                 if status != CANNOT_RUN:
                     status = 1
-            entry = dict(checker=str(path), rows=rows, command=argv, result=result,
-                         returncode=done.returncode, stdout=done.stdout, stderr=done.stderr,
+            observed_markers, undeclared_markers = [], []
+            if result == 'AGREE':
+                if observe:
+                    # AGREE only for rows whose PASS execution marker the command emitted.
+                    markers = set()
+                    for line in done.stdout.splitlines():
+                        parts = line.split()
+                        if len(parts) == 3 and parts[0] == 'ROW_EXECUTED' and parts[2] == 'PASS':
+                            markers.add(parts[1])
+                    observed_markers = [row for row in covered if row in markers]
+                    missing = [row for row in covered if row not in markers]
+                    undeclared_markers = sorted(markers - set(covered))
+                    if missing or undeclared_markers:
+                        result = 'NOT_COVERED'
+                        status = NOT_COVERED
+                    covered = observed_markers
+                    uncovered = [row for row in registered if row not in covered]
+                    unwaived = [row for row in uncovered if row not in waived]
+                if unwaived:
+                    # The command passed, but a registered row's differential never ran
+                    # (or, with observe, never emitted a PASS marker).
+                    result = 'NOT_COVERED'
+                    status = NOT_COVERED
+                row_results = {row: ('AGREE' if row in covered else 'NOT_COVERED')
+                               for row in registered}
+            else:
+                row_results = {row: result for row in registered}
+            entry = dict(checker=str(path), rows=registered, command=argv, result=result,
+                         row_results=row_results, covered=covered, not_covered=uncovered,
+                         waived=waived, observed_markers=observed_markers,
+                         undeclared_markers=undeclared_markers, coverage_source=('stdout' if observe else 'profile'),
+                         returncode=done.returncode, stdout=done.stdout,
+                         stderr=done.stderr,
                          sha256=hashlib.sha256((root / path).read_bytes()).hexdigest())
         report['checkers'].append(entry)
         report['exit_code'] = status
         if output:
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(json.dumps(report, indent=2) + '\n')
-        print(entry['result'] + ' ' + ','.join(rows), flush=True)
+        for row in registered:
+            print(entry['row_results'].get(row, entry['result']) + ' ' + row, flush=True)
+        for row in entry.get('undeclared_markers', []):
+            print('UNDECLARED_MARKER ' + row, flush=True)
         if entry['result'] == 'CANNOT_RUN':
             break
     return status, report

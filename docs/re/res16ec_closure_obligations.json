@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "scope": "t131 documentation freshness only; no readiness or accounting authority",
+  "obligations": [
+    {
+      "id": "NC1",
+      "state": "open",
+      "removal_test": "A reviewed port entry contract defines the admitted entries and supplies a checked invariant or coverage argument for their selector paths; a single sampled arrival is insufficient.",
+      "discharge": null
+    },
+    {
+      "id": "NC2",
+      "state": "open",
+      "removal_test": "For every admitted box-taking entry, a checked write-range/frame-preservation argument or enforced guard excludes the demonstrated Move alias and all other control-frame writes; alternatively the entry contract proves all box calls excluded.",
+      "discharge": null
+    },
+    {
+      "id": "NC3",
+      "state": "open",
+      "removal_test": "Reviewed same-entry original/C evidence validates the remaining selected clear/title/printer and common-tail effects under the port contract, or checked path evidence excludes the named callees; compare the declared CPU/RAM/display/events/stop contract.",
+      "discharge": null
+    },
+    {
+      "id": "NC4",
+      "state": "open",
+      "removal_test": "The admitted entry contract has a checked loaded-stub/target invariant or enforced guard excluding cold calls, or a reviewed original/C loader comparison establishes the required cold-call behavior.",
+      "discharge": null
+    },
+    {
+      "id": "NC5",
+      "state": "open",
+      "removal_test": "A checked read-time length/argument-preservation bound excludes the 255-byte printer case for admitted entries, or the port contract and comparison explicitly validate that case's nontermination semantics without treating budget exhaustion as return.",
+      "discharge": null
+    }
+  ]
+}
