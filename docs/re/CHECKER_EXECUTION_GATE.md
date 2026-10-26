@@ -5,6 +5,14 @@ a recovered-C change, a media host must also run the affected registered
 checkers' actual differential contracts. This is a written pre-merge rule,
 not a CI job: original game media remains under ignored `resources/`.
 
+For a body computing arithmetic FLAGS, final-register equality alone does not
+verify intermediate flag writes. New or changed audits must observe each claimed
+producer before its flags are overwritten and require a wrong-arithmetic-FLAGS
+mutation to fail at that observation. Use the shared
+[intermediate flag contract](INTERMEDIATE_FLAG_OBSERVATIONS.md) and state the
+declared sites and any unwitnessed producers. This requirement does not mean the
+existing checker catalogue has already adopted or passed the new control.
+
 Run from a branch that includes freshly fetched `origin/main`:
 
 ```sh
