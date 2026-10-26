@@ -5,6 +5,7 @@ import copy
 import json
 from pathlib import Path
 import sys
+import tempfile
 import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -28,6 +29,76 @@ def pin(queue):
 
 
 class BacklogRefusalTest(unittest.TestCase):
+    def stdin_fixture(self, root, opaque=False):
+        def write(rel, content):
+            path = root / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content)
+
+        queue = dict(inputs={"synthetic": "no game media"}, rows=[])
+        ledger = "unit,offset,decoded\n"
+        for offset in range(807):
+            row = dict(fixture()["rows"][0], id=f"OVL_0100_{offset:04X}",
+                       original_address=f"0x100:{offset:#06x}", aliases=[], grade="B")
+            queue["rows"].append(row)
+            ledger += f"0x100,{offset:#x},1\n"
+        queue["rows"].append(dict(fixture()["rows"][0], id="RES_IMAGE_0896A", domain="resident",
+                                  original_address="image:0x0896A", aliases=["RES_0802_094A"], grade="A"))
+        write(backlog.CENSUS, "Synthetic census fixture; no original bytes.\n")
+        write("docs/re/function_ceiling_census.json", json.dumps(dict(
+            count=815, bound_kind="upper_bound", source_digests=queue["inputs"])))
+        write(backlog.CHECKPOINT, "{}")
+        write(backlog.TREE_INPUTS["ledger"], ledger)
+        write("docs/re/resident_callable_ledger.csv", "id,image_offset\nRPRO_0896A,0x0896A\n")
+        for manifest in backlog.MANIFESTS + ("reviewed_function_identities.csv",):
+            write("docs/re/" + manifest, "id,status,evidence_doc,body_bytes,body_sha256\n")
+        for name in ("function_backlog_reconciliation.py", "function_queue.py",
+                     "function_queue_audit.py", "check_checker_builds.py", "checker_execution.py"):
+            write("tools/overlay/" + name, "# Synthetic dependency fingerprint fixture\n")
+        write("tools/overlay/strict_candidate_queue.py", "RUNTIME_COVERED_ENDPOINTS = {}\n")
+        write("CMakeLists.txt", "add_library(model src/recovered/inline_model.c)\n")
+        write("src/recovered/inline_model.c", "void inline_model(void) {}\n")
+        checker = '''from pathlib import Path
+import subprocess
+ROOT = Path(__file__).resolve().parents[2]
+CHECKER_ROWS = ("RES_0802_094A",)
+C_SOURCE = "src/recovered/inline_model.c"
+SOURCES = ["inline_model"]
+def library(output):
+    subprocess.run(["cc", "-x", "c", "-", "-o", str(output)],
+                   input=(ROOT / C_SOURCE).read_text(), text=True, check=True)
+'''
+        if opaque:
+            checker = '''import subprocess
+CHECKER_ROWS = ("RES_0802_094A",)
+def library():
+    subprocess.run(["cc", *unknown_sources], check=True)
+'''
+        write("tools/overlay/stdin_checker.py", checker)
+        return queue
+
+    def test_registered_production_source_compiled_via_stdin_is_drafted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = self.stdin_fixture(root)
+            _, products, _ = backlog.reconcile(queue, root)
+            import csv
+            rows = list(csv.DictReader(products["function_backlog_reconciliation.csv"].decode().splitlines()))
+            row = next(r for r in rows if r["id"] == "RES_IMAGE_0896A")
+            self.assertEqual(row["evidence_state"], "C_drafted")
+            self.assertEqual(row["c_sources"], "src/recovered/inline_model.c")
+
+    def test_opaque_compiler_cmake_superset_is_not_draft_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            queue = self.stdin_fixture(root, opaque=True)
+            _, products, _ = backlog.reconcile(queue, root)
+            import csv
+            rows = list(csv.DictReader(products["function_backlog_reconciliation.csv"].decode().splitlines()))
+            row = next(r for r in rows if r["id"] == "RES_IMAGE_0896A")
+            self.assertEqual(row["evidence_state"], "disassembled")
+            self.assertEqual(row["c_sources"], "")
+
     def test_stale_queue_and_stale_tree_are_refused(self):
         blob, checkpoint = pin(fixture())
         with self.assertRaisesRegex(ValueError, "queue SHA"):

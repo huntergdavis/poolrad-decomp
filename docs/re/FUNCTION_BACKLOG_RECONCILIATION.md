@@ -36,12 +36,21 @@ excluded rows, with aliases, `library_tier`, `kind_authority`, and
 | Exclusion | Rows | Exclusion evidence |
 | --- | ---: | --- |
 | SYSTEM | 80 | Queue `classification=linked_runtime_evidenced`; census SYSTEM segment tier |
-| CRT | 9 | Queue `classification=linked_crt_inferred`; census CRT segment tier |
-| Overlay manager | 1 | `RES_IMAGE_0AA20`, alias `RPRO_0AA20`, loaded image `0x0AA20` in census library segment `0xAA2` |
+| CRT, inherited inferences, not exact vendor-object proof | 9 | Queue `classification=linked_crt_inferred`; census CRT segment tier |
+| Doubtful segment-policy exclusion; ownership unresolved | 1 | `RES_IMAGE_0AA20`, alias `RPRO_0AA20`, loaded image `0x0AA20` in census library segment `0xAA2` |
 
 The overlay-manager row remains `unresolved` / ownership `unknown` in the
 queue. Its exclusion is an explicit census-policy join, not a classifier
 repair. Library inference is not an exact stock-Borland source match.
+
+**Weakest exclusion — `RES_IMAGE_0AA20`: excluded by segment policy;
+ownership unresolved; doubtful.** Its queue grade is U and every ingress
+counter is zero. Neither the queue nor the resident ledger independently
+establishes a library identity. `kind_evidence` in both public CSVs labels
+that limit explicitly. The count is **808 callable queue bodies with this
+census policy, or 809 if this one exclusion is removed** (library exclusions
+would then be 89). The latter is a sensitivity result, not a revision of the
+accepted 815 CEILING or an identity grant.
 
 The ten non-SYSTEM **soft exclusions** are listed individually below. For
 the first nine, the alias is the exact row ID in
@@ -61,7 +70,7 @@ census's overlay-manager segment rule; its queue classification is not CRT.
 | `RES_IMAGE_0A6FD` | `RES_0A40_02FD` | `classification=linked_crt_inferred` |
 | `RES_IMAGE_0A731` | `RNEAR_0A731` | `classification=linked_crt_inferred` |
 | `RES_IMAGE_0AA0B` | `RNEAR_0AA0B` | `classification=linked_crt_inferred` |
-| `RES_IMAGE_0AA20` | `RPRO_0AA20` | `original_address=image:0x0AA20 = 0x0AA2*16+0`; census library segment `0xAA2`; queue `classification=unresolved` |
+| `RES_IMAGE_0AA20` | `RPRO_0AA20` | Excluded by segment policy; ownership unresolved; doubtful. `original_address=image:0x0AA20 = 0x0AA2*16+0`; census segment `0xAA2`; queue `classification=unresolved`; no ingress |
 
 The net difference 83 is **90 exclusions minus seven additions**:
 `898 - 90 = 808` queued non-library bodies; `808 + 7 = 815 CEILING`.
@@ -111,6 +120,12 @@ state. The strongest mapped state wins in this order:
 2. `C_drafted`: an explicit non-callback model manifest or checker
    `CHECKER_ROWS` registration, with existing C source resolved from the
    evidence document or the registered checker's parsed compiler arguments.
+   When no C filename appears in those arguments, the existing
+   `checker_execution.source_map` resolves explicit declarations and local
+   helper imports, including a production body compiled through stdin.
+   A mapper result with any conservative fallback is never used to promote
+   a row. Direct compiler filenames and explicit document mappings remain
+   usable independently of such a fallback.
    SYSTEM/CRT endpoint declarations in `RUNTIME_COVERED_ENDPOINTS` also map
    their named existing source. One explicit `DOCUMENTED_SOURCES` mapping
    resolves `OVL_007D_0000`: its document names
@@ -130,12 +145,12 @@ state. The strongest mapped state wins in this order:
 
 | Kind | Address only | Disassembled | Bytes recovered | C drafted | Credited | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Callable | 0 | 490 | 0 | 28 | 290 | 808 |
+| Callable | 0 | 489 | 0 | 29 | 290 | 808 |
 | Library inferred | 0 | 53 | 0 | 37 | 0 | 90 |
 | Data | 0 | 0 | 0 | 0 | 0 | 0 |
 | Duplicate / alias | 0 | 0 | 0 | 0 | 0 | 0 |
 | Unresolved kind | 0 | 0 | 0 | 0 | 0 | 0 |
-| Queue total | 0 | 543 | 0 | 65 | 290 | 898 |
+| Queue total | 0 | 542 | 0 | 66 | 290 | 898 |
 
 The zero `bytes_recovered` is a consequence of the precedence rule, **not
 absence of recorded bytes**. In the public CSV, 181 rows carry both
@@ -169,7 +184,30 @@ of each stronger state follow; full hashes are in the CSV.
 Source discovery is deliberately limited to explicit registrations and
 documented source citations. Unregistered or inline drafts may exist among
 rows labelled `disassembled`; this is not an exhaustive negative search for
-C implementations. None of these states measures saved-game reachability.
+C implementations. Registrations whose source resolution remains opaque
+also stay in that state unless another explicit source mapping suffices;
+their declarations are retained and conservative routes appear in the JSON
+report. None of these states measures saved-game reachability.
+
+The independent review found a registered-route false negative on the first
+frozen head, `6c512c5a`: `RES_IMAGE_0896A` / `RES_0802_094A` compiles the
+production `overlay_u25_store_word_0c77.c` through stdin (`-x c -`). The old
+filename-argument scan missed it. The author sweep checked 245 registered
+queue rows across 218 distinct checkers. Two precise non-filename routes
+were found: `res00ba_rec_models_audit.py` (already-credited resident rows)
+and `res0802_selector_094a_cpu_audit.py` (the selector). Only the selector
+changes final state: **490/28 becomes 489 disassembled / 29 C drafted**.
+No credited count changes. The prior 491/27 also omitted the separately
+documented U7D source mapping and is superseded.
+
+No false C-draft promotion was found under the declared source-presence rule:
+existing mappings resolve existing C source through explicit compiler inputs
+or document citations. In particular `OVL_03B0_06FB` has a document-to-source
+mapping even though its checker import closure is conservative. This is not
+an independent semantic review of those C bodies. Conservative source-map
+supersets were audited separately and were not adopted as positive evidence.
+The JSON records source-resolution routes and hashes the mapper, CMake, and
+the entire local Python-helper read universe used for import resolution.
 
 ## Reproduce and detect stale input
 
@@ -214,9 +252,14 @@ are copied into these products.
 The canonical audit re-derived the inventory, call graph, validated near
 calls, overlay ledger/classifier, and resident callable audit; the three
 ledgers matched the tree byte-for-byte and two queue exports matched each
-other and the published checkpoint. Seven synthetic tests cover stale input,
+other and the published checkpoint. Nine synthetic tests cover stale input,
 alias/address collisions, invalid credit, callback/source overstatement, and
-equal-byte bodies at distinct addresses. An independent reader's recount and
+equal-byte bodies at distinct addresses, plus precise stdin source discovery
+and refusal to promote an opaque CMake superset. The stdin regression was
+shown red on the old exporter (`disassembled != C_drafted`), green with the
+fix, red after actually reverting the exporter to `6c512c5a`, and green after
+restoring it. No compiler or original media executes in that synthetic test.
+An independent reader's recount and
 exact-head media receipt belong in the PR verdict, not in this author's count.
 
 **Not verified:** fresh classification of every callable start; exact stock

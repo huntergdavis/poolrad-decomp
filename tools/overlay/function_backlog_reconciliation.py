@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 
 import check_checker_builds as checker_contracts
+import checker_execution
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -77,6 +78,7 @@ def census_kind(row):
         return "library_inferred", "CRT", "classification=linked_crt_inferred"
     if row["id"] == "RES_IMAGE_0AA20":
         return ("library_inferred", "overlay_manager",
+                "excluded by segment policy; ownership unresolved; doubtful; "
                 "original_address=image:0x0AA20; census library segment=0xAA2")
     return "callable", "", "queue start included by census; " + ingress(row)
 
@@ -205,6 +207,40 @@ def reconcile(queue, root):
 
     read("tools/overlay/check_checker_builds.py")
     registry = checker_contracts.discover(root)
+    selected_paths = sorted({path for rid, paths in registry.items()
+                             if resolve(rid) is not None for path in paths})
+    direct_sources = {}
+    for path in selected_paths:
+        commands = checker_contracts._cc_commands(ast.parse(read(path.as_posix()).decode()), root)
+        sources = set()
+        for command in commands:
+            for arg in command:
+                if not isinstance(arg, str) or not arg.endswith(".c"):
+                    continue
+                source = Path(arg)
+                if source.is_absolute():
+                    if not source.is_relative_to(root):
+                        continue
+                    source = source.relative_to(root)
+                if source.as_posix().startswith("src/recovered/") and (root / source).is_file():
+                    sources.add(source.as_posix())
+        direct_sources[path] = sorted(sources)
+    missing_paths = [path for path in selected_paths if not direct_sources[path]]
+    # Source-map imports are limited to these local Python directories. Hash
+    # their full read universe as well as CMake, including negative mappings.
+    read("CMakeLists.txt")
+    read("tools/overlay/checker_execution.py")
+    for folder in ("tools/overlay", "tests/recovered"):
+        for path in sorted((root / folder).glob("*.py")):
+            read(path.relative_to(root).as_posix())
+    mapped = checker_execution.source_map(root, missing_paths, checker_contracts._cc_commands)
+    precise_routes = {}
+    conservative_routes = {}
+    for path, entry in mapped.items():
+        if entry["conservative"]:
+            conservative_routes[path.as_posix()] = entry["conservative"]
+        else:
+            precise_routes[path.as_posix()] = entry["sources"]
     for registered_id, checkers in sorted(registry.items()):
         identifier = resolve(registered_id)
         if identifier is None:
@@ -214,25 +250,13 @@ def reconcile(queue, root):
             continue
         for checker in checkers:
             rel = checker.as_posix()
-            commands = checker_contracts._cc_commands(ast.parse(read(rel).decode()), root)
-            sources = set()
-            for command in commands:
-                for arg in command:
-                    if not isinstance(arg, str) or not arg.endswith(".c"):
-                        continue
-                    path = Path(arg)
-                    if path.is_absolute():
-                        if not path.is_relative_to(root):
-                            continue
-                        path = path.relative_to(root)
-                    if path.as_posix().startswith("src/recovered/") and (root / path).is_file():
-                        sources.add(path.as_posix())
+            sources = set(direct_sources[checker] or precise_routes.get(rel, []))
             for source in sorted(sources):
                 read(source)
-            if sources:
-                models.setdefault(identifier, []).append(dict(
-                    declaration=rel + ":CHECKER_ROWS:" + registered_id,
-                    status="registered_checker", sources=sorted(sources), evidence_doc=""))
+            models.setdefault(identifier, []).append(dict(
+                declaration=rel + ":CHECKER_ROWS:" + registered_id,
+                status="registered_checker" if sources else "registered_checker_source_unresolved",
+                sources=sorted(sources), evidence_doc=""))
 
     # These explicit endpoint declarations cover library C models too. Read the
     # literal table; importing the readiness tool would add unrelated dependencies.
@@ -301,6 +325,14 @@ def reconcile(queue, root):
                    kind_by_state={kind: {state: sum(r["kind"] == kind and r["evidence_state"] == state for r in rows)
                                          for state in STATES} for kind in KINDS},
                    census_only_starts=len(supplemental), static_CEILING=ceiling["count"],
+                   weakest_exclusion=dict(id="RES_IMAGE_0AA20", basis="segment policy only; ownership unresolved; doubtful",
+                                          callable_with_policy=counts["callable"],
+                                          callable_without_this_exclusion=counts["callable"] +
+                                          int(any(r["id"] == "RES_IMAGE_0AA20" for r in rows))),
+                   registered_source_resolution=dict(
+                       checkers_with_direct_c_arguments=sum(bool(v) for v in direct_sources.values()),
+                       precise_non_file_routes=precise_routes,
+                       conservative_routes_not_promoted=conservative_routes),
                    whole_game_verified_denominator="unknown", registered_model_ids_outside_queue=outside)
     require(counts["callable"] + len(supplemental) == ceiling["count"], "CEILING arithmetic differs")
     products = {
