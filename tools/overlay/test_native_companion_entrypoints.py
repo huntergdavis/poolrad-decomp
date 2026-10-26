@@ -26,21 +26,23 @@ COMPANIONS = (
 class NativeCompanionEntrypoints(unittest.TestCase):
     def test_direct_execution_refuses_with_actual_audit_command(self):
         for name in COMPANIONS:
-            with self.subTest(companion=name):
-                # No site packages or PYTHONPATH: the refusal precedes optional
-                # audit imports and therefore also works on a media-free host.
-                result = subprocess.run(
-                    [sys.executable, "-I", "-S",
-                     str(ROOT / "tools/overlay" / (name + "_native.py"))],
-                    capture_output=True, text=True, timeout=10,
-                )
-                self.assertEqual(result.returncode, 1)
-                self.assertEqual(result.stdout, "")
-                self.assertEqual(
-                    result.stderr.strip(),
-                    "No cases executed: invoke tools/overlay/" + name +
-                    "_audit.py --native through poolrad-heavy.sh.",
-                )
+            for mode, flags in (("normal", []), ("isolated", ["-I", "-S"])):
+                with self.subTest(companion=name, mode=mode):
+                    # Normal invocation reproduces the original false-green
+                    # path. Isolated mode also requires refusal without optional
+                    # audit imports, site packages or PYTHONPATH.
+                    result = subprocess.run(
+                        [sys.executable, *flags,
+                         str(ROOT / "tools/overlay" / (name + "_native.py"))],
+                        capture_output=True, text=True, timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 1)
+                    self.assertEqual(result.stdout, "")
+                    self.assertEqual(
+                        result.stderr.strip(),
+                        "No cases executed: invoke tools/overlay/" + name +
+                        "_audit.py --native through poolrad-heavy.sh.",
+                    )
 
 
 if __name__ == "__main__":
