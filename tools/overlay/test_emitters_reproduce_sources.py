@@ -28,6 +28,8 @@ EMITTERS = {
     "emit_ovl03b6_0000": "src/recovered/overlay_u3b6_window_0000_cpu.c",
     "emit_ovl03ce_00f1": "src/recovered/overlay_u3ce_tile_00f1_cpu.c",
     "emit_ovl040c_015d": "src/recovered/overlay_u40c_tile_015d_cpu.c",
+    "emit_u1c_save_0292": "src/recovered/overlay_u1c_save_0292_cpu.c",
+    "emit_u1c_save_table_0ebc": "src/recovered/overlay_u1c_save_table_0ebc_cpu.c",
     "emit_res03f1_box_0000": "src/recovered/resident_03f1_box_0000_cpu.c",
     "emit_res0464_blit_1951": "src/recovered/resident_0464_blit_1951_cpu.c",
     "emit_res0464_compose_08d4": "src/recovered/resident_0464_compose_08d4_cpu.c",
@@ -45,7 +47,12 @@ class EmitterTest(unittest.TestCase):
 
     def test_flag_helpers_in_outputs_come_from_templates(self):
         for emitter, output in EMITTERS.items():
-            template = (OVERLAY / f"{emitter}.py").read_text()
+            # a generator may keep its shared template in candidate_ecl_template.py
+            generator = OVERLAY / f"{emitter}.py"
+            template = generator.read_text()
+            shared = OVERLAY / "candidate_ecl_template.py"
+            if shared.exists():
+                template += "\n" + shared.read_text()
             helpers = [m.group(0) for m in HELPER.finditer((ROOT / output).read_text())]
             self.assertTrue(helpers, f"{output}: no flag helper found, the pattern is stale")
             for body in helpers:
