@@ -1,0 +1,30 @@
+offset,width,name,encoding,valid_range,status,evidence
+0x000,1,name_length,unsigned byte,0..15 conservative reader bound; observed 6..14,VERIFIED,DOS_CHARACTER.md: U6F +07B7/+215D Pascal string use; capacity is observational
+0x001,15,name_storage,raw string bytes and opaque unused tail,encoding and unused-tail rules UNVERIFIED; occupied span is name_length bytes,UNVERIFIED,DOS_CHARACTER.md: name span verified; DOS code page not established
+0x010,2,unknown_010_011,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x012,1,u9b_threshold_input,unsigned byte,game-valid range UNVERIFIED; unsigned comparisons against 12..16,UNVERIFIED,U9B_RECORD_INCR_01AF.md: +01C1/+01DE/+01FB/+0218/+0235; static recheck
+0x013,108,unknown_013_07e,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x07F,4,runtime_pointer_07f,LE16 offset then LE16 segment,stale disk value; loader clears; preserve on export,VERIFIED,DOS_CHARACTER.md: U6F +0C77/+0C7B; static recheck; pointed-to meaning UNVERIFIED
+0x083,19,unknown_083_095,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x096,1,party_strength_input_e,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; not an ability-name claim
+0x097,4,unknown_097_09a,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x09B,1,party_strength_input_d,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; not a level-name claim
+0x09C,22,unknown_09c_0b1,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x0B2,1,u9b_counter_0b2,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 12 and 13; static recheck
+0x0B3,1,u9b_counter_0b3,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 14 and 15; static recheck
+0x0B4,1,u9b_counter_0b4,unsigned byte; increment wraps modulo 256,game-valid range UNVERIFIED; nonzero gates increment,UNVERIFIED,U9B_RECORD_INCR_01AF.md: input +12 thresholds 16; static recheck
+0x0B5,10,unknown_0b5_0be,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x0BF,1,runtime_party_slot,unsigned byte,0..7 assigned; 255 used during search; disk constraints UNVERIFIED,VERIFIED,DOS_CHARACTER.md and SLOT_A_PARTY_INPUT.md: U6F +1446/+153E..1563; prior trace
+0x0C0,8,unknown_0c0_0c7,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x0C8,4,runtime_pointer_0c8,LE16 offset then LE16 segment,stale disk value; loader clears; preserve on export,VERIFIED,DOS_CHARACTER.md: U6F +0C68/+0C6D; static recheck; pointed-to meaning UNVERIFIED
+0x0CC,56,unknown_0cc_103,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x104,4,next_character_pointer,LE16 offset then LE16 segment,stale disk value; loader clears and relinks; preserve on export,VERIFIED,DOS_CHARACTER.md: U6F +0C59/+0C5E static recheck; SLOT_A_PARTY_INPUT.md tail traversal prior trace
+0x108,4,runtime_pointer_108,LE16 offset then LE16 segment,stale disk value; loader clears; preserve on export,VERIFIED,DOS_CHARACTER.md: U6F +0C85/+0C8A; static recheck; pointed-to meaning UNVERIFIED
+0x10C,2,unknown_10c_10d,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x10E,1,resident_zero_predicate_input,unsigned byte,game-valid range UNVERIFIED; predicate compares with zero,UNVERIFIED,RESIDENT_CHARACTER_FIELD_ZERO.md: prior trace; no condition-name claim
+0x10F,1,unknown_10f_10f,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x110,1,party_strength_input_c,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; semantic name not established
+0x111,1,party_strength_input_b,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; semantic name not established
+0x112,9,unknown_112_11a,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
+0x11B,1,party_strength_input_a,unsigned byte,game-valid range UNVERIFIED,UNVERIFIED,SLOT_A_PARTY_INPUT.md: PARTYSTRENGTH input; no current-HP claim
+0x11C,1,unknown_11c_11c,opaque bytes,UNVERIFIED; preserve exactly,UNVERIFIED,DOS_CHARACTER.md: unknown fields; no semantic boundary claimed
