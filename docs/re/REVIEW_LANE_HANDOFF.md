@@ -441,3 +441,14 @@ This section exists because a review accepted a CPU-parity claim on the strength
 The reviewer may add mutants the author did not write, and should when the body's risk is a wrong operation rather than a missing one: an independently authored mutant that survives a differential is a finding about the differential, not about the mutant.
 
 **Prospective.** This standard applies to verdicts issued after this section merges. Verdicts already issued stand as issued, with the limits they stated: retro-applying it would convert recorded evidence into a rule violation after the fact, and that is worse for the record than a stated gap.
+
+## A verdict must come from a row the profile executed (VP i26338, t171)
+
+A producer must never attach a verdict to a row its profile did not execute: it emits **NOT-COVERED**.
+
+- **NOT-COVERED is a valid answer**, and a producer that never emits it is not measuring its own coverage - it is reporting the scope it hoped for.
+- **AGREE on an unexecuted row ends a question that should have been asked.** It is the most expensive kind of green, because nothing downstream can tell it apart from a real pass: the row looks verified, the receipt looks complete, and the gap only surfaces when someone re-derives the run.
+- The check is cheap: for every row in a profile's scope, either the run executed it (AGREE/DIFF as measured) or it names NOT-COVERED. Silence is neither.
+- Reciprocally, a reviewer reading a producer's report must treat a missing row as NOT-COVERED rather than as a pass, and must say which rows the report covered.
+
+Found on #1566 at `400f3a4e`; the reporter-side fix is t171. This belongs here rather than in a PR comment because the rule outlives the incident.
