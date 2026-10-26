@@ -87,9 +87,12 @@ point that row's differential completes (inside the row loop, after the
 comparison passes), never from a footer after `main` returns: a selector such as
 `--only 1434` emits only `OVL_0033_1434`, a mode that runs no differential emits
 none, and a declared row the run did not execute is NOT-COVERED (exit 5).
-The row id is derived from the body's own unit metadata, never from the loop prefix,
-so a checker spanning two units (for example 012b/01ad in 0033 and 0350/047b in 03BD)
-emits two unit prefixes; `MixedUnitMarkerTest` is the permanent control.
+The row id is derived from the body's own unit metadata, never from the loop prefix.
+A checker spanning two units (for example 012b/01ad in 0033 and 0350/047b in 03BD)
+computes two unit prefixes, but emits a marker only for rows in its own
+`CHECKER_ROWS`: the 03BD callee bodies are exercised and left unmarked, so this
+checker cannot claim their coverage. `MixedUnitMarkerTest` checks the mapping
+against the registry discovered from `CHECKER_ROWS`, not against the profile.
 Single-row profiles need no marker because the mapping is unambiguous.
 
 ```

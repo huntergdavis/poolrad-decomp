@@ -335,7 +335,8 @@ def main():
                 _cases = {}
                 for k in bodies:
                     _cases[k] = differential(bodies, spans, k, functions, args.quick)
-                    print(f"ROW_EXECUTED {row_id(k)} PASS")
+                    if row_id(k) in CHECKER_ROWS:
+                        print(f"ROW_EXECUTED {row_id(k)} PASS")
                 report["unicorn_cases"] = _cases
             if args.native:
                 from u33_cell_lookup_012b_native import native_audit

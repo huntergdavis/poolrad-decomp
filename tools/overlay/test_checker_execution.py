@@ -264,25 +264,43 @@ class CoverageTest(unittest.TestCase):
 
 
 class MixedUnitMarkerTest(unittest.TestCase):
-    def test_cell_markers_use_each_body_unit(self):
+    ROOT = Path(__file__).resolve().parents[2]
+
+    def test_cell_row_ids_are_earned_from_the_body_unit(self):
         import u33_cell_lookup_012b_audit as cell
         got = {key: cell.row_id(key) for key in cell.TARGETS}
         self.assertEqual(got, {
             '012b': 'OVL_0033_012B', '01ad': 'OVL_0033_01AD',
             '0350': 'OVL_03BD_0350', '047b': 'OVL_03BD_047B'})
         self.assertEqual(len({row.split('_')[1] for row in got.values()}), 2)
-        profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
-        declared = profiles['tools/overlay/u33_cell_lookup_012b_audit.py']['rows']
-        self.assertEqual(set(declared), set(got.values()))
 
-    def test_other_per_key_checkers_declare_a_single_unit(self):
-        import u33_place_search_1577_audit as place
-        import u33_grid_pair_0d13_audit as grid
-        import u33_stamp_02ba_audit as stamp
-        import u6a_record_weight_0000_audit as weight
-        for module in (place, grid, stamp, weight):
-            units = {target.get('unit') for target in module.TARGETS.values() if 'unit' in target}
-            self.assertLessEqual(len(units), 1, module.__name__)
+    def test_cell_marks_only_rows_it_owns_in_the_discovered_registry(self):
+        import u33_cell_lookup_012b_audit as cell
+        registry = gate.discover(self.ROOT)
+        path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
+        owned = {row for row, paths in registry.items() if path in paths}
+        self.assertEqual(owned, {'OVL_0033_012B', 'OVL_0033_01AD'})
+        self.assertNotIn('OVL_03BD_0350', owned)
+        self.assertNotIn('OVL_03BD_047B', owned)
+        emitted = {cell.row_id(key) for key in cell.TARGETS if cell.row_id(key) in cell.CHECKER_ROWS}
+        self.assertEqual(emitted, owned)
+        profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
+        declared = set(profiles['tools/overlay/u33_cell_lookup_012b_audit.py']['rows'])
+        self.assertEqual(declared, owned)
+
+    def test_other_per_key_checkers_own_a_single_unit(self):
+        registry = gate.discover(self.ROOT)
+        expected = {
+            'tools/overlay/u33_place_search_1577_audit.py': '0033',
+            'tools/overlay/u33_grid_pair_0d13_audit.py': '0033',
+            'tools/overlay/u33_stamp_02ba_audit.py': '0033',
+            'tools/overlay/u6a_record_weight_0000_audit.py': '006A',
+        }
+        for name, unit in expected.items():
+            path = Path(name)
+            owned = {row for row, paths in registry.items() if path in paths}
+            self.assertTrue(owned, name)
+            self.assertEqual({row.split('_')[1] for row in owned}, {unit}, name)
 
 
 if __name__ == '__main__':
