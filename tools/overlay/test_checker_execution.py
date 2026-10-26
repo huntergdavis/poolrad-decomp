@@ -1,5 +1,6 @@
 """Execution must prove a differential ran; source selection must not lose dependencies."""
 from pathlib import Path
+import json
 import tempfile
 import unittest
 
@@ -259,6 +260,29 @@ class CoverageTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'not registered'):
             execution.execute(self.root, self.registry, [self.path], self.profiles,
                               heavy=self.wrapper)
+
+
+
+class MixedUnitMarkerTest(unittest.TestCase):
+    def test_cell_markers_use_each_body_unit(self):
+        import u33_cell_lookup_012b_audit as cell
+        got = {key: cell.row_id(key) for key in cell.TARGETS}
+        self.assertEqual(got, {
+            '012b': 'OVL_0033_012B', '01ad': 'OVL_0033_01AD',
+            '0350': 'OVL_03BD_0350', '047b': 'OVL_03BD_047B'})
+        self.assertEqual(len({row.split('_')[1] for row in got.values()}), 2)
+        profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
+        declared = profiles['tools/overlay/u33_cell_lookup_012b_audit.py']['rows']
+        self.assertEqual(set(declared), set(got.values()))
+
+    def test_other_per_key_checkers_declare_a_single_unit(self):
+        import u33_place_search_1577_audit as place
+        import u33_grid_pair_0d13_audit as grid
+        import u33_stamp_02ba_audit as stamp
+        import u6a_record_weight_0000_audit as weight
+        for module in (place, grid, stamp, weight):
+            units = {target.get('unit') for target in module.TARGETS.values() if 'unit' in target}
+            self.assertLessEqual(len(units), 1, module.__name__)
 
 
 if __name__ == '__main__':
