@@ -102,9 +102,10 @@ int pr_u1c_3171_dispatch_double(uint8_t *ram, size_t ram_size,
          * 16-bit arithmetic admitted a demonstrated modular cancellation. */
         uint16_t observed = (uint16_t)(cpu->flags & 0x08D5u);
         uint16_t n = read16(ram, ram_size, cpu->ds, 0x0F80u);
-        if (n < 64u) {
-            write16(ram, ram_size, cpu->ds, (uint16_t)(0x0F00u + 2u * n), observed);
+        if (n >= 64u) {
+            return 3;   /* observation overflow: refuse the case, never drop silently */
         }
+        write16(ram, ram_size, cpu->ds, (uint16_t)(0x0F00u + 2u * n), observed);
         write16(ram, ram_size, cpu->ds, 0x0F80u, (uint16_t)(n + 1u));
     }
     opcode = read8(ram, ram_size, cpu->ds, 0x6F7Fu);

@@ -81,6 +81,14 @@ What the audit does:
    a permanent regression control. The records are audit instrumentation, not body
    behaviour. A digest printed by the audit is a **pre-filter**: it proves DIFFER, never
    SAME.
+
+   **External-trace caveat:** external mode compares RAM EXCEPT the 130-byte
+   instrumentation region (DS:0F00h..0F82h). It must not replace normal full-RAM row
+   acceptance. The mask does not distinguish intended instrumentation writes from model
+   writes; a wrong value written inside that window is invisible to external final-state
+   comparison. Normal mode keeps the full 1 MiB compare. Permanent controls:
+   `MaskBoundaryTest.test_external_mask_boundary_controls` (normal rejects 4/4; external
+   rejects the two outside and accepts the two inside).
 5. Compares **all 1,048,576 RAM bytes, all 14 CPU words (unmasked), the dispatch count
    and the final `CS:IP:SP`** per case.
 6. Runs four mutants and requires each to die; the two regression mutants must be killed

@@ -45,6 +45,25 @@ class ObserverControlTest(unittest.TestCase):
 
     @unittest.skipUnless((ROOT / "resources/DOS/POOLRAD/GAME.OVR").exists(),
                          "owner GAME.OVR not under ignored resources/")
+    def test_observation_overflow_is_refused(self):
+        """64 observations agree; 65 must be refused, not silently truncated."""
+        sys.path.insert(0, str(ROOT / "tools/overlay"))
+        import u1c_run_3171_cpu_audit as audit
+
+        ovr, at, body = audit.source()
+        audit.source_bytes = body
+        with tempfile.TemporaryDirectory() as temp:
+            lib, dispatch_t = audit.build(Path(temp))
+            boundary = audit.setup_ram(script=[1] * 63 + [0], entry=0, stop=0,
+                                       stop2=0, latch=0, buf_off=0)
+            audit.compare("boundary-64", boundary, lib, dispatch_t)
+            over = audit.setup_ram(script=[1] * 64 + [0], entry=0, stop=0,
+                                   stop2=0, latch=0, buf_off=0)
+            with self.assertRaises(ValueError):
+                audit.compare("overflow-65", over, lib, dispatch_t)
+
+    @unittest.skipUnless((ROOT / "resources/DOS/POOLRAD/GAME.OVR").exists(),
+                         "owner GAME.OVR not under ignored resources/")
     def test_of_flip_collision_is_rejected(self):
         sys.path.insert(0, str(ROOT / "tools/overlay"))
         import u1c_run_3171_cpu_audit as audit
@@ -61,6 +80,33 @@ class ObserverControlTest(unittest.TestCase):
                 audit.compare(f"unmutated-{offset:04x}", ram, lib, dispatch_t)
                 with self.assertRaises(ValueError):
                     audit.compare(f"of-collision-{offset:04x}", ram, mutant, mutant_t)
+
+
+class MaskBoundaryTest(unittest.TestCase):
+    """The external-mode scratch window must be documented by behaviour, not prose."""
+
+    def test_external_mask_boundary_controls(self):
+        sys.path.insert(0, str(ROOT / "tools/overlay"))
+        import u1c_run_3171_cpu_audit as audit
+
+        want = bytearray(1 << 20)
+        obs_low = (audit.DATA_DS << 4) + 0x0F00
+        inside = {"inside_low": obs_low, "inside_high": obs_low + 0x81}
+        outside = {"outside_low": obs_low - 1, "outside_high": obs_low + 0x82}
+        # Normal full-RAM acceptance rejects all four corruptions.
+        for addr in list(inside.values()) + list(outside.values()):
+            got = bytearray(want)
+            got[addr] = 0xA5
+            self.assertTrue(audit.ram_mismatch(want, got, False), f"normal must reject {addr:#x}")
+        # External (diagnostic) mode rejects the two outside, accepts the two inside.
+        for addr in outside.values():
+            got = bytearray(want)
+            got[addr] = 0xA5
+            self.assertTrue(audit.ram_mismatch(want, got, True), f"external must reject {addr:#x}")
+        for addr in inside.values():
+            got = bytearray(want)
+            got[addr] = 0xA5
+            self.assertFalse(audit.ram_mismatch(want, got, True), f"external masks {addr:#x}")
 
 
 class ProfileFlagTest(unittest.TestCase):

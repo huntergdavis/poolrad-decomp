@@ -42,6 +42,7 @@ UNIT, ENTRY, END = 0x1C, 0x3171, 0x31B3
 DISPATCH_REL = 0x2F2D
 BODY_SHA = "4055cdf54a816923efbebe1bed325b67193264be3f6c20491f4f383d692aa489"
 CHECKER_ROWS = ("OVL_001C_3171",)
+CASE_KINDS = {}
 SIZE = 1 << 20
 
 UNIT_CS, STACK_SS, STACK_SP, DATA_DS = 0x2000, 0x3000, 0x1000, 0x4000
@@ -175,6 +176,7 @@ def run_original(ram, lib):
     dispatch_phys = ((UNIT_CS << 4) + DISPATCH_REL) & 0xFFFFF
     caller_phys = ((CALLER_CS << 4) + CALLER_IP) & 0xFFFFF
     counts = [0]
+    overflow = [False]
 
     def on_code(uc_, address, size_, _user):
         if address == dispatch_phys:
@@ -188,8 +190,12 @@ def run_original(ram, lib):
             cpu = Cpu()
             for name, reg in zip(NAMES, REGISTERS):
                 setattr(cpu, name, uc_.reg_read(reg) & 0xFFFF)
-            lib.pr_u1c_3171_dispatch_double(buf, SIZE, ctypes.byref(cpu), None)
+            rc = lib.pr_u1c_3171_dispatch_double(buf, SIZE, ctypes.byref(cpu), None)
             uc_.mem_write(0, bytes(buf))
+            if rc != 0:
+                overflow[0] = True
+                uc_.emu_stop()
+                return
             counts[0] += 1
             uc_.reg_write(UC_X86_REG_IP, ret_ip)
             uc_.reg_write(UC_X86_REG_CS, ret_cs)
@@ -198,6 +204,8 @@ def run_original(ram, lib):
 
     uc.hook_add(UC_HOOK_CODE, on_code)
     uc.emu_start(((UNIT_CS << 4) + ENTRY) & 0xFFFFF, 0, count=200000)
+    if overflow[0]:
+        raise ValueError("observation overflow: more than 64 dispatches")
     out = bytearray(uc.mem_read(0, SIZE))
     cpu = {name: uc.reg_read(reg) & 0xFFFF for name, reg in zip(NAMES, REGISTERS)}
     return out, cpu, counts[0]
@@ -217,6 +225,12 @@ def run_c(ram, lib, dispatch_t):
 
     status = lib.pr_u1c_run_3171(buf, SIZE, ctypes.byref(cpu), CALLER_CS, callback, None)
     return bytearray(buf), {n: getattr(cpu, n) for n in NAMES}, counts[0], status
+
+
+def _case(label, spec, kind):
+    """External callers (t135 companion) get (label, spec); the kind stays internal."""
+    CASE_KINDS[label] = kind
+    return label, spec
 
 
 def cases():
@@ -240,46 +254,71 @@ def cases():
         ("many-steps", dict(script=[1] * 12 + [0], entry=0, stop=0, stop2=0, latch=0)),
         ("wrap-pc", dict(script=[5, 0], entry=0xFF00, stop=0, stop2=0, latch=0)),
     ]
+    CASE_KINDS.clear()
     for label, spec in adversarial:
-        yield label, spec, "adversarial"
+        yield _case(label, spec, "adversarial")
     # the two exact reviewer regressions (named, inputs unchanged)
-    yield ("regress-entry7-stop2-1",
-           dict(script=[3, 4, 0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
-    yield ("regress-bufoff-advance",
-           dict(script=[2, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
+    yield _case("regress-entry7-stop2-1",
+                   dict(script=[3, 4, 0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
+    yield _case("regress-bufoff-advance",
+                   dict(script=[2, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
     # the same two defects with script [0] (the reviewers' other fixture shape)
-    yield ("regress-entry7-stop2-1-zero",
-           dict(script=[0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
-    yield ("regress-bufoff-advance-zero",
-           dict(script=[0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
+    yield _case("regress-entry7-stop2-1-zero",
+                   dict(script=[0], entry=7, stop=0, stop2=1, latch=0, buf_off=0), "regression")
+    yield _case("regress-bufoff-advance-zero",
+                   dict(script=[0], entry=0, stop=0, stop2=0, latch=0, buf_off=0x0100), "regression")
     # a non-default buffer SEGMENT, so BUF_ES is a per-case axis, not a constant
-    yield ("es-6000",
-           dict(script=[1, 0], entry=0, stop=0, stop2=0, latch=0,
+    yield _case("es-6000",
+                   dict(script=[1, 0], entry=0, stop=0, stop2=0, latch=0,
                 buf_off=0x0100, buf_es=0x6000), "adversarial")
     # first dispatch has odd PC, last has even: a non-final flags change must be caught
-    yield ("flags-nonfinal",
-           dict(script=[1, 0], entry=1, stop=0, stop2=0, latch=0, buf_off=0), "adversarial")
+    yield _case("flags-nonfinal",
+                   dict(script=[1, 0], entry=1, stop=0, stop2=0, latch=0, buf_off=0), "adversarial")
     # review-d's boundary controls around the 7FFF/8000 buffer-offset boundary
     for off in (0x7FFE, 0x7FFF, 0x8000):
-        yield (f"of-collision-{off:04x}",
-               dict(script=[1, 1, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=off),
-               "adversarial")
+        yield _case(f"of-collision-{off:04x}",
+                    dict(script=[1, 1, 0], entry=0, stop=0, stop2=0, latch=0, buf_off=off),
+                    "adversarial")
     # systematic sweep: 4 x 2 x 2 x 4 = 64 cases
     for entry in (0, 1, 7, 0xFFFF):
         for stop in (0, 1):
             for stop2 in (0, 1):
                 for buf_off in (0, 1, 0x0100, 0xFF00):
                     label = f"sweep-e{entry:04X}-s{stop}-s2{stop2}-b{buf_off:04X}"
-                    yield (label, dict(script=[1, 0], entry=entry, stop=stop, stop2=stop2,
-                                       latch=0, buf_off=buf_off), "sweep")
+                    yield _case(label, dict(script=[1, 0], entry=entry, stop=stop,
+                                            stop2=stop2, latch=0, buf_off=buf_off), "sweep")
+
+
+def ram_mismatch(want_ram, got_ram, external):
+    """Compare RAM, or in external-trace mode RAM EXCEPT the 130-byte window.
+
+    CAVEAT: external mode compares RAM EXCEPT the 130-byte instrumentation region
+    (DS:0F00h..0F82h). It must not replace normal full-RAM row acceptance. The mask
+    does not distinguish intended instrumentation writes from model writes; a wrong
+    value written inside that window is invisible to external final-state comparison.
+    """
+    obs_low = (DATA_DS << 4) + 0x0F00
+    obs_high = obs_low + 0x82
+    if external:
+        return (bytes(want_ram[:obs_low]) != bytes(got_ram[:obs_low])
+                or bytes(want_ram[obs_high:]) != bytes(got_ram[obs_high:]))
+    return bytes(want_ram) != bytes(got_ram)
 
 
 def compare(label, ram, lib, dispatch_t):
+    # The t135 companion supplies a dispatch factory (external trace) and owns the
+    # boundary comparison; external mode is DIAGNOSTIC ONLY (see ram_mismatch's caveat).
+    external = not isinstance(dispatch_t, type)
     want_ram, want_cpu, want_calls = run_original(ram, lib)
     got_ram, got_cpu, got_calls, status = run_c(ram, lib, dispatch_t)
     check(status == 0, f"{label}: C returned {status}")
-    if bytes(got_ram) != bytes(want_ram):
+    obs_low = (DATA_DS << 4) + 0x0F00
+    obs_high = obs_low + 0x82
+    same_ram = not ram_mismatch(want_ram, got_ram, external)
+    if not same_ram:
         for i, (a, b) in enumerate(zip(want_ram, got_ram)):
+            if external and obs_low <= i < obs_high:
+                continue
             if a != b:
                 raise ValueError(f"{label}: RAM differs at {i:#07x}: original {a:02x}, C {b:02x}")
     if got_cpu != want_cpu:
@@ -315,7 +354,8 @@ def main(argv=None):
         mutants = {name: build(directory, name) for name in MUTATIONS}
         want = list(cases())
         total = 0
-        for label, spec, kind in want:
+        for label, spec in want:
+            kind = CASE_KINDS.get(label, "?")
             ram = setup_ram(**spec)
             total += compare(label, ram, lib, dispatch_t)
             print(f"  AGREE [{kind}] {label}")
@@ -327,7 +367,7 @@ def main(argv=None):
                     "of_nonterminal": "of-collision-7fff"}
         for name, (mlib, mdispatch) in mutants.items():
             killed = []
-            for label, spec, _kind in want:
+            for label, spec in want:
                 ram = setup_ram(**spec)
                 try:
                     compare(label, ram, mlib, mdispatch)
@@ -339,7 +379,7 @@ def main(argv=None):
                       f"mutant {name} was not killed by its regression case {required[name]}")
             suffix = f" (incl. {required[name]})" if required[name] else ""
             print(f"  mutant {name}: killed on {len(killed)}/{len(want)} cases{suffix}")
-        kinds = {kind: sum(1 for _l, _s, k in want if k == kind) for kind in
+        kinds = {kind: sum(1 for l, _s in want if CASE_KINDS.get(l) == kind) for kind in
                  ("adversarial", "regression", "sweep")}
         print(f"PASS: {len(want)} cases ({kinds['adversarial']} adversarial, "
               f"{kinds['regression']} regression, {kinds['sweep']} sweep), "
