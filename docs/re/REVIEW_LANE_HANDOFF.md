@@ -446,7 +446,7 @@ The reviewer may add mutants the author did not write, and should when the body'
 
 A producer must never attach a verdict to a row its profile did not execute: it emits **NOT-COVERED**.
 
-- **NOT-COVERED is a valid answer**, and a producer that never emits it is not measuring its own coverage - it is reporting the scope it hoped for.
+- **NOT-COVERED is a valid answer.** A producer must report every uncovered row explicitly; silence must not be treated as coverage - and a run whose profile covers its whole scope legitimately emits none. Requiring the outcome when a scoped row was not executed is the rule; requiring it always would condemn complete coverage.
 - **AGREE on an unexecuted row ends a question that should have been asked.** It is the most expensive kind of green, because nothing downstream can tell it apart from a real pass: the row looks verified, the receipt looks complete, and the gap only surfaces when someone re-derives the run.
 - The check is cheap: for every row in a profile's scope, either the run executed it (AGREE/DIFF as measured) or it names NOT-COVERED. Silence is neither.
 - Reciprocally, a reviewer reading a producer's report must treat a missing row as NOT-COVERED rather than as a pass, and must say which rows the report covered.
