@@ -167,5 +167,57 @@ class SourceSelectionTest(unittest.TestCase):
         self.assertIn(str(self.root / 'src/recovered/b.c'), commands[0])
 
 
+class CoverageTest(unittest.TestCase):
+    """A registered row is AGREE only when the declared command executed its differential."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        self.path = Path('tests/recovered/check_synthetic.py')
+        (self.root / self.path).parent.mkdir(parents=True)
+        for p in execution.MEDIA:
+            target = self.root / p
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'synthetic')
+        self.wrapper = self.root / 'heavy'
+        self.wrapper.write_text('#!/bin/sh\nexec "$@"\n')
+        self.wrapper.chmod(0o755)
+        self.registry = {'OVL_0038_0400': [self.path], 'OVL_0038_133F': [self.path]}
+        (self.root / self.path).write_text('print("1 case agrees")\n')
+
+    def run_profile(self, profile):
+        self.profiles = {str(self.path): profile}
+        return execution.execute(self.root, self.registry, [self.path],
+                                 self.profiles, heavy=self.wrapper)
+
+    def test_declared_rows_emit_not_covered(self):
+        status, report = self.run_profile({'args': ['--compare'], 'rows': ['OVL_0038_0400']})
+        self.assertEqual(status, execution.NOT_COVERED)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'NOT_COVERED'})
+        self.assertEqual(entry['not_covered'], ['OVL_0038_133F'])
+
+    def test_waived_not_covered_does_not_fail(self):
+        status, report = self.run_profile({'args': ['--compare'], 'rows': ['OVL_0038_0400'],
+                                           'waive_not_covered': ['OVL_0038_133F']})
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results']['OVL_0038_133F'], 'NOT_COVERED')
+        self.assertEqual(report['checkers'][0]['result'], 'AGREE')
+
+    def test_multi_row_profile_without_rows_is_refused(self):
+        self.profiles = {str(self.path): {'args': ['--compare']}}
+        with self.assertRaisesRegex(ValueError, "needs an explicit 'rows'"):
+            execution.execute(self.root, self.registry, [self.path], self.profiles,
+                              heavy=self.wrapper)
+
+    def test_profile_row_not_registered_is_refused(self):
+        self.profiles = {str(self.path): {'args': ['--compare'], 'rows': ['OVL_9999_9999']}}
+        with self.assertRaisesRegex(ValueError, 'not registered'):
+            execution.execute(self.root, self.registry, [self.path], self.profiles,
+                              heavy=self.wrapper)
+
+
 if __name__ == '__main__':
     unittest.main()

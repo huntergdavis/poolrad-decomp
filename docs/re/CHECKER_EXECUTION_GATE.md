@@ -48,6 +48,26 @@ checker. A profile must be reviewed against its checker's CLI when that changes.
 The runner trusts the reviewed checker's exit contract; it does not turn a
 broken or weakened checker into proof of correctness.
 
+## Coverage: AGREE vs NOT-COVERED
+
+A profile is a claim about which rows its command executes. For a checker that
+owns more than one registered row, the profile must declare
+`"rows": [...]` naming the registered rows its command's own differential
+executes. A single-row checker's default is unambiguous; a multi-row profile
+without `rows` is refused.
+
+The reporter emits AGREE only for covered rows. Any other registered row of the
+same checker is emitted as NOT-COVERED, recorded in the receipt's `row_results`,
+and the run exits 5 unless the profile lists that row in
+`"waive_not_covered": [...]`. A waiver keeps the explicit NOT-COVERED row in the
+receipt; it does not relabel it AGREE. A profile whose `rows` names an
+unregistered row is refused.
+
+Negative controls are in `test_checker_execution.CoverageTest`: a declared
+single row of two gives AGREE + NOT-COVERED and exit 5; a waiver gives exit 0
+with the row still NOT-COVERED; missing `rows` or an unregistered row is
+refused.
+
 ## Shared-source selection
 
 There is no handwritten source-to-row table. The selector derives inputs from

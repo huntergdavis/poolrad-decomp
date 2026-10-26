@@ -41,7 +41,20 @@
     ]
   },
   "tools/overlay/ecl_helpers_original_audit.py": {
-    "args": []
+    "args": [],
+    "rows": [
+      "OVL_001C_2AEB",
+      "OVL_0025_06AF",
+      "OVL_0025_06D3",
+      "OVL_0025_06FB",
+      "OVL_0025_1815",
+      "OVL_0025_18EB",
+      "OVL_0038_0377",
+      "OVL_0038_03AC",
+      "OVL_0038_03E1",
+      "OVL_0038_0C06",
+      "OVL_0038_0C15"
+    ]
   },
   "tools/overlay/ovl038_0400_cpu_audit.py": {
     "args": [
@@ -51,6 +64,10 @@
   "tools/overlay/ovl03b6_0000_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_03B6_0000",
+      "OVL_03CE_00F1"
     ]
   },
   "tools/overlay/ovl040c_015d_cpu_audit.py": {
@@ -136,6 +153,10 @@
   "tools/overlay/ovl_007f_div5_leaves_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_007F_0130",
+      "OVL_007F_0185"
     ]
   },
   "tools/overlay/ovl_03bd_0155_cpu_audit.py": {
@@ -179,7 +200,17 @@
     ]
   },
   "tools/overlay/res00ba_rec_models_audit.py": {
-    "args": []
+    "args": [],
+    "rows": [
+      "RES_00BA_1509",
+      "RES_00BA_15F7",
+      "RES_00BA_23B7",
+      "RES_00BA_23DB",
+      "RES_00BA_2637",
+      "RES_00BA_2E03",
+      "RES_00BA_2E46",
+      "RES_00BA_2E8B"
+    ]
   },
   "tools/overlay/res00ba_sidecar_remove_1509_cpu_audit.py": {
     "args": [
@@ -224,6 +255,10 @@
   "tools/overlay/res0464_video_mode_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "RES_0464_00CF",
+      "RES_0464_00FF"
     ]
   },
   "tools/overlay/res0709_clear_0dd3_cpu_audit.py": {
@@ -459,6 +494,11 @@
   "tools/overlay/system_real_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "RES_0AF8_1186",
+      "RES_0AF8_119A",
+      "RES_0AF8_119E"
     ]
   },
   "tools/overlay/system_reset_1410_cpu_audit.py": {
@@ -479,6 +519,10 @@
   "tools/overlay/system_text_write_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "RES_0AF8_084A",
+      "RES_0AF8_0919"
     ]
   },
   "tools/overlay/system_val_13b1_cpu_audit.py": {
@@ -538,7 +582,11 @@
     "args": []
   },
   "tools/overlay/u1c_save_cpu_audit.py": {
-    "args": []
+    "args": [],
+    "rows": [
+      "OVL_001C_0292",
+      "OVL_001C_0EBC"
+    ]
   },
   "tools/overlay/u1c_text_2e7d_cpu_audit.py": {
     "args": [
@@ -556,6 +604,10 @@
   "tools/overlay/u25_06d3_06fb_cpu_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_0025_06D3",
+      "OVL_0025_06FB"
     ]
   },
   "tools/overlay/u25_1fb1_composed_audit.py": {
@@ -620,6 +672,10 @@
   "tools/overlay/u33_cell_lookup_012b_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_0033_012B",
+      "OVL_0033_01AD"
     ]
   },
   "tools/overlay/u33_grid_driver_11b4_audit.py": {
@@ -630,6 +686,10 @@
   "tools/overlay/u33_grid_pair_0d13_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_0033_0D13",
+      "OVL_0033_0E9E"
     ]
   },
   "tools/overlay/u33_neighbourhood_0810_audit.py": {
@@ -643,11 +703,19 @@
   "tools/overlay/u33_place_search_1577_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_0033_1434",
+      "OVL_0033_1577"
     ]
   },
   "tools/overlay/u33_stamp_02ba_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_0033_02BA",
+      "OVL_0033_0377"
     ]
   },
   "tools/overlay/u38_append_1363_audit.py": {
@@ -885,6 +953,10 @@
   "tools/overlay/u6a_record_weight_0000_audit.py": {
     "args": [
       "--unicorn"
+    ],
+    "rows": [
+      "OVL_006A_0000",
+      "OVL_006A_019C"
     ]
   },
   "tools/overlay/u6a_string_node_0e37_audit.py": {
@@ -1016,7 +1088,21 @@
     ]
   },
   "tools/overlay/u9e_character_pair_115c_audit.py": {
-    "args": []
+    "args": [],
+    "rows": [
+      "OVL_009E_115C",
+      "RES_00BA_0000",
+      "RES_00BA_01FB",
+      "RES_00BA_0282",
+      "RES_00BA_03A0",
+      "RES_00BA_0BB8",
+      "RES_00BA_10E6",
+      "RES_00BA_1168",
+      "RES_00BA_11EA",
+      "RES_00BA_1282",
+      "RES_00BA_1325",
+      "RES_00BA_13AB"
+    ]
   },
   "tools/overlay/u9e_dispatch_0000_audit.py": {
     "args": [
