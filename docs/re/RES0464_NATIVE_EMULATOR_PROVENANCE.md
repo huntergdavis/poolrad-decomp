@@ -1,6 +1,6 @@
 # RES0464 native executable provenance
 
-Task t108, bitmap-release 2595 companion. Fresh-main base: `52aac3da2c6db39979b072ae49cb0efc905dbef3`.
+Task t108, bitmap-release 2595 companion. Original measurement base: `52aac3da2c6db39979b072ae49cb0efc905dbef3`. VP-authorized integration base: `c060a4f98313cf0790bfb12851ea4eb69970e83a`.
 
 The provider resolves DOSBox-X once, launches that returned path, and records version, executable hash and pin status. Recovered C, existing cases, stop classifications, captured windows and comparisons remain unchanged. Its audit companion remains the row checker. No credit or accounting change is made.
 
@@ -10,7 +10,7 @@ Both phases used identical executable identity and four transitive C/header hash
 
 Native `result_sha256` hashes capture bytes; it is not an original-body digest. The native report has no original-body `source_sha256` field. The unchanged audit separately validates and retains source metadata; before/after metadata is identical, including caller sites and four FreeMem spans. RES0464:2595 is 157 bytes, 52 instructions, SHA-256 `d3cd5846fe2109fc1eb33b500561830c73601d21bea64575f7a08488301eb700`. This change adds no original-body pin.
 
-The CSV removes exactly this provider: **184 lists/169 files becomes 183/168**, relative to the stated base. A fresh tracked-tools AST census, excluding test files, matched the CSV at the measured candidate. The final evidence commit changes only this document; its receipt rechecks one provider and four model hashes to bind the measurement and census to the final head.
+The original candidate CSV removed exactly this provider: **184 lists/169 files became 183/168**. A tracked-tools AST census, excluding test files, matched that original candidate. After RES03F1 merged, the VP authorized a restack preserving both launcher deletions: integration base **183/168 becomes 182/167**. RES0464 provider and four model blobs remain identical to the measured candidate. A fresh restacked-head census, native rerun and media gate are reported separately in the PR and task record; the old-head media result is not carried forward.
 
 The native entry point is `/home/hunter/workspace/poolrad-heavy.sh python3 tools/overlay/res0464_bitmap_release_2595_audit.py --native`. The companion `_native.py` only defines functions: invoking it directly exits zero without executing cases and is not verification. The before/after runner explicitly calls `native_audit(body,image,function)` with the unchanged audit's source and compiled C library.
 
