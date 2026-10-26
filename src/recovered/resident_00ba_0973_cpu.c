@@ -62,7 +62,7 @@ pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_097
     pr_r0709_printer_cpu printer;
     pr_r0709_printer_cpu_status printer_status;
     pr_res_0973_env defaults = {65536u, 65536u};
-    uint16_t node_off, node_seg, style, destination;
+    uint16_t node_off, node_seg, style, destination, printer_segment;
     uint8_t first, threshold, number;
     int fmt_status;
 
@@ -128,12 +128,13 @@ pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_097
     cpu->ip = 0x09BEu;
     if (bus->ram[physical(cpu->cs, 0x09BEu)] != 0x9Au || read16(bus->ram, cpu->cs, 0x09BFu) != 0x0626u)
         return PR_RES_0973_CODE;
-    if (read16(bus->ram, cpu->cs, 0x09C1u) != 0x0709u)
+    printer_segment = read16(bus->ram, cpu->cs, 0x09C1u);
+    if (printer_segment != 0x0709u)
         return PR_RES_0973_CODE;
     push16(bus->ram, cpu, cpu->cs);
     push16(bus->ram, cpu, 0x09C3u);
     COPY_CPU(&printer, cpu);
-    printer.cs = 0x0709u;
+    printer.cs = printer_segment;
     printer.ip = 0x0626u;
     printer_status = pr_r0709_printer_0626_cpu(bus, ram_size, &printer, env->printer_loopbacks,
                                                env->printer_glyph_loopbacks,

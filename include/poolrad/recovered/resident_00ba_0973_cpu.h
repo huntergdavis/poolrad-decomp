@@ -43,7 +43,9 @@ typedef struct {
  * return is the printer's. Each callee runs as its raw model; the far/near
  * call site opcodes and offsets are checked, and the printer is called on
  * the supplied bus (its EGA effects belong to the caller's world). Flags at
- * the printer are 1037's; the final flags are the printer's. */
+ * the printer are 1037's; the final flags are the printer's.
+ * CONTRACT: the node pointer, stack and formatter destination must not alias
+ * A0000..AFFFF; the body does not guard those aliases. */
 pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_0973_cpu *cpu,
                                         const pr_res_0973_env *env, pr_res_0973_diagnostic *diagnostic);
 #endif
