@@ -24,6 +24,23 @@ class RouteFailure(RuntimeError):
         self.code = code
 
 
+def verify_emulator(run):
+    """Refuse a missing or changed executable immediately before launch."""
+    try:
+        path = run / 'emulator.json'
+        identity = json.loads(path.read_text())
+        binary = Path(identity['path'])
+        digest = hashlib.sha256(binary.read_bytes()).hexdigest()
+        if not binary.is_absolute() or os.environ.get('POOLRAD_DOSBOX_X') != str(binary):
+            raise ValueError('launch path differs from emulator receipt')
+        if digest != identity['sha256']:
+            raise ValueError('executable changed after provenance capture')
+        identity['launch_verified_sha256'] = digest
+        path.write_text(json.dumps(identity, sort_keys=True, indent=2) + '\n')
+    except (OSError, ValueError, KeyError) as error:
+        raise RouteFailure(4, 'emulator provenance CANNOT_RUN: ' + str(error)) from error
+
+
 def canonical_start(next_state):
     def state(name, gate, key, expected, **extra):
         return dict(name=name, gate=gate, key=key, expect_next=expected,
@@ -90,6 +107,11 @@ def load_coordinate_font(path):
     raise ValueError('coordinate font block missing')
 
 
+# The brightness a non-green glyph pixel must exceed. 64 for R1/R2/R4. A route sets "glyph_bright": 128 when its text sits on
+# the EGA gray (85,85,85) combat background (R3), so the gray is not read as glyph pixels.
+GLYPH_BRIGHT = 64
+
+
 def decode_font_cells(rgb, glyphs, columns, green_only=False):
     """Decode only exact, uniformly doubled glyphs from the pinned private font."""
     width = columns * 16
@@ -98,7 +120,7 @@ def decode_font_cells(rgb, glyphs, columns, green_only=False):
     def foreground(x, y):
         at = (y * width + x) * 3
         r, g, b = rgb[at:at + 3]
-        return (g > 64 and g > 1.5 * r and g > 1.5 * b) if green_only else max(r, g, b) > 64
+        return (g > 64 and g > 1.5 * r and g > 1.5 * b) if green_only else max(r, g, b) > GLYPH_BRIGHT
     text = ''
     for cell in range(columns):
         rows = []
@@ -130,8 +152,21 @@ def decode_coordinate(rgb, glyphs):
 class Route:
     def __init__(self, data):
         self.data = data
+        global GLYPH_BRIGHT
+        GLYPH_BRIGHT = int(data.get('glyph_bright', 64))
         records = canonical_start(data['start']) + data['states']
         self.records = {r['name']: r for r in records}
+        self.actor_gates = data.get('actor_gates', {})
+        self.combat_actor_gates = data.get('combat_actor_gates', {})
+        self.visual_gates = data.get('visual_gates', {})
+        for label, gates in (('actor', self.actor_gates),
+                             ('combat actor', self.combat_actor_gates),
+                             ('visual', self.visual_gates)):
+            if gates.keys() - self.records.keys():
+                raise ValueError('unknown ' + label + ' gate state')
+        if any(not isinstance(value, dict) or not value
+               for value in self.visual_gates.values()):
+            raise ValueError('visual gate must require at least one field')
         self.message_gates = data.get('message_gates', {})
         if self.message_gates.keys() - self.records.keys():
             raise ValueError('unknown message gate state')
@@ -183,6 +218,9 @@ class Route:
             return None
         return next((self.records[n] for n in self.allowed
                      if matches(self.records[n], observation) and
+                     (n not in self.actor_gates or observation.get('actor') == self.actor_gates[n]) and
+                     (n not in self.combat_actor_gates or observation.get('combat_actor') == self.combat_actor_gates[n]) and
+                     all(observation.get(field) == value for field, value in self.visual_gates.get(n, {}).items()) and
                      self.position_matches(n, observation) and
                      (n not in self.message_gates or any(
                          word in observation.get('message', '').upper()
@@ -193,7 +231,8 @@ class Route:
 
     def idle(self, observation):
         text = observation.get('prompt', '')
-        return (any(self.records[n].get('source') == 'digits' for n in self.allowed)
+        return (any(n in self.visual_gates for n in self.allowed)
+                or any(self.records[n].get('source') == 'digits' for n in self.allowed)
                 or automatic_status(text) or 'LOADING' in text
                 or not any(word in text for word in self.words))
 
@@ -291,9 +330,59 @@ class Driver:
             observation['digits_source'] = 'pinned_font_cells'
         elif self.route.needs_digits():
             observation['digits'] = ocr(path, '11', ['-c', 'tessedit_char_whitelist=0123456789,NSWE:'])
+        if self.route.data.get('actor_gates'):
+            rgb = self.command(['convert', str(path), '-crop', '240x96+464+248',
+                                '-depth', '8', 'rgb:-'], capture_output=True).stdout
+            stride = 240 * 16 * 3
+            names = []
+            for i in range(6):
+                row = rgb[i*stride:(i+1)*stride]
+                white = bytearray(len(row))
+                for at in range(0, len(row), 3):
+                    if min(row[at:at+3]) > 128:
+                        white[at:at+3] = row[at:at+3]
+                name = decode_font_cells(white, self.coordinate_font, 15)
+                if name and name.strip():
+                    names.append(name.strip())
+            observation['actor'] = names[0] if len(names) == 1 else ''
+        if self.route.data.get('combat_cursor'):
+            from PIL import Image   # R3's combat/visual gates only; R1/R2/R4 never import it
+            im = Image.open(path).convert('RGB')
+            found = []
+            for y in range(7):
+                for x in range(7):
+                    xx, yy = 208+48*x, 200+48*y
+                    pts = {(xx+i,yy) for i in range(48)} | {(xx+i,yy+47) for i in range(48)} | {(xx,yy+i) for i in range(48)} | {(xx+47,yy+i) for i in range(48)}
+                    if sum(min(im.getpixel(pt))>220 for pt in pts)>60:
+                        found.append([x,y])
+            observation['combat_cursor'] = found[0] if len(found)==1 else None
+        if any(n in self.route.combat_actor_gates for n in self.route.allowed):
+            from PIL import Image   # R3's combat/visual gates only; R1/R2/R4 never import it
+            im = Image.open(path).convert('RGB')
+            rgb = im.crop((560,200,816,216)).tobytes()
+            rgb = bytes(v if max(rgb[n-n%3:n-n%3+3])-min(rgb[n-n%3:n-n%3+3])>64 else 0 for n,v in enumerate(rgb))
+            name = decode_font_cells(rgb, self.coordinate_font, 16)
+            observation['combat_actor'] = name.strip() if name else ''
+        if any(n in self.route.visual_gates for n in self.route.allowed):
+            from PIL import Image   # R3's combat/visual gates only; R1/R2/R4 never import it
+            im = Image.open(path).convert('RGB')
+            def cells(x, y, columns, white=False):
+                rgb = im.crop((x,y,x+16*columns,y+16)).tobytes()
+                if white:
+                    rgb = bytes(v if min(rgb[n-n%3:n-n%3+3])>128 else 0 for n,v in enumerate(rgb))
+                result = decode_font_cells(rgb, self.coordinate_font, columns)
+                return result.strip() if result is not None else None
+            observation['spell_title'] = cells(208,200,38)
+            observation['spell_bar'] = cells(192,552,40)
+            rows = [cells(240,y,36) for y in range(280,552,16)]
+            white_rows = [cells(240,y,36,True) for y in range(280,552,16)]
+            observation['spell_rows'] = [row for row in rows if row]
+            observation['selected_spell'] = [row for row in white_rows if row]
+            observation['selected_spell_y'] = [280+16*i for i,row in enumerate(white_rows) if row]
         return observation
 
     def run_route(self):
+        verify_emulator(self.run)
         with (self.run / 'launch.log').open('w') as out:
             self.emu = subprocess.Popen([
                 'tools/oracle/launch.sh', str(self.run), '-set', 'cpu core=normal',
@@ -311,6 +400,10 @@ class Driver:
             time.sleep(1)
         if not self.window:
             raise RuntimeError('no DOSBox window within 60 seconds')
+        self.drive_route()
+
+    def drive_route(self):
+        """Run a bounded FSM on this driver's already-open private guest."""
         began = time.monotonic()
         previous = None
         idle_limit = int(os.environ.get('COMBAT_IDLE_S', '300'))
@@ -326,7 +419,8 @@ class Driver:
             time.sleep(2)
             obs = self.observe()
             record = self.route.choose(obs)
-            signature = (obs['prompt'], obs.get('digits'), obs.get('message'))
+            signature = (obs['prompt'], obs.get('digits'), obs.get('message'), obs.get('actor'),
+                         obs.get('spell_title'), obs.get('spell_rows'), obs.get('selected_spell'), obs.get('selected_spell_y'), obs.get('combat_actor'), obs.get('spell_bar'), obs.get('combat_cursor'))
             self.log('poll', expected=self.route.allowed, **obs)
             if signature != previous:
                 previous = signature
