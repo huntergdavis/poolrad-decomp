@@ -45,6 +45,13 @@ FIELDS = ("id", "domain", "original_address", "aliases", "kind", "library_tier",
           "recorded_body_sha256")
 STATES = ("address_only", "disassembled", "bytes_recovered", "C_drafted", "credited")
 KINDS = ("callable", "data", "duplicate_alias", "library_inferred", "unresolved")
+# This document names its entry point, but neither a source path nor a
+# CHECKER_ROWS registration. Keep the direct mapping explicit and fail closed
+# if either the documented entry point or its C definition disappears.
+DOCUMENTED_SOURCES = {
+    "OVL_007D_0000": ("src/recovered/overlay_u7d_list_timer_0000_cpu.c",
+                      "pr_u7d_list_timer_0000_cpu"),
+}
 
 
 def require(condition, message):
@@ -183,6 +190,13 @@ def reconcile(queue, root):
                              {"src/recovered/" + name for name in
                               re.findall(r"\b([A-Za-z0-9_]+\.c)\b", text)})
             sources = [source for source in sources if (root / source).is_file()]
+            if record["id"] in DOCUMENTED_SOURCES:
+                source, symbol = DOCUMENTED_SOURCES[record["id"]]
+                source_text = read(source).decode()
+                require(f"`{symbol}`" in text and re.search(
+                    rf"\b{re.escape(symbol)}\s*\([^;{{}}]*\)\s*\{{", source_text),
+                    "documented source mapping changed: " + record["id"])
+                sources = sorted(set(sources) | {source})
             for source in sources:
                 read(source)
             models.setdefault(identifier, []).append(dict(

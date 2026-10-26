@@ -8,7 +8,7 @@
   "output_sha256": {
     "function_backlog_census_only.csv": "c31656c3a679128e00233ab9a548d21f4342f132ac688ebf207c611d85ad730a",
     "function_backlog_excluded.csv": "bee8d20498a2b771bd9d7f8e49807ed1ada5d52f70c850517136f1e220815f9d",
-    "function_backlog_reconciliation.csv": "ab6e1a206efb6b096f9c42a829b8d259a816265395511ab55eba9ae74d21204c"
+    "function_backlog_reconciliation.csv": "f29d616b4c3894b18e6a1c3a98c543b5c34c2f288ed5531c526fa65ce99e648c"
   },
   "queue_product_sha256": {
     "classification": "68504e0e6a17aa1383477197fbe2b5f86fe1e0ad982968e04d5b72f18c5ed885",
@@ -27,11 +27,11 @@
     "census_only_starts": 7,
     "kind_by_state": {
       "callable": {
-        "C_drafted": 27,
+        "C_drafted": 28,
         "address_only": 0,
         "bytes_recovered": 0,
         "credited": 290,
-        "disassembled": 491
+        "disassembled": 490
       },
       "data": {
         "C_drafted": 0,
@@ -265,6 +265,7 @@
     "src/recovered/overlay_u6f_party_insert_1446_cpu.c": "7fe918c6a091f7074f65dd73c283cecb7fda1bd8b709921e2e61632ce904ab01",
     "src/recovered/overlay_u77_weighted_28be_cpu.c": "3cb06d11d03a4fed7475dc1bd1ceeba4e18b2741db5ac4b6f81d1402e34825be",
     "src/recovered/overlay_u7d_carry_02f2.c": "e8e18ed2d532c9168318b8e245fe4a9a744b9658b837f14ad797ba0260d6a03b",
+    "src/recovered/overlay_u7d_list_timer_0000_cpu.c": "79f5c74eeeb32324c05a76ddcf54d6185642a2957e3054fcbb9f69f3c90e0bb2",
     "src/recovered/overlay_u7d_two_digits_0565_cpu.c": "f9969da81562cd579dc2054bdc262a8af6f0dce3723896ee6c99cc408649e698",
     "src/recovered/overlay_u7d_update_03a3.c": "4e8ef5dd0425b6e4ca920a44e98cf95fc21c3b3f6f22928d56c979afa34bacf1",
     "src/recovered/overlay_u7d_update_047a_cpu.c": "f27f58b3f7022c0eeeaa34a79f6bd8809180dcf5686b6a52f0c16a4c537d063d",
@@ -387,7 +388,7 @@
     "tools/overlay/check_checker_builds.py": "57a87dc4685a080ef1bd07146d37a9e8dcee999509bfbcbf4d2e81e5f2acf99f",
     "tools/overlay/crt_keypressed_02fd_cpu_audit.py": "7628064044115904555e1d8c5498dd4123d8deb8036df73926d478f302e6798b",
     "tools/overlay/ecl_helpers_original_audit.py": "127465097241e043a856c127de3aa6d1fadbac599034546a93f10303663391ef",
-    "tools/overlay/function_backlog_reconciliation.py": "427a3f0eb2bff92fa678c30f4a85f0b298647c3e0a36fc8748b0d23ad3823dc1",
+    "tools/overlay/function_backlog_reconciliation.py": "8ca84c6d23dd738ad59b17d422e0c277f0762de0266779799a478afb1c0b6f1e",
     "tools/overlay/function_queue.py": "f0101165f7eb1d34fc3c796ba838d8af0cbca81f397a0d40637657e67f920c01",
     "tools/overlay/function_queue_audit.py": "2828ac842696ea76f043c1c751e25fe956adf9925a6094cc02db8d46ebb0cb8b",
     "tools/overlay/ovl038_0400_cpu_audit.py": "d1bb41eae0a5e6081aca59e081e5a2ca04f18240bb8d76927f86942b10e81304",

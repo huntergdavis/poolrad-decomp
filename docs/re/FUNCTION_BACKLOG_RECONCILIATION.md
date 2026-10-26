@@ -77,7 +77,10 @@ state. The strongest mapped state wins in this order:
    `CHECKER_ROWS` registration, with existing C source resolved from the
    evidence document or the registered checker's parsed compiler arguments.
    SYSTEM/CRT endpoint declarations in `RUNTIME_COVERED_ENDPOINTS` also map
-   their named existing source. This state includes partial models, bounded
+   their named existing source. One explicit `DOCUMENTED_SOURCES` mapping
+   resolves `OVL_007D_0000`: its document names
+   `pr_u7d_list_timer_0000_cpu`, and the exporter requires that C definition
+   in `overlay_u7d_list_timer_0000_cpu.c`. This state includes partial models, bounded
    models, evidence-only models, and registered checkers; it asserts source
    presence, not correctness, full behavior, readiness, or credit. A build
    list can include dependencies; it is not a per-source ownership claim.
@@ -92,12 +95,12 @@ state. The strongest mapped state wins in this order:
 
 | Kind | Address only | Disassembled | Bytes recovered | C drafted | Credited | Total |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| Callable | 0 | 491 | 0 | 27 | 290 | 808 |
+| Callable | 0 | 490 | 0 | 28 | 290 | 808 |
 | Library inferred | 0 | 53 | 0 | 37 | 0 | 90 |
 | Data | 0 | 0 | 0 | 0 | 0 | 0 |
 | Duplicate / alias | 0 | 0 | 0 | 0 | 0 | 0 |
 | Unresolved kind | 0 | 0 | 0 | 0 | 0 | 0 |
-| Queue total | 0 | 544 | 0 | 64 | 290 | 898 |
+| Queue total | 0 | 543 | 0 | 65 | 290 | 898 |
 
 Source discovery is deliberately limited to explicit registrations and
 documented source citations. Unregistered or inline drafts may exist among
