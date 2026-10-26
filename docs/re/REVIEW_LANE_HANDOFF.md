@@ -7,8 +7,10 @@ whole-game denominator is unknown — never state a completion percentage.
 
 ## Seven standing conditions
 
-1. **Verify before merge.** Never merge an unverified PR. Breaking the claim is
-   the standard: delete a source, inject a bogus id, re-run.
+1. **Verify before merge.** Never merge an unverified PR, with one named exception:
+   merge-then-verify for a blob-identical restack of an accepted, media-gated head
+   (see [Verdict states](#verdict-states-accept-withdrawn-suspended-vp-i25889-cos-i24714)).
+   Breaking the claim is the standard: delete a source, inject a bogus id, re-run.
 2. **Doc truth.** A row is not creditable while its own evidence doc misstates
    its masking or extent. Check the doc sentence against the checker or the
    media bytes *before* crediting, not after.
@@ -410,3 +412,32 @@ Follow [the media-host execution rule](CHECKER_EXECUTION_GATE.md), including its
 conservative source-selection scope and 0/1/4 result contract. This runs on a
 media host, not in CI, and the gate itself serializes jobs through the shared
 heavy-job wrapper. Retain its receipt under ignored `resources/`.
+
+## Verdict states: ACCEPT, WITHDRAWN, SUSPENDED (VP i25889, CoS i24714)
+
+A verdict is one of these three, and the word used matters because a reader six weeks later acts on it:
+
+- **ACCEPT** - the claim was re-measured by the reviewer on the named head and holds. Naming the head, what was re-run and what was NOT verified is still mandatory.
+- **WITHDRAWN** - do not use this head or its receipt at all. It is superseded; nothing in it may be cited, batched or merged, and any earlier acceptance of it is void.
+- **SUSPENDED** - this named part is intact, and that named part waits for a NAMED pending verdict. Suspension is not a soft acceptance, and it carries three rules:
+  1. The pending verdict must be named in the same sentence: the reviewer and the PR/head it will be issued on. "Waiting on review" is not a suspension.
+  2. A suspended part NEVER counts toward credit, readiness, membership or any denominator, no matter how green the intact part is.
+  3. A suspended part must be re-verified on the new head. It is never carried across heads: the same evidence measured on an older sha is historical, not evidence for the current one.
+
+   **Blob-identical restacks are the exception, and they are not a carry.** When a reviewer confirms by explicit blob comparison that every task file is byte-identical to the head the evidence was measured on, that is the *same* evidence on the *same* bytes, and it may be transferred to the restacked head without a re-run. What rule 3 forbids is carrying a measurement made on *different* bytes. Say which comparison you made; "it looked like the same diff" is not a blob check.
+
+**Merge-then-verify, and what the merge is not (VP i26020).** Standing condition 1 says never merge an unverified PR. One named exception exists: a blob-identical restack of an **accepted, media-gated** head MAY merge, when the reviewer names the single gate that will run on exact `main` and that gate runs immediately after the merge. Red means a REVERT report against the main commit, not a follow-up: the merge is not the verdict and carries no credit. Everything else still needs its own gate before merge.
+
+Precedent, 2026-10-25: the byte-dump rule (PR #1575) was "frozen and double-gated" - author gate plus independent gate on the same frozen head - before anyone merged it. The wording is the protection: one green run on a rule-enforcement tool is not a verdict.
+
+## Parity claims carry their case set, not a count (VP i25889)
+
+This section exists because a review accepted a CPU-parity claim on the strength of a count. Any CPU-parity or "C-verified" statement is only as strong as the cases behind it, so:
+
+1. **Every claim carries its case set and how each case was chosen** - author-chosen, adversarial-by-construction, or reviewer-chosen. A bare "N/N equal" is not evidence; say what the N was and why those cases exist.
+2. **A reviewer verdict on a parity claim includes at least one REVIEWER-CHOSEN case per branch and input dimension of the body** - for example entry value, flag combinations, buffer offset, aliasing - and reports the reviewer's cases pass/fail SEPARATELY from the author's. Re-running the author's set proves the harness works, not that the body is right.
+3. **"The cases were authored by the same lane" is a reason to demand adversarial cases**, not a footnote to excuse the gap. Name the inputs, not the count.
+
+The reviewer may add mutants the author did not write, and should when the body's risk is a wrong operation rather than a missing one: an independently authored mutant that survives a differential is a finding about the differential, not about the mutant.
+
+**Prospective.** This standard applies to verdicts issued after this section merges. Verdicts already issued stand as issued, with the limits they stated: retro-applying it would convert recorded evidence into a rule violation after the fact, and that is worse for the record than a stated gap.
