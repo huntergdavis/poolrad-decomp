@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Lossless DOS save import/export. No semantic editing or game validation."""
+"""Lossless DOS save import/export and guarded copy writes. No game validation."""
 import argparse
 from dataclasses import dataclass
 import hashlib
@@ -72,6 +72,20 @@ def import_directory(source):
 def export_directory(source, destination):
     """No-op export only. Refuse existing destinations and source descendants."""
     source, files = import_directory(Path(source))
+    return _export_files(source, files, destination,
+                         {item.name: item for item in files}, 'no_op_export')
+
+
+def _export_files(source, files, destination, originals, operation, change_reasons=None):
+    """Shared exclusive writer for trusted, fully planned fixed-frame changes."""
+    names = [item.name for item in files]
+    if len(set(names)) != len(names) or set(names) != set(originals):
+        raise ValueError('duplicate output name or missing original snapshot')
+    for item in files:
+        if not FILE_NAME.fullmatch(item.name):
+            raise ValueError('unsupported output filename')
+        if len(item.data) != len(originals[item.name].data):
+            raise ValueError('fixed-frame write cannot change file length')
     destination = Path(destination)
     # lexists semantics: an existing broken symlink is also an occupied target.
     if destination.exists() or destination.is_symlink():
@@ -95,22 +109,34 @@ def export_directory(source, destination):
             reread = target.read_bytes()
             if reread != item.data:
                 raise OSError('output reread differs from imported bytes')
+            original = originals[item.name]
+            changes = [{'offset': index, 'before': f'{before:02x}',
+                        'after': f'{after:02x}'}
+                       for index, (before, after) in enumerate(zip(original.data, reread))
+                       if before != after]
+            if changes:
+                reasons = (change_reasons or {}).get(item.name, {})
+                if any(change['offset'] not in reasons for change in changes):
+                    raise ValueError('every changed byte requires an explicit reason')
+                for change in changes:
+                    change['reason'] = reasons[change['offset']]
             receipts.append({
-                'file': str(target), 'source': str(source / item.name),
-                'operation': 'no_op_export', 'size': len(reread),
-                'before_sha256': digest(item.data), 'after_sha256': digest(reread),
-                'changed_offsets': [], 'before_after_bytes': [],
-                'byte_identical': True, 'game_build_loaded': None,
+                'file': str(target), 'source': str(source / original.name),
+                'operation': operation, 'size': len(reread),
+                'before_sha256': digest(original.data), 'after_sha256': digest(reread),
+                'changed_offsets': [change['offset'] for change in changes],
+                'before_after_bytes': changes,
+                'byte_identical': not changes, 'game_build_loaded': None,
                 'game_validation': 'UNVERIFIED: not loaded by the game',
             })
         # A changed source invalidates this proof; never silently claim success.
-        for item in files:
+        for item in originals.values():
             if (source / item.name).read_bytes() != item.data:
                 raise OSError('source changed during export; no stable round-trip proof')
         receipt_path = destination / 'write-receipts.json'
         with receipt_path.open('x') as stream:
             created.append(receipt_path)
-            json.dump({'schema_version': 1, 'operation': 'no_op_export',
+            json.dump({'schema_version': 1, 'operation': operation,
                        'files': receipts, 'game_build_loaded': None}, stream, indent=2)
             stream.write('\n')
     except BaseException:
@@ -121,7 +147,7 @@ def export_directory(source, destination):
         raise
     return {'output_copy': str(destination), 'files_written': len(files),
             'bytes_written': sum(len(item.data) for item in files),
-            'byte_identical_files': len(receipts),
+            'byte_identical_files': sum(r['byte_identical'] for r in receipts),
             'receipt': str(receipt_path), 'game_validation': 'UNVERIFIED'}
 
 
