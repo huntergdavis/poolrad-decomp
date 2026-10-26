@@ -1,5 +1,4 @@
 path	task	justification
-docs/re/CANDIDATE_SCOUT_DS41B_BATCH1.md	t139	3 span(s), 220 byte(s) dumped; landed 2026-10-25, after WORKSTREAMS rule 3 (2026-10-10), so this is a post-rule oversight, not a legacy exception; scrub or named exception in t139; expires when t139 completes
 docs/re/RES0464_29D7_EXTENT_BRANCH.md	t139	1 span(s), 15 byte(s) dumped; landed 2026-10-15, after WORKSTREAMS rule 3 (2026-10-10), so this is a post-rule oversight, not a legacy exception; scrub or named exception in t139; expires when t139 completes
 docs/re/RES0464_SECOND_POSTRETURN_29CB_STANDALONE.md	t139	1 span(s), 12 byte(s) dumped; landed 2026-10-15, after WORKSTREAMS rule 3 (2026-10-10), so this is a post-rule oversight, not a legacy exception; scrub or named exception in t139; expires when t139 completes
 docs/re/RES_08AE_ENTRY_017B_CPU.md	t139	1 span(s), 8 byte(s) dumped; landed 2026-10-20, after WORKSTREAMS rule 3 (2026-10-10), so this is a post-rule oversight, not a legacy exception; scrub or named exception in t139; expires when t139 completes
