@@ -36,17 +36,65 @@ static pr_u9e_0000_cpu setup(uint8_t *r, unsigned idx)
     return c;
 }
 
+static void t75_cases(uint8_t *r)
+{
+    pr_u9e_0000_cpu c; pr_u9e_0000_diagnostic d; size_t budget;
+    pr_u9e_0000_limits lim = LIM;
+    const unsigned slots[] = {6, 90, 97, 126, 11}; unsigned k;
+    for (k = 0; k < sizeof slots / sizeof slots[0]; ++k) {
+        c = setup(r, slots[k]); budget = 100000;
+        put16(r, SS_, S0 + 4, 1); put16(r, SS_, S0 + 6, 0x0100); put16(r, SS_, S0 + 8, 0x6C00);
+        put16(r, SS_, S0 + 10, 0x0100); put16(r, SS_, S0 + 12, 0x6000);
+        put16(r, 0x6000, 0x0208, 0xAB00); put16(r, 0x6000, 0x020A, 0x6400);
+        put16(r, 0x6400, 0xAB0A, 0x0400); put16(r, 0x6400, 0xAB0C, 0x6800);
+        r[at(0x6800, 0x049F)] = 4;
+        r[at(DS_, 0x6818)] = 0xFE; r[at(DS_, 0x6822)] = 0xFF;
+        r[at(DS_, 0x6816)] = 0xFF; r[at(DS_, 0x682A)] = slots[k] == 97 ? 4 : 0;
+        r[at(0x6000, 0x0114)] = 21; r[at(SS_, S0 - 19)] = 0xFF;
+        put16(r, 0x6800, 0x04C8, 0); put16(r, 0x6800, 0x04CA, 0);
+        r[at(DS_, 0x681E)] = 0;
+        r[at(0x6C00, 0x0103)] = 0x40; r[at(0x6000, 0x0184)] = 0xB3;
+        assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &lim, &d) == PR_U9E_0000_RETURNED);
+        assert(c.sp == S0 + 16 && c.bp == 0x7777 && c.cs == 0x8000 && c.ip == 0x9000);
+        if (slots[k] == 6) {
+            assert(c.ax == 0x0403 && c.dx == 0x6800 && c.es == 0x6800 && c.di == 0x0400 && c.flags == 0x0213);
+            assert(r[at(SS_, S0 - 19)] == 3 && r[at(DS_, 0x6818)] == 1 && r[at(DS_, 0x6822)] == 2 && r[at(DS_, 0x6819)] == 9);
+        } else if (slots[k] == 90 || slots[k] == 97) {
+            /* FF + inherited FF = 01FE: AF, no 16-bit carry/sign/overflow. */
+            assert(c.ax == 0x01FE && c.dx == 0x00FF && c.flags == 0x0212 && c.es == 0x6000 && c.di == 0x0100);
+            assert(r[at(SS_, S0 - 19)] == 0xFF && r[at(DS_, 0x6816)] == 0xFE);
+        } else if (slots[k] == 126) {
+            assert(c.ax == 0 && c.dx == 0 && c.flags == 0x0246 && c.es == 0x6800 && c.di == 0x0400);
+            assert(get16(r, SS_, S0 - 22) == 0 && get16(r, SS_, S0 - 20) == 0 && r[at(SS_, S0 - 23)] == 0xA5);
+        } else {
+            assert(r[at(0x6000, 0x020E)] == 1 && r[at(0x6000, 0x0184)] == 0);
+        }
+    }
+    /* A cyclic, inactive list exhausts the host node cap; it is never a
+     * fabricated RETURNED. The next node's top-of-loop state is retained. */
+    c = setup(r, 126); budget = 100000; lim.loopbacks = 2;
+    put16(r, SS_, S0 + 10, 0x0100); put16(r, SS_, S0 + 12, 0x6000);
+    put16(r, 0x6000, 0x0208, 0x0100); put16(r, 0x6000, 0x020A, 0x6400);
+    put16(r, 0x6400, 0x010A, 0x0400); put16(r, 0x6400, 0x010C, 0x6800);
+    put16(r, 0x6800, 0x04C8, 0x0100); put16(r, 0x6800, 0x04CA, 0x6C00);
+    put16(r, 0x6C00, 0x012A, 0x0100); put16(r, 0x6C00, 0x012C, 0x6C00);
+    r[at(0x6C00, 0x0134)] = 0; r[at(DS_, 0x681E)] = 0;
+    assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &lim, &d) == PR_U9E_0000_CALLEE);
+    assert(d.callee_status == 3 && c.ip == 0x2E77 && c.sp == S0 - 24 && c.ax == 0x6D00 && c.dx == 0x6C00 && c.flags == 0x0246);
+}
+
 int main(void)
 {
     uint8_t *r = malloc(PR_U9E_0000_RAM_SIZE), *before = malloc(PR_U9E_0000_RAM_SIZE);
     pr_u9e_0000_cpu c, saved; pr_u9e_0000_diagnostic d; size_t budget, b0; unsigned i;
     assert(r && before);
+    t75_cases(r);
     /* the table the model was built on: 1..139 are handlers (88 via unit 0x86), the kinds are the documented counts */
     {
         unsigned n[6] = {0, 0, 0, 0, 0, 0};
         for (i = 0; i < 256; ++i) n[pr_u9e_dispatch_0000_slot_kind(i)]++;
-        assert(n[0] == 117 && n[1] == 42 && n[2] == 4 && n[3] == 60 && n[4] == 2 && n[5] == 31);
-        assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4 && pr_u9e_dispatch_0000_slot_kind(11) == 4);
+        assert(n[0] == 117 && n[1] == 43 && n[2] == 0 && n[3] == 60 && n[4] == 1 && n[5] == 35);
+        assert(pr_u9e_dispatch_0000_slot_kind(0) == 0 && pr_u9e_dispatch_0000_slot_kind(140) == 0 && pr_u9e_dispatch_0000_slot_kind(88) == 3 && pr_u9e_dispatch_0000_slot_kind(135) == 4 && pr_u9e_dispatch_0000_slot_kind(11) == 1);
         assert(pr_u9e_dispatch_0000_slot_kind(16) == 1 && pr_u9e_dispatch_0000_slot_entry(16) == 0x0647u && pr_u9e_dispatch_0000_slot_stub_off(16) == 0x006Bu && pr_u9e_dispatch_0000_slot_stub_seg(16) == 0x41u);
         /* wiring batch W1: three credited CPU-level models composed with their callees; the loaded original code they need is not in this test's RAM, so only the table is pinned here (the composed differential is in the audit) */
         assert(pr_u9e_dispatch_0000_slot_kind(49) == 5 && pr_u9e_dispatch_0000_slot_entry(49) == 0x12B2u && pr_u9e_dispatch_0000_slot_kind(94) == 5 && pr_u9e_dispatch_0000_slot_entry(94) == 0x25BCu && pr_u9e_dispatch_0000_slot_kind(122) == 5 && pr_u9e_dispatch_0000_slot_entry(122) == 0x2D38u && pr_u9e_dispatch_0000_slot_kind(12) == 5 && pr_u9e_dispatch_0000_slot_entry(12) == 0x04BAu && pr_u9e_dispatch_0000_slot_kind(38) == 5 && pr_u9e_dispatch_0000_slot_entry(38) == 0x04BAu);
@@ -59,11 +107,11 @@ int main(void)
         assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_REFUSED);
         assert(memcmp(&c, &saved, sizeof c) == 0 && memcmp(r, before, PR_U9E_0000_RAM_SIZE) == 0 && budget == b0 && d.slot == (int)i);
     }
-    /* GAP: slot 4 (uncredited +017F), slot 6 (semantic +01C3), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
+    /* GAP: slot 4 (uncredited +017F), slot 88 (unit 0x86), slot 135 (deferred +3134): stop at the LCALL, the five words pushed, nothing called */
     {
         static const struct { unsigned slot; pr_u9e_0000_gap gap; uint32_t id; } G[] = {
-            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {6, PR_U9E_0000_GAP_SEMANTIC, 0x003801C3u}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
-        for (i = 0; i < 4; ++i) {
+            {4, PR_U9E_0000_GAP_UNCREDITED, 0x0038017Fu}, {88, PR_U9E_0000_GAP_UNCREDITED, 0x008630D9u}, {135, PR_U9E_0000_GAP_DEFERRED, 0x00383134u}};
+        for (i = 0; i < sizeof G / sizeof G[0]; ++i) {
             c = setup(r, G[i].slot); budget = 100000;
             assert(pr_u9e_dispatch_0000_cpu(r, PR_U9E_0000_RAM_SIZE, &c, &budget, &LIM, &d) == PR_U9E_0000_GAP);
             assert(c.cs == HOME_CS && c.ip == 0x001Eu && c.sp == (uint16_t)(S0 - 2u - 8u - 2u) && c.bp == (uint16_t)(S0 - 2u));

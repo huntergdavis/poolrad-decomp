@@ -39,7 +39,7 @@ Eleven far call sites (`lcall 00B0:0025`) and five near ones (inside unit 0x9E).
 
 ### Slot by slot (the VP's condition 1: every slot of the 256-slot domain has a verdict)
 
-**Current t74 table:** 42 raw + 31 adapted = 73 composed; four semantic, 60 uncredited and two deferred gaps; 117 refused indices. Slot 11 is credited by #1554 and deferred until separately wired. The phase-1 counts below are historical.
+**Current t75 table:** 43 raw + 35 adapted = 78 composed; zero semantic, 60 uncredited and one deferred gap; 117 refused indices. Slot 11, credited by #1554, now calls the raw `0400` model and its resident party-count closure. The phase-1 counts below are historical. The four new semantic adapters' limits and validation are in [the dispatcher evidence](OVL_009E_0000_CPU.md#t75-adapter-contract-and-validation).
 
 Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model, composed in phase 1)**; **named gap (phase 2): credited handler, semantic model, not composed** (the handler is strict-credited but its model is a semantic or ledger translation that needs a frame-to-struct adapter and a full-RAM comparison; phase 2 builds those, each as its own small PR); **named gap: uncredited handler Y** (no strict model; the body stops with a stop that names the slot and Y); **non-handler** (not a function pointer; the body refuses). The 139 slots 1..139 split into **42 phase-1 modelled slots** (31 distinct raw-CPU credited handlers; some handlers occupy several slots), **35 phase-2 slots** (32 distinct credited handlers with semantic models), **1 deferred slot** (slot 135, `OVL_0038_3134`: a credited raw-CPU model whose world is the 1693 display closure) and **61 named-gap slots** (54 distinct uncredited handlers: the 53 stored by `31A2` plus `OVL_0086_30D9` at slot 88). Slot 0 and slots 140..255 are non-handlers. The raw-versus-semantic split is read from the handler's evidence-document name (`*_CPU.md` is a raw-CPU model) and is confirmed per handler when it is composed.
 
@@ -51,12 +51,12 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | 3 | 6834h | 0041:0034 | OVL_0038_013B | modelled with credited handler OVL_0038_013B (semantic model through a phase-2 adapter with wrap-exact far-pointer copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 4 | 6838h | 0041:0039 | OVL_0038_017F | **named gap: uncredited handler OVL_0038_017F** | 1335 (5) |
 | 5 | 683Ch | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
-| 6 | 6840h | 0041:003E | OVL_0038_01C3 | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 6 | 6840h | 0041:003E | OVL_0038_01C3 | **adapted: credited semantic model composed (t75 contract)** | - |
 | 7 | 6844h | 0041:0043 | OVL_0038_0233 | **named gap: uncredited handler OVL_0038_0233** | 1591 (5) |
 | 8 | 6848h | 0041:0048 | OVL_0038_0377 | modelled with credited handler OVL_0038_0377 (semantic model through a phase-2 adapter, global active-character pointer DS:[5D92] with wrap-exact copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 9 | 684Ch | 0041:004D | OVL_0038_03AC | modelled with credited handler OVL_0038_03AC (semantic model through a phase-2 adapter, global active-character pointer DS:[5D92] with wrap-exact copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 10 | 6850h | 0041:0052 | OVL_0038_03E1 | modelled with credited handler OVL_0038_03E1 (semantic model through a phase-2 adapter; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
-| 11 | 6854h | 0041:0057 | OVL_0038_0400 | **named gap (deferred): credited by #1554, raw-CPU model not composed here** | - |
+| 11 | 6854h | 0041:0057 | OVL_0038_0400 | **raw: credited by #1554, composed with 23DB party count** | - |
 | 12 | 6858h | 0041:005C | OVL_0038_04BA | **modelled with credited CPU-level handler through adapter; constructed candidate-list evidence (t74)** | - |
 | 13 | 685Ch | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
 | 14 | 6860h | 0041:0061 | OVL_0038_05D6 | modelled with credited handler OVL_0038_05D6 (semantic model through a phase-2 adapter with wrap-exact far-pointer copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
@@ -135,14 +135,14 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | 87 | 6984h | 0041:018D | OVL_0038_23EC | **named gap: uncredited handler OVL_0038_23EC** | 1431 (5) |
 | 88 | 6988h | 0096:015B | OVL_0086_30D9 (unit 0x86 entry 63, stored by U86 +37A7) | **named gap: uncredited handler OVL_0086_30D9** | 17602 (42) |
 | 89 | 698Ch | 0041:0192 | OVL_0038_2490 | modelled with credited handler OVL_0038_2490 (semantic model through a phase-2 adapter with wrap-exact far-pointer copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
-| 90 | 6990h | 0041:0197 | OVL_0038_24D9 | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 90 | 6990h | 0041:0197 | OVL_0038_24D9 | **adapted: credited semantic model composed (t75 contract)** | - |
 | 91 | 6994h | 0041:019C | OVL_0038_2556 | **named gap: uncredited handler OVL_0038_2556** | 1343 (5) |
 | 92 | 6998h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
 | 93 | 699Ch | 0041:01A1 | OVL_0038_25A2 | modelled with credited handler OVL_0038_25A2 (semantic model through a phase-2 adapter; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 94 | 69A0h | 0041:01A6 | OVL_0038_25BC | modelled with credited handler OVL_0038_25BC (a credited CPU-level model that composes its callees, wired in wiring batch W1; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 95 | 69A4h | 0041:01AB | OVL_0038_2610 | **named gap: uncredited handler OVL_0038_2610** | 13296 (31) |
 | 96 | 69A8h | 0041:01B0 | OVL_0038_264B | modelled with credited handler OVL_0038_264B (raw-CPU model, composed in phase 1) | - |
-| 97 | 69ACh | 0041:01B5 | OVL_0038_268A | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 97 | 69ACh | 0041:01B5 | OVL_0038_268A | **adapted: credited semantic model composed (t75 contract)** | - |
 | 98 | 69B0h | 0041:01BA | OVL_0038_2700 | modelled with credited handler OVL_0038_2700 (semantic model through a phase-2 adapter with wrap-exact far-pointer copy-in/out; the bar is (a): full CPU14, FLAGS and RAM against the original bytes, see `OVL_009E_0000_CPU.md`, phase 2) | - |
 | 99 | 69B4h | 0041:01BF | OVL_0038_2730 | **named gap: uncredited handler OVL_0038_2730** | 9716 (24) |
 | 100 | 69B8h | 0041:01C4 | OVL_0038_27D9 | modelled with credited handler OVL_0038_27D9 (raw-CPU model, composed in phase 1) | - |
@@ -171,7 +171,7 @@ Verdicts (PM phasing, i21762): **modelled with credited handler X (raw-CPU model
 | 123 | 6A14h | 0041:0237 | OVL_0038_2D88 | modelled with credited handler OVL_0038_2D88 (raw-CPU model, composed in phase 1) | - |
 | 124 | 6A18h | 0041:023C | OVL_0038_2DE4 | modelled with credited handler OVL_0038_2DE4 (raw-CPU model, composed in phase 1) | - |
 | 125 | 6A1Ch | 0041:0241 | OVL_0038_2E08 | modelled with credited handler OVL_0038_2E08 (raw-CPU model, composed in phase 1) | - |
-| 126 | 6A20h | 0041:0246 | OVL_0038_2E37 | **named gap (phase 2): credited handler, semantic model, not composed** | - |
+| 126 | 6A20h | 0041:0246 | OVL_0038_2E37 | **adapted: credited semantic model composed (t75 contract)** | - |
 | 127 | 6A24h | 0041:0264 | OVL_0038_319B | modelled with credited handler OVL_0038_319B (raw-CPU model, composed in phase 1) | - |
 | 128 | 6A28h | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
 | 129 | 6A2Ch | 0041:024B | OVL_0038_2EDA | **named gap: uncredited handler OVL_0038_2EDA** | 427 (2) |
