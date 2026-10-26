@@ -114,6 +114,11 @@ or validate arbitrary edits. A successful structural audit must not be
 presented as game acceptance. Missing media is a failure when `--media` is
 specified; omitting it reports coverage only.
 
+Five targeted negative controls were run: a gap, an overlap, an invalid
+status, shortened coverage, and a wrong executable hash. All five were
+rejected. This counts those exercised scenarios, not every validation guard
+in the audit; it is not exhaustive negative-path coverage.
+
 ## Remaining gates
 
 The game-facing meanings and legal ranges for stats, level, HP, abilities,
