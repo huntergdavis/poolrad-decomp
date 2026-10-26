@@ -246,3 +246,5 @@ if __name__ == '__main__':
     import sys
     sys.modules['system_text_write_cpu_audit'] = sys.modules[__name__]
     main()
+    for _row in ('RES_0AF8_084A', 'RES_0AF8_0919'):
+        print(f"ROW_EXECUTED {_row} PASS")

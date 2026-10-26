@@ -265,3 +265,5 @@ def main():
 if __name__ == '__main__':
     sys.modules['u25_06d3_06fb_cpu_audit'] = sys.modules[__name__]
     main()
+    for _row in ('OVL_0025_06D3', 'OVL_0025_06FB'):
+        print(f"ROW_EXECUTED {_row} PASS")

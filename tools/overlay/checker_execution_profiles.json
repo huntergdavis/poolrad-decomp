@@ -42,6 +42,7 @@
   },
   "tools/overlay/ecl_helpers_original_audit.py": {
     "args": [],
+    "observe": true,
     "rows": [
       "OVL_001C_2AEB",
       "OVL_0025_06AF",
@@ -65,6 +66,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_03B6_0000",
       "OVL_03CE_00F1"
@@ -154,6 +156,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_007F_0130",
       "OVL_007F_0185"
@@ -201,6 +204,7 @@
   },
   "tools/overlay/res00ba_rec_models_audit.py": {
     "args": [],
+    "observe": true,
     "rows": [
       "RES_00BA_1509",
       "RES_00BA_15F7",
@@ -256,6 +260,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "RES_0464_00CF",
       "RES_0464_00FF"
@@ -495,6 +500,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "RES_0AF8_1186",
       "RES_0AF8_119A",
@@ -520,6 +526,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "RES_0AF8_084A",
       "RES_0AF8_0919"
@@ -583,6 +590,7 @@
   },
   "tools/overlay/u1c_save_cpu_audit.py": {
     "args": [],
+    "observe": true,
     "rows": [
       "OVL_001C_0292",
       "OVL_001C_0EBC"
@@ -605,6 +613,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_0025_06D3",
       "OVL_0025_06FB"
@@ -673,6 +682,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_0033_012B",
       "OVL_0033_01AD"
@@ -687,6 +697,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_0033_0D13",
       "OVL_0033_0E9E"
@@ -704,6 +715,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_0033_1434",
       "OVL_0033_1577"
@@ -713,6 +725,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_0033_02BA",
       "OVL_0033_0377"
@@ -954,6 +967,7 @@
     "args": [
       "--unicorn"
     ],
+    "observe": true,
     "rows": [
       "OVL_006A_0000",
       "OVL_006A_019C"
@@ -1089,6 +1103,7 @@
   },
   "tools/overlay/u9e_character_pair_115c_audit.py": {
     "args": [],
+    "observe": true,
     "rows": [
       "OVL_009E_115C",
       "RES_00BA_0000",

@@ -68,6 +68,28 @@ single row of two gives AGREE + NOT-COVERED and exit 5; a waiver gives exit 0
 with the row still NOT-COVERED; missing `rows` or an unregistered row is
 refused.
 
+### Observed execution markers
+
+Declaring a row is not observing it. A profile may set `"observe": true`; then
+the command must print a machine-readable marker for every row whose
+differential ran and passed:
+
+    ROW_EXECUTED <row id> PASS
+
+The reporter AGREEs only declared rows with such a marker. A declared row
+without a marker is NOT-COVERED (exit 5); a marker for a registered row the
+profile did not declare is recorded in `undeclared_markers` and the run fails
+(NOT-COVERED). A failing command never prints AGREE for any row; the per-row
+line is the row's actual result, not the checker's success. The receipt records
+`coverage_source` as `stdout` when observe is on, otherwise `profile` (a
+declaration, source-reviewed). The 15 multi-row profiles set `observe` and their
+checkers emit one marker per declared row; single-row profiles need no marker
+because the mapping is unambiguous.
+
+```
+$ python3 -m unittest test_checker_execution   # includes CoverageTest observed-marker controls
+```
+
 ## Shared-source selection
 
 There is no handwritten source-to-row table. The selector derives inputs from

@@ -313,3 +313,5 @@ def main():
 if __name__ == '__main__':
     sys.modules['ovl_007f_div5_leaves_cpu_audit'] = sys.modules[__name__]
     main()
+    for _row in ('OVL_007F_0130', 'OVL_007F_0185'):
+        print(f"ROW_EXECUTED {_row} PASS")

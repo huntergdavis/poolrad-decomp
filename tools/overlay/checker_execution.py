@@ -156,6 +156,9 @@ def load_profiles(root):
         waived = profile.get('waive_not_covered')
         if waived is not None and (not isinstance(waived, list) or any(not isinstance(r, str) for r in waived)):
             raise ValueError(f'invalid waived-rows list: {path}')
+        observe = profile.get('observe')
+        if observe is not None and not isinstance(observe, bool):
+            raise ValueError(f'invalid observe flag: {path}')
     return profiles
 
 
@@ -191,6 +194,7 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
             unknown = sorted(set(covered) - set(registered))
             if unknown:
                 raise ValueError(f'profile rows not registered for {path}: ' + ', '.join(unknown))
+        observe = bool(profile.get('observe', False))
         waived = sorted(set(profile.get('waive_not_covered', [])))
         unknown_w = sorted(set(waived) - set(registered))
         if unknown_w:
@@ -235,10 +239,27 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
                 result = 'DIFFERENTIAL_FAILED'
                 if status != CANNOT_RUN:
                     status = 1
+            observed_markers, undeclared_markers = [], []
             if result == 'AGREE':
+                if observe:
+                    # AGREE only for rows whose PASS execution marker the command emitted.
+                    markers = set()
+                    for line in done.stdout.splitlines():
+                        parts = line.split()
+                        if len(parts) == 3 and parts[0] == 'ROW_EXECUTED' and parts[2] == 'PASS':
+                            markers.add(parts[1])
+                    observed_markers = [row for row in covered if row in markers]
+                    missing = [row for row in covered if row not in markers]
+                    undeclared_markers = sorted(markers - set(covered))
+                    if missing or undeclared_markers:
+                        result = 'NOT_COVERED'
+                        status = NOT_COVERED
+                    covered = observed_markers
+                    uncovered = [row for row in registered if row not in covered]
+                    unwaived = [row for row in uncovered if row not in waived]
                 if unwaived:
-                    # The command passed, but a registered row's differential never ran.
-                    # NOT-COVERED is the honest result; the run fails unless waived.
+                    # The command passed, but a registered row's differential never ran
+                    # (or, with observe, never emitted a PASS marker).
                     result = 'NOT_COVERED'
                     status = NOT_COVERED
                 row_results = {row: ('AGREE' if row in covered else 'NOT_COVERED')
@@ -247,7 +268,9 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
                 row_results = {row: result for row in registered}
             entry = dict(checker=str(path), rows=registered, command=argv, result=result,
                          row_results=row_results, covered=covered, not_covered=uncovered,
-                         waived=waived, returncode=done.returncode, stdout=done.stdout,
+                         waived=waived, observed_markers=observed_markers,
+                         undeclared_markers=undeclared_markers, coverage_source=('stdout' if observe else 'profile'),
+                         returncode=done.returncode, stdout=done.stdout,
                          stderr=done.stderr,
                          sha256=hashlib.sha256((root / path).read_bytes()).hexdigest())
         report['checkers'].append(entry)
@@ -255,12 +278,10 @@ def execute(root, registry, paths, profiles, output=None, *, heavy=HEAVY, timeou
         if output:
             output.parent.mkdir(parents=True, exist_ok=True)
             output.write_text(json.dumps(report, indent=2) + '\n')
-        if covered:
-            print('AGREE ' + ','.join(covered), flush=True)
-        if uncovered:
-            print('NOT_COVERED ' + ','.join(uncovered), flush=True)
-        if entry['result'] not in ('AGREE', 'NOT_COVERED'):
-            print(entry['result'] + ' ' + ','.join(registered), flush=True)
+        for row in registered:
+            print(entry['row_results'].get(row, entry['result']) + ' ' + row, flush=True)
+        for row in entry.get('undeclared_markers', []):
+            print('UNDECLARED_MARKER ' + row, flush=True)
         if entry['result'] == 'CANNOT_RUN':
             break
     return status, report

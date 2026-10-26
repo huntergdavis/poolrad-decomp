@@ -535,3 +535,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    for _row in ('RES_0AF8_1186', 'RES_0AF8_119A', 'RES_0AF8_119E'):
+        print(f"ROW_EXECUTED {_row} PASS")

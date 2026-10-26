@@ -206,6 +206,48 @@ class CoverageTest(unittest.TestCase):
         self.assertEqual(report['checkers'][0]['row_results']['OVL_0038_133F'], 'NOT_COVERED')
         self.assertEqual(report['checkers'][0]['result'], 'AGREE')
 
+    def run_script(self, script, profile):
+        (self.root / self.path).write_text(script)
+        self.profiles = {str(self.path): profile}
+        return execution.execute(self.root, self.registry, [self.path],
+                                 self.profiles, heavy=self.wrapper)
+
+    def test_observed_rows_agree(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n'
+            'print("ROW_EXECUTED OVL_0038_133F PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, 0)
+        self.assertEqual(report['checkers'][0]['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'AGREE'})
+
+    def test_declared_but_not_observed_row_is_not_covered(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, execution.NOT_COVERED)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['row_results'],
+                         {'OVL_0038_0400': 'AGREE', 'OVL_0038_133F': 'NOT_COVERED'})
+        self.assertEqual(entry['coverage_source'], 'stdout')
+
+    def test_marker_for_undeclared_row_is_flagged(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\n'
+            'print("ROW_EXECUTED OVL_0038_133F PASS")\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400'], 'observe': True})
+        self.assertEqual(status, execution.NOT_COVERED)
+        self.assertEqual(report['checkers'][0]['undeclared_markers'], ['OVL_0038_133F'])
+
+    def test_failing_command_has_no_agree_rows(self):
+        status, report = self.run_script(
+            'print("ROW_EXECUTED OVL_0038_0400 PASS")\nraise SystemExit(1)\n',
+            {'args': ['--compare'], 'rows': ['OVL_0038_0400', 'OVL_0038_133F'], 'observe': True})
+        self.assertEqual(status, 1)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['result'], 'DIFFERENTIAL_FAILED')
+        self.assertNotIn('AGREE', entry['row_results'].values())
+
     def test_multi_row_profile_without_rows_is_refused(self):
         self.profiles = {str(self.path): {'args': ['--compare']}}
         with self.assertRaisesRegex(ValueError, "needs an explicit 'rows'"):

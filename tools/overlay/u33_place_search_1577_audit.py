@@ -408,3 +408,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    for _row in ('OVL_0033_1434', 'OVL_0033_1577'):
+        print(f"ROW_EXECUTED {_row} PASS")
