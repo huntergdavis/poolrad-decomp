@@ -143,7 +143,7 @@ def main():
         f.write('# id\tentry_ip\tsig_len\tsig_hex\tmask_hex\tuniqueness\tc_symbol\n')
         for r in rows:
             f.write('\t'.join(r) + '\n')
-    print(dict(ids=len(ids), **stats, out=str(a.out.resolve().relative_to(ROOT))))
+    print(dict(ids=len(ids), **stats, out=str(a.out)))
 
 
 if __name__ == '__main__':

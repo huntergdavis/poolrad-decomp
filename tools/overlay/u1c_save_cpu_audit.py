@@ -35,6 +35,7 @@ from unicorn.x86_const import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+CHECKER_ROWS = ("OVL_001C_0292", "OVL_001C_0EBC")
 OVR = ROOT / "resources/DOS/POOLRAD/GAME.OVR"
 EXE = ROOT / "resources/DOS/POOLRAD/START.EXE"
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
@@ -283,10 +284,37 @@ def audit(bod, ovr, units):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("body", choices=sorted(BODIES))
+    parser.add_argument("body", nargs="?", choices=sorted(BODIES))
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind both C models only; no media, no differential")
     args = parser.parse_args(argv)
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        try:
+            with tempfile.TemporaryDirectory(prefix="poolrad-u1c-save-") as temp:
+                for cfg in BODIES.values():
+                    build(Path(temp), cfg)
+        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+            print(f"CHECKER_BUILD_FAILED: {error}", file=sys.stderr)
+            return 1
+        print("CHECKER_BUILD_OK")
+        return 0
     try:
         ovr, units = media()
+    except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
+        sys.exit(f"audit failed: {error}")
+    if not args.body:
+        # All-bodies differential: the checker registers two rows, so one command must
+        # execute BOTH and fail if either fails. No row can be AGREE unless its own
+        # differential ran and passed.
+        failed = 0
+        for bod in sorted(BODIES):
+            try:
+                audit(bod, ovr, units)
+            except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
+                print(f"{bod}: audit failed: {error}", file=sys.stderr)
+                failed = 1
+        return failed
+    try:
         audit(args.body, ovr, units)
     except (ImportError, OSError, ValueError, subprocess.CalledProcessError) as error:
         sys.exit(f"audit failed: {error}")

@@ -1111,3 +1111,14 @@ pr_u9e_0000_status pr_u9e_dispatch_0000_cpu(uint8_t *ram, size_t ram_size, pr_u9
     if (c->ip != ret_ip || c->cs != ret_cs) return PR_U9E_0000_TRANSFER;
     return PR_U9E_0000_RETURNED;
 }
+
+/* Direct entry uses the same adapter as dispatcher slot 1. */
+pr_u9e_0000_status pr_u38_entry2_010d_cpu(uint8_t *ram, size_t ram_size, pr_u9e_0000_cpu *cpu)
+{
+    call_t m;
+    if (!ram || !cpu || ram_size != PR_U9E_0000_RAM_SIZE || cpu->ip != 0x010Du ||
+        cpu->sp < 0x0200u || cpu->sp > 0xFFEEu)
+        return PR_U9E_0000_ARGUMENT;
+    m.ram = ram; m.size = ram_size; m.cpu = cpu; m.lim = NULL; m.status_raw = -1;
+    return h_010d(&m) == 0 ? PR_U9E_0000_RETURNED : PR_U9E_0000_CALLEE;
+}
