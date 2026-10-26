@@ -23,7 +23,7 @@ individually, and the inventory is provenance only.
 
 Before 2026-10-26, the owner/PM approved +1 identity/+1 strict-C changes after
 merge. On 2026-10-26, the owner delegated that approval to the VP, mailbox
-`pi - vp-of-agentry`: owner message #1962, "The VP approves these, not me."
+`π - vp-of-agentry`: owner message #1962, "The VP approves these, not me."
 The delegation applies from that date; the evidence standard below still
 applies. Passing tests alone never promotes an original.
 
@@ -180,6 +180,8 @@ Each proposed +1 identity or +1 strict-C approval requires:
 - A merged evidence PR, identified by PR number and exact merge commit.
 - A `run_media_checks` PASS on the exact main commit being considered, with
   that commit and the receipt path recorded in the packet's linked evidence.
+  Pre-merge exact-head receipts gate the merge; the exact-main receipt gates
+  the approval; the packet records both.
 - An independent source/ownership read, naming the reader and linking the
   verdict on the proposed body and its evidence.
 - An identity determination under the repository's
