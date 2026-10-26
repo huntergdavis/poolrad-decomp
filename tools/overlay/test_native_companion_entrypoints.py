@@ -6,6 +6,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPANIONS = (
+    "res0464_bitmap_release_2595",
     "res03f1_clear_0137_cpu",
     "res00ba_clear_17e3_cpu",
     "res00ba_display_1693_cpu",
