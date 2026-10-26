@@ -537,6 +537,9 @@
   "tools/overlay/u1c_run_3171_cpu_audit.py": {
     "args": []
   },
+  "tools/overlay/u1c_save_cpu_audit.py": {
+    "args": []
+  },
   "tools/overlay/u1c_text_2e7d_cpu_audit.py": {
     "args": [
       "--unicorn"
