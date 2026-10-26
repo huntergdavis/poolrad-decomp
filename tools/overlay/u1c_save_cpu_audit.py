@@ -35,6 +35,7 @@ from unicorn.x86_const import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+CHECKER_ROWS = ("OVL_001C_0292", "OVL_001C_0EBC")
 OVR = ROOT / "resources/DOS/POOLRAD/GAME.OVR"
 EXE = ROOT / "resources/DOS/POOLRAD/START.EXE"
 OVR_SHA = "872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614"
@@ -283,8 +284,22 @@ def audit(bod, ovr, units):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("body", choices=sorted(BODIES))
+    parser.add_argument("body", nargs="?", choices=sorted(BODIES))
+    parser.add_argument("--compile-only", action="store_true",
+                        help="build and bind both C models only; no media, no differential")
     args = parser.parse_args(argv)
+    if args.compile_only:  # same compiler command and symbol binding as the audit; no media
+        try:
+            with tempfile.TemporaryDirectory(prefix="poolrad-u1c-save-") as temp:
+                for cfg in BODIES.values():
+                    build(Path(temp), cfg)
+        except (OSError, ValueError, subprocess.CalledProcessError) as error:
+            print(f"CHECKER_BUILD_FAILED: {error}", file=sys.stderr)
+            return 1
+        print("CHECKER_BUILD_OK")
+        return 0
+    if not args.body:
+        parser.error("body is required unless --compile-only is used")
     try:
         ovr, units = media()
         audit(args.body, ovr, units)
