@@ -200,6 +200,14 @@ changes final state: **490/28 becomes 489 disassembled / 29 C drafted**.
 No credited count changes. The prior 491/27 also omitted the separately
 documented U7D source mapping and is superseded.
 
+That is **one `evidence_state` change**, not one changed CSV row. Relative to
+`6c512c5a`, 77 rows change metadata: 76 `model_declarations`, seven `c_sources`,
+one `evidence_state`, one `state_evidence`, and one `kind_evidence` (field
+counts overlap). The six extra source annotations on already-credited
+`RES_IMAGE_02F57`, `02F7B`, `031D7`, `039A3`, `039E6`, and `03A2B` leave
+their states unchanged; the selector supplies the seventh source change.
+No kind, ownership, identity, or strict-credit field changes.
+
 No false C-draft promotion was found under the declared source-presence rule:
 existing mappings resolve existing C source through explicit compiler inputs
 or document citations. In particular `OVL_03B0_06FB` has a document-to-source
