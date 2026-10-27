@@ -154,6 +154,18 @@ when available; the registered differential is not that result. The six focused
 regressions, including actual discovery and exact source selection, are also
 required by that media gate.
 
+The first exact-head media gate at `d797f282` ran 472 tests with zero skips
+and failed on two omitted census entries. All six 0126 regressions passed,
+including actual checker ownership and exact twelve-source selection. The
+repair adds the flat-model aperture row (aperture unobservable, exclusion
+declared) and the subtract-helper flag row; it changes no production or audit
+code. The flag classification comes from directly reading pinned DOSBox-X
+`5a9c7c53481c2e933948039c33256776653f4faf`, `src/cpu/flags.cpp:504-514,600-617`.
+Its stored SUB/CMP rules agree. Lazy word-SUB PF differs (`:469-480`), but
+this caller's only conditional branches read CF after byte CMP, not PF.
+That source read is not a native-execution parity result. The failed gate
+remains part of the evidence; the repaired head requires a fresh media gate.
+
     python tools/overlay/check_checker_builds.py --execute OVL_001C_0126 --output resources/t144-0126/execution.json
     PATH=/path/to/venv/bin:$PATH tools/run_media_checks.sh
 
