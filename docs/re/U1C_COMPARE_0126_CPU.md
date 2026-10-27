@@ -101,7 +101,7 @@ observer may not mutate or reenter the guest; it is measurement, not a service.
 
 This catches flags that a later callee overwrites. The wrong_sub_flags mutant
 toggles all six arithmetic flags after the caller's local-frame subtraction.
-In the initial smoke witness, final CPU/RAM still agree, but the next boundary
+In the full registered witness, final CPU/RAM still agree, but the next boundary
 at 012D differs in FLAGS. Reversed word arguments and ignoring the second tag
 are independent additional mutants. All three must be killed; a survivor fails
 the audit. Mutant search stops at the first witness and is not a frequency.
@@ -139,9 +139,20 @@ outcomes, 67 returns, seven transfers, eleven code-boundary stops and five
 callee-limit stops; all three mutants were killed. That run predates the added
 tag sweep and atomic-refusal tests and is **not** acceptance of the final suite.
 
-FULL_REGISTERED_RECEIPT_PENDING: the final registered execution and exact-head
-media receipt will be recorded after they complete. The PR description carries
-the exact-head media result; a compilation or smoke pass is not that result.
+The registered differential passed at source head
+`19a189da5bee4c633805f7ed74a7af7d1875b7c9`: **1,354 cases**, all 50 caller
+instruction starts and four conditional outcomes, with 1,331 returns, seven
+transfers, eleven code-boundary stops and five callee-limit stops. All three
+mutants were killed; all seven C-only atomic entry-refusal checks passed.
+The registered row result is AGREE for OVL_001C_0126, with no uncovered rows
+in this single-row execution. The receipt pins both media hashes and the
+execution/profile code. The later merge of main and this documentation change
+retain the candidate source and audit blobs.
+
+The PR description carries the separately measured exact-head media result
+when available; the registered differential is not that result. The six focused
+regressions, including actual discovery and exact source selection, are also
+required by that media gate.
 
     python tools/overlay/check_checker_builds.py --execute OVL_001C_0126 --output resources/t144-0126/execution.json
     PATH=/path/to/venv/bin:$PATH tools/run_media_checks.sh
@@ -160,12 +171,12 @@ current media were read directly. No Deja command was run.
 | target_function | OVL_001C_0126, 125-byte COMPARE caller |
 | source_candidates | New raw caller composed with existing raw U25/SYSTEM helpers; existing semantic model unchanged |
 | signals | Body/media/call pins, dispatcher frame, explicit callee frames, boundary CPU/RAM observations, full final state, three mutants |
-| score | Development smoke measured; full registered and exact-head gates pending |
+| score | Full registered 1,354-case differential passed; exact-head media result recorded separately in PR |
 | verdict | Candidate, independent review pending |
 | review_notes | No accounting/readiness/credit promotion; reused callee limits remain load-bearing |
 
-NOT VERIFIED: full final registered run until its receipt is present; exact-head
-media until reported; native DOSBox parity; live dispatcher entry/continuation;
+NOT VERIFIED: exact-head media until reported in the PR; native DOSBox parity;
+live dispatcher entry/continuation;
 cold loader behaviour; arbitrary cyclic party-list termination; all-state
 Cartesian parity; every transitive callee state; TF/interrupt/hardware effects;
 all possible callers; independent verdict; identity, credit, readiness or unlocks.
