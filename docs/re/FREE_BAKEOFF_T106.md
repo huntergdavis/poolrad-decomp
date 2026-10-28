@@ -28,10 +28,11 @@ not a model result:
   a report of inability to access, not proof of absence. The invocation used
   `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is not
   visible inside the free sandbox; that is the mechanism, established by the
-  reviewer's sandbox reproduction rather than by the reports. Separately from the access failure, the
-  offsets claimed in the six reports are:
-  inkling `06AF` **1755 (`0x6DB`, wrong)**; north `06AF` **11439 (`0x2CEF`,
-  wrong)**, and it falsely equates `06AF` with that offset; north `0136`
+  reviewer's sandbox reproduction rather than by the reports.
+
+  Separately from the access failure, the offsets claimed in the six reports
+  are: inkling `06AF` **1755 (`0x6DB`, wrong)**; north `06AF` **11439
+  (`0x2CEF`, wrong)**, and it falsely equates `06AF` with that offset; north `0136`
   **no offset at all**; inkling `0136` and nemotron `0136` **30217 (`0x7609`,
   correct)**; nemotron `06AF` **31618 (`0x7B82`, correct)** but it explicitly
   reconstructs the bytes from the recovered C and its addresses are
