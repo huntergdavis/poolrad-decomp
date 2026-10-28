@@ -30,6 +30,54 @@ def fields_diff(left, right):
             for k in left if left[k] != right[k]}
 
 
+def ram_localization(left, right, original, replacement, manifest):
+    """Address classification only: no masks, byte values, or causality claims."""
+    offsets = [i for i, (a, b) in enumerate(zip(left, right)) if a != b]
+    pins = {
+        './START.EXE': 'd825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd',
+        './GAME.OVR': '872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614',
+    }
+    rows = [line.split(maxsplit=1) for line in manifest.decode().splitlines()]
+    pinned = all([row[0] for row in rows if len(row) == 2 and row[1] == name] == [sha]
+                 for name, sha in pins.items())
+    a, b = original['registers'], replacement['registers']
+    layout = {'cs': 0x1264, 'eip': 0x02fd, 'ds': 0x14a0, 'ss': 0x1d16}
+    supported = (pinned and original['id'] == replacement['id'] == 'RES_0A40_02FD'
+                 and all(a[k] == b[k] == value for k, value in layout.items())
+                 and type(a['esp']) is int and a['esp'] == b['esp']
+                 and 0 <= a['esp'] <= 0x4000)
+    groups = {name: dict(differing_bytes=0, ranges=[]) for name in
+              ('bios_timer', 'randseed', 'stack_below_sp', 'stack_at_or_above_sp', 'unclassified')}
+    regions = {}
+    if supported:
+        stack = a['ss'] * 16
+        regions = dict(bios_timer=[0x46c, 0x470],
+                       randseed=[a['ds'] * 16 + 0x4428, a['ds'] * 16 + 0x442c],
+                       stack_below_sp=[stack, stack + a['esp']],
+                       stack_at_or_above_sp=[stack + a['esp'], stack + 0x4000])
+    for offset in offsets:
+        name = next((name for name, (start, end) in regions.items()
+                     if start <= offset < end), 'unclassified')
+        group = groups[name]
+        group['differing_bytes'] += 1
+        ranges = group['ranges']
+        if ranges and ranges[-1][1] == offset:
+            ranges[-1][1] = offset + 1
+        else:
+            ranges.append([offset, offset + 1])
+    return dict(status='classified' if supported else 'unavailable',
+                model='poolrad-v1.3-observed-1264:02fd-layout', masked_bytes=0,
+                total_differing_bytes=len(offsets), range_convention='physical [start, end), bytes',
+                regions=regions, categories=groups,
+                scope=('Address membership only; no first-writer, cause, liveness, '
+                       'or semantic-equivalence conclusion. Unknown images/layouts stay unclassified.'),
+                sources=[
+                    'DOSBox-X 5a9c7c53 include/bios.h: BIOS_TIMER; src/ints/bios.cpp: INT8_Handler',
+                    'docs/re/RANDOM_GENERATOR.md: RandSeed DS:4428..442B',
+                    'docs/re/REVIEW_LANE_HANDOFF.md: EXEPACK SS:SP=14F2:4000 and stack-geometry limits',
+                ])
+
+
 def read_capture(run):
     data = json.loads((run / 'checkpoint.json').read_text())
     required = {'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp', 'esp',
@@ -82,6 +130,7 @@ def report(original, replacement):
     regs = fields_diff(a['registers'], b['registers'])
     video = fields_diff(a['video'], b['video'])
     equal = not regs and not video and all(d['differing_bytes'] == 0 for d in diffs.values())
+    diffs['ram']['localization'] = ram_localization(ab['ram'], bb['ram'], a, b, inputs[0])
     save_files = [line for line in inputs[0].decode().splitlines()
                   if 'SAVGAMA.DAT' in line or 'CHRDATA' in line]
     dispatch = (replacement / 'parity-dispatch.txt').read_text().strip()
