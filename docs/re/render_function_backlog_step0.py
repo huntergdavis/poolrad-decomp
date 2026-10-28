@@ -16,6 +16,8 @@ here = Path(__file__).resolve().parent
 
 
 def main() -> None:
+    if len(sys.argv) != 2:
+        sys.exit("usage: render_function_backlog_step0.py <measuring-sha>")
     measuring_sha = sys.argv[1]
     short = measuring_sha[:8]
     csv_path = here / f"function_backlog_step0_{short}.csv"
