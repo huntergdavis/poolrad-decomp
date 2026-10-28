@@ -567,6 +567,9 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/u1c_compare_0126_cpu_audit.py": {
+    "args": []
+  },
   "tools/overlay/u1c_compare_and_0aed_cpu_audit.py": {
     "args": [
       "--unicorn"

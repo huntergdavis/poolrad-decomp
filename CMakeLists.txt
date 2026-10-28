@@ -500,6 +500,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u1c_goto_00f4_cpu.c
                                     src/recovered/overlay_u1c_party_item_scan_266a_cpu.c
                                     src/recovered/overlay_u1c_compare_and_0aed_cpu.c
+                                    src/recovered/overlay_u1c_compare_0126_cpu.c
                                     src/recovered/overlay_u1c_text_2e7d_cpu.c
                                     src/recovered/system_runtime_leaves_cpu.c
                                     src/recovered/overlay_u31_table_value_128d_cpu.c
