@@ -1,0 +1,116 @@
+# U38 entry 57: bounded roll/dispatch wrapper
+
+`OVL_0038_16E6` is a new **bounded translation**, not a composed function or a
+strict-credit claim. The source is `overlay_u38_roll_dispatch_16e6.c`; the checker
+is `check_overlay_u38_roll_dispatch_16e6.py`, declaring this exact CHECKER_ROWS
+identity. Credit and function-accounting tables are intentionally unchanged. Required execution,
+aperture, and flag-semantics metadata each gain one entry for the new model.
+
+## Original identity and boundaries
+
+Hash-pinned START.EXE (`d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`)
+and GAME.OVR (`872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`)
+identify public entry 57 of unit 0038, `[16E6,170B)`: 37 bytes, 18 instructions,
+file offset 66369. Body SHA-256:
+`26319a64c3724af34e74edb22250387fe28a05e17d3be802e26ef2db1f2bbcee`.
+The only relocation in the extent is the segment operand at 16F8.
+U9E dispatcher slot 69 names this handler in `OVL_009E_0000_HANDLERS.md`.
+That static slot identity does not establish live arrival.
+
+The wrapper saves BP and forwards two argument words, preserving AH while
+passing roll count 1 and sides 9. The far call at 16F5 goes through the relocated
+`:0048` stub for U9E+0DE3. On an externally supplied return at 16FA, it clears AH,
+adds 10 to AX, pushes the result, replaces AL with FE while preserving the new
+AH, and builds a far frame for U38+15EB via PUSH CS / near CALL at 1704.
+U38+15EB remains untranslated. On an externally supplied return at 1707, the
+wrapper restores BP and executes RETF 0Ah.
+
+## Enforced scope
+
+`pr_u38_roll_dispatch_16e6` requires an explicit ENTER, AFTER_ROLL, or
+AFTER_DISPATCH phase and the wrapper's loaded CS. It checks the corresponding
+CS:IP before any mutation. Both calls return a distinct stop status with the
+call-entry frame intact. No callback runs, no callee return is synthesized,
+and attempting to resume at either callee address is rejected unchanged.
+Continuation phases are conditional contracts supplied by the caller; they do
+not demonstrate how the missing callee returns or what effects it has.
+
+The CPU14/flat-RAM interface preserves non-arithmetic flags, reads relocated
+segments from RAM, wraps effective offsets at 16 bits and physical addresses
+at 1 MiB, and treats the second byte of a word as physically contiguous.
+Instruction bytes are immutable except the segment relocation; stack/data
+must not overwrite code, and CPU/RAM storage must not overlap.
+
+## Evidence procedure
+
+Run through the shared heavy wrapper:
+
+```
+python3 tests/recovered/check_overlay_u38_roll_dispatch_16e6.py --mutants --output resources/t6-u38-16e6/check.json
+```
+
+The checker pins media/body hashes, entry identity, next function boundary,
+fixup, decoded instruction count, call sites, and return. It rejects one-byte
+truncation, one-instruction extension, and a changed call operand. It compares
+compiled C with original-byte Unicorn execution independently over each phase,
+stopping **before** either callee executes. Every comparison covers all 14 CPU
+words and all 1 MiB RAM, without masks. FLAGS are read at the stop state, before
+any further instruction or callee executes. Cases cover all 256 incoming roll-result
+bytes, dirty AH/flags, relocated wrapper and roll segments, stack-offset wrap,
+and independent return frames. Physical 1 MiB word wrap has a separately labelled
+synthetic contract check; it is not counted as an original-byte Unicorn case.
+Argument rejection and resumption at stopped callees must preserve all state.
+Compiled negative mutants target forwarding, roll parameters, stack writes,
+AH clearing, bias, flags, dispatch argument/frame, forbidden continuation past
+15EB, resume validation, and return cleanup. The receipt names the assertion
+that kills each mutant and the sites reached.
+
+CPU layout, media pins, and address helper utilities are reused from
+`check_overlay_u38_target_select_101d.py`; the adjacent `overlay_u38_roll_dispatch_1699.c`
+provided stack-frame implementation context. No existing callee fixture is used
+as evidence of real callee behavior. Fresh queue evidence on base
+`dadfec5806de11c14e41f28cd9b4ad69a6090c59` lists U9E+0DE3 strict and U38+15EB
+untranslated. The latter prevents closure.
+
+## Measured author result
+
+Heavy ticket 984 passed on `b3ecd4242a39ec077040f2ef75154d0ad642b8c6`: 704 original-byte phase comparisons (128 ENTER, 512 AFTER_ROLL, 64 AFTER_DISPATCH), eight invalid-argument refusals, one separately labelled synthetic physical-wrap check, and three rejected extent attacks. All 17 compiled mutants were killed. Source/checker hashes and head were unchanged throughout the run.
+
+| Compiled mutant | Named failing assertion in `compare` |
+| --- | --- |
+| `argument_order` | `phase_0_full_ram` |
+| `roll_count` | `phase_0_full_ram` |
+| `roll_sides` | `phase_0_cpu_ax:a508!=a509` |
+| `roll_return_frame` | `phase_0_full_ram` |
+| `stack_offset` | `phase_0_full_ram` |
+| `boundary_flags_only` | `phase_1_cpu_flags:0ec7!=0612` |
+| `stack_high_byte` | `phase_0_full_ram` |
+| `ah_not_cleared` | `phase_1_cpu_ax:a5fe!=00fe` |
+| `roll_bias` | `phase_1_cpu_flags:0616!=0612` |
+| `parity_flag` | `phase_1_cpu_flags:0616!=0612` |
+| `auxiliary_carry` | `phase_1_cpu_flags:0602!=0612` |
+| `preserved_flags` | `phase_1_cpu_flags:0010!=0612` |
+| `dispatch_high_byte` | `phase_1_cpu_ax:00fe!=01fe` |
+| `dispatch_return_frame` | `phase_1_full_ram` |
+| `continue_past_15eb` | `phase_1_stop_status` |
+| `resume_at_callee` | `callee_resume_refused` |
+| `return_cleanup` | `phase_2_cpu_sp:0010!=0012` |
+
+The registered media-free build mode and all 704 comparisons/17 mutants also
+passed at `231c364cfe606f66d465843955ebfa082f5641ab` (ticket 986). Its full
+483-test media suite failed three missing-metadata checks: aperture row, execution
+profile, and flag census row. This change supplies those entries; that failed run
+is retained separately and is not represented as a passing final gate.
+
+The flag row is explicitly **partial / phase-stops-only**. Hand-reading pinned
+DOSBox-X `5a9c7c53481c2e933948039c33256776653f4faf`, `src/cpu/flags.cpp`
+504–514 and 532–539 confirms the stored ADDw rule used here. Lazy word parity
+(469–478) uses the whole word, unlike stored low-byte parity. This wrapper has no
+flag-dependent branch between ADD and its stop. No instruction-by-instruction
+XOR checkpoint or native comparison is claimed. The aperture census records
+flat RAM with no aperture observability; the differential does not test EGA
+planes, latches, or device bus behavior.
+
+The ordered full-state result digest is `c0ab40453b8f6f3d85b957b498dfce8e9595f801d953125d8bd0cd0a237a7a5c`. Private receipt: `resources/t6-u38-16e6/check.json`; no original or derived media is committed.
+
+**Not verified:** real roll or U38+15EB execution/effects, native DOS execution, full composed-function parity, live dispatcher arrival, or strict credit, or EGA aperture behavior. The full discovered media suite is a separate integration gate, not evidence that either missing callee ran.
