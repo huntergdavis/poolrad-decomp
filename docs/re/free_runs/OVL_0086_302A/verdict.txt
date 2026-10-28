@@ -1,0 +1,6 @@
+body: OVL_0086_302A
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+citations gate: exit 1
+   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.
+bytes gate: exit 2
+   NO DUMP: the report printed no byte dump, so nothing is checkable.

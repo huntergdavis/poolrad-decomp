@@ -265,9 +265,12 @@ class CoverageTest(unittest.TestCase):
 
 class MixedUnitMarkerTest(unittest.TestCase):
     ROOT = Path(__file__).resolve().parents[2]
-    ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
+    # t190: the folded 03BD entries are registered rows of this checker, so the cell
+    # owns four rows across two units; both 03BD rows are marked only when their own
+    # differential runs (the profile keeps observe: true).
+    ROWS = ('OVL_0033_012B', 'OVL_0033_01AD', 'OVL_03BD_0350', 'OVL_03BD_047B')
 
-    def test_cell_owns_two_rows_but_earns_both_unit_prefixes(self):
+    def test_cell_owns_four_rows_across_two_units(self):
         import u33_cell_lookup_012b_audit as cell
         got = {key: cell.row_id(key) for key in cell.TARGETS}
         self.assertEqual(got, {
@@ -278,10 +281,12 @@ class MixedUnitMarkerTest(unittest.TestCase):
         path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
         owned = {row for row, paths in registry.items() if path in paths}
         self.assertEqual(owned, set(self.ROWS))
-        self.assertNotIn('OVL_03BD_0350', owned)
-        self.assertNotIn('OVL_03BD_047B', owned)
+        self.assertIn('OVL_03BD_0350', owned)
+        self.assertIn('OVL_03BD_047B', owned)
+        self.assertEqual(set(cell.CHECKER_ROWS), set(self.ROWS))
         profiles = json.loads(Path(__file__).with_name('checker_execution_profiles.json').read_text())
         self.assertEqual(set(profiles[str(path)]['rows']), owned)
+        self.assertTrue(profiles[str(path)].get('observe'))
 
     def test_cell_two_owned_rows_route_and_agree_with_the_discovered_registry(self):
         temp = tempfile.TemporaryDirectory()
@@ -302,9 +307,35 @@ class MixedUnitMarkerTest(unittest.TestCase):
         status, report = execution.execute(root, registry, [path], profiles, heavy=wrapper)
         self.assertEqual(status, 0)
         self.assertEqual(report['checkers'][0]['row_results'], {row: 'AGREE' for row in self.ROWS})
-        bad = {str(path): {'args': [], 'rows': list(self.ROWS) + ['OVL_03BD_0350'], 'observe': True}}
+        bad = {str(path): {'args': [], 'rows': list(self.ROWS) + ['OVL_9999_9999'], 'observe': True}}
         with self.assertRaises(ValueError):
             execution.execute(root, registry, [path], bad, heavy=wrapper)
+
+    def test_missing_03bd_marker_is_not_covered(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        root = Path(temp.name)
+        path = Path('tools/overlay/u33_cell_lookup_012b_audit.py')
+        (root / path).parent.mkdir(parents=True)
+        for name in execution.MEDIA:
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(b'synthetic')
+        # The cell ran the 0033 rows only: registration must not attach AGREE to the
+        # 03BD rows whose own differential never executed.
+        (root / path).write_text(''.join(f'print("ROW_EXECUTED {row} PASS")\n' for row in self.ROWS[:2]))
+        wrapper = root / 'heavy'
+        wrapper.write_text('#!/bin/sh\nexec "$@"\n')
+        wrapper.chmod(0o755)
+        registry = gate.discover(self.ROOT)
+        profiles = {str(path): {'args': [], 'rows': list(self.ROWS), 'observe': True}}
+        status, report = execution.execute(root, registry, [path], profiles, heavy=wrapper)
+        self.assertEqual(status, execution.NOT_COVERED)
+        entry = report['checkers'][0]
+        self.assertEqual(entry['row_results'], {
+            'OVL_0033_012B': 'AGREE', 'OVL_0033_01AD': 'AGREE',
+            'OVL_03BD_0350': 'NOT_COVERED', 'OVL_03BD_047B': 'NOT_COVERED'})
+        self.assertEqual(entry['coverage_source'], 'stdout')
 
     def test_other_per_key_checkers_declare_a_real_single_unit(self):
         import u33_place_search_1577_audit as place
