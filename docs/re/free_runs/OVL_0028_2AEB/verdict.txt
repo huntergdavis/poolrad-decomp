@@ -1,0 +1,6 @@
+body: OVL_0028_2AEB
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+citations gate: exit 1
+   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.
+bytes gate: exit 0
+   BYTES MATCH: 16 bytes at 38847 are byte-identical to GAME.OVR.
