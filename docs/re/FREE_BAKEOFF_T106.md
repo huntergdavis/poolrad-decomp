@@ -1,34 +1,63 @@
 # t106 bounded free-model bake-off
 
-Run 2026-10-27 in the `free_bakeoff.sh` sandbox on two bodies whose verified C
-exists on main: `OVL_0025_0136` (GAME.OVR offset 30217, 128 bytes) and
-`OVL_0025_06AF` (offset 31618, 36 bytes). Five candidate free models, 10 runs,
-parallel 3, 600 s per run. The systemd free pool was **not** restarted; the
-harness calls the models directly.
+## Result: the 2026-10-27 run is INVALID as a model score
 
-| Model | 0136 | 06AF |
+Run dir:
+`/home/hunter/workspace/vp-of-agentry-wt-themes2/data/bakeoff/20261027-180647`
+(`results.tsv` plus 10 `.md`/`.err`/`.check` triples). Five candidate models,
+two verified-C bodies (`OVL_0025_0136` at GAME.OVR 30217/128 B and
+`OVL_0025_06AF` at 31618/36 B), 10 runs, parallel 3. The systemd free pool was
+not restarted (`poolrad-free-pool` and `poolrad-free-trial` are inactive).
+
+The raw files show two tool/provider failures, not a model result:
+
+- **EMPTY (flint 2, xing 2): upstream 429.** The report `.md` is 0 bytes and
+  `.err` carries the OpenRouter JSON: "temporarily rate-limited upstream"
+  (providers Recursive and Phala).
+- **OFFSET UNRESOLVED / DIFFERS (inkling 2, north 2, nemotron 2): GAME.OVR is
+  absent in the sandbox.** The reports are non-empty and compute the correct
+  offsets (30217/31618), then state that
+  `resources/DOS/POOLRAD/GAME.OVR` is missing/the symlink dangles and they
+  cannot quote a dump; nemotron reconstructs bytes from recovered C and the
+  judge sees a gap/overlap. The invocation used
+  `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is not
+  visible inside the free sandbox.
+
+Therefore the current judge's 0/10 is **not** evidence that the models cannot
+decode these bodies. The run must be repeated with a media-accessible repo and
+429 retries before any model comparison is drawn.
+
+## Earlier receipts with media accessible (not re-run)
+
+`/home/hunter/workspace/vp-of-agentry/data/bakeoff/20261024-213551/results.tsv`
+and its per-run reports:
+
+| Model | `OVL_0025_06AF` (36 B) | `OVL_0025_0136` (128 B) |
 | --- | --- | --- |
-| `recursive/flint-v1.0:free` | EMPTY | EMPTY |
-| `thinkingmachines/inkling:free` | OFFSET UNRESOLVED | OFFSET UNRESOLVED |
-| `cohere/north-mini-code:free` | OFFSET UNRESOLVED | OFFSET UNRESOLVED |
-| `nvidia/nemotron-3.5-super-vl:free` | OFFSET UNRESOLVED | BYTES DIFFER |
+| `recursive/flint-v1.0:free` | VERIFIED 16 B (prefix) | VERIFIED 128 B (full) |
+| `thinkingmachines/inkling:free` | VERIFIED 36 B (full) | VERIFIED 6 B (prefix) |
+| `cohere/north-mini-code:free` | VERIFIED 36 B (full) | VERIFIED 16 B (prefix) |
+| `nvidia/nemotron-3.5-super-vl:free` | VERIFIED 16 B (prefix) | NO DUMP |
 | `xingchen-agi/xing4.0-29b-a4b:free` | EMPTY | EMPTY |
 
-**Verified under the current strict byte judge: 0/10.** No body produced a
-byte-identical dump in this run.
+These came from the 2026-10-24 checker and are the reason the 2026-10-27 run
+cannot be read as a model regression.
 
-## What this does and does not test
+## Harness and evidence
 
-- The harness checks a quoted dump at the body offset and scores byte identity;
-  it does **not** compile a C draft, so the task's "compiles" criterion is not
-  reached here.
-- Earlier flint runs (2026-10-24, older checker) scored `OVL_0025_06AF` and
-  `OVL_0025_0136` VERIFIED. The current strict checker rejects the 2026-10-27
-  reports (empty, or an offset/dump declaration it cannot resolve); this is a
-  model-output/harness result, not a claim that flint cannot decode these
-  bodies.
-- The unresolved-offset rows did argue about the unit/offset in prose but did
-  not provide the single requested `FILE OFFSET: <decimal> (0x<hex>)` and a
-  quoted dump in the accepted form.
-- Limits: two bodies, one run each, no independent reviewer, no C compile, no
-  whole-body/parity/credit claim. The free pool stays stopped.
+- `free_bakeoff.sh` SHA-256 `3230c0b6d3cd706ada5cf15177a401f6da642ab3c7b67f41fde92522f602d1d9`
+  (prompt: `PROMPT_FOR`, lines 20-30)
+- `free_sandbox.sh` SHA-256 `a2dd6085fab12cc909a61c35bf4f536dd646d5d632c5257540af2cadd5323167`
+- current strict judge `free_body_check.py` SHA-256
+  `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`
+- citation judge `free_verify_citations.py` SHA-256
+  `d7c6b9005f81f0aec00f98023b65dceae59c46040c80db4f3b315732318061f4`
+- invocation: `POOLRAD_REPO=/tmp/opencode/t40-wt tools/free_bakeoff.sh "<5 models>" "OVL_0025_0136:30217:128 OVL_0025_06AF:31618:36" 3`
+
+## Limits / not verified
+
+- The 2026-10-27 run is invalid for model scoring; no valid re-run was done.
+- The 2026-10-24 receipts were not re-run under the current strict checker.
+- The harness scores a quoted dump; it does not compile a C draft, so
+  "compiles" is not tested.
+- No pool restart, no credit, no whole-body/native/parity claim.
