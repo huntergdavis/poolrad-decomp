@@ -5,6 +5,14 @@
   "tests/recovered/check_overlay_u38_link_roll_2b20.py": {
     "args": []
   },
+  "tests/recovered/check_overlay_u38_roll_dispatch_16e6.py": {
+    "args": [
+      "--mutants"
+    ],
+    "rows": [
+      "OVL_0038_16E6"
+    ]
+  },
   "tests/recovered/check_overlay_u38_target_mask81_25bc.py": {
     "args": []
   },

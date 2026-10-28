@@ -3,7 +3,8 @@
 `OVL_0038_16E6` is a new **bounded translation**, not a composed function or a
 strict-credit claim. The source is `overlay_u38_roll_dispatch_16e6.c`; the checker
 is `check_overlay_u38_roll_dispatch_16e6.py`, declaring this exact CHECKER_ROWS
-identity. Accounting and credit tables are intentionally unchanged.
+identity. Credit and function-accounting tables are intentionally unchanged. Required execution,
+aperture, and flag-semantics metadata each gain one entry for the new model.
 
 ## Original identity and boundaries
 
@@ -53,7 +54,8 @@ fixup, decoded instruction count, call sites, and return. It rejects one-byte
 truncation, one-instruction extension, and a changed call operand. It compares
 compiled C with original-byte Unicorn execution independently over each phase,
 stopping **before** either callee executes. Every comparison covers all 14 CPU
-words and all 1 MiB RAM, without masks. Cases cover all 256 incoming roll-result
+words and all 1 MiB RAM, without masks. FLAGS are read at the stop state, before
+any further instruction or callee executes. Cases cover all 256 incoming roll-result
 bytes, dirty AH/flags, relocated wrapper and roll segments, stack-offset wrap,
 and independent return frames. Physical 1 MiB word wrap has a separately labelled
 synthetic contract check; it is not counted as an original-byte Unicorn case.
@@ -94,6 +96,21 @@ Heavy ticket 984 passed on `b3ecd4242a39ec077040f2ef75154d0ad642b8c6`: 704 origi
 | `resume_at_callee` | `callee_resume_refused` |
 | `return_cleanup` | `phase_2_cpu_sp:0010!=0012` |
 
+The registered media-free build mode and all 704 comparisons/17 mutants also
+passed at `231c364cfe606f66d465843955ebfa082f5641ab` (ticket 986). Its full
+483-test media suite failed three missing-metadata checks: aperture row, execution
+profile, and flag census row. This change supplies those entries; that failed run
+is retained separately and is not represented as a passing final gate.
+
+The flag row is explicitly **partial / phase-stops-only**. Hand-reading pinned
+DOSBox-X `5a9c7c53481c2e933948039c33256776653f4faf`, `src/cpu/flags.cpp`
+504–514 and 532–539 confirms the stored ADDw rule used here. Lazy word parity
+(469–478) uses the whole word, unlike stored low-byte parity. This wrapper has no
+flag-dependent branch between ADD and its stop. No instruction-by-instruction
+XOR checkpoint or native comparison is claimed. The aperture census records
+flat RAM with no aperture observability; the differential does not test EGA
+planes, latches, or device bus behavior.
+
 The ordered full-state result digest is `c0ab40453b8f6f3d85b957b498dfce8e9595f801d953125d8bd0cd0a237a7a5c`. Private receipt: `resources/t6-u38-16e6/check.json`; no original or derived media is committed.
 
-**Not verified:** real roll or U38+15EB execution/effects, native DOS execution, full composed-function parity, live dispatcher arrival, or strict credit. The full discovered media suite is a separate integration gate, not evidence that either missing callee ran.
+**Not verified:** real roll or U38+15EB execution/effects, native DOS execution, full composed-function parity, live dispatcher arrival, or strict credit, or EGA aperture behavior. The full discovered media suite is a separate integration gate, not evidence that either missing callee ran.

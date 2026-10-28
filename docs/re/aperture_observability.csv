@@ -141,6 +141,7 @@ overlay_u38_record_roll_2d38.c,flat,no,no
 overlay_u38_roll_append_1730_cpu.c,flat,no,no
 overlay_u38_roll_clear_2de4_cpu.c,flat,no,no
 overlay_u38_roll_dispatch_1699.c,flat,no,no
+overlay_u38_roll_dispatch_16e6.c,flat,no,no
 overlay_u38_roll_effect_27d9_cpu.c,flat,no,no
 overlay_u38_roll_gate_2915_cpu.c,flat,no,no
 overlay_u38_sidecar_1472_cpu.c,flat,no,no
