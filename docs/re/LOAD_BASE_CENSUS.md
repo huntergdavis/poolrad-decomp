@@ -23,10 +23,50 @@ regex allowed one leading zero and `overlay_u38_sidecar_flag_0918.c:118` reads `
 therefore wrong in circulation: **four models, seven sites** (0DE3/0E0E 1, 1010 3, 0918 1, 275B 2), and the census below later
 added `0FDE` (`cs = 0x00B0u`), making **five models and eight sites**.
 `tools/overlay/load_base_census.py` is a different thing from that regex: it reads **every** assignment to a `cs` field in
-`src/recovered/*.c`, whatever the width of the literal, and also resolves a macro defined as a hex literal. It fails closed on
-any site not on a short allowlist. Run on the tree before the fixes it finds exactly: `overlay_0077_275b_cpu.c` (2),
+`src/recovered/*.c`, whatever the width of the literal, and also treats an uppercase identifier as a candidate constant (a macro name, whether defined in this file or in a
+header it does not read). It fails closed on any site whose file, statement, value and occurrence count are not on the
+per-site allowlist. Run on the tree before the fixes it finds exactly: `overlay_0077_275b_cpu.c` (2),
 `overlay_u38_sidecar_flag_0918.c` (1), `overlay_u7f_caller_1010.c` (3), `overlay_u7f_roll_call_0fde.c` (1), plus the three
 allowed native-capture sites below (and `0E0E`, which par-c had already fixed in #1376).
+
+## The allowlist is per SITE, not per file (VP policy, 2026-10-27)
+
+A constant `cs` assignment is allowed only when the **exact site** matches an entry: the file, the **enclosing function**,
+the normalised statement, the **resolved value** it assigns (an in-file macro is expanded, so redefining `SYSTEM_SEG` from
+`0x131C` to `0x0AF8` is a finding), and its occurrence count. Three classes exist today, and each entry has to say which one
+it is:
+
+1. **Captured-runtime native model** — `resident_464_2632_run014.c` (twice, `cpu->cs = 0x131Cu;`) and
+   `slot_a_directory_fullstate.c` (`c->cs = SYSTEM_SEG;`, `SYSTEM_SEG` is `0x131C` in that file). The segment is the
+   runtime value of one captured run, so the constant *is* the contract.
+2. **Explicit load-zero composition** — `overlay_u6c_2033_cpu.c` (`composed.cs = 0x00BAu;`). The 006C body composes the
+   accepted `RES_00BA:0973` model, whose contract is load-zero only, and its guard requires the five operand bytes
+   `9A 73 09 BA 00` at `2065h` before this assignment. The constant is the documented composition segment, not a silent
+   assumption about a relocated load. The site arrived with `d7709238` ("Model OVL_006C_2033 … (t182 step 2)"), merged as
+   #1610 `49d14524`.
+3. **Unresolvable macro** — never allowed implicitly. An uppercase identifier on the right of `cs =` is reported even when
+   it is `#define`d in a header the scanner does not read, so a named constant cannot hide an expected site. (The generic
+   scanner side of this is tracked as t329; here it is what keeps the composition site visible.)
+
+Because the key is the site, these are **findings, not passes**, and each has a focused control:
+
+| Control | Result |
+| --- | --- |
+| expected site's value changed (`0x00BA` -> `0x0AF8`) | `CONSTANT-CS … [not an allowed site]` + `COUNT … found 0`, exit 1 |
+| expected site's macro redefined (`SYSTEM_SEG` `0x131C` -> `0x0AF8`) | `CONSTANT-CS … [value 0x0AF8 != allowed 0x131C]`, exit 1 |
+| extra `cs =` constant in an allowed file, including `cpus[0].cs = …` | `CONSTANT-CS` at the new line, exit 1 |
+| the expected statement duplicated | both occurrences `CONSTANT-CS`, `COUNT … found 2`, exit 1 |
+| the expected site missing, or moved to another function | `COUNT … found 0` and/or `CONSTANT-CS … (other-function)`, exit 1 |
+| the expected site replaced by a header-defined macro name | `CONSTANT-CS … [unresolved macro …]`, exit 1 |
+
+Every control runs from a **complete valid fixture** — the committed `src/recovered` tree, symlinked — with exactly one
+mutation applied, so a red result is caused by the mutation and not by an incomplete tree (the diagnostics name the file,
+line, enclosing function, value and reason). An uppercase identifier whose `#define` is not in the same file is reported by
+name as `[unresolved macro …]`; the generic scanner side stays with t329.
+
+Baseline before the repair: `4 constant-CS assignments, 1 not allowed` (the 006C site). After: `4 constant-CS
+assignments, 0 not allowed`, with the site still visible in the output. No runtime input, refusal path or model behaviour
+changed by this policy: the 006C C, header and model document are byte-identical to `ccacd330`.
 
 ## Two mechanisms, because a moved base alone cannot see a callee that ignores its CS
 
