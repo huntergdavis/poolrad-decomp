@@ -688,7 +688,9 @@
     "observe": true,
     "rows": [
       "OVL_0033_012B",
-      "OVL_0033_01AD"
+      "OVL_0033_01AD",
+      "OVL_03BD_0350",
+      "OVL_03BD_047B"
     ]
   },
   "tools/overlay/u33_grid_driver_11b4_audit.py": {

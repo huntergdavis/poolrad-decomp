@@ -158,3 +158,48 @@ The audit now declares the split through the shared `tools/overlay/pinned_shift_
 Run (PR #1446, `--unicorn`), per body: `+012B` **1,212** cases, split used at **0** stops; `+01AD` **1,212**, **0**; `+0350` **3,268**, **366** (all after a shift); `+047B` **3,268**, **264** (all after a shift). Every body: full 1 MiB RAM and 13 CPU words equal, all instruction starts and conditional outcomes covered.
 
 **Per-credit sentences: OVL_0033_012B and OVL_0033_01AD never needed the split** (their evidence is exact). **OVL_03BD_0350 and OVL_03BD_047B: evidence did not depend on AF after a shift**; those stops hold C to AF=1 and every other stop is exact. All four credits stand.
+
+## Row registration for the folded 03BD entries (2026-10-27, t190)
+
+Before this change the folded entries were **executed but unmarked**: the
+differential ran `+0350` and `+047B` as direct targets, yet
+`u33_cell_lookup_012b_audit.py` declared `CHECKER_ROWS` for `+012B`/`+01AD`
+only, so `discover()` never registered the two 03BD rows. Measured negative
+control on unmodified main `57764669`:
+
+```sh
+python3 tools/overlay/check_checker_builds.py --execute OVL_03BD_0350
+# CANNOT_RUN: unregistered row(s); handoff blocked: OVL_03BD_0350
+```
+
+The checker now declares `OVL_0033_012B`, `OVL_0033_01AD`,
+`OVL_03BD_0350` and `OVL_03BD_047B` in `CHECKER_ROWS`, and the profile
+`tools/overlay/checker_execution_profiles.json` lists the same four rows with
+`observe: true`. Agreement for either 03BD row therefore requires that body's
+own `ROW_EXECUTED ... PASS` marker, printed only after its differential
+completed; a body that did not run yields `NOT_COVERED`, not agreement.
+
+Measured at the same head with `--unicorn` (heavy slot, no `--quick`):
+
+| Body | Bytes / insns | Cases | Pinned-split stops | Instruction starts | Conditional outcomes |
+| --- | --- | ---: | ---: | ---: | ---: |
+| `+012B` | 130 / 49 | 1,212 | 0 | 49/49 | 18/18 |
+| `+01AD` | 116 / 54 | 1,212 | 0 | 54/54 | 0/0 |
+| `+0350` | 299 / 120 | 3,268 | 366 (shift) | 120/120 | 24/24 |
+| `+047B` | 255 / 103 | 3,268 | 630 (shift) | 103/103 | 22/22 |
+
+Every body compared the full 1 MiB RAM and 13 CPU words; the `+031F` leaf is
+the merged `ab4d7f5e...` model. The registry execution gate then reports
+`AGREE` for all four rows:
+
+```sh
+python3 tools/overlay/check_checker_builds.py --execute OVL_03BD_0350
+# AGREE OVL_0033_012B / OVL_0033_01AD / OVL_03BD_0350 / OVL_03BD_047B
+```
+
+What this does **not** establish: no new native run is claimed here; the
+`+047B` pinned-split stop count recorded above (630) is not the 264 printed in
+the PR #1446 note earlier in this document, and the difference was not
+investigated; gameplay reach, ownership and the credit evidence kind are
+unchanged by registration. Registration moves these rows from "callee-only,
+unmarked" to "marked when this checker's differential runs", nothing more.
