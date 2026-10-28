@@ -21,8 +21,11 @@ individually, and the inventory is provenance only.
 
 ## Approved changes
 
-The PM explicitly approved each listed +1 identity/+1 strict-C change after
-merge. Passing tests alone never promotes an original.
+Before 2026-10-26, the owner/PM approved +1 identity/+1 strict-C changes after
+merge. On 2026-10-26, the owner delegated that approval to the VP, mailbox
+`π - vp-of-agentry`: owner message #1962, "The VP approves these, not me."
+The delegation applies from that date; the evidence standard below still
+applies. Passing tests alone never promotes an original.
 
 | Original | Review and exact merge | Complete body | Evidence |
 | --- | --- | --- | --- |
@@ -170,11 +173,70 @@ explicit historical expectations. They do not describe the current totals.
 The queue exporter can bind the reviewed identity CSV with
 `--reviewed-identities`; the owner-media audit always binds it.
 
+## Evidence standard for a +1
+
+Each proposed +1 identity or +1 strict-C approval requires:
+
+- A merged evidence PR, identified by PR number and exact merge commit.
+- A `run_media_checks` PASS on the exact main commit being considered, with
+  that commit and the receipt path recorded in the packet's linked evidence.
+  Pre-merge exact-head receipts gate the merge; the exact-main receipt gates
+  the approval; the packet records both.
+- An independent source/ownership read, naming the reader and linking the
+  verdict on the proposed body and its evidence.
+- An identity determination under the repository's
+  [two-factor identity rule](REVIEW_LANE_HANDOFF.md#identity-standard-two-factor-adopted-2026-10-20):
+  reached from evidenced game code and operating on documented game state,
+  with the rule's caller-extent and relocation requirements satisfied.
+  State historical provenance explicitly as **resolved** or **unresolved**,
+  with supporting evidence and remaining limits; test parity alone is not
+  historical provenance.
+
+The protected accounting files `strict_full_c_addresses.csv`,
+`reviewed_function_identities.csv`, and `function_accounting_checkpoint.json`
+are edited only by a small accounting PR with an independent read of that
+diff. The VP's approval and the accounting diff must refer to the same exact
+row changes. Authors do not approve their own credit or merge their own PRs.
+
+### Fixed approval packet form
+
+Use these six fields for every proposed approval, linking the evidence above.
+This is an unfilled template, not an approval:
+
+```text
+Function: <canonical original ID; requested +1 identity and/or +1 strict-C>
+Body: <C source path/symbol; evidence PR and exact merge; independent verdict>
+Offset/length: <original artifact identity, offset and complete body length>
+Byte-identity evidence: <body SHA-256 and extraction/evidence links; exact-main PASS commit and receipt; two-factor determination; historical provenance resolved/unresolved>
+What was NOT verified: <explicit limits and unresolved provenance or behavior>
+Exact row(s) that change: <file, row key and before/after values for every proposed accounting change>
+```
+
+## Approvals and corrections ledger
+
+Record delegated approvals from 2026-10-26 here. This documentation change
+grants no approval and adds no approval or correction row; the historical
+approval records above remain unchanged.
+
+### Approvals
+
+| Date | Original | PR/merge | Packet link | Approver |
+| --- | --- | --- | --- | --- |
+
+### Corrections to granted credits
+
+| Date | Original | What changed | Who found it |
+| --- | --- | --- | --- |
+
+Any non-zero correction means a second reader is added before the next
+approval. Approvals per day are counted from the Approvals table.
+
 ## Apply the next approved change
 
-Use one PM-approved record per run. `original_id` must be a canonical queue
-ID or an exact alias already present in the queue. An example record for the
-second change above is:
+Use one VP-approved record per run under the delegated approval procedure
+above. `original_id` must be a canonical queue ID or an exact alias already
+present in the queue. The historical PM-approved record for the second
+change above is:
 
 ```json
 {

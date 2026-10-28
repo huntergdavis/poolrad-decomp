@@ -3,6 +3,8 @@ Adapted from system_freemem_0254_native.py; executes the original resident body.
 Captures return or FreeMem RunError entry: CPU14, SS1KiB, DS64KiB, heap64KiB.
 """
 import ctypes
+from native_emulator_provenance import describe_dosbox
+# NOT_A_ROW_CHECKER: native companion for res0464_bitmap_release_2595_audit.py.
 from hashlib import sha256
 import os
 import random
@@ -34,6 +36,7 @@ def fixture(case,span,body,segment=0x0814,returned=0):
     return m,cpu
 
 def native_audit(body,image,function):
+    dosbox_x=describe_dosbox('dosbox-x')
     directory=ROOT/'resources/oracle-runs/res0464-2595-synthetic';directory.mkdir(parents=True,exist_ok=True)
     span=image[physical(SYSTEM,0):physical(SYSTEM,0x500)]
     specs=cases();inputs=bytearray()
@@ -88,7 +91,7 @@ def native_audit(body,image,function):
     output=directory/'RESULT.BIN'
     if output.exists():output.unlink()
     with (directory/'dosbox.log').open('w') as log:
-        subprocess.run(['dosbox-x','-conf',str(config),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
+        subprocess.run([dosbox_x['path'],'-conf',str(config),'-fastlaunch','-exit','-noconsole'],env=dict(os.environ,SDL_VIDEODRIVER='dummy',SDL_AUDIODRIVER='dummy'),stdout=log,stderr=subprocess.STDOUT,check=True,timeout=300)
     result=output.read_bytes();check(len(result)==8+len(specs)*RECORD,f'incomplete native output {len(result)}')
     segment,returned,count,_=struct.unpack_from('<4H',result);check(segment==0x0814 and count==len(specs),'native header differs')
     stops={}
@@ -106,5 +109,5 @@ def native_audit(body,image,function):
             diff=[i for i,(a,b) in enumerate(zip(actual,record[30:])) if a!=b]
             raise ValueError(f'native case {j} RAM mismatch {[(hex(i),actual[i],record[30+i]) for i in diff[:8]]}; {len(diff)} bytes')
         name='return' if status==0 else 'RunError204';stops[name]=stops.get(name,0)+1
-    report=dict(cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')
+    report=dict(dosbox_x=dosbox_x,cases=len(specs),stops=stops,cpu_words=14,masked_bits=0,stack_bytes=WINDOW,ds_bytes=65536,heap_bytes=65536,result_sha256=sha256(result).hexdigest(),com_segment=f'{segment:04X}')
     print('Native parity:',report,flush=True);return report
