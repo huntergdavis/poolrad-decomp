@@ -1,0 +1,6 @@
+body: OVL_0966_0C37
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+citations gate: exit 1
+   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.
+bytes gate: exit 1
+   BYTES DIFFER: first difference at +0 (offset 3127): file b0, claimed e7.

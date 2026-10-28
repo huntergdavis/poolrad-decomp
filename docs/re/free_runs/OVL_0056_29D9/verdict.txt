@@ -1,0 +1,6 @@
+body: OVL_0056_29D9
+model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
+citations gate: exit 1
+   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.
+bytes gate: exit 1
+   OFFSET UNRESOLVED: 16 bytes claimed, no file offset found.

@@ -1,0 +1,6 @@
+body: OVL_0056_2901
+model: opencode-go/gemini-4-argon-contributor
+citations gate: exit 1
+   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.
+bytes gate: exit 0
+   BYTES MATCH: 16 bytes at 71004 are byte-identical to GAME.OVR.
