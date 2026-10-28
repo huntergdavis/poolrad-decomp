@@ -103,7 +103,180 @@
         133351
       ],
       "original_sha256": "fca044816e1c6362372fc11e55d2774f9607e38e818b38cb95c362d142af25ae",
-      "replacement_sha256": "69548583e73e4ceb67249769ea2ff367b2fb68c0020f9618bc0b17bfd20b8dd7"
+      "replacement_sha256": "69548583e73e4ceb67249769ea2ff367b2fb68c0020f9618bc0b17bfd20b8dd7",
+      "localization": {
+        "status": "classified",
+        "model": "poolrad-v1.3-observed-1264:02fd-layout",
+        "masked_bytes": 0,
+        "total_differing_bytes": 137,
+        "range_convention": "physical [start, end), bytes",
+        "regions": {
+          "bios_timer": [
+            1132,
+            1136
+          ],
+          "randseed": [
+            101928,
+            101932
+          ],
+          "stack_below_sp": [
+            119136,
+            135012
+          ],
+          "stack_at_or_above_sp": [
+            135012,
+            135520
+          ]
+        },
+        "categories": {
+          "bios_timer": {
+            "differing_bytes": 2,
+            "ranges": [
+              [
+                1132,
+                1134
+              ]
+            ]
+          },
+          "randseed": {
+            "differing_bytes": 4,
+            "ranges": [
+              [
+                101928,
+                101932
+              ]
+            ]
+          },
+          "stack_below_sp": {
+            "differing_bytes": 125,
+            "ranges": [
+              [
+                130820,
+                130822
+              ],
+              [
+                131796,
+                131797
+              ],
+              [
+                131803,
+                131806
+              ],
+              [
+                131884,
+                131888
+              ],
+              [
+                132430,
+                132431
+              ],
+              [
+                132434,
+                132444
+              ],
+              [
+                133344,
+                133345
+              ],
+              [
+                133346,
+                133347
+              ],
+              [
+                133348,
+                133350
+              ],
+              [
+                133351,
+                133358
+              ],
+              [
+                133512,
+                133516
+              ],
+              [
+                133694,
+                133710
+              ],
+              [
+                133772,
+                133774
+              ],
+              [
+                133775,
+                133786
+              ],
+              [
+                134230,
+                134232
+              ],
+              [
+                134241,
+                134257
+              ],
+              [
+                134258,
+                134261
+              ],
+              [
+                134262,
+                134266
+              ],
+              [
+                134848,
+                134860
+              ],
+              [
+                134950,
+                134959
+              ],
+              [
+                134960,
+                134962
+              ],
+              [
+                134968,
+                134969
+              ],
+              [
+                134994,
+                134996
+              ],
+              [
+                134997,
+                135006
+              ]
+            ]
+          },
+          "stack_at_or_above_sp": {
+            "differing_bytes": 6,
+            "ranges": [
+              [
+                135065,
+                135067
+              ],
+              [
+                135069,
+                135071
+              ],
+              [
+                135073,
+                135075
+              ]
+            ]
+          },
+          "unclassified": {
+            "differing_bytes": 0,
+            "ranges": []
+          }
+        },
+        "scope": "Address membership only; no first-writer, cause, liveness, or semantic-equivalence conclusion. Unknown images/layouts stay unclassified.",
+        "sources": [
+          "DOSBox-X 5a9c7c53 include/bios.h: BIOS_TIMER; src/ints/bios.cpp: INT8_Handler",
+          "docs/re/RANDOM_GENERATOR.md: RandSeed DS:4428..442B",
+          "docs/re/REVIEW_LANE_HANDOFF.md: EXEPACK SS:SP=14F2:4000 and stack-geometry limits"
+        ]
+      }
     },
     "vram": {
       "bytes": 2097152,
