@@ -6,16 +6,18 @@ A free model writes confidently. Its first observed report on 2026-10-23 opened 
 `src/recovered/ovl_0025_06af.c`) plus an objdump command with an invented overlay base.
 The prose was well formatted, correctly shaped, and wrong.
 
-So a free report is a DRAFT until every path it names exists and every address it names
-is inside the body under discussion. This tool answers exactly that, and nothing else:
+So a free report is a DRAFT until every path it names exists. This tool answers exactly
+that, and nothing else:
 
   * every path-like token in the report  -> exists? (relative to the repo root)
-  * every 0xNNNN / NN:NNNN address token  -> inside the body's declared extent?
+  * every 0xNNNN / NN:NNNN address token  -> REPORTED against the body's declared extent;
+    an outside address is printed but does not by itself change the verdict.
 
 It does not judge correctness of reasoning, and it must not be read as an endorsement:
 "citations all resolve" means the report is worth reading, not that it is right.
 
-Exit codes: 0 all citations resolve, 1 at least one is false, 2 usage/body-parse error.
+Exit codes: 0 at least one path was checked and all resolve; 1 a path is missing or
+there is nothing checkable; 2 usage/body-parse error.
 """
 from __future__ import annotations
 
@@ -86,6 +88,7 @@ def main(argv: list[str]) -> int:
             print("   VERDICT: FABRICATED CITATIONS - do not read the prose as evidence.")
         elif not paths:
             print("   VERDICT: NO CHECKABLE CITATIONS - treat as prose, not evidence.")
+            bad += 1
         else:
             print("   VERDICT: citations resolve. Worth reading; NOT an endorsement of the reasoning.")
     return 1 if bad else 0

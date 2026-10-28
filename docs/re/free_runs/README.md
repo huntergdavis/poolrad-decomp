@@ -8,7 +8,7 @@ The checkers are copied from
 `/home/hunter/workspace/vp-of-agentry-wt-themes2/tools/` (2026-10-25):
 
 - `tools/free/free_verify_citations.py` — SHA-256
-  `d7c6b9005f81f0aec00f98023b65dceae59c46040c80db4f3b315732318061f4`
+  `c9880a32fd5e3552685c372e0a74f189d553bf2f87ec9fe03a4773d1b088c116`
 - `tools/free/free_body_check.py` — SHA-256
   `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`
 

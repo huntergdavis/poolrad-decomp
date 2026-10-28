@@ -26,7 +26,7 @@ draft. This is a measurement; it grants no credit and makes no whole-game claim.
 - `docs/re/free_runs/MANIFEST.tsv`: body, model, verdict line and SHA-256 of
   every copied file.
 - `tools/free/free_verify_citations.py`
-  (`d7c6b9005f81f0aec00f98023b65dceae59c46040c80db4f3b315732318061f4`) and
+  (`c9880a32fd5e3552685c372e0a74f189d553bf2f87ec9fe03a4773d1b088c116`) and
   `tools/free/free_body_check.py`
   (`7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`),
   copied from `/home/hunter/workspace/vp-of-agentry-wt-themes2/tools/`
