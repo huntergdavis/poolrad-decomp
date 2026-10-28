@@ -321,7 +321,13 @@ def path_origin(path, root, base):
         return unknown + " (no Git comparison history)"
     if git(root, "rev-parse", "--is-shallow-repository") != "false\n":
         return unknown + " (history unavailable or shallow)"
-    if base.text(path) is not None:
+    # Blob reads cannot establish absence: git show also fails for a missing
+    # object. Require a successful tree query before declaring this path new.
+    membership = git(root, "--literal-pathspecs", "ls-tree", "--name-only", "-z",
+                     base.rev, "--", path)
+    if membership is None:
+        return unknown + " (comparison base tree unavailable)"
+    if membership:
         return unknown + " (path already exists at comparison base)"
     if git(root, "diff", "--name-only", "HEAD", "--", path) != "":
         return unknown + " (uncommitted change or history unavailable)"
@@ -330,7 +336,9 @@ def path_origin(path, root, base):
     # Keep rename detection enabled: a rename must not masquerade as an addition.
     history = git(root, "log", "--full-history", "--find-renames", "--diff-filter=A",
                   "--format=%H", f"{base.rev}..HEAD", "--", path)
-    commits = history.splitlines() if history is not None else []
+    if history is None:
+        return unknown + " (addition history query failed)"
+    commits = history.splitlines()
     if len(commits) != 1:
         return unknown + " (no unique addition in comparison range)"
     commit = commits[0]

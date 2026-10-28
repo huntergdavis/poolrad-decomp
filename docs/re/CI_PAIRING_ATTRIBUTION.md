@@ -15,8 +15,10 @@ decisions, evidence-note rules, exemptions and exit status are unchanged.
 path caused each reason, or that the addition introduced every defect. Existing
 base paths, uncommitted changes, deleted paths, renames that Git recognizes,
 multiple additions, merge additions, shallow history and unavailable history
-are reported as unknown rather than attributed to the tip. Git rename detection
-is heuristic; heavily rewritten moves may appear as additions. This reports
+are reported as unknown rather than attributed to the tip. Path absence requires
+a successful base-tree membership query: a missing blob is not evidence of an
+absent path. An unavailable base tree is unknown. Git rename detection is
+heuristic; heavily rewritten moves may appear as additions. This reports
 path history, not original authorship or semantic defect introduction.
 
 PR mapping is explicitly `unknown`: local Git history does not establish GitHub

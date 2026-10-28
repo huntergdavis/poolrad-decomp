@@ -434,6 +434,27 @@ class PathOriginTest(unittest.TestCase):
         self.write(AUDIT, "# uncommitted change\n")
         self.assertIn("unknown (uncommitted change", self.origin())
 
+    def test_missing_base_blob_does_not_turn_existing_path_into_addition(self):
+        # Reviewer %30's counterexample: alter only this temporary fixture's
+        # loose object store. The base tree still proves path membership.
+        self.base = self.introduction
+        blob = self.git("rev-parse", f"{self.base}:{AUDIT}")
+        (self.root / AUDIT).unlink()
+        self.commit("Delete existing base checker")
+        self.write(AUDIT, "# different replacement checker\n")
+        self.commit("Re-add checker")
+        expected = "added-in=unknown (path already exists at comparison base)"
+        self.assertEqual(self.origin(), expected)
+        (self.root / ".git/objects" / blob[:2] / blob[2:]).unlink()
+        self.assertIsNone(gate.Base.from_git(self.base, str(self.root)).text(AUDIT))
+        self.assertEqual(self.git("ls-tree", "--name-only", self.base, "--", AUDIT), AUDIT)
+        self.assertEqual(self.origin(), expected)
+
+    def test_unavailable_base_tree_is_not_absence(self):
+        tree = self.git("rev-parse", self.base + "^{tree}")
+        (self.root / ".git/objects" / tree[:2] / tree[2:]).unlink()
+        self.assertEqual(self.origin(), "added-in=unknown (comparison base tree unavailable)")
+
     def test_delete_and_readd_does_not_guess_between_additions(self):
         (self.root / AUDIT).unlink()
         self.commit("Remove checker")
