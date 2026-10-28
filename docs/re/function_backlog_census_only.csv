@@ -1,0 +1,8 @@
+id,kind,evidence_state,strict_full_c,authority,evidence
+OVL_0016_0042,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 1",heap-error callback via DS:4414
+OVL_0016_00AC,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 1",unit initialization via resident stub
+RES_08AE_13EA,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 2",INT 08h vector installed by RES_08AE_137C
+RES_08AE_1477,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 2",timer-handler near helper
+RES_08AE_14EC,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 2",timer-handler near helper
+RES_08AE_157A,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 2",timer-handler near helper
+RES_08AE_160B,callable,address_only,0,"docs/re/FUNCTION_CEILING_CENSUS.md:Corrections to the queue, item 2",timer-handler near helper (table labels are interior)

@@ -1,4 +1,7 @@
 """Original +02FA groups under DOSBox-X normal/386; explicit pre-handler trap."""
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/u9e_sidecar_groups_02fa_cpu_audit.py --native through poolrad-heavy.sh.")
 # NOT_A_ROW_CHECKER: native helper imported by u9e_sidecar_groups_02fa_cpu_audit.py --native; this companion is not the row-checker entry point.
 from native_emulator_provenance import describe_dosbox
 from loaded_stub_fixtures import loaded_sites
