@@ -1,0 +1,46 @@
+id,domain,addr,ingress,grade,cls_ledger,bound,decoded,insns,ret,callers,checkability,evidence_state
+OVL_001C_0001,overlay,0x1c:0x0001,near_called=2,B,state,243,243,91,retf,entry=0;far=0;near=2,mechanically-checkable,disassembled
+OVL_001C_0126,overlay,0x1c:0x0126,near_called=1,B,state,125,125,50,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_01A3,overlay,0x1c:0x01a3,near_called=1,B,state,145,145,57,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0234,overlay,0x1c:0x0234,near_called=1,B,state,94,94,35,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0292,overlay,0x1c:0x0292,near_called=1,B,state,78,78,30,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_02E0,overlay,0x1c:0x02e0,near_called=1,B,state,212,212,70,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_03B4,overlay,0x1c:0x03b4,near_called=1,B,state,156,156,56,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0450,overlay,0x1c:0x0450,near_called=1,B,state,967,967,306,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0817,overlay,0x1c:0x0817,near_called=1,B,state,63,63,25,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0856,overlay,0x1c:0x0856,near_called=1,B,state,251,251,91,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0951,overlay,0x1c:0x0951,near_called=1,B,state,67,67,27,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0994,overlay,0x1c:0x0994,near_called=1,B,state,117,117,49,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0A09,overlay,0x1c:0x0a09,near_called=1,B,state,150,150,65,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0BD1,overlay,0x1c:0x0bd1,near_called=1,B,state,163,163,66,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0C74,overlay,0x1c:0x0c74,near_called=1,B,state,379,379,129,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0DEF,overlay,0x1c:0x0def,near_called=1,B,state,111,111,43,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0E5E,overlay,0x1c:0x0e5e,near_called=1,B,state,94,94,35,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_0EBC,overlay,0x1c:0x0ebc,near_called=1,B,state,76,76,29,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_10D1,overlay,0x1c:0x10d1,near_called=1,B,state,396,396,161,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_12C6,overlay,0x1c:0x12c6,near_called=1,B,state,273,273,100,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_1435,overlay,0x1c:0x1435,near_called=1,B,state,500,500,177,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_1629,overlay,0x1c:0x1629,near_called=1,B,state,160,160,55,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_16C9,overlay,0x1c:0x16c9,near_called=1,B,glue,210,210,95,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_179B,overlay,0x1c:0x179b,near_called=1,B,state,349,349,121,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_19B0,overlay,0x1c:0x19b0,near_called=1,B,state,1025,1025,405,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_1EF8,overlay,0x1c:0x1ef8,near_called=1,B,state,1747,1747,653,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_25CB,overlay,0x1c:0x25cb,near_called=1,B,state,159,159,66,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2775,overlay,0x1c:0x2775,near_called=1,B,state,813,813,296,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2AA2,overlay,0x1c:0x2aa2,near_called=1,B,state,31,31,10,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2AC1,overlay,0x1c:0x2ac1,near_called=1,B,glue,42,42,18,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2B33,overlay,0x1c:0x2b33,near_called=1,B,glue,75,75,36,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2B7E,overlay,0x1c:0x2b7e,near_called=1,B,state,133,133,43,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2C03,overlay,0x1c:0x2c03,near_called=1,B,state,204,204,74,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2CCF,overlay,0x1c:0x2ccf,near_called=1,B,state,260,260,88,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2E10,overlay,0x1c:0x2e10,near_called=1,B,state,109,109,40,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_001C_2F2D,overlay,0x1c:0x2f2d,near_called=1,B,state,580,580,273,retf,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_0025_0A74,overlay,0x25:0x0a74,near_called=1,B,state,515,515,163,retf 4,entry=0;far=0;near=1,mechanically-checkable,disassembled
+OVL_0025_0C77,overlay,0x25:0x0c77,entry=1;far_called=35,A,state,405,405,141,retf 4,entry=1;far=35;near=0,mechanically-checkable,disassembled
+OVL_03BD_0E08,overlay,0x3bd:0x0e08,entry=1;far_called=8,A,state,703,703,278,retf 4,entry=1;far=8;near=0,mechanically-checkable,disassembled
+OVL_03BD_10C7,overlay,0x3bd:0x10c7,entry=1;far_called=2,A,state,319,319,124,retf 2,entry=1;far=2;near=0,mechanically-checkable,disassembled
+OVL_001C_0F08,overlay,0x1c:0x0f08,near_called=1,B,state,457,456,201,retf,entry=0;far=0;near=1,interpretation-heavy,disassembled
+OVL_001C_1DB1,overlay,0x1c:0x1db1,near_called=1,B,state,327,324,133,retf,entry=0;far=0;near=1,interpretation-heavy,disassembled
+OVL_001C_3171,overlay,0x1c:0x3171,near_called=9,B,state,67,66,22,retf 2,entry=0;far=0;near=9,interpretation-heavy,disassembled
+OVL_0036_002D,overlay,0x36:0x002d,entry_alias=1,D,state,1512,1512,585,retf,entry=0;far=0;near=0,interpretation-heavy,disassembled
+RES_IMAGE_000F6,resident,image:0x000F6,init_fallthrough=1,A,,,,,,init_fallthrough=1,interpretation-heavy,disassembled
