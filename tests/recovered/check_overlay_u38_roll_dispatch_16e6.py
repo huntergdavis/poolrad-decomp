@@ -18,7 +18,7 @@ CHECKER_ROWS = ("OVL_0038_16E6",)
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = ["src/recovered/overlay_u38_roll_dispatch_16e6.c"]
 BODY_SHA = "26319a64c3724af34e74edb22250387fe28a05e17d3be802e26ef2db1f2bbcee"
-BASE = "dadfec5806de11c14e41f28cd9b4ad69a6090c59"
+BASE = "ccacd330ce453f0952e7d544cdc780d050962999"
 PATTERN = bytes(range(256)) * ((1 << 20) // 256)
 IPS = (0x16E6, 0x16FA, 0x1707)
 
