@@ -19,21 +19,43 @@ not a model result:
   `.err` carries the OpenRouter JSON: "temporarily rate-limited upstream"
   (providers Recursive and Phala).
 - **OFFSET UNRESOLVED / DIFFERS (inkling 2, north 2, nemotron 2): broken
-  media access, and in four reports also a genuinely wrong/missing offset.**
+  media access, and in three reports also a genuinely wrong or missing offset.**
   All six non-empty reports state that `resources/DOS/POOLRAD/GAME.OVR` is
   missing/the symlink dangles, so none produced a quoted dump. The invocation
   used `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is
-  not visible inside the free sandbox. Separately from the access failure:
-  inkling `06AF` gives 1755 (`0x6DB`, wrong); north `06AF` gives 11439
-  (`0x2CEF`, wrong) and falsely equates `06AF` with it; north `0136` gives no
-  offset. Inkling `0136` and nemotron `0136` give the correct 30217;
-  nemotron `06AF` gives 31618, but explicitly reconstructs the bytes from the
-  recovered C and its addresses are discontinuous. The model errors are not
-  excused by the media failure, and the media failure is not a model score.
+  not visible inside the free sandbox. Separately from the access failure, the
+  offsets claimed in the six reports are:
+  inkling `06AF` **1755 (`0x6DB`, wrong)**; north `06AF` **11439 (`0x2CEF`,
+  wrong)**, and it falsely equates `06AF` with that offset; north `0136`
+  **no offset at all**; inkling `0136` and nemotron `0136` **30217 (`0x7609`,
+  correct)**; nemotron `06AF` **31618 (`0x7B82`, correct)** but it explicitly
+  reconstructs the bytes from the recovered C and its addresses are
+  discontinuous. That is three wrong/missing, two correct and one
+  correct-but-reconstructed — not four wrong. The model errors are not excused
+  by the media failure, and the media failure is not a model score.
 
 Therefore the current judge's 0/10 is **not** evidence that the models cannot
-decode these bodies. The run must be repeated with a media-accessible repo and
-429 retries before any model comparison is drawn.
+decode these bodies, and `0/10` must not be quoted as a capability score of
+any model. The run must be repeated with a media-accessible repo and 429
+retries before any model comparison is drawn.
+
+## The ten runs, from `results.tsv`
+
+| Model | Body | Wrapper label | Seconds |
+| --- | --- | --- | ---: |
+| `recursive/flint-v1.0:free` | `OVL_0025_06AF` | EMPTY (upstream 429) | 102 |
+| `recursive/flint-v1.0:free` | `OVL_0025_0136` | EMPTY (upstream 429) | 128 |
+| `thinkingmachines/inkling:free` | `OVL_0025_0136` | OFFSET UNRESOLVED (30217 claimed) | 162 |
+| `cohere/north-mini-code:free` | `OVL_0025_0136` | OFFSET UNRESOLVED (no offset) | 177 |
+| `thinkingmachines/inkling:free` | `OVL_0025_06AF` | OFFSET UNRESOLVED (1755 claimed) | 215 |
+| `cohere/north-mini-code:free` | `OVL_0025_06AF` | OFFSET UNRESOLVED (11439 claimed) | 376 |
+| `xingchen-agi/xing4.0-29b-a4b:free` | `OVL_0025_0136` | EMPTY (upstream 429) | 26 |
+| `nvidia/nemotron-3.5-super-vl:free` | `OVL_0025_0136` | OFFSET UNRESOLVED (30217 claimed) | 96 |
+| `nvidia/nemotron-3.5-super-vl:free` | `OVL_0025_06AF` | DIFFERS (31618 reconstructed) | 299 |
+| `xingchen-agi/xing4.0-29b-a4b:free` | `OVL_0025_06AF` | EMPTY (upstream 429) | 51 |
+
+`results.tsv` is the authority for these labels; the table adds only what the
+report files themselves say about the offset.
 
 ## Earlier receipts with media accessible (not re-run)
 
@@ -69,9 +91,17 @@ unavailable-media output from this run.
   (prompt: `PROMPT_FOR`, lines 20-30)
 - `free_sandbox.sh` SHA-256 `a2dd6085fab12cc909a61c35bf4f536dd646d5d632c5257540af2cadd5323167`
 - current strict judge `free_body_check.py` SHA-256
-  `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`
+  `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`,
+  at `/home/hunter/workspace/vp-of-agentry-wt-themes2/tools/free_body_check.py`
+  for this run. A byte-identical copy is committed in the poolrad tree as
+  `tools/free/free_body_check.py` (reviewed with #1603). The judge is **not**
+  in this branch of the tree; the hash is of the harness file actually run.
 - citation judge `free_verify_citations.py` SHA-256
   `d7c6b9005f81f0aec00f98023b65dceae59c46040c80db4f3b315732318061f4`
+  (**the run's** copy at
+  `/home/hunter/workspace/vp-of-agentry-wt-themes2/tools/free_verify_citations.py`).
+  The committed poolrad copy is now `c9880a32…` after the #1603 review fixed
+  its exit contract; the two differ, and this report describes the run's copy.
 - raw root: `/home/hunter/workspace/vp-of-agentry-wt-themes2/data/bakeoff/20261027-180647`
 - invocation: `POOLRAD_REPO=/tmp/opencode/t40-wt tools/free_bakeoff.sh "<5 models>" "OVL_0025_0136:30217:128 OVL_0025_06AF:31618:36" 3`
 - receipts: 10 report/stderr pairs and six `.check` files under that root; original media and any derived dumps stay private.
