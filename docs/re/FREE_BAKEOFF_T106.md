@@ -27,8 +27,14 @@ not a model result:
   operations failed and that the media "appears to be inaccessible", which is
   a report of inability to access, not proof of absence. The invocation used
   `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is not
-  visible inside the free sandbox; that is the mechanism, established by the
-  reviewer's sandbox reproduction rather than by the reports.
+  visible inside the free sandbox. That mechanism is attributed to reviewer
+  codex-review-d's sandbox reproduction (message i29089 and receipt
+  `resources/review-1604-492b8101/independent-controls.json` in the
+  `poolrad-codex-review-d` worktree: `resources_is_symlink: true`,
+  `media_exists: false`), not to the reports and not to this author; reviewer
+  codex-tester did not run that reproduction and left the original mount state
+  unverified. This report reuses the existing receipt rather than claiming a
+  new run.
 
   Separately from the access failure, the offsets claimed in the six reports
   are: inkling `06AF` **1755 (`0x6DB`, wrong)**; north `06AF` **11439
