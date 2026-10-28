@@ -307,6 +307,7 @@ overlay_u6a_record_walk_0214.c,flat,no,no
 overlay_u6a_record_weight_0000.c,flat,no,no
 overlay_u6a_sort_0824.c,flat,no,no
 overlay_u6a_string_node_0e37.c,flat,no,no
+overlay_u6c_2033_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u6c_record_release_0000_cpu.c,flat,no,no
 overlay_u6c_record_roll_sum_4235.c,flat,no,no
 overlay_u6c_record_table_sum_3f31.c,flat,no,no
