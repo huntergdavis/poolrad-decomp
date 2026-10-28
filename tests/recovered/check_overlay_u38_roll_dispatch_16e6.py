@@ -8,18 +8,18 @@ from pathlib import Path
 import subprocess
 import tempfile
 
-from capstone import Cs, CS_ARCH_X86, CS_MODE_16
-from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
+# Optional media/emulator packages are loaded only after --compile-only exits.
+class Cpu(ctypes.Structure):
+    _fields_ = [(name, ctypes.c_uint16) for name in
+                "ax bx cx dx si di bp sp cs ip ds es ss flags".split()]
 
-# Reuse only CPU layout, real-mode addressing helpers, and media identity pins.
-import check_overlay_u38_target_select_101d as h
 
 CHECKER_ROWS = ("OVL_0038_16E6",)
 ROOT = Path(__file__).resolve().parents[2]
 SOURCES = ["src/recovered/overlay_u38_roll_dispatch_16e6.c"]
 BODY_SHA = "26319a64c3724af34e74edb22250387fe28a05e17d3be802e26ef2db1f2bbcee"
 BASE = "dadfec5806de11c14e41f28cd9b4ad69a6090c59"
-PATTERN = bytes(range(256)) * (h.RAM_SIZE // 256)
+PATTERN = bytes(range(256)) * ((1 << 20) // 256)
 IPS = (0x16E6, 0x16FA, 0x1707)
 
 
@@ -78,7 +78,7 @@ def compile_model(directory, text, name):
                     str(src), "-o", str(lib)], check=True)
     model = ctypes.CDLL(str(lib)).pr_u38_roll_dispatch_16e6
     model.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.c_size_t,
-                      ctypes.POINTER(h.Cpu), ctypes.c_uint16, ctypes.c_int]
+                      ctypes.POINTER(Cpu), ctypes.c_uint16, ctypes.c_int]
     model.restype = ctypes.c_int
     return model
 
@@ -89,7 +89,7 @@ def fixture(body, phase, ax, sp, cs, roll_cs, flags):
     memory[pos:pos + len(body)] = body
     h.put16(memory, cs, 0x16F8, roll_cs)
     ss = 0x3000
-    cpu = h.Cpu(ax, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE,
+    cpu = Cpu(ax, 0x3456, 0x5678, 0x789A, 0x9ABC, 0xBCDE,
                 0x7777, sp, cs, IPS[phase], 0x3000, 0x1111, ss, flags)
     if phase == 2:
         for i, word in enumerate((0xABCD, 0x1234, 0xD000)):
@@ -112,7 +112,7 @@ def compare(body, model, case):
     emu = Uc(UC_ARCH_X86, UC_MODE_16)
     emu.mem_map(0, h.RAM_SIZE)
     emu.mem_write(0, bytes(memory))
-    for (name, _), reg in zip(h.Cpu._fields_, h.REGISTERS):
+    for (name, _), reg in zip(Cpu._fields_, h.REGISTERS):
         emu.reg_write(reg, getattr(cpu, name))
     reached = []
 
@@ -131,7 +131,7 @@ def compare(body, model, case):
     status = model(ram, h.RAM_SIZE, ctypes.byref(cpu), cs, phase)
     assert status == (2, 3, 0)[phase], f"phase_{phase}_stop_status"
     expected_cpu = tuple(emu.reg_read(reg) & 0xFFFF for reg in h.REGISTERS)
-    for (name, _), actual, expected in zip(h.Cpu._fields_, h.snap(cpu), expected_cpu):
+    for (name, _), actual, expected in zip(Cpu._fields_, h.snap(cpu), expected_cpu):
         assert actual == expected, f"phase_{phase}_cpu_{name}:{actual:04x}!={expected:04x}"
     assert bytes(ram) == bytes(emu.mem_read(0, h.RAM_SIZE)), f"phase_{phase}_full_ram"
     # No implicit callee execution or resume: the exact stop-state is refused.
@@ -199,11 +199,22 @@ def mutations():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true")
     parser.add_argument("--mutants", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
-    body, rejected = source()
     text = (ROOT / SOURCES[0]).read_text()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-u38-16e6-build-") as tmp:
+            compile_model(Path(tmp), text, "model")
+        print("CHECKER_BUILD_OK")
+        return
+    global h, Cs, CS_ARCH_X86, CS_MODE_16, Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
+    from capstone import Cs, CS_ARCH_X86, CS_MODE_16
+    from unicorn import Uc, UC_ARCH_X86, UC_MODE_16, UC_HOOK_CODE
+    # Reuse only address/snapshot helpers and media identity pins, not behaviour.
+    import check_overlay_u38_target_select_101d as h
+    body, rejected = source()
     flags = (2, 0x602, 0xED7, 0x8D7)
     stacks = (0x8000, 2, 1, 0xFFF8)
     prefix = [(0, ax, sp, cs, roll, flag)
