@@ -117,6 +117,15 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/ovl_006c_2033_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_006C_2033"
+    ]
+  },
   "tools/overlay/ovl_006f_0ec4_cpu_audit.py": {
     "args": [
       "--unicorn"
