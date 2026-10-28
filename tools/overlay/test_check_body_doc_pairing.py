@@ -7,6 +7,7 @@ same shape as the real diff but does not need a git repository.
 """
 import contextlib
 import io
+import os
 import subprocess
 import tempfile
 import unittest
@@ -358,6 +359,137 @@ class GitEndToEndTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn(f"{BODY} is a new body", output)
 
+
+
+class PathOriginTest(unittest.TestCase):
+    """A stacked refusal names the path introduction, never the unrelated tip."""
+
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.root = Path(temp.name)
+        stamp = subprocess.check_output(["date", "--iso-8601=seconds"], text=True).strip()
+        self.env = dict(os.environ, GIT_AUTHOR_NAME="Synthetic fixture",
+                        GIT_COMMITTER_NAME="Synthetic fixture",
+                        GIT_AUTHOR_EMAIL="fixture@example.invalid",
+                        GIT_COMMITTER_EMAIL="fixture@example.invalid",
+                        GIT_AUTHOR_DATE=stamp, GIT_COMMITTER_DATE=stamp)
+        self.git("init", "-b", "main")
+        self.write("README.md", "Synthetic fixture\n")
+        self.base = self.commit("Initial fixture")
+        self.write(AUDIT, "def audit(): return 0\n")
+        self.write(DOC, "# Synthetic evidence\n")
+        self.introduction = self.commit("Introduce checker without registration (#999)")
+        self.write("NOTES.txt", "Unrelated top-of-stack change\n")
+        self.tip = self.commit("Unrelated top commit (#1000)")
+
+    def git(self, *args):
+        return subprocess.check_output(["git", "-C", str(self.root), *args],
+                                       env=self.env, text=True, stderr=subprocess.PIPE).strip()
+
+    def write(self, path, text):
+        p = self.root / path
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(text)
+
+    def commit(self, message):
+        self.git("add", ".")
+        self.git("-c", "commit.gpgsign=false", "commit", "-m", message)
+        return self.git("rev-parse", "HEAD")
+
+    def run_gate(self, base=None):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = gate.main(["--root", str(self.root), "--base", base or self.base])
+        return status, output.getvalue()
+
+    def origin(self, path=AUDIT):
+        return gate.path_origin(path, str(self.root), gate.Base.from_git(self.base, str(self.root)))
+
+    def test_stacked_missing_registration_names_introduction_not_tip(self):
+        status, output = self.run_gate()
+        self.assertEqual(status, 1)
+        self.assertIn("no changed checker declares CHECKER_ROWS", output)
+        self.assertIn("added-in=" + self.introduction, output)
+        self.assertNotIn(self.tip, output)
+        self.assertIn("PR=unknown", output)  # commit-message PR numbers are not proof
+        self.assertNotIn("PR=999", output)
+
+    def test_registration_positive_control_still_passes(self):
+        self.write(AUDIT, "CHECKER_ROWS = ('OVL_0068_0294',)\n")
+        self.commit("Registration only")
+        status, output = self.run_gate()
+        self.assertEqual(status, 0)
+        self.assertIn("OK:", output)
+        self.assertNotIn("PATH ORIGIN", output)
+
+    def test_existing_path_is_not_called_an_addition(self):
+        self.write(AUDIT, "def audit(): return 1\n")
+        self.commit("Edit existing checker")
+        status, output = self.run_gate(base=self.introduction)
+        self.assertEqual(status, 1)
+        self.assertIn("added-in=unknown (path already exists at comparison base)", output)
+
+    def test_uncommitted_path_is_unknown(self):
+        self.write(AUDIT, "# uncommitted change\n")
+        self.assertIn("unknown (uncommitted change", self.origin())
+
+    def test_missing_base_blob_does_not_turn_existing_path_into_addition(self):
+        # Reviewer %30's counterexample: alter only this temporary fixture's
+        # loose object store. The base tree still proves path membership.
+        self.base = self.introduction
+        blob = self.git("rev-parse", f"{self.base}:{AUDIT}")
+        (self.root / AUDIT).unlink()
+        self.commit("Delete existing base checker")
+        self.write(AUDIT, "# different replacement checker\n")
+        self.commit("Re-add checker")
+        expected = "added-in=unknown (path already exists at comparison base)"
+        self.assertEqual(self.origin(), expected)
+        (self.root / ".git/objects" / blob[:2] / blob[2:]).unlink()
+        self.assertIsNone(gate.Base.from_git(self.base, str(self.root)).text(AUDIT))
+        self.assertEqual(self.git("ls-tree", "--name-only", self.base, "--", AUDIT), AUDIT)
+        self.assertEqual(self.origin(), expected)
+
+    def test_unavailable_base_tree_is_not_absence(self):
+        tree = self.git("rev-parse", self.base + "^{tree}")
+        (self.root / ".git/objects" / tree[:2] / tree[2:]).unlink()
+        self.assertEqual(self.origin(), "added-in=unknown (comparison base tree unavailable)")
+
+    def test_delete_and_readd_does_not_guess_between_additions(self):
+        (self.root / AUDIT).unlink()
+        self.commit("Remove checker")
+        self.write(AUDIT, "# replacement\n")
+        self.commit("Add replacement")
+        self.assertIn("unknown (no unique addition", self.origin())
+
+    def test_rename_is_not_claimed_as_original_addition(self):
+        renamed = "tools/overlay/renamed_audit.py"
+        self.git("mv", AUDIT, renamed)
+        self.commit("Rename checker")
+        self.assertIn("added-in=unknown", self.origin(renamed))
+
+    def test_deleted_path_is_unknown(self):
+        (self.root / AUDIT).unlink()
+        self.commit("Remove checker")
+        self.assertIn("unknown (path absent at HEAD", self.origin())
+
+    def test_shallow_history_is_explicitly_unknown(self):
+        (self.root / ".git/shallow").write_text(self.base + "\n")
+        status, output = self.run_gate()
+        self.assertEqual(status, 1)
+        self.assertIn("added-in=unknown (history unavailable or shallow)", output)
+
+    def test_missing_comparison_history_still_refuses(self):
+        status, output = self.run_gate(base="missing-base")
+        self.assertEqual(status, 1)
+        self.assertIn("unknown (comparison history unavailable)", output)
+
+    def test_no_git_explicit_changes_still_refuse_with_unknown_origin(self):
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            status = gate.main(["--root", str(self.root), "--changed", AUDIT, DOC])
+        self.assertEqual(status, 1)
+        self.assertIn("unknown (no Git comparison history)", output.getvalue())
 
 if __name__ == "__main__":
     unittest.main()

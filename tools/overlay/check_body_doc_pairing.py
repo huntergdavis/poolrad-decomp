@@ -304,8 +304,67 @@ def main(argv=None):
         base = Base.from_git(args.base, args.root) if args.changed is None else None
     except SystemExit as error:
         print(error)
+        print("PATH ORIGIN: unknown (comparison history unavailable); PR=unknown")
         return 1
     return report(paths, args.root, base)
+
+
+def path_origin(path, root, base):
+    """Diagnostic only: prove a unique path addition, never blame the tip commit.
+
+    This identifies when the *path* was added in the comparison range, not when
+    every reported defect arose. Existing paths, renames, merges and incomplete
+    history may need human investigation. PR membership is not a Git fact.
+    """
+    unknown = "added-in=unknown"
+    if base is None or not getattr(base, "rev", None):
+        return unknown + " (no Git comparison history)"
+    if git(root, "rev-parse", "--is-shallow-repository") != "false\n":
+        return unknown + " (history unavailable or shallow)"
+    # Blob reads cannot establish absence: git show also fails for a missing
+    # object. Require a successful tree query before declaring this path new.
+    membership = git(root, "--literal-pathspecs", "ls-tree", "--name-only", "-z",
+                     base.rev, "--", path)
+    if membership is None:
+        return unknown + " (comparison base tree unavailable)"
+    if membership:
+        return unknown + " (path already exists at comparison base)"
+    if git(root, "diff", "--name-only", "HEAD", "--", path) != "":
+        return unknown + " (uncommitted change or history unavailable)"
+    if git(root, "cat-file", "-e", f"HEAD:{path}") is None:
+        return unknown + " (path absent at HEAD or history unavailable)"
+    # Keep rename detection enabled: a rename must not masquerade as an addition.
+    history = git(root, "log", "--full-history", "--find-renames", "--diff-filter=A",
+                  "--format=%H", f"{base.rev}..HEAD", "--", path)
+    if history is None:
+        return unknown + " (addition history query failed)"
+    commits = history.splitlines()
+    if len(commits) != 1:
+        return unknown + " (no unique addition in comparison range)"
+    commit = commits[0]
+    parents = (git(root, "rev-list", "--parents", "-n", "1", commit) or "").split()
+    if len(parents) != 2:
+        return unknown + " (addition is not a single-parent commit)"
+    # Inspect the full tree diff before filtering the path; a path-limited log
+    # may otherwise classify a rename as an addition when its source is omitted.
+    added = git(root, "diff-tree", "--no-commit-id", "--name-only", "-z",
+                "--find-renames", "--diff-filter=A", "-r", parents[1], commit)
+    if added is None or path not in added.split("\0"):
+        return unknown + " (rename or addition could not be established)"
+    return f"added-in={commit}"
+
+
+def report_origins(paths, root, base):
+    """Context for refused changes; does not influence any gate decision."""
+    for path in sorted(set(paths)):
+        if not ((path.startswith("src/recovered/") and path.endswith(".c")) or
+                (path.startswith("tools/overlay/") and path.endswith(CHECKER_SUFFIXES))):
+            continue
+        try:
+            origin = path_origin(path, root, base)
+        except OSError:
+            origin = "added-in=unknown (Git unavailable)"
+        print(f"PATH ORIGIN: {path}; {origin}; PR=unknown (not resolved from local Git)")
 
 
 def report(paths, root=".", base=None):
@@ -313,6 +372,7 @@ def report(paths, root=".", base=None):
     if found:
         for line in found:
             print(f"UNPAIRED BODY: {line}")
+        report_origins(paths, root, base)
         print(f"REFUSED: {len(found)} reason(s) - a body or checker lands with its "
               f"evidence document and CHECKER_ROWS, or it does not land")
         return 1
