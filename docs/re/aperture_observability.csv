@@ -17,6 +17,7 @@ overlay_u1c_clear_box_2b14.c,bus,yes-with-ega-oracle,yes
 overlay_u1c_clearmonsters_125d.c,flat,no,no
 overlay_u1c_clearmonsters_125d_cpu.c,flat,no,no
 overlay_u1c_clock_2ac1.c,flat,no,no
+overlay_u1c_compare_0126_cpu.c,flat,no,yes
 overlay_u1c_compare_and_0aed.c,flat,no,no
 overlay_u1c_compare_and_0aed_cpu.c,flat,no,no
 overlay_u1c_delay_271f.c,flat,no,no
