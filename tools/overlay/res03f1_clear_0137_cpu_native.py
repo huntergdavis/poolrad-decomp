@@ -1,5 +1,8 @@
 """Original clear execution on DOSBox-X EGA: plain state/planes plus OUT trace.
 Guest trace mechanics reuse res0709_ega_reset_0000_cpu_audit.py."""
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/res03f1_clear_0137_cpu_audit.py --native through poolrad-heavy.sh.")
 import os,struct,subprocess
 from hashlib import sha256
 from native_emulator_provenance import describe_dosbox

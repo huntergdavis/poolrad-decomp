@@ -39,13 +39,81 @@ All 32 signature bytes are checked. Poll ordinals differ and are recorded.
 The loaded replacement records **439 routed C returns / 1 hand-back**; the
 turn replacement records **483 / 1**. Both originals record **0 / 0**.
 The four drivers exited successfully. The report CLI exits 1 for each pair,
-preserving the measured FAIL. Thirteen synthetic comparator tests pass.
+preserving the measured FAIL. Sixteen synthetic comparator tests pass after
+the t138 classification addition.
 
-The RAM differences remain unlocalized. These are independent boots with
-different timing and poll counts; the receipt does not diagnose a C defect.
+The RAM differences are classified by address below. These are independent
+boots with different timing and poll counts; the receipt does not diagnose a C defect.
 No RAM or flag mask was applied, and the newly collected turn case was not
 adjusted after its FAIL. Raw memory and images remain private; the receipts
 publish full comparison counts, hashes, and the first 32 differing offsets.
+
+## Address classification (t138)
+
+The same comparator now attaches `state.ram.localization` to each receipt.
+Regenerating from the existing captures reproduced every previous field
+exactly; this is additional analysis of those captures, not a new native run.
+No difference is masked or removed from the raw FAIL calculation.
+
+| Address category | Loaded | Turn | Physical region, end exclusive |
+| --- | ---: | ---: | --- |
+| BIOS timer | 2 | 2 | `[0x0046c, 0x00470)` |
+| RandSeed | 4 | 4 | `[0x18e28, 0x18e2c)` |
+| Stack window below SP | 98 | 125 | `[0x1d160, 0x20f64)` |
+| Stack window at or above SP | 7 | 6 | `[0x20f64, 0x21160)` |
+| Unclassified | 0 | 0 | All other addresses |
+| **Total raw differences** | **111** | **137** | **Both FAIL** |
+
+Each category includes every differing physical address as compact half-open
+ranges, without publishing byte values. The model requires the pinned
+START.EXE and GAME.OVR hashes, the observed `RES_0A40_02FD` arrival at
+`1264:02FD`, matching `DS=14A0`, `SS=1D16`, and equal SP within `0..4000`.
+Unsupported images or layouts retain all offsets in `unclassified`.
+Both measured pairs have `SP=3E04`.
+
+These are **address memberships**, not causal or liveness findings:
+
+- DOSBox-X source pin `5a9c7c53`, `include/bios.h`, defines the four-byte
+  `BIOS_TIMER` at `0x46c`. `src/ints/bios.cpp` includes IRQ0 and other writes
+  to it. The two differing bytes do not identify which writer ran.
+- [RANDOM_GENERATOR.md](RANDOM_GENERATOR.md) identifies the four-byte
+  RandSeed at `DS:4428`. Startup seeding and later draws are possible
+  explanations, not a measured attribution of these differences.
+- [REVIEW_LANE_HANDOFF.md](REVIEW_LANE_HANDOFF.md#retf-stack-top-wrap-a-recorded-class-deliberately-not-swept-2026-10-20)
+  records the EXEPACK 16 KiB stack and its no-stack-switch assumptions.
+  The two stack categories use the captured SS and SP inside that window.
+  Below-SP bytes are not proved dead; at/above-SP bytes are not proved
+  harmless. No first-writer trace or active-frame ownership was captured.
+
+Boundary and unsupported-layout tests verify category counts, complete
+address retention, and an unchanged raw FAIL when classified bytes differ.
+Dunking Sheep recall of session `01a12b3e-db20-70e1-95f9-d3fe44b8d309`
+suggested checking BIOS timer and stack locations; the counts above were
+recomputed from this lane's captures, not reused from that session.
+
+## Earlier owner-state compatibility investigation
+
+A metadata-only audit performed before VP's preservation hold found that
+the requested old states' release header differs numerically from the
+pinned loader's release. Case folding or zero-padding normalization alone
+does not reconcile it. Their files, recorded hashes/sizes and ZIP CRCs
+passed that earlier audit; this does not establish native loadability.
+
+The current system executable and stable checkpoint executable both
+advertise `2026.01.02 SDL2`, with respective SHA-256 values
+`99d7460153175d13a21036fb4b0e7524e05b6a1e50cd4e59f2470afad12a0df3` and
+`fc66e91e8e8d48cc0b176bc350febab753bff297f2d93fc6c1e9d1f21cb6efae`.
+The old state indices do not record a creator-executable hash, so neither
+is established as their exact writer or a verified compatible loader.
+No owner state was force-loaded or header-edited, and no native loading
+attempt established success or incompatibility.
+
+Preserve the old states and collect fresh tagged states with the pinned
+build, then verify normal native loading in both dispatch modes. Task t140
+owns that exercise and the eventual archive. VP's hold on accessing or
+migrating the 14 old owner states remains in force pending the owner's
+preservation answer. This PR's classification work reads only the existing
+t116 checkpoint captures, not those old owner state files.
 
 ## Capture boundary and failure behavior
 

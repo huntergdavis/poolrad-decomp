@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 """Synthetic direct calls into original getters, DOSBox-X normal/386."""
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/u3c6_slot_getters_cpu_audit.py --native through poolrad-heavy.sh.")
 # NOT_A_ROW_CHECKER: native companion of u3c6_slot_getters_cpu_audit.py.
 from native_emulator_provenance import describe_dosbox
 import ctypes,os,struct,subprocess
