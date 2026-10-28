@@ -1,6 +1,10 @@
 """DOSBox-X normal/386 original-chain oracle; generated media stays private.
 Captures return or FreeMem RunError entry: CPU14, SS1KiB, DS64KiB, heap64KiB.
 """
+
+# NOT_A_ROW_CHECKER: Imported native companion; system_freemem_0254_audit.py owns row checking.
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/system_freemem_0254_audit.py --native through poolrad-heavy.sh.")
 import ctypes
 from hashlib import sha256
 import os

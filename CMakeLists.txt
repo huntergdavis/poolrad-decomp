@@ -149,6 +149,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u38_lookup_append_2814_cpu.c
                                     src/recovered/overlay_u38_append_1363_cpu.c
                                     src/recovered/overlay_u9e_list_release_0026_cpu.c
+                                    src/recovered/overlay_u6c_2033_cpu.c
                                      src/recovered/overlay_u6c_record_release_0000_cpu.c
                                      src/recovered/overlay_u6c_record_unlink_3291_cpu.c
                                     src/recovered/resident_ecl_dax_block.c
@@ -499,6 +500,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u1c_goto_00f4_cpu.c
                                     src/recovered/overlay_u1c_party_item_scan_266a_cpu.c
                                     src/recovered/overlay_u1c_compare_and_0aed_cpu.c
+                                    src/recovered/overlay_u1c_compare_0126_cpu.c
                                     src/recovered/overlay_u1c_text_2e7d_cpu.c
                                     src/recovered/system_runtime_leaves_cpu.c
                                     src/recovered/overlay_u31_table_value_128d_cpu.c

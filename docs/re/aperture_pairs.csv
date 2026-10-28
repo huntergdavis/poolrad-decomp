@@ -81,6 +81,7 @@ overlay_u7f_number_0294_cpu.c,pr_system_strcopy_0b57,yes,local,read,unreachable-
 overlay_u7f_number_0294_cpu.c,pr_system_strload_0b0b,yes,local,read,unreachable-by-construction,no
 overlay_u7f_number_0294_cpu.c,pr_system_strstore_0b25,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,no
 overlay_u7f_number_0294_cpu.c,pr_system_val_13b1,yes,local,read,unreachable-by-construction,no
+resident_00ba_0973_cpu.c,pr_res_00ba_1037_cpu,yes,local,read,unreachable-by-construction,yes
 resident_00ba_display_1693_cpu.c,pr_r0709_delay_wrapper_0dbe_cpu,no,-,-,no-pointer,yes
 resident_00ba_display_1693_cpu.c,pr_system_strstore_0b25,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_00ba_display_1816_cpu.c,pr_system_strload_0b0b,yes,code-literal,header,unreachable-by-construction,yes

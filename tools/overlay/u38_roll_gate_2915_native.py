@@ -8,6 +8,10 @@ these bodies relocated loader-style (+291F to 9000; +295F and +299B to 7F00). Ea
 writes the DS bytes the bodies read in data segment 1900 and far-calls one routine:
 +2915 with its key word, the entries with five argument words. IRQs are masked.
 """
+
+# NOT_A_ROW_CHECKER: Imported native companion; u38_roll_gate_2915_audit.py owns row checking.
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/u38_roll_gate_2915_audit.py --native through poolrad-heavy.sh.")
 import ctypes
 from hashlib import sha256
 import os

@@ -117,6 +117,15 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/ovl_006c_2033_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "observe": true,
+    "rows": [
+      "OVL_006C_2033"
+    ]
+  },
   "tools/overlay/ovl_006f_0ec4_cpu_audit.py": {
     "args": [
       "--unicorn"
@@ -464,6 +473,14 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/resident_0973_cpu_audit.py": {
+    "args": [
+      "--unicorn"
+    ],
+    "rows": [
+      "RES_00BA_0973"
+    ]
+  },
   "tools/overlay/resident_2199_cpu_audit.py": {
     "args": [
       "--unicorn"
@@ -549,6 +566,9 @@
     "args": [
       "--unicorn"
     ]
+  },
+  "tools/overlay/u1c_compare_0126_cpu_audit.py": {
+    "args": []
   },
   "tools/overlay/u1c_compare_and_0aed_cpu_audit.py": {
     "args": [
