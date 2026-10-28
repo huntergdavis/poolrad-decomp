@@ -181,12 +181,18 @@ completed; a body that did not run yields `NOT_COVERED`, not agreement.
 
 Measured at the same head with `--unicorn` (heavy slot, no `--quick`):
 
-| Body | Bytes / insns | Cases | Pinned-split stops | Instruction starts | Conditional outcomes |
-| --- | --- | ---: | ---: | ---: | ---: |
-| `+012B` | 130 / 49 | 1,212 | 0 | 49/49 | 18/18 |
-| `+01AD` | 116 / 54 | 1,212 | 0 | 54/54 | 0/0 |
-| `+0350` | 299 / 120 | 3,268 | 366 (shift) | 120/120 | 24/24 |
-| `+047B` | 255 / 103 | 3,268 | 630 (shift) | 103/103 | 22/22 |
+The audit's counter is cumulative, not per body: `SPLIT_ARRIVALS` is
+initialised once (`u33_cell_lookup_012b_audit.py:185`), incremented at `:245`
+and printed at `:313` as "stops so far", and it is not reset between bodies.
+The "cumulative" column below is exactly what that log line prints after each
+body; the "increment" column is the body's own contribution (the difference).
+
+| Body | Bytes / insns | Cases | Pinned-split stops, cumulative | This body's increment | Instruction starts | Conditional outcomes |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| `+012B` | 130 / 49 | 1,212 | 0 | 0 | 49/49 | 18/18 |
+| `+01AD` | 116 / 54 | 1,212 | 0 | 0 | 54/54 | 0/0 |
+| `+0350` | 299 / 120 | 3,268 | 366 (shift) | 366 | 120/120 | 24/24 |
+| `+047B` | 255 / 103 | 3,268 | 630 (shift) | 264 (630 - 366) | 103/103 | 22/22 |
 
 Every body compared the full 1 MiB RAM and 13 CPU words; the `+031F` leaf is
 the merged `ab4d7f5e...` model. The registry execution gate then reports
@@ -208,8 +214,11 @@ no accounting movement and no ownership decision. The table diff is exactly
 those two rows.
 
 What this does **not** establish: no new native run is claimed here; the
-`+047B` pinned-split stop count recorded above (630) is not the 264 printed in
-the PR #1446 note earlier in this document, and the difference was not
-investigated; gameplay reach and ownership are unchanged. Registration moves
+`+047B` figure of 630 above is the **cumulative** counter and 264 is that
+body's own increment, so the 264 recorded in the earlier PR #1446 note is
+consistent with this run rather than contradicted by it; no behavioural change
+is inferred in either direction. That historical 264 stays attributed
+historical evidence and its PR #1446 environment was not reproduced. Gameplay
+reach and ownership are unchanged. Registration moves
 these rows from "callee-only, unmarked" to "marked when this checker's
 differential runs", nothing more.
