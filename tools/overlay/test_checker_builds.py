@@ -189,3 +189,14 @@ class PreconditionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CompileOnlyNoMediaTest(unittest.TestCase):
+    def test_0973_compile_only_does_not_load_game_media(self):
+        import sys
+        from unittest import mock
+        import resident_0973_cpu_audit as audit
+        with mock.patch.object(audit, 'library', return_value=(None, None)), \
+             mock.patch.object(audit, 'source', side_effect=AssertionError('game media loaded')), \
+             mock.patch.object(sys, 'argv', ['resident_0973_cpu_audit.py', '--compile-only']):
+            audit.main()
