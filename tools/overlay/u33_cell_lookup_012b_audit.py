@@ -125,7 +125,11 @@ def source():
     return bodies, spans
 
 
-CHECKER_ROWS = ('OVL_0033_012B', 'OVL_0033_01AD')
+CHECKER_ROWS = ('OVL_0033_012B', 'OVL_0033_01AD', 'OVL_03BD_0350', 'OVL_03BD_047B')
+# +0350 and +047B are unit 0x3BD entries reached through the 03D5 stubs. Their bodies
+# are folded into this differential and executed as direct targets below; registering
+# them here gives the reporter a row whose PASS marker only appears when that body's
+# own differential ran (observe: true in checker_execution_profiles.json).
 
 
 def library(directory):
