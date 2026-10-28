@@ -353,6 +353,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u38_target_select_101d.c
                                     src/recovered/overlay_u38_target_mask81_25bc.c
                                     src/recovered/overlay_u38_roll_dispatch_1699.c
+                                    src/recovered/overlay_u38_roll_dispatch_16e6.c
                                     src/recovered/overlay_u38_target_reset_2b7d.c
                                     src/recovered/overlay_u38_link_message_2bc8.c
                                     src/recovered/overlay_u38_effect_match_12b2.c
