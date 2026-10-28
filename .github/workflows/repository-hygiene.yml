@@ -16,6 +16,8 @@ jobs:
           python-version: '3.11'
       - name: Install checker import dependencies
         run: python3 -m pip install capstone==5.0.7 unicorn==2.1.4
+      - name: Test DOS save copy and reference-edit contracts
+        run: python3 -m unittest discover -s tests/character -p 'test_*.py' -v
       - name: Test checker build failure gates
         run: python3 -m unittest discover -s tools/overlay -p 'test_checker_builds.py'
       - name: Flag-semantics census covers every flag-writing helper
