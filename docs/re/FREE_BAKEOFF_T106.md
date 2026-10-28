@@ -14,14 +14,18 @@ The raw files show two tool/provider failures, not a model result:
 - **EMPTY (flint 2, xing 2): upstream 429.** The report `.md` is 0 bytes and
   `.err` carries the OpenRouter JSON: "temporarily rate-limited upstream"
   (providers Recursive and Phala).
-- **OFFSET UNRESOLVED / DIFFERS (inkling 2, north 2, nemotron 2): GAME.OVR is
-  absent in the sandbox.** The reports are non-empty and compute the correct
-  offsets (30217/31618), then state that
-  `resources/DOS/POOLRAD/GAME.OVR` is missing/the symlink dangles and they
-  cannot quote a dump; nemotron reconstructs bytes from recovered C and the
-  judge sees a gap/overlap. The invocation used
-  `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is not
-  visible inside the free sandbox.
+- **OFFSET UNRESOLVED / DIFFERS (inkling 2, north 2, nemotron 2): broken
+  media access, and in four reports also a genuinely wrong/missing offset.**
+  All six non-empty reports state that `resources/DOS/POOLRAD/GAME.OVR` is
+  missing/the symlink dangles, so none produced a quoted dump. The invocation
+  used `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is
+  not visible inside the free sandbox. Separately from the access failure:
+  inkling `06AF` gives 1755 (`0x6DB`, wrong); north `06AF` gives 11439
+  (`0x2CEF`, wrong) and falsely equates `06AF` with it; north `0136` gives no
+  offset. Inkling `0136` and nemotron `0136` give the correct 30217;
+  nemotron `06AF` gives 31618, but explicitly reconstructs the bytes from the
+  recovered C and its addresses are discontinuous. The model errors are not
+  excused by the media failure, and the media failure is not a model score.
 
 Therefore the current judge's 0/10 is **not** evidence that the models cannot
 decode these bodies. The run must be repeated with a media-accessible repo and
