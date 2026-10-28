@@ -2,6 +2,9 @@
 Adapted from system_freemem_0254_native.py; executes the original resident body.
 Captures return or FreeMem RunError entry: CPU14, SS1KiB, DS64KiB, heap64KiB.
 """
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/res0464_bitmap_release_2595_audit.py --native through poolrad-heavy.sh.")
 import ctypes
 from native_emulator_provenance import describe_dosbox
 # NOT_A_ROW_CHECKER: native companion for res0464_bitmap_release_2595_audit.py.
