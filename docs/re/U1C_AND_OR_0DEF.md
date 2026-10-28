@@ -63,7 +63,7 @@ UNRESOLVED as stops.
 
 The saved run entry's AND at PC `0x996B` is, by SLOT_A_UP_ECL_GATE.md, an AND of
 the immediate `0x7F` with the pseudo source `0xC04F`, stored to `0x6E82`
-(window 1). The script bytes `2F 00 7F 01 4F C0 01 82 6E` ran through this
+(window 1). The script bytes `[scrubbed: span=U1C_AND_OR_0DEF-1 sha256=7514367e69c09abfda792a61aff78e0edfacb12a8a2fcc945fa227774c46c64c bytes=8 offset=UNRESOLVED]6E` ran through this
 handler stopped at UNRESOLVED while the load-word core did not model class-4
 addresses. After the byte-derived class-4 table of unit `0x25` `+0x0E0C`
 ([ECL_LOAD_WORD_CLASS4.md](ECL_LOAD_WORD_CLASS4.md)) `0xC04F` is `[0x6AB1]`

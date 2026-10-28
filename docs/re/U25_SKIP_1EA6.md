@@ -53,9 +53,9 @@ instructions change it. The compare chain retains its original flag effects.
 
 | Prefetched count | Opcodes (hex) |
 | ---: | --- |
-| 1 | 01 02 0A 0E 11 12 1D 20 2D 32 34 36 38 39 3C |
-| 2 | 03 08 09 0C 0F 10 1F 22 |
-| 3 | 04 05 06 07 0B 21 28 2A 2F 30 35 37 3B |
+| 1 | [scrubbed: span=U25_SKIP_1EA6-1 sha256=5c46dbbe7bd9537f57f9bf493535308bacf02584955b849f84da79efbb8d5473 bytes=15 offset=UNRESOLVED]|
+| 2 | [scrubbed: span=U25_SKIP_1EA6-2 sha256=601c1fcaa00fccb2fb4067e2c836b42392a25b672f561e161199c4f79b4a3c60 bytes=8 offset=UNRESOLVED]|
+| 3 | [scrubbed: span=U25_SKIP_1EA6-3 sha256=ddc78c8f7781551bc97b0ac3e7c330986dd898311fc4f393926ef1695b15ae6e bytes=13 offset=UNRESOLVED]|
 | 4 | 14 23 |
 | 5 | 2E |
 | 6 | 1E 2C |

@@ -28,7 +28,7 @@ only the installer bytes below.** Unit 38 `entries[41] = 12B2` (unique); entry 4
 (`0x20 + 5*41 = 0xED`). The strict-credited installer `OVL_0038_31A2` stores that
 stub at +3415..+3421 into DS:68EC/68EE, effect-table item `(68EC-6828)/4 = 49`, with
 the segment word relocated at +3419. My byte check: GAME.OVR file `0x12070`
-(unit base `0xEC5B` + `0x3415`) is `B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68`, and
+(unit base `0xEC5B` + `0x3415`) is `[scrubbed: span=U38_EFFECT_MATCH_12B2-1 sha256=c67f912ae8a5d0f2e3972847ca64ab9adf9e02acd0e50dd52e63e8ddcbc765c1 bytes=12 offset=UNRESOLVED]68`, and
 that string occurs once. `OVL_0038_31A2` is in both credit CSVs, the same footing
 that credited `OVL_0038_3134` and `OVL_0038_2E08`.
 
@@ -209,7 +209,7 @@ Reproduced by par-e at author head `a0fbce1a` (evidence), with the ownership par
 - **Native:** 48/48 (18 equal-branch) over 10,240 B, flag masks 0, RESULT.BIN `2896dac6…`, declared substitution
   (`/usr/bin/dosbox-x` `99d74601…`, `pinned_build_used: false`).
 - **Exclusion arithmetic:** DS `997F..A97E` (4,096 values) puts `DS:6816` in `A0000..AFFFF`, as stated.
-- **Identity (A2) by reviewer measurement:** the installer bytes `B8 ED 00 BA 41 00 A3 EC 68 89 16 EE 68` sit at
+- **Identity (A2) by reviewer measurement:** the installer bytes `[scrubbed: span=U38_EFFECT_MATCH_12B2-2 sha256=c67f912ae8a5d0f2e3972847ca64ab9adf9e02acd0e50dd52e63e8ddcbc765c1 bytes=12 offset=UNRESOLVED]68` sit at
   GAME.OVR `0x12070` and occur once. The credit rests on the installer footing; no item-49 dispatch execution was
   observed (stated above).
 - "This branch makes no strict identity or count claim" in *Verification and limits* refers to the author branch,
