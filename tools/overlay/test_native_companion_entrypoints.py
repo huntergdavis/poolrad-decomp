@@ -6,6 +6,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPANIONS = (
+    "system_text_write_cpu",
+    "system_reset_1410",
     "ovl_0025_0341",
     "system_freemem_0254",
     "u38_roll_gate_2915",
@@ -26,7 +28,8 @@ COMPANIONS = (
 )
 
 
-AUDIT_MODULES = {"ovl_0025_0341": "ovl_0025_0341_cpu_audit"}
+AUDIT_MODULES = {"ovl_0025_0341": "ovl_0025_0341_cpu_audit",
+                 "system_reset_1410": "system_reset_1410_cpu_audit"}
 
 
 class NativeCompanionEntrypoints(unittest.TestCase):

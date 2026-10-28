@@ -5,6 +5,10 @@ Per case the oracle COM loads the text segment (TextRec, buffer, string and the 
 sets InOutRes DS:[4426], pushes the routine's frame with a far return to a capture label, and jumps to the entry. After
 return it records CPU14, a 1 KiB stack window, the 64 KiB text segment and DS:4420..442F. Interrupts stay off around the
 call; nothing in SYSTEM is stubbed."""
+
+# NOT_A_ROW_CHECKER: Imported native companion; system_text_write_cpu_audit.py owns row checking.
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/system_text_write_cpu_audit.py --native through poolrad-heavy.sh.")
 from native_emulator_provenance import describe_dosbox
 import ctypes, os, struct, subprocess
 from hashlib import sha256
