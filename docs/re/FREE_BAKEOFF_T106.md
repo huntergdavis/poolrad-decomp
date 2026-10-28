@@ -20,10 +20,15 @@ not a model result:
   (providers Recursive and Phala).
 - **OFFSET UNRESOLVED / DIFFERS (inkling 2, north 2, nemotron 2): broken
   media access, and in three reports also a genuinely wrong or missing offset.**
-  All six non-empty reports state that `resources/DOS/POOLRAD/GAME.OVR` is
-  missing/the symlink dangles, so none produced a quoted dump. The invocation
-  used `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is
-  not visible inside the free sandbox. Separately from the access failure, the
+  All six non-empty reports state that they could not access the game media,
+  and none produced a quoted dump. Five name a missing/broken
+  `resources/DOS/POOLRAD/GAME.OVR` or symlink (per-report assertions, not
+  independently proven here); north `0136` reports only that its tools/read
+  operations failed and that the media "appears to be inaccessible", which is
+  a report of inability to access, not proof of absence. The invocation used
+  `POOLRAD_REPO=/tmp/opencode/t40-wt`, whose private `resources` link is not
+  visible inside the free sandbox; that is the mechanism, established by the
+  reviewer's sandbox reproduction rather than by the reports. Separately from the access failure, the
   offsets claimed in the six reports are:
   inkling `06AF` **1755 (`0x6DB`, wrong)**; north `06AF` **11439 (`0x2CEF`,
   wrong)**, and it falsely equates `06AF` with that offset; north `0136`
