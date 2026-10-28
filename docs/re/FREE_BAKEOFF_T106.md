@@ -4,12 +4,16 @@
 
 Run dir:
 `/home/hunter/workspace/vp-of-agentry-wt-themes2/data/bakeoff/20261027-180647`
-(`results.tsv` plus 10 `.md`/`.err`/`.check` triples). Five candidate models,
+(results.tsv SHA-256 `a5a6f9e4a15b9915afeb777edd38da707f59b2f10c47cfb397b22dd073965b0a`,
+plus 10 `.md`/`.err` pairs and six byte-check receipts). Five candidate models,
 two verified-C bodies (`OVL_0025_0136` at GAME.OVR 30217/128 B and
 `OVL_0025_06AF` at 31618/36 B), 10 runs, parallel 3. The systemd free pool was
 not restarted (`poolrad-free-pool` and `poolrad-free-trial` are inactive).
 
-The raw files show two tool/provider failures, not a model result:
+The wrapper labels are operational observations only. The four EMPTY runs never
+invoked the byte checker (the subprocess stdout was empty after a 429), so their
+labels are not decoding outcomes. The raw files show two tool/provider failures,
+not a model result:
 
 - **EMPTY (flint 2, xing 2): upstream 429.** The report `.md` is 0 bytes and
   `.err` carries the OpenRouter JSON: "temporarily rate-limited upstream"
@@ -45,7 +49,19 @@ and its per-run reports:
 | `xingchen-agi/xing4.0-29b-a4b:free` | EMPTY | EMPTY |
 
 These came from the 2026-10-24 checker and are the reason the 2026-10-27 run
-cannot be read as a model regression.
+cannot be read as a model regression. Explicitly: Flint `0136` 128/128 B is a
+full-body match; Flint `06AF` 16/36 B is a prefix, not a full body. Current
+Flint runs are EMPTY after 429, so the current byte checker was never invoked
+for them.
+
+## Harness-format control
+
+With the exact judge SHA-256 `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`,
+a known-good complete 36-byte `06AF` dump at 31618 passes with exit 0 /
+`BYTES MATCH`. Prefixing only a repository-style timestamp makes the same dump
+exit 1 / `BYTES DIFFER`: the timestamp is parsed as a malformed address token.
+That is an additional judge-format false rejection; it does not validate any
+unavailable-media output from this run.
 
 ## Harness and evidence
 
@@ -56,7 +72,9 @@ cannot be read as a model regression.
   `7ae74e7abd581e226453b185d059cf35e90934af3ae4802efa6b6e5839745831`
 - citation judge `free_verify_citations.py` SHA-256
   `d7c6b9005f81f0aec00f98023b65dceae59c46040c80db4f3b315732318061f4`
+- raw root: `/home/hunter/workspace/vp-of-agentry-wt-themes2/data/bakeoff/20261027-180647`
 - invocation: `POOLRAD_REPO=/tmp/opencode/t40-wt tools/free_bakeoff.sh "<5 models>" "OVL_0025_0136:30217:128 OVL_0025_06AF:31618:36" 3`
+- receipts: 10 report/stderr pairs and six `.check` files under that root; original media and any derived dumps stay private.
 
 ## Limits / not verified
 
