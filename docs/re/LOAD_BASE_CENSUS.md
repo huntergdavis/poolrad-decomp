@@ -31,8 +31,10 @@ allowed native-capture sites below (and `0E0E`, which par-c had already fixed in
 
 ## The allowlist is per SITE, not per file (VP policy, 2026-10-27)
 
-A constant `cs` assignment is allowed only when the **exact site** matches an entry: the file, the normalised statement,
-the value it resolves to, and its occurrence count. Three classes exist today, and each entry has to say which one it is:
+A constant `cs` assignment is allowed only when the **exact site** matches an entry: the file, the **enclosing function**,
+the normalised statement, the **resolved value** it assigns (an in-file macro is expanded, so redefining `SYSTEM_SEG` from
+`0x131C` to `0x0AF8` is a finding), and its occurrence count. Three classes exist today, and each entry has to say which one
+it is:
 
 1. **Captured-runtime native model** — `resident_464_2632_run014.c` (twice, `cpu->cs = 0x131Cu;`) and
    `slot_a_directory_fullstate.c` (`c->cs = SYSTEM_SEG;`, `SYSTEM_SEG` is `0x131C` in that file). The segment is the
@@ -50,11 +52,17 @@ Because the key is the site, these are **findings, not passes**, and each has a 
 
 | Control | Result |
 | --- | --- |
-| expected site's value changed (`0x00BA` -> `0x0AF8`) | `CONSTANT-CS` + `COUNT ... found 0`, exit 1 |
-| extra `cs =` constant in an allowed file (different value) | `CONSTANT-CS` at the new line, exit 1 |
-| the expected statement duplicated | both occurrences `CONSTANT-CS`, `COUNT ... found 2`, exit 1 |
-| the expected site missing or moved away | `COUNT ... found 0`, exit 1 (silence is never a pass) |
-| the expected site replaced by a header-defined macro name | `CONSTANT-CS` at that line, exit 1 |
+| expected site's value changed (`0x00BA` -> `0x0AF8`) | `CONSTANT-CS … [not an allowed site]` + `COUNT … found 0`, exit 1 |
+| expected site's macro redefined (`SYSTEM_SEG` `0x131C` -> `0x0AF8`) | `CONSTANT-CS … [value 0x0AF8 != allowed 0x131C]`, exit 1 |
+| extra `cs =` constant in an allowed file, including `cpus[0].cs = …` | `CONSTANT-CS` at the new line, exit 1 |
+| the expected statement duplicated | both occurrences `CONSTANT-CS`, `COUNT … found 2`, exit 1 |
+| the expected site missing, or moved to another function | `COUNT … found 0` and/or `CONSTANT-CS … (other-function)`, exit 1 |
+| the expected site replaced by a header-defined macro name | `CONSTANT-CS … [unresolved macro …]`, exit 1 |
+
+Every control runs from a **complete valid fixture** — the committed `src/recovered` tree, symlinked — with exactly one
+mutation applied, so a red result is caused by the mutation and not by an incomplete tree (the diagnostics name the file,
+line, enclosing function, value and reason). An uppercase identifier whose `#define` is not in the same file is reported by
+name as `[unresolved macro …]`; the generic scanner side stays with t329.
 
 Baseline before the repair: `4 constant-CS assignments, 1 not allowed` (the 006C site). After: `4 constant-CS
 assignments, 0 not allowed`, with the site still visible in the output. No runtime input, refusal path or model behaviour

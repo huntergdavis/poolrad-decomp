@@ -6,13 +6,20 @@ A far call in the original is `9A offset segment`, and the loader relocates the 
 equals the word at the default base, and a leaf callee's own model never looks at its entry CS. The segment must come from the
 live word in the caller's code (or a base-relative parameter such as `load_segment`, or a difference of two live words).
 
-POLICY (VP 2026-10-27): a constant `cs` assignment is allowed only as an EXACT SITE: the `(file, normalised statement)`
-pair, its resolved value, and its occurrence count must all match an entry below. The allowlist is keyed by site, not by
-filename, so in an already-allowed file a changed value, an extra assignment, a duplicate or a missing expected site is a
-finding. A hex literal and an uppercase identifier are both candidates: a macro name defined in a header the scanner never
-reads must be REPORTED (as an unresolvable constant), never silently ignored, so a named constant cannot hide an expected
-site. It reads no media and judges only the assignment; it is the cheap complement to the per-model spy tests, which prove
-a fixed model really follows the word. See docs/re/LOAD_BASE_CENSUS.md.
+POLICY (VP 2026-10-27): a constant `cs` assignment is allowed only as an EXACT SITE. The allowlist entry binds
+(file, enclosing function, normalised statement) to a resolved VALUE, an occurrence count and a justification, and
+`ALLOWED` records which of three classes it is:
+
+  1. captured-runtime native model  - the segment is the runtime value of one captured run, so the constant is the contract;
+  2. explicit load-zero composition - the body composes a model whose documented contract is load-zero only, and a guard
+     pins the operand word before the assignment; the constant is the documented composition segment;
+  3. unresolvable macro             - NEVER allowed implicitly: an uppercase identifier on the right of `cs =` is reported
+     (with its name) when the scanner cannot resolve it in the same file, so a named constant cannot hide an expected site.
+
+A changed value, an extra assignment in an already-allowed file, a duplicated site, a site moved to another function, and a
+missing expected site are all findings: the key is the site and the value, never the file alone, and silence is not a pass.
+It reads no media and judges only the assignment; it is the cheap complement to the per-model spy tests, which prove a fixed
+model really follows the word. See docs/re/LOAD_BASE_CENSUS.md.
 """
 # NOT_A_ROW_CHECKER: static scan of C sources for constant CS assignments; it checks no registered row
 import re
@@ -20,49 +27,67 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*(?:->|\.)cs)\s*=\s*(0x[0-9A-Fa-f]+[uU]?|[A-Z][A-Z0-9_]*)\s*[;,)]")
+ASSIGN = re.compile(
+    r"((?:[A-Za-z_][A-Za-z0-9_]*)(?:\[[^\]]*\])?"
+    r"(?:(?:->|\.)[A-Za-z_][A-Za-z0-9_]*(?:\[[^\]]*\])?)*(?:->|\.)cs)"
+    r"\s*=\s*(0x[0-9A-Fa-f]+[uU]?|[A-Za-z_][A-Za-z0-9_]*)\s*[;,)]")
 DEFINE = re.compile(r"^\s*#define\s+([A-Z][A-Z0-9_]*)\s+(0x[0-9A-Fa-f]+)[uU]?\b", re.M)
 
-# Per-SITE allowlist: (file name, normalised statement) -> (expected occurrences, justification).
-# The key is the site, not the file, so an extra or changed constant in an allowed file is still reported.
-#   resident_464_2632_run014.c / slot_a_directory_fullstate.c: capture models, whose segments are the runtime
-#     values of ONE captured run (a saved game's loaded segments), not loader-relative words, so the constant is
-#     the contract there.
-#   overlay_u6c_2033_cpu.c: LOAD-ZERO COMPOSITION of the accepted RES_00BA:0973 model. The 006C model and the
-#     0973 contract are load-zero only, and the C guard requires the five-byte LCALL operand 9A 73 09 BA 00 at
-#     2065h before this assignment, so a relocated load is refused rather than silently composed. Arrived with
-#     d7709238 ("Model OVL_006C_2033 ... (t182 step 2)"), merged as #1610 49d14524.
-# Removing a site is better than listing it: an entry exists only where the constant is the documented contract.
+# Per-SITE allowlist: (file, enclosing function, normalised statement) -> (resolved value, occurrences, justification).
 ALLOWED = {
-    ("resident_464_2632_run014.c", "cpu->cs = 0x131Cu;"):
-        (2, "native capture of one runtime (0x131C is that run's SYSTEM segment)"),
-    ("slot_a_directory_fullstate.c", "c->cs = SYSTEM_SEG;"):
-        (1, "saved-game Slot A capture: SYSTEM_SEG 0x131C is the captured run's segment"),
-    ("overlay_u6c_2033_cpu.c", "composed.cs = 0x00BAu;"):
-        (1, "load-zero composition of the accepted RES_00BA:0973 model; five-byte LCALL operand guard at 2065h; "
-            "lineage d7709238 / #1610 49d14524"),
+    ("resident_464_2632_run014.c", "runtime_move", "cpu->cs = 0x131Cu;"):
+        (0x131C, 1, "captured-runtime native model: 0x131C is that run's SYSTEM segment"),
+    ("resident_464_2632_run014.c", "runtime_fill", "cpu->cs = 0x131Cu;"):
+        (0x131C, 1, "captured-runtime native model: 0x131C is that run's SYSTEM segment"),
+    ("slot_a_directory_fullstate.c", "pr_slot_a_directory_step", "c->cs = SYSTEM_SEG;"):
+        (0x131C, 1, "captured-runtime saved-game Slot A model: SYSTEM_SEG is 0x131C in that file"),
+    ("overlay_u6c_2033_cpu.c", "pr_ovl_006c_2033_cpu", "composed.cs = 0x00BAu;"):
+        (0x00BA, 1, "explicit LOAD-ZERO composition of the accepted RES_00BA:0973 model: five-byte LCALL operand guard "
+                    "9A 73 09 BA 00 at 2065h before this assignment; model introduced d7709238, merged #1610 49d14524"),
 }
 
 
-def site_text(statement):
+def site_text(line):
     """The allowlist key for one statement: whitespace collapsed."""
-    return re.sub(r"\s+", " ", statement).strip()
+    return re.sub(r"\s+", " ", line).strip()
+
+
+def functions(text):
+    """(line number -> enclosing function name) for top-level definitions, brace-counted."""
+    found = {}
+    name = None
+    depth = 0
+    head = re.compile(r"^[A-Za-z_][A-Za-z0-9_ *]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*$")
+    for number, line in enumerate(text.splitlines(), 1):
+        match = head.match(line)
+        if match and depth == 0:
+            name = match.group(1)
+        found[number] = name
+        depth += line.count("{") - line.count("}")
+        if depth < 0:
+            depth = 0
+    return found
 
 
 def census(root=ROOT):
+    """(file, line, statement, resolved value or None, enclosing function) for every constant-cs assignment."""
     sites = []
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text(errors="replace")
+        macros = {name: int(value, 16) for name, value in DEFINE.findall(text)}
+        where = functions(text)
         for number, line in enumerate(text.splitlines(), 1):
             code = re.sub(r"/\*.*?\*/", "", line.split("//")[0])
             for match in ASSIGN.finditer(code):
-                # A hex literal, or ANY uppercase identifier: a macro name defined in this file, or one defined
-                # in a header the scanner never reads. Not resolving the latter is the header-macro blind spot.
-                value = match.group(2)
-                if value.lower().startswith("0x") or re.fullmatch(r"[A-Z][A-Z0-9_]*", value):
-                    sites.append((path.name, number, line.strip(), re.sub(r"\s+", " ", match.group(0)).strip()))
+                raw = match.group(2)
+                if raw.lower().startswith("0x"):
+                    value = int(raw.rstrip("uU"), 16)
+                elif re.fullmatch(r"[A-Z][A-Z0-9_]*", raw):
+                    value = macros.get(raw)          # None == unresolvable (header-defined) macro: still a finding
+                else:
+                    continue                          # lowercase identifier: a live read or a parameter
+                sites.append((path.name, number, site_text(match.group(1) + " = " + raw + ";"), value, where[number]))
     return sites
-
 
 IDENT = re.compile(r"(?:->|\.)cs\s*=\s*([a-z_][a-z0-9_]*)\s*[;,)]")
 READ = re.compile(r"\b(read|rd|word|get|at|peek|load)[a-z0-9_]*\s*\(", re.I)
@@ -99,32 +124,47 @@ def classify(root=ROOT):
     return counts
 
 
+def check(root=ROOT):
+    """The policy over one tree: (printed rows, set of offending site keys, site count)."""
+    sites = census(root)
+    counts = {}
+    for name, _, statement, value, function in sites:
+        key = (name, function, statement)
+        counts[key] = counts.get(key, 0) + 1
+    bad = set()
+    rows = []
+    for name, number, statement, value, function in sites:
+        key = (name, function, statement)
+        entry = ALLOWED.get(key)
+        allowed = entry is not None and entry[0] == value and entry[1] == counts[key]
+        reason = ""
+        if value is None:
+            reason = f" [unresolved macro {statement.split('=')[-1].strip().rstrip(';')}]"
+        elif entry is None:
+            reason = " [not an allowed site]"
+        elif entry[0] != value:
+            reason = f" [value 0x{value:04X} != allowed 0x{entry[0]:04X}]"
+        elif entry[1] != counts[key]:
+            reason = f" [occurrences {counts[key]} != allowed {entry[1]}]"
+        if not allowed:
+            bad.add(key)
+        rows.append(f"{'ALLOWED' if allowed else 'CONSTANT-CS'} {name}:{number} ({function}): {statement[:90]}{reason}")
+    for key, (value, want, why) in sorted(ALLOWED.items()):
+        if counts.get(key, 0) != want:
+            bad.add(key)
+            rows.append(f"COUNT {key[0]} ({key[1]}): expected {want} of '{key[2][:70]}', found {counts.get(key, 0)}")
+    return rows, bad, len(sites)
+
+
 def main():
     if "--classify" in sys.argv:
         counts = classify()
         for kind, rows in counts.items():
             print(kind, len(rows), "sites in", len({r[0] for r in rows}), "files")
         return 0
-    sites = census()
-    counts = {}
-    for name, _, _, statement in sites:
-        key = (name, site_text(statement))
-        counts[key] = counts.get(key, 0) + 1
-    bad = []
-    for name, number, line, statement in sites:
-        key = (name, site_text(statement))
-        entry = ALLOWED.get(key)
-        allowed = entry is not None and entry[0] == counts[key]
-        if not allowed:
-            bad.append(key)
-        print(f"{'ALLOWED' if allowed else 'CONSTANT-CS'} {name}:{number}: {line[:110]}")
-    for (name, text), (want, why) in sorted(ALLOWED.items()):
-        if counts.get((name, text), 0) != want:
-            # A missing or duplicated expected site is a finding too: silence is not a pass.
-            bad.append((name, text))
-            print(f"COUNT {name}: expected {want} of '{text[:70]}', found {counts.get((name, text), 0)}")
-    bad = sorted(set(bad))
-    print(f"{len(sites)} constant-CS assignments, {len(bad)} not allowed")
+    rows, bad, total = check()
+    print("\n".join(rows))
+    print(f"{total} constant-CS assignments, {len(bad)} not allowed")
     return 1 if bad else 0
 
 
