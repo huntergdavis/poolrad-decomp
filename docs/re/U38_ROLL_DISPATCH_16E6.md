@@ -70,5 +70,30 @@ as evidence of real callee behavior. Fresh queue evidence on base
 `dadfec5806de11c14e41f28cd9b4ad69a6090c59` lists U9E+0DE3 strict and U38+15EB
 untranslated. The latter prevents closure.
 
-**Measurement pending:** no passing C comparison, native execution, composed
-callee execution, live dispatcher arrival, or credit is asserted by this draft.
+## Measured author result
+
+Heavy ticket 984 passed on `b3ecd4242a39ec077040f2ef75154d0ad642b8c6`: 704 original-byte phase comparisons (128 ENTER, 512 AFTER_ROLL, 64 AFTER_DISPATCH), eight invalid-argument refusals, one separately labelled synthetic physical-wrap check, and three rejected extent attacks. All 17 compiled mutants were killed. Source/checker hashes and head were unchanged throughout the run.
+
+| Compiled mutant | Named failing assertion in `compare` |
+| --- | --- |
+| `argument_order` | `phase_0_full_ram` |
+| `roll_count` | `phase_0_full_ram` |
+| `roll_sides` | `phase_0_cpu_ax:a508!=a509` |
+| `roll_return_frame` | `phase_0_full_ram` |
+| `stack_offset` | `phase_0_full_ram` |
+| `boundary_flags_only` | `phase_1_cpu_flags:0ec7!=0612` |
+| `stack_high_byte` | `phase_0_full_ram` |
+| `ah_not_cleared` | `phase_1_cpu_ax:a5fe!=00fe` |
+| `roll_bias` | `phase_1_cpu_flags:0616!=0612` |
+| `parity_flag` | `phase_1_cpu_flags:0616!=0612` |
+| `auxiliary_carry` | `phase_1_cpu_flags:0602!=0612` |
+| `preserved_flags` | `phase_1_cpu_flags:0010!=0612` |
+| `dispatch_high_byte` | `phase_1_cpu_ax:00fe!=01fe` |
+| `dispatch_return_frame` | `phase_1_full_ram` |
+| `continue_past_15eb` | `phase_1_stop_status` |
+| `resume_at_callee` | `callee_resume_refused` |
+| `return_cleanup` | `phase_2_cpu_sp:0010!=0012` |
+
+The ordered full-state result digest is `c0ab40453b8f6f3d85b957b498dfce8e9595f801d953125d8bd0cd0a237a7a5c`. Private receipt: `resources/t6-u38-16e6/check.json`; no original or derived media is committed.
+
+**Not verified:** real roll or U38+15EB execution/effects, native DOS execution, full composed-function parity, live dispatcher arrival, or strict credit. The full discovered media suite is a separate integration gate, not evidence that either missing callee ran.
