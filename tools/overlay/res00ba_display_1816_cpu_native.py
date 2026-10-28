@@ -1,5 +1,8 @@
 """Original display execution on DOSBox-X EGA: plain state/planes plus OUT trace.
 Guest trace mechanics reuse res0709_ega_reset_0000_cpu_audit.py."""
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/res00ba_display_1816_cpu_audit.py --native through poolrad-heavy.sh.")
 # NOT_A_ROW_CHECKER: native companion of res00ba_display_1816_cpu_audit.py.
 from native_emulator_provenance import describe_dosbox
 import os,struct,subprocess

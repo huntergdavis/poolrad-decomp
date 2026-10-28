@@ -2,6 +2,9 @@
 Original code is loaded at rebound segments; far-JMP capture traps are declared.
 No successful callee stubs and no native full-1MiB claim.
 """
+
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/res00ba_display_1693_cpu_audit.py --native through poolrad-heavy.sh.")
 # NOT_A_ROW_CHECKER: native companion of res00ba_display_1693_cpu_audit.py.
 from native_emulator_provenance import describe_dosbox
 import os,struct,subprocess
