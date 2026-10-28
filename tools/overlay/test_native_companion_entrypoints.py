@@ -6,6 +6,9 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPANIONS = (
+    "ovl_0025_0341",
+    "system_freemem_0254",
+    "u38_roll_gate_2915",
     "res0464_bitmap_release_2595",
     "res03f1_clear_0137_cpu",
     "res00ba_clear_17e3_cpu",
@@ -23,9 +26,13 @@ COMPANIONS = (
 )
 
 
+AUDIT_MODULES = {"ovl_0025_0341": "ovl_0025_0341_cpu_audit"}
+
+
 class NativeCompanionEntrypoints(unittest.TestCase):
     def test_direct_execution_refuses_with_actual_audit_command(self):
         for name in COMPANIONS:
+            audit = AUDIT_MODULES.get(name, name + "_audit")
             for mode, flags in (("normal", []), ("isolated", ["-I", "-S"])):
                 with self.subTest(companion=name, mode=mode):
                     # Normal invocation reproduces the original false-green
@@ -40,8 +47,8 @@ class NativeCompanionEntrypoints(unittest.TestCase):
                     self.assertEqual(result.stdout, "")
                     self.assertEqual(
                         result.stderr.strip(),
-                        "No cases executed: invoke tools/overlay/" + name +
-                        "_audit.py --native through poolrad-heavy.sh.",
+                        "No cases executed: invoke tools/overlay/" + audit +
+                        ".py --native through poolrad-heavy.sh.",
                     )
 
 
