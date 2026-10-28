@@ -47,7 +47,10 @@ typedef struct {
  * CONTRACT: the node pointer, stack and formatter destination must not alias
  * A0000..AFFFF; the body does not guard those aliases.
  * LOAD-ZERO ONLY: the model requires the resident code at CS=00BA and the
- * printer at 0709:0626; it is not relocated-load parity. */
+ * printer at 0709:0626; it is not relocated-load parity.
+ * ACCEPTANCE WINDOW: entry SP in [0242h,FFF0h]. SP>FFF0h is outside the
+ * claimed domain (C 16-bit arithmetic vs the Unicorn contiguous return-frame
+ * read); 1037 uses a 100h frame and 0626 needs entry SP>=0130h. */
 pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_0973_cpu *cpu,
                                         const pr_res_0973_env *env, pr_res_0973_diagnostic *diagnostic);
 #endif
