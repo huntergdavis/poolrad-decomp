@@ -27,7 +27,7 @@ tools/overlay/system_close_1491_cpu_audit.py,474
 tools/overlay/system_close_1491_cpu_audit.py,421
 tools/overlay/system_filecheck_14b6_cpu_audit.py,350
 tools/overlay/system_filecheck_14b6_cpu_audit.py,309
-tools/overlay/system_freemem_0254_native.py,92
+tools/overlay/system_freemem_0254_native.py,93
 tools/overlay/system_getmem_023f_audit.py,380
 tools/overlay/system_iocheck_04a9_cpu_audit.py,402
 tools/overlay/system_iocheck_04a9_cpu_audit.py,361
@@ -96,7 +96,7 @@ tools/overlay/u38_pair_04ba_native.py,73
 tools/overlay/u38_roll_append_1730_native.py,98
 tools/overlay/u38_roll_clear_2de4_native.py,151
 tools/overlay/u38_roll_effect_27d9_native.py,98
-tools/overlay/u38_roll_gate_2915_native.py,160
+tools/overlay/u38_roll_gate_2915_native.py,161
 tools/overlay/u38_sidecar_1472_native.py,98
 tools/overlay/u38_string_match_cpu_audit.py,362
 tools/overlay/u38_target_gate_2ae6_cpu_native.py,88

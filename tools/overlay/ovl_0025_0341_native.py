@@ -9,6 +9,7 @@ RunError's entry is a capture jump. Compared with the C model on the identical s
 Not native: the retry LIMIT and the hang (the original does not return), the prompts and keyboard, STALLED, the buffer/stack/SS variants, flags with IF set, the message in modes 0 and 2.
 Mode 3 of the game's display variable does not write the planes, so those cases compare only the CPU words and the memory regions."""
 
+# NOT_A_ROW_CHECKER: Imported native companion; ovl_0025_0341_cpu_audit.py owns row checking.
 if __name__ == "__main__":
     raise SystemExit("No cases executed: invoke tools/overlay/ovl_0025_0341_cpu_audit.py --native through poolrad-heavy.sh.")
 import os, struct, subprocess
