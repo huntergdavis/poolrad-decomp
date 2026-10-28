@@ -11,6 +11,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Record workflow event and revision before gates
+        run: python3 tools/overlay/report_ci_context.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -87,12 +89,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Record workflow event and revision before gates
+        run: python3 tools/overlay/report_ci_context.py
       - name: Verify accounting commit provenance
         run: python3 tools/overlay/check_record_shas.py
       - name: Test accounting provenance guard
         run: python3 -m unittest discover -s tools/overlay -p 'test_record_shas.py'
       - name: Test body/checker pairing gate
         run: python3 -m unittest discover -s tools/overlay -p 'test_check_body_doc_pairing.py'
+      - name: Test workflow event summary
+        run: python3 -m unittest discover -s tools/overlay -p 'test_report_ci_context.py'
       # The harness that proves an infeasible-coverage exclusion fails closed. The tests
       # are synthetic (no media): each of the five attacks must catch a sound audit's
       # broken claim and flag an audit that lacks the check it targets.
