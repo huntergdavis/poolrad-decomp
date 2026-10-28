@@ -410,6 +410,7 @@ overlay_unit38_effects.c,flat,no,no
 overlay_unit38_effects_next.c,flat,no,no
 overlay_unit38_helper.c,flat,no,no
 overlay_unit38_walk.c,flat,no,no
+resident_00ba_0973_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_byte_string_1037_cpu.c,flat,no,no
 resident_00ba_character_0bb8_cpu.c,flat,no,no
 resident_00ba_character_helpers_cpu.c,flat,no,no
