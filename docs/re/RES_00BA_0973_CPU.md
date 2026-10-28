@@ -42,16 +42,25 @@ conditional outcomes.
 The claimed entry-SP domain is **`[0x0242, 0xFFF0]`** (16-bit). The lower bound
 is the printer contract: 0973 pushes five words and a far frame, so `0709:0626`
 enters at `SP-0x112`, and its header requires entry SP `>= 0x130`; `0x0242` is
-the smallest entry that satisfies it (the body and `1037` need only `0x216`).
-The upper bound keeps every caller-frame word at or below `0xFFFF`.
+the smallest entry that satisfies that far-return entry. The composed stack is
+deeper than the far-return entries: `1037` enters at `S-0x114`, and its
+`BP+0x100` frame reaches `S-0x216`; six argument words and the far frame put
+`Str`'s entry at `S-0x226`; `Str`'s `BP`/local `0x20`/near return/saved DI
+reach `S-0x24C`; `StrStore` enters at `S-0x224`. At `S=0x242` the deeper
+temporary stack work wraps in 16 bits even though the far-return entries in the
+bounded tests do not. The window covers the tested far-return/temporary
+entries; it is not a native claim at the low edge. The upper bound keeps every
+caller-frame word at or below `0xFFFF`.
 
 `SP > 0xFFF0` is an **excluded oracle band**: the C model performs 16-bit
 address arithmetic, while the repository's Unicorn oracle reads the return
 frame contiguously. This is the known Unicorn/DOSBox distinction, not a C or
 native defect; `SP=0xFFFF` is the one reviewer case that lands there. The 15
-author cases use `0x8000`/`0x8100`; the reviewer's adversarial set passes 30/31
-with only `0xFFFF` outside the band. This is a declared acceptance window, not
-an input-domain proof.
+author cases use `0x8000`/`0x8100`; the reviewer's adversarial set passes 30/31.
+The only mismatch was `SP=0xFFFF`, which is inside the excluded high band; four
+low-SP cases (`0x0000`, `0x0001`, `0x0102`, `0x0103`) also passed but lie
+outside the claimed window. This is a declared acceptance window, not an
+input-domain proof.
 
 Composed callee limits: `1037` needs its `0x100`-byte frame plus the
 `Str`/`StrStore` calls; `0626`'s header requires entry SP in `[0x130, 0xFFF2]`;

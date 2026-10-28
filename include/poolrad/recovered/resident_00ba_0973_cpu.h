@@ -50,7 +50,8 @@ typedef struct {
  * printer at 0709:0626; it is not relocated-load parity.
  * ACCEPTANCE WINDOW: entry SP in [0242h,FFF0h]. SP>FFF0h is outside the
  * claimed domain (C 16-bit arithmetic vs the Unicorn contiguous return-frame
- * read); 1037 uses a 100h frame and 0626 needs entry SP>=0130h. */
+ * read); 1037 uses a 100h frame and 0626 needs entry SP>=0130h. The low
+ * edge's nested temporaries can wrap; the window covers the bounded tests. */
 pr_res_0973_status pr_res_00ba_0973_cpu(pr_bus *bus, size_t ram_size, pr_res_0973_cpu *cpu,
                                         const pr_res_0973_env *env, pr_res_0973_diagnostic *diagnostic);
 #endif
