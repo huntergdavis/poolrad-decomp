@@ -112,6 +112,46 @@ class CensusTest(unittest.TestCase):
         root = self.tree(**{"e.c": "void f(void){ cpus[0].cs = 0x0AF8u; }\n"})
         self.assertEqual([(n, v) for n, _, _, v, _ in census.census(root)], [("e.c", 0x0AF8)])
 
+    def test_a_one_line_definition_does_not_inherit_the_previous_function(self):
+        """F2, count-preserving form: delete the allowed line, append a legal one-line function that assigns the same
+        statement. A tolerant head parser plus a cleared name at the closing brace must make this a finding."""
+        root = self.full_fixture()
+        self.mutate(root, "overlay_u6c_2033_cpu.c", "    composed.cs = 0x00BAu;", "    /* moved out */")
+        path = Path(root) / "src/recovered/overlay_u6c_2033_cpu.c"
+        text = path.read_text() + ("\nvoid reviewer_moved(pr_res_0973_cpu composed) "
+                                   "{ composed.cs = 0x00BAu; (void)composed; }\n")
+        path.write_text(text)
+        rows, bad, _ = census.check(root)
+        self.assertEqual(1 if bad else 0, 1, rows)
+        self.assertTrue(any("reviewer_moved" in row for row in rows), rows)
+
+    def test_a_nested_block_keeps_the_function_identity(self):
+        """Clearing happens at the real function boundary, not at every nested closing brace."""
+        root = self.full_fixture()
+        self.mutate(root, "overlay_u6c_2033_cpu.c", "    composed.cs = 0x00BAu;",
+                    "    if (first < 6u) {\n        composed.cs = 0x00BAu;\n    }")
+        self.assertEqual(self.status(root), 0)
+
+    def test_comments_and_strings_do_not_change_context(self):
+        """A brace or a `cs =` inside a comment or a string literal is not code and must not shift the parser."""
+        root = self.full_fixture()
+        self.mutate(root, "overlay_u6c_2033_cpu.c", "    composed.cs = 0x00BAu;",
+                    '    const char *probe = "} composed.cs = 0x1234u; {";\n'
+                    "    /* } composed.cs = 0x0AF8u; { */\n"
+                    "    // } c->cs = 0x0AF8u;\n"
+                    "    (void)probe;\n"
+                    "    composed.cs = 0x00BAu;")
+        self.assertEqual(self.status(root), 0)
+
+    def test_a_file_scope_assignment_has_no_function_identity(self):
+        """Fail closed: an assignment outside every body reports unknown function context and can never match."""
+        root = self.full_fixture()
+        path = Path(root) / "src/recovered/zz_scope.c"
+        path.write_text("int x = 0;\nvoid g(void)\n{\n    comps[0].cs = 0x0AF8u;\n}\n")
+        rows, bad, _ = census.check(root)
+        self.assertEqual(1 if bad else 0, 1)
+        self.assertTrue(any("zz_scope.c" in row for row in rows), rows)
+
     def test_an_unresolvable_macro_cannot_hide_the_expected_site(self):
         """A header-defined name is reported by name; it never silently disappears."""
         root = self.full_fixture()

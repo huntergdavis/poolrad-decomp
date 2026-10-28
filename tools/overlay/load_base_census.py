@@ -52,21 +52,51 @@ def site_text(line):
     return re.sub(r"\s+", " ", line).strip()
 
 
+COMMENT = re.compile(r"/\*.*?\*/|//[^\n]*", re.S)
+STRING = re.compile(r'"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'')
+HEADER = re.compile(r"^\s*(?:(?:static|inline|extern|const|unsigned|signed|void|int|char|long|short|float|double|"
+                    r"size_t|ptrdiff_t|uint\d+_t|int\d+_t|pr_[A-Za-z0-9_]+|[A-Z][A-Za-z0-9_]*)[ \t\*]+)+"
+                    r"([A-Za-z_][A-Za-z0-9_]*)\s*\(")
+NON_FUNCTION = {"if", "for", "while", "switch", "do", "return", "sizeof", "else"}
+
+
+def strip_noise(text):
+    """Blank out comments and string/char literals while keeping newlines.
+
+    Braces, semicolons and `cs =` text inside a comment or a string are not code: counting them would either close a
+    function early or invent a site."""
+    def blank(match):
+        return "\n" * match.group(0).count("\n")
+    return STRING.sub(blank, COMMENT.sub(blank, text))
+
+
 def functions(text):
-    """(line number -> enclosing function name) for top-level definitions, brace-counted."""
-    found = {}
-    name = None
+    """(line -> enclosing top-level function name or None), brace-counted and FAIL-CLOSED.
+
+    A name is attached only inside a body that was opened at top level; the name is cleared when that body closes, so a
+    one-line definition (`void f(...) { ...; }`) is attributed to itself and a statement after it never inherits the
+    previous function's identity. A line outside every body gets None, which can never match an allowlist entry."""
+    cleaned = strip_noise(text)
+    where = {}
     depth = 0
-    head = re.compile(r"^[A-Za-z_][A-Za-z0-9_ *]*?\b([A-Za-z_][A-Za-z0-9_]*)\s*\([^;]*$")
-    for number, line in enumerate(text.splitlines(), 1):
-        match = head.match(line)
-        if match and depth == 0:
-            name = match.group(1)
-        found[number] = name
+    current = None
+    pending = None
+    for number, line in enumerate(cleaned.splitlines(), 1):
+        header = HEADER.match(line)
+        name = header.group(1) if header and header.group(1) not in NON_FUNCTION else None
+        if depth == 0:
+            if name is not None:
+                pending = name
+            if "{" in line:
+                current = name or pending
+                pending = None
+        where[number] = current if (depth > 0 or "{" in line) else None
         depth += line.count("{") - line.count("}")
         if depth < 0:
             depth = 0
-    return found
+        if depth == 0:
+            current = None
+    return where
 
 
 def census(root=ROOT):
@@ -74,10 +104,10 @@ def census(root=ROOT):
     sites = []
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text(errors="replace")
-        macros = {name: int(value, 16) for name, value in DEFINE.findall(text)}
+        cleaned = strip_noise(text)
+        macros = {name: int(value, 16) for name, value in DEFINE.findall(cleaned)}
         where = functions(text)
-        for number, line in enumerate(text.splitlines(), 1):
-            code = re.sub(r"/\*.*?\*/", "", line.split("//")[0])
+        for number, code in enumerate(cleaned.splitlines(), 1):
             for match in ASSIGN.finditer(code):
                 raw = match.group(2)
                 if raw.lower().startswith("0x"):
@@ -138,7 +168,9 @@ def check(root=ROOT):
         entry = ALLOWED.get(key)
         allowed = entry is not None and entry[0] == value and entry[1] == counts[key]
         reason = ""
-        if value is None:
+        if function is None:
+            reason = " [unknown function context]"
+        elif value is None:
             reason = f" [unresolved macro {statement.split('=')[-1].strip().rstrip(';')}]"
         elif entry is None:
             reason = " [not an allowed site]"
