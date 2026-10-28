@@ -30,6 +30,23 @@ def fields_diff(left, right):
             for k in left if left[k] != right[k]}
 
 
+def _ram_regions(registers):
+    stack = registers['ss'] * 16
+    return dict(bios_timer=[0x46c, 0x470],
+                randseed=[registers['ds'] * 16 + 0x4428, registers['ds'] * 16 + 0x442c],
+                stack_below_sp=[stack, stack + registers['esp']],
+                stack_at_or_above_sp=[stack + registers['esp'], stack + 0x4000])
+
+
+def _check_disjoint_regions(regions):
+    # Empty half-open regions at SP=0 or SP=4000 contain no bytes.
+    spans = sorted((start, end, name) for name, (start, end) in regions.items()
+                   if start < end)
+    for previous, current in zip(spans, spans[1:]):
+        if current[0] < previous[1]:
+            raise ValueError(f'overlapping RAM regions: {previous[2]} and {current[2]}')
+
+
 def ram_localization(left, right, original, replacement, manifest):
     """Address classification only: no masks, byte values, or causality claims."""
     offsets = [i for i, (a, b) in enumerate(zip(left, right)) if a != b]
@@ -50,11 +67,8 @@ def ram_localization(left, right, original, replacement, manifest):
               ('bios_timer', 'randseed', 'stack_below_sp', 'stack_at_or_above_sp', 'unclassified')}
     regions = {}
     if supported:
-        stack = a['ss'] * 16
-        regions = dict(bios_timer=[0x46c, 0x470],
-                       randseed=[a['ds'] * 16 + 0x4428, a['ds'] * 16 + 0x442c],
-                       stack_below_sp=[stack, stack + a['esp']],
-                       stack_at_or_above_sp=[stack + a['esp'], stack + 0x4000])
+        regions = _ram_regions(a)
+        _check_disjoint_regions(regions)
     for offset in offsets:
         name = next((name for name, (start, end) in regions.items()
                      if start <= offset < end), 'unclassified')
@@ -66,7 +80,8 @@ def ram_localization(left, right, original, replacement, manifest):
         else:
             ranges.append([offset, offset + 1])
     return dict(status='classified' if supported else 'unavailable',
-                model='poolrad-v1.3-observed-1264:02fd-layout', masked_bytes=0,
+                model='poolrad-v1.3-observed-1264:02fd-layout',
+                masked_bytes=len(offsets) - sum(g['differing_bytes'] for g in groups.values()),
                 total_differing_bytes=len(offsets), range_convention='physical [start, end), bytes',
                 regions=regions, categories=groups,
                 scope=('Address membership only; no first-writer, cause, liveness, '
