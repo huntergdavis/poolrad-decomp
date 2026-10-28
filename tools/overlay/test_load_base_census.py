@@ -143,6 +143,21 @@ class CensusTest(unittest.TestCase):
                     "    composed.cs = 0x00BAu;")
         self.assertEqual(self.status(root), 0)
 
+    def test_a_same_line_boundary_does_not_inherit_the_previous_function(self):
+        """F2, same-line form: '} void f(...) { composed.cs = ...; }' on ONE physical line must be attributed to f.
+
+        The line closes the previous body and opens the next one, so a per-line map would still name the old function;
+        the context has to be taken at the assignment's own position."""
+        root = self.full_fixture()
+        self.mutate(root, "overlay_u6c_2033_cpu.c", "    composed.cs = 0x00BAu;", "    /* moved out */")
+        path = Path(root) / "src/recovered/overlay_u6c_2033_cpu.c"
+        text = path.read_text().rstrip("\n") + (
+            " void reviewer_moved(pr_res_0973_cpu composed) { composed.cs = 0x00BAu; (void)composed; }\n")
+        path.write_text(text)
+        rows, bad, _ = census.check(root)
+        self.assertEqual(1 if bad else 0, 1, rows)
+        self.assertTrue(any("reviewer_moved" in row for row in rows), rows)
+
     def test_a_file_scope_assignment_has_no_function_identity(self):
         """Fail closed: an assignment outside every body reports unknown function context and can never match."""
         root = self.full_fixture()

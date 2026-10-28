@@ -70,33 +70,58 @@ def strip_noise(text):
     return STRING.sub(blank, COMMENT.sub(blank, text))
 
 
-def functions(text):
-    """(line -> enclosing top-level function name or None), brace-counted and FAIL-CLOSED.
+HEADER_ANY = re.compile(
+    r"(?:(?:static|inline|extern|const|unsigned|signed|void|int|char|long|short|float|double|size_t|ptrdiff_t|"
+    r"uint\d+_t|int\d+_t|pr_[A-Za-z0-9_]+|[A-Z][A-Za-z0-9_]*)[ \t\*]+)+([A-Za-z_][A-Za-z0-9_]*)\s*\(")
 
-    A name is attached only inside a body that was opened at top level; the name is cleared when that body closes, so a
-    one-line definition (`void f(...) { ...; }`) is attributed to itself and a statement after it never inherits the
-    previous function's identity. A line outside every body gets None, which can never match an allowlist entry."""
+
+def context_map(text):
+    """(line -> incoming function, line -> [(char index, function after that char)]), position aware and fail-closed.
+
+    The map is built per character, not per line, because a definition can start on the same physical line that closes
+    the previous body (`} void f(...) { ... }`). An assignment is attributed to the context at its own position, so a
+    mid-line boundary is respected; a name is cleared the moment a top-level body closes, and a site with no context is
+    reported as unknown."""
     cleaned = strip_noise(text)
-    where = {}
+    incoming = {}
+    marks = {}
     depth = 0
     current = None
     pending = None
     for number, line in enumerate(cleaned.splitlines(), 1):
-        header = HEADER.match(line)
-        name = header.group(1) if header and header.group(1) not in NON_FUNCTION else None
-        if depth == 0:
-            if name is not None:
-                pending = name
-            if "{" in line:
-                current = name or pending
-                pending = None
-        where[number] = current if (depth > 0 or "{" in line) else None
-        depth += line.count("{") - line.count("}")
-        if depth < 0:
-            depth = 0
-        if depth == 0:
-            current = None
-    return where
+        incoming[number] = current
+        marks[number] = []
+        segment = 0
+        for index, char in enumerate(line):
+            if char == "{":
+                if depth == 0:
+                    header = HEADER_ANY.search(line[segment:index])
+                    current = header.group(1) if header else pending
+                    pending = None
+                depth += 1
+                marks[number].append((index, current))
+                segment = index + 1
+            elif char == "}":
+                depth = max(0, depth - 1)
+                if depth == 0:
+                    current = None
+                marks[number].append((index, current))
+                segment = index + 1
+        if depth == 0 and "{" not in line:
+            header = HEADER_ANY.search(line)
+            if header:
+                pending = header.group(1)
+    return incoming, marks
+
+
+def context_at(incoming, marks, number, position):
+    context = incoming.get(number)
+    for index, after in marks.get(number, ()):
+        if index < position:
+            context = after
+        else:
+            break
+    return context
 
 
 def census(root=ROOT):
@@ -106,7 +131,7 @@ def census(root=ROOT):
         text = path.read_text(errors="replace")
         cleaned = strip_noise(text)
         macros = {name: int(value, 16) for name, value in DEFINE.findall(cleaned)}
-        where = functions(text)
+        incoming, marks = context_map(text)
         for number, code in enumerate(cleaned.splitlines(), 1):
             for match in ASSIGN.finditer(code):
                 raw = match.group(2)
@@ -116,7 +141,8 @@ def census(root=ROOT):
                     value = macros.get(raw)          # None == unresolvable (header-defined) macro: still a finding
                 else:
                     continue                          # lowercase identifier: a live read or a parameter
-                sites.append((path.name, number, site_text(match.group(1) + " = " + raw + ";"), value, where[number]))
+                sites.append((path.name, number, site_text(match.group(1) + " = " + raw + ";"), value,
+                              context_at(incoming, marks, number, match.start())))
     return sites
 
 IDENT = re.compile(r"(?:->|\.)cs\s*=\s*([a-z_][a-z0-9_]*)\s*[;,)]")
