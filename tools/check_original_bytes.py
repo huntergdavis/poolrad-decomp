@@ -6,7 +6,7 @@ one line (a hex byte dump). BATCH1 (docs/re/CANDIDATE_SCOUT_DS41B_BATCH1.md)
 must NOT be flagged (known-clean control).
 """
 import glob, re, sys
-pat = re.compile(r'(?:(?:[0-9a-fA-F]{2}\s+){8,})')
+pat = re.compile(r'(?:(?:[0-9a-fA-F]{2}[ \t]+){7,}[0-9a-fA-F]{2}\b)')
 files = sorted(glob.glob('docs/re/*.md'))
 hits = [f for f in files if pat.search(open(f).read())]
 for h in hits:
