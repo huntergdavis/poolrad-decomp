@@ -5,6 +5,7 @@ Every policy control starts from a FULL VALID FIXTURE (the real `src/recovered` 
 mutation, so a red result is caused by the mutation and not by an incomplete fixture.
 """
 import sys
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -179,6 +180,82 @@ class CensusTest(unittest.TestCase):
         root = self.tree(**{"e.c": "void f(void, uint16_t seg){ c->cs = seg; }\nvoid g(void){ uint16_t s = rd(ram, cs, 0x10u); c->cs = s; }\n"})
         counts = census.classify(root)
         self.assertEqual({k: len(v) for k, v in counts.items()}, {"LIVE": 1, "PARAM": 1, "OTHER": 0})
+
+    def test_lowercase_header_macro_adds_one_finding_to_a_valid_tree(self):
+        root = self.full_fixture()
+        self.assertEqual(self.status(root), 0)
+        folder = root / "src/recovered"
+        (folder / "hidden.h").write_text("#define hidden_cs 0x1234u\n")
+        (folder / "header_probe.c").write_text('#include "hidden.h"\nvoid f(void){cpu->cs=hidden_cs;}\n')
+        rows, bad, total = census.check(root)
+        key = ("header_probe.c", "f", "cpu->cs = hidden_cs;")
+        self.assertEqual(bad, {key}, rows)
+        self.assertEqual(total, 5)
+        self.assertTrue(any("unresolved macro hidden_cs" in row for row in rows))
+
+    def test_transitive_angle_header_and_cycle_find_mixed_case_macro(self):
+        root = Path(self.tree(**{"a.c": '#include <poolrad/outer.h>\nvoid f(void){c->cs=HiddenCs;}\n'}))
+        folder = root / "include/poolrad"
+        folder.mkdir(parents=True)
+        (folder / "outer.h").write_text('#include "inner.h"\n')
+        (folder / "inner.h").write_text('#include "outer.h"\n#define HiddenCs (0x1234u)\n')
+        self.assertEqual(census.census(root), [("a.c", 2, "c->cs = HiddenCs;", None, "f")])
+
+    def test_unincluded_header_does_not_turn_parameter_into_macro(self):
+        root = self.tree(**{"a.c": "void f(uint16_t seg){c->cs=seg;}\n",
+                            "unrelated.h": "#define seg 0x1234u\n"})
+        self.assertEqual(census.census(root), [])
+
+    def test_commented_includes_and_defines_do_not_invent_macros(self):
+        root = self.tree(**{"a.c": '/* #include "fake.h" */\n#include "real.h"\nvoid f(uint16_t seg){c->cs=seg;}\n',
+                            "fake.h": "#define seg 0x1234u\n",
+                            "real.h": "/* #define seg 0x1234u */\n// #define seg 0x1234u\n"})
+        self.assertEqual(census.census(root), [])
+
+    def test_function_like_header_macro_does_not_hide_parameter(self):
+        root = self.tree(**{"a.c": '#include "helpers.h"\nvoid f(uint16_t seg){c->cs=seg;}\n',
+                            "helpers.h": "#define seg(x) (x)\n"})
+        self.assertEqual(census.census(root), [])
+
+    def test_header_lexing_agrees_with_compiler_macro_kind(self):
+        # VP15 i32460: comment boundaries and phase ordering affect macro kind.
+        cases = [
+            ("comment-before-value", "#define hidden_cs/**/(0x1234u)\n", True),
+            ("comment-after-directive", "#define/**/hidden_cs 0x1234u\n", True),
+            ("continued-line-comment", "// ignored \\\n#define hidden_cs 0x1234u\n", False),
+            ("plain-object", "#define hidden_cs (0x1234u)\n", True),
+            ("plain-function", "#define hidden_cs(x) (x)\n", False),
+            ("spliced-directive", "#def\\\nine hidden_cs 0x1234u\n", True),
+            ("spliced-function", "#define hidden_cs\\\n(x) (x)\n", False),
+            ("comment-in-quoted-text", 'static char *s="/*";\n#define hidden_cs 0x1234u\n', True),
+            ("multiline-comment", "#define hidden_cs/* first\nsecond */(0x1234u)\n", True),
+        ]
+        for label, header, expected in cases:
+            with self.subTest(label=label):
+                root = Path(self.tree(**{
+                    "a.c": '#include "probe.h"\nvoid f(void){c->cs=hidden_cs;}\n',
+                    "probe.h": header,
+                }))
+                result = subprocess.run(["cc", "-E", "-dM", "-x", "c", "-"], input=header,
+                                        text=True, capture_output=True, check=True)
+                declarations = [line for line in result.stdout.splitlines()
+                                if line.startswith("#define hidden_cs ")]
+                self.assertEqual(bool(declarations), expected, result.stdout)
+                sites = census.census(root)
+                self.assertEqual(len(sites), int(expected), (header, sites))
+                if expected:
+                    self.assertEqual(sites[0], ("a.c", 2, "c->cs = hidden_cs;", None, "f"))
+
+    def test_header_discovery_does_not_resolve_or_allow_a_protected_site(self):
+        root = self.full_fixture()
+        self.assertEqual(self.status(root), 0)
+        self.mutate(root, "slot_a_directory_fullstate.c", "#define SYSTEM_SEG 0x131cu",
+                    '#include "system_seg.h"')
+        (root / "src/recovered/system_seg.h").write_text("#define SYSTEM_SEG 0x131cu\n")
+        rows, bad, total = census.check(root)
+        self.assertEqual(total, 4)
+        self.assertEqual(bad, {("slot_a_directory_fullstate.c", "pr_slot_a_directory_step", "c->cs = SYSTEM_SEG;")})
+        self.assertTrue(any("unresolved macro SYSTEM_SEG" in row for row in rows))
 
 
 if __name__ == "__main__":

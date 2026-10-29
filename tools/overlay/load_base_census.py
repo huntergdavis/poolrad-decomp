@@ -13,8 +13,8 @@ POLICY (VP 2026-10-27): a constant `cs` assignment is allowed only as an EXACT S
   1. captured-runtime native model  - the segment is the runtime value of one captured run, so the constant is the contract;
   2. explicit load-zero composition - the body composes a model whose documented contract is load-zero only, and a guard
      pins the operand word before the assignment; the constant is the documented composition segment;
-  3. unresolvable macro             - NEVER allowed implicitly: an uppercase identifier on the right of `cs =` is reported
-     (with its name) when the scanner cannot resolve it in the same file, so a named constant cannot hide an expected site.
+  3. unresolvable macro             - NEVER allowed implicitly: an uppercase identifier, or an object-like macro declared
+     in an included project header, is reported by name when not resolved in-file. Header values are not evaluated.
 
 A changed value, an extra assignment in an already-allowed file, a duplicated site, a site moved to another function, and a
 missing expected site are all findings: the key is the site and the value, never the file alone, and silence is not a pass.
@@ -68,6 +68,53 @@ def strip_noise(text):
     def blank(match):
         return "\n" * match.group(0).count("\n")
     return STRING.sub(blank, COMMENT.sub(blank, text))
+
+
+INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*([<"])([^>"\n]+)[>"]', re.M)
+OBJECT_MACRO = re.compile(r"^[ \t]*#[ \t]*define[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b(?!\()", re.M)
+
+HEADER_TOKEN = re.compile(STRING.pattern + "|" + COMMENT.pattern, re.S)
+
+
+def header_directives(text):
+    """Splice physical lines, then replace comments with whitespace.
+
+    Match quoted tokens first so comment markers inside strings stay literal.
+    This covers lexical discovery only, without expanding macros or #if.
+    """
+    spliced = re.sub(r"\\\r?\n", "", text)
+    return HEADER_TOKEN.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", spliced)
+
+
+def included_macro_names(path, text, root, cache):
+    """Object-like macro names in literal project includes, regardless of case.
+
+    This is conservative discovery, not preprocessing: do not evaluate header
+    values, #if branches, #undef or include ordering. Follow quoted includes
+    beside their includer, then project include/; angle includes use include/.
+    Missing/external headers and computed includes are outside this scan.
+    """
+    root = Path(root).resolve()
+    pending = [(path, text)]
+    visited, names = set(), set()
+    while pending:
+        origin, contents = pending.pop()
+        clean = header_directives(contents)
+        for delimiter, name in INCLUDE.findall(clean):
+            candidates = ([origin.parent / name] if delimiter == '"' else []) + [root / "include" / name]
+            for candidate in candidates:
+                header = candidate.resolve()
+                if not header.is_relative_to(root) or not header.is_file():
+                    continue
+                if header not in visited:
+                    visited.add(header)
+                    if header not in cache:
+                        cache[header] = header.read_text(errors="replace")
+                    contents = cache[header]
+                    names.update(OBJECT_MACRO.findall(header_directives(contents)))
+                    pending.append((header, contents))
+                break  # the first existing include candidate owns this name
+    return names
 
 
 HEADER_ANY = re.compile(
@@ -127,10 +174,12 @@ def context_at(incoming, marks, number, position):
 def census(root=ROOT):
     """(file, line, statement, resolved value or None, enclosing function) for every constant-cs assignment."""
     sites = []
+    header_cache = {}
     for path in sorted((Path(root) / "src/recovered").glob("*.c")):
         text = path.read_text(errors="replace")
         cleaned = strip_noise(text)
         macros = {name: int(value, 16) for name, value in DEFINE.findall(cleaned)}
+        header_macros = None
         incoming, marks = context_map(text)
         for number, code in enumerate(cleaned.splitlines(), 1):
             for match in ASSIGN.finditer(code):
@@ -140,7 +189,11 @@ def census(root=ROOT):
                 elif re.fullmatch(r"[A-Z][A-Z0-9_]*", raw):
                     value = macros.get(raw)          # None == unresolvable (header-defined) macro: still a finding
                 else:
-                    continue                          # lowercase identifier: a live read or a parameter
+                    if header_macros is None:
+                        header_macros = included_macro_names(path, text, root, header_cache)
+                    if raw not in header_macros:
+                        continue                      # no evidence this identifier is a macro
+                    value = None                      # header macro: visible, never implicitly allowlisted
                 sites.append((path.name, number, site_text(match.group(1) + " = " + raw + ";"), value,
                               context_at(incoming, marks, number, match.start())))
     return sites
