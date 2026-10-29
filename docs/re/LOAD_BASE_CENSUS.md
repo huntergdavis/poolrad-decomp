@@ -22,9 +22,9 @@ with, so even a differential at another base would see the caller do the right t
 regex allowed one leading zero and `overlay_u38_sidecar_flag_0918.c:118` reads `cpu->cs = 0x00BAu`. The confirmed count was
 therefore wrong in circulation: **four models, seven sites** (0DE3/0E0E 1, 1010 3, 0918 1, 275B 2), and the census below later
 added `0FDE` (`cs = 0x00B0u`), making **five models and eight sites**.
-`tools/overlay/load_base_census.py` is a different thing from that regex: it reads **every** assignment to a `cs` field in
-`src/recovered/*.c`, whatever the width of the literal, and also treats an uppercase identifier as a candidate constant (a macro name, whether defined in this file or in a
-header it does not read). It fails closed on any site whose file, statement, value and occurrence count are not on the
+`tools/overlay/load_base_census.py` is a different thing from that regex: it scans simple assignments to a `cs` field in
+`src/recovered/*.c`: hexadecimal literals, uppercase identifiers, and object-like macro names found in included project
+headers regardless of their case. It fails closed on any site whose file, statement, value and occurrence count are not on the
 per-site allowlist. Run on the tree before the fixes it finds exactly: `overlay_0077_275b_cpu.c` (2),
 `overlay_u38_sidecar_flag_0918.c` (1), `overlay_u7f_caller_1010.c` (3), `overlay_u7f_roll_call_0fde.c` (1), plus the three
 allowed native-capture sites below (and `0E0E`, which par-c had already fixed in #1376).
@@ -45,8 +45,8 @@ it is:
    assumption about a relocated load. The site arrived with `d7709238` ("Model OVL_006C_2033 … (t182 step 2)"), merged as
    #1610 `49d14524`.
 3. **Unresolvable macro** — never allowed implicitly. An uppercase identifier on the right of `cs =` is reported even when
-   it is `#define`d in a header the scanner does not read, so a named constant cannot hide an expected site. (The generic
-   scanner side of this is tracked as t329; here it is what keeps the composition site visible.)
+   its value is available only in a header. Included project headers also expose lowercase/mixed-case object macro names.
+   Header values are never used to satisfy an allowlist entry; moving a protected constant to a header still fails.
 
 Because the key is the site, these are **findings, not passes**, and each has a focused control:
 
@@ -62,11 +62,42 @@ Because the key is the site, these are **findings, not passes**, and each has a 
 Every control runs from a **complete valid fixture** — the committed `src/recovered` tree, symlinked — with exactly one
 mutation applied, so a red result is caused by the mutation and not by an incomplete tree (the diagnostics name the file,
 line, enclosing function, value and reason). An uppercase identifier whose `#define` is not in the same file is reported by
-name as `[unresolved macro …]`; the generic scanner side stays with t329.
+name as `[unresolved macro …]`; names discovered in included headers follow the same rule.
 
 Baseline before the repair: `4 constant-CS assignments, 1 not allowed` (the 006C site). After: `4 constant-CS
 assignments, 0 not allowed`, with the site still visible in the output. No runtime input, refusal path or model behaviour
 changed by this policy: the 006C C, header and model document are byte-identical to `ccacd330`.
+
+## Included header names (t329)
+
+The saved t328 fixture used `#define HIDDEN_CS 0x1234u` in an included header.
+It produced zero sites before t327; the merged t327 scanner already reports that
+uppercase spelling as unresolved. Its lowercase equivalent `hidden_cs` still
+produced zero sites, because lowercase names were treated as variables.
+
+The scanner now follows literal quoted includes beside the including file and
+under project `include/`, plus literal angle includes under `include/`.
+Transitive includes and cycles are supported; only existing paths resolving
+inside the selected root are read. An object-like macro declared there is
+reported when assigned to CS, regardless of spelling. Unincluded headers,
+commented directives and function-like macros do not turn a bare parameter
+into a macro. Headers are parsed once per census invocation and discovered only
+when a non-uppercase assignment needs classification.
+
+This is conservative name discovery, **not a C preprocessor or constant-value
+proof**. Conditional branches, `#undef`, redefinition/include ordering, computed
+includes, external include directories and compiler command-line macros are not
+modelled. Discovery may flag a macro from an inactive branch or one later
+undefined. Lowercase macros outside the discovered include graph can still be
+missed. The existing assignment grammar also excludes complex RHS expressions,
+casts and macro invocations. `--classify` remains a separate heuristic.
+
+Header values stay unresolved even when written as hexadecimal literals. The
+per-site allowlist, value/count checks, function attribution and protected
+runtime code are unchanged. The regression begins with a valid four-site tree,
+adds one lowercase header assignment, and requires exactly that new finding;
+a separate control moves the allowed `SYSTEM_SEG` definition to a header and
+requires its refusal. This prevents header discovery from weakening t327.
 
 ## Two mechanisms, because a moved base alone cannot see a callee that ignores its CS
 
@@ -117,8 +148,8 @@ the rerun would pass on the old models too. The per-model spy is what observes t
 A synthetic fixture that builds a fake loaded caller **without the LCALL bytes** now fails loudly when the fixed model reads
 the word (it reads fill). That is the symptom this class exists to produce, not a regression: the fix is to install the
 `9A offset segment` bytes (the tests of 0918, 0FDE and 1010 each gained their call words; par-c's fixes added them for 0DE3's
-composers). The census is `tools/overlay/test_load_base_census.py`: it asserts the committed result is exactly the three
-allowed native-capture sites, so a new constant-CS assignment fails the test.
+composers). The census is `tools/overlay/test_load_base_census.py`: it asserts the committed result is exactly four allowed sites (three native-capture sites and the explicit load-zero
+composition), so a new constant-CS assignment fails the test.
 
 ## Date correction carried by this change
 
