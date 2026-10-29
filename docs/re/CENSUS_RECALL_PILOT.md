@@ -5,7 +5,8 @@ callable runtime-role helpers outside the 898-row queue plus seven extras,
 45 false raw-call witnesses, and one unresolved sampled address. The original
 947-row census catalog is unavailable, so neither helper is established as
 absent from that catalog. The existing **815 CEILING** is neither validated
-nor revised here. Independent static recount is pending.
+nor revised here. Independent saved-artifact recounts accepted the bounded
+sample and manifest arithmetic; scanner completeness remains unverified.
 
 ## Measured scope and results
 
@@ -90,6 +91,49 @@ Withholding one known start per domain recovers OVL_005E_2574 and
 RES_IMAGE_0C482 as outside addresses. That checks membership plumbing,
 not discovery recall or ownership. These controls passed.
 
+## Independent recount and retained manifest
+
+PR #1614 published sampler head
+28c92ed314d4c9d11f4c7ff491336e99e8f082c9 and merged as
+ade35a271c7f0851f4d1b95aeb24789a842679ce. Reviewer %36's t325 verdict
+(inbox i30612) accepted the saved 48/7 assessment and controls. A separate
+Capstone decode matched the 52 recorded source witnesses: 45 operand-byte
+witnesses, six aligned calls to the two helpers, and one context-bound source.
+This did not prove other ingress absent or establish exact vendor authorship.
+
+A same-input author rerun of the unchanged sampler then retained the complete
+target map and ranking receipt under private resources/t248/reproducibility/.
+All original/rerun pilot fields matched except the expected base_commit
+advance from 2d132721 to the frozen sampler head. The existing 48 selected
+IDs, their order, and their saved windows stayed fixed.
+
+| Retained artifact | SHA-256 |
+| --- | --- |
+| raw-targets.json | 55470bd6b665ac529d14d0b500e964dae33786aa45223e5f1ac9e919a0efa715 |
+| selection.json | 5756cc641ce9705f9a86fad4ba3e8dd82f38233c410500b87c3b434d8b4ddab1 |
+| Author receipt.json | 24c18dbc0fade6ed24862891025aae9347dadc153dbfe323215007e76eea53e2 |
+| Rerun pilot.json | b08d59da6917bc7f50f58b13776bacded83e1e2fb55060fc058ed5776ffdb06e |
+| t325 independent receipt | 2d734e008983aaf09dce68669772075cd7ce4d27b1da95b98dd9cf9818264c20 |
+| t352 independent receipt | 5cf7cebb990a9fe721bb3754cb76c57f742460a74de4d2d15e6f128b192c2970 |
+
+Reviewer %36's t352 verdict (inbox i30904) independently rebuilt the 905
+comparison addresses and recounted the individual manifest records: 995 unique
+targets, 730 overlaps, 265 outside (82 overlay, 183 resident), 175 uncaptured
+comparison starts, and 13 outside targets carrying far-source records. None
+of those 13 was sampled. It recomputed all 995 ranks and all 265 outside
+positions, reproducing the original 32/16 quotas and exact 48 IDs/order with
+no ties. The 6,106 source witnesses are recorded entries, not proof of source
+reachability. Hidden-start rank/membership controls were also reproduced
+from the captured set; they remain plumbing controls.
+
+These are independent saved-artifact arithmetic and selection checks.
+The reviewer did not execute the sampler or capture script. The scan's
+semantic validity and completeness, shared unpacker/container interpretation,
+and catalog-anchored alignment remain assumptions. The full 947-row catalog
+was not recovered, and no larger sample, provider call, emulator or native
+run accompanied this follow-up. Broader completeness work remains open in
+t248; it requires a separately scoped dispatch.
+
 ## Method, bias and ranges
 
 [The sampler](../../tools/overlay/census_recall_pilot.py) generates candidates
@@ -155,7 +199,8 @@ current media, format code and documents were then read directly. The
 [queue description](FUNCTION_CENSUS_QUEUE.md), and t144 Step0/status artifacts
 remain prior evidence, not independent sampling frames.
 
-NOT VERIFIED: independent recount; exact vendor provenance; the remaining 83
+NOT VERIFIED: independent sampler execution or discovery completeness;
+exact vendor provenance; the remaining 83
 rejects or 217 unsampled outside targets; full historical-census membership;
 complete control-flow/alias recovery; new game bodies; whole-game recall or a
 finite whole-game upper count; runtime/native parity; identity/credit/readiness.
