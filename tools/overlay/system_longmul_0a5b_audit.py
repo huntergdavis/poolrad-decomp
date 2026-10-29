@@ -6,6 +6,8 @@ whole image at load segment 0, runs the original at 0AF8:0A5B and stops at the f
 (its return). It compares the entire 1 MiB RAM and all 14 CPU words with the C model, with no mask. The DOSBox-X
 oracle runs the original bytes at 9000:0A5B. Media stays private.
 """
+CHECKER_ROWS = ("RES_0AF8_0A5B",)
+
 import argparse
 import ctypes
 from hashlib import sha256
@@ -18,6 +20,7 @@ import subprocess
 import tempfile
 
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
+from native_emulator_provenance import describe_dosbox
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, REGISTERS, physical, put16
 
@@ -225,8 +228,9 @@ def native_audit(target, function):
     if result_path.exists():
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
+    emulator = describe_dosbox("dosbox-x")
     with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+        subprocess.run([emulator["path"], "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
                        env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
     result = result_path.read_bytes()
     check(len(result) == 8 + len(cases) * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
@@ -257,15 +261,21 @@ def native_audit(target, function):
     print(f"DOSBox-X normal-core/386 synthetic cases passed: {len(cases)}; all 14 CPU words and the {FRAME_SIZE}-byte stack window "
           f"(both pushed partial-product words); no mask")
     print(f"native result SHA-256 {digest}; COM segment {segment:04x}")
-    return dict(cases=len(cases), result_sha256=digest)
+    return dict(dosbox_x=emulator, cases=len(cases), result_sha256=digest)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true", help="compile/load/bind C without reading media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-arithmetic-build-") as temp:
+            library(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     target, image = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(target["body"]), instructions=len(target["decoded"]), file_offset=target["file_offset"]))
     if args.unicorn or args.native:
