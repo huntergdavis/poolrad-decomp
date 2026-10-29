@@ -24,7 +24,7 @@ and the 13,137-byte slot-A SAVGAMA.DAT SHA-256
 `abca248371287c43c99e1b34e03394819fca3cf406bed184e7e4fbfe4f0c08f1`.
 The direct same-run caller span is 20 original START bytes at file
 `0x8B16..0x8B29`:
-`[scrubbed: span=SLOT_A_SECOND_KEY_RESIDENT_001F_0033_COMPOSED-1 sha256=349f8d9ba972e240f5bb27986d59dfb930707d7ed8d56e9a578bdf02d6dc48f4 bytes=20 offset=UNRESOLVED]`,
+`[scrubbed: span=SLOT_A_SECOND_KEY_RESIDENT_001F_0033_COMPOSED-1 sha256=349f8d9ba972e240f5bb27986d59dfb930707d7ed8d56e9a578bdf02d6dc48f4 bytes=20 offset=START.EXE:0x8b16]`,
 SHA-256
 `349f8d9ba972e240f5bb27986d59dfb930707d7ed8d56e9a578bdf02d6dc48f4`.
 The loaded RAM copy differs only in the relocated call segment
