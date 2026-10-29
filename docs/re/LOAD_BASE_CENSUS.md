@@ -81,7 +81,10 @@ Transitive includes and cycles are supported; only existing paths resolving
 inside the selected root are read. An object-like macro declared there is
 reported when assigned to CS, regardless of spelling. Unincluded headers,
 commented directives and function-like macros do not turn a bare parameter
-into a macro. Headers are parsed once per census invocation and discovered only
+into a macro. Header discovery joins backslash-continued physical lines before replacing comments
+with whitespace; quoted text retains literal comment markers. Compiler-backed
+controls cover object/function macro boundaries and continued line comments.
+Headers are parsed once per census invocation and discovered only
 when a non-uppercase assignment needs classification.
 
 This is conservative name discovery, **not a C preprocessor or constant-value

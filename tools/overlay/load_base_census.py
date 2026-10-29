@@ -73,6 +73,18 @@ def strip_noise(text):
 INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*([<"])([^>"\n]+)[>"]', re.M)
 OBJECT_MACRO = re.compile(r"^[ \t]*#[ \t]*define[ \t]+([A-Za-z_][A-Za-z0-9_]*)\b(?!\()", re.M)
 
+HEADER_TOKEN = re.compile(STRING.pattern + "|" + COMMENT.pattern, re.S)
+
+
+def header_directives(text):
+    """Splice physical lines, then replace comments with whitespace.
+
+    Match quoted tokens first so comment markers inside strings stay literal.
+    This covers lexical discovery only, without expanding macros or #if.
+    """
+    spliced = re.sub(r"\\\r?\n", "", text)
+    return HEADER_TOKEN.sub(lambda m: m.group(0) if m.group(0)[0] in "\"'" else " ", spliced)
+
 
 def included_macro_names(path, text, root, cache):
     """Object-like macro names in literal project includes, regardless of case.
@@ -87,9 +99,7 @@ def included_macro_names(path, text, root, cache):
     visited, names = set(), set()
     while pending:
         origin, contents = pending.pop()
-        # Keep include filename strings; remove comment-only directives.
-        clean = COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), contents)
-        clean = clean.replace("\\\n", "")
+        clean = header_directives(contents)
         for delimiter, name in INCLUDE.findall(clean):
             candidates = ([origin.parent / name] if delimiter == '"' else []) + [root / "include" / name]
             for candidate in candidates:
@@ -101,8 +111,7 @@ def included_macro_names(path, text, root, cache):
                     if header not in cache:
                         cache[header] = header.read_text(errors="replace")
                     contents = cache[header]
-                    declarations = COMMENT.sub(lambda m: "\n" * m.group(0).count("\n"), contents)
-                    names.update(OBJECT_MACRO.findall(declarations.replace("\\\n", "")))
+                    names.update(OBJECT_MACRO.findall(header_directives(contents)))
                     pending.append((header, contents))
                 break  # the first existing include candidate owns this name
     return names

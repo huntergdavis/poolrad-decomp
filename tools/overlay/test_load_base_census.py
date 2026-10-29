@@ -5,6 +5,7 @@ Every policy control starts from a FULL VALID FIXTURE (the real `src/recovered` 
 mutation, so a red result is caused by the mutation and not by an incomplete fixture.
 """
 import sys
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -215,6 +216,35 @@ class CensusTest(unittest.TestCase):
         root = self.tree(**{"a.c": '#include "helpers.h"\nvoid f(uint16_t seg){c->cs=seg;}\n',
                             "helpers.h": "#define seg(x) (x)\n"})
         self.assertEqual(census.census(root), [])
+
+    def test_header_lexing_agrees_with_compiler_macro_kind(self):
+        # VP15 i32460: comment boundaries and phase ordering affect macro kind.
+        cases = [
+            ("comment-before-value", "#define hidden_cs/**/(0x1234u)\n", True),
+            ("comment-after-directive", "#define/**/hidden_cs 0x1234u\n", True),
+            ("continued-line-comment", "// ignored \\\n#define hidden_cs 0x1234u\n", False),
+            ("plain-object", "#define hidden_cs (0x1234u)\n", True),
+            ("plain-function", "#define hidden_cs(x) (x)\n", False),
+            ("spliced-directive", "#def\\\nine hidden_cs 0x1234u\n", True),
+            ("spliced-function", "#define hidden_cs\\\n(x) (x)\n", False),
+            ("comment-in-quoted-text", 'static char *s="/*";\n#define hidden_cs 0x1234u\n', True),
+            ("multiline-comment", "#define hidden_cs/* first\nsecond */(0x1234u)\n", True),
+        ]
+        for label, header, expected in cases:
+            with self.subTest(label=label):
+                root = Path(self.tree(**{
+                    "a.c": '#include "probe.h"\nvoid f(void){c->cs=hidden_cs;}\n',
+                    "probe.h": header,
+                }))
+                result = subprocess.run(["cc", "-E", "-dM", "-x", "c", "-"], input=header,
+                                        text=True, capture_output=True, check=True)
+                declarations = [line for line in result.stdout.splitlines()
+                                if line.startswith("#define hidden_cs ")]
+                self.assertEqual(bool(declarations), expected, result.stdout)
+                sites = census.census(root)
+                self.assertEqual(len(sites), int(expected), (header, sites))
+                if expected:
+                    self.assertEqual(sites[0], ("a.c", 2, "c->cs = hidden_cs;", None, "f"))
 
     def test_header_discovery_does_not_resolve_or_allow_a_protected_site(self):
         root = self.full_fixture()
