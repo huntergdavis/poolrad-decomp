@@ -22,7 +22,7 @@ Original `08AE:+001F..+0029` occupies expanded START image
 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 Original bytes and code bytes read directly from the fresh `+001F`
 RAM image match:
-`8B 46 FA 31 D2 B9 40 7E BB 05 00`, SHA-256
+`[scrubbed: span=SLOT_A_SECOND_KEY_RESIDENT_001F_CALLER_PREFIX-1 sha256=62cb8d36ef61a54aaf646a25e4873eb1013966a703f3992f1428d793f1502a94 bytes=11 offset=UNRESOLVED]`, SHA-256
 `62cb8d36ef61a54aaf646a25e4873eb1013966a703f3992f1428d793f1502a94`.
 They decode to `MOV AX,SS:[BP-6]`, `XOR DX,DX`, `MOV CX,7E40h`,
 and `MOV BX,0005h`. At the stop, the **unexecuted** next instruction

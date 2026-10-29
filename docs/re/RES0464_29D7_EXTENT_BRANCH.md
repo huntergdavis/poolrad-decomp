@@ -9,7 +9,7 @@ extent, or `+29F3` otherwise. Neither successor's store is executed.
 The ignored original `START.EXE` SHA-256 is
 `d825df2b174675c9088ba1489488bdeebe66ad2a22943f17d3a198e60b6a07bd`.
 The loaded 15-byte span at `0C88:29D7` is
-`8B 46 EA 48 8B 7E E2 D1 E7 3B 85 70 4D 76 0D`, SHA-256
+`[scrubbed: span=RES0464_29D7_EXTENT_BRANCH-1 sha256=77c99f2b8a4298ab945d6692895d264a293029f10415df8bfa25d33b4bfef5b7 bytes=15 offset=UNRESOLVED]`, SHA-256
 `77c99f2b8a4298ab945d6692895d264a293029f10415df8bfa25d33b4bfef5b7`.
 This was checked in the ignored run015 source image and the earlier run014
 `+29D7` checkpoint image, SHA-256

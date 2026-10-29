@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Fail when tracked documentation carries verbatim original-byte dumps.
 
 The owner's rule is that public tracked files carry addresses, counts and hashes
@@ -43,6 +42,42 @@ has no daemon; `--task-status` overrides it for tests.
 Exit status: 0 clean (or --report), 1 unallowlisted hits or allowlist error.
 """
 from __future__ import annotations
+def verify_evidence(base="main", head="HEAD"):
+    import subprocess, hashlib
+    out = subprocess.check_output(["git","diff","--name-only",f"{base}..{head}"], text=True)
+    files = [f for f in out.split() if f.startswith("docs/re/") and f.endswith(".md")]
+    ok = True
+    for f in files:
+        try:
+            pre = subprocess.check_output(["git","show",f"{base}:{f}"], text=True, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            continue
+        post = subprocess.check_output(["git","show",f"{head}:{f}"], text=True, stderr=subprocess.DEVNULL)
+        runs = []
+        for m in BARE.finditer(pre):
+            run = m.group(1)
+            if looks_like_bytes(run):
+                runs.append(bytes.fromhex(run.replace(" ","").replace("\t","")))
+        markers = re.findall(r"\[scrubbed: span=\S+ sha256=([0-9a-f]{64}) bytes=(\d+)", post)
+        if not markers:
+            if runs:
+                print(f"MISSING MARKERS {f}: {len(runs)} pre-image run(s) but no scrubbed markers")
+                ok = False
+            continue
+        if len(markers) != len(runs):
+            print(f"MISMATCH count {f}: markers={len(markers)} runs={len(runs)}")
+            ok = False
+            continue
+        for (h, n), run in zip(markers, runs):
+            if int(n) != len(run) or h != hashlib.sha256(run).hexdigest():
+                print(f"MISMATCH {f}: marker bytes={n}/hash={h[:12]} vs run bytes={len(run)}/hash={hashlib.sha256(run).hexdigest()[:12]}")
+                ok = False
+    if ok:
+        print("verify-evidence: all markers match pre-image runs")
+    return 0 if ok else 1
+
+#!/usr/bin/env python3
+
 
 import argparse
 import re
@@ -197,6 +232,9 @@ def main(argv=None):
     parser.add_argument("--report", action="store_true",
                         help="print every hit and exit 0; a report is not a pass")
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument("--verify-evidence", action="store_true")
+    parser.add_argument("--verify-base", default="main")
+    parser.add_argument("--verify-head", default="HEAD")
     parser.add_argument("--task-status", type=Path,
                         help="read each task's status from a JSON map instead of the CLI")
     args = parser.parse_args(argv)
@@ -241,6 +279,8 @@ def main(argv=None):
         return 1
     print(f"OK: no unallowlisted byte-dump lines in {SCOPE}"
           + (f"; {len(result['allowed'])} allowlisted path(s)" if result["allowed"] else ""))
+    if args.verify_evidence:
+        return verify_evidence(args.verify_base, args.verify_head)
     return 0
 
 

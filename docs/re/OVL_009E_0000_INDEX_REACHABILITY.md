@@ -58,7 +58,7 @@ The records are the 63-byte item structures (`CHRDATA*.ITM`, `MON*ITM.DAX` are a
 
 ## 4. The three DS tables (`tables`)
 
-The program data segment is paragraph `0C7C` of the expanded image. `DS:0113h+i` (i = 1..6) is `31 34 43 44 50 57`; `DS:0C13h+i` (i = 1..16) is `7 11 30 31 32 51 52 53 54 58 59 95 98 137 74 75`; `DS:0C23h+i` (i = 1..2) is `74 75`. **All 24 values are in 1..139.** A scan for stores into those ranges (resident code and every unit) finds 19 candidates, **none DS-relative**: all carry an ES override (character-record fields `+114h..+119h`). The scan is a decode-resynchronised sweep, not a proof of absence: a block copy over the table (`REP MOVS`) is not looked for.
+The program data segment is paragraph `0C7C` of the expanded image. `DS:0113h+i` (i = 1..6) is `31 34 43 44 50 57`; `DS:0C13h+i` (i = 1..16) is `7 [scrubbed: span=OVL_009E_0000_INDEX_REACHABILITY-1 sha256=9abf2921de615c3c0088add69ad0df5cb13aa4af13a4798ed80ec3a1ea679793 bytes=12 offset=UNRESOLVED]7 74 75`; `DS:0C23h+i` (i = 1..2) is `74 75`. **All 24 values are in 1..139.** A scan for stores into those ranges (resident code and every unit) finds 19 candidates, **none DS-relative**: all carry an ES override (character-record fields `+114h..+119h`). The scan is a decode-resynchronised sweep, not a proof of absence: a block copy over the table (`REP MOVS`) is not looked for.
 
 ## 5. Node types and the removal chain (the part that does not close)
 

@@ -63,7 +63,7 @@ with **zero masks**.
 - **21/21 instruction starts and 2/2 conditional outcomes** (`JNE` taken and not taken), accounted by successor. No exclusions.
 - **Independent reference:** in 320 cases whose stack does not alias the data segment, a Python reference of the documented effect (status, AX, BP,
   SP, IP, CS, the six flags with the CMP flags formed by a different formulation, and the byte at `DS:5373`) agrees with the original.
-- Cases: all five entries against eight values of `DS:5372` (`00 01 02 03 7F 80 82 FF`) and seven flag images, SP at `0006`, `0007`, `FFFA`, `FFF9` and
+- Cases: all five entries against eight values of `DS:5372` (`[scrubbed: span=RES_08AE_ENTRY_017B_CPU-1 sha256=9eeb647ead15f43c40bd5f5fd3fdf79e967a597be1aa878023cd182049a6e4a9 bytes=8 offset=UNRESOLVED]`) and seven flag images, SP at `0006`, `0007`, `FFFA`, `FFF9` and
   `0100`, **the stack inside the data segment at every SP from `5360` to `5385`** (pushes and the `DS:5373` store overwrite each other, the flag byte and the
   return frame), data segments `0000`, `FFFF` (wrapping through A20-off), `1234` and the code segment, an A20-aliased stack, a return frame on `DS:5372`, and a
   random-RAM image per entry.

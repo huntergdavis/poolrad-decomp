@@ -13,7 +13,7 @@ and the ledger rows stay untouched until then.
 | Body SHA-256 | `87b20686c110afeba83ea8f33c74623e20b187cf2d9d74b69d29e6dbd295e851` |
 | GAME.OVR file offset | `26410` (the queue's `ovr_offset` **is** the body's file offset) |
 | Queue row said | `316` bytes, `104` instructions |
-| The extra 64 bytes | `00 1b 20 74 61 6b 65 73 20 61 …` - **a text string**, not code |
+| The extra 64 bytes | `[scrubbed: span=U20_LIST_WALK_11AC_CPU-1 sha256=959412903f67b1dbe43415e2c0f8df10d1e4ffdf7c536194f731344d184a512f bytes=10 offset=UNRESOLVED] …` - **a text string**, not code |
 
 Linear-decoding the queue's 316 bytes does not terminate; the last 27 "instructions"
 wander through `" takes a …"` as `imul` / `popaw` / `outsb`, and one of them invents a
