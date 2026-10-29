@@ -82,7 +82,7 @@ The existing `+02DD` host RGB witness does not supply these values.
 ## Check against the earlier RES0464 +29E6 source gate
 
 The [bounded +29E6 gate](RES0464_29E6_EXTENT_STORE.md) pins 13 **loaded
-RAM** bytes `[scrubbed: span=U19_RES0464_FIRST_STORE_PARITY_AID-1 sha256=775804da95a03a06570aa045704e084c56eb5383bcbcee0057ec8d9100dea088 bytes=12 offset=UNRESOLVED]4D`, SHA-256
+RAM** bytes `[scrubbed: span=U19_RES0464_FIRST_STORE_PARITY_AID-1 sha256=9ca81ab58e1a2b24f894125a76afde21c2e0ad12c9bc527463e3250a77c876b5 bytes=13 offset=UNRESOLVED]`, SHA-256
 `9ca81ab58e1a2b24f894125a76afde21c2e0ad12c9bc527463e3250a77c876b5`.
 For its separately supplied frame it writes only the word `138F` at
 `DS:4DE6` (`DS=14A0`, conventional physical `0x197E6`) and stops at

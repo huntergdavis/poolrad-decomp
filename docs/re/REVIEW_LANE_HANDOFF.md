@@ -197,7 +197,7 @@ returns a plausible-looking wrong digest and looks like a body mismatch rather
 than a method error. Unpack with the loader first (`resident_loader_map.unpack`)
 and hash from that image. **A decoy makes the wrong answer look right for
 twelve bytes:** `GAME.OVR[0x2BEBC]` reproduces the `RES_00BA_13AB` prologue
-(`[scrubbed: span=REVIEW_LANE_HANDOFF-1 sha256=5eaf50f37cc7203188337d0f17c018933e37baf67821e0ce30d98be528c16924 bytes=11 offset=UNRESOLVED]06`) and diverges only at byte 12
+(`[scrubbed: span=REVIEW_LANE_HANDOFF-1 sha256=a9682f5ba1b0db0f3bad1642747848046de9cedf3bfda049abd844f66019ef03 bytes=12 offset=UNRESOLVED]`) and diverges only at byte 12
 (`b0 19` vs `0e e8`); the real body is START.EXE `[0x2027,0x2107)`, 224 B,
 SHA-256 `22732f3c…`, and does not occur in GAME.OVR at all. Two independent agents — the reviewer and a headless
 free-model screen — made this exact mistake on the same body before finding the
