@@ -3,6 +3,7 @@
 against the original bytes. The Unicorn run executes the original at CODE:14B6 until the near RET has run (to whatever IP the slot holds), then compares
 all 14 CPU words and the whole 1 MiB RAM with the C model, with no mask. Native DOSBox-X replays the original with a declared stub at the return IP. Media stays
 private."""
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -304,9 +305,10 @@ def native_audit(span, function):
     result_path = directory / 'RESULT.BIN'
     if result_path.exists():
         result_path.unlink()
+    emulator = describe_dosbox('dosbox-x')
     try:
         with (directory / 'dosbox.log').open('w') as log:
-            subprocess.run(['dosbox-x', '-conf', str(config), '-fastlaunch', '-exit', '-noconsole'],
+            subprocess.run([emulator['path'], '-conf', str(config), '-fastlaunch', '-exit', '-noconsole'],
                            env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
     finally:                                         # a spinning oracle can write gigabytes of log: keep the head only
         log_path = directory / 'dosbox.log'
@@ -347,13 +349,9 @@ def native_audit(span, function):
             differences = [i for i, (x, y) in enumerate(zip(got, record[28:])) if x != y]
             raise ValueError(f'native case {n} bytes differ at {[hex(d) for d in differences[:8]]} ({len(differences)} bytes)')
     check(set(seen_status) == set(NAMES), f'native stops reached {sorted(seen_status)}')
-    probe = subprocess.run(['dosbox-x', '--version'], capture_output=True, text=True)
-    version = [l.split(',')[0].strip() for l in (probe.stdout + probe.stderr).splitlines() if l.strip().startswith('DOSBox-X version')][:1]
-    binary = subprocess.run(['which', 'dosbox-x'], capture_output=True, text=True).stdout.strip()
     digest = sha256(result).hexdigest()
     names = NAMES
-    report = dict(dosbox_x=dict(path=binary, sha256=sha256(Path(binary).read_bytes()).hexdigest(), version=version[0] if version else '',
-                                pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)'),
+    report = dict(dosbox_x=emulator,
                   cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE + 65536,
                   masked_ram_bytes=SIZE - WINDOW_SIZE - 65536, synthetic_frames=True, callee_stubs=len(stubs),
                   callee_stub_kind='JMP FAR into the capture harness at the planted return IP 0100',

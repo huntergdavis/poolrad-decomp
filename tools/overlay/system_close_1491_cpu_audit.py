@@ -5,6 +5,7 @@ The bytes come from the hash-checked loader-expanded START.EXE image. The Unicor
 RETF 4 has run (or the helper's RET returned somewhere other than 149A: TRANSFER), with the declared INT 21h AH=3Eh service played by
 an interrupt hook, then compares all 14 CPU words, the whole 1 MiB RAM and the stop status with the C model, with no mask. Native
 DOSBox-X replays the original with an INT 21h hook stub (declared). Media stays private."""
+from native_emulator_provenance import describe_dosbox
 import argparse
 import ctypes
 from hashlib import sha256
@@ -416,9 +417,10 @@ def native_audit(span, function):
     result_path = directory / 'RESULT.BIN'
     if result_path.exists():
         result_path.unlink()
+    emulator = describe_dosbox('dosbox-x')
     try:
         with (directory / 'dosbox.log').open('w') as log:
-            subprocess.run(['dosbox-x', '-conf', str(config), '-fastlaunch', '-exit', '-noconsole'],
+            subprocess.run([emulator['path'], '-conf', str(config), '-fastlaunch', '-exit', '-noconsole'],
                            env=dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy'), stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
     finally:                                         # a spinning oracle can write gigabytes of log: keep the head only
         log_path = directory / 'dosbox.log'
@@ -471,12 +473,8 @@ def native_audit(span, function):
             differences = [i for i, (x, y) in enumerate(zip(got, record[28:])) if x != y]
             raise ValueError(f'native case {n} bytes differ at {[hex(d) for d in differences[:8]]} ({len(differences)} bytes)')
     check(set(seen_status) == {'INT', 'NOINT'}, f'native paths reached {sorted(seen_status)}')
-    probe = subprocess.run(['dosbox-x', '--version'], capture_output=True, text=True)
-    version = [l.split(',')[0].strip() for l in (probe.stdout + probe.stderr).splitlines() if l.strip().startswith('DOSBox-X version')][:1]
-    binary = subprocess.run(['which', 'dosbox-x'], capture_output=True, text=True).stdout.strip()
     digest = sha256(result).hexdigest()
-    report = dict(dosbox_x=dict(path=binary, sha256=sha256(Path(binary).read_bytes()).hexdigest(), version=version[0] if version else '',
-                                pinned_source='5a9c7c53481c2e933948039c33256776653f4faf (not used: declared substitution)'),
+    report = dict(dosbox_x=emulator,
                   cases=NATIVE_CASES, result_sha256=digest, cpu_words=14, ram_bytes=WINDOW_SIZE + 65536,
                   masked_ram_bytes=SIZE - WINDOW_SIZE - 65536, synthetic_frames=True, callee_stubs=0, dos_service_stub='INT 21h AH=3Eh hook answering the case AX/CF by IRET; other functions chain to DOS', int_frame_bytes_excluded=8,
                   paths=seen_status, com_segment=f'{segment:04x}')
