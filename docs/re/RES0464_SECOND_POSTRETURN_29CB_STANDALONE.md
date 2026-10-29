@@ -12,7 +12,7 @@ its SHA-256 is
 `21efc0155f250c31578643ac2d3f5030379fdedf92a155367ffc221b05ce1867`.
 Direct run015 fourth-call native evidence reaches only `0C88:277D`.
 
-The original loaded continuation is `[scrubbed: span=RES0464_SECOND_POSTRETURN_29CB_STANDALONE-1 sha256=9d893af05bfb7d93b096a1078bcc70fc147eda8b258d5df2832c770a62dbeb70 bytes=12 offset=UNRESOLVED]`
+The original loaded continuation is `[scrubbed: span=RES0464_SECOND_POSTRETURN_29CB_STANDALONE-1 sha256=9d893af05bfb7d93b096a1078bcc70fc147eda8b258d5df2832c770a62dbeb70 bytes=12 offset=START.EXE:0x7044]`
 at `0C88:29CB`, SHA-256
 `9d893af05bfb7d93b096a1078bcc70fc147eda8b258d5df2832c770a62dbeb70`.
 The loaded far CALL `9A 85 16 1C 13` at `0C88:29C6` has SHA-256

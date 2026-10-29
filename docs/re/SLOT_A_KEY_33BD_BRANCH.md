@@ -11,7 +11,7 @@ either successor body or claim a new natural route.
 
 Original DOS v1.3 `GAME.OVR` file `0x4103..0x410A` and saved loaded
 RAM physical `0x38BDD..0x38BE4` both contain
-`[scrubbed: span=SLOT_A_KEY_33BD_BRANCH-1 sha256=3ac45bdf90c77cb28ac33e47374a54322c23d4cf81b392c7738140d1b917f3be bytes=8 offset=UNRESOLVED]`, SHA-256
+`[scrubbed: span=SLOT_A_KEY_33BD_BRANCH-1 sha256=3ac45bdf90c77cb28ac33e47374a54322c23d4cf81b392c7738140d1b917f3be bytes=8 offset=GAME.OVR:0x4103]`, SHA-256
 `3ac45bdf90c77cb28ac33e47374a54322c23d4cf81b392c7738140d1b917f3be`.
 The first six bytes at `3582:33BD` compare WORD `ES:[DI+0594h]` with
 one; `77 0D` at +33C3 is `JA +33D2`. An unsigned value at most one

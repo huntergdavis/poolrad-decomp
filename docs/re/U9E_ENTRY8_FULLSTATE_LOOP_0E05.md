@@ -17,7 +17,7 @@ Unit U9E file base is `0x2AEEA`; full entry8 is
 `[0x2BCCD,0x2BD18)`, 75 bytes / 29 starts, SHA-256
 `7df225682ebb94351984048ef7a4fdccc8de60f9ef2450751a696fde74c583ba`.
 This slice is file `[0x2BCEF,0x2BCF8)`, exactly nine bytes:
-`[scrubbed: span=U9E_ENTRY8_FULLSTATE_LOOP_0E05-1 sha256=dc1422933023de40130adfaddf73ed03e684a443f89d39b69fc4f3c27d1b107d bytes=9 offset=UNRESOLVED]`, SHA-256
+`[scrubbed: span=U9E_ENTRY8_FULLSTATE_LOOP_0E05-1 sha256=dc1422933023de40130adfaddf73ed03e684a443f89d39b69fc4f3c27d1b107d bytes=9 offset=GAME.OVR:0x2bcef]`, SHA-256
 `dc1422933023de40130adfaddf73ed03e684a443f89d39b69fc4f3c27d1b107d`.
 The original `+0E1D JNE` targets +0E05; the next five bytes are the
 published `+0E0E LCALL 0AF8:11C0`. The shared tail ends with
