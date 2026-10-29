@@ -269,10 +269,16 @@ def native_audit(target, function):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--compile-only", action="store_true", help="compile/load/bind C without reading media")
     parser.add_argument("--unicorn", action="store_true")
     parser.add_argument("--native", action="store_true")
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
+    if args.compile_only:
+        with tempfile.TemporaryDirectory(prefix="poolrad-arithmetic-build-") as temp:
+            library(Path(temp))
+        print("CHECKER_BUILD_OK")
+        return
     target, image = source()
     report = dict(target=dict(sha256=target["sha"], bytes=len(target["body"]), instructions=len(target["decoded"]), file_offset=target["file_offset"]))
     if args.unicorn or args.native:

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """Synthetic launch-boundary controls; no emulator is run by these tests."""
+import contextlib
+import io
 import importlib
 import os
 from pathlib import Path
@@ -47,6 +49,17 @@ class ArithmeticProvenanceTest(unittest.TestCase):
                 self.assertEqual(options["timeout"], 300)
                 self.assertEqual(options["stderr"], subprocess.STDOUT)
                 self.assertEqual(Path(options["stdout"].name), folder / "dosbox.log")
+
+    def test_compile_only_binds_real_c_without_media_or_emulator(self):
+        for name in ("system_longmul_0a5b_audit", "system_longdiv_0a76_audit"):
+            with self.subTest(name=name):
+                module = importlib.import_module(name)
+                with patch.object(sys, "argv", [name, "--compile-only"]), \
+                     patch.object(module, "source", side_effect=AssertionError("media accessed")), \
+                     patch.object(module, "describe_dosbox", side_effect=AssertionError("emulator probed")), \
+                     contextlib.redirect_stdout(io.StringIO()) as output:
+                    module.main()
+                self.assertEqual(output.getvalue().splitlines(), ["CHECKER_BUILD_OK"])
 
     def test_incomplete_provenance_refuses_before_emulator_launch(self):
         for name in ("system_longmul_0a5b_audit", "system_longdiv_0a76_audit"):
