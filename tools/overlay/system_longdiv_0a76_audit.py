@@ -7,6 +7,8 @@ its return, or the runtime-error target 0AF8:00E2 for a zero divisor. It compare
 14 CPU words with the C model, with no mask. The DOSBox-X oracle runs the original bytes at 9000:0A76. Media
 stays private.
 """
+CHECKER_ROWS = ("RES_0AF8_0A76",)
+
 import argparse
 import ctypes
 from hashlib import sha256

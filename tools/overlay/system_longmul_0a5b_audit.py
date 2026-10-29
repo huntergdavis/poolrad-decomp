@@ -6,6 +6,8 @@ whole image at load segment 0, runs the original at 0AF8:0A5B and stops at the f
 (its return). It compares the entire 1 MiB RAM and all 14 CPU words with the C model, with no mask. The DOSBox-X
 oracle runs the original bytes at 9000:0A5B. Media stays private.
 """
+CHECKER_ROWS = ("RES_0AF8_0A5B",)
+
 import argparse
 import ctypes
 from hashlib import sha256

@@ -13,3 +13,8 @@ COM/config, C source, CPU14/32-byte stack checks and expected-result comparisons
 are unchanged. This records executable identity; it adds no native case,
 mask, runtime behavior, recovered-function credit or emulator pin.
 The synthetic launch-boundary tests stop before executing an emulator.
+
+The touched legacy audits also declare their existing resident identities
+`RES_0AF8_0A5B` and `RES_0AF8_0A76` for the checker/document pairing gate.
+These are the existing linked SYSTEM runtime bodies; no credit table or
+accounting pin is changed. The declarations add no new game-body claim.
