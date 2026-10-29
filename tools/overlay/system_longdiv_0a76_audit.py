@@ -19,6 +19,7 @@ import subprocess
 import tempfile
 
 from capstone import CS_ARCH_X86, CS_MODE_16, Cs
+from native_emulator_provenance import describe_dosbox
 from resident_loader_map import unpack
 from u86_procvars_3413_audit import Cpu, ROOT, SIZE, EXE_SHA, REGISTERS, physical, put16
 
@@ -228,8 +229,9 @@ def native_audit(target, function):
     if result_path.exists():
         result_path.unlink()
     environment = dict(os.environ, SDL_VIDEODRIVER="dummy", SDL_AUDIODRIVER="dummy")
+    emulator = describe_dosbox("dosbox-x")
     with (directory / "dosbox.log").open("w") as log:
-        subprocess.run(["dosbox-x", "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
+        subprocess.run([emulator["path"], "-conf", str(config), "-fastlaunch", "-exit", "-noconsole"],
                        env=environment, stdout=log, stderr=subprocess.STDOUT, check=True, timeout=300)
     result = result_path.read_bytes()
     check(len(result) == 8 + len(cases) * RECORD_BYTES, f"native output incomplete: {len(result)} bytes")
@@ -260,7 +262,7 @@ def native_audit(target, function):
     print(f"DOSBox-X normal-core/386 synthetic cases passed: {len(cases)}; all 14 CPU words and the {FRAME_SIZE}-byte stack window "
           f"(both PUSHF words); no mask")
     print(f"native result SHA-256 {digest}; COM segment {segment:04x}")
-    return dict(cases=len(cases), result_sha256=digest)
+    return dict(dosbox_x=emulator, cases=len(cases), result_sha256=digest)
 
 
 def main():
