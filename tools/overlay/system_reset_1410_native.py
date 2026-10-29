@@ -7,6 +7,10 @@ The original Reset and Close bytes run at 6000:1410/1491. Declared substitutions
   * Close-path cases (magic D7B3h): the native copy's first five bytes at 6000:1491 (Close's own code, not this body's) are
     replaced by a far JMP to a capture routine, so the state at the model's CLOSE stop is compared; the receipt records the
     bytes. The resume after Close is compared by the Unicorn run only."""
+
+# NOT_A_ROW_CHECKER: Imported native companion; system_reset_1410_cpu_audit.py owns row checking.
+if __name__ == "__main__":
+    raise SystemExit("No cases executed: invoke tools/overlay/system_reset_1410_cpu_audit.py --native through poolrad-heavy.sh.")
 import ctypes, os, struct, subprocess
 from hashlib import sha256
 import system_reset_1410_cpu_audit as A
