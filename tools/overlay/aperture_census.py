@@ -7,7 +7,9 @@ For a FLAT model every existing audit's Unicorn oracle maps A0000.. as ordinary 
 pointer BY CONSTRUCTION: a green differential on a flat model is NOT evidence that it is aperture-safe, and this census says so
 in a machine-readable column (`aperture_observable` = no) beside coverage rather than leaving the absence of evidence to read as a pass.
 
-Outputs (written with --write, checked by default and by the test; a new model source without a row fails closed):
+Outputs (written with --write, checked by default and by the test; a new model source without a row fails closed,
+unless --allow-missing is passed: that tolerates ABSENT rows only, for a body PR whose row is written by the
+refresh job on main instead - see docs/re/APERTURE_CENSUS.md):
   docs/re/aperture_observability.csv   one row per recovered model source: kind (bus | flat), aperture_observable, declared_exclusion
   docs/re/aperture_pairs.csv           every (bus-aware caller, FLAT callee) pair: the 0411 shape, with the pointer's source class
 """
@@ -160,15 +162,42 @@ def write(path, rows):
         writer.writerows(rows)
 
 
+def compare(have, want, allow_missing=False):
+    """How a committed CSV differs from the sources: 'current', 'missing' or 'stale'.
+
+    'missing' means every committed row is exactly a row the sources produce and only rows are ABSENT. That is
+    the state a body PR is in when it adds a model without carrying the census row, and it is tolerated where the
+    row is written by the refresh job on main instead (`--allow-missing`, docs/re/APERTURE_CENSUS.md). A row with a
+    WRONG value is always 'stale': the tolerance is about absent rows, never about a disagreement.
+    """
+    wanted = [{k: str(v) for k, v in r.items()} for r in want]
+    if have == wanted:
+        return "current"
+    if allow_missing and len(have) < len(wanted):
+        remaining = list(wanted)
+        for row in have:
+            if row not in remaining:
+                return "stale"
+            remaining.remove(row)
+        return "missing"
+    return "stale"
+
+
 def main():
     rows = models()
     obs, prs = observability(rows), pairs(rows)
     if "--write" in sys.argv:
         write(OBSERVABILITY, obs)
         write(PAIRS, prs)
+    allow_missing = "--allow-missing" in sys.argv
     for path, want in ((OBSERVABILITY, obs), (PAIRS, prs)):
         have = list(csv.DictReader(path.open())) if path.exists() else []
-        if have != [{k: str(v) for k, v in r.items()} for r in want]:
+        verdict = compare(have, want, allow_missing=allow_missing)
+        if verdict == "missing":
+            absent = len(want) - len(have)
+            print(f"missing {absent} row(s) in {path.name}: tolerated here, the census refresh job writes them on main")
+            continue
+        if verdict == "stale":
             print(f"STALE or missing: {path.name} (run with --write)")
             return 1
     kinds = {k: sum(1 for r in obs if r["kind"] == k) for k in ("bus", "flat")}

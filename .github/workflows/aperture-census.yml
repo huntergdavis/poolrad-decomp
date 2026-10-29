@@ -1,0 +1,86 @@
+name: Aperture census refresh
+
+# t582: the census rows are derived from the sources, so a body PR must not carry them. Six open PRs each
+# regenerated docs/re/aperture_observability.csv, every merge staled the others, and head-bound reviews made the
+# churn quadratic. This job owns the CSVs on main instead: a body PR may add a model without the row (PR CI
+# tolerates ABSENT rows only), and the row is written here after the merge.
+#
+# What this job does NOT do, on purpose: it cannot push to main. main requires two approving reviews and the
+# `dunkingsheep/review` status with enforce_admins on, so the job files (or updates) one refresh PR and enables
+# auto-merge; that PR lands when two reviewer lanes accept it. "main regenerates the census within one run" means
+# the refresh PR exists within one run of the merge - not that main is rewritten by a token.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: aperture-census-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Regenerate the census from the sources
+        run: python3 tools/overlay/aperture_census.py --write
+
+      - name: Stop when the census is already current
+        id: changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/re/aperture_observability.csv docs/re/aperture_pairs.csv; then
+            echo "census current: no refresh needed"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "census current: no refresh PR filed" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --stat -- docs/re/aperture_observability.csv docs/re/aperture_pairs.csv | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: File or update the refresh PR
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name 'dunkingsheep-census[bot]'
+          git config user.email 'census@users.noreply.github.com'
+          branch='census/refresh'
+          git checkout -B "$branch"
+          git add docs/re/aperture_observability.csv docs/re/aperture_pairs.csv
+          git commit -m "Regenerate the aperture census (automated) for $(git rev-parse --short "$GITHUB_SHA")"
+          git push --force origin "$branch"
+          if gh pr view "$branch" >/dev/null 2>&1; then
+            echo "updated the existing refresh PR" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr create --base main --head "$branch" \
+              --title 'Regenerate the aperture census (automated)' \
+              --body-file .github/aperture-census-pr.md
+          fi
+          # Auto-merge arms the PR; it still needs the two required approvals and the review status to land.
+          gh pr merge "$branch" --squash --auto \
+            || echo '::warning::auto-merge could not be enabled; the refresh PR waits for review like any other'
+
+      - name: Say what landed and what did not
+        if: always()
+        run: |
+          {
+            echo ""
+            echo "This job never writes to main itself: main requires two approvals and the \`dunkingsheep/review\` status."
+            echo "A PR created with GITHUB_TOKEN does not trigger workflows; the dunkingsheep review timer polls open"
+            echo "pull requests, so the review task for the refresh PR is filed by the timer, not by this run."
+          } >> "$GITHUB_STEP_SUMMARY"

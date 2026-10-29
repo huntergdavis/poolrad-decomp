@@ -25,6 +25,11 @@ jobs:
       - name: Flag-semantics census covers every flag-writing helper
         run: python3 -m unittest discover -s tools/overlay -p 'test_flag_census.py'
       - name: Aperture census CSVs equal their sources and every bus-aware caller's flat-callee pointer pair is classified
+        # On a pull request an ABSENT census row is tolerated: the row is written on main by
+        # .github/workflows/aperture-census.yml (t582), so a body PR no longer has to carry it and no longer stales
+        # its siblings. A row with a wrong value still fails here, on the PR and on main.
+        env:
+          APERTURE_CENSUS_ALLOW_MISSING: ${{ github.event_name == 'pull_request' && '1' || '' }}
         run: python3 -m unittest discover -s tools/overlay -p 'test_aperture_census.py'
       - name: C tests keep assert() live (NDEBUG gate, canary, derived count)
         run: python3 -m unittest discover -s tools/overlay -p 'test_count_assert_tests.py'
