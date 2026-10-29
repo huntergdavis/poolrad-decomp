@@ -60,6 +60,9 @@ def verify_evidence(base="main", head="HEAD"):
                 runs.append(bytes.fromhex(run.replace(" ","").replace("\t","")))
         markers = re.findall(r"\[scrubbed: span=\S+ sha256=([0-9a-f]{64}) bytes=(\d+)", post)
         if not markers:
+            if runs:
+                print(f"MISSING MARKERS {f}: {len(runs)} pre-image run(s) but no scrubbed markers")
+                ok = False
             continue
         if len(markers) != len(runs):
             print(f"MISMATCH count {f}: markers={len(markers)} runs={len(runs)}")
