@@ -80,9 +80,11 @@ spans coexist with explicitly suspended unresolved records. For this
 manifest the required result is **SUSPENDED: 12 verified, 6 unresolved,
 0 errors, exit 2**, not a blanket pass.
 
-`tools/check_original_bytes.py --verify-evidence` from the parent scrub
-compares metadata with historical document text. It does not verify media
-offsets and does not substitute for this checker. Synthetic tests in
+The canonical parent checker, `tools/overlay/check_byte_dumps.py
+--verify-evidence --verify-base BASE --verify-head HEAD`, compares metadata
+with historical document text. The merged parent removed the earlier
+`tools/check_original_bytes.py` entry point. Historical-text checking does
+not verify media offsets and does not substitute for this checker. Synthetic tests in
 `tools/test_verify_scrubbed_spans.py` exercise the failure contract without
 original bytes.
 
