@@ -1,6 +1,6 @@
 # OVL_0038_05EB: the 009E dispatcher's slot-15 handler (raw CPU, composing 001F, stopping at 009E_1344 and 00BA_0767)
 
-`pr_u38_05eb_cpu_run` is a raw-CPU, full-state model of GAME.OVR unit `38h` `+05EB`: public entry 14 (stub `0041:0066`),
+`pr_u38_05eb_cpu_run` is a raw-CPU model of GAME.OVR unit `38h` `+05EB` (full CPU14 + RAM state inside the composition profile below): public entry 14 (stub `0041:0066`),
 the handler the `009E` dispatcher reaches through slot 15 (`DS:6864`), which the credited installer `OVL_0038_31A2` stores
 ([OVL_009E_0000_HANDLERS.md](OVL_009E_0000_HANDLERS.md) lists the slot as a named gap). It runs on flat RAM, as the
 dispatcher's handlers do, composes the merged raw model of this unit's `+001F` (`pr_u38_gated_append_001f_cpu`), and
@@ -23,7 +23,7 @@ bytes with Capstone 5.0.7 and the relocation-backed overlay inventory (`tools/ov
 | Far call 1 | `LCALL 00B0:007F` at `062A`; segment word `CS:062D` **is a loader fixup**; `00B0h` is unit `9Eh`'s stub paragraph and stub offset `007F` is entry 19, body `OVL_009E_1344` (no model) |
 | Far call 2 | `LCALL 00BA:0767` at `063E`; segment word `CS:0641` **is a loader fixup**; `RES_00BA_0767` (load pieces; only a bounded semantic model, [RESIDENT_LOAD_PIECES_0767.md](RESIDENT_LOAD_PIECES_0767.md)) |
 | Backward branches | none (`JE 0643` at `0609`, `JBE 0643` at `0614`, `JE 0643` at `0634` are all forward) |
-| Undefined flags | none: no `SHL`/`SHR`/`MUL` (the emitter's report is empty) |
+| Undefined flags | no `SHL`/`SHR`/`MUL` producer (the emitter's `undefined_report` enumerates only those and is empty). One logical producer: `OR AL,AL` at `0607` leaves **AF architecturally undefined**; the tree's `logic()` convention models AF := 0 (with CF/OF := 0). That AF is **visible at the `RETF`** on the `AL` = 0 path (the `OR` is the last flags writer there) and is overwritten by `CMP` at `060E` on the other paths. Deterministic modelling convention; no native AF equality is implied |
 | DS globals | `6819` (written 0), `49F3` (read), `5D92`/`5D94` (read, pushed) |
 | ES references | `A+3` (read), `B+11Bh` (read) |
 
@@ -61,6 +61,24 @@ to -1/-1/0); `CALLEE` (`001F` stopped: its status in `diagnostic.callee_status`,
 in `diagnostic.d001f`, state as it left it); `TRANSFER` (`001F` returned elsewhere than `CS:0607`); `STOP_1344`;
 `STOP_0767`. `limits` carries `001F`'s two caps (`max_heap_steps`, `max_links`); `NULL` means both zero with `001F`'s
 dependency meanings. There is no instruction budget of this body's own: it has no backward branch.
+
+## Composition profile (t498 correction)
+
+The state claim is **full CPU14 + RAM inside this profile**, not unqualified. The profile is `001F`'s merged contract,
+restated here for the composed entry:
+
+- **SP range.** `001F` is entered at SP′ = (entry SP − 16) mod 65536 (BP save, five argument words, `PUSH CS`, return
+  IP) and requires SP′ ∈ `[0040,FFF2]`. Outside it `001F` returns `ARGUMENT`; this model then reports `CALLEE` with
+  `callee_status` `ARGUMENT` and the **partial prefix in place** (BP frame and the seven pushed words written, IP `001F`).
+  This body's own `ARGUMENT` (null pointers, RAM size, IP) changes nothing.
+- **Objects.** The CPU, limits and diagnostic objects are distinct from RAM.
+- **Immutable code and bindings.** The segment words `CS:062D`/`CS:0641` and `001F`'s binding chain (`CS:004A`, stub
+  `0052`, U9E `+0E52`, SYSTEM) are read live and must not be rewritten by the modelled code during the run.
+- **Frames.** Reached dependency return frames are nonwrapping. Data, heap and stack aliases stay live (`001F`'s append
+  may write under this frame). No rollback on any stop.
+- **Exclusions.** Interrupts, faults and self-modifying code are outside this synchronous profile.
+- **Flags convention.** Logical `AF := 0` at `0607` as in the table above; the test's return-flag values (`0646h` on the
+  `AL` = 0 path) encode that convention.
 
 ## What is and is not claimed
 

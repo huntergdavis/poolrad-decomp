@@ -55,7 +55,7 @@ header = '''#ifndef POOLRAD_RECOVERED_OVERLAY_U38_05EB_CPU_H
 #include <stdint.h>
 #include "poolrad/recovered/overlay_u38_gated_append_001f_cpu.h"
 
-/* Raw-CPU, full-state model of GAME.OVR unit 38h +[05EB,0647) (92 bytes, 35 instructions, RETF 0Ah): public entry 14,
+/* Raw-CPU model of GAME.OVR unit 38h +[05EB,0647) (92 bytes, 35 instructions, RETF 0Ah): public entry 14,
  * stub 0041:0066, the 009E dispatcher's slot-15 handler. Entered after a far call: [SP] IP, [SP+2] CS, then five argument
  * words: [BP+6] a word this body never reads, [BP+8] far pointer A, [BP+0Ch] far pointer B.
  *   1. PUSH CS / CALL 001F: this unit's +001F with (a = 0Ah, c = byte A+3, b = 0Fh, record B), composed through its raw
@@ -70,8 +70,20 @@ header = '''#ifndef POOLRAD_RECOVERED_OVERLAY_U38_05EB_CPU_H
  *   3. (Unreachable while step 2 stops.) DS:[49F3] = 5: return; else LCALL 00BA:0767 (segment word CS:0641, a fixup) with
  *      the far pointer DS:[5D92]/[5D94]: STOP_0767, the same saved-state convention.
  * CS is the unit's load segment. Flat 1 MiB A20-off RAM: offsets wrap at 16 bits, physical addresses at 1 MiB, word
- * operands are physically contiguous. There is no backward branch, so no instruction budget of its own. See
- * docs/re/OVL_0038_05EB_CPU.md for the contract and evidence. */
+ * operands are physically contiguous. There is no backward branch, so no instruction budget of its own.
+ * Composition profile (inherited from 001F's merged contract; full CPU14 + RAM state is claimed INSIDE it only):
+ *   - 001F is entered at SP' = (entry SP - 16) mod 65536 and requires SP' in [0040,FFF2]; outside that, 001F returns
+ *     ARGUMENT and this model reports CALLEE with callee_status ARGUMENT and the partial prefix in place (BP frame and the
+ *     seven pushed words written, IP 001F). ARGUMENT of this body itself (null/size/IP) changes nothing.
+ *   - The CPU, limits and diagnostic objects are distinct from RAM. Loaded code and bindings are immutable during the
+ *     run: the segment words CS:062D/CS:0641 and 001F's binding chain (CS:004A, stub 0052, U9E +0E52, SYSTEM) are read
+ *     live but not rewritten by the modelled code. Reached dependency return frames are nonwrapping. Data, heap and
+ *     stack aliases stay live (001F's append may write under this frame). No rollback.
+ *   - Interrupts, faults and self-modifying code are outside this synchronous profile.
+ * Flags: OR AL,AL at 0607 leaves AF architecturally undefined; this tree's logic() convention sets AF := 0 (CF/OF := 0),
+ * which is VISIBLE at the RETF when AL = 0 (the OR is the last flags writer on that path) and overwritten by CMP at 060E
+ * otherwise. That is a deterministic modelling convention, not a claim of native AF equality.
+ * See docs/re/OVL_0038_05EB_CPU.md for the contract and evidence. */
 typedef struct {
     uint16_t ax, bx, cx, dx, si, di;
     uint16_t bp, sp, cs, ip, ds, es, ss, flags;
