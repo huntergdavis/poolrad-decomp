@@ -54,3 +54,36 @@ The other 25 reachable pairs carry the declaration ("windows exclude A0000..AFFF
 
 `aperture_observability.csv`: `model, kind, aperture_observable, declared_exclusion`. `aperture_pairs.csv`: `caller, flat_callee,
 callee_takes_pointer, pointer_source, classified_by, reach, caller_declares_exclusion`. Regenerate with `aperture_census.py --write`.
+
+## Who writes the rows (t582, 2026-10-29)
+
+The CSVs are **derived from the sources**, so a body PR no longer carries them. Before t582 every body PR regenerated
+`aperture_observability.csv` itself; six open PRs each held a row that sorted next to the others', so every merge staled the
+remaining heads and, with head-bound reviews, the rebase-and-re-verify cost grew quadratically.
+
+- **A body PR** adds its model and leaves the CSV alone. PR CI runs the census test with `APERTURE_CENSUS_ALLOW_MISSING=1`,
+  which tolerates **absent** rows only: a committed row with a *wrong* value still fails, on a PR as on `main`. The same
+  tolerance is available by hand as `aperture_census.py --allow-missing`.
+- **`main`** regenerates the rows: [`.github/workflows/aperture-census.yml`](../../.github/workflows/aperture-census.yml) runs
+  `aperture_census.py --write` on every push to `main` and, if the CSVs changed, files or updates one `census/refresh` PR and
+  arms auto-merge.
+
+What that job does **not** do: it cannot write to `main`. `main` requires two approving reviews and the `dunkingsheep/review`
+status with `enforce_admins` on, so "the census is regenerated within one run of a merge" means **the refresh PR exists within
+one run**; it lands when two reviewer lanes accept it like any other PR. A PR opened with `GITHUB_TOKEN` does not trigger
+workflows, so the review task for it is filed by the dunking sheep review timer, which polls open pull requests.
+
+The tolerance is keyed on the **ref, not the event** (t628): `repository-hygiene.yml` triggers on `push:` for every branch as
+well as on `pull_request:`, and GitHub runs both on a PR head, so an event-keyed tolerance left the push-event run executing
+the strict census and failing on every body PR. Every ref except `refs/heads/main` is tolerant; `main` is always strict.
+
+Two limits the tolerance does **not** cover, stated because a first version of this doc did not: it tolerates an absent
+**row**, not an absent **classification**. A new model that adds a pointer pair still fails in both modes with
+`unclassified pointer pair … add it to SOURCES`, because that guard protects a different table; and a committed row with a
+wrong value is stale in both modes. So a body PR can land without a census row, and cannot land with a wrong one.
+
+The guard this keeps and the guard it moves: a model can no longer be *permanently* missing from the census (the refresh job
+writes the row), but it can be missing for the interval between its merge and the refresh PR landing. Reviewing a model PR no
+longer needs the CSV; reviewing the refresh PR is about the CSVs alone (see `.github/aperture-census-pr.md`). A refresh that
+*changes* an existing value instead of adding a row is not a refresh: it names a census input that moved, and it belongs to the
+PR that moved it.
