@@ -118,6 +118,7 @@ overlay_u33_party_attach_12e1_cpu.c,flat,no,no
 overlay_u33_place_search_1577.c,flat,no,no
 overlay_u33_stamp_block_02ba.c,flat,no,no
 overlay_u33_stamp_square_0377.c,flat,no,no
+overlay_u38_070f_cpu.c,flat,no,no
 overlay_u38_0b1b_cpu.c,flat,no,no
 overlay_u38_0cc3_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u38_append_1363_cpu.c,flat,no,no
