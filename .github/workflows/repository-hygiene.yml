@@ -25,11 +25,18 @@ jobs:
       - name: Flag-semantics census covers every flag-writing helper
         run: python3 -m unittest discover -s tools/overlay -p 'test_flag_census.py'
       - name: Aperture census CSVs equal their sources and every bus-aware caller's flat-callee pointer pair is classified
-        # On a pull request an ABSENT census row is tolerated: the row is written on main by
-        # .github/workflows/aperture-census.yml (t582), so a body PR no longer has to carry it and no longer stales
-        # its siblings. A row with a wrong value still fails here, on the PR and on main.
+        # t628 finding: keying the tolerance on `github.event_name == 'pull_request'` left the
+        # other run red. This workflow triggers on `push:` for EVERY branch AND on
+        # `pull_request:`, and GitHub runs both on a PR head (measured on #1629 head 9f594b3e:
+        # two checker-builds check runs, 'push' and 'pull_request'), so the push-event run still
+        # executed the strict census and failed on every body PR. The rule is about the REF, not
+        # the event: the census is authoritative on main and tolerant everywhere else, so
+        # APERTURE_CENSUS_ALLOW_MISSING=1 for every ref except refs/heads/main, whichever event
+        # delivered it. An ABSENT row is tolerated there; a row with a wrong value still fails.
+        # '0' not '': GitHub's `cond && a || b` idiom returns b when a is falsy, so an empty
+        # true-value would make main TOLERANT - the exact opposite of the intent.
         env:
-          APERTURE_CENSUS_ALLOW_MISSING: ${{ github.event_name == 'pull_request' && '1' || '' }}
+          APERTURE_CENSUS_ALLOW_MISSING: ${{ github.ref == 'refs/heads/main' && '0' || '1' }}
         run: python3 -m unittest discover -s tools/overlay -p 'test_aperture_census.py'
       - name: C tests keep assert() live (NDEBUG gate, canary, derived count)
         run: python3 -m unittest discover -s tools/overlay -p 'test_count_assert_tests.py'

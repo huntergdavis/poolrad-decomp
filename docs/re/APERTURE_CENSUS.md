@@ -73,6 +73,15 @@ status with `enforce_admins` on, so "the census is regenerated within one run of
 one run**; it lands when two reviewer lanes accept it like any other PR. A PR opened with `GITHUB_TOKEN` does not trigger
 workflows, so the review task for it is filed by the dunking sheep review timer, which polls open pull requests.
 
+The tolerance is keyed on the **ref, not the event** (t628): `repository-hygiene.yml` triggers on `push:` for every branch as
+well as on `pull_request:`, and GitHub runs both on a PR head, so an event-keyed tolerance left the push-event run executing
+the strict census and failing on every body PR. Every ref except `refs/heads/main` is tolerant; `main` is always strict.
+
+Two limits the tolerance does **not** cover, stated because a first version of this doc did not: it tolerates an absent
+**row**, not an absent **classification**. A new model that adds a pointer pair still fails in both modes with
+`unclassified pointer pair … add it to SOURCES`, because that guard protects a different table; and a committed row with a
+wrong value is stale in both modes. So a body PR can land without a census row, and cannot land with a wrong one.
+
 The guard this keeps and the guard it moves: a model can no longer be *permanently* missing from the census (the refresh job
 writes the row), but it can be missing for the interval between its merge and the refresh PR landing. Reviewing a model PR no
 longer needs the CSV; reviewing the refresh PR is about the CSVs alone (see `.github/aperture-census-pr.md`). A refresh that
