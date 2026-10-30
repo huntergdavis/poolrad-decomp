@@ -147,6 +147,7 @@ OVL_006A_0159,checker,u6a_record_clear_high_0159_audit.py
 OVL_006A_019C,checker,u6a_record_weight_0000_audit.py
 OVL_006A_0214,checker,u6a_record_walk_0214_audit.py
 OVL_006A_025C,audit,tools/overlay/u6a_record_remaining_025c_audit.py
+OVL_006A_0824,checker,ovl_006a_0824_cpu_audit.py
 OVL_006A_0E37,checker,u6a_string_node_0e37_audit.py
 OVL_006A_14A9,audit,tools/overlay/u6a_party_before_14a9_audit.py
 OVL_006A_1601,audit,tools/overlay/u6a_party_after_1601_audit.py
