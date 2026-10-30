@@ -29,27 +29,66 @@ class RecordShaGuardTest(unittest.TestCase):
 
     def test_real_commit_passes(self):
         root = self.tree(f"OVL_0038_25BC,x.md,1102,{KNOWN},{BODY},73\n")
-        problems, checked, marked = guard.scan(root, {KNOWN})
+        problems, checked, marked, unverifiable = guard.scan(root, {KNOWN})
         self.assertEqual(problems, [])
         self.assertEqual(checked, 1)
         self.assertEqual(marked, 0)
 
     def test_invented_commit_fails(self):
         root = self.tree(f"OVL_0099_9999,x.md,1102,{FAKE},{BODY},73\n")
-        problems, _, _ = guard.scan(root, {KNOWN})
+        problems, _, _, _ = guard.scan(root, {KNOWN})
         self.assertEqual(len(problems), 1)
         self.assertIn(FAKE, problems[0])
 
     def test_external_marker_allows_unknown(self):
         root = self.tree(f"# external upstream id {FAKE}\n")
-        problems, checked, marked = guard.scan(root, {KNOWN})
+        problems, checked, marked, unverifiable = guard.scan(root, {KNOWN})
         self.assertEqual(problems, [])
         self.assertEqual((checked, marked), (1, 1))
 
     def test_body_digest_is_not_treated_as_commit(self):
         root = self.tree(f"OVL_0038_25BC,x.md,1102,{KNOWN},{BODY},73\n")
-        _, checked, _ = guard.scan(root, {KNOWN})
+        _, checked, _, _ = guard.scan(root, {KNOWN})
         self.assertEqual(checked, 1, "only the 40-hex commit is a provenance id")
+
+    # -- shallow clones (t675) ------------------------------------------------
+
+    def test_an_id_absent_from_a_shallow_clone_is_not_a_finding(self):
+        # The CI failure four body PRs generalised into "fails at the base": the
+        # object is simply not in a --depth clone, and this guard cannot say whether
+        # it is real.
+        root = self.tree(f"OVL_0038_25BC,x.md,1102,{FAKE},{BODY},73\n")
+        problems, checked, marked, unverifiable = guard.scan(
+            root, {KNOWN}, shallow=True, exists=lambda sha: False)
+        self.assertEqual([], problems, "a shallow clone must not fail the gate")
+        self.assertEqual((checked, marked), (1, 0))
+        self.assertEqual(1, len(unverifiable))
+        self.assertIn(FAKE, unverifiable[0])
+
+    def test_a_full_clone_still_fails_on_the_same_id(self):
+        root = self.tree(f"OVL_0038_25BC,x.md,1102,{FAKE},{BODY},73\n")
+        problems, _checked, _marked, unverifiable = guard.scan(
+            root, {KNOWN}, shallow=False, exists=lambda sha: False)
+        self.assertEqual(len(problems), 1, "an invented id must still fail a full clone")
+        self.assertIn(FAKE, problems[0])
+        self.assertEqual([], unverifiable)
+
+    def test_a_shallow_clone_still_fails_an_id_whose_object_is_present(self):
+        # Not in --all's history but present in the object store: that IS a finding.
+        root = self.tree(f"OVL_0038_25BC,x.md,1102,{FAKE},{BODY},73\n")
+        problems, _checked, _marked, _unverifiable = guard.scan(
+            root, {KNOWN}, shallow=True, exists=lambda sha: True)
+        self.assertEqual(1, len(problems))
+
+    def test_the_summary_says_which_history_it_read(self):
+        root = self.tree(f"OVL_0038_25BC,x.md,1102,{FAKE},{BODY},73\n")
+        original_commits, original_shallow = guard.commits, guard.is_shallow
+        guard.commits, guard.is_shallow = (lambda _root: {KNOWN}), (lambda _root: True)
+        try:
+            self.assertEqual(0, guard.main(["--root", str(root)]),
+                             "a shallow clone reports, it does not fail")
+        finally:
+            guard.commits, guard.is_shallow = original_commits, original_shallow
 
 
 if __name__ == "__main__":
