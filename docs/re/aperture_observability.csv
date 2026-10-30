@@ -131,6 +131,7 @@ overlay_u38_effect_scale_clear_2d88.c,flat,no,no
 overlay_u38_effects_install_31a2.c,flat,no,no
 overlay_u38_gated_append_001f_cpu.c,flat,no,no
 overlay_u38_handler_0400_cpu.c,flat,no,no
+overlay_u38_handler_09c0_cpu.c,flat,no,no
 overlay_u38_helper_cluster_cpu.c,flat,no,no
 overlay_u38_leaf_2002.c,flat,no,no
 overlay_u38_link_message_2bc8.c,flat,no,no

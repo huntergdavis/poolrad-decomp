@@ -25,6 +25,7 @@ OVERLAY = ROOT / "tools/overlay"
 MEDIA = ROOT / "resources/DOS/POOLRAD/START.EXE"
 EMITTERS = {
     "emit_ovl038_0400": "src/recovered/overlay_u38_handler_0400_cpu.c",
+    "emit_ovl038_09c0": "src/recovered/overlay_u38_handler_09c0_cpu.c",
     "emit_ovl038_0b1b": "src/recovered/overlay_u38_0b1b_cpu.c",
     "emit_ovl03b6_0000": "src/recovered/overlay_u3b6_window_0000_cpu.c",
     "emit_ovl03ce_00f1": "src/recovered/overlay_u3ce_tile_00f1_cpu.c",
