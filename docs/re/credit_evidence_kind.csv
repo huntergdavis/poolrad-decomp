@@ -79,6 +79,7 @@ OVL_0038_0BAC,unit-test,poolrad_overlay_unit38_effects_tests
 OVL_0038_0C06,checker,ecl_helpers_original_audit.py
 OVL_0038_0C15,checker,ecl_helpers_original_audit.py
 OVL_0038_0C26,unit-test,poolrad_overlay_unit38_effects_tests
+OVL_0038_0CC3,checker,ovl_0038_0cc3_cpu_audit.py
 OVL_0038_101D,checker,u38_target_selector_cpu_audit.py
 OVL_0038_10C1,unit-test,poolrad_overlay_unit38_effects_tests
 OVL_0038_11F9,checker,u38_character_loop_11f9_audit.py
@@ -207,6 +208,7 @@ OVL_03B0_0000,audit,tests/recovered/check_overlay_u3b0_entry1_0000.py;tools/over
 OVL_03B0_0067,audit,tests/recovered/check_overlay_u3b0_leaf_0067.py;tools/overlay/u3b0_leaf_0067_native.py
 OVL_03B0_00CB,checker,u3b0_item_split_00cb_audit.py
 OVL_03B0_01DA,checker,u3b0_entry_01da_cpu_audit.py
+OVL_03B0_06FB,checker,u3b0_row_clear_06fb_cpu_audit.py
 OVL_03B0_0711,audit,tests/recovered/check_overlay_u3b0_leaf_0711.py;tools/overlay/u3b0_leaf_0711_native.py
 OVL_03B0_07A4,checker,u3b0_entry_07a4_cpu_audit.py
 OVL_03B0_08D7,audit,tools/overlay/u3b0_space_scan_audit.py
