@@ -519,6 +519,16 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/system_longdiv_0a76_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
+  "tools/overlay/system_longmul_0a5b_audit.py": {
+    "args": [
+      "--unicorn"
+    ]
+  },
   "tools/overlay/system_paramstr_16bc_cpu_audit.py": {
     "args": [
       "--unicorn"
