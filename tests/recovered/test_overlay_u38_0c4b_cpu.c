@@ -116,6 +116,31 @@ int main(void)
         CHECK(only_changed(at(SS0, SP0 - 24u), at(SS0, SP0), at(ASEG, AOFF + 3u), at(ASEG, AOFF + 3u)));
     }
 
+    /* StrLoad return-frame boundary. The API admits both entry SP values.
+     * At 0016 the callee's return IP is at SS:FFFE and the saved CS was
+     * pushed at SS:0000. The composed leaf reads the CS physically after
+     * SS:FFFE instead, retaining that different return as TRANSFER. At 0018
+     * the callee frame begins at SS:0000 and this synthetic world reaches
+     * the 16EC stop. These are C-model observations, not original-CPU parity. */
+    for (i = 0; i < 2; ++i) {
+        static const uint16_t frame[7] = {0x7000u, 0x9001u, 0x5A5Au, AOFF, ASEG, BOFF, BSEG};
+        uint16_t entry_sp = i == 0 ? 0x0016u : 0x0018u;
+        unsigned j;
+        c = world(0, 0x05);
+        c.sp = entry_sp;
+        for (j = 0; j < 7; ++j)
+            put16(SS0, (uint16_t)(entry_sp + 2u * j), frame[j]);
+        if (i == 0) {
+            CHECK(pr_u38_handler_0c4b_cpu(ram, RAM, &c, &d) == PR_U38_0C4B_TRANSFER);
+            CHECK(c.cs == 0x5A5Au && c.ip == 0x0C86u && c.sp == 0x0006u);
+            CHECK(d.callee == 1 && d.site == 0x0C81u && d.callee_status == PR_SYSTEM_LEAF_RETURNED);
+        } else {
+            CHECK(pr_u38_handler_0c4b_cpu(ram, RAM, &c, &d) == PR_U38_0C4B_PENDING);
+            CHECK(c.cs == OV && c.ip == 0x0C8Cu && c.sp == 0x0004u);
+            CHECK(d.callee == 2 && d.site == 0x0C8Cu && d.callee_status == PR_SYSTEM_LEAF_RETURNED);
+        }
+    }
+
     /* Arguments: nothing changes. */
     c = world(0x10, 0x05); before = c;
     CHECK(pr_u38_handler_0c4b_cpu(NULL, RAM, &c, &d) == PR_U38_0C4B_ARGUMENT && memcmp(&c, &before, sizeof c) == 0);

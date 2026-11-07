@@ -50,18 +50,19 @@ header = '''#ifndef POOLRAD_RECOVERED_OVERLAY_U38_0C4B_CPU_H
 #include <stdint.h>
 #include "poolrad/recovered/system_string_leaves_cpu.h"
 
-/* Raw-CPU, full-state model of GAME.OVR unit 38h +[0C4B,0CA8) (93 bytes, 37 instructions, RETF 0Ah), the handler that
+/* Raw-CPU partial model of GAME.OVR unit 38h +[0C4B,0CA8) (93 bytes, 37 instructions, RETF 0Ah), the handler that
  * the 009E dispatcher reaches through slot 39 (public entry 33, stub 0041:00C5). It is a PARTIAL CHAIN: the resident
  * window message RES_00BA_16EC is recorded as not closable, and the body stops before its call. Nothing is skipped or
  * treated as a success.
  * Arguments (after the far call: [SP] IP, [SP+2] CS): [BP+6] a word, unused by this body; [BP+8] a far pointer A (a record
  * whose byte +3 holds flag bits); [BP+0Ch] a far pointer B (a record whose word +30h is a counter). Locals (SUB SP,6):
- * [BP-5] a 5-byte string buffer ([BP-6] is never touched).
+ * [BP-5] a nominal 5-byte string buffer ([BP-6] is never touched by this body's local stores).
  *   1. AL := A+3 AND 10h (AND, then OR AL,AL): nonzero jumps to step 3.
  *   2. A+3 := A+3 + 10h (XOR AH,AH; ADD AX,10h; the byte store; bit 4 was clear, so no carry leaves the byte). Push B and
- *      SS:BP-5; push CS:0C46; 0AF8:0B0B (SYSTEM StrLoad) copies the 4-character string at CS:0C46 into the buffer and pops
- *      only its source (RETF 4); push AX = AH:0Ah and AX = AH:01h (AH is whatever StrLoad left); then +0C8C LCALL
- *      00BA:16EC: the model stops PENDING at +0C8C with the six argument words (B, the buffer pointer, 0Ah, 1) pushed and
+ *      SS:BP-5; push CS:0C46; 0AF8:0B0B (SYSTEM StrLoad) copies the live Pascal string at CS:0C46 and pops
+ *      only its source (RETF 4). Original bytes contain a 4-character string, but live RAM or aliasing may differ. If
+ *      StrLoad returns to the expected CS:IP, push AX = AH:0Ah and AX = AH:01h; then +0C8C LCALL
+ *      00BA:16EC: the model stops PENDING at +0C8C with six words pushed and
  *      nothing pushed for the call. 16EC's effects (RETF 0Ch) and the following INC word B+30h are NOT completed paths on
  *      this branch: step 3 is reached by the model only through the jump of step 1.
  *   3. DS:681A := the low byte of (zero-extended DS:681A) SHL 1 (the byte doubles, its top bit falls into AH and is lost);
@@ -71,7 +72,10 @@ header = '''#ifndef POOLRAD_RECOVERED_OVERLAY_U38_0C4B_CPU_H
  * physical addresses at 1 MiB, word operands are physically contiguous. Flags follow every flag-setting instruction
  * (SUB SP; AND/OR/XOR logic; ADD AX,10h; INC word keeps CF; SHL AX,1: CF = old bit 15, OF = MSB(result) ^ CF, SZP of the
  * result, AF := 1 by the pinned DOSBox-X rule, and that AF is visible at the RETF of step 3). See
- * docs/re/OVL_0038_0C4B_CPU.md for the contract and evidence. */
+ * A non-wrapping stack-offset profile is entry SP in [0018h, FFF2h]; the API does not enforce it. Memory aliasing can
+ * still alter frames or control flow within that profile. Outside it the composed leaf's physically contiguous return
+ * reads may differ from wrapped SS-offset semantics; original/native parity is not established for either profile.
+ * docs/re/OVL_0038_0C4B_CPU.md gives the contract and evidence. */
 typedef struct {
     uint16_t ax, bx, cx, dx, si, di;
     uint16_t bp, sp, cs, ip, ds, es, ss, flags;
