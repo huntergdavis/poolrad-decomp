@@ -6,7 +6,7 @@ execution of this body are a separately authorised review, see docs/re/OVL_0038_
   * the unit 38h code identity and that public entry 37 is +10DE (stub 0041:00D9) and entry 38 starts at +1168;
   * the body [10DE,1168): 138 bytes (the whole ledger bound), 60 instructions, its SHA-256, one RETF 0Ah, three forward
     conditional jumps and one forward JMP to the epilogue +1162, no backward jump, no INT, no port access, no shift or
-    multiply (no undefined flag);
+    multiply; logical AF is architecturally undefined and the model chooses AF := 0, not a native AF measurement;
   * its five calls in order: PUSH CS; CALL +001F at 10F9/10FA, LCALL 0AF8:0B0B at 111B, LCALL 00BA:16EC at 1126,
     LCALL 00BA:2199 at 1142, LCALL 00B0:0052 at 115D, and that the four far-call segment words are the only fixups in the span;
   * the argument pushes of each call (the 2Bh, A+3 and 3Ch words for +001F; the 1Fh key and the [BP-4] cursor for 2199;
@@ -16,6 +16,9 @@ execution of this body are a separately authorised review, see docs/re/OVL_0038_
   * unit 38h +001F is the credited gated append (body SHA-256 pinned by its own audit) and unit 9E's descriptor: run-time
     stub segment 00B0, entry 10 (stub 00B0:0052) is +0E52 (file stub INT 3Fh to +0E52);
   * the emitter regenerates the committed C byte for byte (tools/overlay/emit_ovl038_10de.py --check).
+OR AL,AL at 10FD/1147 is the last flag writer on the gate/found returns. The C logic() AF := 0 convention is therefore
+caller-visible; XOR AX,AX at 1154 uses that convention too. This static audit does not establish native AF or unqualified
+full-state equality. Synthetic return-flag assertions check the declared convention (docs/re/OVL_0038_10DE_CPU.md).
 --compile-only builds the model with its composed sources through the audit's own compiler command and binds the symbol,
 with no media, and prints CHECKER_BUILD_OK.
 

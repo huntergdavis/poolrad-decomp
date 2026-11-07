@@ -1,7 +1,8 @@
 /* Focused synthetic test for GAME.OVR unit 38h +10DE, the 009E slot-43 handler (docs/re/OVL_0038_10DE_CPU.md). No game
  * bytes: only the four relocated far-call segment words, +001F's own binding word, the loaded-stub form of unit 9E entry
  * 10, unit 9E's GetMem binding, the SYSTEM heap words, a synthetic 11-character source string at CS:10D2, synthetic
- * records A and B, a synthetic list and the DS gate byte. Whole-RAM comparisons bound each path's writes. */
+ * records A and B, a synthetic list and the DS gate byte. Whole-RAM comparisons bound each path's writes.
+ * Logical AF := 0 flag expectations check the model's deterministic convention, not measured native AF equality. */
 #include "poolrad/recovered/overlay_u38_10de_cpu.h"
 
 #include <stdio.h>
@@ -92,7 +93,8 @@ int main(void)
         return 1;
 
     /* The gate DS:681F is nonzero: +001F stores 0 and allocates nothing; OR AL,AL; JE returns. The argument words pushed for
-     * +001F carry the entry AH (122Bh, 12xxh with A+3) and then 003Ch (MOV AX,3Ch clears AH) and stay below SP. */
+     * +001F carry the entry AH (122Bh, 12xxh with A+3) and then 003Ch (MOV AX,3Ch clears AH) and stay below SP.
+     * The return flags below include the model's AF := 0 choice after OR at 10FD, not a native AF claim. */
     for (i = 1; i < 256; i += 17) {
         c = world(0x77, 5, (uint8_t)i, 0, 0);
         CHECK(pr_u38_handler_10de_cpu(ram, RAM, &c, &lim, &d) == PR_U38_10DE_OK);
@@ -139,7 +141,8 @@ int main(void)
     }
 
     /* An old node with key 1Fh already heads the list: node 1 goes after it, 2199 finds the old node (cursor = it, AL = 1)
-     * and the body returns without a second append (the heap pointer advanced once). */
+     * and the body returns without a second append (the heap pointer advanced once). The return flags include the
+     * model's AF := 0 choice after OR at 1147, not a native AF claim. */
     c = world(0x42, 2, 0, 1, 0x1Fu);
     CHECK(pr_u38_handler_10de_cpu(ram, RAM, &c, &lim, &d) == PR_U38_10DE_OK);
     CHECK(d.callee == 4 && d.callee_status == PR_RES_2199_OK && d.site == 0x1142u && d.getmem_status == -1);

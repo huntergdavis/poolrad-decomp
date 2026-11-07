@@ -7,7 +7,7 @@
 #include "poolrad/recovered/resident_00ba_sidecar_lookup_2199_cpu.h"
 #include "poolrad/recovered/overlay_u9e_list_append_0e52_cpu.h"
 
-/* Raw-CPU, full-state model of GAME.OVR unit 38h +[10DE,1168) (138 bytes, 60 instructions, RETF 0Ah), the handler that
+/* Raw-CPU partial model of GAME.OVR unit 38h +[10DE,1168) (138 bytes, 60 instructions, RETF 0Ah), the handler that
  * the 009E dispatcher reaches through slot 43 (public entry 37, stub 0041:00D9). It is a PARTIAL CHAIN: the resident
  * window message RES_00BA_16EC is recorded as not closable, and the message path stops before its call. Nothing is
  * skipped or treated as a success.
@@ -38,7 +38,10 @@
  * entry AH; MOV AX,3Ch then clears AH (+001F preserves it, so the first 1Fh push is 001Fh); the 0Ah and 01h pushes carry
  * StrLoad's AH and the second 1Fh push carries 2199's. Flat 1 MiB A20-off RAM: offsets wrap at 16 bits, physical
  * addresses at 1 MiB, word operands are physically contiguous. Flags follow every flag-setting instruction (SUB SP; the
- * ORs; the CMP; XOR AX,AX; DEC byte keeps CF) over each callee's own exit flags. No undefined flag. See
+ * ORs; the CMP; XOR AX,AX; DEC byte keeps CF) over each callee's own exit flags. Logical AF is architecturally undefined;
+ * logic() chooses AF := 0, including OR AL,AL at 10FD/1147 and XOR AX,AX at 1154. The gate/found returns expose the OR's
+ * AF choice: MOV SP,BP; POP BP; RETF writes no flags. All CPU words are represented, but native full-state/AF equality
+ * is not established. Synthetic flag expectations check this deterministic convention, not native AF. See
  * docs/re/OVL_0038_10DE_CPU.md for the contract and evidence. */
 typedef struct {
     uint16_t ax, bx, cx, dx, si, di;

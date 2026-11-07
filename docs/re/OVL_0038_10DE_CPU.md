@@ -1,6 +1,6 @@
 # OVL_0038_10DE: the 009E dispatcher's slot-43 handler (raw CPU, a partial chain stopped at the 16EC window message)
 
-`pr_u38_handler_10de_cpu` is a raw-CPU, full-state model of GAME.OVR unit `38h` `+10DE`, the handler the `009E` dispatcher
+`pr_u38_handler_10de_cpu` is a raw-CPU partial model of GAME.OVR unit `38h` `+10DE`, the handler the `009E` dispatcher
 reaches through slot 43 (`DS:68D4`, stub `0041:00D9`, public entry 37), stored by the credited installer `OVL_0038_31A2`
 ([OVL_009E_0000_HANDLERS.md](OVL_009E_0000_HANDLERS.md) and `u9e_dispatch_handlers.json` list it as a named gap, interface
 `missing`; `U9E_DISPATCH_HANDLER_BACKLOG.md` as missing). It runs on flat RAM, as the dispatcher's handlers do, and composes
@@ -28,7 +28,8 @@ fabricated citations); reviewer reserved through the CoS.
 | 009E slot | 43 (`DS:6828+4·43 = DS:68D4`), per the accepted dispatcher table and `u9e_dispatch_handlers.json` (`slot 43`, `table_address 68D4`, `original_stub 0041:00D9`) |
 | Near call | `+10F9 PUSH CS; +10FA CALL +001F` (the credited gated append, `RETF 0Ah`; its body SHA-256 `342e00b6…` is re-pinned by this checker) |
 | Far calls | `+111B LCALL 0AF8:0B0B`, `+1126 LCALL 00BA:16EC`, `+1142 LCALL 00BA:2199`, `+115D LCALL 00B0:0052`; their segment words `CS:111E`, `CS:1129`, `CS:1145`, `CS:1160` are the only loader fixups in `+[10D2,1168)`, read live |
-| Branches | `+10FF JE +1162`, `+1109 JBE +1134`, `+1132 JMP +1162`, `+1149 JNE +1162`, all forward; no backward jump, no INT, no port access, no shift or multiply (no undefined flag) |
+| Branches | `+10FF JE +1162`, `+1109 JBE +1134`, `+1132 JMP +1162`, `+1149 JNE +1162`, all forward; no backward jump, no INT, no port access, no shift or multiply |
+| Undefined flags | `OR AL,AL` at `+10FD` and `+1147`, and `XOR AX,AX` at `+1154`, leave AF architecturally undefined. The C `logic()` convention chooses **AF := 0** (CF/OF := 0 are defined). The OR's AF is caller-visible on the gate and found returns: their remaining `MOV SP,BP; POP BP; RETF` does not overwrite flags. No native AF equality is implied |
 | DS access | none in the body (`+001F` reads the gate `DS:681F`; GetMem uses the SYSTEM heap words) |
 | Record accesses | `A+3` read once (`MOV AL,ES:[DI+3]`); `B+10h` compared with 3, then decremented after the stop (`DEC byte ES:[DI+10h]`); B's list head `+7Fh/+81h` and nodes are touched only by the callees |
 | String | `CS:10D2`, an 11-character printable Pascal string (length byte `0Bh`) in `+[10D2,10DE)`, right after the `+10C1` body's `RETF 0Ah`; SHA-256 `39a03f21…`; not quoted here |
@@ -38,6 +39,13 @@ Inputs are the pinned GAME.OVR (SHA-256 `872964a3…`) and START.EXE (`d825df2b�
 the C from the bytes with `emit_raw_cpu_c.py` (flat-RAM accessors) and `--check` regenerates it byte for byte; its three
 hand-written cases are the `+10FA` near call, the `+1126` stop and the `+115D` checked stub hop. The classification row
 (`overlay_classification.csv`) is `game_evidenced`, `provisional`.
+
+**Flag contract.** All fourteen CPU words and RAM are explicit model state; this is not a claim of unqualified native
+full-state equality. Logical AF := 0 is a deterministic modelling convention, following the attributed
+[OVL_0038_05EB precedent](OVL_0038_05EB_CPU.md#exact-original) (review t977), rather than a measured property of the
+original CPU. At `+10FD`, the gate return exposes that choice; at `+1147`, the found return does too. The other paths
+also remain subject to each callee's flag contract. Synthetic return-flag assertions check this convention and the
+defined flag effects; they do not establish original/native AF equality. No original/native execution has verified AF.
 
 ## Behaviour
 
