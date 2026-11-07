@@ -73,6 +73,9 @@
   "tools/overlay/ovl038_09c0_cpu_audit.py": {
     "args": []
   },
+  "tools/overlay/ovl038_10de_cpu_audit.py": {
+    "args": []
+  },
   "tools/overlay/ovl03b6_0000_cpu_audit.py": {
     "args": [
       "--unicorn"
