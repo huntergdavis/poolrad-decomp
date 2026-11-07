@@ -12,6 +12,7 @@ OVL_001C_2AEB,checker,ecl_helpers_original_audit.py
 OVL_001C_2B14,checker,u1c_clear_box_2b14_cpu_audit.py
 OVL_001C_2E7D,checker,u1c_text_2e7d_cpu_audit.py
 OVL_0020_0355,audit,tools/overlay/u20_party_award_0355_audit.py
+OVL_0020_11AC,checker,u20_list_walk_11ac_cpu_audit.py
 OVL_0023_0239,checker,u23_append_0239_cpu_audit.py
 OVL_0025_0000,audit,tools/overlay/u25_loader_0000_audit.py
 OVL_0025_0136,checker,u25_slot_value_0136_audit.py

@@ -221,6 +221,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u7f_0054_cpu.c
                                     src/recovered/overlay_u7f_0203_cpu.c
                                     src/recovered/overlay_u38_0cc3_cpu.c
+                                    src/recovered/overlay_u38_handler_0775_cpu.c
                                     src/recovered/overlay_u7f_0a88_cpu.c
                                     src/recovered/overlay_u7f_div5_leaves_cpu.c
                                     src/recovered/overlay_u7f_063a_cpu.c
@@ -459,6 +460,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_03f1_box_0000_cpu.c
                                     src/recovered/overlay_u38_handler_0400_cpu.c
                                     src/recovered/overlay_u38_0b1b_cpu.c
+                                    src/recovered/overlay_u38_070f_cpu.c
                                     src/recovered/overlay_u3ce_tile_00f1_cpu.c
                                     src/recovered/overlay_u3b6_window_0000_cpu.c
                                     src/recovered/resident_0709_skip_spaces_0714_cpu.c
@@ -883,6 +885,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u38_0cc3_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u38_0cc3_cpu_tests
              COMMAND poolrad_overlay_u38_0cc3_cpu_tests)
+    add_executable(poolrad_overlay_u38_handler_0775_cpu_tests
+                   tests/recovered/test_overlay_u38_handler_0775_cpu.c)
+    target_link_libraries(poolrad_overlay_u38_handler_0775_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_handler_0775_cpu_tests
+             COMMAND poolrad_overlay_u38_handler_0775_cpu_tests)
     add_executable(poolrad_overlay_u7f_0a88_cpu_tests
                    tests/recovered/test_overlay_u7f_0a88_cpu.c)
     target_link_libraries(poolrad_overlay_u7f_0a88_cpu_tests PRIVATE poolrad_recovered)
@@ -2677,6 +2684,9 @@ if(BUILD_TESTING)
     add_executable(poolrad_overlay_u38_0b1b_cpu_tests tests/recovered/test_overlay_u38_0b1b_cpu.c)
     target_link_libraries(poolrad_overlay_u38_0b1b_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u38_0b1b_cpu_tests COMMAND poolrad_overlay_u38_0b1b_cpu_tests)
+    add_executable(poolrad_overlay_u38_070f_cpu_tests tests/recovered/test_overlay_u38_070f_cpu.c)
+    target_link_libraries(poolrad_overlay_u38_070f_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u38_070f_cpu_tests COMMAND poolrad_overlay_u38_070f_cpu_tests)
     add_executable(poolrad_overlay_u3b6_window_0000_cpu_tests tests/recovered/test_overlay_u3b6_window_0000_cpu.c)
     target_link_libraries(poolrad_overlay_u3b6_window_0000_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u3b6_window_0000_cpu_tests COMMAND poolrad_overlay_u3b6_window_0000_cpu_tests)
