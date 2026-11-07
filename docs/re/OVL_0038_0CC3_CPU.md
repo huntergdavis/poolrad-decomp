@@ -1,4 +1,4 @@
-# OVL_0038 +0CC3: the U9E dispatcher's slot-40 handler (remove a map object), composed over StrLoad, resident 1693 and FreeMem (strict body; credit is par-e's)
+# OVL_0038 +0CC3: the U9E dispatcher's slot-40 handler (remove a map object), composed over StrLoad, resident 1693 and FreeMem (strict credit deferred pending reviewed identity)
 
 `OVL_0038_0CC3` (unit 0x38, entry 34, stub `0041:00CA`) removes one object from the map:
 - **Find.** It looks in the far-pointer list at `DS:[6DBB]` for the node whose first dword is the 32-bit key and whose type
@@ -11,6 +11,14 @@
 
 This change adds the model, its C test, its checker, the native harness for the not-found walk, the mutation set, three census
 rows and this document. It also adds an optional named-stop map to the shared unit-0x7F world's runner. **par-e decides credit.**
+
+**Strict-credit deferral ([PR #1638](https://github.com/huntergdavis/poolrad-decomp/pull/1638)).**
+The canonical classification remains `game_evidenced` / `provisional`; neither the
+[classifier's verified set](../../tools/overlay/classify_overlay.py) nor
+[reviewed_function_identities.csv](reviewed_function_identities.csv) registers an approved identity for this body.
+The identity argument below remains a proposal. The proposed
+[strict_full_c_addresses.csv](strict_full_c_addresses.csv) and
+[credit_evidence_kind.csv](credit_evidence_kind.csv) entries are deferred pending independent identity approval and registration.
 
 ## Claim table
 
