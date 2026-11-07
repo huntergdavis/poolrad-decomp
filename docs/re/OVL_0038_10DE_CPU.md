@@ -85,8 +85,10 @@ diagnostic and the second append's GetMem status.
 | `RES_00BA_2199` (the sidecar lookup) | `+1142` | segment word `CS:1145` is a fixup | `pr_res_00ba_2199_cpu` (credited) | strict-credited |
 | `OVL_009E_0E52` (entry 10, the list append) | `+115D` | stub `00B0:0052`: unit `9E` descriptor entry 10 = `+0E52`; file stub `INT 3Fh` to `+0E52`; segment word `CS:1160` is a fixup | `pr_u9e_list_append_0e52_cpu` (credited) with `pr_system_getmem_023f` | strict-credited |
 
-`docs/re/partial_callee_models.csv` gains `OVL_0038_10DE,partial`; `docs/re/aperture_observability.csv` gains the derived
-row for the new flat model (`aperture_census.py --write`).
+`docs/re/partial_callee_models.csv` gains `OVL_0038_10DE,partial`. The aperture census is regenerated locally with
+`aperture_census.py --write` for verification; this body PR leaves the CSVs at main's versions under the
+[current census policy](APERTURE_CENSUS.md#who-writes-the-rows-t582-2026-10-29). The refresh workflow owns the derived rows;
+the branch check uses `aperture_census.py --allow-missing` and still rejects incorrect rows or unclassified pointer pairs.
 
 ## Validation
 

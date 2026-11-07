@@ -118,8 +118,11 @@ overlay_u33_party_attach_12e1_cpu.c,flat,no,no
 overlay_u33_place_search_1577.c,flat,no,no
 overlay_u33_stamp_block_02ba.c,flat,no,no
 overlay_u33_stamp_square_0377.c,flat,no,no
+overlay_u38_05eb_cpu.c,flat,no,no
+overlay_u38_070f_cpu.c,flat,no,no
+overlay_u38_0b1b_cpu.c,flat,no,no
+overlay_u38_0c4b_cpu.c,flat,no,no
 overlay_u38_0cc3_cpu.c,bus,yes-with-ega-oracle,yes
-overlay_u38_10de_cpu.c,flat,no,no
 overlay_u38_append_1363_cpu.c,flat,no,no
 overlay_u38_character_compare_1276_cpu.c,flat,no,no
 overlay_u38_character_loop_11f9_cpu.c,flat,no,no
@@ -131,6 +134,7 @@ overlay_u38_effect_scale_clear_2d88.c,flat,no,no
 overlay_u38_effects_install_31a2.c,flat,no,no
 overlay_u38_gated_append_001f_cpu.c,flat,no,no
 overlay_u38_handler_0400_cpu.c,flat,no,no
+overlay_u38_handler_0775_cpu.c,flat,no,no
 overlay_u38_helper_cluster_cpu.c,flat,no,no
 overlay_u38_leaf_2002.c,flat,no,no
 overlay_u38_link_message_2bc8.c,flat,no,no
