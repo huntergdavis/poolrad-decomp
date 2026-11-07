@@ -70,7 +70,13 @@
       "--unicorn"
     ]
   },
+  "tools/overlay/ovl038_0775_cpu_audit.py": {
+    "args": []
+  },
   "tools/overlay/ovl038_09c0_cpu_audit.py": {
+    "args": []
+  },
+  "tools/overlay/ovl038_0c4b_cpu_audit.py": {
     "args": []
   },
   "tools/overlay/ovl038_10de_cpu_audit.py": {
