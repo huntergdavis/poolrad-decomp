@@ -20,7 +20,7 @@ import re
 import struct
 
 from capstone import Cs, CS_ARCH_X86, CS_MODE_16, CS_AC_WRITE
-from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_BP
+from capstone.x86 import X86_OP_IMM, X86_OP_MEM, X86_REG_BP, X86_REG_SP, X86_REG_SS
 from far_call_sites import sites
 from function_queue import DIGESTS
 from overlay_inventory import find_units, parse_mz
@@ -146,6 +146,7 @@ class Body:
         require(self.ins, f'{label}: nothing decodes')
         self.index = {i.address: k for k, i in enumerate(self.ins)}
         self.succ = []
+        self.targets = set()      # indices entered by a jump: a linear walk backwards must not cross into them
         for k, i in enumerate(self.ins):
             nxt = k + 1 if k + 1 < len(self.ins) else None
             if i.mnemonic in ('ret', 'retf', 'iret', 'ljmp'):
@@ -154,15 +155,19 @@ class Body:
                 require(i.operands and i.operands[0].type == X86_OP_IMM, f'{label}: indirect jump at {i.address:04X}')
                 target = i.operands[0].imm & 0xFFFF
                 require(target in self.index, f'{label}: jump at {i.address:04X} leaves the decoded body')
+                self.targets.add(self.index[target])
                 self.succ.append((self.index[target],) if i.mnemonic == 'jmp' else tuple(x for x in (self.index[target], nxt) if x is not None))
             else:
                 self.succ.append((nxt,) if nxt is not None else ())
-        self.targets = {t for s in self.succ for t in s} - {k + 1 for k in range(len(self.ins))}
+
+    def contiguous(self, lo, hi):
+        """True when instructions lo..hi-1 run only by falling through: no index after lo is a jump target."""
+        return not any(j in self.targets for j in range(lo + 1, hi))
 
     def window(self, k):
         """The push-forming run before instruction k, cut at a jump target."""
         j = k
-        while j > 0 and self.ins[j - 1].mnemonic in PUSHFORM and (j - 1) not in self.targets:
+        while j > 0 and self.ins[j - 1].mnemonic in PUSHFORM and j not in self.targets:
             i = self.ins[j - 1]
             if i.mnemonic == 'mov' and i.operands[0].type == X86_OP_MEM:
                 break
@@ -184,8 +189,33 @@ def triple(ins):
     return None
 
 
+SUBREG = {'al': 'ax', 'ah': 'ax', 'bl': 'bx', 'bh': 'bx', 'cl': 'cx', 'ch': 'cx', 'dl': 'dx', 'dh': 'dx'}
+STACK_ORIGIN = ('ss', 'bp', 'sp')          # reading any of these as a value yields a stack address
+CLOBBERED_BY_CALL = ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'es')
+
+
+def reg_name(insn, reg):
+    name = insn.reg_name(reg)
+    return SUBREG.get(name, name) if name else None
+
+
+def mem_regs(insn, op):
+    """(segment name, [base/index register names]) of a memory operand; the default segment follows the base."""
+    seg = reg_name(insn, op.mem.segment) if op.mem.segment else None
+    regs = [reg_name(insn, r) for r in (op.mem.base, op.mem.index) if r]
+    if seg is None:
+        seg = 'ss' if any(r in ('bp', 'sp') for r in regs) else 'ds'
+    return seg, regs
+
+
 class Analysis:
-    """Forward dataflow of string-length bounds per BP-relative local; join is the maximum, unknown is 255."""
+    """Forward dataflow of string-length bounds per BP-relative local; join is the maximum, unknown is 255.
+
+    Soundness rule for writes (t3677 R1): a write is applied precisely only when it is BP-relative with a
+    negative displacement (this body's locals). Every other memory write is checked against a taint set of
+    registers, segment registers and locals that may hold a stack address (loaded from LEA [BP..], SS, BP,
+    SP, a POP, a call's clobbered registers, or a tainted value): if the write's segment or any base/index
+    register is tainted, or it goes through SS, every local's bound becomes 255."""
 
     def __init__(self, world, kind, container, body, depth=0):
         self.world, self.kind, self.container, self.body, self.depth = world, kind, container, body, depth
@@ -209,12 +239,21 @@ class Analysis:
             return state[0].get(kind[1], UNBOUNDED)
         return UNBOUNDED
 
+    def invalidate(self, bounds, why):
+        for local in list(bounds):
+            bounds[local] = UNBOUNDED
+        self.notes.append(why)
+
     def transfer(self, k, state):
-        bounds, chain = dict(state[0]), state[1]
+        bounds, chain, taint = dict(state[0]), state[1], set(state[2])
         i = self.body.ins[k]
-        # direct memory writes through BP
-        for n, op in enumerate(i.operands):
-            if op.type == X86_OP_MEM and op.mem.base == X86_REG_BP and op.mem.disp < 0 and (op.access & CS_AC_WRITE):
+        local_ops = [op for op in i.operands if op.type == X86_OP_MEM and op.mem.base == X86_REG_BP and not op.mem.index
+                     and op.mem.disp < 0 and (not op.mem.segment or op.mem.segment == X86_REG_SS)]
+        # 1. memory writes: precise for this body's locals, otherwise sound against the taint set
+        for op in i.operands:
+            if op.type != X86_OP_MEM or not (op.access & CS_AC_WRITE):
+                continue
+            if op in local_ops:
                 lo, hi = -op.mem.disp - op.size + 1, -op.mem.disp
                 for local in list(bounds):
                     if lo <= local <= hi:
@@ -223,8 +262,52 @@ class Analysis:
                     bounds[-op.mem.disp] = i.operands[1].imm & 0xFF
                 else:
                     bounds[-op.mem.disp] = UNBOUNDED
+                continue
+            if op.mem.base == X86_REG_BP and not op.mem.index and op.mem.disp >= 0 and not op.mem.segment:
+                continue       # the caller's frame (arguments), never this body's locals
+            seg, regs = mem_regs(i, op)
+            if seg == 'ss' or seg in taint or any(r in taint or r in ('bp', 'sp') for r in regs):
+                self.invalidate(bounds, f'{i.address:04X}: write through a stack-derived pointer')
+        if i.mnemonic.endswith(('stosb', 'stosw', 'movsb', 'movsw', 'stosd', 'movsd')):
+            if 'es' in taint or 'di' in taint:
+                self.invalidate(bounds, f'{i.address:04X}: string store through a stack-derived ES:DI')
+        # 2. taint propagation into written registers and locals
+        reads, writes = i.regs_access()
+        read_names = {reg_name(i, r) for r in reads} - {None, 'flags', 'eflags', 'ip', 'cs'}
+        address_regs = set()          # registers that only form an address are not value sources (BP in [BP+6])
+        for op in i.operands:
+            if op.type == X86_OP_MEM:
+                seg, regs = mem_regs(i, op)
+                address_regs.update(regs); address_regs.add(seg)
+        tainted_source = bool((read_names - address_regs) & (set(taint) | set(STACK_ORIGIN)))
+        if i.mnemonic == 'lea':
+            tainted_source = any(r in ('bp', 'sp') or r in taint for r in mem_regs(i, i.operands[1])[1])
+        for op in i.operands:
+            if op.type == X86_OP_MEM and (op.access & 1):
+                if op in local_ops and any(('L', -op.mem.disp + d) in taint for d in range(op.size)):
+                    tainted_source = True
+                elif op not in local_ops and any(r in taint for r in mem_regs(i, op)[1]):
+                    tainted_source = True
+        if i.mnemonic == 'pop':
+            tainted_source = True
+        if i.mnemonic in ('xor', 'sub') and len(i.operands) == 2 and all(op.type == 1 for op in i.operands) \
+                and i.operands[0].reg == i.operands[1].reg:
+            tainted_source = False
+        written_names = {reg_name(i, r) for r in writes} - {None, 'flags', 'eflags', 'ip', 'sp', 'bp', 'ss', 'cs'}
+        if i.mnemonic in ('les', 'lds'):
+            written_names.add(i.mnemonic[1:])     # Capstone omits the implicit segment register LES/LDS load
+        if i.mnemonic.startswith('push'):
+            written_names = set()
+        for name in written_names:
+            (taint.add if tainted_source else taint.discard)(name)
+        for op in local_ops:
+            if op.access & CS_AC_WRITE:
+                for d in range(op.size):
+                    (taint.add if tainted_source else taint.discard)(('L', -op.mem.disp + d))
+        if i.mnemonic in ('lcall', 'call'):
+            taint.update(CLOBBERED_BY_CALL)
         if i.mnemonic not in ('lcall', 'call'):
-            return bounds, chain
+            return bounds, chain, taint
         window = self.body.window(k)
         target = far_target(i)
         locals_in_window = [triple(window[j:j + 3]) for j in range(len(window) - 2)]
@@ -233,55 +316,57 @@ class Analysis:
             cap = window[-2] if len(window) >= 2 else None
             require(cap is not None and cap.mnemonic == 'mov' and cap.op_str.startswith('ax, ') and cap.operands[1].type == X86_OP_IMM
                     and window[-1].mnemonic == 'push', f'{self.body.label}: StrStore at {i.address:04X} without an immediate cap')
-            dest = triple(window[-5:-2])
+            dest = triple(window[-5:-2]) if len(window) >= 5 else None
             if len(window) == 5 and k >= 6 and far_target(self.body.ins[k - 6]) in (STRLOAD, STRCAT):
                 source = ('chain',)
             else:
-                source = triple(window[-8:-5]) or ('unknown',)
+                source = (triple(window[-8:-5]) if len(window) >= 8 else None) or ('unknown',)
             if dest and dest[0] == 'local':
                 bounds[dest[1]] = min(cap.operands[1].imm & 0xFF, self.value(source, (bounds, chain)))
+            else:
+                self.invalidate(bounds, f'{i.address:04X}: StrStore into an unresolved destination')
             for local in locals_in_window:
                 if not (dest and dest[0] == 'local' and local == dest[1]) and not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, None
+            return bounds, None, taint
         if target == STRLOAD:
-            source, dest = triple(window[-3:]) or ('unknown',), triple(window[-6:-3])
+            source = (triple(window[-3:]) if len(window) >= 3 else None) or ('unknown',)
+            dest = triple(window[-6:-3]) if len(window) >= 6 else None
             if dest and dest[0] == 'local':
                 bounds[dest[1]] = self.value(source, (bounds, chain))
                 chain = dest[1]
             else:
+                self.invalidate(bounds, f'{i.address:04X}: StrLoad into an unresolved destination')
                 chain = None
             for local in locals_in_window:
                 if not (dest and dest[0] == 'local' and local == dest[1]) and not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, chain
+            return bounds, chain, taint
         if target == STRCAT:
             source = triple(window[-3:]) if len(window) >= 3 else None
             if source is None:
                 source = ('callresult',) if (not window and k >= 1 and self.body.ins[k - 1].mnemonic in ('lcall', 'call')) else ('unknown',)
             if chain is None:
-                for local in list(bounds):
-                    bounds[local] = UNBOUNDED
-                self.notes.append(f'{i.address:04X}: concatenation with an unknown destination')
+                self.invalidate(bounds, f'{i.address:04X}: concatenation with an unknown destination')
             else:
                 bounds[chain] = min(UNBOUNDED, bounds.get(chain, UNBOUNDED) + self.value(source, (bounds, chain)))
             for local in locals_in_window:
                 if not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, chain
+            return bounds, chain, taint
         if target == TARGET or (i.mnemonic == 'call' and i.operands[0].type == X86_OP_IMM and (i.operands[0].imm & 0xFFFF) == TARGET[1]
                                 and self.kind == 'res' and self.container == TARGET[0]):
-            return bounds, None   # the window message is read, not written
+            return bounds, None, taint   # the window message is read, not written
         for local in locals_in_window:
             bounds[local] = UNBOUNDED      # any other callee may write through the pointer
         # A call whose arguments include the pending chain destination consumes it; an operand call
         # (a string function whose result feeds the next StrCat) leaves the destination on the stack.
-        return bounds, (None if chain in locals_in_window else chain)
+        return bounds, (None if chain in locals_in_window else chain), taint
 
     def before(self, k_target):
         n = len(self.body.ins)
         state = [None] * n
-        state[0] = ({}, None)
+        state[0] = ({}, None, frozenset())
         work = [0]
         while work:
             k = work.pop()
@@ -289,13 +374,14 @@ class Analysis:
             for t in self.body.succ[k]:
                 old = state[t]
                 if old is None:
-                    state[t] = (dict(out[0]), out[1])
+                    state[t] = (dict(out[0]), out[1], frozenset(out[2]))
                     work.append(t)
                 else:
                     merged = {key: max(old[0].get(key, UNBOUNDED), out[0].get(key, UNBOUNDED)) for key in set(old[0]) | set(out[0])}
                     chain = old[1] if old[1] == out[1] else None
-                    if merged != old[0] or chain != old[1]:
-                        state[t] = (merged, chain)
+                    taint = old[2] | frozenset(out[2])
+                    if merged != old[0] or chain != old[1] or taint != old[2]:
+                        state[t] = (merged, chain, taint)
                         work.append(t)
         require(state[k_target] is not None, f'{self.body.label}: call at {self.body.ins[k_target].address:04X} is unreachable from the entry')
         return state[k_target]
@@ -393,38 +479,44 @@ def push_units(body, k, near=False):
     j = k
     if near and j > 0 and body.ins[j - 1].mnemonic == 'push' and body.ins[j - 1].op_str == 'cs':
         j -= 1
+    def group(lo, hi):
+        """Instructions lo..hi-1 form one unit only when control cannot enter them part-way (t3677 R2)."""
+        return lo >= 0 and body.contiguous(lo, hi)
     while j > 0 and j not in body.targets:
         i = body.ins[j - 1]
         if far_target(i) == STRCAT:
             concats, j = 1, j - 1
             while True:
-                if j >= 3 and triple(body.ins[j - 3:j]):
+                if j >= 3 and group(j - 3, j + 1) and triple(body.ins[j - 3:j]):
                     j -= 3
-                elif j > 0 and body.ins[j - 1].mnemonic in ('lcall', 'call'):
+                elif j > 0 and group(j - 1, j + 1) and body.ins[j - 1].mnemonic in ('lcall', 'call'):
                     j -= 1
                 else:
                     break
-                if j > 0 and far_target(body.ins[j - 1]) == STRCAT:
+                if j > 0 and group(j - 1, j + 1) and far_target(body.ins[j - 1]) == STRCAT:
                     concats, j = concats + 1, j - 1
                     continue
                 break
-            require(j > 0 and far_target(body.ins[j - 1]) == STRLOAD, f'{body.label}: concatenation chain without a load before {body.ins[k].address:04X}')
+            require(j > 0 and group(j - 7, j + 1) and far_target(body.ins[j - 1]) == STRLOAD,
+                    f'{body.label}: concatenation chain without a contiguous load before {body.ins[k].address:04X}')
             source, dest = triple(body.ins[j - 4:j - 1]), triple(body.ins[j - 7:j - 4])
             require(dest and dest[0] == 'local', f'{body.label}: chain destination is not a stack local before {body.ins[k].address:04X}')
             units.append((4, ('temp', dest[1], concats, source)))
             j -= 7
         elif far_target(i) == STRLOAD:
+            if not group(j - 7, j):
+                break
             source, dest = triple(body.ins[j - 4:j - 1]), triple(body.ins[j - 7:j - 4])
             require(dest and dest[0] == 'local', f'{body.label}: load destination is not a stack local before {body.ins[k].address:04X}')
             units.append((4, ('temp', dest[1], 0, source)))
             j -= 7
-        elif j >= 3 and triple(body.ins[j - 3:j]):
+        elif j >= 3 and group(j - 3, j) and triple(body.ins[j - 3:j]):
             units.append((4, triple(body.ins[j - 3:j])))
             j -= 3
         elif i.mnemonic == 'push' and i.operands[0].type == X86_OP_MEM:
             units.append((2, ('word', i.operands[0].mem.base, i.operands[0].mem.disp)))
             j -= 1
-        elif i.mnemonic == 'push' and i.op_str == 'ax' and j >= 2:
+        elif i.mnemonic == 'push' and i.op_str == 'ax' and j >= 2 and group(j - 2, j):
             prev = body.ins[j - 2]
             if prev.mnemonic == 'mov' and prev.op_str.startswith(('al, ', 'ax, ')) and prev.operands[1].type == X86_OP_IMM:
                 units.append((2, ('imm', prev.operands[1].imm & 0xFF)))
@@ -432,8 +524,8 @@ def push_units(body, k, near=False):
             elif prev.mnemonic == 'mov' and prev.op_str.startswith('al, byte ptr [bp') and bp_disp(prev, 1) is not None:
                 units.append((2, ('frame8', bp_disp(prev, 1))))
                 j -= 2
-            elif (j >= 4 and prev.mnemonic == 'inc' and body.ins[j - 3].mnemonic == 'xor' and body.ins[j - 4].mnemonic == 'mov'
-                  and body.ins[j - 4].op_str.startswith('al, byte ptr [0x')):
+            elif (j >= 4 and group(j - 4, j) and prev.mnemonic == 'inc' and body.ins[j - 3].mnemonic == 'xor'
+                  and body.ins[j - 4].mnemonic == 'mov' and body.ins[j - 4].op_str.startswith('al, byte ptr [0x')):
                 units.append((2, ('ds8+1', body.ins[j - 4].operands[1].mem.disp & 0xFFFF)))
                 j -= 4
             else:

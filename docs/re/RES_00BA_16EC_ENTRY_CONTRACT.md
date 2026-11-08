@@ -24,7 +24,7 @@ The checker rederives the entry set from the bytes and refuses on any change.
 | Entry kind | How found | Count |
 | --- | --- | ---: |
 | Relocated overlay far call `9A EC 16 BA 00` with a fixup on the segment word | `far_call_sites.sites` over every unit | **63** |
-| Resident near call `0E E8 rel16` to `16EC` inside segment `00BA` | raw scan of `00BA:[0000,3F10)`, each confirmed as an aligned `PUSH CS; CALL` in its ledger owner's linear decode | **4** |
+| Resident near call `0E E8 rel16` to `16EC` inside segment `00BA` | raw scan of `00BA:[0000,3370)` (up to the next resident segment `03F1`), each confirmed as an aligned `PUSH CS; CALL` in its ledger owner's linear decode | **4** |
 
 The 63 far sites are owned by 53 `game_evidenced` overlay bodies in units
 `1E`, `2F`, `31`, `38` (23 sites), `5E`, `6A`, `77`, `86` and `9E`; the four
@@ -103,8 +103,21 @@ direct-jump CFG with a per-local length bound (join = maximum, unknown = 255):
 - a local whose address is passed to any other callee becomes 255; a direct
   byte store `MOV byte [BP-n],imm` sets the length to `imm`; any other
   direct write covering the length byte sets 255;
+- every other memory write is checked against a taint set of registers,
+  segment registers and locals that may hold a stack address (loaded from
+  `LEA [BP..]`, `SS`, `BP`, `SP`, a `POP`, a call's clobbered registers, or a
+  tainted value); a write through a tainted segment or base/index register,
+  through `SS`, or a string store through a tainted `ES:DI`, sets every local
+  to 255 (t3677 R1). Writes through `[BP+k]` (the caller's frame) and
+  DS-absolute stores with an untainted `DS` cannot reach this body's locals;
+- the backward walk over pushed arguments and every multi-instruction unit it
+  recognises (a far-pointer triple, an immediate push, a StrLoad/StrCat chain)
+  must be contiguous: an instruction entered by a jump ends the walk, so a
+  setup a path can skip is never attributed to the call (t3677 R2); an entry
+  whose message cannot be resolved that way is refused rather than bounded;
 - a body is decoded linearly from its ledger start to its own epilogue
-  return; indirect jumps or jumps leaving the decode refuse the body.
+  return; indirect jumps or jumps leaving the decode refuse the body, and an
+  indirect call sets every local to 255.
 
 | Message class | Entries | Bound derivation | Max |
 | --- | ---: | --- | ---: |
@@ -137,10 +150,16 @@ is bounded by its literal; a cap binds a parameter even without callers; a
 concatenation adds and clamps at 255; passing the local to an unknown callee
 unbounds it; a direct byte store sets the length and a covering word write
 unbounds it; the join takes the maximum over paths; a body is cut at its own
-return and an indirect jump is refused. The owner-media controls require the
-63/4 census, the pinned table, an empty unbounded set, and that a mutated pin,
-a shortened census, a changed body byte and a lowered stack segment are each
-refused.
+return and an indirect jump is refused. The review of the first head (t3677) added
+two negative controls that the first version failed and this version passes:
+an indirect `MOV byte SS:[DI],FFh` after `LEA DI,[BP-29h]` must unbound the
+local, and a `JMP` landing on the StrLoad call must not attribute the skipped
+literal; three taint controls (a stored and reloaded stack pointer, `PUSH SS;
+POP ES`, and a post-call `ES:[DI]` store) must unbound, while a
+parameter-derived object write and a DS-absolute store must keep the bound.
+The owner-media controls require the 63/4 census, the pinned table, an empty
+unbounded set, and that a mutated pin, a shortened census, a changed body byte
+and a lowered stack segment are each refused.
 
 ## Limits
 

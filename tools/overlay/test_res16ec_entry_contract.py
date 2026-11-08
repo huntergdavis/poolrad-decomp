@@ -106,6 +106,51 @@ class SyntheticControls(unittest.TestCase):
         world, body, k = synthetic([frag], {0x300: 20})
         self.assertEqual(bound_at(world, body, k)[1], 20)      # max(3 on the skip path, 20 on the store path)
 
+    def test_t3677_r1_indirect_length_overwrite_is_not_ignored(self):
+        # Reviewer control: MOV byte [BP-29h],0 then LEA DI,[BP-29h]; MOV byte SS:[DI],FFh. The write through DI must
+        # invalidate the bound; before the fix it stayed 0.
+        store0, indirect_ff = bytes.fromhex('c646d700'), bytes.fromhex('8d7ed736c605ff')
+        world, body, k = synthetic([store0 + indirect_ff + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # The same write without the SS override (ES:[DI] with DI stack-derived) is invalidated too.
+        indirect_es = bytes.fromhex('8d7ed726c605ff')
+        world, body, k = synthetic([store0 + indirect_es + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+
+    def test_t3677_r2_a_jump_into_the_argument_setup_is_a_boundary(self):
+        # Reviewer control: the reachable path pushes the unknown parameter and jumps over a literal setup straight to
+        # the StrLoad call. The literal must not be attributed; the entry is refused as unresolved.
+        fake = LEA_LOCAL(0x29) + LIT(0x300)
+        frag = LEA_LOCAL(0x29) + PARAM(6) + bytes([0xEB, len(fake)]) + fake + STRLOAD + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertIn(body.index[len(PROLOGUE) + len(LEA_LOCAL(0x29)) + len(PARAM(6)) + 2 + len(fake)], body.targets)
+        units = E.push_units(body, k)
+        self.assertIsNone(E.argument_at(units, 10))
+        state = E.Analysis(world, 'ovl', 0x38, body, 0).before(k)
+        self.assertEqual(state[0].get(0x29, E.UNBOUNDED), E.UNBOUNDED)
+
+    def test_taint_round_trips_and_safe_writes(self):
+        # A stack pointer stored to a local, reloaded with LES and written through: invalidated.
+        store_ptr = bytes.fromhex('8d7ed7') + bytes.fromhex('897ef8') + bytes.fromhex('8c56fa')   # lea di,[bp-29h]; mov [bp-8],di; mov [bp-6],ss
+        reload = bytes.fromhex('c47ef8') + bytes.fromhex('26c60500')                               # les di,[bp-8]; mov byte es:[di],0
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + store_ptr + reload + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # PUSH SS; POP ES; write through ES: invalidated.
+        push_ss_pop_es, store_es = bytes.fromhex('1607'), bytes.fromhex('26c606341200')               # push ss; pop es; mov byte es:[1234h],0
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + push_ss_pop_es + store_es + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # A parameter-derived object write (LES DI,[BP+6]; MOV byte ES:[DI+10Ch],0) and a DS-absolute store keep the bound.
+        safe = bytes.fromhex('c47e06') + bytes.fromhex('26c6850c0100') + bytes.fromhex('a21868')     # les di,[bp+6]; mov es:[di+10ch],0; mov [6818h],al
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + safe + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], 9)
+        # After a call, registers are treated as unknown: a write through ES:[DI] without a reload is invalidated.
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + OTHER_CALL + bytes.fromhex('26c60500') + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+
     def test_body_cut_at_its_own_return_and_indirect_jump_refused(self):
         code = PROLOGUE + TAIL(1, 1) + EPILOGUE + b'\x05hello' + b'\xff' * 8
         body = E.Body(code, 0, len(code), 'cut')
