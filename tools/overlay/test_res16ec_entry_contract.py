@@ -141,15 +141,44 @@ class SyntheticControls(unittest.TestCase):
         frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + push_ss_pop_es + store_es + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
         world, body, k = synthetic([frag], {0x300: 9})
         self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
-        # A parameter-derived object write (LES DI,[BP+6]; MOV byte ES:[DI+10Ch],0) and a DS-absolute store keep the bound.
-        safe = bytes.fromhex('c47e06') + bytes.fromhex('26c6850c0100') + bytes.fromhex('a21868')     # les di,[bp+6]; mov es:[di+10ch],0; mov [6818h],al
-        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + safe + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        # A DS-absolute store below the stack base keeps the bound; one that can reach the stack segment does not.
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + bytes.fromhex('a21868') + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
         world, body, k = synthetic([frag], {0x300: 9})
-        self.assertEqual(bound_at(world, body, k)[1], 9)
+        self.assertEqual(bound_at(world, body, k)[1], 9)                                  # mov [6818h],al
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + bytes.fromhex('a20090') + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)                        # mov [9000h],al reaches SS
         # After a call, registers are treated as unknown: a write through ES:[DI] without a reload is invalidated.
         frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + OTHER_CALL + bytes.fromhex('26c60500') + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
         world, body, k = synthetic([frag], {0x300: 9})
         self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+
+    def test_t3683_r1_parameter_pointer_write_is_unknown(self):
+        # Reviewer control: LES DI,[BP+6]; MOV byte ES:[DI],FFh. The parameter's contents may be SS:1FD7 for BP 2000h,
+        # so the write may hit the local's length byte; syntactic origin proves nothing, and the bound must go.
+        store0, effect = bytes.fromhex('c646d700'), bytes.fromhex('c47e0626c605ff')
+        world, body, k = synthetic([store0 + effect + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        effect = bytes.fromhex('c47e0626c6850c0100')                                        # ... mov byte es:[di+10ch],0
+        world, body, k = synthetic([store0 + effect + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+
+    def test_t3683_r3_indirect_call_invalidates_every_local(self):
+        # Reviewer control: CALL word ptr [0400h] after the store; the unknown callee may write the local.
+        store0, effect = bytes.fromhex('c646d700'), bytes.fromhex('ff160004')
+        world, body, k = synthetic([store0 + effect + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+
+    def test_direct_call_after_a_taken_pointer_invalidates_reachable_locals(self):
+        # The local's address was taken (for a string leaf) earlier; a later unrelated callee may hold that pointer.
+        frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + OTHER_CALL + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {0x300: 9})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # A local whose address was never taken, written by a direct byte store, survives an unrelated call.
+        store7 = bytes([0xC6, 0x46, 0xD7, 0x07])
+        frag = store7 + OTHER_CALL + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {})
+        self.assertEqual(bound_at(world, body, k)[1], 7)
 
     def test_body_cut_at_its_own_return_and_indirect_jump_refused(self):
         code = PROLOGUE + TAIL(1, 1) + EPILOGUE + b'\x05hello' + b'\xff' * 8
@@ -170,8 +199,8 @@ class OwnerMediaCensus(unittest.TestCase):
     def test_pinned_entries_and_bounds(self):
         self.assertEqual((self.report['far_sites'], self.report['near_sites']), (63, 4))
         self.assertEqual(E.table(self.report['entries']), E.EXPECTED)
-        self.assertEqual(self.report['unbounded'], [])
-        self.assertLess(self.report['max_bound'], E.UNBOUNDED)
+        self.assertEqual(self.report['unbounded'], E.EXPECTED_UNBOUNDED)
+        self.assertEqual((self.report['bounded'], self.report['max_bound']), (64, 51))
 
     def test_pin_mutation_is_refused(self):
         mutated = list(E.EXPECTED)
@@ -179,6 +208,11 @@ class OwnerMediaCensus(unittest.TestCase):
         mutated[0] = (site, owner, kind, row, wait, cls, bound + 1, title)
         with mock.patch.object(E, 'EXPECTED', mutated):
             with self.assertRaisesRegex(ValueError, 'pinned measurement'):
+                E.check(self.world)
+
+    def test_unbounded_set_change_is_refused(self):
+        with mock.patch.object(E, 'EXPECTED_UNBOUNDED', E.EXPECTED_UNBOUNDED[:-1]):
+            with self.assertRaisesRegex(ValueError, 'without a sound bound changed'):
                 E.check(self.world)
 
     def test_census_count_change_is_refused(self):

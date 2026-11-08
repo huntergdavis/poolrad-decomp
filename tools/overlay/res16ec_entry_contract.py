@@ -41,6 +41,8 @@ MD.detail = True
 PUSHFORM = {'push', 'lea', 'les', 'mov', 'xor', 'inc', 'cbw', 'cwde'}
 
 # Pinned measurement: (site, owner, kind, row, wait, message class, bound, title source). Regenerate with --print-table.
+# Three entries have no sound static bound: an unmodelled callee runs after the message local's address was taken.
+EXPECTED_UNBOUNDED = ['009E:0F5D', '009E:15F6', '00BA:208E']
 EXPECTED = [
     ('001E:0042', '0x1e:0x0013', 'far', '0', 0, 'local', 16, 'ds:5D92'),
     ('001E:0217', '0x1e:0x00bf', 'far', '0', 1, 'literal_temp', 9, 'ds:5D92'),
@@ -99,14 +101,14 @@ EXPECTED = [
     ('0086:2F24', '0x86:0x2ee5', 'far', '10', 1, 'literal_temp', 11, 'ds:6C95'),
     ('0086:312F', '0x86:0x30d9', 'far', '10', 1, 'literal_temp', 9, 'frame[bp+0xc]'),
     ('0086:3356', '0x86:0x331a', 'far', '10', 1, 'literal_temp', 13, 'frame[bp+0xc]'),
-    ('009E:0F5D', '0x9e:0x0f06', 'far', '10', 1, 'local', 40, 'frame[bp+0xc]'),
+    ('009E:0F5D', '0x9e:0x0f06', 'far', '10', 1, 'local', 255, 'frame[bp+0xc]'),
     ('009E:10BE', '0x9e:0x1081', 'far', '10', 1, 'literal_temp', 8, 'frame[bp+0x8]'),
     ('009E:153E', '0x9e:0x1344', 'far', '12', 1, 'literal_temp', 12, 'frame[bp+0xc]'),
-    ('009E:15F6', '0x9e:0x1344', 'far', 'ds:5E25+1', 0, 'local', 23, 'frame[bp+0xc]'),
+    ('009E:15F6', '0x9e:0x1344', 'far', 'ds:5E25+1', 0, 'local', 255, 'frame[bp+0xc]'),
     ('009E:16B0', '0x9e:0x1656', 'far', '10', 1, 'literal_temp', 13, 'frame[bp+0x16]'),
     ('009E:1915', '0x9e:0x1869', 'far', '10', 1, 'local', 19, 'frame[bp+0x8]'),
     ('00BA:0A1A', 'RES_00BA_09E3', 'near', 'frame[bp-0x2]', 0, 'literal_temp', 1, 'frame[bp+0x6]'),
-    ('00BA:208E', 'RES_00BA_1FEB', 'near', '10', 0, 'local', 40, 'frame[bp+0xc]'),
+    ('00BA:208E', 'RES_00BA_1FEB', 'near', '10', 0, 'local', 255, 'frame[bp+0xc]'),
     ('00BA:218F', 'RES_00BA_1FEB', 'near', '10', 1, 'local', 40, 'frame[bp+0xc]'),
     ('00BA:239A', 'RES_00BA_234A', 'near', '10', 1, 'local', 19, 'frame[bp+0x6]'),
 ]
@@ -211,11 +213,16 @@ def mem_regs(insn, op):
 class Analysis:
     """Forward dataflow of string-length bounds per BP-relative local; join is the maximum, unknown is 255.
 
-    Soundness rule for writes (t3677 R1): a write is applied precisely only when it is BP-relative with a
-    negative displacement (this body's locals). Every other memory write is checked against a taint set of
-    registers, segment registers and locals that may hold a stack address (loaded from LEA [BP..], SS, BP,
-    SP, a POP, a call's clobbered registers, or a tainted value): if the write's segment or any base/index
-    register is tainted, or it goes through SS, every local's bound becomes 255."""
+    Soundness rules (t3677 R1/R2, t3683 R1/R3). A write is applied precisely only when it is BP-relative
+    with a negative displacement (this body's locals). Every write through a register pointer, whatever the
+    pointer's syntactic origin (a parameter's contents may be a stack address), and every write through SS
+    or an explicit ES/CS segment, sets every local's bound to 255. A DS-absolute store is safe only when DS
+    is untainted and its physical range lies below the stack base (DATA_SEG and the EXEPACK real SS). The
+    taint set (registers, segment registers, locals holding LEA [BP..], SS, BP, SP, POP or call-clobbered
+    values) decides whether a register load is a stack pointer and keeps string stores conservative. Any
+    direct call other than the three SYSTEM string leaves and 16EC itself invalidates every local at or above
+    the lowest address this body has taken so far (a pointer that escaped earlier may be written by the
+    callee); an indirect call invalidates every local."""
 
     def __init__(self, world, kind, container, body, depth=0):
         self.world, self.kind, self.container, self.body, self.depth = world, kind, container, body, depth
@@ -245,8 +252,10 @@ class Analysis:
         self.notes.append(why)
 
     def transfer(self, k, state):
-        bounds, chain, taint = dict(state[0]), state[1], set(state[2])
+        bounds, chain, taint, taken = dict(state[0]), state[1], set(state[2]), state[3]
         i = self.body.ins[k]
+        if i.mnemonic == 'lea' and bp_disp(i, 1) is not None and bp_disp(i, 1) < 0:
+            taken = max(taken, -bp_disp(i, 1))       # a pointer at [BP-n] can write any local at or above it
         local_ops = [op for op in i.operands if op.type == X86_OP_MEM and op.mem.base == X86_REG_BP and not op.mem.index
                      and op.mem.disp < 0 and (not op.mem.segment or op.mem.segment == X86_REG_SS)]
         # 1. memory writes: precise for this body's locals, otherwise sound against the taint set
@@ -266,8 +275,10 @@ class Analysis:
             if op.mem.base == X86_REG_BP and not op.mem.index and op.mem.disp >= 0 and not op.mem.segment:
                 continue       # the caller's frame (arguments), never this body's locals
             seg, regs = mem_regs(i, op)
-            if seg == 'ss' or seg in taint or any(r in taint or r in ('bp', 'sp') for r in regs):
-                self.invalidate(bounds, f'{i.address:04X}: write through a stack-derived pointer')
+            if regs:
+                self.invalidate(bounds, f'{i.address:04X}: write through a register pointer')
+            elif seg != 'ds' or 'ds' in taint or DATA_SEG * 16 + (op.mem.disp & 0xFFFF) + op.size > EXEPACK['real_ss'] * 16:
+                self.invalidate(bounds, f'{i.address:04X}: absolute store that may reach the stack segment')
         if i.mnemonic.endswith(('stosb', 'stosw', 'movsb', 'movsw', 'stosd', 'movsd')):
             if 'es' in taint or 'di' in taint:
                 self.invalidate(bounds, f'{i.address:04X}: string store through a stack-derived ES:DI')
@@ -306,8 +317,13 @@ class Analysis:
                     (taint.add if tainted_source else taint.discard)(('L', -op.mem.disp + d))
         if i.mnemonic in ('lcall', 'call'):
             taint.update(CLOBBERED_BY_CALL)
+        if tainted_source and any(op.type == X86_OP_MEM and (op.access & CS_AC_WRITE) and op not in local_ops for op in i.operands):
+            taken = 0xFFFF                            # a stack address escaped to memory a callee can read
         if i.mnemonic not in ('lcall', 'call'):
-            return bounds, chain, taint
+            return bounds, chain, taint, taken
+        if any(op.type != X86_OP_IMM for op in i.operands):
+            self.invalidate(bounds, f'{i.address:04X}: indirect call')
+            return bounds, None, taint, taken
         window = self.body.window(k)
         target = far_target(i)
         locals_in_window = [triple(window[j:j + 3]) for j in range(len(window) - 2)]
@@ -328,7 +344,7 @@ class Analysis:
             for local in locals_in_window:
                 if not (dest and dest[0] == 'local' and local == dest[1]) and not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, None, taint
+            return bounds, None, taint, taken
         if target == STRLOAD:
             source = (triple(window[-3:]) if len(window) >= 3 else None) or ('unknown',)
             dest = triple(window[-6:-3]) if len(window) >= 6 else None
@@ -341,7 +357,7 @@ class Analysis:
             for local in locals_in_window:
                 if not (dest and dest[0] == 'local' and local == dest[1]) and not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, chain, taint
+            return bounds, chain, taint, taken
         if target == STRCAT:
             source = triple(window[-3:]) if len(window) >= 3 else None
             if source is None:
@@ -353,20 +369,28 @@ class Analysis:
             for local in locals_in_window:
                 if not (source[0] == 'local' and local == source[1]):
                     bounds[local] = UNBOUNDED
-            return bounds, chain, taint
+            return bounds, chain, taint, taken
         if target == TARGET or (i.mnemonic == 'call' and i.operands[0].type == X86_OP_IMM and (i.operands[0].imm & 0xFFFF) == TARGET[1]
                                 and self.kind == 'res' and self.container == TARGET[0]):
-            return bounds, None, taint   # the window message is read, not written
+            return bounds, None, taint, taken   # the window message is read, not written
         for local in locals_in_window:
             bounds[local] = UNBOUNDED      # any other callee may write through the pointer
+        for w in window:                   # a pushed stack segment or tainted register outside a recognised unit hands the callee a stack pointer
+            if w.mnemonic == 'push' and w.operands and w.operands[0].type == 1 and (reg_name(w, w.operands[0].reg) in taint or reg_name(w, w.operands[0].reg) in STACK_ORIGIN):
+                taken = 0xFFFF
+        for local in list(bounds):
+            if local <= taken:
+                bounds[local] = UNBOUNDED  # a pointer taken earlier may have escaped to this callee
+        if taken and any(local <= taken for local in bounds):
+            self.notes.append(f'{i.address:04X}: call invalidates locals reachable from a taken pointer')
         # A call whose arguments include the pending chain destination consumes it; an operand call
         # (a string function whose result feeds the next StrCat) leaves the destination on the stack.
-        return bounds, (None if chain in locals_in_window else chain), taint
+        return bounds, (None if chain in locals_in_window else chain), taint, taken
 
     def before(self, k_target):
         n = len(self.body.ins)
         state = [None] * n
-        state[0] = ({}, None, frozenset())
+        state[0] = ({}, None, frozenset(), 0)
         work = [0]
         while work:
             k = work.pop()
@@ -374,14 +398,15 @@ class Analysis:
             for t in self.body.succ[k]:
                 old = state[t]
                 if old is None:
-                    state[t] = (dict(out[0]), out[1], frozenset(out[2]))
+                    state[t] = (dict(out[0]), out[1], frozenset(out[2]), out[3])
                     work.append(t)
                 else:
                     merged = {key: max(old[0].get(key, UNBOUNDED), out[0].get(key, UNBOUNDED)) for key in set(old[0]) | set(out[0])}
                     chain = old[1] if old[1] == out[1] else None
                     taint = old[2] | frozenset(out[2])
-                    if merged != old[0] or chain != old[1] or taint != old[2]:
-                        state[t] = (merged, chain, taint)
+                    taken = max(old[3], out[3])
+                    if merged != old[0] or chain != old[1] or taint != old[2] or taken != old[3]:
+                        state[t] = (merged, chain, taint, taken)
                         work.append(t)
         require(state[k_target] is not None, f'{self.body.label}: call at {self.body.ins[k_target].address:04X} is unreachable from the entry')
         return state[k_target]
@@ -657,11 +682,14 @@ def check(world):
     measured = table(rows)
     if EXPECTED is not None:
         require(measured == EXPECTED, 'entry table differs from the pinned measurement')
-    bounds = [r['bound'] for r in rows]
+    unbounded = [r['site'] for r in rows if r['bound'] >= UNBOUNDED]
+    if EXPECTED is not None:
+        require(unbounded == EXPECTED_UNBOUNDED, 'the set of entries without a sound bound changed')
+    bounds = [r['bound'] for r in rows if r['bound'] < UNBOUNDED]
     invariant = selector_invariant(world)
-    return dict(entries=rows, far_sites=far, near_sites=near, max_bound=max(bounds), unbounded=[r['site'] for r in rows if r['bound'] >= UNBOUNDED],
+    return dict(entries=rows, far_sites=far, near_sites=near, bounded=len(bounds), max_bound=max(bounds), unbounded=unbounded,
                 selector_invariant=invariant, model_coverage=coverage(),
-                claim='static admitted-entry contract and read-time message bound; no execution, identity, readiness, closure or credit verdict',
+                claim='static admitted-entry contract; a sound read-time message bound for the bounded entries only; no execution, identity, readiness, closure or credit verdict',
                 not_verified=['natural arrivals and indirect or computed calls', 'frame preservation across 16EC callees (NC2)',
                               'loaded overlay target (NC4)', 'live callee effects (NC3)', 'any accounting change'])
 
