@@ -38,7 +38,7 @@ BUDGET = 1000
 MSG = (0x8800, 0x0100)            # the message (a Pascal string) and the 1816 string, outside every other world segment
 TITLE = (0x8800, 0x0400)
 FONT_SEG, FONT_OFF = M.FONT_SEG, 0x1000
-STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'LIMIT', 3: 'CODE', 4: 'TRANSFER', 5: 'CALLEE', 6: 'OVERLAY', 7: 'EXIT', 8: 'KEY'}
+STATUS = {0: 'RETURNED', 1: 'ARGUMENT', 2: 'LIMIT', 3: 'CODE', 4: 'TRANSFER', 5: 'CALLEE', 6: 'OVERLAY', 7: 'EXIT', 8: 'KEY', 9: 'FRAME'}
 FAR_SITES = [(0x1702, 0xAF8, 0x0B25), (0x171B, 0x3F1, 0x0137), (0x1750, 0x709, 0x0768), (0x177B, 0x3F1, 0x0000), (0x178E, 0x3F1, 0x0137),
              (0x17C9, 0x709, 0x0768), (0x17D4, 0x709, 0x0DBE)]
 NEAR_SITES = [(0x1731, 0x1816), (0x17A8, 0x1816), (0x17DA, 0x17E3)]
@@ -239,7 +239,7 @@ def run_c(f, lib, m, c, envspec, keys, stubs, budget, text_loopbacks=65536):
     q, env = Q.c_env(envspec, keep)
     ke = K.KeyEnv(q, K.keyboard(env, keys, keep), None, 64)
     text = O.T.c_driver(stubs, False, keep)
-    box = BX.Env03(O.Env15(O.VideoEnv(q.video, None), text, ke, 1 << 20), 1 << 20)
+    box = BX.Env03(O.Env15(O.VideoEnv(q.video, None), text, ke, 1 << 20), 1 << 20, 1)
     e = Env16(65536, 65536, 65536, 65536, P.Budget(65536, 65536, text_loopbacks, 65536, 10 ** 8, 65536, 65536, 65536), M.Env0BF5(ke, 65536, 65536, 65536), 64,
               box, 10 ** 8, 65536, 65536)
     actual = Cpu.from_buffer_copy(c); ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m)

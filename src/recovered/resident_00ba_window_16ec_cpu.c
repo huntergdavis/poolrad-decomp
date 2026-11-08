@@ -106,10 +106,12 @@ static pr_res_16ec_status printer0768(pr_bus *bus, size_t n, cpu_t *c, const pr_
         }
     }
 }
+/* 03F1:0000 always verifies its loaded stub's target against the pinned 015D body (the port never follows an unpinned target). */
 static pr_res_16ec_status box0000(pr_bus *bus, size_t n, cpu_t *c, const pr_res_16ec_env *e, pr_res_16ec_diagnostic *d)
 {
-    pr_r03f1_box_regs x; pr_r03f1_box_status s;
-    COPY(&x, c); s = pr_r03f1_box_0000_cpu(bus, n, &x, &e->box, &d->box); COPY(c, &x);
+    pr_r03f1_box_regs x; pr_r03f1_box_status s; pr_r03f1_box_env box = e->box;
+    box.verify_target = 1;
+    COPY(&x, c); s = pr_r03f1_box_0000_cpu(bus, n, &x, &box, &d->box); COPY(c, &x);
     if (s == PR_R03F1_BOX_OK) return PR_RES_16EC_RETURNED;
     CALLEE_STOP(6, s);
     switch (s) {
@@ -117,6 +119,7 @@ static pr_res_16ec_status box0000(pr_bus *bus, size_t n, cpu_t *c, const pr_res_
     case PR_R03F1_BOX_LIMIT: return PR_RES_16EC_LIMIT;
     case PR_R03F1_BOX_OVERLAY: return PR_RES_16EC_OVERLAY;
     case PR_R03F1_BOX_EXIT: return PR_RES_16EC_EXIT;
+    case PR_R03F1_BOX_FRAME: return PR_RES_16EC_FRAME;
     default: return PR_RES_16EC_CALLEE;
     }
 }
@@ -137,19 +140,37 @@ static pr_res_16ec_status clear17e3(pr_bus *bus, size_t n, cpu_t *c, const pr_re
     return s == PR_R00BA_CLEAR_CPU_TRANSFER ? PR_RES_16EC_TRANSFER : PR_RES_16EC_CALLEE;
 }
 
-#define RUN(call_, next_) do { pr_res_16ec_status s_ = call_(bus, ram_size, c, env, d); if (s_ != PR_RES_16EC_RETURNED) return s_; BACK(next_); } while (0)
+/* The frame guard: this body's frame [BP-102h,BP+12h) is saved before each callee and compared after a RETURNED callee.
+ * skip_lo_/skip_len_ name the callee's documented write inside it (StrStore: [BP-100h,BP), i.e. offsets 2..101h). */
+#define FRAME_LO 0x102u
+#define FRAME_LEN 0x114u
+static void frame_save(const uint8_t *ram, uint16_t ss, uint16_t bp, uint8_t *out)
+{ unsigned k; for (k = 0; k < FRAME_LEN; ++k) out[k] = rd8(ram, ss, (uint16_t)(bp - FRAME_LO + k)); }
+static int frame_changed(const uint8_t *ram, uint16_t ss, uint16_t bp, const uint8_t *before, unsigned skip_lo, unsigned skip_len)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k) {
+        if (k >= skip_lo && k < skip_lo + skip_len) continue;
+        if (rd8(ram, ss, (uint16_t)(bp - FRAME_LO + k)) != before[k]) return 1;
+    }
+    return 0;
+}
+#define GUARDED(id_, skip_lo_, skip_len_, body_) do { uint8_t before_[FRAME_LEN]; uint16_t ss_ = c->ss, bp_ = c->bp; \
+    frame_save(ram, ss_, bp_, before_); body_ \
+    if (frame_changed(ram, ss_, bp_, before_, (skip_lo_), (skip_len_))) { CALLEE_STOP((id_), -1); return PR_RES_16EC_FRAME; } } while (0)
+#define RUN(call_, next_, id_) GUARDED(id_, 0u, 0u, { pr_res_16ec_status s_ = call_(bus, ram_size, c, env, d); if (s_ != PR_RES_16EC_RETURNED) return s_; BACK(next_); })
 #define SPECIAL_1702() do { FARSITE(0x1702u, 0x0B25u); \
-    { pr_system_0b25_cpu x; pr_system_0b25_status s; COPY(&x, c); s = pr_system_strstore_0b25(ram, ram_size, &x); COPY(c, &x); \
-      if (s != PR_SYSTEM_0B25_RETURNED) { CALLEE_STOP(1, s); return PR_RES_16EC_CALLEE; } } BACK(0x1707u); } while (0)
-#define SPECIAL_171B() do { FARSITE(0x171Bu, 0x0137u); RUN(clear0137, 0x1720u); } while (0)
-#define SPECIAL_1731() do { NEARSITE(0x1731u, 0x1816u); RUN(display1816, 0x1734u); } while (0)
-#define SPECIAL_1750() do { FARSITE(0x1750u, 0x0768u); RUN(printer0768, 0x1755u); } while (0)
-#define SPECIAL_177B() do { FARSITE(0x177Bu, 0x0000u); RUN(box0000, 0x1780u); } while (0)
-#define SPECIAL_178E() do { FARSITE(0x178Eu, 0x0137u); RUN(clear0137, 0x1793u); } while (0)
-#define SPECIAL_17A8() do { NEARSITE(0x17A8u, 0x1816u); RUN(display1816, 0x17ABu); } while (0)
-#define SPECIAL_17C9() do { FARSITE(0x17C9u, 0x0768u); RUN(printer0768, 0x17CEu); } while (0)
-#define SPECIAL_17D4() do { FARSITE(0x17D4u, 0x0DBEu); RUN(delay0dbe, 0x17D9u); } while (0)
-#define SPECIAL_17DA() do { NEARSITE(0x17DAu, 0x17E3u); RUN(clear17e3, 0x17DDu); } while (0)
+    GUARDED(1, 2u, 0x100u, { pr_system_0b25_cpu x; pr_system_0b25_status s; COPY(&x, c); s = pr_system_strstore_0b25(ram, ram_size, &x); COPY(c, &x); \
+      if (s != PR_SYSTEM_0B25_RETURNED) { CALLEE_STOP(1, s); return PR_RES_16EC_CALLEE; } BACK(0x1707u); }); } while (0)
+#define SPECIAL_171B() do { FARSITE(0x171Bu, 0x0137u); RUN(clear0137, 0x1720u, 2); } while (0)
+#define SPECIAL_1731() do { NEARSITE(0x1731u, 0x1816u); RUN(display1816, 0x1734u, 3); } while (0)
+#define SPECIAL_1750() do { FARSITE(0x1750u, 0x0768u); RUN(printer0768, 0x1755u, 4); } while (0)
+#define SPECIAL_177B() do { FARSITE(0x177Bu, 0x0000u); RUN(box0000, 0x1780u, 6); } while (0)
+#define SPECIAL_178E() do { FARSITE(0x178Eu, 0x0137u); RUN(clear0137, 0x1793u, 2); } while (0)
+#define SPECIAL_17A8() do { NEARSITE(0x17A8u, 0x1816u); RUN(display1816, 0x17ABu, 3); } while (0)
+#define SPECIAL_17C9() do { FARSITE(0x17C9u, 0x0768u); RUN(printer0768, 0x17CEu, 4); } while (0)
+#define SPECIAL_17D4() do { FARSITE(0x17D4u, 0x0DBEu); RUN(delay0dbe, 0x17D9u, 7); } while (0)
+#define SPECIAL_17DA() do { NEARSITE(0x17DAu, 0x17E3u); RUN(clear17e3, 0x17DDu, 8); } while (0)
 /* 17E0 RETF 0Ch */
 #define SPECIAL_17E0() do { \
     STEP(); c->ip = pop(ram, c); c->cs = pop(ram, c); c->sp = (uint16_t)(c->sp + 0x0Cu); \

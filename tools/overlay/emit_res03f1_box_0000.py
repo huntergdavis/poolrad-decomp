@@ -13,6 +13,26 @@ ROOT = Path(__file__).resolve().parents[2]
 img = bytes(unpack((ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes())[0])
 START, END = 0x0000, 0x0137
 e = Emitter(img[0x3F10 + START:0x3F10 + END], START, END, {0x002A: 'call_tile_stub'})
+# The loaded-target pin: FNV-1a 64 of unit 40Ch +[015D,02AD) with its eight far-call fixup words zeroed (the loader fills
+# those at run time). A hash, not the bytes, is embedded; the Python audits recompute it from the pinned body.
+from overlay_inventory import find_units, parse_mz
+_exe = (ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes()
+_ovr = (ROOT / 'resources/DOS/POOLRAD/GAME.OVR').read_bytes()
+_unit = {u['stub_para']: u for u in find_units(_exe[parse_mz(_exe)['header_bytes']:], _ovr)}[0x40C]
+TILE_FIXUPS = (0x01C8, 0x01DA, 0x01DF, 0x01E4, 0x01EC, 0x024C, 0x028E, 0x02A5)
+
+
+def tile_body_fnv1a64(code, fixups=TILE_FIXUPS, start=0x015D, end=0x02AD):
+    masked = bytearray(code[start:end])
+    for a in fixups:
+        masked[a - start] = masked[a - start + 1] = 0
+    h = 0xCBF29CE484222325
+    for v in masked:
+        h = ((h ^ v) * 0x100000001B3) & 0xFFFFFFFFFFFFFFFF
+    return h
+
+
+TILE_PIN = tile_body_fnv1a64(_ovr[_unit['ovr_offset']:_unit['ovr_offset'] + _unit['code_size']])
 for a, mn, ops, und, vis in e.undefined_report():
     print(f'UNDEF {a:04X} {mn} {ops}: {und} -> {vis if vis else "never observed (overwritten on every path)"}')
 cases = '\n'.join(e.cases())
@@ -42,7 +62,14 @@ typedef struct {
 typedef struct {
     pr_ovl040c_015d_env tile;   /* the environment of every 015D call */
     size_t max_loopbacks;       /* this body's backward jumps before the LIMIT stop */
+    int verify_target;          /* non-zero: a loaded stub is followed only when its target hashes to the pinned 015D body
+                                   (PR_R03F1_BOX_TILE_BODY_FNV1A64); otherwise the call stops with TARGET. The 16EC
+                                   composition always sets it; the synthetic C test leaves it clear. */
 } pr_r03f1_box_env;
+
+/* FNV-1a 64 of unit 40Ch +[015D,02AD) (336 bytes) with the eight far-call fixup words (CS:01C8, 01DA, 01DF, 01E4, 01EC,
+ * 024C, 028E, 02A5) zeroed; computed by emit_res03f1_box_0000.py from the pinned body (SHA-256 2a8a7826...). */
+#define PR_R03F1_BOX_TILE_BODY_FNV1A64 TILEPIN
 
 typedef enum {
     PR_R03F1_BOX_OK = 0,        /* RETF 0Ah executed */
@@ -52,7 +79,12 @@ typedef enum {
     PR_R03F1_BOX_LIMIT,         /* max_loopbacks backward jumps taken; stopped before the next */
     PR_R03F1_BOX_OVERLAY,       /* the stub entry is not a loaded JMP FAR to +015D; stopped at the stub with the frame pushed */
     PR_R03F1_BOX_CONTRACT,      /* 015D's CONTRACT stop (EGA attached), state as it left it */
-    PR_R03F1_BOX_EXIT           /* 015D's EXIT (its error branch reached Halt, or ReadKey exited) */
+    PR_R03F1_BOX_EXIT,          /* 015D's EXIT (its error branch reached Halt, or ReadKey exited) */
+    PR_R03F1_BOX_TARGET,        /* verify_target set and the loaded stub's target is not the pinned 015D body; stopped at the
+                                   stub with the frame pushed (diagnostic.site) */
+    PR_R03F1_BOX_FRAME          /* a tile call returned but changed this body's control frame [BP-4,BP+10h) (locals, saved BP,
+                                   return address, five arguments; diagnostic.status -1), or 015D's own FRAME stop
+                                   (diagnostic.status PR_OVL040C_015D_FRAME); CPU as the callee left it */
 } pr_r03f1_box_status;
 
 typedef struct {
@@ -140,23 +172,60 @@ static uint16_t shift(pr_cpu_t *c, uint16_t v, uint8_t n, unsigned bits, unsigne
     if ((pre ^ res) & sign) c->flags |= 0x800u;
     szp(c, (uint16_t)res, bits); return (uint16_t)res;
 }
+/* The loaded-target pin: FNV-1a 64 of the 336 bytes at target:015D with the eight fixup words zeroed. */
+static uint64_t tile_body_hash(pr_bus *b, uint16_t seg)
+{
+    static const uint16_t fixups[8] = {0x01C8, 0x01DA, 0x01DF, 0x01E4, 0x01EC, 0x024C, 0x028E, 0x02A5};
+    uint64_t h = 0xCBF29CE484222325ULL; unsigned k, f;
+    for (k = 0; k < 336u; ++k) {
+        uint16_t off = (uint16_t)(0x015Du + k); uint8_t v = rd8(b, seg, off);
+        for (f = 0; f < 8u; ++f)
+            if (off == fixups[f] || off == (uint16_t)(fixups[f] + 1u)) v = 0;
+        h = (h ^ v) * 0x100000001B3ULL;
+    }
+    return h;
+}
+/* The control frame this body relies on across a tile call: locals [BP-4,BP) (loop counters and the base tile), the saved
+ * BP, the return address and the five argument words [BP+6,BP+10h). A tile call that writes there (the demonstrated Move
+ * alias into [BP-3]) breaks the 92-call composition; the model stops with FRAME instead of continuing. */
+#define FRAME_LO 4u
+#define FRAME_LEN 20u
+static void frame_save(pr_bus *b, uint16_t ss, uint16_t bp, uint8_t *out)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k) out[k] = rd8(b, ss, (uint16_t)(bp - FRAME_LO + k));
+}
+static int frame_changed(pr_bus *b, uint16_t ss, uint16_t bp, const uint8_t *before)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k)
+        if (rd8(b, ss, (uint16_t)(bp - FRAME_LO + k)) != before[k]) return 1;
+    return 0;
+}
 /* Overlay stub 0428:002A, entered with the far frame pushed. A loaded entry is JMP FAR (EAh) to the unit's segment:015D;
- * it is executed, then OVL_040C_015D runs to its RETF 0Ah, which returns straight to this body. */
+ * it is executed, then OVL_040C_015D runs to its RETF 0Ah, which returns straight to this body. With verify_target the
+ * target must first hash to the pinned 015D body; afterwards the control frame must be unchanged. */
 static int call_tile_stub(pr_bus *b, pr_cpu_t *c, pr_run *r)
 {
-    pr_ovl040c_015d_regs in; int s;
-    uint16_t site = (uint16_t)(rd16(b, c->ss, c->sp) - 5u), ip, cs;
+    pr_ovl040c_015d_regs in; int s; uint8_t before[FRAME_LEN];
+    uint16_t site = (uint16_t)(rd16(b, c->ss, c->sp) - 5u), ip, cs, ss = c->ss, bp = c->bp;
     r->d->calls += 1u;
     if (rd8(b, c->cs, c->ip) != 0xEAu) { r->d->site = site; return STATUS(OVERLAY); }
     ip = rd16(b, c->cs, (uint16_t)(c->ip + 1u)); cs = rd16(b, c->cs, (uint16_t)(c->ip + 3u));
     if (ip != 0x015Du) { r->d->site = site; return STATUS(OVERLAY); }
+    if (r->env->verify_target && tile_body_hash(b, cs) != PR_R03F1_BOX_TILE_BODY_FNV1A64) { r->d->site = site; return STATUS(TARGET); }
+    frame_save(b, ss, bp, before);
     c->ip = ip; c->cs = cs;
     memcpy(&in, c, sizeof in);
     s = (int)pr_ovl040c_015d_cpu(b, PR_BUS_RAM_SIZE, &in, &r->env->tile, &r->d->tile);
     memcpy(c, &in, sizeof in);
-    if (s == PR_OVL040C_015D_OK) return 0;
+    if (s == PR_OVL040C_015D_OK) {
+        if (frame_changed(b, ss, bp, before)) { r->d->site = site; r->d->status = -1; return STATUS(FRAME); }
+        return 0;
+    }
     r->d->site = site; r->d->status = s;
-    return s == PR_OVL040C_015D_EXIT ? STATUS(EXIT) : s == PR_OVL040C_015D_CONTRACT ? STATUS(CONTRACT) : STATUS(CALLEE);
+    return s == PR_OVL040C_015D_EXIT ? STATUS(EXIT) : s == PR_OVL040C_015D_CONTRACT ? STATUS(CONTRACT)
+         : s == PR_OVL040C_015D_FRAME ? STATUS(FRAME) : STATUS(CALLEE);
 }
 
 pr_r03f1_box_status pr_r03f1_box_0000_cpu(pr_bus *b, size_t ram_size, pr_r03f1_box_regs *c, const pr_r03f1_box_env *env,
@@ -180,6 +249,7 @@ CASES
     }
 }
 '''.replace('CASES', cases)
+header = header.replace('TILEPIN', '0x%016XULL' % TILE_PIN)
 import re
 for name in ('mul16', 'shift', 'incdec', 'logic'):
     if name + '(c,' not in cases:

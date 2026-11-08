@@ -39,7 +39,12 @@ renamed to avoid a collision with the other display-printer header; its
 layout and function ABI remain unchanged.
 
 Entry requires 1 MiB RAM, IP16EC, SP0800h..FFF0h, valid CPU/bus, budget and
-environment. Each own-body instruction consumes one budget unit; separate
+environment. Since t24's guard change the body also saves its frame
+`[BP-102h,BP+12h)` around every callee and stops with `FRAME` when a returned
+callee changed it outside its documented write (StrStore's `[BP-100h,BP)`), and
+it always runs the box with `verify_target`, so an unpinned loaded target stops
+as `CALLEE` (callee 6, `PR_R03F1_BOX_TARGET`) instead of being followed; see
+[RES_00BA_16EC_GUARDS.md](RES_00BA_16EC_GUARDS.md). Each own-body instruction consumes one budget unit; separate
 environment limits bound callees. Code is immutable. Own stack/DS accesses
 and flat runtime string operands exclude A0000h..AFFFFh aliases by contract,
 without a dynamic guard. EGA observability covers bus-aware display

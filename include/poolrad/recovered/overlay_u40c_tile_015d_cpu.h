@@ -41,7 +41,10 @@ typedef enum {
     PR_OVL040C_015D_CALLEE,     /* a callee stopped (diagnostic: site and its status); state as it left it */
     PR_OVL040C_015D_TRANSFER,   /* a callee returned somewhere other than the instruction after its call */
     PR_OVL040C_015D_CONTRACT,   /* EGA attached and a flat-RAM callee (error branch) or Move meeting A0000..AFFFF; stopped at its entry */
-    PR_OVL040C_015D_EXIT        /* QUIT reached Halt, or ReadKey exited (its key 03 QUIT or the Crt Ctrl-Break path) */
+    PR_OVL040C_015D_EXIT,       /* QUIT reached Halt, or ReadKey exited (its key 03 QUIT or the Crt Ctrl-Break path) */
+    PR_OVL040C_015D_FRAME       /* 08D4, Move or 1951 returned but changed this body's frame [BP-6,BP+10h) (locals, saved BP,
+                                   return address, the five arguments): the composition would continue on corrupted control
+                                   state, so it stops instead; CPU as the callee left it, site recorded, status -1 */
 } pr_ovl040c_015d_status;
 
 typedef struct {

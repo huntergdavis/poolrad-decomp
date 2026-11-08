@@ -57,6 +57,8 @@ class Trace:
         self.sites = Counter()
         self.selectors = {}
         self.box_bp = None
+        self.after_box = None        # 16EC's [BP-101h] colour byte and [BP-100h] message length at 1780, after the box returned
+        self.blit_args = []          # the words pushed for each 0464:1951 call (observed at its call site)
 
     def __call__(self, uc, cs, ip):
         ss, sp = uc.reg_read(R.UC_X86_REG_SS), uc.reg_read(R.UC_X86_REG_SP)
@@ -69,6 +71,11 @@ class Trace:
             ds = uc.reg_read(R.UC_X86_REG_DS)
             off = 0x49F3 if ip == 0x1707 else 0x6DDA
             self.selectors[f'{off:04X}'] = uc.mem_read(A.physical(ds, off), 1)[0]
+        if cs == A.BASE + A.SEG16EC and ip == 0x1780:
+            bp = uc.reg_read(R.UC_X86_REG_BP)
+            self.after_box = [uc.mem_read(A.physical(ss, (bp - 0x101 + k) & 65535), 1)[0] for k in range(2)]
+        if cs == A.OVSEG and ip == 0x02A2:
+            self.blit_args.append(words(sp, 2))     # the two coordinate words 1951 receives ([BP+0Eh], [BP+0Ch] of the tile)
         if (cs, ip) == (A.BASE + 0x03F1, 0):
             self.box_frames.append(words(sp + 4, 5))
             self.box_bp = (sp - 2) & 65535
@@ -85,7 +92,8 @@ class Trace:
                     self.box_locals.append(words(self.box_bp - 3, 1)[0])
 
     def report(self):
-        return dict(selectors=self.selectors, box_frames=self.box_frames,
+        return dict(selectors=self.selectors, box_frames=self.box_frames, after_box=self.after_box,
+                    blit_args=sorted({tuple(w) for w in self.blit_args}),
                     tile_calls=len(self.tile_frames),
                     tile_words=sorted({tuple(w[:3]) for w in self.tile_frames}),
                     box_tile_bases=sorted(set(self.box_locals)),
@@ -147,16 +155,30 @@ def measure(state, ips, library=None):
     return trace, stop
 
 
-def alias_state(data, overwrite):
+ALIASES = {
+    # destination + 17h of the first Move, relative to the 16EC entry SP; each names the control frame it corrupts
+    'box-local': ('the box base-tile local [BP-3]', lambda sp: (sp - 0x114) - 3),
+    '16ec-message': ("16EC's message length [BP-100h] and first byte", lambda sp: (sp - 2) - 0x100),
+    'tile-row': ("the first tile's [BP+0Ch] row argument, read by 1951 after Move", lambda sp: (sp - 0x114) - 20 + 12),
+}
+
+
+def alias_state(data, overwrite, which='box-local'):   # overwrite=False builds the matched baseline for that alias's mode
     """Matched initial-memory worlds; no code patch or observer-side write.
 
     Band 4's object is at 3400:0000 with a two-byte item size. First tile
     114h rebases to item 14h, so source +17h+14h*2 contains 011Fh.
-    The bad world's destination+17h is the box base-tile local.
-    At 1951, the aliased object's height overlaps the tile body's saved
-    source-offset local (zero), so mode 0 has no rows and returns normally.
+    The bad world's destination+17h is one named control-frame location
+    (ALIASES): the box base-tile local, 16EC's message length, or the first
+    tile's row argument. For the box-local world (the pre-registered t131
+    control) mode 0 is kept: at 1951 the aliased object's height overlaps the
+    tile body's saved source-offset local (zero), so there are no rows. The
+    other two aliases place the "object" elsewhere in the stack, so they use
+    graphics mode 3, in which 1951 returns at once, and their original runs
+    are compared against a mode-3 baseline.
     """
-    state = build('frame-alias', dict(mode5=False, gmode=0), data)
+    mode = 0 if which == 'box-local' else 3
+    state = build('frame-alias' if which == 'box-local' else f'frame-alias-{which}', dict(mode5=False, gmode=mode), data)
     ram, cpu = state[:2]
     seg = A.O.TILES + 0x400
     for off, value in ((0, 2), (2, 2), (0x11, 2), (0x13, A.O.AUX[0]), (0x15, A.O.AUX[1])):
@@ -165,11 +187,42 @@ def alias_state(data, overwrite):
     A.put16(ram, cpu.ds, 0x5E4C, seg)
     A.put16(ram, cpu.ds, 0x272A, 0x100)
     A.put16(ram, seg, 0x17 + 0x14 * 2, 0x11F)
+    # Items 15h (vertical edge, the last of the 92 tiles) and 16h (horizontal edge) get pinned words too, so the bytes an
+    # alias leaves behind after the whole box are predicted, not whatever the world's fill was.
+    A.put16(ram, seg, 0x17 + 0x15 * 2, 0x1E1E)
+    A.put16(ram, seg, 0x17 + 0x16 * 2, 0x1D1D)
     if overwrite:
-        box_bp = (cpu.sp - 0x114) & 65535
-        A.put16(ram, cpu.ds, 0x5E4E, (box_bp - 3 - 0x17) & 65535)
+        A.put16(ram, cpu.ds, 0x5E4E, (ALIASES[which][1](cpu.sp) - 0x17) & 65535)
         A.put16(ram, cpu.ds, 0x5E50, cpu.ss)
     return state
+
+
+def target_state(data, relocate):
+    """The loaded box world with the tile unit copied to another segment (relocate=True, the stub retargeted: the pinned
+    body hash still matches) or with the stub pointing one paragraph into the unit (False: a target that is not the body)."""
+    state = build('target-relocated' if relocate else 'target-unpinned', dict(mode5=False, flag6dda=0, gmode=1), data)
+    ram, cpu = state[:2]
+    stub = A.physical(A.BASE + A.STUBSEG, A.STUB_ENTRY)
+    if relocate:
+        new_seg = A.OVSEG + 0x100
+        src, dst = A.physical(A.OVSEG, 0), A.physical(new_seg, 0)
+        ram[dst:dst + 690] = ram[src:src + 690]
+        A.put16(ram, A.BASE + A.STUBSEG, A.STUB_ENTRY + 3, new_seg)
+    else:
+        A.put16(ram, A.BASE + A.STUBSEG, A.STUB_ENTRY + 3, A.OVSEG + 1)
+    return state
+
+
+def run_candidate(library, state):
+    m, cpu, env, keys, stubs, info = state
+    stop, _, _, _, diagnostic, *_ = A.run_c(*library, m, cpu, env, keys, stubs, info['budget'], info['text_loopbacks'])
+    return stop, diagnostic
+
+
+def guard_record(stop, diagnostic, **extra):
+    return dict(stop=stop, callee=diagnostic.callee, callee_status=diagnostic.callee_status, box_status=diagnostic.box.status,
+                box_site=f'{diagnostic.box.site:04X}', box_calls=diagnostic.box.calls, tile_site=f'{diagnostic.box.tile.site:04X}',
+                parity=False, original_status_matches=False, **extra)
 
 
 def validate_alias(trace, stop, state):
@@ -206,31 +259,68 @@ def main():
             trace, stop = measure(build(name, options, data, null), data[3], library)
             validate(trace, stop, box=box, loaded=loaded, null=null)
             results.append(dict(name=name, stop=stop, **trace.report()))
-        for overwrite in (False, True):
-            state = alias_state(data, overwrite)
-            trace, stop = measure(state, data[3], None if overwrite else library)
-            candidate = None
-            if overwrite:
-                validate_alias(trace, stop, state)
-                # The violated world reaches the existing flat-only error-call
-                # guard with EGA attached. This is NOT a parity comparison:
-                # the original exits, while the candidate refuses at 01C5.
-                m, cpu, env, keys, stubs, info = state
-                cstop, _, _, _, diagnostic, *_ = A.run_c(*library, m, cpu, env, keys, stubs,
-                                                       info['budget'], info['text_loopbacks'])
-                require(cstop == 'CALLEE' and diagnostic.callee == 6 and diagnostic.callee_status == 6
-                        and diagnostic.box.tile.site == 0x01C5, 'violated world candidate guard changed')
-                candidate = dict(stop=cstop, callee=diagnostic.callee, callee_status=diagnostic.callee_status,
-                                 tile_site=f'{diagnostic.box.tile.site:04X}', parity=False,
-                                 original_status_matches=False)
-            else:
-                validate(trace, stop, box=True)
-            controls.append(dict(name='frame-alias-011f-two-tiles-exit' if overwrite else 'frame-alias-baseline',
-                                 synthetic_violation=overwrite, exclusion_available=not overwrite,
-                                 full_state_comparison=not overwrite, candidate=candidate, stop=stop, **trace.report()))
+        baseline = alias_state(data, False)
+        trace, stop = measure(baseline, data[3], library)
+        validate(trace, stop, box=True)
+        baseline_report = trace.report()
+        controls.append(dict(name='frame-alias-baseline', synthetic_violation=False, exclusion_available=True,
+                             full_state_comparison=True, candidate=None, stop=stop, **baseline_report))
+        # Three executed violations, one per guard level. The original runs on (original-only observation); the
+        # candidate stops at the guard that owns the corrupted frame. None is a parity comparison.
+        state = alias_state(data, True, 'box-local')
+        trace, stop = measure(state, data[3])
+        validate_alias(trace, stop, state)
+        cstop, diagnostic = run_candidate(library, state)
+        require(cstop == 'FRAME' and diagnostic.callee == 6 and diagnostic.callee_status == 9 and diagnostic.box.status == -1
+                and diagnostic.box.site == 0x0038 and diagnostic.box.calls == 1, 'box-local alias: candidate guard changed')
+        controls.append(dict(name='frame-alias-011f-two-tiles-exit', alias=ALIASES['box-local'][0], synthetic_violation=True,
+                             exclusion_available=False, full_state_comparison=False, stop=stop,
+                             candidate=guard_record(cstop, diagnostic, guard='box frame [BP-4,BP+10h) after the first tile call'),
+                             **trace.report()))
+        mode3_trace, mode3_stop = measure(alias_state(data, False, 'tile-row'), data[3], library)
+        validate(mode3_trace, mode3_stop, box=True)
+        mode3 = mode3_trace.report()
+        controls.append(dict(name='frame-alias-baseline-mode3', synthetic_violation=False, exclusion_available=True,
+                             full_state_comparison=True, candidate=None, stop=mode3_stop, **mode3))
+        state = alias_state(data, True, '16ec-message')
+        trace, stop = measure(state, data[3])
+        require(stop == 'RETURNED' and len(trace.tile_frames) == 92 and trace.after_box == [0x11, 0x1E]
+                and mode3['after_box'] == [0x11, 0x05], '16ec-message alias: original did not continue on the corrupted length')
+        cstop, diagnostic = run_candidate(library, state)
+        require(cstop == 'FRAME' and diagnostic.callee == 6 and diagnostic.callee_status == -1 and diagnostic.site == 0x177B
+                and diagnostic.box.calls == 92, '16ec-message alias: candidate guard changed')
+        controls.append(dict(name='frame-alias-16ec-message-continues', alias=ALIASES['16ec-message'][0], synthetic_violation=True,
+                             exclusion_available=False, full_state_comparison=False, stop=stop,
+                             candidate=guard_record(cstop, diagnostic, guard="16EC frame [BP-102h,BP+12h) after the box returned"),
+                             **trace.report()))
+        state = alias_state(data, True, 'tile-row')
+        trace, stop = measure(state, data[3])
+        require(stop == 'RETURNED' and len(trace.tile_frames) == 92
+                and trace.report()['blit_args'] != mode3['blit_args'], 'tile-row alias: original did not continue with changed 1951 coordinates')
+        cstop, diagnostic = run_candidate(library, state)
+        require(cstop == 'FRAME' and diagnostic.callee == 6 and diagnostic.callee_status == 9 and diagnostic.box.status == 6
+                and diagnostic.box.tile.site == 0x028B and diagnostic.box.calls == 1, 'tile-row alias: candidate guard changed')
+        controls.append(dict(name='frame-alias-tile-row-continues', alias=ALIASES['tile-row'][0], synthetic_violation=True,
+                             exclusion_available=False, full_state_comparison=False, stop=stop,
+                             candidate=guard_record(cstop, diagnostic, guard='tile frame [BP-6,BP+10h) after Move'),
+                             **trace.report()))
+        # The loaded-target pin: a stub whose target is not the pinned 015D body is refused before it is followed; the same
+        # body copied to another segment, with the stub retargeted, is followed normally (the pin is on content).
+        cstop, diagnostic = run_candidate(library, target_state(data, False))
+        require(cstop == 'CALLEE' and diagnostic.callee == 6 and diagnostic.callee_status == 8 and diagnostic.box.site == 0x0038
+                and diagnostic.box.calls == 1, 'unpinned target: candidate guard changed')
+        controls.append(dict(name='target-unpinned', synthetic_violation=True, exclusion_available=False, full_state_comparison=False,
+                             candidate=guard_record(cstop, diagnostic, guard='loaded stub target FNV-1a pin'), original_run=False))
+        # Candidate-only: the original runner confines guest code to the pinned segments, so the relocated copy is not run
+        # under Unicorn; the C model follows the retargeted stub, hashes the copy, and completes all 92 tile calls.
+        cstop, diagnostic = run_candidate(library, target_state(data, True))
+        require(cstop == 'RETURNED' and diagnostic.box.calls == 92 and diagnostic.callee == -1, 'relocated target: candidate did not follow the pinned copy')
+        controls.append(dict(name='target-relocated', synthetic_violation=False, exclusion_available=False, full_state_comparison=False,
+                             candidate=dict(stop=cstop, box_calls=diagnostic.box.calls, guard='loaded stub target FNV-1a pin (content, not segment)'),
+                             original_run=False))
     report = dict(head=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=A.ROOT, text=True).strip(),
                   image_sha256=A.Q.IMAGE_DIGEST, body_sha256=PINS, cases=results,
-                  controls=controls, full_state_comparisons=len(results) + 1, original_only_controls=1,
+                  controls=controls, full_state_comparisons=len(results) + 2, original_only_controls=3, candidate_only_controls=2,
                   live_gameplay=False, native=False,
                   claim='Conditional tile-path exclusion only; no identity, readiness or closure verdict.',
                   preconditions=['Pinned immutable code and correct loaded overlay target',
@@ -241,8 +331,10 @@ def main():
                                 'Overlay loading', 'Whole 16EC termination', 'Strict readiness'])
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, sort_keys=True) + '\n')
-    print(f'PASS: {len(results)} boundary + 1 baseline full-state comparisons; 1 original-only alias control and C guard observation. '
-          'Alias C/original stops DIFFER; no violation-world parity. Native/live gameplay NOT VERIFIED')
+    print(f'PASS: {len(results)} boundary + 2 baseline full-state comparisons; 3 original-only alias controls each refused by its '
+          'guard level (box, 16EC, tile); unpinned target refused and relocated pinned copy followed (candidate-only). '
+          'Alias C/original stops DIFFER; no violation-world parity. '
+          'Native/live gameplay NOT VERIFIED')
 
 
 if __name__ == '__main__':

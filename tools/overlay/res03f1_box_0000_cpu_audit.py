@@ -22,13 +22,13 @@ BASE, OVSEG, SS = O.BASE, O.OVSEG, O.SS
 RETURN_TO = O.RETURN_TO
 FLAGS = O.FLAGS
 SOURCES = sorted(set(O.SOURCES) | {'resident_03f1_box_0000_cpu'})
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CALLEE', 3: 'TRANSFER', 4: 'LIMIT', 5: 'OVERLAY', 6: 'CONTRACT', 7: 'EXIT'}
+STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CALLEE', 3: 'TRANSFER', 4: 'LIMIT', 5: 'OVERLAY', 6: 'CONTRACT', 7: 'EXIT', 8: 'TARGET', 9: 'FRAME'}
 CALL_SITES = [0x0038, 0x0052, 0x006C, 0x0086, 0x00B9, 0x00D2, 0x010C, 0x0124]
 STUB_UNLOADED = bytes.fromhex('cd3f5d0100')
 
 
 class Env03(ctypes.Structure):
-    _fields_ = [('tile', O.Env15), ('max_loopbacks', ctypes.c_size_t)]
+    _fields_ = [('tile', O.Env15), ('max_loopbacks', ctypes.c_size_t), ('verify_target', ctypes.c_int)]
 
 
 class Diag03(ctypes.Structure):
@@ -80,7 +80,7 @@ def run_c(f, m, c, envspec, keys, stubs, max_loopbacks=1 << 20):
         return 1
     fo, fi = O.OUT_FN(pout), O.IN_FN(pin); keep += [fo, fi]
     ports = O.PortEnv(None, fo, fi)
-    e = Env03(O.Env15(O.VideoEnv(q.video, None), text, ke, 1 << 20), max_loopbacks)
+    e = Env03(O.Env15(O.VideoEnv(q.video, None), text, ke, 1 << 20), max_loopbacks, 1)   # verify the loaded target
     actual = Cpu.from_buffer_copy(c); ram = (ctypes.c_uint8 * SIZE).from_buffer_copy(m); d = Diag03()
     bus = O.Bus(ram, None, ctypes.pointer(ports), O.C8.WRITE_FN(), None)
     status = STATUS.get(f(ctypes.byref(bus), SIZE, ctypes.byref(actual), ctypes.byref(e), ctypes.byref(d)))

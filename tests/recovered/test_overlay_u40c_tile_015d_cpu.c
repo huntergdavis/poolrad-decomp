@@ -100,6 +100,13 @@ int main(void)
     CHECK(c.cs == SYS && c.ip == 0x1685u && get16(SS0, c.sp) == 0x0290u && get16(SS0, (uint16_t)(c.sp + 4u)) == 6);
     bus.ega = NULL;
 
+    /* A Move whose destination + 17h lands on this body's own [BP+0Ch] (1951's row argument; BP = SP0 - 2) returns, but the
+     * body stops with FRAME at 028B instead of calling 1951 with the overwritten arguments. */
+    c = world(0x0076u, 0);
+    put16(DS0, 0x5E4Eu, (uint16_t)(SP0 - 2u + 12u - 0x17u)); put16(DS0, 0x5E50u, SS0);
+    CHECK(pr_ovl040c_015d_cpu(&bus, RAM, &c, &env, &d) == PR_OVL040C_015D_FRAME && d.site == 0x028Bu && d.status == -1 && d.calls == 1);
+    CHECK(c.cs == OV && c.ip == 0x0290u && get16(SS0, SP0 + 10u) != 3);
+
     /* Bad arguments change nothing. */
     c = world(0x0076u, 0);
     CHECK(pr_ovl040c_015d_cpu(&bus, RAM - 1u, &c, &env, &d) == PR_OVL040C_015D_ARGUMENT && c.ip == 0x015Du);

@@ -43,17 +43,31 @@ segment:`015D`, which is what the overlay manager writes. The model follows it i
 straight to this body. An unloaded entry (`INT 3Fh`) stops with `OVERLAY` before the overlay manager runs. The CPU is
 then at the stub with the call frame pushed.
 
-**Statuses.** `OK`, `ARGUMENT`, `CALLEE`, `TRANSFER`, `LIMIT` (this body's own backward jumps), `OVERLAY`, `CONTRACT` and
-`EXIT`. The last two propagate from `015D`. The diagnostic gives the call site, `015D`'s status and its diagnostic.
-The only undefined flag, `SHL`'s AF at `0019`, is overwritten on every path.
+**Statuses.** `OK`, `ARGUMENT`, `CALLEE`, `TRANSFER`, `LIMIT` (this body's own backward jumps), `OVERLAY`, `CONTRACT`,
+`EXIT`, `TARGET` and `FRAME`. `CONTRACT` and `EXIT` propagate from `015D`. The diagnostic gives the call site, `015D`'s
+status and its diagnostic. The only undefined flag, `SHL`'s AF at `0019`, is overwritten on every path.
+
+**Guards (t24, NC2/NC4).** Two refusals were added so the composition never continues on state the original would have
+corrupted silently:
+
+- `TARGET`: with `env.verify_target` set, a loaded stub is followed only when the 336 bytes at its target `:015D` hash
+  (FNV-1a 64, the eight loader-filled fixup words zeroed) to `PR_R03F1_BOX_TILE_BODY_FNV1A64`, which the emitter computes
+  from the pinned body (SHA-256 `2a8a7826…`). The 16EC composition always sets the flag; the synthetic C test, which has no
+  body at the target, leaves it clear and separately requires the refusal.
+- `FRAME`: this body's control frame `[BP-4,BP+10h)` (loop counters, base tile, saved BP, return address, five arguments)
+  is saved before each tile call and compared after a returned call; a change stops with `FRAME` (`diagnostic.status -1`),
+  and `015D`'s own `FRAME` stop propagates with `diagnostic.status = PR_OVL040C_015D_FRAME`. The demonstrated Move alias
+  into `[BP-3]` ([port boundary](RES_00BA_16EC_PORT_BOUNDARY.md)) now stops after the first tile call instead of
+  reaching the error branch two calls later.
 
 ## Validation
 
-**Focused C test.** `test_resident_03f1_box_0000_cpu.c` runs under CTest with ASan/UBSan. It passes **11**
+**Focused C test.** `test_resident_03f1_box_0000_cpu.c` runs under CTest with ASan/UBSan. It passes **15**
 hand-predicted checks:
 
 - a 12-call box: argument adjustment, locals, the last tile in the object, the return;
 - `OVERLAY` at an unloaded stub;
+- `TARGET` at a verified stub whose target holds no body, and `FRAME` after a tile call whose Move lands on `[BP-3]`;
 - `LIMIT` after the first column;
 - `015D`'s `CONTRACT` propagated;
 - the argument checks.

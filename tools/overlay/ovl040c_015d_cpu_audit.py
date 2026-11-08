@@ -33,7 +33,7 @@ HALT = Q.HALT
 FLAGS = (0x0002, 0x00D7, 0x08D7, 0x0402, 0x0893, 0x0003)
 SOURCES = sorted(set(K.SOURCES) | {'system_text_write_cpu', 'resident_0464_video_mode_cpu', 'resident_0464_compose_08d4_cpu',
                                    'resident_0464_blit_1951_cpu', 'overlay_u40c_tile_015d_cpu', 'memory_bus', 'ega_hw'})
-STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CALLEE', 3: 'TRANSFER', 4: 'CONTRACT', 5: 'EXIT'}
+STATUS = {0: 'RETURN', 1: 'ARGUMENT', 2: 'CALLEE', 3: 'TRANSFER', 4: 'CONTRACT', 5: 'EXIT', 6: 'FRAME'}
 CALL_SITES = [(0x01C5, '0x464, 0xff'), (0x01D7, '0xaf8, 0x919'), (0x01DC, '0xaf8, 0x84a'), (0x01E1, '0x899, 0x59'),
               (0x01E9, '0x899, 0'), (0x0249, '0x464, 0x8d4'), (0x028B, '0xaf8, 0x1685'), (0x02A2, '0x464, 0x1951')]
 UNREACHABLE_OUTCOMES = {(0x01BE, 0x01EE): 'AX is non-zero and below 11Fh only inside the five bands, which were all taken before'}
