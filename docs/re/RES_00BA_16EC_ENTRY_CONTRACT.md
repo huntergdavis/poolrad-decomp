@@ -103,13 +103,21 @@ direct-jump CFG with a per-local length bound (join = maximum, unknown = 255):
 - a local whose address is passed to any other callee becomes 255; a direct
   byte store `MOV byte [BP-n],imm` sets the length to `imm`; any other
   direct write covering the length byte sets 255;
-- every other memory write is checked against a taint set of registers,
-  segment registers and locals that may hold a stack address (loaded from
-  `LEA [BP..]`, `SS`, `BP`, `SP`, a `POP`, a call's clobbered registers, or a
-  tainted value); a write through a tainted segment or base/index register,
-  through `SS`, or a string store through a tainted `ES:DI`, sets every local
-  to 255 (t3677 R1). Writes through `[BP+k]` (the caller's frame) and
-  DS-absolute stores with an untainted `DS` cannot reach this body's locals;
+- every write through a register pointer, whatever the pointer's syntactic
+  origin (a parameter's contents may be a stack address: t3683 R1), every
+  write through `SS` or an explicit `ES`/`CS` segment, and every string store
+  through a tainted `ES:DI`, sets every local to 255. A DS-absolute store is
+  safe only when `DS` is untainted and its physical range lies below the
+  stack base (`0C7Ch*16 + offset + size <= 14F2h*16`); writes through
+  `[BP+k]` (the caller's frame) cannot reach this body's locals. The taint
+  set (registers, segment registers and locals holding `LEA [BP..]`, `SS`,
+  `BP`, `SP`, `POP` or call-clobbered values) decides which loads are stack
+  pointers (t3677 R1);
+- any direct call other than the three SYSTEM string leaves and 16EC itself
+  sets every local at or above the lowest address this body has taken so far
+  to 255, and everything when a stack segment or tainted register is pushed
+  to it outside a recognised unit or a stack address was stored to non-local
+  memory earlier; an indirect call sets every local to 255 (t3683 R3);
 - the backward walk over pushed arguments and every multi-instruction unit it
   recognises (a far-pointer triple, an immediate push, a StrLoad/StrCat chain)
   must be contiguous: an instruction entered by a jump ends the walk, so a
@@ -122,13 +130,34 @@ direct-jump CFG with a per-local length bound (join = maximum, unknown = 255):
 | Message class | Entries | Bound derivation | Max |
 | --- | ---: | --- | ---: |
 | literal temp | 56 | the literal's length byte | 26 |
-| local, StrStore-capped | 9 | `min(cap, source)`: caps `28h`, `50h`, or `FFh` with a literal source via callers | 40 |
+| local, StrStore-capped | 6 | `min(cap, source)`: caps `28h` or `50h` with literal or parameter sources | 40 |
 | chain | 1 | literal 11 + a `28h`-capped local (`0038:2191`) | 51 |
 | local, depth-one callers | 1 | `001E:0042`: cap `FFh` from the owner's `[BP+6]`; its six `PUSH CS; CALL 0013` callers all pass literal temps of 12..16 bytes | 16 |
+| local, **no sound bound** | 3 | an unmodelled callee runs after the message local's address was taken (below) | 255 |
 
-**Result: all 67 admitted entries have a read-time bound ≤ 51 < 255.** The
-set of unbounded entries is empty and the checker refuses if any entry's
-bound rises to 255.
+**Result: 64 of the 67 admitted entries have a sound read-time bound ≤ 51
+< 255; three do not.** The checker pins both the bounded table and the
+unbounded set and refuses if either changes.
+
+### The three entries without a sound bound
+
+Each of these sites stores its message into a `28h`- or `FFh`-capped local,
+takes the local's address for that store, and then calls routines this
+analysis does not model before the 16EC call. Under the sound rule a callee
+reached after a local's address was taken may hold and write that pointer,
+so the bound is 255. The forcing calls are named so a reviewer can see what
+evidence would restore a bound:
+
+| Entry | Owner | Message local | Store | First unmodelled calls after the store |
+| --- | --- | --- | --- | --- |
+| `009E:0F5D` | `0x9e:0x0f06` | `[BP-29h]` (cap `28h` from `[BP+6]`) | `0F1A` | `0F33` and `0F47` (unit `3E0` entries `006B`, `007F`); object writes `0F65..0FA9` |
+| `009E:15F6` | `0x9e:0x1344` | `[BP-100h]` (cap `FFh`, literals `1301`/`130B`/`133A`) | `157D`..`15DB` | `15C5` (SYSTEM `0DC0`) between the last store and the call |
+| `00BA:208E` | `RES_00BA_1FEB` | `[BP-29h]` (cap `28h` from `[BP+6]`) | `1FFF` | `2011` (`08AE:01A5`), `202B` (near `19DE`), `2037`.. (unit `3E0`), `206D`/`2078` (`08AE:00DC`) |
+
+A reviewed read-only or non-aliasing contract for those callees (for example
+SYSTEM `0DC0` as a compare leaf), or a checked non-alias entry contract,
+would restore a bound; neither is claimed here. The checker's notes record
+the forcing instruction for every invalidated entry.
 
 Preservation from the read to the printer's use (the "argument-preservation"
 half of NC5) is **not** established here: it needs the 16EC frame-preservation
@@ -155,11 +184,16 @@ two negative controls that the first version failed and this version passes:
 an indirect `MOV byte SS:[DI],FFh` after `LEA DI,[BP-29h]` must unbound the
 local, and a `JMP` landing on the StrLoad call must not attribute the skipped
 literal; three taint controls (a stored and reloaded stack pointer, `PUSH SS;
-POP ES`, and a post-call `ES:[DI]` store) must unbound, while a
-parameter-derived object write and a DS-absolute store must keep the bound.
-The owner-media controls require the 63/4 census, the pinned table, an empty
-unbounded set, and that a mutated pin, a shortened census, a changed body byte
-and a lowered stack segment are each refused.
+POP ES`, and a post-call `ES:[DI]` store) must unbound, while a DS-absolute
+store below the stack base keeps the bound and one that reaches the stack
+segment does not. The second review (t3683) added two more: a parameter
+pointer write (`LES DI,[BP+6]; MOV byte ES:[DI],FFh`) and an indirect
+`CALL word ptr [0400h]` must both unbound; a direct call after a taken
+pointer unbounds the reachable locals while a never-taken local survives it.
+The owner-media controls require the 63/4 census, the pinned table, the pinned
+three-entry unbounded set (64 bounded, maximum 51), and that a mutated pin, a
+changed unbounded set, a shortened census, a changed body byte and a lowered
+stack segment are each refused.
 
 ## Limits
 
@@ -170,7 +204,8 @@ and a lowered stack segment are each refused.
   decode; the per-local model ignores overlaps between a capped copy's
   region and neighbouring locals (compiler-allocated strings do not overlap).
 - Depth-one caller analysis only; a parameter reached through two levels is
-  255 (none of the 67 entries needs it).
+  255. Callees other than the three SYSTEM string leaves have no modelled
+  effect contract, which is what leaves three entries unbounded.
 - The selector invariant assumes `SS` keeps the EXEPACK value, as Turbo
   Pascal runtime code does; it is checked from the bytes, not observed live.
 - No accounting product, identity, readiness, membership or closure row
