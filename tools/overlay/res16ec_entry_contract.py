@@ -35,6 +35,13 @@ EXEPACK = dict(real_ip=0x0006, real_cs=0x0000, real_sp=0x4000, real_ss=0x14F2, d
 SYSTEM_SEG = 0x0AF8
 STRSTORE, STRLOAD, STRCAT = (0x0AF8, 0x0B25), (0x0AF8, 0x0B0B), (0x0AF8, 0x0B98)
 NEAR_SEGMENT = (0x00BA, 0x03F1)   # the resident segment holding 16EC and its next segment
+# The entry profile the selector invariant is proved for (t3691 R1): the model's own ARGUMENT guard admits entry SP in
+# [MODEL_SP_MIN, MODEL_SP_MAX]. Below the entry SP the prologue and StrStore's far frame occupy FRAME_BELOW bytes
+# (PUSH BP, SUB SP,102h, five pushed words, the far call's two words, StrStore's own frame use); above it the message
+# pointer words StrStore reads end at FRAME_ABOVE. Inside the profile no stack address wraps the segment, so the
+# StrStore leaf's physically contiguous LES reads and its writes stay in SS; outside it the invariant is NOT claimed.
+MODEL_SP_MIN, MODEL_SP_MAX = 0x0800, 0xFFF0
+FRAME_BELOW, FRAME_ABOVE = 0x118, 0x0E
 UNBOUNDED = 255
 MD = Cs(CS_ARCH_X86, CS_MODE_16)
 MD.detail = True
@@ -632,6 +639,21 @@ def census(world):
     return rows, len(far), len(near)
 
 
+def frame_wraps(entry_sp):
+    """True when the 16EC prologue/StrStore frame around this entry SP crosses the stack segment's 64 KiB boundary."""
+    return entry_sp - FRAME_BELOW < 0 or entry_sp + FRAME_ABOVE > 0x10000
+
+
+def entry_profile():
+    """The non-wrapping profile the invariant holds for: the model's SP domain, checked against both frame edges."""
+    require(not frame_wraps(MODEL_SP_MIN) and not frame_wraps(MODEL_SP_MAX), 'the model SP domain admits a wrapping frame')
+    return dict(entry_sp_min=f'{MODEL_SP_MIN:04X}', entry_sp_max=f'{MODEL_SP_MAX:04X}',
+                frame_below=f'{FRAME_BELOW:X}', frame_above=f'{FRAME_ABOVE:X}',
+                lowest_offset=f'{MODEL_SP_MIN - FRAME_BELOW:04X}', highest_offset=f'{MODEL_SP_MAX + FRAME_ABOVE - 1:04X}',
+                enforced_by='pr_res_00ba_window_16ec_cpu ARGUMENT guard (entry SP outside [0800h,FFF0h] is refused, not modelled)',
+                live_entries='not verified: one native sample had SP 3E98h; other arrivals are not measured')
+
+
 def selector_invariant(world):
     base = TARGET[0] * 16
     body = world.image[base + 0x16EC:base + 0x17E3]
@@ -653,14 +675,17 @@ def selector_invariant(world):
     data_top = max(SELECTOR_CELLS.values())
     stack_base = fields['real_ss'] * 16
     require(DATA_SEG * 16 + data_top < stack_base, 'selector cells are not below the stack segment')
-    return dict(prologue_writes='SS:[BP-10Ah,BP) frame pushes and StrStore D=SS:[BP-100h], m=FFh (at most 256 bytes)',
+    profile = entry_profile()
+    return dict(entry_profile=profile,
+                prologue_writes='SS:[BP-10Ah,BP) frame pushes and StrStore D=SS:[BP-100h], m=FFh (at most 256 bytes)',
                 reads={k: f'DS:{v:04X}' for k, v in SELECTOR_CELLS.items()},
                 data_segment=f'{DATA_SEG:04X}', real_ss=f'{fields["real_ss"]:04X}', real_sp=f'{fields["real_sp"]:04X}',
                 margin_bytes=stack_base - (DATA_SEG * 16 + data_top),
                 path_1707_to_1757='170C JNE 1757 is direct; no write between the two reads',
                 outcomes={'mode==5': 'box bypassed (0137, 1816, 0768)', 'mode!=5 && colour==0': 'box 03F1:0000 then clear/title/printer',
                           'mode!=5 && colour!=0': 'no box; clear/title/printer with colour 12h'},
-                claim='the selector reads see entry values of the data cells for every admitted entry; not a natural-arrival claim')
+                claim='for an admitted entry whose entry SP lies in the non-wrapping profile, the selector reads see the entry values of the data cells; '
+                      'outside the profile the model refuses the entry and nothing is claimed; not a natural-arrival claim')
 
 
 def coverage():

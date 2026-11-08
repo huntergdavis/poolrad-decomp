@@ -253,6 +253,23 @@ class OwnerMediaCensus(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'EXEPACK header differs'):
             E.selector_invariant(fake)
 
+    def test_t3691_r1_wrapped_frame_is_outside_the_claimed_profile(self):
+        # Reviewer control: entry SP 010Ah makes StrStore's far frame wrap below SS:0000, its physically contiguous LES
+        # reads a segment word from beyond SS:FFFF, and the leaf writes into the data segment (DS:6DDA changed).
+        # The invariant is claimed only for the non-wrapping profile, which the model's ARGUMENT guard enforces.
+        self.assertTrue(E.frame_wraps(0x010A))
+        self.assertTrue(E.frame_wraps(E.FRAME_BELOW - 1))
+        self.assertFalse(E.frame_wraps(E.FRAME_BELOW))
+        self.assertTrue(E.frame_wraps(0x10000 - E.FRAME_ABOVE + 1))
+        self.assertFalse(E.frame_wraps(E.MODEL_SP_MIN))
+        self.assertFalse(E.frame_wraps(E.MODEL_SP_MAX))
+        profile = self.report['selector_invariant']['entry_profile']
+        self.assertEqual((profile['entry_sp_min'], profile['entry_sp_max']), ('0800', 'FFF0'))
+        self.assertIn('non-wrapping profile', self.report['selector_invariant']['claim'])
+        with mock.patch.object(E, 'MODEL_SP_MIN', 0x010A):
+            with self.assertRaisesRegex(ValueError, 'wrapping frame'):
+                E.entry_profile()
+
     def test_selector_invariant_rejects_a_changed_body(self):
         image = bytearray(self.world.image)
         image[E.TARGET[0] * 16 + 0x1708] ^= 1

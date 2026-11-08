@@ -59,8 +59,20 @@ the low byte is contracted, as the body reads only `[BP+6]` and `[BP+8]` bytes.
 StrStore: `DS:49F3` at `1707` (`== 5` bypasses the box) and `DS:6DDA` at
 `1757` (`== 0` draws the box). The admitted entries do not pass these; they
 are game state. The checked invariant is that the two reads observe the
-entry-time values:
+entry-time values **for an entry inside the non-wrapping profile**:
 
+0. **Profile (t3691 R1).** The model's `ARGUMENT` guard admits entry SP in
+   `[0800h, FFF0h]`. The prologue and StrStore's far frame use `118h` bytes
+   below the entry SP, and the message-pointer words StrStore reads end
+   `0Eh` bytes above it, so inside the profile every stack address lies in
+   `SS:[06E8h, FFFEh)` and nothing wraps the 64 KiB segment. This matters
+   because the StrStore leaf reads its argument pairs physically contiguous
+   ([StrStore ABI](SYSTEM_STRSTORE_0B25.md)): with an entry SP of `010Ah`
+   the frame wraps below `SS:0000`, the leaf reads a segment word from beyond
+   `SS:FFFF` and writes into the data segment, which can change `DS:6DDA`
+   before the read. Such an entry is refused by the model, not analysed, and
+   the invariant is not claimed for it. Whether live arrivals satisfy the
+   profile is **not verified** (the one native sample had SP `3E98h`).
 1. The pinned prologue `16EC..1702` writes only the frame (`SS:[BP-10Ah,BP)`)
    and then StrStore writes `D = SS:[BP-100h]` with `m = FFh`, at most 256
    bytes. `170C JNE 1757` is a direct jump: no write lies between the reads.
@@ -68,9 +80,10 @@ entry-time values:
    packed, and the pack header at the entry (`RB` signature) carries
    `real_ss = 14F2h`, `real_sp = 4000h`. SYSTEM init at `0AF8:0000` sets
    `DS = 0C7Ch`. Both are pinned.
-3. `0C7Ch*16 + 6DDAh = 1359Ah < 14F2h*16 = 14F20h`: every `SS:offset` lies
-   above both cells by at least **6,534 bytes**, so no frame or StrStore write
-   can alias them, for every admitted entry and every entry SP.
+3. `0C7Ch*16 + 6DDAh = 1359Ah < 14F2h*16 = 14F20h`: every `SS:offset` with
+   `offset` in `[0, 10000h)` lies above both cells by at least **6,534
+   bytes**, so inside the profile no frame or StrStore write can alias them,
+   for every admitted entry.
 
 Therefore each admitted entry's selector path is one of three, all inside the
 domain the [#1558 audit](RES_00BA_16EC_CPU.md) already compares against the
@@ -200,8 +213,9 @@ the bound), and a pointer to a higher local handed to an unknown callee must
 unbound the lower local.
 The owner-media controls require the 63/4 census, the pinned table, the pinned
 three-entry unbounded set (64 bounded, maximum 51), and that a mutated pin, a
-changed unbounded set, a shortened census, a changed body byte and a lowered
-stack segment are each refused.
+changed unbounded set, a shortened census, a changed body byte a lowered stack segment, and a model SP domain that admits a wrapping frame
+are each refused; the reviewer's wrapped-frame entry SP `010Ah` is asserted
+to lie outside the profile.
 
 ## Limits
 
@@ -215,7 +229,9 @@ stack segment are each refused.
   255. Callees other than the three SYSTEM string leaves have no modelled
   effect contract, which is what leaves three entries unbounded.
 - The selector invariant assumes `SS` keeps the EXEPACK value, as Turbo
-  Pascal runtime code does; it is checked from the bytes, not observed live.
+  Pascal runtime code does, and holds only for entries inside the model's
+  non-wrapping SP profile; both are checked from the bytes, not observed
+  live, and the profile is not shown to cover every natural arrival.
 - No accounting product, identity, readiness, membership or closure row
   changes. NC2, NC3 and NC4 remain open and are addressed separately.
 
