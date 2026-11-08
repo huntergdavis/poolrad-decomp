@@ -34,7 +34,8 @@ typedef struct {
 
 typedef enum {
     PR_R03F1_BOX_OK = 0,        /* RETF 0Ah executed */
-    PR_R03F1_BOX_ARGUMENT,      /* null pointers, RAM not exactly 1 MiB, IP not 0000h; nothing changed */
+    PR_R03F1_BOX_ARGUMENT,      /* null pointers, RAM not exactly 1 MiB, IP not 0000h, or entry SP outside [0006h,FFF1h] (the
+                                   non-wrapping frame profile the FRAME guard is claimed for); nothing changed */
     PR_R03F1_BOX_CALLEE,        /* 015D stopped (CALLEE/TRANSFER/ARGUMENT; diagnostic: site and its status) */
     PR_R03F1_BOX_TRANSFER,      /* a call returned somewhere other than the instruction after it */
     PR_R03F1_BOX_LIMIT,         /* max_loopbacks backward jumps taken; stopped before the next */

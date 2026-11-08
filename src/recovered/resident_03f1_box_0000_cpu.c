@@ -86,7 +86,8 @@ static uint64_t tile_body_hash(pr_bus *b, uint16_t seg)
 }
 /* The control frame this body relies on across a tile call: locals [BP-4,BP) (loop counters and the base tile), the saved
  * BP, the return address and the five argument words [BP+6,BP+10h). A tile call that writes there (the demonstrated Move
- * alias into [BP-3]) breaks the 92-call composition; the model stops with FRAME instead of continuing. */
+ * alias into [BP-3]) breaks the 92-call composition; the model stops with FRAME instead of continuing. The bytes are read
+ * at 16-bit SS offsets, exact only inside the non-wrapping entry profile enforced at entry (SP in [0006h,FFF1h]). */
 #define FRAME_LO 4u
 #define FRAME_LEN 20u
 static void frame_save(pr_bus *b, uint16_t ss, uint16_t bp, uint8_t *out)
@@ -134,6 +135,10 @@ pr_r03f1_box_status pr_r03f1_box_0000_cpu(pr_bus *b, size_t ram_size, pr_r03f1_b
     pr_run run, *dg = &run;
     uint16_t caller; size_t loops = 0, max_loopbacks;
     if (b == NULL || b->ram == NULL || c == NULL || env == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0000u)
+        return STATUS(ARGUMENT);
+    /* Non-wrapping profile (t3697 R1): this body's frame [BP-4,BP+10h) with BP = SP-2 must not straddle SS:FFFF, because
+     * the guard reads it byte-wise at 16-bit offsets while word pushes and pops are physically contiguous. */
+    if (c->sp < 0x0006u || c->sp > 0xFFF1u)
         return STATUS(ARGUMENT);
     run.env = env; run.d = d != NULL ? d : &fallback;
     memset(run.d, 0, sizeof *run.d);

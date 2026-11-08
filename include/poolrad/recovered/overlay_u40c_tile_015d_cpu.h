@@ -37,7 +37,8 @@ typedef struct {
 
 typedef enum {
     PR_OVL040C_015D_OK = 0,     /* RETF 0Ah executed */
-    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh; nothing changed */
+    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh, or entry SP outside [0008h,FFF1h] (the
+                                   non-wrapping frame profile the FRAME guard is claimed for); nothing changed */
     PR_OVL040C_015D_CALLEE,     /* a callee stopped (diagnostic: site and its status); state as it left it */
     PR_OVL040C_015D_TRANSFER,   /* a callee returned somewhere other than the instruction after its call */
     PR_OVL040C_015D_CONTRACT,   /* EGA attached and a flat-RAM callee (error branch) or Move meeting A0000..AFFFF; stopped at its entry */

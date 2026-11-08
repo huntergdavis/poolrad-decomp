@@ -21,7 +21,14 @@ membership, credit or replacement row changes.
 | Loaded target | `RES_03F1_0000` with `env.verify_target` (always set by 16EC) | the 336 bytes at the stub's target `:015D`, FNV-1a 64 with the eight loader fixup words zeroed, pinned as `PR_R03F1_BOX_TILE_BODY_FNV1A64` (emitted from the body with SHA-256 `2a8a7826…`) | `PR_R03F1_BOX_TARGET` at the stub, before the target is followed; 16EC reports it as `CALLEE` (callee 6, status 8) |
 
 Each guard saves the protected bytes before the callee and compares them
-after a returned callee. Nothing is written by the guards, no budget is
+after a returned callee. The bytes are read at 16-bit `SS` offsets, which is
+exact only while no frame word straddles `SS:FFFF` (word pushes and pops are
+physically contiguous beyond it). The tile and box models therefore refuse,
+with `ARGUMENT` and before any write, an entry SP outside their non-wrapping
+profiles (`[0008h,FFF1h]` for the tile, `[0006h,FFF1h]` for the box; 16EC's
+`[0800h,FFF0h]` guard already excludes wrapping), and the guard claim is made
+inside those profiles only (t3697 R1: a standalone tile entry at SP `0001h`
+let a Move into `8000:0000` change the saved BP's high byte unseen). Nothing is written by the guards, no budget is
 consumed, and on every original-path case the comparison is equal, so the
 models' existing full-state receipts are unchanged in meaning: the box audit
 (56 Unicorn cases, 1,124 tile calls) and the tile audit (105 cases) were
@@ -97,12 +104,12 @@ PYTHONPATH=tools/overlay PYTHONDONTWRITEBYTECODE=1 /home/hunter/workspace/poolra
 | Check | Result |
 | --- | --- |
 | `emit_ovl040c_015d.py --check`, `emit_res03f1_box_0000.py --check` | both `EMIT_CHECK OK` (the tracked C is byte-identical to the regenerated output) |
-| Debug CMake C tests: box, tile, 16EC, printer | 4/4 passed; box 15 checks, tile 17 checks |
+| Debug CMake C tests: box, tile, 16EC, printer | 4/4 passed; box 17 checks, tile 83 checks (the SP `0001h` refusal compares 64 bytes around `SS:FFFF`) |
 | Box differential `--unicorn` (`box-audit.json`) | 56 cases, 1,124 tile calls, 145/145 starts, 8/8 outcomes, zero flag masks, with `verify_target` set |
 | Tile differential `--unicorn` (`tile-audit.json`) | 105 cases, 127/127 starts, 29/30 outcomes (1 declared unreachable), zero flag masks |
 | Port-boundary checker (`boundary-guards.json`) | 9 boundary + 2 baseline full-state comparisons; the three alias controls stop at the box, 16EC and tile guards; unpinned target refused, relocated pinned copy followed; 80 s |
 | Port-boundary unit tests | 8/8 passed, zero skips (112 s) |
-| 16EC full differential `--unicorn --keep-going` (`16ec-complete.json`) | **388/388** comparisons passed, zero failures: 247 RETURNED, 140 LIMIT, 1 OVERLAY; 116/116 starts, 6/6 outcomes, 243 independent statements, zero flag masks and zero declared splits (1,789 s under load) |
+| 16EC full differential `--unicorn --keep-going` (`16ec-complete.json`) | **388/388** comparisons passed, zero failures: 247 RETURNED, 140 LIMIT, 1 OVERLAY; 116/116 starts, 6/6 outcomes, 243 independent statements, zero flag masks and zero declared splits (rerun on the profile-enforcing models: 2,278 s under load) |
 
 Earlier attempts are recorded for honesty: the first colour-byte alias in
 mode 0 ran the original past the six-million-instruction watchdog (1951 read

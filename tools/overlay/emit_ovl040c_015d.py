@@ -61,7 +61,8 @@ typedef struct {
 
 typedef enum {
     PR_OVL040C_015D_OK = 0,     /* RETF 0Ah executed */
-    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh; nothing changed */
+    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh, or entry SP outside [0008h,FFF1h] (the
+                                   non-wrapping frame profile the FRAME guard is claimed for); nothing changed */
     PR_OVL040C_015D_CALLEE,     /* a callee stopped (diagnostic: site and its status); state as it left it */
     PR_OVL040C_015D_TRANSFER,   /* a callee returned somewhere other than the instruction after its call */
     PR_OVL040C_015D_CONTRACT,   /* EGA attached and a flat-RAM callee (error branch) or Move meeting A0000..AFFFF; stopped at its entry */
@@ -189,7 +190,8 @@ static int stop(pr_run *r, uint16_t site, int status, int result)
 /* The frame this body relies on after a placement callee returns: locals [BP-6,BP), the saved BP, the return address and
  * the five argument words [BP+6,BP+10h) (1951 still reads [BP+0Ch]/[BP+0Eh] after Move). A callee that writes there, for
  * example Move with a destination aliasing the stack, breaks the composition; the model stops with FRAME rather than run
- * on corrupted control state. The original CPU would continue; that difference is the guard's purpose. */
+ * on corrupted control state. The original CPU would continue; that difference is the guard's purpose. The bytes are read
+ * at 16-bit SS offsets, which is exact only inside the non-wrapping entry profile enforced at entry (SP in [0008h,FFF1h]). */
 #define FRAME_LO 6u
 #define FRAME_LEN 22u
 static void frame_save(pr_bus *b, uint16_t ss, uint16_t bp, uint8_t *out)
@@ -304,6 +306,10 @@ pr_ovl040c_015d_status pr_ovl040c_015d_cpu(pr_bus *b, size_t ram_size, pr_ovl040
     pr_run run, *dg = &run;
     uint16_t caller;
     if (b == NULL || b->ram == NULL || c == NULL || env == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x015Du)
+        return STATUS(ARGUMENT);
+    /* Non-wrapping profile (t3697 R1): this body's frame [BP-6,BP+10h) with BP = SP-2 must not straddle SS:FFFF, because
+     * the guard reads it byte-wise at 16-bit offsets while word pushes and pops are physically contiguous. */
+    if (c->sp < 0x0008u || c->sp > 0xFFF1u)
         return STATUS(ARGUMENT);
     run.env = env; run.d = d != NULL ? d : &fallback;
     memset(run.d, 0, sizeof *run.d);

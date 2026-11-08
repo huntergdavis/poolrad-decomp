@@ -111,6 +111,12 @@ int main(void)
     CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_FRAME && d.site == 0x0038u && d.calls == 1 && d.status == -1);
     CHECK(get16(SS0, SP0 - 5u) != 0x0114u && c.cs == BOX && c.ip == 0x003Du);
 
+    /* t3697 R1: an entry whose control frame would straddle SS:FFFF is outside the guard's profile and refused untouched. */
+    c = world(2, 1, 3, 2, 1); c.sp = 0x0005u;
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.sp == 0x0005u && c.ip == 0);
+    c = world(2, 1, 3, 2, 1); c.sp = 0xFFF2u;
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.sp == 0xFFF2u);
+
     /* Bad arguments change nothing. */
     c = world(2, 1, 3, 2, 1);
     CHECK(pr_r03f1_box_0000_cpu(&bus, RAM - 1u, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.ip == 0);
