@@ -96,6 +96,27 @@ int main(void)
           d.status == PR_OVL040C_015D_CONTRACT && d.tile.site == 0x028Bu && c.ip == 0x1685u);
     bus.ega = NULL;
 
+    /* verify_target: this synthetic world holds no 015D body at OV (only its fixup words), so a verified call stops with
+     * TARGET at the stub, with the frame pushed, before the target is followed. */
+    c = world(2, 1, 3, 2, 1);
+    env.verify_target = 1;
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_TARGET && d.site == 0x0038u && d.calls == 1 && d.status == -1);
+    CHECK(c.cs == STUB && c.ip == 0x002Au && get16(SS0, c.sp) == 0x003Du && get16(SS0, (uint16_t)(c.sp + 2u)) == BOX);
+    env.verify_target = 0;
+
+    /* A tile call whose Move lands on this body's control frame (destination + 17h = the base-tile local [BP-3], BP = SP0 - 2)
+     * returns from 015D but stops this body with FRAME after that first call: the local and the saved BP were overwritten. */
+    c = world(2, 1, 3, 2, 1);
+    put16(DS0, 0x5E4Eu, (uint16_t)(SP0 - 2u - 3u - 0x17u)); put16(DS0, 0x5E50u, SS0);
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_FRAME && d.site == 0x0038u && d.calls == 1 && d.status == -1);
+    CHECK(get16(SS0, SP0 - 5u) != 0x0114u && c.cs == BOX && c.ip == 0x003Du);
+
+    /* t3697 R1: an entry whose control frame would straddle SS:FFFF is outside the guard's profile and refused untouched. */
+    c = world(2, 1, 3, 2, 1); c.sp = 0x0005u;
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.sp == 0x0005u && c.ip == 0);
+    c = world(2, 1, 3, 2, 1); c.sp = 0xFFF2u;
+    CHECK(pr_r03f1_box_0000_cpu(&bus, RAM, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.sp == 0xFFF2u);
+
     /* Bad arguments change nothing. */
     c = world(2, 1, 3, 2, 1);
     CHECK(pr_r03f1_box_0000_cpu(&bus, RAM - 1u, &c, &env, &d) == PR_R03F1_BOX_ARGUMENT && c.ip == 0);

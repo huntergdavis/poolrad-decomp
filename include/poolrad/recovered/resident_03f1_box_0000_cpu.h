@@ -23,17 +23,30 @@ typedef struct {
 typedef struct {
     pr_ovl040c_015d_env tile;   /* the environment of every 015D call */
     size_t max_loopbacks;       /* this body's backward jumps before the LIMIT stop */
+    int verify_target;          /* non-zero: a loaded stub is followed only when its target hashes to the pinned 015D body
+                                   (PR_R03F1_BOX_TILE_BODY_FNV1A64); otherwise the call stops with TARGET. The 16EC
+                                   composition always sets it; the synthetic C test leaves it clear. */
 } pr_r03f1_box_env;
+
+/* FNV-1a 64 of unit 40Ch +[015D,02AD) (336 bytes) with the eight far-call fixup words (CS:01C8, 01DA, 01DF, 01E4, 01EC,
+ * 024C, 028E, 02A5) zeroed; computed by emit_res03f1_box_0000.py from the pinned body (SHA-256 2a8a7826...). */
+#define PR_R03F1_BOX_TILE_BODY_FNV1A64 0x46A51483CEA4ECFFULL
 
 typedef enum {
     PR_R03F1_BOX_OK = 0,        /* RETF 0Ah executed */
-    PR_R03F1_BOX_ARGUMENT,      /* null pointers, RAM not exactly 1 MiB, IP not 0000h; nothing changed */
+    PR_R03F1_BOX_ARGUMENT,      /* null pointers, RAM not exactly 1 MiB, IP not 0000h, or entry SP outside [0006h,FFF1h] (the
+                                   non-wrapping frame profile the FRAME guard is claimed for); nothing changed */
     PR_R03F1_BOX_CALLEE,        /* 015D stopped (CALLEE/TRANSFER/ARGUMENT; diagnostic: site and its status) */
     PR_R03F1_BOX_TRANSFER,      /* a call returned somewhere other than the instruction after it */
     PR_R03F1_BOX_LIMIT,         /* max_loopbacks backward jumps taken; stopped before the next */
     PR_R03F1_BOX_OVERLAY,       /* the stub entry is not a loaded JMP FAR to +015D; stopped at the stub with the frame pushed */
     PR_R03F1_BOX_CONTRACT,      /* 015D's CONTRACT stop (EGA attached), state as it left it */
-    PR_R03F1_BOX_EXIT           /* 015D's EXIT (its error branch reached Halt, or ReadKey exited) */
+    PR_R03F1_BOX_EXIT,          /* 015D's EXIT (its error branch reached Halt, or ReadKey exited) */
+    PR_R03F1_BOX_TARGET,        /* verify_target set and the loaded stub's target is not the pinned 015D body; stopped at the
+                                   stub with the frame pushed (diagnostic.site) */
+    PR_R03F1_BOX_FRAME          /* a tile call returned but changed this body's control frame [BP-4,BP+10h) (locals, saved BP,
+                                   return address, five arguments; diagnostic.status -1), or 015D's own FRAME stop
+                                   (diagnostic.status PR_OVL040C_015D_FRAME); CPU as the callee left it */
 } pr_r03f1_box_status;
 
 typedef struct {

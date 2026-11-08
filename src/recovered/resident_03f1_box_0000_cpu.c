@@ -71,23 +71,61 @@ static uint16_t shift(pr_cpu_t *c, uint16_t v, uint8_t n, unsigned bits, unsigne
     if ((pre ^ res) & sign) c->flags |= 0x800u;
     szp(c, (uint16_t)res, bits); return (uint16_t)res;
 }
+/* The loaded-target pin: FNV-1a 64 of the 336 bytes at target:015D with the eight fixup words zeroed. */
+static uint64_t tile_body_hash(pr_bus *b, uint16_t seg)
+{
+    static const uint16_t fixups[8] = {0x01C8, 0x01DA, 0x01DF, 0x01E4, 0x01EC, 0x024C, 0x028E, 0x02A5};
+    uint64_t h = 0xCBF29CE484222325ULL; unsigned k, f;
+    for (k = 0; k < 336u; ++k) {
+        uint16_t off = (uint16_t)(0x015Du + k); uint8_t v = rd8(b, seg, off);
+        for (f = 0; f < 8u; ++f)
+            if (off == fixups[f] || off == (uint16_t)(fixups[f] + 1u)) v = 0;
+        h = (h ^ v) * 0x100000001B3ULL;
+    }
+    return h;
+}
+/* The control frame this body relies on across a tile call: locals [BP-4,BP) (loop counters and the base tile), the saved
+ * BP, the return address and the five argument words [BP+6,BP+10h). A tile call that writes there (the demonstrated Move
+ * alias into [BP-3]) breaks the 92-call composition; the model stops with FRAME instead of continuing. The bytes are read
+ * at 16-bit SS offsets, exact only inside the non-wrapping entry profile enforced at entry (SP in [0006h,FFF1h]). */
+#define FRAME_LO 4u
+#define FRAME_LEN 20u
+static void frame_save(pr_bus *b, uint16_t ss, uint16_t bp, uint8_t *out)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k) out[k] = rd8(b, ss, (uint16_t)(bp - FRAME_LO + k));
+}
+static int frame_changed(pr_bus *b, uint16_t ss, uint16_t bp, const uint8_t *before)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k)
+        if (rd8(b, ss, (uint16_t)(bp - FRAME_LO + k)) != before[k]) return 1;
+    return 0;
+}
 /* Overlay stub 0428:002A, entered with the far frame pushed. A loaded entry is JMP FAR (EAh) to the unit's segment:015D;
- * it is executed, then OVL_040C_015D runs to its RETF 0Ah, which returns straight to this body. */
+ * it is executed, then OVL_040C_015D runs to its RETF 0Ah, which returns straight to this body. With verify_target the
+ * target must first hash to the pinned 015D body; afterwards the control frame must be unchanged. */
 static int call_tile_stub(pr_bus *b, pr_cpu_t *c, pr_run *r)
 {
-    pr_ovl040c_015d_regs in; int s;
-    uint16_t site = (uint16_t)(rd16(b, c->ss, c->sp) - 5u), ip, cs;
+    pr_ovl040c_015d_regs in; int s; uint8_t before[FRAME_LEN];
+    uint16_t site = (uint16_t)(rd16(b, c->ss, c->sp) - 5u), ip, cs, ss = c->ss, bp = c->bp;
     r->d->calls += 1u;
     if (rd8(b, c->cs, c->ip) != 0xEAu) { r->d->site = site; return STATUS(OVERLAY); }
     ip = rd16(b, c->cs, (uint16_t)(c->ip + 1u)); cs = rd16(b, c->cs, (uint16_t)(c->ip + 3u));
     if (ip != 0x015Du) { r->d->site = site; return STATUS(OVERLAY); }
+    if (r->env->verify_target && tile_body_hash(b, cs) != PR_R03F1_BOX_TILE_BODY_FNV1A64) { r->d->site = site; return STATUS(TARGET); }
+    frame_save(b, ss, bp, before);
     c->ip = ip; c->cs = cs;
     memcpy(&in, c, sizeof in);
     s = (int)pr_ovl040c_015d_cpu(b, PR_BUS_RAM_SIZE, &in, &r->env->tile, &r->d->tile);
     memcpy(c, &in, sizeof in);
-    if (s == PR_OVL040C_015D_OK) return 0;
+    if (s == PR_OVL040C_015D_OK) {
+        if (frame_changed(b, ss, bp, before)) { r->d->site = site; r->d->status = -1; return STATUS(FRAME); }
+        return 0;
+    }
     r->d->site = site; r->d->status = s;
-    return s == PR_OVL040C_015D_EXIT ? STATUS(EXIT) : s == PR_OVL040C_015D_CONTRACT ? STATUS(CONTRACT) : STATUS(CALLEE);
+    return s == PR_OVL040C_015D_EXIT ? STATUS(EXIT) : s == PR_OVL040C_015D_CONTRACT ? STATUS(CONTRACT)
+         : s == PR_OVL040C_015D_FRAME ? STATUS(FRAME) : STATUS(CALLEE);
 }
 
 pr_r03f1_box_status pr_r03f1_box_0000_cpu(pr_bus *b, size_t ram_size, pr_r03f1_box_regs *c, const pr_r03f1_box_env *env,
@@ -97,6 +135,10 @@ pr_r03f1_box_status pr_r03f1_box_0000_cpu(pr_bus *b, size_t ram_size, pr_r03f1_b
     pr_run run, *dg = &run;
     uint16_t caller; size_t loops = 0, max_loopbacks;
     if (b == NULL || b->ram == NULL || c == NULL || env == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x0000u)
+        return STATUS(ARGUMENT);
+    /* Non-wrapping profile (t3697 R1): this body's frame [BP-4,BP+10h) with BP = SP-2 must not straddle SS:FFFF, because
+     * the guard reads it byte-wise at 16-bit offsets while word pushes and pops are physically contiguous. */
+    if (c->sp < 0x0006u || c->sp > 0xFFF1u)
         return STATUS(ARGUMENT);
     run.env = env; run.d = d != NULL ? d : &fallback;
     memset(run.d, 0, sizeof *run.d);

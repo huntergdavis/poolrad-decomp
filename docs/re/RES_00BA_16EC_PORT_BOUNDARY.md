@@ -161,22 +161,27 @@ include this violated world as a full original/C parity case stopped with
 parity result. The original observation and failed expanded comparison are
 both preserved in `resources/t131/alias-validation.log`.
 
-The existing `flat_only()` guard in `overlay_u40c_tile_015d_cpu.c` refuses
-**every** error-branch callee when EGA is attached; it does not first test an
-actual aperture alias for those calls. The first such call is `01C5`, the
-video-mode restore. Thus the preserved-frame proof matters to the display
-contract: violating it reaches an existing model boundary. The follow-up
-checker records the original-only violation and the C guard separately;
-it must not turn their different stops into parity. The fixture and prediction
-are unchanged, and no recovered C body is repaired or broadened.
+At that head the candidate reached the violated state only because the
+existing `flat_only()` guard in `overlay_u40c_tile_015d_cpu.c` refuses every
+error-branch callee when EGA is attached (the first is `01C5`, the video-mode
+restore): the C model had already run two tile calls on the corrupted base
+tile. **Since the t24 guard change** ([RES_00BA_16EC_GUARDS.md](RES_00BA_16EC_GUARDS.md))
+the box compares its control frame `[BP-4,BP+10h)` after every tile call and
+stops with `FRAME` after the **first** call in this world (callee 6, status
+`PR_R03F1_BOX_FRAME`, box site `0038`, 1 call), before any corrupted tile
+number is used. The checker pins that stop and still records the original
+violation (two tiles, error branch, EXIT) separately; it must not turn their
+different stops into parity. Two further alias worlds (16EC's message length,
+the first tile's row argument) fire the 16EC and tile guards respectively,
+and an unpinned loaded target is refused before it is followed. The fixture
+and prediction above are unchanged, and no recovered C body is broadened.
 
 The follow-up checker passed at `e252dbbae9b9ee09ac7a844184e544cd0b602787`:
 **ten full-state comparisons** (the nine boundary cases plus the alias
 baseline), one original-only alias violation, and the separately checked
-C guard observation. The original violation still exits while C returns
-CALLEE (callee 6/6, nested tile site `01C5`). This run verifies the
-separate accounting of those outcomes; it does not repair or erase their
-parity failure. The JSON/log receipts are
+C guard observation of that time (CALLEE 6/6 at `01C5`). That run verified
+the separate accounting of those outcomes; the guard receipts of the t24
+change supersede its C-side expectation. The JSON/log receipts are
 `resources/t131/boundary-final.json` and `boundary-final.log`.
 
 The boundary covered here is the `00BA:177B` call, its fixed box frame,

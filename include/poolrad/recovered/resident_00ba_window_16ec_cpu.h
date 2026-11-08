@@ -30,7 +30,11 @@ typedef enum {
     PR_RES_16EC_CALLEE,         /* a callee stopped otherwise (its ARGUMENT, CODE, CALLEE, CONTRACT ...): diagnostic.callee and callee_status */
     PR_RES_16EC_OVERLAY,        /* 03F1:0000's overlay stub 0428:002A is not a loaded JMP FAR: the box stopped at the stub (its state kept) */
     PR_RES_16EC_EXIT,           /* 03F1:0000's EXIT (OVL_040C_015D's error branch reached Halt, or its ReadKey exited) */
-    PR_RES_16EC_KEY             /* 0709:0BF5's ReadKey did not return (EXIT, BREAK, ...): diagnostic.prompt */
+    PR_RES_16EC_KEY,            /* 0709:0BF5's ReadKey did not return (EXIT, BREAK, ...): diagnostic.prompt */
+    PR_RES_16EC_FRAME           /* a callee returned but changed this body's frame [BP-102h,BP+12h) outside its documented write
+                                   (StrStore's [BP-100h,BP)): diagnostic.callee, callee_status -1; or the box's FRAME stop
+                                   (callee 6, callee_status PR_R03F1_BOX_FRAME, diagnostic.box). The original CPU would go on
+                                   with corrupted control state; the model stops instead. */
 } pr_res_16ec_status;
 
 typedef struct {
@@ -59,7 +63,11 @@ typedef struct {
  * consumes one unit of *budget (the callees are bounded by env). Exactly 1 MiB of A20-off RAM; entry SP in [0800h,FFF0h], so the 102h-byte
  * frame and the callees' frames (0768 needs SP >= 0300h at its entry) stay inside the stack segment.
  * CONTRACT: code, DS, stack, string operands and flat-runtime operands must not alias A0000..AFFFF; the body does not guard those aliases.
- * EGA observability covers the bus-aware display callees only. Code is immutable. */
+ * EGA observability covers the bus-aware display callees only. Code is immutable.
+ * GUARDS: every callee call is bracketed by a snapshot of this body's frame [BP-102h,BP+12h) (locals, the colour byte, the
+ * message copy, saved BP, return address, six argument words); a returned callee that changed it outside its documented
+ * write stops with FRAME. The box is always run with verify_target set, so a loaded stub whose target is not the pinned
+ * OVL_040C_015D body stops as CALLEE (callee 6, PR_R03F1_BOX_TARGET) rather than being followed. */
 pr_res_16ec_status pr_res_00ba_window_16ec_cpu(pr_bus *bus, size_t ram_size, pr_res_16ec_cpu *cpu, size_t *budget, const pr_res_16ec_env *env,
                                                pr_res_16ec_diagnostic *diagnostic);
 #endif

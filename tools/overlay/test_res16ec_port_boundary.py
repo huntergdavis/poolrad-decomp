@@ -63,6 +63,31 @@ class PortBoundaryTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, f'{name} body pin mismatch'):
                     B.pin_bodies(*bodies)
 
+    def test_guards_refuse_each_alias_level_and_the_unpinned_target(self):
+        import tempfile
+        with tempfile.TemporaryDirectory(prefix='t131-guards-') as work:
+            library = B.A.library(work)
+            stop, d = B.run_candidate(library, B.alias_state(self.data, True, 'box-local'))
+            self.assertEqual((stop, d.callee, d.callee_status, d.box.status, d.box.site, d.box.calls), ('FRAME', 6, 9, -1, 0x0038, 1))
+            stop, d = B.run_candidate(library, B.alias_state(self.data, True, '16ec-message'))
+            self.assertEqual((stop, d.callee, d.callee_status, d.site, d.box.calls), ('FRAME', 6, -1, 0x177B, 92))
+            stop, d = B.run_candidate(library, B.alias_state(self.data, True, 'tile-row'))
+            self.assertEqual((stop, d.callee, d.callee_status, d.box.status, d.box.tile.site, d.box.calls), ('FRAME', 6, 9, 6, 0x028B, 1))
+            stop, d = B.run_candidate(library, B.target_state(self.data, False))
+            self.assertEqual((stop, d.callee, d.callee_status, d.box.site, d.box.calls), ('CALLEE', 6, 8, 0x0038, 1))
+            stop, d = B.run_candidate(library, B.target_state(self.data, True))
+            self.assertEqual((stop, d.box.calls, d.callee), ('RETURNED', 92, -1))
+            trace, stop = B.measure(B.alias_state(self.data, False), self.data[3], library)
+            B.validate(trace, stop, box=True)
+
+    def test_original_continues_on_the_other_two_aliases(self):
+        baseline, _ = B.measure(B.alias_state(self.data, False, 'tile-row'), self.data[3])   # the mode-3 baseline
+        trace, stop = B.measure(B.alias_state(self.data, True, '16ec-message'), self.data[3])
+        self.assertEqual((stop, len(trace.tile_frames), trace.after_box, baseline.after_box), ('RETURNED', 92, [0x11, 0x1E], [0x11, 0x05]))
+        trace, stop = B.measure(B.alias_state(self.data, True, 'tile-row'), self.data[3])
+        self.assertEqual((stop, len(trace.tile_frames)), ('RETURNED', 92))
+        self.assertNotEqual(trace.report()['blit_args'], baseline.report()['blit_args'])
+
     def test_real_move_alias_breaks_preservation(self):
         baseline = B.alias_state(self.data, False)
         state = B.alias_state(self.data, True)

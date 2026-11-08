@@ -58,6 +58,10 @@ DS:2722[band]`, then:
 
 - `OK`: `RETF 0Ah` executed.
 - `ARGUMENT`: nothing changed.
+- `FRAME` (t24, NC2): `08D4`, Move or `1951` returned but changed this body's frame `[BP-6,BP+10h)` (locals, saved BP,
+  return address and the five arguments, which `1951` still reads after Move). The model stops at that call site with
+  `status -1` rather than continue on corrupted control state; the original CPU would continue. The synthetic C test
+  requires it for a Move whose destination lands on `[BP+0Ch]`.
 - `CALLEE`: a callee stopped; the diagnostic gives the site and the callee's own status.
 - `TRANSFER`.
 - `CONTRACT`: an EGA is attached and either an error-branch callee or a Move meets `A0000..AFFFF`. The flat-RAM
@@ -74,7 +78,7 @@ models. `max_loopbacks` is passed through to `08D4` and `1951`.
 ## Validation
 
 **Focused C test.** `test_overlay_u40c_tile_015d_cpu.c` runs under CTest with ASan/UBSan, and the sources compile with
-`-Wconversion -Wsign-conversion -Wshadow -Werror`. It passes **15** hand-predicted checks:
+`-Wconversion -Wsign-conversion -Wshadow -Werror`. It passes **17** hand-predicted checks:
 
 - band 2's rebase and the Move row copy;
 - a null band;

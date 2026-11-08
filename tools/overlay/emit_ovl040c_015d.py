@@ -61,11 +61,15 @@ typedef struct {
 
 typedef enum {
     PR_OVL040C_015D_OK = 0,     /* RETF 0Ah executed */
-    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh; nothing changed */
+    PR_OVL040C_015D_ARGUMENT,   /* null pointers, RAM not exactly 1 MiB, IP not 015Dh, or entry SP outside [0008h,FFF1h] (the
+                                   non-wrapping frame profile the FRAME guard is claimed for); nothing changed */
     PR_OVL040C_015D_CALLEE,     /* a callee stopped (diagnostic: site and its status); state as it left it */
     PR_OVL040C_015D_TRANSFER,   /* a callee returned somewhere other than the instruction after its call */
     PR_OVL040C_015D_CONTRACT,   /* EGA attached and a flat-RAM callee (error branch) or Move meeting A0000..AFFFF; stopped at its entry */
-    PR_OVL040C_015D_EXIT        /* QUIT reached Halt, or ReadKey exited (its key 03 QUIT or the Crt Ctrl-Break path) */
+    PR_OVL040C_015D_EXIT,       /* QUIT reached Halt, or ReadKey exited (its key 03 QUIT or the Crt Ctrl-Break path) */
+    PR_OVL040C_015D_FRAME       /* 08D4, Move or 1951 returned but changed this body's frame [BP-6,BP+10h) (locals, saved BP,
+                                   return address, the five arguments): the composition would continue on corrupted control
+                                   state, so it stops instead; CPU as the callee left it, site recorded, status -1 */
 } pr_ovl040c_015d_status;
 
 typedef struct {
@@ -183,6 +187,25 @@ static int stop(pr_run *r, uint16_t site, int status, int result)
 {
     r->d->site = site; r->d->status = status; return result;
 }
+/* The frame this body relies on after a placement callee returns: locals [BP-6,BP), the saved BP, the return address and
+ * the five argument words [BP+6,BP+10h) (1951 still reads [BP+0Ch]/[BP+0Eh] after Move). A callee that writes there, for
+ * example Move with a destination aliasing the stack, breaks the composition; the model stops with FRAME rather than run
+ * on corrupted control state. The original CPU would continue; that difference is the guard's purpose. The bytes are read
+ * at 16-bit SS offsets, which is exact only inside the non-wrapping entry profile enforced at entry (SP in [0008h,FFF1h]). */
+#define FRAME_LO 6u
+#define FRAME_LEN 22u
+static void frame_save(pr_bus *b, uint16_t ss, uint16_t bp, uint8_t *out)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k) out[k] = rd8(b, ss, (uint16_t)(bp - FRAME_LO + k));
+}
+static int frame_changed(pr_bus *b, uint16_t ss, uint16_t bp, const uint8_t *before)
+{
+    unsigned k;
+    for (k = 0; k < FRAME_LEN; ++k)
+        if (rd8(b, ss, (uint16_t)(bp - FRAME_LO + k)) != before[k]) return 1;
+    return 0;
+}
 /* The error-branch callees are flat-RAM models: with an EGA attached they would bypass it, so the model stops first. */
 static int flat_only(pr_bus *b, pr_run *r, uint16_t site)
 {
@@ -237,17 +260,19 @@ static int call_quit_0000(pr_bus *b, pr_cpu_t *c, pr_run *r)
 }
 static int call_compose_08d4(pr_bus *b, pr_cpu_t *c, pr_run *r)
 {
-    pr_r0464_compose_cpu in; int s;
+    pr_r0464_compose_cpu in; int s; uint8_t before[FRAME_LEN]; uint16_t ss = c->ss, bp = c->bp;
     r->d->calls += 1u;
+    frame_save(b, ss, bp, before);
     memcpy(&in, c, sizeof in);
     s = (int)pr_r0464_compose_08d4_cpu(b, PR_BUS_RAM_SIZE, &in, r->env->max_loopbacks, &r->d->compose);
     memcpy(c, &in, sizeof in);
-    return s != PR_R0464_COMPOSE_CPU_OK ? stop(r, 0x0249u, s, STATUS(CALLEE)) : 0;
+    if (s != PR_R0464_COMPOSE_CPU_OK) return stop(r, 0x0249u, s, STATUS(CALLEE));
+    return frame_changed(b, ss, bp, before) ? stop(r, 0x0249u, -1, STATUS(FRAME)) : 0;
 }
 /* SYSTEM Move 0AF8:1685 on the flat RAM (its accepted raw model), with the 08D4/1951 aperture contract. */
 static int call_move_1685(pr_bus *b, pr_cpu_t *c, pr_run *r)
 {
-    pr_system_leaf_cpu in; int s;
+    pr_system_leaf_cpu in; int s; uint8_t before[FRAME_LEN]; uint16_t ss = c->ss, bp = c->bp;
     r->d->calls += 1u;
     if (b->ega != NULL) {
         uint16_t count = rd16(b, c->ss, (uint16_t)(c->sp + 4u));
@@ -255,19 +280,23 @@ static int call_move_1685(pr_bus *b, pr_cpu_t *c, pr_run *r)
             meets_aperture(rd16(b, c->ss, (uint16_t)(c->sp + 12u)), rd16(b, c->ss, (uint16_t)(c->sp + 10u)), count))
             return stop(r, 0x028Bu, -1, STATUS(CONTRACT));
     }
+    frame_save(b, ss, bp, before);
     memcpy(&in, c, sizeof in);
     s = (int)pr_system_move_1685(b->ram, PR_BUS_RAM_SIZE, &in);
     memcpy(c, &in, sizeof in);
-    return s != 0 ? stop(r, 0x028Bu, s, STATUS(CALLEE)) : 0;
+    if (s != 0) return stop(r, 0x028Bu, s, STATUS(CALLEE));
+    return frame_changed(b, ss, bp, before) ? stop(r, 0x028Bu, -1, STATUS(FRAME)) : 0;
 }
 static int call_blit_1951(pr_bus *b, pr_cpu_t *c, pr_run *r)
 {
-    pr_r0464_blit_cpu in; int s;
+    pr_r0464_blit_cpu in; int s; uint8_t before[FRAME_LEN]; uint16_t ss = c->ss, bp = c->bp;
     r->d->calls += 1u;
+    frame_save(b, ss, bp, before);
     memcpy(&in, c, sizeof in);
     s = (int)pr_r0464_blit_1951_cpu(b, PR_BUS_RAM_SIZE, &in, r->env->max_loopbacks, &r->d->blit);
     memcpy(c, &in, sizeof in);
-    return s != PR_R0464_BLIT_CPU_OK ? stop(r, 0x02A2u, s, STATUS(CALLEE)) : 0;
+    if (s != PR_R0464_BLIT_CPU_OK) return stop(r, 0x02A2u, s, STATUS(CALLEE));
+    return frame_changed(b, ss, bp, before) ? stop(r, 0x02A2u, -1, STATUS(FRAME)) : 0;
 }
 
 pr_ovl040c_015d_status pr_ovl040c_015d_cpu(pr_bus *b, size_t ram_size, pr_ovl040c_015d_regs *c,
@@ -277,6 +306,10 @@ pr_ovl040c_015d_status pr_ovl040c_015d_cpu(pr_bus *b, size_t ram_size, pr_ovl040
     pr_run run, *dg = &run;
     uint16_t caller;
     if (b == NULL || b->ram == NULL || c == NULL || env == NULL || ram_size != PR_BUS_RAM_SIZE || c->ip != 0x015Du)
+        return STATUS(ARGUMENT);
+    /* Non-wrapping profile (t3697 R1): this body's frame [BP-6,BP+10h) with BP = SP-2 must not straddle SS:FFFF, because
+     * the guard reads it byte-wise at 16-bit offsets while word pushes and pops are physically contiguous. */
+    if (c->sp < 0x0008u || c->sp > 0xFFF1u)
         return STATUS(ARGUMENT);
     run.env = env; run.d = d != NULL ? d : &fallback;
     memset(run.d, 0, sizeof *run.d);
