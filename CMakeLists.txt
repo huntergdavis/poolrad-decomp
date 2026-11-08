@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_crt_input STATIC src/replay/crt_input_fifo.c)
+target_include_directories(poolrad_crt_input PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
                                    src/formats/ecl.c src/formats/ega.c
                                    src/formats/walldef.c
@@ -784,6 +786,12 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u7f_number_0294_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u7f_number_0294_cpu_tests
              COMMAND poolrad_overlay_u7f_number_0294_cpu_tests)
+    add_executable(poolrad_crt_input_fifo_tests
+                   tests/replay/test_crt_input_fifo.c
+                   src/recovered/crt_keypressed_02fd_cpu.c
+                   src/recovered/crt_readkey_030f_cpu.c)
+    target_link_libraries(poolrad_crt_input_fifo_tests PRIVATE poolrad_crt_input)
+    add_test(NAME poolrad_crt_input_fifo_tests COMMAND poolrad_crt_input_fifo_tests)
     add_executable(poolrad_crt_keypressed_02fd_cpu_tests
                    tests/recovered/test_crt_keypressed_02fd_cpu.c)
     target_link_libraries(poolrad_crt_keypressed_02fd_cpu_tests PRIVATE poolrad_recovered)
