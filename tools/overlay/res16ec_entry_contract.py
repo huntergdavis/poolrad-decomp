@@ -220,9 +220,10 @@ class Analysis:
     is untainted and its physical range lies below the stack base (DATA_SEG and the EXEPACK real SS). The
     taint set (registers, segment registers, locals holding LEA [BP..], SS, BP, SP, POP or call-clobbered
     values) decides whether a register load is a stack pointer and keeps string stores conservative. Any
-    direct call other than the three SYSTEM string leaves and 16EC itself invalidates every local at or above
-    the lowest address this body has taken so far (a pointer that escaped earlier may be written by the
-    callee); an indirect call invalidates every local."""
+    instruction that writes DS taints it for good, ending the DS-absolute exception. Any direct call other
+    than the three SYSTEM string leaves and 16EC itself invalidates every local once any frame address has
+    been taken (the callee may offset the pointer in either direction); an indirect call invalidates every
+    local."""
 
     def __init__(self, world, kind, container, body, depth=0):
         self.world, self.kind, self.container, self.body, self.depth = world, kind, container, body, depth
@@ -255,7 +256,7 @@ class Analysis:
         bounds, chain, taint, taken = dict(state[0]), state[1], set(state[2]), state[3]
         i = self.body.ins[k]
         if i.mnemonic == 'lea' and bp_disp(i, 1) is not None and bp_disp(i, 1) < 0:
-            taken = max(taken, -bp_disp(i, 1))       # a pointer at [BP-n] can write any local at or above it
+            taken = 0xFFFF                            # a pointer into the frame exists: an unmodelled callee may write any local (t3687 R5)
         local_ops = [op for op in i.operands if op.type == X86_OP_MEM and op.mem.base == X86_REG_BP and not op.mem.index
                      and op.mem.disp < 0 and (not op.mem.segment or op.mem.segment == X86_REG_SS)]
         # 1. memory writes: precise for this body's locals, otherwise sound against the taint set
@@ -311,6 +312,8 @@ class Analysis:
             written_names = set()
         for name in written_names:
             (taint.add if tainted_source else taint.discard)(name)
+        if 'ds' in written_names or i.mnemonic == 'lds':
+            taint.add('ds')                           # DS no longer provably equals DATA_SEG: the DS-absolute exception ends (t3687 R4)
         for op in local_ops:
             if op.access & CS_AC_WRITE:
                 for d in range(op.size):
@@ -378,11 +381,8 @@ class Analysis:
         for w in window:                   # a pushed stack segment or tainted register outside a recognised unit hands the callee a stack pointer
             if w.mnemonic == 'push' and w.operands and w.operands[0].type == 1 and (reg_name(w, w.operands[0].reg) in taint or reg_name(w, w.operands[0].reg) in STACK_ORIGIN):
                 taken = 0xFFFF
-        for local in list(bounds):
-            if local <= taken:
-                bounds[local] = UNBOUNDED  # a pointer taken earlier may have escaped to this callee
-        if taken and any(local <= taken for local in bounds):
-            self.notes.append(f'{i.address:04X}: call invalidates locals reachable from a taken pointer')
+        if taken:
+            self.invalidate(bounds, f'{i.address:04X}: call after a frame pointer was taken')   # the callee may offset the pointer either way
         # A call whose arguments include the pending chain destination consumes it; an operand call
         # (a string function whose result feeds the next StrCat) leaves the destination on the stack.
         return bounds, (None if chain in locals_in_window else chain), taint, taken

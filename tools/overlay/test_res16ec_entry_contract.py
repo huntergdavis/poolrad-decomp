@@ -174,11 +174,27 @@ class SyntheticControls(unittest.TestCase):
         frag = LIT(0x300) + LEA_LOCAL(0x29) + STRSTORE(0x28) + OTHER_CALL + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
         world, body, k = synthetic([frag], {0x300: 9})
         self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # t3687 R5: a pointer to a HIGHER local (LEA DI,[BP-10h]) handed to an unknown callee may be offset downwards
+        # (SS:[DI-19h] is [BP-29h]); any taken frame pointer unbounds every local at the next unmodelled call.
+        store0 = bytes([0xC6, 0x46, 0xD7, 0x00])
+        frag = store0 + bytes.fromhex('8d7ef0') + OTHER_CALL + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
+        world, body, k = synthetic([frag], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
         # A local whose address was never taken, written by a direct byte store, survives an unrelated call.
         store7 = bytes([0xC6, 0x46, 0xD7, 0x07])
         frag = store7 + OTHER_CALL + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC
         world, body, k = synthetic([frag], {})
         self.assertEqual(bound_at(world, body, k)[1], 7)
+
+    def test_t3687_r4_ds_change_ends_the_ds_absolute_exception(self):
+        # Reviewer control: PUSH DS; LDS SI,[BP+6]; MOV byte [1FD7h],FFh; POP DS. With the parameter segment SS and BP
+        # 2000h the store hits the local's length byte while DS is temporarily SS; the range check must not trust 0C7Ch.
+        store0, effect = bytes.fromhex('c646d700'), bytes.fromhex('1ec57606c606d71fff1f')
+        world, body, k = synthetic([store0 + effect + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], E.UNBOUNDED)
+        # The same store without any DS change (DS provably 0C7Ch, 1FD7h below the stack base) keeps the bound.
+        world, body, k = synthetic([store0 + bytes.fromhex('c606d71fff') + LEA_LOCAL(0x29) + TAIL(10, 0) + CALL16EC], {})
+        self.assertEqual(bound_at(world, body, k)[1], 0)
 
     def test_body_cut_at_its_own_return_and_indirect_jump_refused(self):
         code = PROLOGUE + TAIL(1, 1) + EPILOGUE + b'\x05hello' + b'\xff' * 8

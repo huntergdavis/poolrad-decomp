@@ -114,10 +114,14 @@ direct-jump CFG with a per-local length bound (join = maximum, unknown = 255):
   `BP`, `SP`, `POP` or call-clobbered values) decides which loads are stack
   pointers (t3677 R1);
 - any direct call other than the three SYSTEM string leaves and 16EC itself
-  sets every local at or above the lowest address this body has taken so far
-  to 255, and everything when a stack segment or tainted register is pushed
-  to it outside a recognised unit or a stack address was stored to non-local
-  memory earlier; an indirect call sets every local to 255 (t3683 R3);
+  sets every local to 255 once any frame address has been taken in this body
+  (the callee may offset that pointer in either direction: t3687 R5), or when
+  a stack segment or tainted register is pushed to it outside a recognised
+  unit, or when a stack address was stored to non-local memory earlier; an
+  indirect call sets every local to 255 (t3683 R3);
+- any instruction that writes `DS` (`LDS`, `MOV DS,..`, `POP DS`) taints `DS`
+  for the rest of the body, so the DS-absolute exception no longer applies
+  after it (t3687 R4); none of the 56 admitted owner bodies writes `DS`;
 - the backward walk over pushed arguments and every multi-instruction unit it
   recognises (a far-pointer triple, an immediate push, a StrLoad/StrCat chain)
   must be contiguous: an instruction entered by a jump ends the walk, so a
@@ -151,7 +155,7 @@ evidence would restore a bound:
 | Entry | Owner | Message local | Store | First unmodelled calls after the store |
 | --- | --- | --- | --- | --- |
 | `009E:0F5D` | `0x9e:0x0f06` | `[BP-29h]` (cap `28h` from `[BP+6]`) | `0F1A` | `0F33` and `0F47` (unit `3E0` entries `006B`, `007F`); object writes `0F65..0FA9` |
-| `009E:15F6` | `0x9e:0x1344` | `[BP-100h]` (cap `FFh`, literals `1301`/`130B`/`133A`) | `157D`..`15DB` | `15C5` (SYSTEM `0DC0`) between the last store and the call |
+| `009E:15F6` | `0x9e:0x1344` | `[BP-100h]` (cap `FFh`, literals `1301`/`130B`/`133A`) | `157D`, `15B2`, optional `15DB` | `15C5` (SYSTEM `0DC0`) runs after the `157D`/`15B2` stores; the later store at `15DB` is skipped when `15CA` branches, so the join stays 255 |
 | `00BA:208E` | `RES_00BA_1FEB` | `[BP-29h]` (cap `28h` from `[BP+6]`) | `1FFF` | `2011` (`08AE:01A5`), `202B` (near `19DE`), `2037`.. (unit `3E0`), `206D`/`2078` (`08AE:00DC`) |
 
 A reviewed read-only or non-aliasing contract for those callees (for example
@@ -189,7 +193,11 @@ store below the stack base keeps the bound and one that reaches the stack
 segment does not. The second review (t3683) added two more: a parameter
 pointer write (`LES DI,[BP+6]; MOV byte ES:[DI],FFh`) and an indirect
 `CALL word ptr [0400h]` must both unbound; a direct call after a taken
-pointer unbounds the reachable locals while a never-taken local survives it.
+pointer unbounds every local while a never-taken local survives it. The
+third review (t3687) added two more: `PUSH DS; LDS SI,[BP+6]; MOV byte
+[1FD7h],FFh; POP DS` must unbound (the same store with `DS` untouched keeps
+the bound), and a pointer to a higher local handed to an unknown callee must
+unbound the lower local.
 The owner-media controls require the 63/4 census, the pinned table, the pinned
 three-entry unbounded set (64 bounded, maximum 51), and that a mutated pin, a
 changed unbounded set, a shortened census, a changed body byte and a lowered
