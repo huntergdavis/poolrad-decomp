@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_exit.h"
+#include "poolrad/replay/u1c_post_up.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -390,4 +390,35 @@ pr_u68_290b_exit_status pr_u68_290b_exit_resume(pr_u68_290b_exit*s,pr_u68_290b_e
     memset(d,0,sizeof *d);st=pr_u68_290b_print_resume(&s->print,&d->print);
     if(st==PR_U68_290B_PRINT_ARGUMENT)return PR_U68_290B_EXIT_ARGUMENT;
     return exit_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_post_up(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint16_t off;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x339au||c->bp<2u||c->sp!=(uint16_t)(c->bp-2u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    c->ax=rw(b,c->ds,0x5d92u);c->dx=rw(b,c->ds,0x5d94u);ww(b,c->ds,0x4436u,c->ax);ww(b,c->ds,0x4438u,c->dx);
+    c->ax=rb(b,c->ds,0x84dcu);c->flags=(uint16_t)((c->flags&~0x08d5u)|0x44u);
+    c->di=rw(b,c->ds,0x49d2u);c->es=rw(b,c->ds,0x49d4u);off=(uint16_t)(c->di+0x01e4u);
+    if(off==0xffffu){c->ip=0x33b4u;return PR_290B_FIRST_PROFILE;}
+    ww(b,c->es,off,c->ax);c->di=rw(b,c->ds,0x49d6u);c->es=rw(b,c->ds,0x49d8u);c->ip=0x33bdu;return PR_290B_FIRST_DONE;
+}
+void pr_u1c_up_session_init(pr_u1c_up_session*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_exit_init(&s->exit);}}
+static pr_u1c_up_status u1c_next(pr_u1c_up_session*s,pr_u1c_up_diagnostic*d,pr_u68_290b_exit_status st){
+    d->exit_status=st;if(st==PR_U68_290B_EXIT_YIELD){s->phase=PR_U1C_UP_WAITING;return PR_U1C_UP_YIELD;}
+    s->phase=PR_U1C_UP_FINISHED;if(st==PR_U68_290B_EXIT_LOOP)return PR_U1C_UP_LOOP;
+    if(st!=PR_U68_290B_EXIT_RETURNED)return PR_U1C_UP_STOP;
+    d->caller_status=pr_u1c_post_up(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    return d->caller_status==PR_290B_FIRST_DONE?PR_U1C_UP_REACHED:PR_U1C_UP_STOP;
+}
+pr_u1c_up_status pr_u1c_up_start(pr_u1c_up_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u1c_up_diagnostic*d){
+    pr_u68_290b_exit_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U1C_UP_EMPTY||x->ip!=0x339au||x->bp<2u||
+        x->sp!=(uint16_t)(x->bp-2u)||!ordinary(x->cs)||!ordinary(x->ss))return PR_U1C_UP_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_290b_exit_start(&s->exit,b,n,c,e,cl,pl,x,&d->exit);return u1c_next(s,d,st);
+}
+pr_u1c_up_status pr_u1c_up_resume(pr_u1c_up_session*s,pr_u1c_up_diagnostic*d){pr_u68_290b_exit_status st;
+    if(!s||!d||s->phase!=PR_U1C_UP_WAITING)return PR_U1C_UP_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_exit_resume(&s->exit,&d->exit);
+    if(st==PR_U68_290B_EXIT_ARGUMENT)return PR_U1C_UP_ARGUMENT;
+    return u1c_next(s,d,st);
 }
