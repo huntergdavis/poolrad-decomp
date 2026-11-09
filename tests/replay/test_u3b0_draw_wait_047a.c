@@ -8,6 +8,7 @@
 #include "poolrad/replay/u3b0_clock_draw_0432.h"
 #include "poolrad/replay/u3b0_entry_03bd.h"
 #include "poolrad/replay/u3b0_prompt_session.h"
+#include "poolrad/replay/u68_prompt_098f.h"
 #include "poolrad/replay/crt_input_fifo.h"
 #include "poolrad/replay/u3b0_return_06cf.h"
 #include "poolrad/replay/u3b0_character_059c.h"
@@ -115,6 +116,19 @@ static void entry_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q,unsigned lab
     farcall(r,c->cs,0x00df,0x4000,0x0b25);farcall(r,c->cs,0x00f4,0x4000,0x16a8);farcall(r,c->cs,0x012b,0x4000,0x0dc0);
     memset(r+p(c->cs,0x00ab),0,32);r[p(c->cs,0x00ab+'a'/8)]|=(uint8_t)(1u<<('a'%8));
 }
+static void u68_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q){
+    uint8_t *r=b->ram;entry_setup(b,c,q,0);c->cs=0x7600;c->ip=0x098f;c->bp=0x4058;c->sp=0x401c;
+    put(r,c->ds,0x49d6,0x3000);put(r,c->ds,0x49d8,0x5000);put(r,0x5000,0x3592,0xa5a5);put(r,0x5000,0x35aa,0xa5a5);
+    r[p(c->ds,0x49fa)]=1;r[p(c->ds,0x04b6)]=1;r[p(c->ds,0x04b7)]='a';r[p(c->cs,0x097a)]=1;r[p(c->cs,0x097b)]='a';
+    farcall(r,c->cs,0x09b2,0x4000,0x0b0b);farcall(r,c->cs,0x09d0,0x5000,0x002a);
+    r[p(0x5000,0x002a)]=0xea;put(r,0x5000,0x002b,0x03bd);put(r,0x5000,0x002d,0x6000);
+    r[p(c->cs,0x0ab2)]=0xe8;put(r,c->cs,0x0ab3,(uint16_t)(0x068d-0x0ab5));
+    put(r,c->cs,0x06c1,0x002f);put(r,c->cs,0x06c3,0x5100);r[p(0x5100,0x002f)]=0xea;
+    put(r,0x5100,0x0030,0x0350);put(r,0x5100,0x0032,0x7000);
+    r[p(c->ds,0x6aad)]=5;r[p(c->ds,0x6aae)]=3;r[p(c->ds,0x6aaf)]=2;
+    r[p(c->ds,0x2738)]=1;r[p(c->ds,0x2741)]=0;r[p(c->ds,0x84dc)]=1;
+    put(r,c->ds,0x6a5c,0x2000);put(r,c->ds,0x6a5e,0x4000);memset(r+p(0x4000,0x2000),0,0x402);
+}
 int main(void){
     uint8_t*r=malloc(PR_BUS_RAM_SIZE),*saved=malloc(PR_BUS_RAM_SIZE);pr_ega*ega=malloc(sizeof *ega),*old=malloc(sizeof *old);
     pr_port_env ports={NULL,out,NULL};pr_bus b={r,ega,&ports,write,NULL};pr_crt_input_fifo q;pr_r0899_cpu c,before;
@@ -199,6 +213,41 @@ int main(void){
     entry_setup(&b,&c,&q,0);r[p(c.ds,0x6abf)]=1;pr_u3b0_prompt_session_init(&session);
     CHECK(pr_u3b0_prompt_session_start(&session,&b,PR_BUS_RAM_SIZE,&c,&ce,&sd)==PR_U3B0_SESSION_STOP && session.phase==PR_U3B0_SESSION_FINISHED && c.ip==0x04ad);
     CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_ARGUMENT);
+    }
+    /* U68 real preparation, suspended prompt and Up preflight share one bus. */
+    {clock_state ts={0,0};pr_u3b0_clock_draw_env ce={clock_service,&ts,65536,65536,env};pr_u68_prompt us;pr_u68_prompt_diagnostic ud;
+    ce.draw.pass.target.cs=0x7600;ce.draw.pass.target.ip=0x09d5;u68_setup(&b,&c,&q);pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_YIELD && us.phase==PR_U68_PROMPT_WAITING && c.ip==0x048e && ts.calls==2);
+    CHECK(r[p(0x5000,0x3592)]==0 && r[p(0x5000,0x3593)]==0 && r[p(0x5000,0x35aa)]==0xa5 && r[p(0x2800,0x4025)]==1 && r[p(0x2800,0x4026)]=='a');
+    before=c;c.ax^=1;CHECK(pr_u68_prompt_resume(&us,&ud)==PR_U68_PROMPT_ARGUMENT && us.phase==PR_U68_PROMPT_WAITING);c=before;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_resume(&us,&ud)==PR_U68_PROMPT_DISPLAY && c.cs==0x7600 && c.ip==0x0b9b && c.bp==0x4058 && c.sp==0x401c && ts.calls==2 && q.count==0);
+    CHECK(r[p(0x2800,0x4054)]==1 && r[p(0x2800,0x4055)]==0x48 && r[p(0x2800,0x4056)]==1 && r[p(0x5000,0x35aa)]==0 && ud.preflight_status==PR_U68_068D_RETURNED);
+    CHECK(pr_u68_prompt_resume(&us,&ud)==PR_U68_PROMPT_ARGUMENT);
+    u68_setup(&b,&c,&q);c.bp++;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);
+    u68_setup(&b,&c,&q);r[p(c.ds,0x49fa)]=2;pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_OUTSIDE && c.ip==0x0bac && r[p(0x5000,0x3592)]==0);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x49d6,0x4468);put(r,c.ds,0x49d8,c.ds);pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_OUTSIDE && c.ip==0x0bac && r[p(c.ds,0x49fa)]==0);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x49d6,0);put(r,c.ds,0x49d8,0xa000);pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_YIELD && ega->plane[0][0x592]==0 && ega->plane[0][0x593]==0 && r[p(0xa000,0x592)]==0xa5);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x49d6,0);put(r,c.ds,0x49d8,0xa000);pr_u68_prompt_init(&us);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_DISPLAY && c.ip==0x0b9b && ega->plane[0][0x5aa]==0 && r[p(0xa000,0x5aa)]==0xa5);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x49d6,0xfa6d);put(r,c.ds,0x49d8,0xa000);memcpy(old,ega,sizeof *ega);pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_PROFILE && c.ip==0x0995 && memcmp(old,ega,sizeof *ega)==0);
+    u68_setup(&b,&c,&q);r[p(c.cs,0x09b2)]=0x90;pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_CODE && c.ip==0x09b2 && r[p(0x5000,0x3592)]==0);
+    u68_setup(&b,&c,&q);r[p(0x5000,0x002a)]=0xcd;pr_u68_prompt_init(&us);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_OVERLAY && c.cs==0x5000 && c.ip==0x002a && r[p(0x2800,0x4025)]==1);
+    u68_setup(&b,&c,&q);pr_u68_prompt_init(&us);CHECK(pr_crt_input_fifo_push(&q,0x5000)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_OUTSIDE && c.ip==0x0abc && r[p(0x2800,0x4054)]==1 && r[p(0x2800,0x4055)]==0x50 && r[p(0x5000,0x35aa)]==0xa5);
+    u68_setup(&b,&c,&q);r[p(0x5100,0x002f)]=0xcd;pr_u68_prompt_init(&us);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_CALLEE && ud.preflight_status==PR_U68_068D_OVERLAY && c.cs==0x5100 && c.ip==0x002f && r[p(0x5000,0x35aa)]==0);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x49d6,0x64b2);put(r,c.ds,0x49d8,c.ds);pr_u68_prompt_init(&us);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_PROFILE && c.ip==0x0ab2 && r[p(c.ds,0x6a5e)]==0 && r[p(c.ds,0x6a5f)]==0x40);
+    u68_setup(&b,&c,&q);put(r,c.ds,0x6a5e,0xa000);pr_u68_prompt_init(&us);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_prompt_start(&us,&b,PR_BUS_RAM_SIZE,&c,&ce,&ud)==PR_U68_PROMPT_PROFILE && c.ip==0x0ab2 && r[p(0x2800,0x4054)]==1 && r[p(0x5000,0x35aa)]==0xa5);
     }
     free(old);free(ega);free(saved);free(r);printf("3B0 drawer/wait: %u checks passed\n",checks);return 0;
 }
