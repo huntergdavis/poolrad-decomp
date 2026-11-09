@@ -1,0 +1,7 @@
+# Second SAVE store classifier return
+
+`pr_second_class_return_start` and `pr_second_class_return_resume` extend the [second classifier entry](U25_SECOND_CLASSIFIER_ENTRY_SHARED_BUS.md) through the existing [shared-bus classifier and checked return](U25_CLASSIFIER_RETURN_SHARED_BUS.md). The reached classifier executes its live range checks and `RETF 2` to `+0C84`, checked against the reached CS, BP, SS and post-cleanup SP. `PR_SECOND_SLOT_PAIR` identifies this checked return for the wrapper; earlier statuses pass through unchanged. A mismatched live return stops after executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested classifier, store, value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path through the second classifier's class-four result and checked frame, plus atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover range edges and mismatched returns; non-pair wrapper mappings are inherited and not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, store effects, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
