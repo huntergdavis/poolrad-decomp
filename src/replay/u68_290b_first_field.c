@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_slot_pair_return.h"
+#include "poolrad/replay/u25_slot_value_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1046,4 +1046,40 @@ pr_pair_return_status pr_pair_return_resume(pr_pair_return_session*s,pr_pair_ret
     memset(d,0,sizeof *d);st=pr_slot_pair_resume(&s->pair,&d->pair);
     if(st==PR_SLOT_PAIR_ARGUMENT)return PR_PAIR_RETURN_ARGUMENT;
     return pair_return_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_slot_value_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x01aau||c->bp<10u||c->bp>0xfff8u||c->sp!=(uint16_t)(c->bp-10u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    ww(b,c->ss,(uint16_t)(c->bp-2u),c->ax);c->ax=rw(b,c->ss,(uint16_t)(c->bp-2u));
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+4u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_value_return_session_init(pr_value_return_session*s){if(s){memset(s,0,sizeof *s);pr_pair_return_session_init(&s->pair);}}
+static pr_value_return_status value_return_next(pr_value_return_session*s,pr_value_return_diagnostic*d,pr_pair_return_status st){
+    d->pair_status=st;if(st==PR_PAIR_RETURN_YIELD){s->phase=PR_VALUE_RETURN_WAITING;return PR_VALUE_RETURN_YIELD;}
+    s->phase=PR_VALUE_RETURN_FINISHED;if(st==PR_PAIR_RETURN_ZERO)return PR_VALUE_RETURN_ZERO;
+    if(st==PR_PAIR_RETURN_WORD)return PR_VALUE_RETURN_WORD;
+    if(st==PR_PAIR_RETURN_OTHER_TYPE)return PR_VALUE_RETURN_OTHER_TYPE;
+    if(st==PR_PAIR_RETURN_STRING)return PR_VALUE_RETURN_STRING;
+    if(st==PR_PAIR_RETURN_LOADER_STRING)return PR_VALUE_RETURN_LOADER_STRING;
+    if(st==PR_PAIR_RETURN_LIMIT)return PR_VALUE_RETURN_LIMIT;
+    if(st==PR_PAIR_RETURN_PROMPT)return PR_VALUE_RETURN_PROMPT;
+    if(st==PR_PAIR_RETURN_OTHER)return PR_VALUE_RETURN_OTHER;
+    if(st!=PR_PAIR_RETURN_REACHED)return PR_VALUE_RETURN_STOP;
+    d->return_status=pr_u25_slot_value_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    return d->return_status==PR_290B_FIRST_DONE?PR_VALUE_RETURN_REACHED:PR_VALUE_RETURN_STOP;
+}
+pr_value_return_status pr_value_return_start(pr_value_return_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_value_return_diagnostic*d){
+    pr_pair_return_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_VALUE_RETURN_EMPTY||x->bp<56u)return PR_VALUE_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->target=(pr_290b_return_target){x->cs,0x02bfu,(uint16_t)(x->bp-0x1au),(uint16_t)(x->bp-0x16u),x->ss};
+    st=pr_pair_return_start(&s->pair,b,n,c,e,cl,pl,x,max_iterations,&d->pair);return value_return_next(s,d,st);
+}
+pr_value_return_status pr_value_return_resume(pr_value_return_session*s,pr_value_return_diagnostic*d){pr_pair_return_status st;
+    if(!s||!d||s->phase!=PR_VALUE_RETURN_WAITING)return PR_VALUE_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_pair_return_resume(&s->pair,&d->pair);
+    if(st==PR_PAIR_RETURN_ARGUMENT)return PR_VALUE_RETURN_ARGUMENT;
+    return value_return_next(s,d,st);
 }
