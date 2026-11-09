@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_store_class_dispatch.h"
+#include "poolrad/replay/u25_store_class4_low.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1246,4 +1246,51 @@ pr_store_dispatch_status pr_store_dispatch_resume(pr_store_dispatch_session*s,pr
     memset(d,0,sizeof *d);st=pr_class_return_resume(&s->classifier,&d->classifier);
     if(st==PR_CLASS_RETURN_ARGUMENT)return PR_STORE_DISPATCH_ARGUMENT;
     return store_dispatch_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_store_class4_low(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint16_t a,target=0;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x0d14u||c->bp<2u||c->bp>0xfff6u||c->sp!=(uint16_t)(c->bp-2u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    a=rw(b,c->ss,(uint16_t)(c->bp+8u));class_cmp16(c,a,0xbf68u);if(a>=0xbf68u){c->ip=0x0d5bu;return PR_290B_FIRST_OUTSIDE;}
+    c->ax=rw(b,c->ss,(uint16_t)(c->bp+8u));a=c->ax;
+    class_cmp16(c,a,0x00fbu);if(a==0x00fbu)goto done;
+    class_cmp16(c,a,0x00fcu);if(a==0x00fcu)goto done;
+    class_cmp16(c,a,0x00b1u);if(a==0x00b1u)goto done;
+    class_cmp16(c,a,0x03deu);if(a==0x03deu){target=0x84ccu;goto store;}
+    class_cmp16(c,a,0x00b8u);if(a==0x00b8u){target=0x84ceu;goto store;}
+    class_cmp16(c,a,0x00b9u);if(a==0x00b9u){target=0x84d0u;goto store;}
+    goto done;
+store:c->ax=rw(b,c->ss,(uint16_t)(c->bp+6u));ww(b,c->ds,target,c->ax);
+done:c->ip=0x0e06u;return PR_290B_FIRST_DONE;
+}
+void pr_class4_low_session_init(pr_class4_low_session*s){if(s){memset(s,0,sizeof *s);pr_store_dispatch_session_init(&s->dispatch);}}
+static pr_class4_low_status class4_low_next(pr_class4_low_session*s,pr_class4_low_diagnostic*d,pr_store_dispatch_status st){
+    d->dispatch_status=st;if(st==PR_STORE_DISPATCH_YIELD){s->phase=PR_CLASS4_LOW_WAITING;return PR_CLASS4_LOW_YIELD;}
+    s->phase=PR_CLASS4_LOW_FINISHED;if(st==PR_STORE_DISPATCH_CLASS0)return PR_CLASS4_LOW_CLASS0;
+    if(st==PR_STORE_DISPATCH_CLASS1)return PR_CLASS4_LOW_CLASS1;
+    if(st==PR_STORE_DISPATCH_CLASS2)return PR_CLASS4_LOW_CLASS2;
+    if(st==PR_STORE_DISPATCH_CLASS3)return PR_CLASS4_LOW_CLASS3;
+    if(st==PR_STORE_DISPATCH_UNMATCHED)return PR_CLASS4_LOW_UNMATCHED;
+    if(st==PR_STORE_DISPATCH_ZERO)return PR_CLASS4_LOW_ZERO;
+    if(st==PR_STORE_DISPATCH_WORD)return PR_CLASS4_LOW_WORD;
+    if(st==PR_STORE_DISPATCH_OTHER_TYPE)return PR_CLASS4_LOW_OTHER_TYPE;
+    if(st==PR_STORE_DISPATCH_STRING)return PR_CLASS4_LOW_STRING;
+    if(st==PR_STORE_DISPATCH_LOADER_STRING)return PR_CLASS4_LOW_LOADER_STRING;
+    if(st==PR_STORE_DISPATCH_LIMIT)return PR_CLASS4_LOW_LIMIT;
+    if(st==PR_STORE_DISPATCH_PROMPT)return PR_CLASS4_LOW_PROMPT;
+    if(st==PR_STORE_DISPATCH_OTHER)return PR_CLASS4_LOW_OTHER;
+    if(st!=PR_STORE_DISPATCH_CLASS4)return PR_CLASS4_LOW_STOP;
+    d->low_status=pr_u25_store_class4_low(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->low_status==PR_290B_FIRST_OUTSIDE)return PR_CLASS4_LOW_HIGH;
+    return d->low_status==PR_290B_FIRST_DONE?PR_CLASS4_LOW_REACHED:PR_CLASS4_LOW_STOP;
+}
+pr_class4_low_status pr_class4_low_start(pr_class4_low_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_class4_low_diagnostic*d){
+    pr_store_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_CLASS4_LOW_EMPTY)return PR_CLASS4_LOW_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_store_dispatch_start(&s->dispatch,b,n,c,e,cl,pl,x,max_iterations,&d->dispatch);return class4_low_next(s,d,st);
+}
+pr_class4_low_status pr_class4_low_resume(pr_class4_low_session*s,pr_class4_low_diagnostic*d){pr_store_dispatch_status st;
+    if(!s||!d||s->phase!=PR_CLASS4_LOW_WAITING)return PR_CLASS4_LOW_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_store_dispatch_resume(&s->dispatch,&d->dispatch);
+    if(st==PR_STORE_DISPATCH_ARGUMENT)return PR_CLASS4_LOW_ARGUMENT;
+    return class4_low_next(s,d,st);
 }
