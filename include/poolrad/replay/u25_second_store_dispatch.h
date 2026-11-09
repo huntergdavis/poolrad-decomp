@@ -1,0 +1,13 @@
+#ifndef POOLRAD_REPLAY_U25_SECOND_STORE_DISPATCH_H
+#define POOLRAD_REPLAY_U25_SECOND_STORE_DISPATCH_H
+#include "poolrad/replay/u25_second_classifier_return.h"
+#include "poolrad/replay/u25_store_class_dispatch.h"
+typedef int pr_second_dispatch_status;
+enum { PR_SECOND_DISPATCH_CLASS0=PR_SECOND_SLOT_STOP+1,PR_SECOND_DISPATCH_CLASS1,PR_SECOND_DISPATCH_CLASS2,PR_SECOND_DISPATCH_CLASS3,PR_SECOND_DISPATCH_CLASS4,PR_SECOND_DISPATCH_UNMATCHED };
+typedef enum { PR_SECOND_DISPATCH_EMPTY=0,PR_SECOND_DISPATCH_WAITING,PR_SECOND_DISPATCH_FINISHED } pr_second_dispatch_phase;
+typedef struct { pr_second_dispatch_phase phase;pr_second_class_return_session classifier;pr_bus *bus;pr_r0899_cpu *cpu; } pr_second_dispatch_session;
+typedef struct { pr_second_slot_status classifier_status;pr_second_class_return_diagnostic classifier;pr_290b_first_status dispatch_status; } pr_second_dispatch_diagnostic;
+void pr_second_dispatch_session_init(pr_second_dispatch_session *state);
+pr_second_dispatch_status pr_second_dispatch_start(pr_second_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_second_dispatch_diagnostic *diagnostic);
+pr_second_dispatch_status pr_second_dispatch_resume(pr_second_dispatch_session *state,pr_second_dispatch_diagnostic *diagnostic);
+#endif
