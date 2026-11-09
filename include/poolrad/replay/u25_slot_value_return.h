@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_SLOT_VALUE_RETURN_H
+#define POOLRAD_REPLAY_U25_SLOT_VALUE_RETURN_H
+#include "poolrad/replay/u25_slot_pair_return.h"
+pr_290b_first_status pr_u25_slot_value_return(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_290b_return_target *target);
+typedef enum { PR_VALUE_RETURN_EMPTY=0,PR_VALUE_RETURN_WAITING,PR_VALUE_RETURN_FINISHED } pr_value_return_phase;
+typedef enum { PR_VALUE_RETURN_YIELD=0,PR_VALUE_RETURN_REACHED,PR_VALUE_RETURN_ZERO,PR_VALUE_RETURN_WORD,PR_VALUE_RETURN_OTHER_TYPE,PR_VALUE_RETURN_STRING,PR_VALUE_RETURN_LOADER_STRING,PR_VALUE_RETURN_LIMIT,PR_VALUE_RETURN_PROMPT,PR_VALUE_RETURN_OTHER,PR_VALUE_RETURN_ARGUMENT,PR_VALUE_RETURN_STOP } pr_value_return_status;
+typedef struct { pr_value_return_phase phase;pr_pair_return_session pair;pr_bus *bus;pr_r0899_cpu *cpu;pr_290b_return_target target; } pr_value_return_session;
+typedef struct { pr_pair_return_status pair_status;pr_pair_return_diagnostic pair;pr_290b_first_status return_status; } pr_value_return_diagnostic;
+void pr_value_return_session_init(pr_value_return_session *state);
+pr_value_return_status pr_value_return_start(pr_value_return_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_value_return_diagnostic *diagnostic);
+pr_value_return_status pr_value_return_resume(pr_value_return_session *state,pr_value_return_diagnostic *diagnostic);
+#endif
