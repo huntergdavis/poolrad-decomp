@@ -1,0 +1,7 @@
+# Second SAVE store-word entry
+
+`pr_second_store_start` and `pr_second_store_resume` extend the [second slot-value return](U25_SECOND_VALUE_RETURN_SHARED_BUS.md) through the existing [SAVE store-word helper entry](U1C_SAVE_STORE_ENTRY_SHARED_BUS.md). On the reached pair path the shared bus records the live local value, pushes the destination and value, constructs the actual return frame and checks the call and stub before stopping at U25 `+0C77`. `PR_SECOND_SLOT_PAIR` identifies this reached entry for this wrapper; other earlier statuses pass through unchanged. A malformed reached call or stub stops after the effects already executed.
+
+Start rejects outer BP below 56 or any nonempty nested value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path through the second store entry, value, destination and return frame, plus atomic rejection and retry for each nested phase and invalid BP. Existing standalone store-entry tests cover malformed calls and stubs; non-pair wrapper mappings are inherited and not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, store-word execution, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
