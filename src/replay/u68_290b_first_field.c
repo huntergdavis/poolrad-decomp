@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_save_loader_entry.h"
+#include "poolrad/replay/u25_operand_prefix.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -613,4 +613,45 @@ pr_u1c_save_status pr_u1c_save_resume(pr_u1c_save_session*s,pr_u1c_save_diagnost
     memset(d,0,sizeof *d);st=pr_u1c_ecl_resume(&s->ecl,&d->ecl);
     if(st==PR_U1C_ECL_ARGUMENT)return PR_U1C_SAVE_ARGUMENT;
     return save_next(s,d,st);
+}
+
+static uint16_t u25_inc_word(pr_r0899_cpu*c,uint16_t v){uint16_t cf=(uint16_t)(c->flags&1u),r=second_add(c,v,1u);c->flags=(uint16_t)((c->flags&~1u)|cf);return r;}
+static void u25_xor_ah(pr_r0899_cpu*c){c->ax&=0x00ffu;c->flags=(uint16_t)((c->flags&~0x08d5u)|0x44u);}
+pr_290b_first_status pr_u25_operand_prefix(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t count;uint16_t off;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x0000u||c->sp<10u||c->sp>0xfffau||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=(uint16_t)(c->sp-8u);wb(b,c->ss,(uint16_t)(c->bp-2u),0);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp+6u)));wb(b,c->ss,(uint16_t)(c->bp-7u),(uint8_t)c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|1u);count=rb(b,c->ss,(uint16_t)(c->bp-7u));cmp8(c,1u,count);
+    if(count==0){c->ip=0x012cu;return PR_290B_FIRST_OUTSIDE;}
+    wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    c->ax=rw(b,c->ds,0x49edu);c->ax=u25_inc_word(c,c->ax);c->di=rw(b,c->ds,0x49deu);c->es=rw(b,c->ds,0x49e0u);
+    c->di=second_add(c,c->di,c->ax);off=(uint16_t)(c->di+0x6700u);c->dx=(uint16_t)((c->dx&0xff00u)|rb(b,c->es,off));
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;wb(b,c->ds,(uint16_t)(c->di+0x7005u),(uint8_t)c->dx);
+    c->ax=rw(b,c->ds,0x49edu);c->ax=u25_inc_word(c,c->ax);c->ax=u25_inc_word(c,c->ax);c->di=rw(b,c->ds,0x49deu);c->es=rw(b,c->ds,0x49e0u);
+    c->di=second_add(c,c->di,c->ax);off=(uint16_t)(c->di+0x6700u);c->dx=(uint16_t)((c->dx&0xff00u)|rb(b,c->es,off));
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;wb(b,c->ds,(uint16_t)(c->di+0x7085u),(uint8_t)c->dx);
+    c->ax=rw(b,c->ds,0x49edu);c->ax=u25_inc_word(c,c->ax);c->ax=u25_inc_word(c,c->ax);ww(b,c->ds,0x49edu,c->ax);
+    c->ip=0x005fu;return PR_290B_FIRST_DONE;
+}
+void pr_u25_operand_session_init(pr_u25_operand_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_save_session_init(&s->save);}}
+static pr_u25_operand_status operand_next(pr_u25_operand_session*s,pr_u25_operand_diagnostic*d,pr_u1c_save_status st){
+    d->save_status=st;if(st==PR_U1C_SAVE_YIELD){s->phase=PR_U25_OPERAND_WAITING;return PR_U25_OPERAND_YIELD;}
+    s->phase=PR_U25_OPERAND_FINISHED;if(st==PR_U1C_SAVE_LOOP)return PR_U25_OPERAND_LOOP;
+    if(st==PR_U1C_SAVE_OTHER)return PR_U25_OPERAND_OTHER;
+    if(st!=PR_U1C_SAVE_LOADER)return PR_U25_OPERAND_STOP;
+    d->prefix_status=pr_u25_operand_prefix(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->prefix_status==PR_290B_FIRST_OUTSIDE)return PR_U25_OPERAND_ZERO;
+    return d->prefix_status==PR_290B_FIRST_DONE?PR_U25_OPERAND_REACHED:PR_U25_OPERAND_STOP;
+}
+pr_u25_operand_status pr_u25_operand_start(pr_u25_operand_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u25_operand_diagnostic*d){
+    pr_u1c_save_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U25_OPERAND_EMPTY||x->bp<42u)return PR_U25_OPERAND_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u1c_save_start(&s->save,b,n,c,e,cl,pl,x,&d->save);return operand_next(s,d,st);
+}
+pr_u25_operand_status pr_u25_operand_resume(pr_u25_operand_session*s,pr_u25_operand_diagnostic*d){pr_u1c_save_status st;
+    if(!s||!d||s->phase!=PR_U25_OPERAND_WAITING)return PR_U25_OPERAND_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u1c_save_resume(&s->save,&d->save);
+    if(st==PR_U1C_SAVE_ARGUMENT)return PR_U25_OPERAND_ARGUMENT;
+    return operand_next(s,d,st);
 }
