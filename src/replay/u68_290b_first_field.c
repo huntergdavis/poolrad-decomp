@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_word_return.h"
+#include "poolrad/replay/u1c_save_tag_branch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -846,4 +846,33 @@ pr_word_return_status pr_word_return_resume(pr_word_return_session*s,pr_word_ret
     memset(d,0,sizeof *d);st=pr_save_word_resume(&s->word,&d->word);
     if(st==PR_SAVE_WORD_ARGUMENT)return PR_WORD_RETURN_ARGUMENT;
     return word_return_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_save_tag_branch(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t tag;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x02adu||c->bp<4u||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    ww(b,c->ss,(uint16_t)(c->bp-4u),c->ax);tag=rb(b,c->ds,0x7006u);cmp8(c,tag,0x80u);
+    c->ip=tag>=0x80u?0x02cfu:0x02b7u;return PR_290B_FIRST_DONE;
+}
+void pr_save_tag_session_init(pr_save_tag_session*s){if(s){memset(s,0,sizeof *s);pr_word_return_session_init(&s->word);}}
+static pr_save_tag_status save_tag_next(pr_save_tag_session*s,pr_save_tag_diagnostic*d,pr_word_return_status st){
+    d->word_status=st;if(st==PR_WORD_RETURN_YIELD){s->phase=PR_SAVE_TAG_WAITING;return PR_SAVE_TAG_YIELD;}
+    s->phase=PR_SAVE_TAG_FINISHED;if(st==PR_WORD_RETURN_STRING)return PR_SAVE_TAG_LOADER_STRING;
+    if(st==PR_WORD_RETURN_LIMIT)return PR_SAVE_TAG_LIMIT;
+    if(st==PR_WORD_RETURN_PROMPT)return PR_SAVE_TAG_PROMPT;
+    if(st==PR_WORD_RETURN_OTHER)return PR_SAVE_TAG_OTHER;
+    if(st!=PR_WORD_RETURN_REACHED)return PR_SAVE_TAG_STOP;
+    d->branch_status=pr_u1c_save_tag_branch(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->branch_status!=PR_290B_FIRST_DONE)return PR_SAVE_TAG_STOP;
+    return s->cpu->ip==0x02cfu?PR_SAVE_TAG_STRING:PR_SAVE_TAG_NUMERIC;
+}
+pr_save_tag_status pr_save_tag_start(pr_save_tag_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_save_tag_diagnostic*d){
+    pr_word_return_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SAVE_TAG_EMPTY)return PR_SAVE_TAG_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_word_return_start(&s->word,b,n,c,e,cl,pl,x,max_iterations,&d->word);return save_tag_next(s,d,st);
+}
+pr_save_tag_status pr_save_tag_resume(pr_save_tag_session*s,pr_save_tag_diagnostic*d){pr_word_return_status st;
+    if(!s||!d||s->phase!=PR_SAVE_TAG_WAITING)return PR_SAVE_TAG_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_word_return_resume(&s->word,&d->word);
+    if(st==PR_WORD_RETURN_ARGUMENT)return PR_SAVE_TAG_ARGUMENT;
+    return save_tag_next(s,d,st);
 }
