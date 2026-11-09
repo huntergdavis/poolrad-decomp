@@ -1,0 +1,7 @@
+# Second SAVE slot-value return
+
+`pr_second_value_start` and `pr_second_value_resume` extend the [second pair helper return](U25_SECOND_PAIR_RETURN_SHARED_BUS.md) through the existing [slot-value local store and checked return](U25_SLOT_VALUE_RETURN_SHARED_BUS.md). The shared-bus helper writes and rereads the local result, restores the live frame, and executes `RETF 2` to SAVE `+02BF`. The expected SAVE target is derived and copied at start. `PR_SECOND_SLOT_PAIR` identifies this checked return for the wrapper; other second-slot and earlier statuses pass through unchanged. A mismatched live return stops after the executed local and return effects.
+
+Start rejects outer BP below 56 or any nonempty nested pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. The composition inherits prior frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the second value return, copied target, result and flags, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched live return; non-pair wrapper mappings are inherited and not separately driven by this fixture. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
