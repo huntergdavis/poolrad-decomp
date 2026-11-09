@@ -5,6 +5,7 @@
 #include "poolrad/replay/u3b0_prompt_pass.h"
 #include "poolrad/replay/u3b0_wait_048e.h"
 #include "poolrad/replay/u3b0_draw_wait_047a.h"
+#include "poolrad/replay/u3b0_clock_draw_0432.h"
 #include "poolrad/replay/crt_input_fifo.h"
 #include "poolrad/replay/u3b0_return_06cf.h"
 #include "poolrad/replay/u3b0_character_059c.h"
@@ -84,6 +85,21 @@ static void draw_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q){
     wait_setup(b,c,q);c->ip=0x047a;b->ram[p(c->ss,c->bp-0x2a)]=0;b->ram[p(c->ds,0x6b2b)]=1;
     b->ram[p(c->cs,0x48b)]=0xe8;put(b->ram,c->cs,0x48c,(uint16_t)(0x01da-0x048e));
 }
+typedef struct { unsigned calls, refuse_on; } clock_state;
+static int clock_service(void *ctx,const pr_dos_gettime_cpu *before,pr_dos_gettime_cpu *after){
+    clock_state *s=ctx;++s->calls;if(s->calls==s->refuse_on)return 1;
+    *after=*before;after->cx=(uint16_t)(s->calls==1?0:0x000a);after->dx=(uint16_t)(s->calls==1?5:0x3706);after->ip=0x00a9;return 0;
+}
+static void clock_draw_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q,unsigned label){
+    uint8_t*r=b->ram;unsigned i;draw_setup(b,c,q);c->ip=0x0432;
+    farcall(r,c->cs,0x0432,0x8800,0x0c3f);farcall(r,c->cs,0x043d,0x8800,0x0c3f);
+    farcall(r,c->cs,0x0475,0x8800,0x0626);put(r,0x8800,0x0c5c,0x6000);put(r,0x8800,0x0c6c,0x6800);
+    farcall(r,0x8800,0x063c,0x4000,0x0b25);r[p(0x8800,0x0691)]=0xe8;put(r,0x8800,0x0692,0xfb4b);
+    for(i=0;i<256;i++)r[p(c->ds,0x25d5+i)]=(uint8_t)(i%4u);
+    for(i=0;i<4;i++)put(r,c->ds,0x25cd+2u*i,i*0x5555u);
+    for(i=0;i<8;i++)put(r,c->ds,0x25e5+2u*i,0xc000u>>(2u*i));
+    r[p(c->ss,c->bp-0x2a)]=(uint8_t)label;r[p(c->ss,c->bp-0x29)]='a';r[p(c->ss,c->bp+0x12)]=5;
+}
 int main(void){
     uint8_t*r=malloc(PR_BUS_RAM_SIZE),*saved=malloc(PR_BUS_RAM_SIZE);pr_ega*ega=malloc(sizeof *ega),*old=malloc(sizeof *old);
     pr_port_env ports={NULL,out,NULL};pr_bus b={r,ega,&ports,write,NULL};pr_crt_input_fifo q;pr_r0899_cpu c,before;
@@ -107,5 +123,29 @@ int main(void){
     CHECK(pr_u3b0_draw_wait_047a(&b,PR_BUS_RAM_SIZE,&c,&env,&d)==PR_U3B0_DRAW_WAIT_REACHED && d.wait_status==PR_U3B0_WAIT_PASS && d.wait.status==PR_U3B0_PASS_ARGUMENT && c.ip==0x0566 && q.count==1 && outs>0 && writes>0);env.pass.poll.key_env=&ke;
     draw_setup(&b,&c,&q);c.bp=0x8f;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
     CHECK(pr_u3b0_draw_wait_047a(&b,PR_BUS_RAM_SIZE,&c,&env,&d)==PR_U3B0_DRAW_WAIT_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(r,saved,PR_BUS_RAM_SIZE)==0 && memcmp(ega,old,sizeof *ega)==0);
+    /* Real clocks, optional real label printer, then the existing drawer/input path. */
+    {clock_state ts={0,0};pr_u3b0_clock_draw_env ce={clock_service,&ts,65536,65536,env};pr_u3b0_clock_draw_diagnostic cd;
+    clock_draw_setup(&b,&c,&q,0);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_REACHED);
+    CHECK(ts.calls==2 && cd.phase==3 && cd.draw_status==PR_U3B0_DRAW_WAIT_REACHED && cd.draw.wait_status==PR_U3B0_WAIT_PASS && c.ip==0x09d5);
+    CHECK(r[p(0x2800,0x3fa9)]==5 && r[p(0x2800,0x3faa)]==0); /* first sample = 5 */
+    CHECK(r[p(0x2800,0x3fa5)]==0 && r[p(0x2800,0x3fa6)]==0 && r[p(0x2800,0x3fa7)]==1); /* +30 carries */
+    CHECK(r[p(0x2800,0x3fa1)]==50 && r[p(0x2800,0x3fa3)]==1); /* +50 */
+    ts.calls=0;clock_draw_setup(&b,&c,&q,1);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_REACHED && cd.printer_status==PR_R0709_PRINTER_CPU_OK && cd.printer.callee==1 && cd.printer.status==0 && cd.phase==3 && ts.calls==2 && outs>0 && writes>0);
+    ts.calls=0;ts.refuse_on=1;clock_draw_setup(&b,&c,&q,1);
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CALLEE && cd.phase==0 && cd.clock.gettime_status==PR_DOS_GETTIME_SERVICE && c.cs==0x6000 && c.ip==0x00a7 && ts.calls==1 && outs==0);
+    ts.calls=0;ts.refuse_on=2;clock_draw_setup(&b,&c,&q,1);
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CALLEE && cd.phase==1 && cd.clock.gettime_status==PR_DOS_GETTIME_SERVICE && c.cs==0x6000 && c.ip==0x00a7 && ts.calls==2);
+    CHECK(r[p(0x2800,0x3fa9)]==5 && r[p(0x2800,0x3faa)]==0 && outs==0);
+    ts.calls=0;ts.refuse_on=0;clock_draw_setup(&b,&c,&q,1);refuse=0;
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CALLEE && cd.phase==2 && cd.printer_status==PR_R0709_PRINTER_CPU_CALLEE && ts.calls==2);
+    ts.calls=0;clock_draw_setup(&b,&c,&q,1);r[p(c.cs,0x0475)]=0x90;
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CODE && cd.phase==2 && c.ip==0x0475 && c.sp==0x7ff6 && ts.calls==2 && outs==0);
+    ts.calls=0;clock_draw_setup(&b,&c,&q,0);c.sp=0x013f;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0 && ts.calls==0);
+    ts.calls=0;clock_draw_setup(&b,&c,&q,0);r[p(c.cs,0x043d)]=0x90;
+    CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CODE && cd.phase==1 && c.ip==0x043d && ts.calls==1 && r[p(0x2800,0x3fa9)]==5);
+    }
     free(old);free(ega);free(saved);free(r);printf("3B0 drawer/wait: %u checks passed\n",checks);return 0;
 }

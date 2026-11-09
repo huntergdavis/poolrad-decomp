@@ -200,6 +200,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/resident_0802_0716_composed_cpu.c
                                     src/recovered/overlay_u7f_number_0294_cpu.c
                                     src/replay/u3b0_draw_wait_047a.c
+                                    src/replay/u3b0_clock_draw_0432.c
                                     src/replay/u3b0_wait_048e.c
                                     src/replay/u3b0_prompt_pass.c
                                     src/replay/u3b0_text_0634.c
