@@ -551,6 +551,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u38_character_loop_11f9_cpu.c
                                     src/recovered/system_str_1366_cpu.c
                                     src/recovered/resident_00ba_byte_string_1037_cpu.c
+                                    src/recovered/resident_00ba_word_string_1073_cpu.c
                                     src/recovered/overlay_u7d_two_digits_0565_cpu.c
                                     src/recovered/system_ioresult_assign_cpu.c
                                     src/recovered/overlay_u25_alloc_1951_cpu.c
@@ -877,6 +878,11 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_resident_0802_0193_cpu_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_resident_0802_0193_cpu_tests
              COMMAND poolrad_resident_0802_0193_cpu_tests)
+    add_executable(poolrad_resident_00ba_word_string_1073_cpu_tests
+                   tests/recovered/test_resident_00ba_word_string_1073_cpu.c)
+    target_link_libraries(poolrad_resident_00ba_word_string_1073_cpu_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_resident_00ba_word_string_1073_cpu_tests
+             COMMAND poolrad_resident_00ba_word_string_1073_cpu_tests)
     add_executable(poolrad_resident_0709_time_0c3f_cpu_tests
                    tests/recovered/test_resident_0709_time_0c3f_cpu.c)
     target_link_libraries(poolrad_resident_0709_time_0c3f_cpu_tests PRIVATE poolrad_recovered)
