@@ -1,0 +1,7 @@
+# Second SAVE pair helper return
+
+`pr_second_pair_return_start` and `pr_second_pair_return_resume` extend the [second pair entry](U25_SECOND_PAIR_ENTRY_SHARED_BUS.md) through the existing shared-bus operand-word leaf and checked `RETF 4`, using the reached caller's CS, BP, SS and post-cleanup SP and return offset `+01AA`. The wrapper stops before the slot-value local-result store. `PR_SECOND_SLOT_PAIR` identifies the checked return for this wrapper; other second-slot and earlier statuses pass through unchanged. A mismatched live return stops after the helper's executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits the frame, budget, code and caller requirements of the [prior pair return](U25_SLOT_PAIR_RETURN_SHARED_BUS.md) and second pair entry. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the second pair's checked return, result and frame cleanup, and atomic rejection and retry for every nested phase and invalid BP. The existing leaf and first-pair tests cover mismatched return behavior; the wrapper's non-pair mappings are inherited and not separately driven by this fixture. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, local-result store, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.

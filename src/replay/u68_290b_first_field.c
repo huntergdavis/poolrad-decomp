@@ -1,3 +1,4 @@
+#include "poolrad/replay/u25_second_pair_return.h"
 #include "poolrad/replay/u25_second_pair_entry.h"
 #include "poolrad/replay/u25_second_slot_dispatch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
@@ -1691,4 +1692,23 @@ pr_second_slot_status pr_second_pair_resume(pr_second_pair_session*s,pr_second_p
     memset(d,0,sizeof *d);st=pr_second_slot_resume(&s->slot,&d->slot);
     if(st==PR_SECOND_SLOT_ARGUMENT)return st;
     return second_pair_after(s,d,st);
+}
+
+void pr_second_pair_return_session_init(pr_second_pair_return_session*s){if(s){memset(s,0,sizeof *s);pr_second_pair_session_init(&s->pair);}}
+static pr_second_slot_status second_pair_return_after(pr_second_pair_return_session*s,pr_second_pair_return_diagnostic*d,pr_second_slot_status st){
+    pr_290b_return_target x;d->pair_status=st;if(st==PR_SECOND_SLOT_YIELD){s->phase=PR_SECOND_PAIR_RETURN_WAITING;return st;}
+    s->phase=PR_SECOND_PAIR_RETURN_FINISHED;if(st!=PR_SECOND_SLOT_PAIR)return st;
+    x=(pr_290b_return_target){s->cpu->cs,0x01aau,(uint16_t)(s->cpu->bp-10u),s->cpu->bp,s->cpu->ss};
+    d->return_status=pr_u25_word_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&x);
+    return d->return_status==PR_290B_FIRST_DONE?PR_SECOND_SLOT_PAIR:PR_SECOND_SLOT_STOP;
+}
+pr_second_slot_status pr_second_pair_return_start(pr_second_pair_return_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_second_pair_return_diagnostic*d){
+    pr_second_slot_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SECOND_PAIR_RETURN_EMPTY||s->pair.phase!=PR_SECOND_PAIR_EMPTY||s->pair.slot.phase!=PR_SECOND_SLOT_EMPTY||s->pair.slot.branch.phase!=PR_SECOND_BRANCH_EMPTY||s->pair.slot.branch.loader.phase!=PR_SECOND_LOADER_EMPTY||s->pair.slot.branch.loader.save.phase!=PR_SECOND_SAVE_EMPTY||s->pair.slot.branch.loader.save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->pair.slot.branch.loader.save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_second_pair_start(&s->pair,b,n,c,e,cl,pl,x,max_iterations,&d->pair);return second_pair_return_after(s,d,st);
+}
+pr_second_slot_status pr_second_pair_return_resume(pr_second_pair_return_session*s,pr_second_pair_return_diagnostic*d){pr_second_slot_status st;
+    if(!s||!d||s->phase!=PR_SECOND_PAIR_RETURN_WAITING)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_second_pair_resume(&s->pair,&d->pair);
+    if(st==PR_SECOND_SLOT_ARGUMENT)return st;
+    return second_pair_return_after(s,d,st);
 }
