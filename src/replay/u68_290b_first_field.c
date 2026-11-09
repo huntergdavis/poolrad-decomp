@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_runner_next.h"
+#include "poolrad/replay/u1c_next_dispatch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1467,4 +1467,38 @@ pr_runner_next_status pr_runner_next_resume(pr_runner_next_session*s,pr_runner_n
     memset(d,0,sizeof *d);st=pr_dispatch_return_resume(&s->dispatch,&d->dispatch);
     if(st==PR_DISPATCH_RETURN_ARGUMENT)return PR_RUNNER_NEXT_ARGUMENT;
     return runner_next_after(s,d,st);
+}
+
+void pr_next_dispatch_session_init(pr_next_dispatch_session*s){if(s){memset(s,0,sizeof *s);pr_runner_next_session_init(&s->runner);}}
+static pr_next_dispatch_status next_dispatch_after(pr_next_dispatch_session*s,pr_next_dispatch_diagnostic*d,pr_runner_next_status st){
+    d->runner_status=st;if(st==PR_RUNNER_NEXT_YIELD){s->phase=PR_NEXT_DISPATCH_WAITING;return PR_NEXT_DISPATCH_YIELD;}
+    s->phase=PR_NEXT_DISPATCH_FINISHED;if(st==PR_RUNNER_NEXT_RETURNED)return PR_NEXT_DISPATCH_RETURNED;
+    if(st==PR_RUNNER_NEXT_HIGH)return PR_NEXT_DISPATCH_HIGH;
+    if(st==PR_RUNNER_NEXT_CLASS0)return PR_NEXT_DISPATCH_CLASS0;
+    if(st==PR_RUNNER_NEXT_CLASS1)return PR_NEXT_DISPATCH_CLASS1;
+    if(st==PR_RUNNER_NEXT_CLASS2)return PR_NEXT_DISPATCH_CLASS2;
+    if(st==PR_RUNNER_NEXT_CLASS3)return PR_NEXT_DISPATCH_CLASS3;
+    if(st==PR_RUNNER_NEXT_UNMATCHED)return PR_NEXT_DISPATCH_UNMATCHED;
+    if(st==PR_RUNNER_NEXT_ZERO)return PR_NEXT_DISPATCH_ZERO;
+    if(st==PR_RUNNER_NEXT_WORD)return PR_NEXT_DISPATCH_WORD;
+    if(st==PR_RUNNER_NEXT_OTHER_TYPE)return PR_NEXT_DISPATCH_OTHER_TYPE;
+    if(st==PR_RUNNER_NEXT_STRING)return PR_NEXT_DISPATCH_STRING;
+    if(st==PR_RUNNER_NEXT_LOADER_STRING)return PR_NEXT_DISPATCH_LOADER_STRING;
+    if(st==PR_RUNNER_NEXT_LIMIT)return PR_NEXT_DISPATCH_LIMIT;
+    if(st==PR_RUNNER_NEXT_PROMPT)return PR_NEXT_DISPATCH_PROMPT;
+    if(st==PR_RUNNER_NEXT_OTHER)return PR_NEXT_DISPATCH_OTHER;
+    if(st!=PR_RUNNER_NEXT_DISPATCH)return PR_NEXT_DISPATCH_STOP;
+    d->dispatch_status=pr_u1c_ecl_dispatch_prefix(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->dispatch_status==PR_290B_FIRST_OUTSIDE)return PR_NEXT_DISPATCH_LATER;
+    return d->dispatch_status==PR_290B_FIRST_DONE?PR_NEXT_DISPATCH_HANDLER:PR_NEXT_DISPATCH_STOP;
+}
+pr_next_dispatch_status pr_next_dispatch_start(pr_next_dispatch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_next_dispatch_diagnostic*d){
+    pr_runner_next_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_NEXT_DISPATCH_EMPTY)return PR_NEXT_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_runner_next_start(&s->runner,b,n,c,e,cl,pl,x,max_iterations,&d->runner);return next_dispatch_after(s,d,st);
+}
+pr_next_dispatch_status pr_next_dispatch_resume(pr_next_dispatch_session*s,pr_next_dispatch_diagnostic*d){pr_runner_next_status st;
+    if(!s||!d||s->phase!=PR_NEXT_DISPATCH_WAITING)return PR_NEXT_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_runner_next_resume(&s->runner,&d->runner);
+    if(st==PR_RUNNER_NEXT_ARGUMENT)return PR_NEXT_DISPATCH_ARGUMENT;
+    return next_dispatch_after(s,d,st);
 }
