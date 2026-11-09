@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_STORE_RETURN_H
+#define POOLRAD_REPLAY_U25_STORE_RETURN_H
+#include "poolrad/replay/u25_store_class4_low.h"
+pr_290b_first_status pr_u25_store_return(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_290b_return_target *target);
+typedef enum { PR_STORE_RETURN_EMPTY=0,PR_STORE_RETURN_WAITING,PR_STORE_RETURN_FINISHED } pr_store_return_phase;
+typedef enum { PR_STORE_RETURN_YIELD=0,PR_STORE_RETURN_REACHED,PR_STORE_RETURN_HIGH,PR_STORE_RETURN_CLASS0,PR_STORE_RETURN_CLASS1,PR_STORE_RETURN_CLASS2,PR_STORE_RETURN_CLASS3,PR_STORE_RETURN_UNMATCHED,PR_STORE_RETURN_ZERO,PR_STORE_RETURN_WORD,PR_STORE_RETURN_OTHER_TYPE,PR_STORE_RETURN_STRING,PR_STORE_RETURN_LOADER_STRING,PR_STORE_RETURN_LIMIT,PR_STORE_RETURN_PROMPT,PR_STORE_RETURN_OTHER,PR_STORE_RETURN_ARGUMENT,PR_STORE_RETURN_STOP } pr_store_return_status;
+typedef struct { pr_store_return_phase phase;pr_class4_low_session low;pr_bus *bus;pr_r0899_cpu *cpu;pr_290b_return_target target; } pr_store_return_session;
+typedef struct { pr_class4_low_status low_status;pr_class4_low_diagnostic low;pr_290b_first_status return_status; } pr_store_return_diagnostic;
+void pr_store_return_session_init(pr_store_return_session *state);
+pr_store_return_status pr_store_return_start(pr_store_return_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_store_return_diagnostic *diagnostic);
+pr_store_return_status pr_store_return_resume(pr_store_return_session *state,pr_store_return_diagnostic *diagnostic);
+#endif
