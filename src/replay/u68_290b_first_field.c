@@ -1,4 +1,5 @@
-#include "poolrad/replay/u68_290b_two_fields.h"
+#include "poolrad/replay/u68_290b_branch.h"
+#include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
 static size_t at(uint16_t s,uint16_t o){return (((size_t)s<<4u)+o)&MASK;}
@@ -140,4 +141,56 @@ pr_u68_290b_two_status pr_u68_290b_two_resume(pr_u68_290b_two*s,pr_u68_290b_two_
     memset(d,0,sizeof *d);st=pr_u68_290b_resume(&s->first,&d->first);
     if(st==PR_U68_290B_ARGUMENT)return PR_U68_290B_TWO_ARGUMENT;
     return two_next(s,d,st);
+}
+
+/* CMP word with zero: CF/OF/AF clear; SF/ZF/PF from the result. */
+static void branch_cmp_zero(pr_r0899_cpu*c,uint16_t v){unsigned p=v&255u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|(v&0x8000u?0x80u:0u)|(v==0?0x40u:0u)|((p&1u)?0u:4u));}
+static pr_290b_first_status byte_call(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d,uint16_t site,int stage){
+    uint16_t cs,sp,rel;pr_res_1037_cpu t;pr_res_1037_guarded_status st;
+    d->stage=stage;c->ip=site;rel=rw(b,c->cs,(uint16_t)(site+1u));
+    if(rb(b,c->cs,site)!=0xe8u||(uint16_t)(site+3u+rel)!=0x1037u)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=(uint16_t)(c->sp+4u);push(b,c,(uint16_t)(site+3u));c->ip=0x1037u;
+    {FIELDS(TO)}st=pr_res_00ba_1037_guarded(b,n,&t,&d->formatter_callee,&d->formatter_status);{FIELDS(FROM)}
+    d->status=(int)st;if(st==PR_RES_1037_GUARDED_PROFILE)return PR_290B_FIRST_PROFILE;
+    if(st!=PR_RES_1037_GUARDED_OK)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=(uint16_t)(site+3u)||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+pr_290b_first_status pr_290b_record_branch(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t off,v;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x2a02u||c->bp<0x043cu||c->bp>0xffeeu||
+       c->sp!=(uint16_t)(c->bp-0x0232u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->di=rw(b,c->ds,0x49d2u);c->es=rw(b,c->ds,0x49d4u);off=(uint16_t)(c->di+0x01f6u);
+    if(off==0xffffu){c->ip=0x2a06u;return PR_290B_FIRST_PROFILE;}
+    v=rw(b,c->es,off);branch_cmp_zero(c,v);if(v){c->ip=0x2a51u;return PR_290B_FIRST_DONE;}
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));push(b,c,c->ax);push(b,c,c->cs);
+    st=byte_call(b,n,c,d,0x2a19u,1);if(st)return st;
+    c->di=0x28f4u;push(b,c,c->cs);push(b,c,c->di);st=string_call(b,n,c,d,0x2a21u,0x0b98u,2);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x0231u);push(b,c,c->ss);push(b,c,c->di);c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-2u)));push(b,c,c->ax);push(b,c,c->cs);
+    st=byte_call(b,n,c,d,0x2a31u,3);if(st)return st;
+    st=string_call(b,n,c,d,0x2a34u,0x0b98u,4);if(st)return st;
+    c->di=0x28f6u;push(b,c,c->cs);push(b,c,c->di);st=string_call(b,n,c,d,0x2a3eu,0x0b98u,5);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);c->ax=0x28u;push(b,c,c->ax);
+    st=string_call(b,n,c,d,0x2a4cu,0x0b25u,6);if(st)return st;
+    c->ip=0x2a51u;return PR_290B_FIRST_DONE;
+}
+
+void pr_u68_290b_branch_init(pr_u68_290b_branch*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_two_init(&s->two);}}
+static pr_u68_290b_branch_status branch_next(pr_u68_290b_branch*s,pr_u68_290b_branch_diagnostic*d,pr_u68_290b_two_status st){
+    d->two_status=st;if(st==PR_U68_290B_TWO_YIELD){s->phase=PR_U68_290B_BRANCH_WAITING;return PR_U68_290B_BRANCH_YIELD;}
+    s->phase=PR_U68_290B_BRANCH_FINISHED;if(st!=PR_U68_290B_TWO_FIELDS)return PR_U68_290B_BRANCH_STOP;
+    d->branch_status=pr_290b_record_branch(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->branch);
+    return d->branch_status==PR_290B_FIRST_DONE?PR_U68_290B_BRANCH_REACHED:PR_U68_290B_BRANCH_STOP;
+}
+pr_u68_290b_branch_status pr_u68_290b_branch_start(pr_u68_290b_branch*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,pr_u68_290b_branch_diagnostic*d){
+    pr_u68_290b_two_status st;if(!s||!b||!c||!e||!d||s->phase!=PR_U68_290B_BRANCH_EMPTY)return PR_U68_290B_BRANCH_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_290b_two_start(&s->two,b,n,c,e,&d->two);return branch_next(s,d,st);
+}
+pr_u68_290b_branch_status pr_u68_290b_branch_resume(pr_u68_290b_branch*s,pr_u68_290b_branch_diagnostic*d){pr_u68_290b_two_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_BRANCH_WAITING)return PR_U68_290B_BRANCH_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_two_resume(&s->two,&d->two);
+    if(st==PR_U68_290B_TWO_ARGUMENT)return PR_U68_290B_BRANCH_ARGUMENT;
+    return branch_next(s,d,st);
 }
