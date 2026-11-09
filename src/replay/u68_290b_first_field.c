@@ -1,4 +1,5 @@
-#include "poolrad/replay/u1c_post_up.h"
+#include "poolrad/replay/u1c_up_dispatch.h"
+#include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -421,4 +422,50 @@ pr_u1c_up_status pr_u1c_up_resume(pr_u1c_up_session*s,pr_u1c_up_diagnostic*d){pr
     memset(d,0,sizeof *d);st=pr_u68_290b_exit_resume(&s->exit,&d->exit);
     if(st==PR_U68_290B_EXIT_ARGUMENT)return PR_U1C_UP_ARGUMENT;
     return u1c_next(s,d,st);
+}
+
+static void u1c_cmp_word_one(pr_r0899_cpu*c,uint16_t a){unsigned r=(a-1u)&0xffffu,p=r&255u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|(a==0?1u:0u)|((p&1u)?0u:4u)|(((a^1u^r)&0x10u)?0x10u:0u)|
+        (r==0?0x40u:0u)|(r&0x8000u?0x80u:0u)|(((a^1u)&(a^r)&0x8000u)?0x800u:0u));}
+static pr_290b_first_status u1c_upcase(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d,uint16_t site,int stage){
+    uint16_t cs,sp;pr_system_leaf_cpu t;pr_system_leaf_status st;
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));push(b,c,c->ax);c->ip=site;d->stage=stage;
+    if(rb(b,c->cs,site)!=0x9au||rw(b,c->cs,(uint16_t)(site+1u))!=0x182au)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=(uint16_t)(c->sp+2u);push(b,c,cs);push(b,c,(uint16_t)(site+5u));c->cs=rw(b,cs,(uint16_t)(site+3u));c->ip=0x182au;
+    if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+    {FIELDS(TO)}st=pr_system_upcase_182a(b->ram,n,&t);{FIELDS(FROM)}d->status=(int)st;
+    if(st!=PR_SYSTEM_LEAF_RETURNED)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=(uint16_t)(site+5u)||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+pr_290b_first_status pr_u1c_dispatch(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t off,v;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x33bdu||c->bp<8u||c->sp!=(uint16_t)(c->bp-2u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    off=(uint16_t)(c->di+0x0594u);if(off==0xffffu)return PR_290B_FIRST_PROFILE;
+    v=rw(b,c->es,off);u1c_cmp_word_one(c,v);
+    if(v<=1u){st=u1c_upcase(b,n,c,d,0x33c9u,1);if(st)return st;cmp8(c,(uint8_t)c->ax,0x45u);
+        if((uint8_t)c->ax!=0x45u){c->ip=0x344cu;return PR_290B_FIRST_DONE;}}
+    v=rb(b,c->ds,0x49ffu);cmp8(c,(uint8_t)v,0);if(v){c->ip=0x344cu;return PR_290B_FIRST_DONE;}
+    st=u1c_upcase(b,n,c,d,0x33ddu,2);if(st)return st;cmp8(c,(uint8_t)c->ax,0x45u);
+    c->ip=(uint8_t)c->ax==0x45u?0x33e6u:0x33ecu;return PR_290B_FIRST_DONE;
+}
+void pr_u1c_dispatch_session_init(pr_u1c_dispatch_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_up_session_init(&s->up);}}
+static pr_u1c_dispatch_status dispatch_next(pr_u1c_dispatch_session*s,pr_u1c_dispatch_diagnostic*d,pr_u1c_up_status st){
+    d->up_status=st;if(st==PR_U1C_UP_YIELD){s->phase=PR_U1C_DISPATCH_WAITING;return PR_U1C_DISPATCH_YIELD;}
+    s->phase=PR_U1C_DISPATCH_FINISHED;if(st==PR_U1C_UP_LOOP)return PR_U1C_DISPATCH_LOOP;
+    if(st!=PR_U1C_UP_REACHED)return PR_U1C_DISPATCH_STOP;
+    d->dispatch_status=pr_u1c_dispatch(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->dispatch);
+    return d->dispatch_status==PR_290B_FIRST_DONE?PR_U1C_DISPATCH_REACHED:PR_U1C_DISPATCH_STOP;
+}
+pr_u1c_dispatch_status pr_u1c_dispatch_start(pr_u1c_dispatch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u1c_dispatch_diagnostic*d){
+    pr_u1c_up_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U1C_DISPATCH_EMPTY||x->bp<8u)return PR_U1C_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u1c_up_start(&s->up,b,n,c,e,cl,pl,x,&d->up);return dispatch_next(s,d,st);
+}
+pr_u1c_dispatch_status pr_u1c_dispatch_resume(pr_u1c_dispatch_session*s,pr_u1c_dispatch_diagnostic*d){pr_u1c_up_status st;
+    if(!s||!d||s->phase!=PR_U1C_DISPATCH_WAITING)return PR_U1C_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u1c_up_resume(&s->up,&d->up);
+    if(st==PR_U1C_UP_ARGUMENT)return PR_U1C_DISPATCH_ARGUMENT;
+    return dispatch_next(s,d,st);
 }
