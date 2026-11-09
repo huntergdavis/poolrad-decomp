@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_operand_prefix.h"
+#include "poolrad/replay/u25_operand_tag.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -654,4 +654,42 @@ pr_u25_operand_status pr_u25_operand_resume(pr_u25_operand_session*s,pr_u25_oper
     memset(d,0,sizeof *d);st=pr_u1c_save_resume(&s->save,&d->save);
     if(st==PR_U1C_SAVE_ARGUMENT)return PR_U25_OPERAND_ARGUMENT;
     return operand_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_operand_tag(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t tag;uint16_t pc,off;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x005fu||c->bp<8u||c->bp>0xfff8u||c->sp!=(uint16_t)(c->bp-8u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;
+    tag=rb(b,c->ds,(uint16_t)(c->di+0x7005u));c->ax=(uint16_t)((c->ax&0xff00u)|tag);
+    if(tag>=1u&&tag<=3u){
+        cmp8(c,tag,tag);pc=rw(b,c->ds,0x49edu);pc=u25_inc_word(c,pc);ww(b,c->ds,0x49edu,pc);
+        c->ax=rw(b,c->ds,0x49edu);c->di=rw(b,c->ds,0x49deu);c->es=rw(b,c->ds,0x49e0u);c->di=second_add(c,c->di,c->ax);
+        off=(uint16_t)(c->di+0x6700u);c->dx=(uint16_t)((c->dx&0xff00u)|rb(b,c->es,off));
+        c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;
+        wb(b,c->ds,(uint16_t)(c->di+0x7045u),(uint8_t)c->dx);c->ip=0x0121u;return PR_290B_FIRST_DONE;
+    }
+    cmp8(c,tag,0x80u);if(tag==0x80u){c->ip=0x009au;return PR_290B_FIRST_OUTSIDE;}
+    cmp8(c,tag,0x81u);if(tag==0x81u){c->ip=0x00d7u;return PR_290B_FIRST_OUTSIDE;}
+    c->ip=0x0121u;return PR_290B_FIRST_DONE;
+}
+void pr_u25_tag_session_init(pr_u25_tag_session*s){if(s){memset(s,0,sizeof *s);pr_u25_operand_session_init(&s->operand);}}
+static pr_u25_tag_status tag_next(pr_u25_tag_session*s,pr_u25_tag_diagnostic*d,pr_u25_operand_status st){
+    d->operand_status=st;if(st==PR_U25_OPERAND_YIELD){s->phase=PR_U25_TAG_WAITING;return PR_U25_TAG_YIELD;}
+    s->phase=PR_U25_TAG_FINISHED;if(st==PR_U25_OPERAND_LOOP)return PR_U25_TAG_LOOP;
+    if(st==PR_U25_OPERAND_OTHER||st==PR_U25_OPERAND_ZERO)return PR_U25_TAG_OTHER;
+    if(st!=PR_U25_OPERAND_REACHED)return PR_U25_TAG_STOP;
+    d->tag_status=pr_u25_operand_tag(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->tag_status==PR_290B_FIRST_OUTSIDE)return PR_U25_TAG_STRING;
+    return d->tag_status==PR_290B_FIRST_DONE?PR_U25_TAG_REACHED:PR_U25_TAG_STOP;
+}
+pr_u25_tag_status pr_u25_tag_start(pr_u25_tag_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u25_tag_diagnostic*d){
+    pr_u25_operand_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U25_TAG_EMPTY)return PR_U25_TAG_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u25_operand_start(&s->operand,b,n,c,e,cl,pl,x,&d->operand);return tag_next(s,d,st);
+}
+pr_u25_tag_status pr_u25_tag_resume(pr_u25_tag_session*s,pr_u25_tag_diagnostic*d){pr_u25_operand_status st;
+    if(!s||!d||s->phase!=PR_U25_TAG_WAITING)return PR_U25_TAG_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u25_operand_resume(&s->operand,&d->operand);
+    if(st==PR_U25_OPERAND_ARGUMENT)return PR_U25_TAG_ARGUMENT;
+    return tag_next(s,d,st);
 }
