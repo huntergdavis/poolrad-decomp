@@ -1,0 +1,7 @@
+# Second SAVE store classifier entry
+
+`pr_second_class_start` and `pr_second_class_resume` extend the [second SAVE store-word entry](U1C_SECOND_STORE_ENTRY_SHARED_BUS.md) through the existing [store classifier entry](U25_STORE_CLASSIFIER_ENTRY_SHARED_BUS.md). On the reached pair path the shared bus executes the store-word prologue, pushes the live address and actual return frame, checks the near call, and stops at classifier `+06FB`. `PR_SECOND_SLOT_PAIR` identifies that entry for this wrapper; earlier statuses pass through unchanged. A malformed call stops after the effects already executed.
+
+Start rejects outer BP below 56 or any nonempty nested store, value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path to the second classifier's address and return frame, SUB flags, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover malformed calls; non-pair wrapper mappings are inherited and not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, classification, store effects, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
