@@ -48,6 +48,13 @@ class ApertureCensusTest(unittest.TestCase):
         self.assertEqual({(r["caller"], r["flat_callee"]) for r in rows},
                          {("overlay_u7f_number_0294_cpu.c", "pr_system_strstore_0b25"), ("resident_0709_printer_0768_cpu.c", "pr_system_strstore_0b25")})
 
+    def test_word_formatter_pointer_sources_are_distinct(self):
+        rows = {r["flat_callee"]: r for r in ac.pairs(ac.models())
+                if r["caller"] == "resident_00ba_word_string_1073_cpu.c"}
+        self.assertEqual(rows["pr_system_str_1366"]["pointer_source"], "code-literal+local")
+        self.assertEqual(rows["pr_system_strstore_0b25"]["pointer_source"], "caller-argument+local")
+        self.assertTrue(all(r["caller_declares_exclusion"] == "yes" for r in rows.values()))
+
     def test_an_unclassified_pointer_pair_fails_closed(self):
         rows = [dict(model="new_caller_cpu.c", kind="bus", declared_exclusion="yes", callees=["pr_system_strload_0b0b"])]
         with self.assertRaises(SystemExit):

@@ -89,6 +89,8 @@ resident_00ba_sidecar_remove_1509_cpu.c,pr_system_freemem_0254,yes,caller-argume
 resident_00ba_sidecar_remove_1509_cpu.c,pr_system_strload_0b0b,yes,code-literal+local,read,unreachable-by-construction,yes
 resident_00ba_window_16ec_cpu.c,pr_r0709_delay_wrapper_0dbe_cpu,no,-,-,no-pointer,yes
 resident_00ba_window_16ec_cpu.c,pr_system_strstore_0b25,yes,caller-argument+local,read,can-reach-under-a-corrupt-pointer,yes
+resident_00ba_word_string_1073_cpu.c,pr_system_str_1366,yes,code-literal+local,read,unreachable-by-construction,yes
+resident_00ba_word_string_1073_cpu.c,pr_system_strstore_0b25,yes,caller-argument+local,read,can-reach-under-a-corrupt-pointer,yes
 resident_0464_blit_1951_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_0464_compose_08d4_cpu.c,pr_system_move_1685,yes,caller-argument,read,can-reach-under-a-corrupt-pointer,yes
 resident_0709_glyph_01df_cpu.c,pr_system_upcase_182a,no,-,-,no-pointer,yes
@@ -104,6 +106,8 @@ resident_0709_printer_0768_cpu.c,pr_system_strstore_0b25,yes,caller-argument,rea
 resident_0709_rect_fill_00b7_cpu.c,pr_r0709_ega_reset_0000_cpu,no,-,-,no-pointer,yes
 resident_0709_rect_fill_00b7_cpu.c,pr_r0709_page_select_00a0_cpu,no,-,-,no-pointer,yes
 resident_0709_text_06a7_cpu.c,pr_a40_delay_029c_cpu,no,-,-,no-pointer,yes
+resident_0709_time_0c3f_cpu.c,pr_dos_gettime_00a2,no,-,-,no-pointer,yes
+resident_0709_time_0c3f_cpu.c,pr_system_longmul_0a5b,no,-,-,no-pointer,yes
 resident_08ae_driver_cpu.c,pr_r08ae_byte_181a_cpu,no,-,-,no-pointer,no
 resident_08ae_driver_cpu.c,pr_r08ae_delay_006c_cpu,no,-,-,no-pointer,no
 resident_08ae_driver_cpu.c,pr_r08ae_dispatch_00dc_cpu,no,-,-,no-pointer,no

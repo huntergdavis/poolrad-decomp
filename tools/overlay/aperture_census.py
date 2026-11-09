@@ -64,6 +64,8 @@ SOURCES = {
 
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
+    ("resident_00ba_word_string_1073_cpu.c", "pr_system_str_1366"): ("code-literal+local", "read", "Str writes a body-built SS:BP-0100h string and reads its CS power table; both flat windows are guarded with EGA attached"),
+    ("resident_00ba_word_string_1073_cpu.c", "pr_system_strstore_0b25"): ("caller-argument+local", "read", "StrStore copies the body-local string to the caller's live far destination; the destination segment is guarded before the flat leaf"),
     "resident_00ba_window_16ec_cpu.c": ("caller-argument+local", "read", "StrStore copies the caller string at BP+0A/+0C into the local BP-100h buffer; own stack and DS accesses are flat, aperture aliases excluded by contract"),
     ("resident_00ba_0973_cpu.c", "pr_res_00ba_1037_cpu"): ("local", "read", "1037 receives a byte value, not the node pointer; its destination is the body-built local SS:BP-0102h"),
     ("overlay_u23_append_0239_cpu.c", "pr_system_getmem_023f"): ("callee-returned", "read", "GetMem(3Fh) at 0297..029B and 02FC..0300 takes only the size; the block it returns is the pointer"),
