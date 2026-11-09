@@ -1,0 +1,7 @@
+# Second SAVE pair helper entry
+
+`pr_second_pair_start` and `pr_second_pair_resume` extend the [second slot dispatch](U25_SECOND_SLOT_DISPATCH_SHARED_BUS.md) through the existing [pair helper entry](U25_SLOT_PAIR_ENTRY_SHARED_BUS.md) when the second slot has pair type. The same bus and CPU execute the local-byte reads, argument and return-frame pushes, and checked near call; the composition stops at the operand-word helper entry. The returned `PR_SECOND_SLOT_PAIR` now identifies that reached entry for this wrapper. Other second-slot and earlier statuses pass through unchanged. A malformed reached call stops after the entry's executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested slot, branch, loader, SAVE, dispatcher or runner before mutation. This composition inherits prior bounds, independent iteration budgets, and caller responsibilities for code, writes and reached frames. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the second pair's real helper entry and atomic rejection and retry for every nested phase and invalid BP. Existing standalone pair-entry tests cover malformed calls and invalid entry; the wrapper's non-pair status mappings are inherited and not separately driven by this fixture. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, helper return, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
