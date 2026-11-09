@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_slot_dispatch.h"
+#include "poolrad/replay/u25_slot_pair_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -982,4 +982,40 @@ pr_slot_dispatch_status pr_slot_dispatch_resume(pr_slot_dispatch_session*s,pr_sl
     memset(d,0,sizeof *d);st=pr_slot_prefix_resume(&s->prefix,&d->prefix);
     if(st==PR_SLOT_PREFIX_ARGUMENT)return PR_SLOT_DISPATCH_ARGUMENT;
     return slot_dispatch_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_slot_pair_entry(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t disp;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x019eu||c->bp<18u||c->sp!=(uint16_t)(c->bp-10u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-9u)));push(b,c,c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-10u)));push(b,c,c->ax);push(b,c,c->cs);
+    c->ip=0x01a7u;d->stage=1;if(rb(b,c->cs,0x01a7u)!=0xe8u)return PR_290B_FIRST_CODE;
+    disp=rw(b,c->cs,0x01a8u);if((uint16_t)(0x01aau+disp)!=0x06afu)return PR_290B_FIRST_CODE;
+    push(b,c,0x01aau);c->ip=0x06afu;d->stage=2;return PR_290B_FIRST_DONE;
+}
+void pr_slot_pair_session_init(pr_slot_pair_session*s){if(s){memset(s,0,sizeof *s);pr_slot_dispatch_session_init(&s->dispatch);}}
+static pr_slot_pair_status slot_pair_next(pr_slot_pair_session*s,pr_slot_pair_diagnostic*d,pr_slot_dispatch_status st){
+    d->dispatch_status=st;if(st==PR_SLOT_DISPATCH_YIELD){s->phase=PR_SLOT_PAIR_WAITING;return PR_SLOT_PAIR_YIELD;}
+    s->phase=PR_SLOT_PAIR_FINISHED;if(st==PR_SLOT_DISPATCH_ZERO)return PR_SLOT_PAIR_ZERO;
+    if(st==PR_SLOT_DISPATCH_WORD)return PR_SLOT_PAIR_WORD;
+    if(st==PR_SLOT_DISPATCH_OTHER_TYPE)return PR_SLOT_PAIR_OTHER_TYPE;
+    if(st==PR_SLOT_DISPATCH_STRING)return PR_SLOT_PAIR_STRING;
+    if(st==PR_SLOT_DISPATCH_LOADER_STRING)return PR_SLOT_PAIR_LOADER_STRING;
+    if(st==PR_SLOT_DISPATCH_LIMIT)return PR_SLOT_PAIR_LIMIT;
+    if(st==PR_SLOT_DISPATCH_PROMPT)return PR_SLOT_PAIR_PROMPT;
+    if(st==PR_SLOT_DISPATCH_OTHER)return PR_SLOT_PAIR_OTHER;
+    if(st!=PR_SLOT_DISPATCH_PAIR)return PR_SLOT_PAIR_STOP;
+    d->entry_status=pr_u25_slot_pair_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_SLOT_PAIR_REACHED:PR_SLOT_PAIR_STOP;
+}
+pr_slot_pair_status pr_slot_pair_start(pr_slot_pair_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_slot_pair_diagnostic*d){
+    pr_slot_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SLOT_PAIR_EMPTY||x->bp<52u)return PR_SLOT_PAIR_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_slot_dispatch_start(&s->dispatch,b,n,c,e,cl,pl,x,max_iterations,&d->dispatch);return slot_pair_next(s,d,st);
+}
+pr_slot_pair_status pr_slot_pair_resume(pr_slot_pair_session*s,pr_slot_pair_diagnostic*d){pr_slot_dispatch_status st;
+    if(!s||!d||s->phase!=PR_SLOT_PAIR_WAITING)return PR_SLOT_PAIR_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_slot_dispatch_resume(&s->dispatch,&d->dispatch);
+    if(st==PR_SLOT_DISPATCH_ARGUMENT)return PR_SLOT_PAIR_ARGUMENT;
+    return slot_pair_next(s,d,st);
 }
