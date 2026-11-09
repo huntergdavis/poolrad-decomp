@@ -39,10 +39,11 @@ static pr_u3b0_mapped_status leaf(pr_bus *b,size_t n,pr_r0899_cpu *c,const pr_u3
 pr_u3b0_mapped_status pr_u3b0_mapped_060c(pr_bus *b,size_t n,pr_r0899_cpu *c,
     const pr_u3b0_mapped_env *e,pr_u3b0_mapped_diagnostic *d) {
     pr_u3b0_mapped_status s;uint8_t v;uint16_t off,seg;
-    if(!b || !b->ram || !b->ega || !c || !e || !d || n!=PR_BUS_RAM_SIZE || c->ip!=0x060cu ||
+    if(!b || !b->ram || !b->ega || !c || !e || !d || n!=PR_BUS_RAM_SIZE || (c->ip!=0x060cu && c->ip!=0x0691u) ||
        c->bp<0x0090u || c->bp>0xfff3u || c->sp<0x000au || c->sp>0xfff4u ||
        !ordinary(c->cs) || !ordinary(c->ds) || !ordinary(c->ss) || !ordinary(e->system_segment)) return PR_U3B0_MAPPED_ARGUMENT;
     memset(d,0,sizeof *d);
+    if(c->ip==0x060cu) {
     c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-0x60u)));
     push(b,c,c->ax);s=leaf(b,n,c,e,d,0x0610u,0x182au,0x0615u,2u);if(s!=PR_U3B0_MAPPED_BOUNDARY)return s;
     wb(b,c->ss,(uint16_t)(c->bp-0x60u),(uint8_t)c->ax);
@@ -53,6 +54,7 @@ pr_u3b0_mapped_status pr_u3b0_mapped_060c(pr_bus *b,size_t n,pr_r0899_cpu *c,
         v=rb(b,c->ss,(uint16_t)(c->bp-0x60u));cmp8(c,v,0x20u);
         if(v!=0x20u) { c->ip=0x0634u;return PR_U3B0_MAPPED_TEXT_SEARCH; }
         wb(b,c->ss,(uint16_t)(c->bp-0x63u),1u);
+    }
     }
     v=rb(b,c->ss,(uint16_t)(c->bp+0x0cu));cmp8(c,v,0u);
     if(v==0u) { c->ip=0x06cfu;return PR_U3B0_MAPPED_BOUNDARY; }

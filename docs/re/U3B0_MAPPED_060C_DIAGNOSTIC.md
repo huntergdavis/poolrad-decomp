@@ -8,6 +8,9 @@ membership/table path through `+06CF`. A non-space member of the first set
 stops before the unimplemented text-list search at `+0634`; other paths stop
 at `+06CF`. It does not execute the prompt epilogue or report entry2 provided.
 
+A live `+0691` entry is also accepted for composition after a separately
+executed text search; it skips the prior UpCase and first membership call.
+
 Sets at `CS:037D` and `CS:039D`, the mapping table at `DS:288C`, the extended
 flag pointer, the prompt frame and all previous prompt effects are live,
 caller-owned state. No private literal or lookup table is embedded. The
