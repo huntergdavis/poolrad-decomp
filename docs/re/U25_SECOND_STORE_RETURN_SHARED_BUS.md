@@ -1,0 +1,7 @@
+# Second SAVE low store return
+
+`pr_second_store_return_start` and `pr_second_store_return_resume` extend the [second class-four low store](U25_SECOND_CLASS4_LOW_SHARED_BUS.md) through the existing [shared-bus store epilogue and checked return](U25_STORE_RETURN_SHARED_BUS.md). The helper restores the live frame and executes `RETF 4` to SAVE `+02CD`, checking the target copied from the outer frame at start. Earlier low/high, class and other outcomes pass through unchanged. A mismatched live return stops after the epilogue's executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested low, dispatch, classifier-return, classifier, store, value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up second low no-op and `03DE` write routes through the checked SAVE return, copied target, flags, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched returns; high and earlier stop mappings are inherited and not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, subsequent SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
