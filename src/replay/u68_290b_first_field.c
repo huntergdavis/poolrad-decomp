@@ -1493,7 +1493,7 @@ static pr_next_dispatch_status next_dispatch_after(pr_next_dispatch_session*s,pr
     return d->dispatch_status==PR_290B_FIRST_DONE?PR_NEXT_DISPATCH_HANDLER:PR_NEXT_DISPATCH_STOP;
 }
 pr_next_dispatch_status pr_next_dispatch_start(pr_next_dispatch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_next_dispatch_diagnostic*d){
-    pr_runner_next_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_NEXT_DISPATCH_EMPTY)return PR_NEXT_DISPATCH_ARGUMENT;
+    pr_runner_next_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_NEXT_DISPATCH_EMPTY||s->runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_NEXT_DISPATCH_ARGUMENT;
     memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_runner_next_start(&s->runner,b,n,c,e,cl,pl,x,max_iterations,&d->runner);return next_dispatch_after(s,d,st);
 }
 pr_next_dispatch_status pr_next_dispatch_resume(pr_next_dispatch_session*s,pr_next_dispatch_diagnostic*d){pr_runner_next_status st;
