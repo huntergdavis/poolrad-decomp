@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_save_tag_branch.h"
+#include "poolrad/replay/u1c_save_slot_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -875,4 +875,40 @@ pr_save_tag_status pr_save_tag_resume(pr_save_tag_session*s,pr_save_tag_diagnost
     memset(d,0,sizeof *d);st=pr_word_return_resume(&s->word,&d->word);
     if(st==PR_WORD_RETURN_ARGUMENT)return PR_SAVE_TAG_ARGUMENT;
     return save_tag_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_save_slot_entry(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t cs,target;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x02b7u||c->sp<6u||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->ax=(uint16_t)((c->ax&0xff00u)|1u);push(b,c,c->ax);
+    c->ip=0x02bau;d->stage=1;if(rb(b,c->cs,c->ip)!=0x9au||rw(b,c->cs,0x02bbu)!=0x0025u)return PR_290B_FIRST_CODE;
+    cs=c->cs;push(b,c,cs);push(b,c,0x02bfu);c->cs=rw(b,cs,0x02bdu);c->ip=0x0025u;d->stage=2;
+    if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+    if(rb(b,c->cs,0x0025u)!=0xeau||rw(b,c->cs,0x0026u)!=0x0136u)return PR_290B_FIRST_CODE;
+    target=rw(b,c->cs,0x0028u);c->cs=target;c->ip=0x0136u;d->stage=3;
+    if(!ordinary(target))return PR_290B_FIRST_PROFILE;
+    return PR_290B_FIRST_DONE;
+}
+void pr_save_slot_session_init(pr_save_slot_session*s){if(s){memset(s,0,sizeof *s);pr_save_tag_session_init(&s->branch);}}
+static pr_save_slot_status save_slot_next(pr_save_slot_session*s,pr_save_slot_diagnostic*d,pr_save_tag_status st){
+    d->branch_status=st;if(st==PR_SAVE_TAG_YIELD){s->phase=PR_SAVE_SLOT_WAITING;return PR_SAVE_SLOT_YIELD;}
+    s->phase=PR_SAVE_SLOT_FINISHED;if(st==PR_SAVE_TAG_STRING)return PR_SAVE_SLOT_STRING;
+    if(st==PR_SAVE_TAG_LOADER_STRING)return PR_SAVE_SLOT_LOADER_STRING;
+    if(st==PR_SAVE_TAG_LIMIT)return PR_SAVE_SLOT_LIMIT;
+    if(st==PR_SAVE_TAG_PROMPT)return PR_SAVE_SLOT_PROMPT;
+    if(st==PR_SAVE_TAG_OTHER)return PR_SAVE_SLOT_OTHER;
+    if(st!=PR_SAVE_TAG_NUMERIC)return PR_SAVE_SLOT_STOP;
+    d->entry_status=pr_u1c_save_slot_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_SAVE_SLOT_REACHED:PR_SAVE_SLOT_STOP;
+}
+pr_save_slot_status pr_save_slot_start(pr_save_slot_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_save_slot_diagnostic*d){
+    pr_save_tag_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SAVE_SLOT_EMPTY)return PR_SAVE_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_save_tag_start(&s->branch,b,n,c,e,cl,pl,x,max_iterations,&d->branch);return save_slot_next(s,d,st);
+}
+pr_save_slot_status pr_save_slot_resume(pr_save_slot_session*s,pr_save_slot_diagnostic*d){pr_save_tag_status st;
+    if(!s||!d||s->phase!=PR_SAVE_SLOT_WAITING)return PR_SAVE_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_save_tag_resume(&s->branch,&d->branch);
+    if(st==PR_SAVE_TAG_ARGUMENT)return PR_SAVE_SLOT_ARGUMENT;
+    return save_slot_next(s,d,st);
 }
