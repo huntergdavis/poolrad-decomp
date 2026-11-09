@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_assembly.h"
+#include "poolrad/replay/u68_290b_mode.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -232,4 +232,44 @@ pr_u68_290b_assembly_status pr_u68_290b_assembly_resume(pr_u68_290b_assembly*s,p
     memset(d,0,sizeof *d);st=pr_u68_290b_branch_resume(&s->branch,&d->branch);
     if(st==PR_U68_290B_BRANCH_ARGUMENT)return PR_U68_290B_ASSEMBLY_ARGUMENT;
     return assembly_next(s,d,st);
+}
+
+pr_290b_first_status pr_290b_mode(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint8_t mode;uint16_t off,literal,site;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x2acdu||c->bp<0x043cu||c->bp>0xffeeu||
+       c->sp!=(uint16_t)(c->bp-0x0232u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    mode=rb(b,c->ds,0x49f3u);cmp8(c,mode,2u);
+    if(mode==2u){literal=0x28fau;site=0x2adfu;}
+    else{
+        c->di=rw(b,c->ds,0x49d6u);c->es=rw(b,c->ds,0x49d8u);off=(uint16_t)(c->di+0x0594u);
+        if(off==0xffffu){c->ip=0x2b02u;return PR_290B_FIRST_PROFILE;}
+        c->ax=(uint16_t)(rw(b,c->es,off)&1u);
+        c->flags=(uint16_t)((c->flags&~0x08d5u)|(c->ax==0?0x40u:0u)|(c->ax==0?4u:0u));
+        if(c->ax==0){c->ip=0x2b36u;return PR_290B_FIRST_DONE;}
+        literal=0x2903u;site=0x2b19u;
+    }
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);
+    st=string_call(b,n,c,d,site,0x0b0bu,1);if(st)return st;
+    c->di=literal;push(b,c,c->cs);push(b,c,c->di);st=string_call(b,n,c,d,(uint16_t)(site+10u),0x0b98u,2);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);c->ax=0x28u;push(b,c,c->ax);
+    st=string_call(b,n,c,d,(uint16_t)(site+24u),0x0b25u,3);if(st)return st;
+    c->ip=0x2b36u;return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_mode_init(pr_u68_290b_mode*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_assembly_init(&s->assembly);}}
+static pr_u68_290b_mode_status mode_next(pr_u68_290b_mode*s,pr_u68_290b_mode_diagnostic*d,pr_u68_290b_assembly_status st){
+    d->assembly_status=st;if(st==PR_U68_290B_ASSEMBLY_YIELD){s->phase=PR_U68_290B_MODE_WAITING;return PR_U68_290B_MODE_YIELD;}
+    s->phase=PR_U68_290B_MODE_FINISHED;if(st!=PR_U68_290B_ASSEMBLY_REACHED)return PR_U68_290B_MODE_STOP;
+    d->mode_status=pr_290b_mode(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->mode);
+    return d->mode_status==PR_290B_FIRST_DONE?PR_U68_290B_MODE_REACHED:PR_U68_290B_MODE_STOP;
+}
+pr_u68_290b_mode_status pr_u68_290b_mode_start(pr_u68_290b_mode*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,pr_u68_290b_mode_diagnostic*d){
+    pr_u68_290b_assembly_status st;if(!s||!b||!c||!e||!d||s->phase!=PR_U68_290B_MODE_EMPTY)return PR_U68_290B_MODE_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_290b_assembly_start(&s->assembly,b,n,c,e,&d->assembly);return mode_next(s,d,st);
+}
+pr_u68_290b_mode_status pr_u68_290b_mode_resume(pr_u68_290b_mode*s,pr_u68_290b_mode_diagnostic*d){pr_u68_290b_assembly_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_MODE_WAITING)return PR_U68_290B_MODE_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_assembly_resume(&s->assembly,&d->assembly);
+    if(st==PR_U68_290B_ASSEMBLY_ARGUMENT)return PR_U68_290B_MODE_ARGUMENT;
+    return mode_next(s,d,st);
 }
