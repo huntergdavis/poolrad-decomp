@@ -1,0 +1,9 @@
+# Second SAVE word and tag branch
+
+`pr_second_branch_start` and `pr_second_branch_resume` extend the [second numeric loader return](U25_SECOND_LOADER_RETURN_SHARED_BUS.md) through the existing shared-bus SAVE operand-word helper entry, checked helper `RETF 4`, and live tag branch. They stop at numeric `+02B7` or SAVE-string `+02CF`. The helper target is copied from the reached SAVE frame before its call; mismatched live returns stop after executed effects. No selected SAVE body is executed.
+
+Second operand-string and second-loop-limit outcomes remain distinct from the second SAVE-string branch and from first-SAVE stops. The wrapper rejects outer BP below 56 or a nonempty nested loader, SAVE, dispatcher or runner before mutation. It inherits earlier budgets, bounds and caller responsibilities, including immutable code outside EGA, writes avoiding code and valid reached frames. These are bounded assumptions, not a general alias or hardware proof.
+
+The [SAVE word-helper entry](U1C_SAVE_WORD_ENTRY_SHARED_BUS.md), [word return](U25_WORD_RETURN_SHARED_BUS.md), and [SAVE tag branch](U1C_SAVE_TAG_BRANCH_SHARED_BUS.md) document the pinned source and prior evidence. No original bytes are embedded.
+
+Synthetic tests cover the idle-to-Up route through a second numeric SAVE to `+02B7`, a distinct second operand-string stop, invalid-BP atomic rejection and retry, and suspended CPU tampering. Existing standalone branch tests cover SAVE-string behavior; the second SAVE-string and second-limit mappings are not separately driven by this integration fixture. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. This composition has no native differential; selected bodies, further iterations, high/other classes, string execution, movement, visual parity, full gameplay and coverage credit remain unverified.
