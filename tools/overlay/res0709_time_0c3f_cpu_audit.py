@@ -11,6 +11,9 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_16
 import res08ae_time_0000_cpu_audit as audit
 from resident_loader_map import unpack
 
+# Identifies the audited body; this does not assert coverage or identity credit.
+CHECKER_ROWS = ('RES_0709_0C3F',)
+
 image = bytes(unpack((audit.ROOT / 'resources/DOS/POOLRAD/START.EXE').read_bytes())[0])
 audit.SPANS['body'] = (0x0709, 0x0c3f, 0x0cab,
                        'a8e33767ba204b74a7c909cb85a7580ddbbaa36d60dfafb5fb3425d8c16412ed', 48)

@@ -50,6 +50,7 @@ target = root / 'src/recovered/resident_0709_time_0c3f_cpu.c'
 if '--check' in sys.argv:
     if target.read_text() != source:
         raise SystemExit('generated source differs')
+    print('EMIT_CHECK OK')
 else:
     target.write_text(source)
 print('0709 clock cases:', len(e.ins))
