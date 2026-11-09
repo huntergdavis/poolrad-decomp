@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_first_field.h"
+#include "poolrad/replay/u68_290b_two_fields.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
 static size_t at(uint16_t s,uint16_t o){return (((size_t)s<<4u)+o)&MASK;}
@@ -85,4 +85,59 @@ pr_u68_290b_status pr_u68_290b_resume(pr_u68_290b*s,pr_u68_290b_diagnostic*d){pr
     memset(d,0,sizeof *d);st=pr_u68_prompt_resume(&s->u68,&d->u68);
     if(st==PR_U68_PROMPT_ARGUMENT)return PR_U68_290B_ARGUMENT;
     return next(s,d,st);
+}
+
+/* Pinned normal/386 MULW: SF/AF retained, ZF from AX, PF from all four
+ * product bytes, CF/OF set iff DX nonzero (the later ADD normally kills it). */
+static void second_mul(pr_r0899_cpu*c,uint16_t value){uint32_t p=(uint32_t)c->ax*value,fold=p;
+    c->ax=(uint16_t)p;c->dx=(uint16_t)(p>>16);fold^=fold>>16;fold^=fold>>8;fold^=fold>>4;fold^=fold>>2;fold^=fold>>1;
+    c->flags=(uint16_t)((c->flags&~0x0845u)|(c->dx?0x0801u:0u)|(c->ax==0?0x0040u:0u)|((fold&1u)?0u:0x0004u));}
+static uint16_t second_add(pr_r0899_cpu*c,uint16_t a,uint16_t b){unsigned wide=(unsigned)a+b,r=wide&0xffffu,p=r&255u;
+    p^=p>>4;p^=p>>2;p^=p>>1;c->flags=(uint16_t)((c->flags&~0x08d5u)|(wide>0xffffu?1u:0u)|((p&1u)?0u:4u)|
+        (((a^b^r)&0x10u)?0x10u:0u)|(r==0?0x40u:0u)|(r&0x8000u?0x80u:0u)|((~(a^b)&(a^r)&0x8000u)?0x800u:0u));return (uint16_t)r;}
+pr_290b_first_status pr_290b_second_field(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t off,cs,sp,rel;uint8_t v;pr_res_1073_cpu t;pr_res_1073_status fs;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x29a6u||c->bp<0x043cu||c->bp>0xffeeu||
+       c->sp!=(uint16_t)(c->bp-0x0232u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);
+    c->di=rw(b,c->ds,0x49d2u);c->es=rw(b,c->ds,0x49d4u);c->ax=10u;off=(uint16_t)(c->di+0x0190u);
+    if(off==0xffffu){c->ip=0x29b3u;return PR_290B_FIRST_PROFILE;}
+    second_mul(c,rw(b,c->es,off));c->di=rw(b,c->ds,0x49d2u);c->es=rw(b,c->ds,0x49d4u);off=(uint16_t)(c->di+0x018eu);
+    if(off==0xffffu){c->ip=0x29bcu;return PR_290B_FIRST_PROFILE;}
+    c->ax=second_add(c,c->ax,rw(b,c->es,off));push(b,c,c->ax);push(b,c,c->cs);c->ip=0x29c3u;d->stage=1;rel=rw(b,c->cs,0x29c4u);
+    if(rb(b,c->cs,0x29c3u)!=0xe8u||(uint16_t)(0x29c6u+rel)!=0x1073u)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=(uint16_t)(c->sp+4u);push(b,c,0x29c6u);c->ip=0x1073u;
+    {FIELDS(TO)}fs=pr_res_00ba_1073_cpu(b,n,&t,&d->formatter_callee,&d->formatter_status);{FIELDS(FROM)}
+    d->status=(int)fs;if(fs!=PR_RES_1073_OK)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=0x29c6u||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+    c->di=(uint16_t)(c->bp-8u);push(b,c,c->ss);push(b,c,c->di);c->ax=2;push(b,c,c->ax);
+    st=string_call(b,n,c,d,0x29cfu,0x0b25u,2);if(st)return st;
+    v=rb(b,c->ss,(uint16_t)(c->bp-8u));cmp8(c,v,2u);
+    if(v<2u){
+        c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->di=0x28f2u;push(b,c,c->cs);push(b,c,c->di);
+        st=string_call(b,n,c,d,0x29e5u,0x0b0bu,3);if(st)return st;
+        c->di=(uint16_t)(c->bp-8u);push(b,c,c->ss);push(b,c,c->di);
+        st=string_call(b,n,c,d,0x29efu,0x0b98u,4);if(st)return st;
+        c->di=(uint16_t)(c->bp-8u);push(b,c,c->ss);push(b,c,c->di);c->ax=2;push(b,c,c->ax);
+        st=string_call(b,n,c,d,0x29fdu,0x0b25u,5);if(st)return st;
+    }
+    c->ip=0x2a02u;return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_two_init(pr_u68_290b_two*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_init(&s->first);}}
+static pr_u68_290b_two_status two_next(pr_u68_290b_two*s,pr_u68_290b_two_diagnostic*d,pr_u68_290b_status st){
+    d->first_status=st;if(st==PR_U68_290B_YIELD){s->phase=PR_U68_290B_TWO_WAITING;return PR_U68_290B_TWO_YIELD;}
+    s->phase=PR_U68_290B_TWO_FINISHED;if(st!=PR_U68_290B_FIRST_FIELD)return PR_U68_290B_TWO_STOP;
+    d->second_status=pr_290b_second_field(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->second);
+    return d->second_status==PR_290B_FIRST_DONE?PR_U68_290B_TWO_FIELDS:PR_U68_290B_TWO_STOP;
+}
+pr_u68_290b_two_status pr_u68_290b_two_start(pr_u68_290b_two*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,pr_u68_290b_two_diagnostic*d){
+    pr_u68_290b_status st;if(!s||!b||!c||!e||!d||s->phase!=PR_U68_290B_TWO_EMPTY)return PR_U68_290B_TWO_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_290b_start(&s->first,b,n,c,e,&d->first);return two_next(s,d,st);
+}
+pr_u68_290b_two_status pr_u68_290b_two_resume(pr_u68_290b_two*s,pr_u68_290b_two_diagnostic*d){pr_u68_290b_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_TWO_WAITING)return PR_U68_290B_TWO_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_resume(&s->first,&d->first);
+    if(st==PR_U68_290B_ARGUMENT)return PR_U68_290B_TWO_ARGUMENT;
+    return two_next(s,d,st);
 }

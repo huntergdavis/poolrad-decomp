@@ -10,6 +10,7 @@
 #include "poolrad/replay/u3b0_prompt_session.h"
 #include "poolrad/replay/u68_prompt_098f.h"
 #include "poolrad/replay/u68_290b_first_field.h"
+#include "poolrad/replay/u68_290b_two_fields.h"
 #include "poolrad/replay/crt_input_fifo.h"
 #include "poolrad/replay/u3b0_return_06cf.h"
 #include "poolrad/replay/u3b0_character_059c.h"
@@ -137,7 +138,11 @@ static void display_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q,unsigned v
     farcall(r,0x6800,0x2993,0x0af8,0x0b98);farcall(r,0x6800,0x29a1,0x0af8,0x0b25);
     farcall(r,0x6800,0x108e,0x0af8,0x1366);farcall(r,0x6800,0x10a2,0x0af8,0x0b25);
     for(i=0;i<10;i++,power/=10){put(r,0x0af8,0x12a6+4*i,power);put(r,0x0af8,0x12a8+4*i,power>>16);}
+    r[p(0x6800,0x29c3)]=0xe8;put(r,0x6800,0x29c4,(uint16_t)(0x1073-0x29c6));
+    farcall(r,0x6800,0x29cf,0x0af8,0x0b25);farcall(r,0x6800,0x29e5,0x0af8,0x0b0b);
+    farcall(r,0x6800,0x29ef,0x0af8,0x0b98);farcall(r,0x6800,0x29fd,0x0af8,0x0b25);
     r[p(0x6800,0x28f2)]=1;r[p(0x6800,0x28f3)]='X';put(r,0x5000,0x1192,value);
+    put(r,0x5000,0x1190,0);put(r,0x5000,0x118e,5);
 }
 static void enter_290b(pr_bus*b,pr_r0899_cpu*c){c->cs=0x6800;c->ip=0x290b;c->sp=0x4018;c->bp=0x4058;
     put(b->ram,c->ss,0x4018,0x0ba0);put(b->ram,c->ss,0x401a,0x7600);}
@@ -299,6 +304,40 @@ int main(void){
     CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_CALLEE && c.ip==0x1366 && fd.stage==1 && fd.status==PR_RES_1073_CALLEE);
     display_setup(&b,&c,&q,42);enter_290b(&b,&c);r[p(c.ds,0x49fa)]=2;
     CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_OUTSIDE && c.ip==0x2929 && r[p(c.ss,0x4015)]==5);
+    }
+    /* U68 idle-to-Up composes both source fields and never repeats setup. */
+    {clock_state ts={0,0};pr_u3b0_clock_draw_env ce={clock_service,&ts,65536,65536,env};pr_u68_290b_two bridge;pr_u68_290b_two_diagnostic td;pr_290b_first_diagnostic fd;
+    ce.draw.pass.target.cs=0x7600;ce.draw.pass.target.ip=0x09d5;
+    display_setup(&b,&c,&q,7);pr_u68_290b_two_init(&bridge);
+    CHECK(pr_u68_290b_two_start(&bridge,&b,PR_BUS_RAM_SIZE,&c,&ce,&td)==PR_U68_290B_TWO_YIELD && c.ip==0x048e && ts.calls==2);
+    before=c;c.ax^=1;CHECK(pr_u68_290b_two_resume(&bridge,&td)==PR_U68_290B_TWO_ARGUMENT && bridge.phase==PR_U68_290B_TWO_WAITING);c=before;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_290b_two_resume(&bridge,&td)==PR_U68_290B_TWO_FIELDS && c.cs==0x6800 && c.ip==0x2a02 && ts.calls==2 && td.second.stage==5);
+    CHECK(r[p(c.ss,0x4011)]==2 && r[p(c.ss,0x4012)]=='X' && r[p(c.ss,0x4013)]=='7' && r[p(c.ss,0x400e)]==2 && r[p(c.ss,0x400f)]=='X' && r[p(c.ss,0x4010)]=='5');
+    ts.calls=0;display_setup(&b,&c,&q,42);put(r,0x5000,0x1190,12);put(r,0x5000,0x118e,3);pr_u68_290b_two_init(&bridge);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u68_290b_two_start(&bridge,&b,PR_BUS_RAM_SIZE,&c,&ce,&td)==PR_U68_290B_TWO_FIELDS && td.second.stage==2 && c.ip==0x2a02);
+    CHECK(r[p(c.ss,0x4012)]=='4' && r[p(c.ss,0x4013)]=='2' && r[p(c.ss,0x400f)]=='1' && r[p(c.ss,0x4010)]=='2');
+    display_setup(&b,&c,&q,42);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    put(r,0x5000,0x1190,0xffff);put(r,0x5000,0x118e,12);r[p(c.cs,0x29c3)]=0x90;
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_CODE && c.ip==0x29c3 && c.ax==2 && c.dx==9 && (c.flags&0x08d5u)==0x0011u && fd.stage==1);
+    display_setup(&b,&c,&q,7);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    put(r,c.ds,0x49d2,0x3e81);put(r,c.ds,0x49d4,c.ss);
+    {unsigned a=(unsigned)r[p(c.ss,0x4011)]|((unsigned)r[p(c.ss,0x4012)]<<8);unsigned z=(unsigned)r[p(c.ss,0x400f)]|((unsigned)r[p(c.ss,0x4010)]<<8);char expect[8];
+    snprintf(expect,sizeof expect,"%u",(10u*a+z)&0xffffu);
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE && r[p(c.ss,0x400f)]==(uint8_t)expect[0] && r[p(c.ss,0x4010)]==(uint8_t)expect[1]);}
+    display_setup(&b,&c,&q,42);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    put(r,c.ds,0x49d2,0);put(r,c.ds,0x49d4,0xa000);ega->plane[0][0x190]=0x34;ega->plane[0][0x191]=0x12;
+    ega->plane[0][0x18e]=5;ega->plane[0][0x18f]=0;ega->plane[1][0x18f]=0x77;
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE && c.ip==0x2a02 && r[p(c.ss,0x400f)]=='4' && r[p(c.ss,0x4010)]=='6' && ega->latch[1]==0x77);
+    display_setup(&b,&c,&q,42);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    put(r,c.ds,0x49d2,0xfe6f);put(r,c.ds,0x49d4,0xa000);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_PROFILE && c.ip==0x29b3 && c.ax==10 && memcmp(old,ega,sizeof *ega)==0);
+    display_setup(&b,&c,&q,42);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    put(r,c.ds,0x49d2,0xfe71);put(r,c.ds,0x49d4,0xa000);ega->plane[0][1]=0xff;ega->plane[0][2]=0xff;before=c;
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_PROFILE && c.ip==0x29bc && c.ax==0xfff6 && c.dx==9 && (c.flags&0x0845u)==0x0805u && (c.flags&0x0090u)==(before.flags&0x0090u));
+    display_setup(&b,&c,&q,42);enter_290b(&b,&c);CHECK(pr_290b_first_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_DONE);
+    c.sp--;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_290b_second_field(&b,PR_BUS_RAM_SIZE,&c,&fd)==PR_290B_FIRST_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);
     }
     free(old);free(ega);free(saved);free(r);printf("3B0 drawer/wait: %u checks passed\n",checks);return 0;
 }
