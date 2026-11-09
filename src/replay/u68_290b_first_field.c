@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_store_classifier_entry.h"
+#include "poolrad/replay/u25_classifier_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1160,4 +1160,49 @@ pr_store_class_status pr_store_class_resume(pr_store_class_session*s,pr_store_cl
     memset(d,0,sizeof *d);st=pr_save_store_resume(&s->store,&d->store);
     if(st==PR_SAVE_STORE_ARGUMENT)return PR_STORE_CLASS_ARGUMENT;
     return store_class_next(s,d,st);
+}
+
+static void class_cmp16(pr_r0899_cpu*c,uint16_t a,uint16_t b){unsigned r=(a-b)&0xffffu,p=r&255u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|(a<b?1u:0u)|((p&1u)?0u:4u)|(((a^b^r)&0x10u)?0x10u:0u)|
+        (r==0?0x40u:0u)|(r&0x8000u?0x80u:0u)|(((a^b)&(a^r)&0x8000u)?0x800u:0u));}
+static void class_range(pr_bus*b,pr_r0899_cpu*c,uint16_t lo,uint16_t hi,uint8_t value){uint16_t a=rw(b,c->ss,(uint16_t)(c->bp+6u));class_cmp16(c,a,lo);if(a<lo)return;
+    a=rw(b,c->ss,(uint16_t)(c->bp+6u));class_cmp16(c,a,hi);if(a<=hi)wb(b,c->ss,(uint16_t)(c->bp-1u),value);}
+pr_290b_first_status pr_u25_classifier_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x06fbu||c->sp<4u||c->sp>0xfff8u||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=store_sub2(c,c->sp);wb(b,c->ss,(uint16_t)(c->bp-1u),4u);
+    class_range(b,c,0x4900u,0x4cffu,0u);class_range(b,c,0x6b00u,0x6effu,1u);
+    class_range(b,c,0x9700u,0x98ffu,2u);class_range(b,c,0x9900u,0xb6ffu,3u);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+4u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_class_return_session_init(pr_class_return_session*s){if(s){memset(s,0,sizeof *s);pr_store_class_session_init(&s->store);}}
+static pr_class_return_status class_return_next(pr_class_return_session*s,pr_class_return_diagnostic*d,pr_store_class_status st){
+    pr_290b_return_target x;
+    d->store_status=st;if(st==PR_STORE_CLASS_YIELD){s->phase=PR_CLASS_RETURN_WAITING;return PR_CLASS_RETURN_YIELD;}
+    s->phase=PR_CLASS_RETURN_FINISHED;if(st==PR_STORE_CLASS_ZERO)return PR_CLASS_RETURN_ZERO;
+    if(st==PR_STORE_CLASS_WORD)return PR_CLASS_RETURN_WORD;
+    if(st==PR_STORE_CLASS_OTHER_TYPE)return PR_CLASS_RETURN_OTHER_TYPE;
+    if(st==PR_STORE_CLASS_STRING)return PR_CLASS_RETURN_STRING;
+    if(st==PR_STORE_CLASS_LOADER_STRING)return PR_CLASS_RETURN_LOADER_STRING;
+    if(st==PR_STORE_CLASS_LIMIT)return PR_CLASS_RETURN_LIMIT;
+    if(st==PR_STORE_CLASS_PROMPT)return PR_CLASS_RETURN_PROMPT;
+    if(st==PR_STORE_CLASS_OTHER)return PR_CLASS_RETURN_OTHER;
+    if(st!=PR_STORE_CLASS_REACHED)return PR_CLASS_RETURN_STOP;
+    x=(pr_290b_return_target){s->cpu->cs,0x0c84u,(uint16_t)(s->cpu->sp+6u),s->cpu->bp,s->cpu->ss};
+    d->return_status=pr_u25_classifier_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&x);
+    return d->return_status==PR_290B_FIRST_DONE?PR_CLASS_RETURN_REACHED:PR_CLASS_RETURN_STOP;
+}
+pr_class_return_status pr_class_return_start(pr_class_return_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_class_return_diagnostic*d){
+    pr_store_class_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_CLASS_RETURN_EMPTY)return PR_CLASS_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_store_class_start(&s->store,b,n,c,e,cl,pl,x,max_iterations,&d->store);return class_return_next(s,d,st);
+}
+pr_class_return_status pr_class_return_resume(pr_class_return_session*s,pr_class_return_diagnostic*d){pr_store_class_status st;
+    if(!s||!d||s->phase!=PR_CLASS_RETURN_WAITING)return PR_CLASS_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_store_class_resume(&s->store,&d->store);
+    if(st==PR_STORE_CLASS_ARGUMENT)return PR_CLASS_RETURN_ARGUMENT;
+    return class_return_next(s,d,st);
 }
