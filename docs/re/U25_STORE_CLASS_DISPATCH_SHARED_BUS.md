@@ -1,0 +1,11 @@
+# U25 store-word class dispatch
+
+`pr_u25_store_class_dispatch` executes `+0C84` and the reached class comparisons: write AL to SS:BP-1, reread that live local into AL, and compare in source order. It stops before class bodies `+0C8E`, `+0CBB`, `+0CDF`, `+0CF9`, `+0D14` for classes 0–4, or at unmatched epilogue `+0E06`. The final comparison flags remain live. The shared-bus local write and reread can differ on mapped hardware; dispatch uses the value actually read.
+
+`pr_store_dispatch_start` and `pr_store_dispatch_resume` extend the [classifier return](U25_CLASSIFIER_RETURN_SHARED_BUS.md) to these boundaries. Other slot-type and earlier bounded stops remain distinct; no class body or store effect is executed.
+
+Pinned GAME.OVR SHA-256 is `872964a32cef0fc32bbf83bab68b15e04ad36d59076f37b00a179dfee7928614`, U25 base `74D3`. Independently decoded spans have SHA-256: `[0C84,0C8E)` `c241c03f30673c4bd03ac25f703f0ab47015c448eefccbce80a39191b5cc54cb`; `[0CB7,0CBB)` `741c13c7b978b854a9c4004147f32391ea29841b86ee0bfdc49aa428a60c987e`; `[0CDB,0CDF)` `4f8fb0d95022cd69066e29ed5990873b313c315e4e50083e406d020c5aaa4d44`; `[0CF5,0CF9)` `2fa43acc0852e8270b00ccb76d492767cf13f048251ce0b54747a3f6b9bec740`; `[0D0D,0D14)` `7a8ca57f46a993703448c5c3be1c173b3e47b8467037571ed97cbb527d4c9c07`. The [store-word audit](U25_STORE_WORD_0C77.md) supplies prior source and flat-RAM evidence. No original bytes are embedded.
+
+Standalone entry requires IP `0C84`, BP at least 2, SP=BP-2, exactly 1 MiB RAM, attached EGA, and ordinary CS/DS/SS windows below `9000` or at least `B000`. The composition inherits earlier bounds and caller responsibilities. These are bounded assumptions, not a general hardware proof.
+
+Synthetic tests cover the idle-to-Up class-4 route, all 256 class bytes and independently calculated comparison flags in RAM, preserved non-arithmetic flags, and invalid-entry atomicity. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. This composition has no native differential or direct mapped-hardware reread test; class bodies, store effects, other slot types, later SAVE, string execution, movement, visual parity, full gameplay and coverage credit remain unverified.
