@@ -1,0 +1,7 @@
+# Second SAVE class-four low store
+
+`pr_second_class4_start` and `pr_second_class4_resume` extend the [second store class dispatch](U25_SECOND_STORE_DISPATCH_SHARED_BUS.md) through the existing [class-four low helper](U25_STORE_CLASS4_LOW_SHARED_BUS.md). The reached helper uses shared-bus reads and performs the source low-address writes or no-op paths, stopping at the common epilogue; high addresses stop before their body. Separate second-class-four low and high outcomes preserve all earlier outcomes. The epilogue and high-address body are not executed.
+
+Start rejects outer BP below 56 or any nonempty nested dispatch, classifier-return, classifier, store, value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up second class-four low no-op route, the `03DE` word write, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover low writes, no-ops and high stops; second-route other writes and high mappings and earlier stop mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, high-address body, epilogue, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
