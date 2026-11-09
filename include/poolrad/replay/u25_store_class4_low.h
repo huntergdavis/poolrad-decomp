@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_STORE_CLASS4_LOW_H
+#define POOLRAD_REPLAY_U25_STORE_CLASS4_LOW_H
+#include "poolrad/replay/u25_store_class_dispatch.h"
+pr_290b_first_status pr_u25_store_class4_low(pr_bus *bus,size_t size,pr_r0899_cpu *cpu);
+typedef enum { PR_CLASS4_LOW_EMPTY=0,PR_CLASS4_LOW_WAITING,PR_CLASS4_LOW_FINISHED } pr_class4_low_phase;
+typedef enum { PR_CLASS4_LOW_YIELD=0,PR_CLASS4_LOW_REACHED,PR_CLASS4_LOW_HIGH,PR_CLASS4_LOW_CLASS0,PR_CLASS4_LOW_CLASS1,PR_CLASS4_LOW_CLASS2,PR_CLASS4_LOW_CLASS3,PR_CLASS4_LOW_UNMATCHED,PR_CLASS4_LOW_ZERO,PR_CLASS4_LOW_WORD,PR_CLASS4_LOW_OTHER_TYPE,PR_CLASS4_LOW_STRING,PR_CLASS4_LOW_LOADER_STRING,PR_CLASS4_LOW_LIMIT,PR_CLASS4_LOW_PROMPT,PR_CLASS4_LOW_OTHER,PR_CLASS4_LOW_ARGUMENT,PR_CLASS4_LOW_STOP } pr_class4_low_status;
+typedef struct { pr_class4_low_phase phase;pr_store_dispatch_session dispatch;pr_bus *bus;pr_r0899_cpu *cpu; } pr_class4_low_session;
+typedef struct { pr_store_dispatch_status dispatch_status;pr_store_dispatch_diagnostic dispatch;pr_290b_first_status low_status; } pr_class4_low_diagnostic;
+void pr_class4_low_session_init(pr_class4_low_session *state);
+pr_class4_low_status pr_class4_low_start(pr_class4_low_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_class4_low_diagnostic *diagnostic);
+pr_class4_low_status pr_class4_low_resume(pr_class4_low_session *state,pr_class4_low_diagnostic *diagnostic);
+#endif

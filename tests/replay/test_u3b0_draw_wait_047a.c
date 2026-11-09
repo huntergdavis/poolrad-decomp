@@ -1,3 +1,4 @@
+#include "poolrad/replay/u25_store_class4_low.h"
 #include "poolrad/replay/u25_store_class_dispatch.h"
 #include "poolrad/replay/u25_classifier_return.h"
 #include "poolrad/replay/u25_store_classifier_entry.h"
@@ -659,6 +660,28 @@ int main(void){
     CHECK(pr_u25_store_class_dispatch(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_DONE && c.ip==(t<5?ips[t]:0x0e06) && c.ax==(uint16_t)(0xa500u|t) && r[p(c.ss,c.bp-1)]==t && (c.flags&0x08d5u)==f && (c.flags&0x0200u));}
     c=state;c.ip=0x0c84;c.sp--;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
     CHECK(pr_u25_store_class_dispatch(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);}
+    memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
+    {pr_class4_low_session joined;pr_class4_low_diagnostic ld;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
+    pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
+    je.draw.pass.target=ce.draw.pass.target;memcpy(snapshot,r,PR_BUS_RAM_SIZE);memcpy(esnapshot,ega,sizeof *ega);
+    display_setup(&b,&c,&q,7);put(r,0x5000,0x11f6,0);put(r,0x5000,0x3594,0);r[p(c.ds,0x49f3)]=2;r[p(c.ds,0x84e4)]=0;r[p(c.ds,0x49ff)]=0;
+    put(r,c.ds,0x49e3,0x1234);put(r,c.ds,0x49de,0);put(r,c.ds,0x49e0,0x5000);r[p(0x5000,0x7934)]=9;r[p(0x5000,0x7935)]=2;r[p(0x5000,0x7936)]=0x42;r[p(0x5000,0x7937)]=0x77;r[p(0x5000,0x7938)]=1;r[p(0x5000,0x7939)]=0x22;r[p(0x5000,0x793a)]=0x33;
+    put(r,c.ss,c.bp,0x4060);put(r,c.ss,c.bp+2,0x339a);put(r,c.ss,c.bp+4,0x7900);farcall(r,0x7900,0x02a8,0x5100,0x004d);r[p(0x5100,0x004d)]=0xea;put(r,0x5100,0x004e,0x06af);put(r,0x5100,0x0050,0x7100);farcall(r,0x7900,0x02ba,0x5100,0x0025);r[p(0x5100,0x0025)]=0xea;put(r,0x5100,0x0026,0x0136);put(r,0x5100,0x0028,0x7100);r[p(0x7100,0x01a7)]=0xe8;put(r,0x7100,0x01a8,0x0505);farcall(r,0x7900,0x02c8,0x5100,0x0052);r[p(0x5100,0x0052)]=0xea;put(r,0x5100,0x0053,0x0c77);put(r,0x5100,0x0055,0x7100);r[p(0x7100,0x0c81)]=0xe8;put(r,0x7100,0x0c82,0xfa77);pr_class4_low_session_init(&joined);
+    CHECK(pr_class4_low_start(&joined,&b,PR_BUS_RAM_SIZE,&c,&je,&cl,&pl,&target,1,&ld)==PR_CLASS4_LOW_YIELD);
+    target.ip=0x1234;before=c;c.ax^=1;CHECK(pr_class4_low_resume(&joined,&ld)==PR_CLASS4_LOW_ARGUMENT && joined.phase==PR_CLASS4_LOW_WAITING);c=before;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_class4_low_resume(&joined,&ld)==PR_CLASS4_LOW_REACHED && c.cs==0x7100 && c.ip==0x0e06 && c.sp==0x403a && c.bp==0x403c && c.ax==0x3322 && c.di==1 && c.dx==0x42 && (c.cx&255u)==8 && (c.flags&0x08d5u)==0x14 && ld.low_status==PR_290B_FIRST_DONE);
+    CHECK(r[p(c.ds,0x7006)]==2 && r[p(c.ds,0x7086)]==0x42 && r[p(c.ds,0x7046)]==0x77 && r[p(c.ds,0x7007)]==1 && r[p(c.ds,0x7087)]==0x22 && r[p(c.ds,0x7047)]==0x33 && r[p(c.ds,0x49ed)]==0x3b);
+    CHECK(r[p(c.ss,c.bp-4)]==0x22 && r[p(c.ss,c.bp-3)]==0x33);
+    {pr_r0899_cpu state=c;unsigned i;static const uint16_t addresses[]={0x00fb,0x00fc,0x00b1,0x03de,0x00b8,0x00b9,0x1234,0xbf67,0xbf68,0xffff};
+    for(i=0;i<sizeof addresses/sizeof addresses[0];i++){uint16_t a=addresses[i];unsigned rhs=a>=0xbf68?0xbf68:a==0xfb?0xfb:a==0xfc?0xfc:a==0xb1?0xb1:a==0x3de?0x3de:a==0xb8?0xb8:0xb9;unsigned q=(a-rhs)&0xffffu,par=q&255u;uint16_t f;par^=par>>4;par^=par>>2;par^=par>>1;f=(uint16_t)((a<rhs?1u:0u)|((par&1u)?0u:4u)|(((a^rhs^q)&16u)?16u:0u)|(q==0?0x40u:0u)|(q&0x8000u?0x80u:0u)|(((a^rhs)&(a^q)&0x8000u)?0x800u:0u));c=state;c.flags=0x0200;c.ip=0x0d14;c.bp=0x3000;c.sp=0x2ffe;c.ax=0xabcd;put(r,c.ss,0x3008,a);put(r,c.ss,0x3006,0x5678);put(r,c.ds,0x84cc,0x1111);put(r,c.ds,0x84ce,0x2222);put(r,c.ds,0x84d0,0x3333);
+    if(a>=0xbf68){CHECK(pr_u25_store_class4_low(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_OUTSIDE && c.ip==0x0d5b && c.ax==0xabcd);}
+    else {CHECK(pr_u25_store_class4_low(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_DONE && c.ip==0x0e06 && c.ax==((a==0x03de||a==0x00b8||a==0x00b9)?0x5678:a));
+    CHECK(r[p(c.ds,0x84cc)]==(a==0x03de?0x78:0x11) && r[p(c.ds,0x84ce)]==(a==0x00b8?0x78:0x22) && r[p(c.ds,0x84d0)]==(a==0x00b9?0x78:0x33));
+    CHECK(r[p(c.ds,0x84cd)]==(a==0x03de?0x56:0x11) && r[p(c.ds,0x84cf)]==(a==0x00b8?0x56:0x22) && r[p(c.ds,0x84d1)]==(a==0x00b9?0x56:0x33));}
+    CHECK((c.flags&0x08d5u)==f && (c.flags&0x0200u));}
+    c=state;c.ip=0x0d14;c.sp--;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u25_store_class4_low(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);}
     memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
     {pr_u25_tag_session joined;pr_u25_tag_diagnostic td;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
     pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
