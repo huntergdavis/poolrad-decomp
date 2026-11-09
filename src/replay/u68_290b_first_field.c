@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_second_save_branch.h"
+#include "poolrad/replay/u25_second_slot_dispatch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1626,4 +1626,50 @@ pr_second_branch_status pr_second_branch_resume(pr_second_branch_session*s,pr_se
     memset(d,0,sizeof *d);st=pr_second_loader_resume(&s->loader,&d->loader);
     if(st==PR_SECOND_LOADER_ARGUMENT)return PR_SECOND_BRANCH_ARGUMENT;
     return second_branch_after(s,d,st);
+}
+
+void pr_second_slot_session_init(pr_second_slot_session*s){if(s){memset(s,0,sizeof *s);pr_second_branch_session_init(&s->branch);}}
+static pr_second_slot_status second_slot_after(pr_second_slot_session*s,pr_second_slot_diagnostic*d,pr_second_branch_status st){
+    d->branch_status=st;if(st==PR_SECOND_BRANCH_YIELD){s->phase=PR_SECOND_SLOT_WAITING;return PR_SECOND_SLOT_YIELD;}
+    s->phase=PR_SECOND_SLOT_FINISHED;if(st==PR_SECOND_BRANCH_SAVE_STRING)return PR_SECOND_SLOT_SAVE_STRING;
+    if(st==PR_SECOND_BRANCH_OPERAND_STRING)return PR_SECOND_SLOT_OPERAND_STRING;
+    if(st==PR_SECOND_BRANCH_SECOND_LIMIT)return PR_SECOND_SLOT_SECOND_LIMIT;
+    if(st==PR_SECOND_BRANCH_OTHER_HANDLER)return PR_SECOND_SLOT_OTHER_HANDLER;
+    if(st==PR_SECOND_BRANCH_LATER)return PR_SECOND_SLOT_LATER;
+    if(st==PR_SECOND_BRANCH_RETURNED)return PR_SECOND_SLOT_RETURNED;
+    if(st==PR_SECOND_BRANCH_HIGH)return PR_SECOND_SLOT_HIGH;
+    if(st==PR_SECOND_BRANCH_CLASS0)return PR_SECOND_SLOT_CLASS0;
+    if(st==PR_SECOND_BRANCH_CLASS1)return PR_SECOND_SLOT_CLASS1;
+    if(st==PR_SECOND_BRANCH_CLASS2)return PR_SECOND_SLOT_CLASS2;
+    if(st==PR_SECOND_BRANCH_CLASS3)return PR_SECOND_SLOT_CLASS3;
+    if(st==PR_SECOND_BRANCH_UNMATCHED)return PR_SECOND_SLOT_UNMATCHED;
+    if(st==PR_SECOND_BRANCH_ZERO)return PR_SECOND_SLOT_FIRST_ZERO;
+    if(st==PR_SECOND_BRANCH_WORD)return PR_SECOND_SLOT_FIRST_WORD;
+    if(st==PR_SECOND_BRANCH_OTHER_TYPE)return PR_SECOND_SLOT_FIRST_OTHER_TYPE;
+    if(st==PR_SECOND_BRANCH_FIRST_SAVE_STRING)return PR_SECOND_SLOT_FIRST_SAVE_STRING;
+    if(st==PR_SECOND_BRANCH_FIRST_OPERAND_STRING)return PR_SECOND_SLOT_FIRST_OPERAND_STRING;
+    if(st==PR_SECOND_BRANCH_FIRST_LIMIT)return PR_SECOND_SLOT_FIRST_LIMIT;
+    if(st==PR_SECOND_BRANCH_PROMPT)return PR_SECOND_SLOT_PROMPT;
+    if(st==PR_SECOND_BRANCH_OTHER)return PR_SECOND_SLOT_OTHER;
+    if(st!=PR_SECOND_BRANCH_NUMERIC)return PR_SECOND_SLOT_STOP;
+    d->entry_status=pr_u1c_save_slot_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    if(d->entry_status!=PR_290B_FIRST_DONE)return PR_SECOND_SLOT_STOP;
+    d->prefix_status=pr_u25_slot_prefix(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->prefix_status!=PR_290B_FIRST_DONE)return PR_SECOND_SLOT_STOP;
+    d->dispatch_status=pr_u25_slot_dispatch(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->dispatch_status!=PR_290B_FIRST_DONE)return PR_SECOND_SLOT_STOP;
+    if(s->cpu->ip==0x0164u)return PR_SECOND_SLOT_ZERO;
+    if(s->cpu->ip==0x017au)return PR_SECOND_SLOT_WORD;
+    if(s->cpu->ip==0x019eu)return PR_SECOND_SLOT_PAIR;
+    return PR_SECOND_SLOT_OTHER_TYPE;
+}
+pr_second_slot_status pr_second_slot_start(pr_second_slot_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_second_slot_diagnostic*d){
+    pr_second_branch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SECOND_SLOT_EMPTY||s->branch.phase!=PR_SECOND_BRANCH_EMPTY||s->branch.loader.phase!=PR_SECOND_LOADER_EMPTY||s->branch.loader.save.phase!=PR_SECOND_SAVE_EMPTY||s->branch.loader.save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->branch.loader.save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_second_branch_start(&s->branch,b,n,c,e,cl,pl,x,max_iterations,&d->branch);return second_slot_after(s,d,st);
+}
+pr_second_slot_status pr_second_slot_resume(pr_second_slot_session*s,pr_second_slot_diagnostic*d){pr_second_branch_status st;
+    if(!s||!d||s->phase!=PR_SECOND_SLOT_WAITING)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_second_branch_resume(&s->branch,&d->branch);
+    if(st==PR_SECOND_BRANCH_ARGUMENT)return PR_SECOND_SLOT_ARGUMENT;
+    return second_slot_after(s,d,st);
 }
