@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_operand_return.h"
+#include "poolrad/replay/u1c_save_word_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -773,4 +773,40 @@ pr_u25_return_status pr_u25_return_resume(pr_u25_return_session*s,pr_u25_return_
     memset(d,0,sizeof *d);st=pr_u25_loop_resume(&s->loop,&d->loop);
     if(st==PR_U25_LOOP_ARGUMENT)return PR_U25_RETURN_ARGUMENT;
     return return_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_save_word_entry(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t cs,target;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x02a0u||c->sp<8u||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x7087u));push(b,c,c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x7047u));push(b,c,c->ax);
+    c->ip=0x02a8u;d->stage=1;if(rb(b,c->cs,c->ip)!=0x9au||rw(b,c->cs,0x02a9u)!=0x004du)return PR_290B_FIRST_CODE;
+    cs=c->cs;push(b,c,cs);push(b,c,0x02adu);c->cs=rw(b,cs,0x02abu);c->ip=0x004du;d->stage=2;
+    if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+    if(rb(b,c->cs,0x004du)!=0xeau||rw(b,c->cs,0x004eu)!=0x06afu)return PR_290B_FIRST_CODE;
+    target=rw(b,c->cs,0x0050u);c->cs=target;c->ip=0x06afu;d->stage=3;
+    if(!ordinary(target))return PR_290B_FIRST_PROFILE;
+    return PR_290B_FIRST_DONE;
+}
+void pr_save_word_session_init(pr_save_word_session*s){if(s){memset(s,0,sizeof *s);pr_u25_return_session_init(&s->loader);}}
+static pr_save_word_status save_word_next(pr_save_word_session*s,pr_save_word_diagnostic*d,pr_u25_return_status st){
+    d->loader_status=st;if(st==PR_U25_RETURN_YIELD){s->phase=PR_SAVE_WORD_WAITING;return PR_SAVE_WORD_YIELD;}
+    s->phase=PR_SAVE_WORD_FINISHED;if(st==PR_U25_RETURN_STRING)return PR_SAVE_WORD_STRING;
+    if(st==PR_U25_RETURN_LIMIT)return PR_SAVE_WORD_LIMIT;
+    if(st==PR_U25_RETURN_PROMPT)return PR_SAVE_WORD_PROMPT;
+    if(st==PR_U25_RETURN_OTHER)return PR_SAVE_WORD_OTHER;
+    if(st!=PR_U25_RETURN_REACHED)return PR_SAVE_WORD_STOP;
+    d->entry_status=pr_u1c_save_word_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_SAVE_WORD_REACHED:PR_SAVE_WORD_STOP;
+}
+pr_save_word_status pr_save_word_start(pr_save_word_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_save_word_diagnostic*d){
+    pr_u25_return_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SAVE_WORD_EMPTY)return PR_SAVE_WORD_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u25_return_start(&s->loader,b,n,c,e,cl,pl,x,max_iterations,&d->loader);return save_word_next(s,d,st);
+}
+pr_save_word_status pr_save_word_resume(pr_save_word_session*s,pr_save_word_diagnostic*d){pr_u25_return_status st;
+    if(!s||!d||s->phase!=PR_SAVE_WORD_WAITING)return PR_SAVE_WORD_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u25_return_resume(&s->loader,&d->loader);
+    if(st==PR_U25_RETURN_ARGUMENT)return PR_SAVE_WORD_ARGUMENT;
+    return save_word_next(s,d,st);
 }
