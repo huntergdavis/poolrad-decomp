@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_store_return.h"
+#include "poolrad/replay/u1c_save_handler_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1334,4 +1334,45 @@ pr_store_return_status pr_store_return_resume(pr_store_return_session*s,pr_store
     memset(d,0,sizeof *d);st=pr_class4_low_resume(&s->low,&d->low);
     if(st==PR_CLASS4_LOW_ARGUMENT)return PR_STORE_RETURN_ARGUMENT;
     return store_return_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_save_handler_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x02cdu||c->bp<4u||c->bp>0xfffau||c->sp!=(uint16_t)(c->bp-4u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_save_handler_session_init(pr_save_handler_session*s){if(s){memset(s,0,sizeof *s);pr_store_return_session_init(&s->store);}}
+static pr_save_handler_status save_handler_next(pr_save_handler_session*s,pr_save_handler_diagnostic*d,pr_store_return_status st){
+    d->store_status=st;if(st==PR_STORE_RETURN_YIELD){s->phase=PR_SAVE_HANDLER_WAITING;return PR_SAVE_HANDLER_YIELD;}
+    s->phase=PR_SAVE_HANDLER_FINISHED;if(st==PR_STORE_RETURN_HIGH)return PR_SAVE_HANDLER_HIGH;
+    if(st==PR_STORE_RETURN_CLASS0)return PR_SAVE_HANDLER_CLASS0;
+    if(st==PR_STORE_RETURN_CLASS1)return PR_SAVE_HANDLER_CLASS1;
+    if(st==PR_STORE_RETURN_CLASS2)return PR_SAVE_HANDLER_CLASS2;
+    if(st==PR_STORE_RETURN_CLASS3)return PR_SAVE_HANDLER_CLASS3;
+    if(st==PR_STORE_RETURN_UNMATCHED)return PR_SAVE_HANDLER_UNMATCHED;
+    if(st==PR_STORE_RETURN_ZERO)return PR_SAVE_HANDLER_ZERO;
+    if(st==PR_STORE_RETURN_WORD)return PR_SAVE_HANDLER_WORD;
+    if(st==PR_STORE_RETURN_OTHER_TYPE)return PR_SAVE_HANDLER_OTHER_TYPE;
+    if(st==PR_STORE_RETURN_STRING)return PR_SAVE_HANDLER_STRING;
+    if(st==PR_STORE_RETURN_LOADER_STRING)return PR_SAVE_HANDLER_LOADER_STRING;
+    if(st==PR_STORE_RETURN_LIMIT)return PR_SAVE_HANDLER_LIMIT;
+    if(st==PR_STORE_RETURN_PROMPT)return PR_SAVE_HANDLER_PROMPT;
+    if(st==PR_STORE_RETURN_OTHER)return PR_SAVE_HANDLER_OTHER;
+    if(st!=PR_STORE_RETURN_REACHED)return PR_SAVE_HANDLER_STOP;
+    d->return_status=pr_u1c_save_handler_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    return d->return_status==PR_290B_FIRST_DONE?PR_SAVE_HANDLER_REACHED:PR_SAVE_HANDLER_STOP;
+}
+pr_save_handler_status pr_save_handler_start(pr_save_handler_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_save_handler_diagnostic*d){
+    pr_store_return_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SAVE_HANDLER_EMPTY||x->bp<56u)return PR_SAVE_HANDLER_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->target=(pr_290b_return_target){x->cs,0x2f89u,(uint16_t)(x->bp-0x10u),(uint16_t)(x->bp-0x10u),x->ss};
+    st=pr_store_return_start(&s->store,b,n,c,e,cl,pl,x,max_iterations,&d->store);return save_handler_next(s,d,st);
+}
+pr_save_handler_status pr_save_handler_resume(pr_save_handler_session*s,pr_save_handler_diagnostic*d){pr_store_return_status st;
+    if(!s||!d||s->phase!=PR_SAVE_HANDLER_WAITING)return PR_SAVE_HANDLER_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_store_return_resume(&s->store,&d->store);
+    if(st==PR_STORE_RETURN_ARGUMENT)return PR_SAVE_HANDLER_ARGUMENT;
+    return save_handler_next(s,d,st);
 }
