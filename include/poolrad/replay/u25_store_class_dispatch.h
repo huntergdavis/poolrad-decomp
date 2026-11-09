@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_STORE_CLASS_DISPATCH_H
+#define POOLRAD_REPLAY_U25_STORE_CLASS_DISPATCH_H
+#include "poolrad/replay/u25_classifier_return.h"
+pr_290b_first_status pr_u25_store_class_dispatch(pr_bus *bus,size_t size,pr_r0899_cpu *cpu);
+typedef enum { PR_STORE_DISPATCH_EMPTY=0,PR_STORE_DISPATCH_WAITING,PR_STORE_DISPATCH_FINISHED } pr_store_dispatch_phase;
+typedef enum { PR_STORE_DISPATCH_YIELD=0,PR_STORE_DISPATCH_CLASS0,PR_STORE_DISPATCH_CLASS1,PR_STORE_DISPATCH_CLASS2,PR_STORE_DISPATCH_CLASS3,PR_STORE_DISPATCH_CLASS4,PR_STORE_DISPATCH_UNMATCHED,PR_STORE_DISPATCH_ZERO,PR_STORE_DISPATCH_WORD,PR_STORE_DISPATCH_OTHER_TYPE,PR_STORE_DISPATCH_STRING,PR_STORE_DISPATCH_LOADER_STRING,PR_STORE_DISPATCH_LIMIT,PR_STORE_DISPATCH_PROMPT,PR_STORE_DISPATCH_OTHER,PR_STORE_DISPATCH_ARGUMENT,PR_STORE_DISPATCH_STOP } pr_store_dispatch_status;
+typedef struct { pr_store_dispatch_phase phase;pr_class_return_session classifier;pr_bus *bus;pr_r0899_cpu *cpu; } pr_store_dispatch_session;
+typedef struct { pr_class_return_status classifier_status;pr_class_return_diagnostic classifier;pr_290b_first_status dispatch_status; } pr_store_dispatch_diagnostic;
+void pr_store_dispatch_session_init(pr_store_dispatch_session *state);
+pr_store_dispatch_status pr_store_dispatch_start(pr_store_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_store_dispatch_diagnostic *diagnostic);
+pr_store_dispatch_status pr_store_dispatch_resume(pr_store_dispatch_session *state,pr_store_dispatch_diagnostic *diagnostic);
+#endif
