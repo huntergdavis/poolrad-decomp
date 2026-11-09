@@ -1,0 +1,7 @@
+# Second SAVE handler return
+
+`pr_second_handler_start` and `pr_second_handler_resume` extend the [second low-store return](U25_SECOND_STORE_RETURN_SHARED_BUS.md) through the existing [SAVE handler return](U1C_SAVE_HANDLER_RETURN_SHARED_BUS.md). The helper reads the live frame on the shared bus and performs the checked return to dispatcher `+2F89`; its expected target is derived and copied from the outer frame at start. Earlier second-store and other outcomes pass through unchanged. A mismatched live return stops after executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested store-return, low, dispatch, classifier-return, classifier, store, value, pair-return, pair, slot, branch, loader, SAVE, dispatcher or runner before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up second low no-op and `03DE` write routes through the checked dispatcher return, copied target, flags, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched returns; earlier stop mappings are inherited and not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, dispatcher continuation, movement, visual parity, full gameplay or coverage credit is claimed.
