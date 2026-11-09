@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_next_dispatch.h"
+#include "poolrad/replay/u1c_second_save_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1501,4 +1501,39 @@ pr_next_dispatch_status pr_next_dispatch_resume(pr_next_dispatch_session*s,pr_ne
     memset(d,0,sizeof *d);st=pr_runner_next_resume(&s->runner,&d->runner);
     if(st==PR_RUNNER_NEXT_ARGUMENT)return PR_NEXT_DISPATCH_ARGUMENT;
     return next_dispatch_after(s,d,st);
+}
+
+void pr_second_save_session_init(pr_second_save_session*s){if(s){memset(s,0,sizeof *s);pr_next_dispatch_session_init(&s->next);}}
+static pr_second_save_status second_save_after(pr_second_save_session*s,pr_second_save_diagnostic*d,pr_next_dispatch_status st){
+    d->next_status=st;if(st==PR_NEXT_DISPATCH_YIELD){s->phase=PR_SECOND_SAVE_WAITING;return PR_SECOND_SAVE_YIELD;}
+    s->phase=PR_SECOND_SAVE_FINISHED;if(st==PR_NEXT_DISPATCH_LATER)return PR_SECOND_SAVE_LATER;
+    if(st==PR_NEXT_DISPATCH_RETURNED)return PR_SECOND_SAVE_RETURNED;
+    if(st==PR_NEXT_DISPATCH_HIGH)return PR_SECOND_SAVE_HIGH;
+    if(st==PR_NEXT_DISPATCH_CLASS0)return PR_SECOND_SAVE_CLASS0;
+    if(st==PR_NEXT_DISPATCH_CLASS1)return PR_SECOND_SAVE_CLASS1;
+    if(st==PR_NEXT_DISPATCH_CLASS2)return PR_SECOND_SAVE_CLASS2;
+    if(st==PR_NEXT_DISPATCH_CLASS3)return PR_SECOND_SAVE_CLASS3;
+    if(st==PR_NEXT_DISPATCH_UNMATCHED)return PR_SECOND_SAVE_UNMATCHED;
+    if(st==PR_NEXT_DISPATCH_ZERO)return PR_SECOND_SAVE_ZERO;
+    if(st==PR_NEXT_DISPATCH_WORD)return PR_SECOND_SAVE_WORD;
+    if(st==PR_NEXT_DISPATCH_OTHER_TYPE)return PR_SECOND_SAVE_OTHER_TYPE;
+    if(st==PR_NEXT_DISPATCH_STRING)return PR_SECOND_SAVE_STRING;
+    if(st==PR_NEXT_DISPATCH_LOADER_STRING)return PR_SECOND_SAVE_LOADER_STRING;
+    if(st==PR_NEXT_DISPATCH_LIMIT)return PR_SECOND_SAVE_LIMIT;
+    if(st==PR_NEXT_DISPATCH_PROMPT)return PR_SECOND_SAVE_PROMPT;
+    if(st==PR_NEXT_DISPATCH_OTHER)return PR_SECOND_SAVE_OTHER;
+    if(st!=PR_NEXT_DISPATCH_HANDLER)return PR_SECOND_SAVE_STOP;
+    if(s->cpu->ip!=0x0292u)return PR_SECOND_SAVE_OTHER_HANDLER;
+    d->entry_status=pr_u1c_save_loader_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_SECOND_SAVE_LOADER:PR_SECOND_SAVE_STOP;
+}
+pr_second_save_status pr_second_save_start(pr_second_save_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_second_save_diagnostic*d){
+    pr_next_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SECOND_SAVE_EMPTY||s->next.phase!=PR_NEXT_DISPATCH_EMPTY||s->next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_SAVE_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_next_dispatch_start(&s->next,b,n,c,e,cl,pl,x,max_iterations,&d->next);return second_save_after(s,d,st);
+}
+pr_second_save_status pr_second_save_resume(pr_second_save_session*s,pr_second_save_diagnostic*d){pr_next_dispatch_status st;
+    if(!s||!d||s->phase!=PR_SECOND_SAVE_WAITING)return PR_SECOND_SAVE_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_next_dispatch_resume(&s->next,&d->next);
+    if(st==PR_NEXT_DISPATCH_ARGUMENT)return PR_SECOND_SAVE_ARGUMENT;
+    return second_save_after(s,d,st);
 }

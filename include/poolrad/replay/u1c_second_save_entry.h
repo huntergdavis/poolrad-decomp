@@ -1,0 +1,11 @@
+#ifndef POOLRAD_REPLAY_U1C_SECOND_SAVE_ENTRY_H
+#define POOLRAD_REPLAY_U1C_SECOND_SAVE_ENTRY_H
+#include "poolrad/replay/u1c_next_dispatch.h"
+typedef enum { PR_SECOND_SAVE_EMPTY=0,PR_SECOND_SAVE_WAITING,PR_SECOND_SAVE_FINISHED } pr_second_save_phase;
+typedef enum { PR_SECOND_SAVE_YIELD=0,PR_SECOND_SAVE_LOADER,PR_SECOND_SAVE_OTHER_HANDLER,PR_SECOND_SAVE_LATER,PR_SECOND_SAVE_RETURNED,PR_SECOND_SAVE_HIGH,PR_SECOND_SAVE_CLASS0,PR_SECOND_SAVE_CLASS1,PR_SECOND_SAVE_CLASS2,PR_SECOND_SAVE_CLASS3,PR_SECOND_SAVE_UNMATCHED,PR_SECOND_SAVE_ZERO,PR_SECOND_SAVE_WORD,PR_SECOND_SAVE_OTHER_TYPE,PR_SECOND_SAVE_STRING,PR_SECOND_SAVE_LOADER_STRING,PR_SECOND_SAVE_LIMIT,PR_SECOND_SAVE_PROMPT,PR_SECOND_SAVE_OTHER,PR_SECOND_SAVE_ARGUMENT,PR_SECOND_SAVE_STOP } pr_second_save_status;
+typedef struct { pr_second_save_phase phase;pr_next_dispatch_session next;pr_bus *bus;pr_r0899_cpu *cpu; } pr_second_save_session;
+typedef struct { pr_next_dispatch_status next_status;pr_next_dispatch_diagnostic next;pr_290b_first_status entry_status;pr_290b_first_diagnostic entry; } pr_second_save_diagnostic;
+void pr_second_save_session_init(pr_second_save_session *state);
+pr_second_save_status pr_second_save_start(pr_second_save_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_second_save_diagnostic *diagnostic);
+pr_second_save_status pr_second_save_resume(pr_second_save_session *state,pr_second_save_diagnostic *diagnostic);
+#endif
