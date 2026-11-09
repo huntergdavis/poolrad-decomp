@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_clear.h"
+#include "poolrad/replay/u68_290b_print.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -305,4 +305,42 @@ pr_u68_290b_clear_status pr_u68_290b_clear_resume(pr_u68_290b_clear*s,pr_u68_290
     memset(d,0,sizeof *d);st=pr_u68_290b_mode_resume(&s->mode,&d->mode);
     if(st==PR_U68_290B_MODE_ARGUMENT)return PR_U68_290B_CLEAR_ARGUMENT;
     return clear_next(s,d,st);
+}
+
+pr_290b_first_status pr_290b_print_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_print_limits*l,const pr_290b_return_target*x,pr_290b_print_diagnostic*d){
+    uint16_t cs,sp;pr_r0709_printer_cpu t;
+    if(!b||!b->ram||!b->ega||!c||!l||!x||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x2b47u||c->bp<0x043cu||c->bp>0xffeeu||
+       c->sp!=(uint16_t)(c->bp-0x0232u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;
+    c->ax=(uint16_t)((c->ax&0xff00u)|0x11u);push(b,c,c->ax);c->ax=(uint16_t)((c->ax&0xff00u)|0x0fu);push(b,c,c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|0x0au);push(b,c,c->ax);c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);
+    c->ip=0x2b55u;if(rb(b,c->cs,c->ip)!=0x9au||rw(b,c->cs,0x2b56u)!=0x0626u)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=(uint16_t)(c->sp+10u);push(b,c,cs);push(b,c,0x2b5au);c->cs=rw(b,cs,0x2b58u);c->ip=0x0626u;
+    if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+    {FIELDS(TO)}d->status=(int)pr_r0709_printer_0626_cpu(b,n,&t,l->printer_loopbacks,l->glyph_loopbacks,&d->printer);{FIELDS(FROM)}
+    if(d->status!=PR_R0709_PRINTER_CPU_OK)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=0x2b5au||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+    if(c->bp>0xfffau){c->ip=0x2b5au;return PR_290B_FIRST_PROFILE;}
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_print_init(pr_u68_290b_print*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_clear_init(&s->clear);}}
+static pr_u68_290b_print_status print_next(pr_u68_290b_print*s,pr_u68_290b_print_diagnostic*d,pr_u68_290b_clear_status st){
+    d->clear_status=st;if(st==PR_U68_290B_CLEAR_YIELD){s->phase=PR_U68_290B_PRINT_WAITING;return PR_U68_290B_PRINT_YIELD;}
+    s->phase=PR_U68_290B_PRINT_FINISHED;if(st!=PR_U68_290B_CLEAR_REACHED)return PR_U68_290B_PRINT_STOP;
+    d->print_status=pr_290b_print_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->limits,&s->target,&d->print);
+    return d->print_status==PR_290B_FIRST_DONE?PR_U68_290B_PRINT_RETURNED:PR_U68_290B_PRINT_STOP;
+}
+pr_u68_290b_print_status pr_u68_290b_print_start(pr_u68_290b_print*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,pr_u68_290b_print_diagnostic*d){
+    pr_u68_290b_clear_status st;if(!s||!b||!c||!e||!cl||!pl||!d||s->phase!=PR_U68_290B_PRINT_EMPTY)return PR_U68_290B_PRINT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->limits=*pl;s->target=(pr_290b_return_target){c->cs,0x0ba0u,c->sp,c->bp,c->ss};
+    st=pr_u68_290b_clear_start(&s->clear,b,n,c,e,cl,&d->clear);return print_next(s,d,st);
+}
+pr_u68_290b_print_status pr_u68_290b_print_resume(pr_u68_290b_print*s,pr_u68_290b_print_diagnostic*d){pr_u68_290b_clear_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_PRINT_WAITING)return PR_U68_290B_PRINT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_clear_resume(&s->clear,&d->clear);
+    if(st==PR_U68_290B_CLEAR_ARGUMENT)return PR_U68_290B_PRINT_ARGUMENT;
+    return print_next(s,d,st);
 }
