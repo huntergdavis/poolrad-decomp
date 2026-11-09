@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_second_save_entry.h"
+#include "poolrad/replay/u25_second_loader_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1536,4 +1536,50 @@ pr_second_save_status pr_second_save_resume(pr_second_save_session*s,pr_second_s
     memset(d,0,sizeof *d);st=pr_next_dispatch_resume(&s->next,&d->next);
     if(st==PR_NEXT_DISPATCH_ARGUMENT)return PR_SECOND_SAVE_ARGUMENT;
     return second_save_after(s,d,st);
+}
+
+void pr_second_loader_session_init(pr_second_loader_session*s){if(s){memset(s,0,sizeof *s);pr_second_save_session_init(&s->save);}}
+static pr_second_loader_status second_loader_after(pr_second_loader_session*s,pr_second_loader_diagnostic*d,pr_second_save_status st){
+    d->save_status=st;if(st==PR_SECOND_SAVE_YIELD){s->phase=PR_SECOND_LOADER_WAITING;return PR_SECOND_LOADER_YIELD;}
+    s->phase=PR_SECOND_LOADER_FINISHED;if(st==PR_SECOND_SAVE_OTHER_HANDLER)return PR_SECOND_LOADER_OTHER_HANDLER;
+    if(st==PR_SECOND_SAVE_LATER)return PR_SECOND_LOADER_LATER;
+    if(st==PR_SECOND_SAVE_RETURNED)return PR_SECOND_LOADER_RETURNED;
+    if(st==PR_SECOND_SAVE_HIGH)return PR_SECOND_LOADER_HIGH;
+    if(st==PR_SECOND_SAVE_CLASS0)return PR_SECOND_LOADER_CLASS0;
+    if(st==PR_SECOND_SAVE_CLASS1)return PR_SECOND_LOADER_CLASS1;
+    if(st==PR_SECOND_SAVE_CLASS2)return PR_SECOND_LOADER_CLASS2;
+    if(st==PR_SECOND_SAVE_CLASS3)return PR_SECOND_LOADER_CLASS3;
+    if(st==PR_SECOND_SAVE_UNMATCHED)return PR_SECOND_LOADER_UNMATCHED;
+    if(st==PR_SECOND_SAVE_ZERO)return PR_SECOND_LOADER_ZERO;
+    if(st==PR_SECOND_SAVE_WORD)return PR_SECOND_LOADER_WORD;
+    if(st==PR_SECOND_SAVE_OTHER_TYPE)return PR_SECOND_LOADER_OTHER_TYPE;
+    if(st==PR_SECOND_SAVE_STRING)return PR_SECOND_LOADER_STRING;
+    if(st==PR_SECOND_SAVE_LOADER_STRING)return PR_SECOND_LOADER_FIRST_STRING;
+    if(st==PR_SECOND_SAVE_LIMIT)return PR_SECOND_LOADER_FIRST_LIMIT;
+    if(st==PR_SECOND_SAVE_PROMPT)return PR_SECOND_LOADER_PROMPT;
+    if(st==PR_SECOND_SAVE_OTHER)return PR_SECOND_LOADER_OTHER;
+    if(st!=PR_SECOND_SAVE_LOADER)return PR_SECOND_LOADER_STOP;
+    d->prefix_status=pr_u25_operand_prefix(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->prefix_status==PR_290B_FIRST_DONE){
+        d->tag_status=pr_u25_operand_tag(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+        if(d->tag_status==PR_290B_FIRST_OUTSIDE)return PR_SECOND_LOADER_SECOND_STRING;
+        if(d->tag_status!=PR_290B_FIRST_DONE)return PR_SECOND_LOADER_STOP;
+        d->loop_status=pr_u25_numeric_loop(s->bus,PR_BUS_RAM_SIZE,s->cpu,s->max_iterations,&d->loop);
+        if(d->loop_status==PR_U25_LOOP_STEP_STRING)return PR_SECOND_LOADER_SECOND_STRING;
+        if(d->loop_status==PR_U25_LOOP_STEP_LIMIT)return PR_SECOND_LOADER_SECOND_LIMIT;
+        if(d->loop_status!=PR_U25_LOOP_STEP_DONE)return PR_SECOND_LOADER_STOP;
+    }else if(d->prefix_status!=PR_290B_FIRST_OUTSIDE||s->cpu->ip!=0x012cu)return PR_SECOND_LOADER_STOP;
+    d->return_status=pr_u25_operand_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    return d->return_status==PR_290B_FIRST_DONE?PR_SECOND_LOADER_REACHED:PR_SECOND_LOADER_STOP;
+}
+pr_second_loader_status pr_second_loader_start(pr_second_loader_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_second_loader_diagnostic*d){
+    pr_second_save_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SECOND_LOADER_EMPTY||s->save.phase!=PR_SECOND_SAVE_EMPTY||s->save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_LOADER_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->max_iterations=max_iterations;s->target=(pr_290b_return_target){x->cs,0x02a0u,(uint16_t)(x->bp-0x1au),(uint16_t)(x->bp-0x16u),x->ss};
+    st=pr_second_save_start(&s->save,b,n,c,e,cl,pl,x,max_iterations,&d->save);return second_loader_after(s,d,st);
+}
+pr_second_loader_status pr_second_loader_resume(pr_second_loader_session*s,pr_second_loader_diagnostic*d){pr_second_save_status st;
+    if(!s||!d||s->phase!=PR_SECOND_LOADER_WAITING)return PR_SECOND_LOADER_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_second_save_resume(&s->save,&d->save);
+    if(st==PR_SECOND_SAVE_ARGUMENT)return PR_SECOND_LOADER_ARGUMENT;
+    return second_loader_after(s,d,st);
 }
