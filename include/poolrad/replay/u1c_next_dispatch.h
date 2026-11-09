@@ -1,0 +1,11 @@
+#ifndef POOLRAD_REPLAY_U1C_NEXT_DISPATCH_H
+#define POOLRAD_REPLAY_U1C_NEXT_DISPATCH_H
+#include "poolrad/replay/u1c_runner_next.h"
+typedef enum { PR_NEXT_DISPATCH_EMPTY=0,PR_NEXT_DISPATCH_WAITING,PR_NEXT_DISPATCH_FINISHED } pr_next_dispatch_phase;
+typedef enum { PR_NEXT_DISPATCH_YIELD=0,PR_NEXT_DISPATCH_HANDLER,PR_NEXT_DISPATCH_LATER,PR_NEXT_DISPATCH_RETURNED,PR_NEXT_DISPATCH_HIGH,PR_NEXT_DISPATCH_CLASS0,PR_NEXT_DISPATCH_CLASS1,PR_NEXT_DISPATCH_CLASS2,PR_NEXT_DISPATCH_CLASS3,PR_NEXT_DISPATCH_UNMATCHED,PR_NEXT_DISPATCH_ZERO,PR_NEXT_DISPATCH_WORD,PR_NEXT_DISPATCH_OTHER_TYPE,PR_NEXT_DISPATCH_STRING,PR_NEXT_DISPATCH_LOADER_STRING,PR_NEXT_DISPATCH_LIMIT,PR_NEXT_DISPATCH_PROMPT,PR_NEXT_DISPATCH_OTHER,PR_NEXT_DISPATCH_ARGUMENT,PR_NEXT_DISPATCH_STOP } pr_next_dispatch_status;
+typedef struct { pr_next_dispatch_phase phase;pr_runner_next_session runner;pr_bus *bus;pr_r0899_cpu *cpu; } pr_next_dispatch_session;
+typedef struct { pr_runner_next_status runner_status;pr_runner_next_diagnostic runner;pr_290b_first_status dispatch_status; } pr_next_dispatch_diagnostic;
+void pr_next_dispatch_session_init(pr_next_dispatch_session *state);
+pr_next_dispatch_status pr_next_dispatch_start(pr_next_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_next_dispatch_diagnostic *diagnostic);
+pr_next_dispatch_status pr_next_dispatch_resume(pr_next_dispatch_session *state,pr_next_dispatch_diagnostic *diagnostic);
+#endif
