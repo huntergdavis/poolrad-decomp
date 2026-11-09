@@ -26,7 +26,7 @@ PAIRS = ROOT / "docs/re/aperture_pairs.csv"
 DECLARES = re.compile(r"A0000|AFFFF|aperture", re.I)
 # Callee names whose arguments are data pointers it dereferences (the rest take values or only touch module-global state).
 POINTER_CALLEES = re.compile(r"strload|strstore|strcopy|strcat|strcmp|charstr|_str_|val_|move|fillchar|set_in|set_expand|getmem|freemem|"
-                             r"load_operands|load_word|lead_spaces|trail_spaces|leaf_0711|entry1_0000|step_scan|0b57|clear_box|1037|0714")
+                             r"load_operands|load_word|lead_spaces|trail_spaces|leaf_0711|entry1_0000|step_scan|0b57|clear_box|1037|0714|gettime")
 
 
 # The pointer's SOURCE for every (caller, pointer-taking flat callee) pair: only a caller ARGUMENT, a GLOBAL (e.g. DS:5D92) or a pointer the
@@ -64,6 +64,10 @@ SOURCES = {
 
 # Per-pair refinements where one caller mixes sources (a pair listed here overrides the caller's coarse entry above).
 PAIR_SOURCES = {
+    ("resident_0709_time_0c3f_cpu.c", "pr_dos_gettime_00a2"): ("local", "read", "four far pointers to SS:BP locals are built by the clock; the EGA-attached profile guards the entire stack footprint before GetTime"),
+    ("resident_08ae_time_0000_cpu.c", "pr_dos_gettime_00a2"): ("local", "read", "four far pointers to SS:BP locals are built by the clock; the entry rejects any attached EGA"),
+    ("resident_00ba_word_string_1073_cpu.c", "pr_system_str_1366"): ("code-literal+local", "read", "Str writes a body-built SS:BP-0100h string and reads its CS power table; both flat windows are guarded with EGA attached"),
+    ("resident_00ba_word_string_1073_cpu.c", "pr_system_strstore_0b25"): ("caller-argument+local", "read", "StrStore copies the body-local string to the caller's live far destination; the destination segment is guarded before the flat leaf"),
     "resident_00ba_window_16ec_cpu.c": ("caller-argument+local", "read", "StrStore copies the caller string at BP+0A/+0C into the local BP-100h buffer; own stack and DS accesses are flat, aperture aliases excluded by contract"),
     ("resident_00ba_0973_cpu.c", "pr_res_00ba_1037_cpu"): ("local", "read", "1037 receives a byte value, not the node pointer; its destination is the body-built local SS:BP-0102h"),
     ("overlay_u23_append_0239_cpu.c", "pr_system_getmem_023f"): ("callee-returned", "read", "GetMem(3Fh) at 0297..029B and 02FC..0300 takes only the size; the block it returns is the pointer"),

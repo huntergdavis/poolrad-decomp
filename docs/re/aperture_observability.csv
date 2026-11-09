@@ -123,6 +123,7 @@ overlay_u38_070f_cpu.c,flat,no,no
 overlay_u38_0b1b_cpu.c,flat,no,no
 overlay_u38_0c4b_cpu.c,flat,no,no
 overlay_u38_0cc3_cpu.c,bus,yes-with-ega-oracle,yes
+overlay_u38_10de_cpu.c,flat,no,no
 overlay_u38_append_1363_cpu.c,flat,no,no
 overlay_u38_character_compare_1276_cpu.c,flat,no,no
 overlay_u38_character_loop_11f9_cpu.c,flat,no,no
@@ -135,6 +136,7 @@ overlay_u38_effects_install_31a2.c,flat,no,no
 overlay_u38_gated_append_001f_cpu.c,flat,no,no
 overlay_u38_handler_0400_cpu.c,flat,no,no
 overlay_u38_handler_0775_cpu.c,flat,no,no
+overlay_u38_handler_09c0_cpu.c,flat,no,no
 overlay_u38_helper_cluster_cpu.c,flat,no,no
 overlay_u38_leaf_2002.c,flat,no,no
 overlay_u38_link_message_2bc8.c,flat,no,no
@@ -432,6 +434,7 @@ resident_00ba_sidecar_lookup_2199_cpu.c,flat,no,no
 resident_00ba_sidecar_remove_1509_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_target_reset_2637_cpu.c,flat,no,no
 resident_00ba_window_16ec_cpu.c,bus,yes-with-ega-oracle,yes
+resident_00ba_word_string_1073_cpu.c,bus,yes-with-ega-oracle,yes
 resident_00ba_zero_test_23b7_cpu.c,flat,no,no
 resident_03f1_box_0000_cpu.c,bus,yes-with-ega-oracle,no
 resident_03f1_clear_0137_cpu.c,bus,yes-with-ega-oracle,yes
@@ -454,6 +457,7 @@ resident_0709_screen_0cab_cpu.c,bus,yes-with-ega-oracle,yes
 resident_0709_skip_spaces_0714_cpu.c,flat,no,no
 resident_0709_space_05eb_cpu.c,bus,yes-with-ega-oracle,yes
 resident_0709_text_06a7_cpu.c,bus,yes-with-ega-oracle,yes
+resident_0709_time_0c3f_cpu.c,bus,yes-with-ega-oracle,yes
 resident_0802_0000_cpu.c,flat,no,no
 resident_0802_0020_cpu.c,flat,no,no
 resident_0802_0040_cpu.c,flat,no,no
@@ -478,7 +482,7 @@ resident_08ae_entry_017b_cpu.c,flat,no,no
 resident_08ae_state_01a5_cpu.c,flat,no,no
 resident_08ae_table_1742_cpu.c,flat,no,no
 resident_08ae_table_17ae_cpu.c,flat,no,no
-resident_08ae_time_0000_cpu.c,bus,yes-with-ega-oracle,no
+resident_08ae_time_0000_cpu.c,bus,yes-with-ega-oracle,yes
 resident_08ae_vector_137c_cpu.c,flat,no,no
 resident_08ae_vector_13b1_cpu.c,flat,no,no
 resident_464_2632_run014.c,flat,no,no

@@ -34,6 +34,7 @@ header = '''#ifndef POOLRAD_RECOVERED_RESIDENT_08AE_TIME_0000_CPU_H
  * multiply 0AF8:0A5B; 16-bit MULs for the other terms, each zero-extended and
  * added with carry into DX), stores it in [BP-4]/[BP-2] and returns it.
  * GetTime's INT 21h/2Ch is the caller-supplied declared service (passed through).
+ * No EGA may be attached; A0000..AFFFF aperture accesses use flat RAM only.
  * See docs/re/RES_08AE_TIME_0000_CPU.md for the contract and evidence. */
 typedef struct {
     uint16_t ax, bx, cx, dx, si, di;
