@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_operand_loop.h"
+#include "poolrad/replay/u25_operand_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -738,4 +738,39 @@ pr_u25_loop_status pr_u25_loop_resume(pr_u25_loop_session*s,pr_u25_loop_diagnost
     memset(d,0,sizeof *d);st=pr_u25_tag_resume(&s->tag,&d->tag);
     if(st==PR_U25_TAG_ARGUMENT)return PR_U25_LOOP_ARGUMENT;
     return loop_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_operand_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    uint16_t pc;
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x012cu||c->bp<8u||c->bp>0xfff8u||c->sp!=(uint16_t)(c->bp-8u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    pc=rw(b,c->ds,0x49edu);pc=u25_inc_word(c,pc);ww(b,c->ds,0x49edu,pc);
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+4u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_u25_return_session_init(pr_u25_return_session*s){if(s){memset(s,0,sizeof *s);pr_u25_loop_session_init(&s->loop);}}
+static pr_u25_return_status return_next(pr_u25_return_session*s,pr_u25_return_diagnostic*d,pr_u25_loop_status st){
+    d->loop_status=st;if(st==PR_U25_LOOP_YIELD){s->phase=PR_U25_RETURN_WAITING;return PR_U25_RETURN_YIELD;}
+    s->phase=PR_U25_RETURN_FINISHED;
+    if(st==PR_U25_LOOP_STRING)return PR_U25_RETURN_STRING;
+    if(st==PR_U25_LOOP_LIMIT)return PR_U25_RETURN_LIMIT;
+    if(st==PR_U25_LOOP_PROMPT)return PR_U25_RETURN_PROMPT;
+    if(st==PR_U25_LOOP_OTHER && !(d->loop.tag_status==PR_U25_TAG_OTHER && d->loop.tag.operand_status==PR_U25_OPERAND_ZERO && s->cpu->ip==0x012cu))return PR_U25_RETURN_OTHER;
+    if(st!=PR_U25_LOOP_REACHED && st!=PR_U25_LOOP_OTHER)return PR_U25_RETURN_STOP;
+    d->return_status=pr_u25_operand_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    return d->return_status==PR_290B_FIRST_DONE?PR_U25_RETURN_REACHED:PR_U25_RETURN_STOP;
+}
+pr_u25_return_status pr_u25_return_start(pr_u25_return_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_u25_return_diagnostic*d){
+    pr_u25_loop_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U25_RETURN_EMPTY||x->bp<42u)return PR_U25_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->target=(pr_290b_return_target){x->cs,0x02a0u,(uint16_t)(x->bp-0x1au),(uint16_t)(x->bp-0x16u),x->ss};
+    st=pr_u25_loop_start(&s->loop,b,n,c,e,cl,pl,x,max_iterations,&d->loop);return return_next(s,d,st);
+}
+pr_u25_return_status pr_u25_return_resume(pr_u25_return_session*s,pr_u25_return_diagnostic*d){pr_u25_loop_status st;
+    if(!s||!d||s->phase!=PR_U25_RETURN_WAITING)return PR_U25_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u25_loop_resume(&s->loop,&d->loop);
+    if(st==PR_U25_LOOP_ARGUMENT)return PR_U25_RETURN_ARGUMENT;
+    return return_next(s,d,st);
 }

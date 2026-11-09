@@ -1,3 +1,4 @@
+#include "poolrad/replay/u25_operand_return.h"
 #include "poolrad/recovered/overlay_u3b0_entry_01da_cpu.h"
 #include "poolrad/replay/u3b0_selection_05c4.h"
 #include "poolrad/replay/u3b0_mapped_060c.h"
@@ -359,6 +360,28 @@ int main(void){
     CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
     CHECK(pr_u25_loop_resume(&joined,&ld)==PR_U25_LOOP_REACHED && c.cs==0x7100 && c.ip==0x012c && ld.loop.iterations==1 && (c.flags&0x08d5u)==0x44);
     CHECK(r[p(c.ds,0x7006)]==2 && r[p(c.ds,0x7086)]==0x42 && r[p(c.ds,0x7046)]==0x77 && r[p(c.ds,0x7007)]==1 && r[p(c.ds,0x7087)]==0x22 && r[p(c.ds,0x7047)]==0x33 && r[p(c.ds,0x49ed)]==0x3a);
+    memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
+    {pr_u25_return_session joined;pr_u25_return_diagnostic ld;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
+    pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
+    je.draw.pass.target=ce.draw.pass.target;memcpy(snapshot,r,PR_BUS_RAM_SIZE);memcpy(esnapshot,ega,sizeof *ega);
+    display_setup(&b,&c,&q,7);put(r,0x5000,0x11f6,0);put(r,0x5000,0x3594,0);r[p(c.ds,0x49f3)]=2;r[p(c.ds,0x84e4)]=0;r[p(c.ds,0x49ff)]=0;
+    put(r,c.ds,0x49e3,0x1234);put(r,c.ds,0x49de,0);put(r,c.ds,0x49e0,0x5000);r[p(0x5000,0x7934)]=9;r[p(0x5000,0x7935)]=2;r[p(0x5000,0x7936)]=0x42;r[p(0x5000,0x7937)]=0x77;r[p(0x5000,0x7938)]=1;r[p(0x5000,0x7939)]=0x22;r[p(0x5000,0x793a)]=0x33;
+    put(r,c.ss,c.bp,0x4060);put(r,c.ss,c.bp+2,0x339a);put(r,c.ss,c.bp+4,0x7900);pr_u25_return_session_init(&joined);
+    CHECK(pr_u25_return_start(&joined,&b,PR_BUS_RAM_SIZE,&c,&je,&cl,&pl,&target,1,&ld)==PR_U25_RETURN_YIELD);
+    target.ip=0x1234;before=c;c.ax^=1;CHECK(pr_u25_return_resume(&joined,&ld)==PR_U25_RETURN_ARGUMENT && joined.phase==PR_U25_RETURN_WAITING);c=before;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u25_return_resume(&joined,&ld)==PR_U25_RETURN_REACHED && c.cs==0x7900 && c.ip==0x02a0 && c.sp==0x4046 && c.bp==0x404a && ld.loop.loop.iterations==1 && (c.flags&0x08d5u)==0);
+    CHECK(r[p(c.ds,0x7006)]==2 && r[p(c.ds,0x7086)]==0x42 && r[p(c.ds,0x7046)]==0x77 && r[p(c.ds,0x7007)]==1 && r[p(c.ds,0x7087)]==0x22 && r[p(c.ds,0x7047)]==0x33 && r[p(c.ds,0x49ed)]==0x3b);
+    {pr_290b_return_target x={0x7900,0x02a0,0x49f3,0x4444,c.ds};
+    c.ss=c.ds;c.bp=0x49eb;c.sp=0x49e3;c.ip=0x012c;put(r,c.ss,c.bp,0x4444);put(r,c.ss,c.bp+2,0x02a0);put(r,c.ss,c.bp+4,0x7900);put(r,c.ss,c.bp+6,2);
+    CHECK(pr_u25_operand_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_TRANSFER && c.ip==0x02a1 && c.sp==0x49f3 && c.bp==0x4444);
+    c.bp=0x3000;c.sp=0x2ff8;c.ip=0x012c;put(r,c.ss,c.bp,0x4444);put(r,c.ss,c.bp+2,0x02a0);put(r,c.ss,c.bp+4,0x7900);put(r,c.ds,0x49ed,0xffff);c.flags|=1;x.sp=0x3008;
+    CHECK(pr_u25_operand_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_DONE && r[p(c.ds,0x49ed)]==0 && r[p(c.ds,0x49ee)]==0 && (c.flags&0x08d5u)==0x55);
+    c.ip=0x0000;c.sp=0x3002;c.bp=0x4444;put(r,c.ss,0x3002,0x02a0);put(r,c.ss,0x3004,0x7900);put(r,c.ss,0x3006,0);put(r,c.ds,0x49ed,0x1234);x.sp=0x3008;
+    CHECK(pr_u25_operand_prefix(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_OUTSIDE && c.ip==0x012c);
+    CHECK(pr_u25_operand_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_DONE && c.ip==0x02a0 && r[p(c.ds,0x49ed)]==0x35);
+    c.ip=0x012c;c.bp=7;c.sp=0xffff;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u25_operand_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);}
     memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
     {pr_u25_tag_session joined;pr_u25_tag_diagnostic td;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
     pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
