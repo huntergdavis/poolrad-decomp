@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_CLASSIFIER_RETURN_H
+#define POOLRAD_REPLAY_U25_CLASSIFIER_RETURN_H
+#include "poolrad/replay/u25_store_classifier_entry.h"
+pr_290b_first_status pr_u25_classifier_return(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_290b_return_target *target);
+typedef enum { PR_CLASS_RETURN_EMPTY=0,PR_CLASS_RETURN_WAITING,PR_CLASS_RETURN_FINISHED } pr_class_return_phase;
+typedef enum { PR_CLASS_RETURN_YIELD=0,PR_CLASS_RETURN_REACHED,PR_CLASS_RETURN_ZERO,PR_CLASS_RETURN_WORD,PR_CLASS_RETURN_OTHER_TYPE,PR_CLASS_RETURN_STRING,PR_CLASS_RETURN_LOADER_STRING,PR_CLASS_RETURN_LIMIT,PR_CLASS_RETURN_PROMPT,PR_CLASS_RETURN_OTHER,PR_CLASS_RETURN_ARGUMENT,PR_CLASS_RETURN_STOP } pr_class_return_status;
+typedef struct { pr_class_return_phase phase;pr_store_class_session store;pr_bus *bus;pr_r0899_cpu *cpu; } pr_class_return_session;
+typedef struct { pr_store_class_status store_status;pr_store_class_diagnostic store;pr_290b_first_status return_status; } pr_class_return_diagnostic;
+void pr_class_return_session_init(pr_class_return_session *state);
+pr_class_return_status pr_class_return_start(pr_class_return_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_class_return_diagnostic *diagnostic);
+pr_class_return_status pr_class_return_resume(pr_class_return_session *state,pr_class_return_diagnostic *diagnostic);
+#endif
