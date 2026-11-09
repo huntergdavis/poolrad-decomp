@@ -1,0 +1,9 @@
+# Second SAVE numeric loader return
+
+`pr_second_loader_start` and `pr_second_loader_resume` extend the [second SAVE loader entry](U1C_SECOND_SAVE_ENTRY_SHARED_BUS.md) using the existing shared-bus operand prefix, tag branch, bounded numeric loop and checked `RETF 2`. A second numeric load reaches checked SAVE continuation `+02A0`; a second string tag or exhausted second-loop budget stops at its real boundary. A zero-count prefix proceeds to the same epilogue. Other handlers and earlier bounded stops remain distinct.
+
+`max_iterations` is copied and applied independently to the first and second numeric loops, counting each loop's executed back edges. The second return target derives from the copied outer target. Invalid outer BP or nonempty nested SAVE, dispatcher or runner sessions are rejected before mutation. Source and frame evidence are in the [loader return audit](U25_OPERAND_RETURN_SHARED_BUS.md) and [numeric loop audit](U25_NUMERIC_LOOP_SHARED_BUS.md); no original bytes are embedded.
+
+The composition inherits earlier bounds, budgets and caller responsibilities, including immutable code outside EGA, writes avoiding code and valid reached frames. These are bounded assumptions, not a general alias or hardware proof.
+
+Synthetic tests cover the idle-to-Up numeric SAVE route followed by a complete second two-operand numeric load, a second string stop, invalid-BP atomic rejection and retry, and suspended CPU tampering. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. Existing numeric-loop tests cover budget stops; the second-limit mapping is not separately driven by this integration fixture. This composition has no native differential; second string execution, later SAVE effects, further iterations, high/other classes, movement, visual parity, full gameplay and coverage credit remain unverified.
