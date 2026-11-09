@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_script_entry.h"
+#include "poolrad/replay/u1c_runner_prefix.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -499,4 +499,47 @@ pr_u1c_script_status pr_u1c_script_resume(pr_u1c_script_session*s,pr_u1c_script_
     memset(d,0,sizeof *d);st=pr_u1c_dispatch_resume(&s->dispatch,&d->dispatch);
     if(st==PR_U1C_DISPATCH_ARGUMENT)return PR_U1C_SCRIPT_ARGUMENT;
     return script_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_runner_prefix(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    uint8_t v;uint16_t rel;
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x3171u||c->sp<6u||c->sp>0xfffau||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    push(b,c,c->bp);c->bp=c->sp;c->ax=rw(b,c->ss,(uint16_t)(c->bp+6u));ww(b,c->ds,0x49edu,c->ax);wb(b,c->ds,0x442eu,0);
+    v=rb(b,c->ds,0x442eu);cmp8(c,v,0);
+    if(!v){v=rb(b,c->ds,0x49ffu);cmp8(c,v,0);}
+    if(v){
+        wb(b,c->ds,0x442eu,0);c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+        c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+4u);
+        if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+        return PR_290B_FIRST_DONE;
+    }
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x6f7fu));wb(b,c->ds,0x6f7eu,(uint8_t)c->ax);
+    c->ax=rw(b,c->ds,0x49edu);c->di=rw(b,c->ds,0x49deu);c->es=rw(b,c->ds,0x49e0u);c->di=second_add(c,c->di,c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->es,(uint16_t)(c->di+0x6700u)));wb(b,c->ds,0x6f7fu,(uint8_t)c->ax);
+    push(b,c,c->cs);c->ip=0x31a5u;rel=rw(b,c->cs,0x31a6u);
+    if(rb(b,c->cs,0x31a5u)!=0xe8u||(uint16_t)(0x31a8u+rel)!=0x2f2du)return PR_290B_FIRST_CODE;
+    push(b,c,0x31a8u);c->ip=0x2f2du;return PR_290B_FIRST_DONE;
+}
+void pr_u1c_runner_session_init(pr_u1c_runner_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_script_session_init(&s->script);}}
+static pr_u1c_runner_status runner_next(pr_u1c_runner_session*s,pr_u1c_runner_diagnostic*d,pr_u1c_script_status st){
+    d->script_status=st;if(st==PR_U1C_SCRIPT_YIELD){s->phase=PR_U1C_RUNNER_WAITING;return PR_U1C_RUNNER_YIELD;}
+    s->phase=PR_U1C_RUNNER_FINISHED;if(st==PR_U1C_SCRIPT_LOOP)return PR_U1C_RUNNER_LOOP;
+    if(st==PR_U1C_SCRIPT_OTHER)return PR_U1C_RUNNER_OTHER;
+    if(st!=PR_U1C_SCRIPT_REACHED)return PR_U1C_RUNNER_STOP;
+    if(s->cpu->ip!=0x3171u)return PR_U1C_RUNNER_OTHER;
+    d->runner_status=pr_u1c_runner_prefix(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    if(d->runner_status!=PR_290B_FIRST_DONE)return PR_U1C_RUNNER_STOP;
+    return s->cpu->ip==0x2f2du?PR_U1C_RUNNER_DISPATCH:PR_U1C_RUNNER_RETURNED;
+}
+pr_u1c_runner_status pr_u1c_runner_start(pr_u1c_runner_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u1c_runner_diagnostic*d){
+    pr_u1c_script_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U1C_RUNNER_EMPTY||x->bp<14u)return PR_U1C_RUNNER_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->target=*x;s->target.ip=0x345bu;
+    st=pr_u1c_script_start(&s->script,b,n,c,e,cl,pl,x,&d->script);return runner_next(s,d,st);
+}
+pr_u1c_runner_status pr_u1c_runner_resume(pr_u1c_runner_session*s,pr_u1c_runner_diagnostic*d){pr_u1c_script_status st;
+    if(!s||!d||s->phase!=PR_U1C_RUNNER_WAITING)return PR_U1C_RUNNER_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u1c_script_resume(&s->script,&d->script);
+    if(st==PR_U1C_SCRIPT_ARGUMENT)return PR_U1C_RUNNER_ARGUMENT;
+    return runner_next(s,d,st);
 }
