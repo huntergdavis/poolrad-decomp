@@ -6,6 +6,7 @@
 #include "poolrad/replay/u3b0_wait_048e.h"
 #include "poolrad/replay/u3b0_draw_wait_047a.h"
 #include "poolrad/replay/u3b0_clock_draw_0432.h"
+#include "poolrad/replay/u3b0_entry_03bd.h"
 #include "poolrad/replay/crt_input_fifo.h"
 #include "poolrad/replay/u3b0_return_06cf.h"
 #include "poolrad/replay/u3b0_character_059c.h"
@@ -100,6 +101,19 @@ static void clock_draw_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q,unsigne
     for(i=0;i<8;i++)put(r,c->ds,0x25e5+2u*i,0xc000u>>(2u*i));
     r[p(c->ss,c->bp-0x2a)]=(uint8_t)label;r[p(c->ss,c->bp-0x29)]='a';r[p(c->ss,c->bp+0x12)]=5;
 }
+static void entry_setup(pr_bus*b,pr_r0899_cpu*c,pr_crt_input_fifo*q,unsigned label){
+    uint8_t *r=b->ram;clock_draw_setup(b,c,q,0);memcpy(r+p(0x6000,0),r+p(c->cs,0),65536);c->cs=0x6000;c->ip=0x03bd;c->sp=0x4002;c->bp=0x7777;
+    put(r,c->ss,0x4002,0x09d5);put(r,c->ss,0x4004,0x2e60);
+    put(r,c->ss,0x4018,0x0800);put(r,c->ss,0x401a,0x4000);
+    put(r,c->ss,0x4014,0x0900);put(r,c->ss,0x4016,0x4000);
+    r[p(0x4000,0x0800)]=(uint8_t)label;r[p(0x4000,0x0801)]='a';
+    r[p(0x4000,0x0900)]=1;r[p(0x4000,0x0901)]='a';
+    r[p(c->ss,0x4010)]=0;r[p(c->ss,0x400e)]=0;r[p(c->ss,0x4012)]=5;
+    farcall(r,c->cs,0x03d2,0x4000,0x0b25);farcall(r,c->cs,0x03e5,0x4000,0x0b25);
+    r[p(c->cs,0x040c)]=0xe8;put(r,c->cs,0x040d,(uint16_t)(0x00cb-0x040f));
+    farcall(r,c->cs,0x00df,0x4000,0x0b25);farcall(r,c->cs,0x00f4,0x4000,0x16a8);farcall(r,c->cs,0x012b,0x4000,0x0dc0);
+    memset(r+p(c->cs,0x00ab),0,32);r[p(c->cs,0x00ab+'a'/8)]|=(uint8_t)(1u<<('a'%8));
+}
 int main(void){
     uint8_t*r=malloc(PR_BUS_RAM_SIZE),*saved=malloc(PR_BUS_RAM_SIZE);pr_ega*ega=malloc(sizeof *ega),*old=malloc(sizeof *old);
     pr_port_env ports={NULL,out,NULL};pr_bus b={r,ega,&ports,write,NULL};pr_crt_input_fifo q;pr_r0899_cpu c,before;
@@ -146,6 +160,25 @@ int main(void){
     CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0 && ts.calls==0);
     ts.calls=0;clock_draw_setup(&b,&c,&q,0);r[p(c.cs,0x043d)]=0x90;
     CHECK(pr_u3b0_clock_draw_0432(&b,PR_BUS_RAM_SIZE,&c,&ce,&cd)==PR_U3B0_CLOCK_DRAW_CODE && cd.phase==1 && c.ip==0x043d && ts.calls==1 && r[p(0x2800,0x3fa9)]==5);
+    }
+    /* Real entry setup, string stores and split precede real clocks/drawer/input. */
+    {clock_state ts={0,0};pr_u3b0_clock_draw_env ce={clock_service,&ts,65536,65536,env};pr_u3b0_entry_diagnostic ed;
+    entry_setup(&b,&c,&q,1);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_REACHED);
+    CHECK(ed.phase==3 && ed.split_status==PR_U3B0_00CB_OK && ed.clock_draw_status==PR_U3B0_CLOCK_DRAW_REACHED && ed.clock_draw.printer_status==PR_R0709_PRINTER_CPU_OK && ed.clock_draw.printer.callee==1 && ed.clock_draw.draw.wait_status==PR_U3B0_WAIT_PASS && c.ip==0x09d5 && ts.calls==2);
+    CHECK(r[p(0x2800,0x3fd6)]==1 && r[p(0x2800,0x3fd7)]=='a' && r[p(0x2800,0x3fad)]==1 && r[p(0x2800,0x3fae)]=='a');
+    entry_setup(&b,&c,&q,0);put(r,c.ss,0x401a,0xa000);before=c;memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_PROFILE && ed.phase==0 && c.ip==0x03d2 && c.sp==0x3f66 && memcmp(old,ega,sizeof *ega)==0);
+    entry_setup(&b,&c,&q,1);put(r,c.ss,0x4016,0xa000);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_PROFILE && ed.phase==1 && c.ip==0x03e5 && r[p(0x2800,0x3fd6)]==1 && r[p(0x2800,0x3fd7)]=='a' && memcmp(old,ega,sizeof *ega)==0);
+    entry_setup(&b,&c,&q,0);r[p(c.cs,0x03e5)]=0x90;
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_CODE && ed.phase==1 && c.ip==0x03e5 && r[p(0x2800,0x3fd6)]==0);
+    entry_setup(&b,&c,&q,0);r[p(c.cs,0x040c)]=0x90;
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_CODE && ed.phase==2 && c.ip==0x040c && r[p(0x2800,0x3fad)]==1);
+    entry_setup(&b,&c,&q,0);r[p(c.cs,0x00df)]=0x90;
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_CALLEE && ed.phase==2 && ed.split_status==PR_U3B0_00CB_CODE && c.ip==0x00df);
+    entry_setup(&b,&c,&q,0);c.sp=0x01d1;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);
     }
     free(old);free(ega);free(saved);free(r);printf("3B0 drawer/wait: %u checks passed\n",checks);return 0;
 }
