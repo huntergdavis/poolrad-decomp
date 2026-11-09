@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_operand_tag.h"
+#include "poolrad/replay/u25_operand_loop.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -617,15 +617,7 @@ pr_u1c_save_status pr_u1c_save_resume(pr_u1c_save_session*s,pr_u1c_save_diagnost
 
 static uint16_t u25_inc_word(pr_r0899_cpu*c,uint16_t v){uint16_t cf=(uint16_t)(c->flags&1u),r=second_add(c,v,1u);c->flags=(uint16_t)((c->flags&~1u)|cf);return r;}
 static void u25_xor_ah(pr_r0899_cpu*c){c->ax&=0x00ffu;c->flags=(uint16_t)((c->flags&~0x08d5u)|0x44u);}
-pr_290b_first_status pr_u25_operand_prefix(pr_bus*b,size_t n,pr_r0899_cpu*c){
-    uint8_t count;uint16_t off;
-    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x0000u||c->sp<10u||c->sp>0xfffau||
-       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
-    push(b,c,c->bp);c->bp=c->sp;c->sp=(uint16_t)(c->sp-8u);wb(b,c->ss,(uint16_t)(c->bp-2u),0);
-    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp+6u)));wb(b,c->ss,(uint16_t)(c->bp-7u),(uint8_t)c->ax);
-    c->ax=(uint16_t)((c->ax&0xff00u)|1u);count=rb(b,c->ss,(uint16_t)(c->bp-7u));cmp8(c,1u,count);
-    if(count==0){c->ip=0x012cu;return PR_290B_FIRST_OUTSIDE;}
-    wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+static void u25_operand_iteration(pr_bus*b,pr_r0899_cpu*c){uint16_t off;
     c->ax=rw(b,c->ds,0x49edu);c->ax=u25_inc_word(c,c->ax);c->di=rw(b,c->ds,0x49deu);c->es=rw(b,c->ds,0x49e0u);
     c->di=second_add(c,c->di,c->ax);off=(uint16_t)(c->di+0x6700u);c->dx=(uint16_t)((c->dx&0xff00u)|rb(b,c->es,off));
     c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;wb(b,c->ds,(uint16_t)(c->di+0x7005u),(uint8_t)c->dx);
@@ -633,7 +625,18 @@ pr_290b_first_status pr_u25_operand_prefix(pr_bus*b,size_t n,pr_r0899_cpu*c){
     c->di=second_add(c,c->di,c->ax);off=(uint16_t)(c->di+0x6700u);c->dx=(uint16_t)((c->dx&0xff00u)|rb(b,c->es,off));
     c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));u25_xor_ah(c);c->di=c->ax;wb(b,c->ds,(uint16_t)(c->di+0x7085u),(uint8_t)c->dx);
     c->ax=rw(b,c->ds,0x49edu);c->ax=u25_inc_word(c,c->ax);c->ax=u25_inc_word(c,c->ax);ww(b,c->ds,0x49edu,c->ax);
-    c->ip=0x005fu;return PR_290B_FIRST_DONE;
+    c->ip=0x005fu;
+}
+pr_290b_first_status pr_u25_operand_prefix(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t count;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x0000u||c->sp<10u||c->sp>0xfffau||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=(uint16_t)(c->sp-8u);wb(b,c->ss,(uint16_t)(c->bp-2u),0);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp+6u)));wb(b,c->ss,(uint16_t)(c->bp-7u),(uint8_t)c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|1u);count=rb(b,c->ss,(uint16_t)(c->bp-7u));cmp8(c,1u,count);
+    if(count==0){c->ip=0x012cu;return PR_290B_FIRST_OUTSIDE;}
+    wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    u25_operand_iteration(b,c);return PR_290B_FIRST_DONE;
 }
 void pr_u25_operand_session_init(pr_u25_operand_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_save_session_init(&s->save);}}
 static pr_u25_operand_status operand_next(pr_u25_operand_session*s,pr_u25_operand_diagnostic*d,pr_u1c_save_status st){
@@ -692,4 +695,47 @@ pr_u25_tag_status pr_u25_tag_resume(pr_u25_tag_session*s,pr_u25_tag_diagnostic*d
     memset(d,0,sizeof *d);st=pr_u25_operand_resume(&s->operand,&d->operand);
     if(st==PR_U25_OPERAND_ARGUMENT)return PR_U25_TAG_ARGUMENT;
     return tag_next(s,d,st);
+}
+
+static uint8_t u25_inc_byte(pr_r0899_cpu*c,uint8_t a){unsigned r=(a+1u)&255u,p=r,cf=c->flags&1u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|cf|((p&1u)?0u:4u)|(((a^1u^r)&0x10u)?0x10u:0u)|
+        (r==0?0x40u:0u)|(r&0x80u?0x80u:0u)|(a==0x7fu?0x800u:0u));return (uint8_t)r;}
+pr_u25_loop_step_status pr_u25_numeric_loop(pr_bus*b,size_t n,pr_r0899_cpu*c,size_t max_iterations,pr_u25_loop_step_diagnostic*d){
+    uint8_t index,count;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x0121u||c->bp<8u||c->bp>0xfff8u||c->sp!=(uint16_t)(c->bp-8u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_U25_LOOP_STEP_ARGUMENT;
+    memset(d,0,sizeof *d);d->tag_status=PR_290B_FIRST_DONE;
+    for(;;){
+        index=rb(b,c->ss,(uint16_t)(c->bp-1u));c->ax=(uint16_t)((c->ax&0xff00u)|index);
+        count=rb(b,c->ss,(uint16_t)(c->bp-7u));cmp8(c,index,count);
+        if(index==count){c->ip=0x012cu;return PR_U25_LOOP_STEP_DONE;}
+        c->ip=0x001fu;if(d->iterations==max_iterations)return PR_U25_LOOP_STEP_LIMIT;
+        index=rb(b,c->ss,(uint16_t)(c->bp-1u));index=u25_inc_byte(c,index);wb(b,c->ss,(uint16_t)(c->bp-1u),index);++d->iterations;
+        u25_operand_iteration(b,c);st=pr_u25_operand_tag(b,n,c);d->tag_status=st;
+        if(st==PR_290B_FIRST_OUTSIDE)return PR_U25_LOOP_STEP_STRING;
+        if(st!=PR_290B_FIRST_DONE)return PR_U25_LOOP_STEP_STOP;
+    }
+}
+void pr_u25_loop_session_init(pr_u25_loop_session*s){if(s){memset(s,0,sizeof *s);pr_u25_tag_session_init(&s->tag);}}
+static pr_u25_loop_status loop_next(pr_u25_loop_session*s,pr_u25_loop_diagnostic*d,pr_u25_tag_status st){
+    d->tag_status=st;if(st==PR_U25_TAG_YIELD){s->phase=PR_U25_LOOP_WAITING;return PR_U25_LOOP_YIELD;}
+    s->phase=PR_U25_LOOP_FINISHED;if(st==PR_U25_TAG_LOOP)return PR_U25_LOOP_PROMPT;
+    if(st==PR_U25_TAG_OTHER)return PR_U25_LOOP_OTHER;
+    if(st==PR_U25_TAG_STRING)return PR_U25_LOOP_STRING;
+    if(st!=PR_U25_TAG_REACHED)return PR_U25_LOOP_STOP;
+    d->loop_status=pr_u25_numeric_loop(s->bus,PR_BUS_RAM_SIZE,s->cpu,s->max_iterations,&d->loop);
+    if(d->loop_status==PR_U25_LOOP_STEP_STRING)return PR_U25_LOOP_STRING;
+    if(d->loop_status==PR_U25_LOOP_STEP_LIMIT)return PR_U25_LOOP_LIMIT;
+    return d->loop_status==PR_U25_LOOP_STEP_DONE?PR_U25_LOOP_REACHED:PR_U25_LOOP_STOP;
+}
+pr_u25_loop_status pr_u25_loop_start(pr_u25_loop_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_u25_loop_diagnostic*d){
+    pr_u25_tag_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U25_LOOP_EMPTY)return PR_U25_LOOP_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->max_iterations=max_iterations;
+    st=pr_u25_tag_start(&s->tag,b,n,c,e,cl,pl,x,&d->tag);return loop_next(s,d,st);
+}
+pr_u25_loop_status pr_u25_loop_resume(pr_u25_loop_session*s,pr_u25_loop_diagnostic*d){pr_u25_tag_status st;
+    if(!s||!d||s->phase!=PR_U25_LOOP_WAITING)return PR_U25_LOOP_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u25_tag_resume(&s->tag,&d->tag);
+    if(st==PR_U25_TAG_ARGUMENT)return PR_U25_LOOP_ARGUMENT;
+    return loop_next(s,d,st);
 }
