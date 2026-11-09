@@ -13,7 +13,8 @@ typedef enum {
 } pr_u3b0_mapped_status;
 typedef struct { uint16_t system_segment; } pr_u3b0_mapped_env;
 typedef struct { uint16_t site; pr_system_leaf_status status; } pr_u3b0_mapped_diagnostic;
-/* Live source-bound +060C state; caller owns CPU/bus, loaded sets/table,
+/* Live source-bound +060C or +0691 state; +0691 skips the earlier UpCase
+ * and first-set path, which must already have executed. Caller owns CPU/bus, loaded sets/table,
  * stack, prior prompt effects and stable code. Models UpCase, membership,
  * space and gated mapped-key path; stops before list search or +06CF. Caller
  * supplies relocated SYSTEM segment and stable code. Non-aperture CS/DS/SS
