@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_ecl_dispatch_prefix.h"
+#include "poolrad/replay/u1c_save_loader_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -575,4 +575,42 @@ pr_u1c_ecl_status pr_u1c_ecl_resume(pr_u1c_ecl_session*s,pr_u1c_ecl_diagnostic*d
     memset(d,0,sizeof *d);st=pr_u1c_runner_resume(&s->runner,&d->runner);
     if(st==PR_U1C_RUNNER_ARGUMENT)return PR_U1C_ECL_ARGUMENT;
     return ecl_next(s,d,st);
+}
+
+static uint16_t save_sub4(pr_r0899_cpu*c,uint16_t a){unsigned r=(a-4u)&0xffffu,p=r&255u;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|(a<4u?1u:0u)|((p&1u)?0u:4u)|(((a^4u^r)&0x10u)?0x10u:0u)|
+        (r==0?0x40u:0u)|(r&0x8000u?0x80u:0u)|(((a^4u)&(a^r)&0x8000u)?0x800u:0u));return (uint16_t)r;}
+pr_290b_first_status pr_u1c_save_loader_entry(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t cs,target;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x0292u||c->sp<12u||c->sp>0xfffcu||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=save_sub4(c,c->sp);c->ax=(uint16_t)((c->ax&0xff00u)|2u);push(b,c,c->ax);
+    c->ip=0x029bu;d->stage=1;if(rb(b,c->cs,c->ip)!=0x9au||rw(b,c->cs,0x029cu)!=0x002au)return PR_290B_FIRST_CODE;
+    cs=c->cs;push(b,c,cs);push(b,c,0x02a0u);c->cs=rw(b,cs,0x029eu);c->ip=0x002au;d->stage=2;
+    if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+    if(rb(b,c->cs,0x002au)!=0xeau||rw(b,c->cs,0x002bu)!=0x0000u)return PR_290B_FIRST_CODE;
+    target=rw(b,c->cs,0x002du);c->cs=target;c->ip=0x0000u;d->stage=3;
+    if(!ordinary(target))return PR_290B_FIRST_PROFILE;
+    return PR_290B_FIRST_DONE;
+}
+void pr_u1c_save_session_init(pr_u1c_save_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_ecl_session_init(&s->ecl);}}
+static pr_u1c_save_status save_next(pr_u1c_save_session*s,pr_u1c_save_diagnostic*d,pr_u1c_ecl_status st){
+    d->ecl_status=st;if(st==PR_U1C_ECL_YIELD){s->phase=PR_U1C_SAVE_WAITING;return PR_U1C_SAVE_YIELD;}
+    s->phase=PR_U1C_SAVE_FINISHED;if(st==PR_U1C_ECL_LOOP)return PR_U1C_SAVE_LOOP;
+    if(st==PR_U1C_ECL_OTHER)return PR_U1C_SAVE_OTHER;
+    if(st!=PR_U1C_ECL_HANDLER)return PR_U1C_SAVE_STOP;
+    if(s->cpu->ip!=0x0292u)return PR_U1C_SAVE_OTHER;
+    d->entry_status=pr_u1c_save_loader_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_U1C_SAVE_LOADER:PR_U1C_SAVE_STOP;
+}
+pr_u1c_save_status pr_u1c_save_start(pr_u1c_save_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u1c_save_diagnostic*d){
+    pr_u1c_ecl_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U1C_SAVE_EMPTY||x->bp<32u)return PR_U1C_SAVE_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u1c_ecl_start(&s->ecl,b,n,c,e,cl,pl,x,&d->ecl);return save_next(s,d,st);
+}
+pr_u1c_save_status pr_u1c_save_resume(pr_u1c_save_session*s,pr_u1c_save_diagnostic*d){pr_u1c_ecl_status st;
+    if(!s||!d||s->phase!=PR_U1C_SAVE_WAITING)return PR_U1C_SAVE_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u1c_ecl_resume(&s->ecl,&d->ecl);
+    if(st==PR_U1C_ECL_ARGUMENT)return PR_U1C_SAVE_ARGUMENT;
+    return save_next(s,d,st);
 }
