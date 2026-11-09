@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_up_dispatch.h"
+#include "poolrad/replay/u1c_script_entry.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -468,4 +468,35 @@ pr_u1c_dispatch_status pr_u1c_dispatch_resume(pr_u1c_dispatch_session*s,pr_u1c_d
     memset(d,0,sizeof *d);st=pr_u1c_up_resume(&s->up,&d->up);
     if(st==PR_U1C_UP_ARGUMENT)return PR_U1C_DISPATCH_ARGUMENT;
     return dispatch_next(s,d,st);
+}
+
+pr_290b_first_status pr_u1c_script_entry(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t v;uint16_t rel;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x344cu||c->bp<8u||c->sp!=(uint16_t)(c->bp-2u)||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    v=rb(b,c->ds,0x49ffu);cmp8(c,v,0);
+    if(!v){push(b,c,rw(b,c->ds,0x49e3u));push(b,c,c->cs);c->ip=0x3458u;rel=rw(b,c->cs,0x3459u);
+        if(rb(b,c->cs,0x3458u)!=0xe8u||(uint16_t)(0x345bu+rel)!=0x3171u)return PR_290B_FIRST_CODE;
+        push(b,c,0x345bu);c->ip=0x3171u;return PR_290B_FIRST_DONE;}
+    v=rb(b,c->ds,0x442fu);cmp8(c,v,0);if(v){c->ip=0x3462u;return PR_290B_FIRST_DONE;}
+    v=rb(b,c->ds,0x49ffu);cmp8(c,v,0);c->ip=v?0x34f5u:0x3473u;return PR_290B_FIRST_DONE;
+}
+void pr_u1c_script_session_init(pr_u1c_script_session*s){if(s){memset(s,0,sizeof *s);pr_u1c_dispatch_session_init(&s->dispatch);}}
+static pr_u1c_script_status script_next(pr_u1c_script_session*s,pr_u1c_script_diagnostic*d,pr_u1c_dispatch_status st){
+    d->dispatch_status=st;if(st==PR_U1C_DISPATCH_YIELD){s->phase=PR_U1C_SCRIPT_WAITING;return PR_U1C_SCRIPT_YIELD;}
+    s->phase=PR_U1C_SCRIPT_FINISHED;if(st==PR_U1C_DISPATCH_LOOP)return PR_U1C_SCRIPT_LOOP;
+    if(st!=PR_U1C_DISPATCH_REACHED)return PR_U1C_SCRIPT_STOP;
+    if(s->cpu->ip!=0x344cu)return PR_U1C_SCRIPT_OTHER;
+    d->entry_status=pr_u1c_script_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_U1C_SCRIPT_REACHED:PR_U1C_SCRIPT_STOP;
+}
+pr_u1c_script_status pr_u1c_script_start(pr_u1c_script_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u1c_script_diagnostic*d){
+    pr_u1c_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U1C_SCRIPT_EMPTY)return PR_U1C_SCRIPT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u1c_dispatch_start(&s->dispatch,b,n,c,e,cl,pl,x,&d->dispatch);return script_next(s,d,st);
+}
+pr_u1c_script_status pr_u1c_script_resume(pr_u1c_script_session*s,pr_u1c_script_diagnostic*d){pr_u1c_dispatch_status st;
+    if(!s||!d||s->phase!=PR_U1C_SCRIPT_WAITING)return PR_U1C_SCRIPT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u1c_dispatch_resume(&s->dispatch,&d->dispatch);
+    if(st==PR_U1C_DISPATCH_ARGUMENT)return PR_U1C_SCRIPT_ARGUMENT;
+    return script_next(s,d,st);
 }
