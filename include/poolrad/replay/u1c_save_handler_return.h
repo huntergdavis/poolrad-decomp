@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U1C_SAVE_HANDLER_RETURN_H
+#define POOLRAD_REPLAY_U1C_SAVE_HANDLER_RETURN_H
+#include "poolrad/replay/u25_store_return.h"
+pr_290b_first_status pr_u1c_save_handler_return(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_290b_return_target *target);
+typedef enum { PR_SAVE_HANDLER_EMPTY=0,PR_SAVE_HANDLER_WAITING,PR_SAVE_HANDLER_FINISHED } pr_save_handler_phase;
+typedef enum { PR_SAVE_HANDLER_YIELD=0,PR_SAVE_HANDLER_REACHED,PR_SAVE_HANDLER_HIGH,PR_SAVE_HANDLER_CLASS0,PR_SAVE_HANDLER_CLASS1,PR_SAVE_HANDLER_CLASS2,PR_SAVE_HANDLER_CLASS3,PR_SAVE_HANDLER_UNMATCHED,PR_SAVE_HANDLER_ZERO,PR_SAVE_HANDLER_WORD,PR_SAVE_HANDLER_OTHER_TYPE,PR_SAVE_HANDLER_STRING,PR_SAVE_HANDLER_LOADER_STRING,PR_SAVE_HANDLER_LIMIT,PR_SAVE_HANDLER_PROMPT,PR_SAVE_HANDLER_OTHER,PR_SAVE_HANDLER_ARGUMENT,PR_SAVE_HANDLER_STOP } pr_save_handler_status;
+typedef struct { pr_save_handler_phase phase;pr_store_return_session store;pr_bus *bus;pr_r0899_cpu *cpu;pr_290b_return_target target; } pr_save_handler_session;
+typedef struct { pr_store_return_status store_status;pr_store_return_diagnostic store;pr_290b_first_status return_status; } pr_save_handler_diagnostic;
+void pr_save_handler_session_init(pr_save_handler_session *state);
+pr_save_handler_status pr_save_handler_start(pr_save_handler_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_save_handler_diagnostic *diagnostic);
+pr_save_handler_status pr_save_handler_resume(pr_save_handler_session *state,pr_save_handler_diagnostic *diagnostic);
+#endif
