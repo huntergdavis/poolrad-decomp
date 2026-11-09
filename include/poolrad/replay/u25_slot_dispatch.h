@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_SLOT_DISPATCH_H
+#define POOLRAD_REPLAY_U25_SLOT_DISPATCH_H
+#include "poolrad/replay/u25_slot_prefix.h"
+pr_290b_first_status pr_u25_slot_dispatch(pr_bus *bus,size_t size,pr_r0899_cpu *cpu);
+typedef enum { PR_SLOT_DISPATCH_EMPTY=0,PR_SLOT_DISPATCH_WAITING,PR_SLOT_DISPATCH_FINISHED } pr_slot_dispatch_phase;
+typedef enum { PR_SLOT_DISPATCH_YIELD=0,PR_SLOT_DISPATCH_ZERO,PR_SLOT_DISPATCH_WORD,PR_SLOT_DISPATCH_PAIR,PR_SLOT_DISPATCH_OTHER_TYPE,PR_SLOT_DISPATCH_STRING,PR_SLOT_DISPATCH_LOADER_STRING,PR_SLOT_DISPATCH_LIMIT,PR_SLOT_DISPATCH_PROMPT,PR_SLOT_DISPATCH_OTHER,PR_SLOT_DISPATCH_ARGUMENT,PR_SLOT_DISPATCH_STOP } pr_slot_dispatch_status;
+typedef struct { pr_slot_dispatch_phase phase;pr_slot_prefix_session prefix;pr_bus *bus;pr_r0899_cpu *cpu; } pr_slot_dispatch_session;
+typedef struct { pr_slot_prefix_status prefix_status;pr_slot_prefix_diagnostic prefix;pr_290b_first_status dispatch_status; } pr_slot_dispatch_diagnostic;
+void pr_slot_dispatch_session_init(pr_slot_dispatch_session *state);
+pr_slot_dispatch_status pr_slot_dispatch_start(pr_slot_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_slot_dispatch_diagnostic *diagnostic);
+pr_slot_dispatch_status pr_slot_dispatch_resume(pr_slot_dispatch_session *state,pr_slot_dispatch_diagnostic *diagnostic);
+#endif

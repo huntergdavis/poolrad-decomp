@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_slot_prefix.h"
+#include "poolrad/replay/u25_slot_dispatch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -945,4 +945,41 @@ pr_slot_prefix_status pr_slot_prefix_resume(pr_slot_prefix_session*s,pr_slot_pre
     memset(d,0,sizeof *d);st=pr_save_slot_resume(&s->slot,&d->slot);
     if(st==PR_SAVE_SLOT_ARGUMENT)return PR_SLOT_PREFIX_ARGUMENT;
     return slot_prefix_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_slot_dispatch(pr_bus*b,size_t n,pr_r0899_cpu*c){
+    uint8_t tag;
+    if(!b||!b->ram||!b->ega||!c||n!=PR_BUS_RAM_SIZE||c->ip!=0x0160u||c->bp<10u||c->sp!=(uint16_t)(c->bp-10u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    tag=(uint8_t)c->ax;cmp8(c,tag,0u);if(tag==0u){c->ip=0x0164u;return PR_290B_FIRST_DONE;}
+    cmp8(c,tag,1u);if(tag==1u){c->ip=0x017au;return PR_290B_FIRST_DONE;}
+    cmp8(c,tag,3u);if(tag==3u){c->ip=0x017au;return PR_290B_FIRST_DONE;}
+    cmp8(c,tag,0x80u);if(tag==0x80u){c->ip=0x017au;return PR_290B_FIRST_DONE;}
+    cmp8(c,tag,2u);if(tag==2u){c->ip=0x019eu;return PR_290B_FIRST_DONE;}
+    cmp8(c,tag,0x81u);c->ip=tag==0x81u?0x019eu:0x01adu;return PR_290B_FIRST_DONE;
+}
+void pr_slot_dispatch_session_init(pr_slot_dispatch_session*s){if(s){memset(s,0,sizeof *s);pr_slot_prefix_session_init(&s->prefix);}}
+static pr_slot_dispatch_status slot_dispatch_next(pr_slot_dispatch_session*s,pr_slot_dispatch_diagnostic*d,pr_slot_prefix_status st){
+    d->prefix_status=st;if(st==PR_SLOT_PREFIX_YIELD){s->phase=PR_SLOT_DISPATCH_WAITING;return PR_SLOT_DISPATCH_YIELD;}
+    s->phase=PR_SLOT_DISPATCH_FINISHED;if(st==PR_SLOT_PREFIX_STRING)return PR_SLOT_DISPATCH_STRING;
+    if(st==PR_SLOT_PREFIX_LOADER_STRING)return PR_SLOT_DISPATCH_LOADER_STRING;
+    if(st==PR_SLOT_PREFIX_LIMIT)return PR_SLOT_DISPATCH_LIMIT;
+    if(st==PR_SLOT_PREFIX_PROMPT)return PR_SLOT_DISPATCH_PROMPT;
+    if(st==PR_SLOT_PREFIX_OTHER)return PR_SLOT_DISPATCH_OTHER;
+    if(st!=PR_SLOT_PREFIX_REACHED)return PR_SLOT_DISPATCH_STOP;
+    d->dispatch_status=pr_u25_slot_dispatch(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->dispatch_status!=PR_290B_FIRST_DONE)return PR_SLOT_DISPATCH_STOP;
+    if(s->cpu->ip==0x0164u)return PR_SLOT_DISPATCH_ZERO;
+    if(s->cpu->ip==0x017au)return PR_SLOT_DISPATCH_WORD;
+    if(s->cpu->ip==0x019eu)return PR_SLOT_DISPATCH_PAIR;
+    return PR_SLOT_DISPATCH_OTHER_TYPE;
+}
+pr_slot_dispatch_status pr_slot_dispatch_start(pr_slot_dispatch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_slot_dispatch_diagnostic*d){
+    pr_slot_prefix_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SLOT_DISPATCH_EMPTY)return PR_SLOT_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_slot_prefix_start(&s->prefix,b,n,c,e,cl,pl,x,max_iterations,&d->prefix);return slot_dispatch_next(s,d,st);
+}
+pr_slot_dispatch_status pr_slot_dispatch_resume(pr_slot_dispatch_session*s,pr_slot_dispatch_diagnostic*d){pr_slot_prefix_status st;
+    if(!s||!d||s->phase!=PR_SLOT_DISPATCH_WAITING)return PR_SLOT_DISPATCH_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_slot_prefix_resume(&s->prefix,&d->prefix);
+    if(st==PR_SLOT_PREFIX_ARGUMENT)return PR_SLOT_DISPATCH_ARGUMENT;
+    return slot_dispatch_next(s,d,st);
 }
