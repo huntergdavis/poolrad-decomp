@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_print.h"
+#include "poolrad/replay/u68_290b_exit.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -343,4 +343,51 @@ pr_u68_290b_print_status pr_u68_290b_print_resume(pr_u68_290b_print*s,pr_u68_290
     memset(d,0,sizeof *d);st=pr_u68_290b_clear_resume(&s->clear,&d->clear);
     if(st==PR_U68_290B_CLEAR_ARGUMENT)return PR_U68_290B_PRINT_ARGUMENT;
     return print_next(s,d,st);
+}
+
+pr_290b_first_status pr_u68_post_display_exit(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_clear_limits*l,const pr_290b_return_target*x,pr_290b_clear_diagnostic*d){
+    uint16_t cs,sp;uint8_t v;pr_r03f1_clear_cpu t;
+    if(!b||!b->ram||!b->ega||!c||!l||!x||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x0ba0u||c->bp<0x0090u||c->bp>0xfffau||
+       c->sp!=(uint16_t)(c->bp-0x003cu)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;
+    v=rb(b,c->ss,(uint16_t)(c->bp-2u));cmp8(c,v,0);if(!v){c->ip=0x09a8u;return PR_290B_FIRST_OUTSIDE;}
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x49fau));wb(b,c->ds,0x49f9u,(uint8_t)c->ax);
+    v=rb(b,c->ds,0x84e4u);cmp8(c,v,0);
+    if(!v){
+        c->ax=(uint16_t)((c->ax&0xff00u)|1u);push(b,c,c->ax);c->ax=(uint16_t)((c->ax&0xff00u)|0x11u);push(b,c,c->ax);
+        c->ax=(uint16_t)((c->ax&0xff00u)|0x26u);push(b,c,c->ax);c->ax=(uint16_t)((c->ax&0xff00u)|0x16u);push(b,c,c->ax);
+        c->ip=0x0d35u;if(rb(b,c->cs,c->ip)!=0x9au||rw(b,c->cs,0x0d36u)!=0x0137u)return PR_290B_FIRST_CODE;
+        cs=c->cs;sp=(uint16_t)(c->sp+8u);push(b,c,cs);push(b,c,0x0d3au);c->cs=rw(b,cs,0x0d38u);c->ip=0x0137u;
+        if(!ordinary(c->cs))return PR_290B_FIRST_PROFILE;
+        {FIELDS(TO)}d->status=(int)pr_r03f1_clear_0137_cpu(b,n,&t,l->clear_loopbacks,l->rect_loopbacks,&d->clear);{FIELDS(FROM)}
+        if(d->status!=PR_R03F1_CLEAR_CPU_OK)return PR_290B_FIRST_CALLEE;
+        if(c->cs!=cs||c->ip!=0x0d3au||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+        wb(b,c->ds,0x84e4u,1);
+    }
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-3u)));wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ss,(uint16_t)(c->bp-1u)));
+    if(c->bp>0xfffau){c->ip=0x0d48u;return PR_290B_FIRST_PROFILE;}
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_exit_init(pr_u68_290b_exit*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_print_init(&s->print);}}
+static pr_u68_290b_exit_status exit_next(pr_u68_290b_exit*s,pr_u68_290b_exit_diagnostic*d,pr_u68_290b_print_status st){
+    d->print_status=st;if(st==PR_U68_290B_PRINT_YIELD){s->phase=PR_U68_290B_EXIT_WAITING;return PR_U68_290B_EXIT_YIELD;}
+    s->phase=PR_U68_290B_EXIT_FINISHED;if(st!=PR_U68_290B_PRINT_RETURNED)return PR_U68_290B_EXIT_STOP;
+    d->exit_status=pr_u68_post_display_exit(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->limits,&s->target,&d->exit);
+    if(d->exit_status==PR_290B_FIRST_OUTSIDE)return PR_U68_290B_EXIT_LOOP;
+    return d->exit_status==PR_290B_FIRST_DONE?PR_U68_290B_EXIT_RETURNED:PR_U68_290B_EXIT_STOP;
+}
+pr_u68_290b_exit_status pr_u68_290b_exit_start(pr_u68_290b_exit*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,pr_u68_290b_exit_diagnostic*d){
+    pr_u68_290b_print_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_U68_290B_EXIT_EMPTY)return PR_U68_290B_EXIT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->limits=*cl;s->target=*x;
+    st=pr_u68_290b_print_start(&s->print,b,n,c,e,cl,pl,&d->print);return exit_next(s,d,st);
+}
+pr_u68_290b_exit_status pr_u68_290b_exit_resume(pr_u68_290b_exit*s,pr_u68_290b_exit_diagnostic*d){pr_u68_290b_print_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_EXIT_WAITING)return PR_U68_290B_EXIT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_print_resume(&s->print,&d->print);
+    if(st==PR_U68_290B_PRINT_ARGUMENT)return PR_U68_290B_EXIT_ARGUMENT;
+    return exit_next(s,d,st);
 }
