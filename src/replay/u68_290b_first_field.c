@@ -1,4 +1,4 @@
-#include "poolrad/replay/u25_second_loader_return.h"
+#include "poolrad/replay/u1c_second_save_branch.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -1582,4 +1582,48 @@ pr_second_loader_status pr_second_loader_resume(pr_second_loader_session*s,pr_se
     memset(d,0,sizeof *d);st=pr_second_save_resume(&s->save,&d->save);
     if(st==PR_SECOND_SAVE_ARGUMENT)return PR_SECOND_LOADER_ARGUMENT;
     return second_loader_after(s,d,st);
+}
+
+void pr_second_branch_session_init(pr_second_branch_session*s){if(s){memset(s,0,sizeof *s);pr_second_loader_session_init(&s->loader);}}
+static pr_second_branch_status second_branch_after(pr_second_branch_session*s,pr_second_branch_diagnostic*d,pr_second_loader_status st){
+    pr_290b_return_target x;
+    d->loader_status=st;if(st==PR_SECOND_LOADER_YIELD){s->phase=PR_SECOND_BRANCH_WAITING;return PR_SECOND_BRANCH_YIELD;}
+    s->phase=PR_SECOND_BRANCH_FINISHED;if(st==PR_SECOND_LOADER_SECOND_STRING)return PR_SECOND_BRANCH_OPERAND_STRING;
+    if(st==PR_SECOND_LOADER_SECOND_LIMIT)return PR_SECOND_BRANCH_SECOND_LIMIT;
+    if(st==PR_SECOND_LOADER_OTHER_HANDLER)return PR_SECOND_BRANCH_OTHER_HANDLER;
+    if(st==PR_SECOND_LOADER_LATER)return PR_SECOND_BRANCH_LATER;
+    if(st==PR_SECOND_LOADER_RETURNED)return PR_SECOND_BRANCH_RETURNED;
+    if(st==PR_SECOND_LOADER_HIGH)return PR_SECOND_BRANCH_HIGH;
+    if(st==PR_SECOND_LOADER_CLASS0)return PR_SECOND_BRANCH_CLASS0;
+    if(st==PR_SECOND_LOADER_CLASS1)return PR_SECOND_BRANCH_CLASS1;
+    if(st==PR_SECOND_LOADER_CLASS2)return PR_SECOND_BRANCH_CLASS2;
+    if(st==PR_SECOND_LOADER_CLASS3)return PR_SECOND_BRANCH_CLASS3;
+    if(st==PR_SECOND_LOADER_UNMATCHED)return PR_SECOND_BRANCH_UNMATCHED;
+    if(st==PR_SECOND_LOADER_ZERO)return PR_SECOND_BRANCH_ZERO;
+    if(st==PR_SECOND_LOADER_WORD)return PR_SECOND_BRANCH_WORD;
+    if(st==PR_SECOND_LOADER_OTHER_TYPE)return PR_SECOND_BRANCH_OTHER_TYPE;
+    if(st==PR_SECOND_LOADER_STRING)return PR_SECOND_BRANCH_FIRST_SAVE_STRING;
+    if(st==PR_SECOND_LOADER_FIRST_STRING)return PR_SECOND_BRANCH_FIRST_OPERAND_STRING;
+    if(st==PR_SECOND_LOADER_FIRST_LIMIT)return PR_SECOND_BRANCH_FIRST_LIMIT;
+    if(st==PR_SECOND_LOADER_PROMPT)return PR_SECOND_BRANCH_PROMPT;
+    if(st==PR_SECOND_LOADER_OTHER)return PR_SECOND_BRANCH_OTHER;
+    if(st!=PR_SECOND_LOADER_REACHED)return PR_SECOND_BRANCH_STOP;
+    x=(pr_290b_return_target){s->cpu->cs,0x02adu,s->cpu->sp,s->cpu->bp,s->cpu->ss};
+    d->entry_status=pr_u1c_save_word_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    if(d->entry_status!=PR_290B_FIRST_DONE)return PR_SECOND_BRANCH_STOP;
+    d->word_status=pr_u25_word_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&x);
+    if(d->word_status!=PR_290B_FIRST_DONE)return PR_SECOND_BRANCH_STOP;
+    d->branch_status=pr_u1c_save_tag_branch(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->branch_status!=PR_290B_FIRST_DONE)return PR_SECOND_BRANCH_STOP;
+    return s->cpu->ip==0x02cfu?PR_SECOND_BRANCH_SAVE_STRING:PR_SECOND_BRANCH_NUMERIC;
+}
+pr_second_branch_status pr_second_branch_start(pr_second_branch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_second_branch_diagnostic*d){
+    pr_second_loader_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_SECOND_BRANCH_EMPTY||s->loader.phase!=PR_SECOND_LOADER_EMPTY||s->loader.save.phase!=PR_SECOND_SAVE_EMPTY||s->loader.save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->loader.save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_BRANCH_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_second_loader_start(&s->loader,b,n,c,e,cl,pl,x,max_iterations,&d->loader);return second_branch_after(s,d,st);
+}
+pr_second_branch_status pr_second_branch_resume(pr_second_branch_session*s,pr_second_branch_diagnostic*d){pr_second_loader_status st;
+    if(!s||!d||s->phase!=PR_SECOND_BRANCH_WAITING)return PR_SECOND_BRANCH_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_second_loader_resume(&s->loader,&d->loader);
+    if(st==PR_SECOND_LOADER_ARGUMENT)return PR_SECOND_BRANCH_ARGUMENT;
+    return second_branch_after(s,d,st);
 }
