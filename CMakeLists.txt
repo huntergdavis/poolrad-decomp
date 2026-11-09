@@ -202,6 +202,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/replay/u3b0_draw_wait_047a.c
                                     src/replay/u3b0_clock_draw_0432.c
                                     src/replay/u3b0_entry_03bd.c
+                                    src/replay/u3b0_prompt_session.c
                                     src/replay/u3b0_wait_048e.c
                                     src/replay/u3b0_prompt_pass.c
                                     src/replay/u3b0_text_0634.c
