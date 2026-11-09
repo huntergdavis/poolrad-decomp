@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U1C_RUNNER_NEXT_H
+#define POOLRAD_REPLAY_U1C_RUNNER_NEXT_H
+#include "poolrad/replay/u1c_save_dispatch_return.h"
+pr_290b_first_status pr_u1c_runner_next(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_290b_return_target *target);
+typedef enum { PR_RUNNER_NEXT_EMPTY=0,PR_RUNNER_NEXT_WAITING,PR_RUNNER_NEXT_FINISHED } pr_runner_next_phase;
+typedef enum { PR_RUNNER_NEXT_YIELD=0,PR_RUNNER_NEXT_DISPATCH,PR_RUNNER_NEXT_RETURNED,PR_RUNNER_NEXT_HIGH,PR_RUNNER_NEXT_CLASS0,PR_RUNNER_NEXT_CLASS1,PR_RUNNER_NEXT_CLASS2,PR_RUNNER_NEXT_CLASS3,PR_RUNNER_NEXT_UNMATCHED,PR_RUNNER_NEXT_ZERO,PR_RUNNER_NEXT_WORD,PR_RUNNER_NEXT_OTHER_TYPE,PR_RUNNER_NEXT_STRING,PR_RUNNER_NEXT_LOADER_STRING,PR_RUNNER_NEXT_LIMIT,PR_RUNNER_NEXT_PROMPT,PR_RUNNER_NEXT_OTHER,PR_RUNNER_NEXT_ARGUMENT,PR_RUNNER_NEXT_STOP } pr_runner_next_status;
+typedef struct { pr_runner_next_phase phase;pr_dispatch_return_session dispatch;pr_bus *bus;pr_r0899_cpu *cpu;pr_290b_return_target target; } pr_runner_next_session;
+typedef struct { pr_dispatch_return_status dispatch_status;pr_dispatch_return_diagnostic dispatch;pr_290b_first_status next_status; } pr_runner_next_diagnostic;
+void pr_runner_next_session_init(pr_runner_next_session *state);
+pr_runner_next_status pr_runner_next_start(pr_runner_next_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_runner_next_diagnostic *diagnostic);
+pr_runner_next_status pr_runner_next_resume(pr_runner_next_session *state,pr_runner_next_diagnostic *diagnostic);
+#endif
