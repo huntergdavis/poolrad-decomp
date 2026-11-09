@@ -1,3 +1,4 @@
+#include "poolrad/replay/u1c_save_tag_branch.h"
 #include "poolrad/replay/u25_word_return.h"
 #include "poolrad/replay/u1c_save_word_entry.h"
 #include "poolrad/replay/u25_operand_return.h"
@@ -424,6 +425,25 @@ int main(void){
     CHECK(pr_u25_word_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_TRANSFER && c.ip==0x02ae && c.ax==0xff80 && c.dx==0x80 && c.sp==0x3008 && (c.flags&0x08d5u)==0x80);
     c=state;c.cs=0x7100;c.ip=0x06af;c.sp=3;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
     CHECK(pr_u25_word_return(&b,PR_BUS_RAM_SIZE,&c,&x)==PR_290B_FIRST_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);}
+    memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
+    {pr_save_tag_session joined;pr_save_tag_diagnostic ld;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
+    pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
+    je.draw.pass.target=ce.draw.pass.target;memcpy(snapshot,r,PR_BUS_RAM_SIZE);memcpy(esnapshot,ega,sizeof *ega);
+    display_setup(&b,&c,&q,7);put(r,0x5000,0x11f6,0);put(r,0x5000,0x3594,0);r[p(c.ds,0x49f3)]=2;r[p(c.ds,0x84e4)]=0;r[p(c.ds,0x49ff)]=0;
+    put(r,c.ds,0x49e3,0x1234);put(r,c.ds,0x49de,0);put(r,c.ds,0x49e0,0x5000);r[p(0x5000,0x7934)]=9;r[p(0x5000,0x7935)]=2;r[p(0x5000,0x7936)]=0x42;r[p(0x5000,0x7937)]=0x77;r[p(0x5000,0x7938)]=1;r[p(0x5000,0x7939)]=0x22;r[p(0x5000,0x793a)]=0x33;
+    put(r,c.ss,c.bp,0x4060);put(r,c.ss,c.bp+2,0x339a);put(r,c.ss,c.bp+4,0x7900);farcall(r,0x7900,0x02a8,0x5100,0x004d);r[p(0x5100,0x004d)]=0xea;put(r,0x5100,0x004e,0x06af);put(r,0x5100,0x0050,0x7100);pr_save_tag_session_init(&joined);
+    CHECK(pr_save_tag_start(&joined,&b,PR_BUS_RAM_SIZE,&c,&je,&cl,&pl,&target,1,&ld)==PR_SAVE_TAG_YIELD);
+    target.ip=0x1234;before=c;c.ax^=1;CHECK(pr_save_tag_resume(&joined,&ld)==PR_SAVE_TAG_ARGUMENT && joined.phase==PR_SAVE_TAG_WAITING);c=before;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_save_tag_resume(&joined,&ld)==PR_SAVE_TAG_NUMERIC && c.cs==0x7900 && c.ip==0x02b7 && c.sp==0x4046 && c.bp==0x404a && c.ax==0x3322 && c.dx==0x22 && (c.cx&255u)==8 && (c.flags&0x08d5u)==0x885);
+    CHECK(r[p(c.ds,0x7006)]==2 && r[p(c.ds,0x7086)]==0x42 && r[p(c.ds,0x7046)]==0x77 && r[p(c.ds,0x7007)]==1 && r[p(c.ds,0x7087)]==0x22 && r[p(c.ds,0x7047)]==0x33 && r[p(c.ds,0x49ed)]==0x3b);
+    CHECK(r[p(c.ss,c.bp-4)]==0x22 && r[p(c.ss,c.bp-3)]==0x33);
+    {pr_r0899_cpu state=c;c.ip=0x02ad;c.ss=c.ds;c.bp=0x700a;c.ax=0x0180;r[p(c.ds,0x7006)]=1;
+    CHECK(pr_u1c_save_tag_branch(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_DONE && c.ip==0x02cf && r[p(c.ds,0x7006)]==0x80 && (c.flags&0x08d5u)==0x44);
+    c=state;c.ip=0x02ad;r[p(c.ds,0x7006)]=0xff;
+    CHECK(pr_u1c_save_tag_branch(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_DONE && c.ip==0x02cf && (c.flags&0x08d5u)==0);
+    c=state;c.ip=0x02ad;c.bp=3;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
+    CHECK(pr_u1c_save_tag_branch(&b,PR_BUS_RAM_SIZE,&c)==PR_290B_FIRST_ARGUMENT && memcmp(&c,&before,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);}
     memcpy(r,snapshot,PR_BUS_RAM_SIZE);memcpy(ega,esnapshot,sizeof *ega);c=prior;free(snapshot);free(esnapshot);}
     {pr_u25_tag_session joined;pr_u25_tag_diagnostic td;pr_290b_clear_limits cl={65536,65536};pr_290b_print_limits pl={65536,65536};pr_290b_return_target target={0x7900,0x339a,0x405e,0x4060,0x2800};clock_state jt={0,0};pr_u3b0_clock_draw_env je={clock_service,&jt,65536,65536,env};
     pr_r0899_cpu prior=c;uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE);pr_ega *esnapshot=malloc(sizeof *ega);CHECK(snapshot&&esnapshot);
