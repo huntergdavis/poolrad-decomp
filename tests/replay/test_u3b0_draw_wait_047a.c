@@ -7,6 +7,7 @@
 #include "poolrad/replay/u3b0_draw_wait_047a.h"
 #include "poolrad/replay/u3b0_clock_draw_0432.h"
 #include "poolrad/replay/u3b0_entry_03bd.h"
+#include "poolrad/replay/u3b0_prompt_session.h"
 #include "poolrad/replay/crt_input_fifo.h"
 #include "poolrad/replay/u3b0_return_06cf.h"
 #include "poolrad/replay/u3b0_character_059c.h"
@@ -179,6 +180,25 @@ int main(void){
     CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_CALLEE && ed.phase==2 && ed.split_status==PR_U3B0_00CB_CODE && c.ip==0x00df);
     entry_setup(&b,&c,&q,0);c.sp=0x01d1;before=c;memcpy(saved,r,PR_BUS_RAM_SIZE);memcpy(old,ega,sizeof *ega);
     CHECK(pr_u3b0_entry_03bd(&b,PR_BUS_RAM_SIZE,&c,&ce,&ed)==PR_U3B0_ENTRY_ARGUMENT && memcmp(&before,&c,sizeof c)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0 && memcmp(old,ega,sizeof *ega)==0);
+    }
+    /* A session yields only at its own no-event loop, then consumes real FIFO input. */
+    {clock_state ts={0,0};pr_u3b0_clock_draw_env ce={clock_service,&ts,65536,65536,env};pr_u3b0_prompt_session session;pr_u3b0_session_diagnostic sd;const pr_port_env *saved_ports;
+    entry_setup(&b,&c,&q,1);pr_u3b0_prompt_session_init(&session);
+    CHECK(pr_u3b0_prompt_session_start(&session,&b,PR_BUS_RAM_SIZE,&c,&ce,&sd)==PR_U3B0_SESSION_YIELD && session.phase==PR_U3B0_SESSION_WAITING && c.ip==0x048e && ts.calls==2 && q.count==0);
+    memcpy(old,ega,sizeof *ega);before=c;
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_YIELD && c.ip==0x048e && ts.calls==2 && q.count==0 && memcmp(old,ega,sizeof *ega)==0);
+    before=c;c.ax^=1;
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_ARGUMENT && session.phase==PR_U3B0_SESSION_WAITING && ts.calls==2);c=before;
+    saved_ports=b.ports;b.ports=NULL;
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_ARGUMENT && session.phase==PR_U3B0_SESSION_WAITING);b.ports=saved_ports;
+    CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_RETURN && session.phase==PR_U3B0_SESSION_FINISHED && c.ip==0x09d5 && (c.ax&255u)==0x48 && q.count==0 && ts.calls==2);
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_ARGUMENT);
+    ts.calls=0;entry_setup(&b,&c,&q,0);pr_u3b0_prompt_session_init(&session);CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
+    CHECK(pr_u3b0_prompt_session_start(&session,&b,PR_BUS_RAM_SIZE,&c,&ce,&sd)==PR_U3B0_SESSION_RETURN && session.phase==PR_U3B0_SESSION_FINISHED && (c.ax&255u)==0x48 && ts.calls==2);
+    entry_setup(&b,&c,&q,0);r[p(c.ds,0x6abf)]=1;pr_u3b0_prompt_session_init(&session);
+    CHECK(pr_u3b0_prompt_session_start(&session,&b,PR_BUS_RAM_SIZE,&c,&ce,&sd)==PR_U3B0_SESSION_STOP && session.phase==PR_U3B0_SESSION_FINISHED && c.ip==0x04ad);
+    CHECK(pr_u3b0_prompt_session_resume(&session,&sd)==PR_U3B0_SESSION_ARGUMENT);
     }
     free(old);free(ega);free(saved);free(r);printf("3B0 drawer/wait: %u checks passed\n",checks);return 0;
 }
