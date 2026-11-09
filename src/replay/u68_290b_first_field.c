@@ -1,0 +1,88 @@
+#include "poolrad/replay/u68_290b_first_field.h"
+#include <string.h>
+#define MASK (PR_BUS_RAM_SIZE-1u)
+static size_t at(uint16_t s,uint16_t o){return (((size_t)s<<4u)+o)&MASK;}
+static uint8_t rb(pr_bus*b,uint16_t s,uint16_t o){return pr_bus_read8(b,at(s,o));}
+static uint16_t rw(pr_bus*b,uint16_t s,uint16_t o){size_t p=at(s,o);uint8_t l=pr_bus_read8(b,p),h=pr_bus_read8(b,(p+1u)&MASK);return (uint16_t)(l|((uint16_t)h<<8u));}
+static void wb(pr_bus*b,uint16_t s,uint16_t o,uint8_t v){pr_bus_write8(b,at(s,o),v);}
+static void ww(pr_bus*b,uint16_t s,uint16_t o,uint16_t v){size_t p=at(s,o);pr_bus_write8(b,p,(uint8_t)v);pr_bus_write8(b,(p+1u)&MASK,(uint8_t)(v>>8u));}
+static void push(pr_bus*b,pr_r0899_cpu*c,uint16_t v){c->sp=(uint16_t)(c->sp-2u);ww(b,c->ss,c->sp,v);}
+static int ordinary(uint16_t s){return s<0x9000u||s>=0xb000u;}
+static void cmp8(pr_r0899_cpu*c,uint8_t a,uint8_t b){unsigned r=(a-b)&255u,p=r;p^=p>>4;p^=p>>2;p^=p>>1;
+    c->flags=(uint16_t)((c->flags&~0x08d5u)|(a<b?1u:0u)|((p&1u)?0u:4u)|(((a^b^r)&0x10u)?0x10u:0u)|(r==0?0x40u:0u)|(r&0x80u?0x80u:0u)|(((a^b)&(a^r)&0x80u)?0x800u:0u));}
+#define FIELDS(X) X(ax) X(bx) X(cx) X(dx) X(si) X(di) X(bp) X(sp) X(cs) X(ip) X(ds) X(es) X(ss) X(flags)
+#define TO(f) t.f=c->f;
+#define FROM(f) c->f=t.f;
+/* Stage 1=word formatter, 2=first store, 3=literal load,
+ * 4=concatenation, 5=padding store. The flat leaves' live segment
+ * arguments are checked only after the source far-call frame is built. */
+static pr_290b_first_status string_call(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d,uint16_t site,uint16_t target,int stage){
+    uint16_t cs,sp,src,dst;int status;pr_system_leaf_cpu t;pr_system_0b25_cpu u;
+    d->stage=stage;c->ip=site;if(rb(b,c->cs,site)!=0x9au||rw(b,c->cs,(uint16_t)(site+1u))!=target)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=c->sp;push(b,c,cs);push(b,c,(uint16_t)(site+5u));c->cs=rw(b,cs,(uint16_t)(site+3u));c->ip=target;
+    if(target==0x0b25u){src=rw(b,c->ss,(uint16_t)(c->sp+0x0cu));dst=rw(b,c->ss,(uint16_t)(c->sp+8u));}
+    else{src=rw(b,c->ss,(uint16_t)(c->sp+6u));dst=rw(b,c->ss,(uint16_t)(c->sp+0x0au));}
+    if(!ordinary(c->cs)||!ordinary(src)||!ordinary(dst))return PR_290B_FIRST_PROFILE;
+    if(target==0x0b25u){
+#define TO_STORE(f) u.f=c->f;
+#define FROM_STORE(f) c->f=u.f;
+        {FIELDS(TO_STORE)}status=(int)pr_system_strstore_0b25(b->ram,n,&u);{FIELDS(FROM_STORE)}
+#undef TO_STORE
+#undef FROM_STORE
+    }else{{FIELDS(TO)}status=(int)(target==0x0b0bu?pr_system_strload_0b0b(b->ram,n,&t):pr_system_strcat_0b98(b->ram,n,&t));{FIELDS(FROM)}}
+    d->status=status;if(status!=0)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=(uint16_t)(site+5u)||c->sp!=(uint16_t)(sp+(target==0x0b25u?10u:4u)))return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+pr_290b_first_status pr_290b_first_field(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint16_t cs,sp,rel,off;uint8_t v;pr_res_1073_cpu t;pr_res_1073_status fs;pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x290bu||c->sp<0x043eu||c->sp>0xfff0u||
+       !ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=(uint16_t)(c->sp-0x0232u);
+    wb(b,c->ss,(uint16_t)(c->bp-0x31u),0);c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x6aadu));wb(b,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    c->ax=(uint16_t)((c->ax&0xff00u)|rb(b,c->ds,0x6aaeu));wb(b,c->ss,(uint16_t)(c->bp-2u),(uint8_t)c->ax);
+    v=rb(b,c->ds,0x49fau);cmp8(c,v,1u);if(v>1u){c->ip=0x2929u;return PR_290B_FIRST_OUTSIDE;}
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);
+    c->di=rw(b,c->ds,0x49d2u);c->es=rw(b,c->ds,0x49d4u);off=(uint16_t)(c->di+0x0192u);
+    if(off==0xffffu){c->ip=0x2961u;return PR_290B_FIRST_PROFILE;}
+    push(b,c,rw(b,c->es,off));push(b,c,c->cs);c->ip=0x2967u;d->stage=1;rel=rw(b,c->cs,0x2968u);
+    if(rb(b,c->cs,0x2967u)!=0xe8u||(uint16_t)(0x296au+rel)!=0x1073u)return PR_290B_FIRST_CODE;
+    cs=c->cs;sp=(uint16_t)(c->sp+4u);push(b,c,0x296au);c->ip=0x1073u;
+    {FIELDS(TO)}fs=pr_res_00ba_1073_cpu(b,n,&t,&d->formatter_callee,&d->formatter_status);{FIELDS(FROM)}
+    d->status=(int)fs;if(fs!=PR_RES_1073_OK)return PR_290B_FIRST_CALLEE;
+    if(c->cs!=cs||c->ip!=0x296au||c->sp!=sp)return PR_290B_FIRST_TRANSFER;
+    c->di=(uint16_t)(c->bp-5u);push(b,c,c->ss);push(b,c,c->di);c->ax=2;push(b,c,c->ax);
+    st=string_call(b,n,c,d,0x2973u,0x0b25u,2);if(st)return st;
+    v=rb(b,c->ss,(uint16_t)(c->bp-5u));cmp8(c,v,2u);
+    if(v<2u){
+        c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->di=0x28f2u;push(b,c,c->cs);push(b,c,c->di);
+        st=string_call(b,n,c,d,0x2989u,0x0b0bu,3);if(st)return st;
+        c->di=(uint16_t)(c->bp-5u);push(b,c,c->ss);push(b,c,c->di);
+        st=string_call(b,n,c,d,0x2993u,0x0b98u,4);if(st)return st;
+        c->di=(uint16_t)(c->bp-5u);push(b,c,c->ss);push(b,c,c->di);c->ax=2;push(b,c,c->ax);
+        st=string_call(b,n,c,d,0x29a1u,0x0b25u,5);if(st)return st;
+    }
+    c->ip=0x29a6u;return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_init(pr_u68_290b*s){if(s){memset(s,0,sizeof *s);pr_u68_prompt_init(&s->u68);}}
+static pr_u68_290b_status next(pr_u68_290b*s,pr_u68_290b_diagnostic*d,pr_u68_prompt_status st){
+    pr_r0899_cpu*c=s->cpu;pr_bus*b=s->bus;uint16_t cs;
+    d->u68_status=st;if(st==PR_U68_PROMPT_YIELD){s->phase=PR_U68_290B_WAITING;return PR_U68_290B_YIELD;}
+    s->phase=PR_U68_290B_FINISHED;if(st!=PR_U68_PROMPT_DISPLAY)return PR_U68_290B_STOP;
+    if(c->ip!=0x0b9bu||rb(b,c->cs,0x0b9bu)!=0x9au||rw(b,c->cs,0x0b9cu)!=0x290bu)return PR_U68_290B_CODE;
+    cs=c->cs;push(b,c,cs);push(b,c,0x0ba0u);c->cs=rw(b,cs,0x0b9eu);c->ip=0x290bu;
+    if(!ordinary(c->cs))return PR_U68_290B_PROFILE;
+    d->first_status=pr_290b_first_field(b,PR_BUS_RAM_SIZE,c,&d->first);
+    return d->first_status==PR_290B_FIRST_DONE?PR_U68_290B_FIRST_FIELD:PR_U68_290B_STOP;
+}
+pr_u68_290b_status pr_u68_290b_start(pr_u68_290b*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,pr_u68_290b_diagnostic*d){
+    pr_u68_prompt_status st;if(!s||!b||!c||!e||!d||s->phase!=PR_U68_290B_EMPTY)return PR_U68_290B_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_prompt_start(&s->u68,b,n,c,e,&d->u68);return next(s,d,st);
+}
+pr_u68_290b_status pr_u68_290b_resume(pr_u68_290b*s,pr_u68_290b_diagnostic*d){pr_u68_prompt_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_WAITING)return PR_U68_290B_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_prompt_resume(&s->u68,&d->u68);
+    if(st==PR_U68_PROMPT_ARGUMENT)return PR_U68_290B_ARGUMENT;
+    return next(s,d,st);
+}
