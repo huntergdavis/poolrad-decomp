@@ -1,4 +1,4 @@
-#include "poolrad/replay/u1c_save_word_entry.h"
+#include "poolrad/replay/u25_word_return.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
@@ -809,4 +809,41 @@ pr_save_word_status pr_save_word_resume(pr_save_word_session*s,pr_save_word_diag
     memset(d,0,sizeof *d);st=pr_u25_return_resume(&s->loader,&d->loader);
     if(st==PR_U25_RETURN_ARGUMENT)return PR_SAVE_WORD_ARGUMENT;
     return save_word_next(s,d,st);
+}
+
+pr_290b_first_status pr_u25_word_return(pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_290b_return_target*x){
+    uint16_t low,high;
+    if(!b||!b->ram||!b->ega||!c||!x||n!=PR_BUS_RAM_SIZE||c->ip!=0x06afu||c->sp<4u||c->sp>0xfff8u||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    push(b,c,c->bp);c->bp=c->sp;c->sp=(uint16_t)(c->sp-2u);
+    low=rb(b,c->ss,(uint16_t)(c->bp+8u));c->dx=low;
+    high=rb(b,c->ss,(uint16_t)(c->bp+6u));c->cx=(uint16_t)((c->cx&0xff00u)|8u);
+    c->ax=second_add(c,(uint16_t)(high<<8),c->dx);
+    ww(b,c->ss,(uint16_t)(c->bp-2u),c->ax);c->ax=rw(b,c->ss,(uint16_t)(c->bp-2u));
+    c->sp=c->bp;c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+6u);
+    if(c->cs!=x->cs||c->ip!=x->ip||c->sp!=x->sp||c->bp!=x->bp||c->ss!=x->ss)return PR_290B_FIRST_TRANSFER;
+    return PR_290B_FIRST_DONE;
+}
+void pr_word_return_session_init(pr_word_return_session*s){if(s){memset(s,0,sizeof *s);pr_save_word_session_init(&s->word);}}
+static pr_word_return_status word_return_next(pr_word_return_session*s,pr_word_return_diagnostic*d,pr_save_word_status st){
+    d->word_status=st;if(st==PR_SAVE_WORD_YIELD){s->phase=PR_WORD_RETURN_WAITING;return PR_WORD_RETURN_YIELD;}
+    s->phase=PR_WORD_RETURN_FINISHED;if(st==PR_SAVE_WORD_STRING)return PR_WORD_RETURN_STRING;
+    if(st==PR_SAVE_WORD_LIMIT)return PR_WORD_RETURN_LIMIT;
+    if(st==PR_SAVE_WORD_PROMPT)return PR_WORD_RETURN_PROMPT;
+    if(st==PR_SAVE_WORD_OTHER)return PR_WORD_RETURN_OTHER;
+    if(st!=PR_SAVE_WORD_REACHED)return PR_WORD_RETURN_STOP;
+    d->return_status=pr_u25_word_return(s->bus,PR_BUS_RAM_SIZE,s->cpu,&s->target);
+    return d->return_status==PR_290B_FIRST_DONE?PR_WORD_RETURN_REACHED:PR_WORD_RETURN_STOP;
+}
+pr_word_return_status pr_word_return_start(pr_word_return_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_word_return_diagnostic*d){
+    pr_save_word_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_WORD_RETURN_EMPTY||x->bp<42u)return PR_WORD_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;s->target=(pr_290b_return_target){x->cs,0x02adu,(uint16_t)(x->bp-0x1au),(uint16_t)(x->bp-0x16u),x->ss};
+    st=pr_save_word_start(&s->word,b,n,c,e,cl,pl,x,max_iterations,&d->word);return word_return_next(s,d,st);
+}
+pr_word_return_status pr_word_return_resume(pr_word_return_session*s,pr_word_return_diagnostic*d){pr_save_word_status st;
+    if(!s||!d||s->phase!=PR_WORD_RETURN_WAITING)return PR_WORD_RETURN_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_save_word_resume(&s->word,&d->word);
+    if(st==PR_SAVE_WORD_ARGUMENT)return PR_WORD_RETURN_ARGUMENT;
+    return word_return_next(s,d,st);
 }
