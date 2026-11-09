@@ -1,4 +1,4 @@
-#include "poolrad/replay/u68_290b_branch.h"
+#include "poolrad/replay/u68_290b_assembly.h"
 #include "poolrad/replay/resident_1037_guarded.h"
 #include <string.h>
 #define MASK (PR_BUS_RAM_SIZE-1u)
@@ -193,4 +193,43 @@ pr_u68_290b_branch_status pr_u68_290b_branch_resume(pr_u68_290b_branch*s,pr_u68_
     memset(d,0,sizeof *d);st=pr_u68_290b_two_resume(&s->two,&d->two);
     if(st==PR_U68_290B_TWO_ARGUMENT)return PR_U68_290B_BRANCH_ARGUMENT;
     return branch_next(s,d,st);
+}
+
+pr_290b_first_status pr_290b_assembly(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    pr_290b_first_status st;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x2a51u||c->bp<0x043cu||c->bp>0xffeeu||
+       c->sp!=(uint16_t)(c->bp-0x0232u)||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);
+    st=string_call(b,n,c,d,0x2a5cu,0x0b0bu,1);if(st)return st;
+    c->ax=rb(b,c->ds,0x6aafu);c->di=c->ax;c->si=c->di;c->di=(uint16_t)(c->di*3u);c->di=second_add(c,c->di,0x25a8u);
+    push(b,c,c->ds);push(b,c,c->di);st=string_call(b,n,c,d,0x2a74u,0x0b98u,2);if(st)return st;
+    c->di=0x28f6u;push(b,c,c->cs);push(b,c,c->di);st=string_call(b,n,c,d,0x2a7eu,0x0b98u,3);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);c->ax=0x28u;push(b,c,c->ax);
+    st=string_call(b,n,c,d,0x2a8cu,0x0b25u,4);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x0131u);push(b,c,c->ss);push(b,c,c->di);c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);
+    st=string_call(b,n,c,d,0x2a9cu,0x0b0bu,5);if(st)return st;
+    c->di=(uint16_t)(c->bp-5u);push(b,c,c->ss);push(b,c,c->di);st=string_call(b,n,c,d,0x2aa6u,0x0b98u,6);if(st)return st;
+    c->di=0x28f8u;push(b,c,c->cs);push(b,c,c->di);st=string_call(b,n,c,d,0x2ab0u,0x0b98u,7);if(st)return st;
+    c->di=(uint16_t)(c->bp-8u);push(b,c,c->ss);push(b,c,c->di);st=string_call(b,n,c,d,0x2abau,0x0b98u,8);if(st)return st;
+    c->di=(uint16_t)(c->bp-0x31u);push(b,c,c->ss);push(b,c,c->di);c->ax=0x28u;push(b,c,c->ax);
+    st=string_call(b,n,c,d,0x2ac8u,0x0b25u,9);if(st)return st;
+    c->ip=0x2acdu;return PR_290B_FIRST_DONE;
+}
+void pr_u68_290b_assembly_init(pr_u68_290b_assembly*s){if(s){memset(s,0,sizeof *s);pr_u68_290b_branch_init(&s->branch);}}
+static pr_u68_290b_assembly_status assembly_next(pr_u68_290b_assembly*s,pr_u68_290b_assembly_diagnostic*d,pr_u68_290b_branch_status st){
+    d->branch_status=st;if(st==PR_U68_290B_BRANCH_YIELD){s->phase=PR_U68_290B_ASSEMBLY_WAITING;return PR_U68_290B_ASSEMBLY_YIELD;}
+    s->phase=PR_U68_290B_ASSEMBLY_FINISHED;if(st!=PR_U68_290B_BRANCH_REACHED)return PR_U68_290B_ASSEMBLY_STOP;
+    d->assembly_status=pr_290b_assembly(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->assembly);
+    return d->assembly_status==PR_290B_FIRST_DONE?PR_U68_290B_ASSEMBLY_REACHED:PR_U68_290B_ASSEMBLY_STOP;
+}
+pr_u68_290b_assembly_status pr_u68_290b_assembly_start(pr_u68_290b_assembly*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,pr_u68_290b_assembly_diagnostic*d){
+    pr_u68_290b_branch_status st;if(!s||!b||!c||!e||!d||s->phase!=PR_U68_290B_ASSEMBLY_EMPTY)return PR_U68_290B_ASSEMBLY_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_u68_290b_branch_start(&s->branch,b,n,c,e,&d->branch);return assembly_next(s,d,st);
+}
+pr_u68_290b_assembly_status pr_u68_290b_assembly_resume(pr_u68_290b_assembly*s,pr_u68_290b_assembly_diagnostic*d){pr_u68_290b_branch_status st;
+    if(!s||!d||s->phase!=PR_U68_290B_ASSEMBLY_WAITING)return PR_U68_290B_ASSEMBLY_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_u68_290b_branch_resume(&s->branch,&d->branch);
+    if(st==PR_U68_290B_BRANCH_ARGUMENT)return PR_U68_290B_ASSEMBLY_ARGUMENT;
+    return assembly_next(s,d,st);
 }
