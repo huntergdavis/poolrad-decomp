@@ -41,6 +41,7 @@ EMITTERS = {
     "emit_res0464_blit_1951": "src/recovered/resident_0464_blit_1951_cpu.c",
     "emit_res0464_compose_08d4": "src/recovered/resident_0464_compose_08d4_cpu.c",
     "emit_res08ae_time_0000": "src/recovered/resident_08ae_time_0000_cpu.c",
+    "emit_res0709_time_0c3f": "src/recovered/resident_0709_time_0c3f_cpu.c",
 }
 FLAG_HELPERS = ("mul16", "shift", "logic", "incdec", "szp")
 HELPER = re.compile(r"^static [a-z0-9_ ]+\*?(" + "|".join(FLAG_HELPERS) + r")\(.*?^}\n", re.S | re.M)
@@ -60,6 +61,10 @@ class EmitterTest(unittest.TestCase):
             shared = OVERLAY / "candidate_ecl_template.py"
             if shared.exists():
                 template += "\n" + shared.read_text()
+            if emitter == "emit_res0709_time_0c3f":
+                # This emitter uses the generated 08AE source as its template; that
+                # source is itself checked against its own emitter above.
+                template += "\n" + (ROOT / EMITTERS["emit_res08ae_time_0000"]).read_text()
             helpers = [m.group(0) for m in HELPER.finditer((ROOT / output).read_text())]
             self.assertTrue(helpers, f"{output}: no flag helper found, the pattern is stale")
             for body in helpers:
