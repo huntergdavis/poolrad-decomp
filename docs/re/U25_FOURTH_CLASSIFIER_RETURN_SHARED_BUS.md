@@ -1,0 +1,7 @@
+# Fourth SAVE store classifier return
+
+`pr_fourth_class_return_start` and `pr_fourth_class_return_resume` extend the [fourth classifier entry](U25_FOURTH_CLASSIFIER_ENTRY_SHARED_BUS.md) through the existing [shared-bus classifier and checked return](U25_CLASSIFIER_RETURN_SHARED_BUS.md). The reached classifier executes live range checks and `RETF 2` to `+0C84`, checked against the reached CS, BP, SS and post-cleanup SP. `PR_FOURTH_SLOT_PAIR` identifies this checked return for the wrapper; earlier outcomes pass through unchanged. A mismatched live return stops after executed effects. This composition reuses [third SAVE store classifier return](U25_THIRD_CLASSIFIER_RETURN_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested classifier and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path through the fourth classifier's class-four result and checked frame, a fourth later opcode, an earlier third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover range edges and mismatched returns; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, store effects, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
