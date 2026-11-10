@@ -1,0 +1,7 @@
+# Fourth SAVE store classifier entry
+
+`pr_fourth_class_start` and `pr_fourth_class_resume` extend the [fourth SAVE store-word entry](U1C_FOURTH_STORE_ENTRY_SHARED_BUS.md) through the existing [store classifier entry](U25_STORE_CLASSIFIER_ENTRY_SHARED_BUS.md). On the reached pair path the shared bus executes the store-word prologue, pushes the live address and actual return frame, checks the near call, and stops at classifier `+06FB`. `PR_FOURTH_SLOT_PAIR` identifies that entry for this wrapper; earlier outcomes pass through unchanged. A malformed call stops after preceding effects. This composition reuses [third SAVE store classifier entry](U25_THIRD_CLASSIFIER_ENTRY_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested store and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path to the fourth classifier's address and return frame, SUB flags, a fourth later opcode, an earlier third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover malformed calls; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, classification, store effects, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
