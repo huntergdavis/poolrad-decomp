@@ -1,0 +1,7 @@
+# Fifth SAVE pair helper entry
+
+`pr_fifth_pair_start` and `pr_fifth_pair_resume` extend the [fifth slot dispatch](U25_FIFTH_SLOT_DISPATCH_SHARED_BUS.md) through the existing [pair helper entry](U25_SLOT_PAIR_ENTRY_SHARED_BUS.md) when the fifth slot has pair type. The same bus and CPU execute the local-byte reads, argument and return-frame pushes, and checked near call; the composition stops at the operand-word helper entry. `PR_FIFTH_SLOT_PAIR` identifies this reached entry for the wrapper. Other fifth-slot and earlier outcomes pass through unchanged. A malformed reached call stops after preceding effects. This composition reuses [fourth SAVE pair helper entry](U25_FOURTH_PAIR_ENTRY_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested slot and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the fifth pair's real helper entry and call frame, a fifth later opcode, earlier stops, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover malformed calls and invalid entry; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, helper return, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
