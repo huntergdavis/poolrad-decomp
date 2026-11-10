@@ -1,0 +1,7 @@
+# Fifth ECL dispatch after fourth SAVE
+
+`pr_fifth_dispatch_start` and `pr_fifth_dispatch_resume` extend the [runner iteration after fourth SAVE](U1C_FOURTH_RUNNER_NEXT_SHARED_BUS.md) through the existing [ECL dispatcher prefix](U1C_ECL_DISPATCH_PREFIX.md). The shared bus executes the live opcode checks and real call frame, stopping at an opcode 0–9 handler entry or the later-opcode boundary `+2F8C`. These outcomes are distinct; runner return and earlier fourth-store and other statuses pass through unchanged. No fifth handler body is executed. This composition reuses [fourth ECL dispatch after third SAVE](U1C_FOURTH_DISPATCH_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested runner and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers idle-to-Up fourth low no-op followed by a fifth later opcode, a fourth later opcode, an earlier third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone prefix tests cover supported opcodes; fifth handler mapping, fourth writes, runner-return and most earlier stop mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, fifth handler body, further iterations, movement, visual parity, full gameplay or coverage credit is claimed.
