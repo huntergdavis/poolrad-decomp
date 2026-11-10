@@ -1,0 +1,5 @@
+# Synthetic COMPARE load-word classifier return
+
+The composed wrapper extends [load-word classifier entry](U25_COMPARE_LOAD_CLASS_ENTRY_SHARED_BUS.md) through the existing [shared-bus classifier](U25_CLASSIFIER_RETURN_SHARED_BUS.md). It checks CS, IP, SP, BP and SS against the expected RETF 2 return at U25:0E19. A diverted return stops after its executed effects; prior bounded outcomes and yields pass through. The synthetic integration classifies address 2208 as class four and stops before any following load-word instructions. Existing standalone classifier tests cover range boundaries and alias behavior; this fixture also checks a mismatched return target and nested-session guards.
+
+The wrapper inherits preceding frame, alias, immutable-code and session profiles. Prior SAVEs and operands are synthetic. Native reach, the later load-word body and checked load-word return, complete COMPARE, readiness and credit remain unverified. The flat-RAM complete load-word provider is not composed here.
