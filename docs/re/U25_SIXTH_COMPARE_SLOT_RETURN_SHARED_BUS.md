@@ -1,0 +1,7 @@
+# Sixth synthetic COMPARE first-slot return
+
+`pr_sixth_compare_slot_return_start` and `pr_sixth_compare_slot_return_resume` extend the [sixth COMPARE first-slot pair return](U25_SIXTH_COMPARE_PAIR_RETURN_SHARED_BUS.md) through the existing shared-bus [slot-value local store and checked return](U25_SLOT_VALUE_RETURN_SHARED_BUS.md). The helper writes and rereads the live U25 local, restores the frame and performs `RETF 2` to COMPARE `+0186`. A mismatched live return stops after executed effects; other slot and earlier outcomes pass through unchanged. COMPARE's own local store at `+0186` and later operations are not executed here.
+
+The expected target is copied at start from the outer frame: `CS=outer CS`, `IP=0186`, `SP=outer BP-021A`, `BP=outer BP-0016`, and `SS=outer SS`. Start inherits the outer BP `>=044A`, nonempty-session rejection, frame, code and alias profiles of the preceding composition. Synthetic integration covers the first pair's value, U25 local store, checked COMPARE return, copied target and inherited guards. Existing standalone return tests cover mismatches; other first-slot mappings are not separately driven here.
+
+The [COMPARE raw caller evidence](U1C_COMPARE_0126_CPU.md) remains candidate evidence without a readiness or caller-unlock grant. The preceding five SAVEs and pair-type operand in this fixture are synthetic. No native saved-slot reachability or operand type, completed COMPARE, strict-credit or full-gameplay claim is made.
