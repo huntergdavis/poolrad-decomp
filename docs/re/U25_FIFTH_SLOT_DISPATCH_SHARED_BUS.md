@@ -1,0 +1,7 @@
+# Fifth SAVE slot-value dispatch
+
+`pr_fifth_slot_start` and `pr_fifth_slot_resume` extend the [fifth SAVE word and tag branch](U1C_FIFTH_SAVE_BRANCH_SHARED_BUS.md) through the existing [SAVE slot-helper entry](U1C_SAVE_SLOT_ENTRY_SHARED_BUS.md), [slot prefix](U25_SLOT_PREFIX_SHARED_BUS.md), and [type dispatch](U25_SLOT_DISPATCH_SHARED_BUS.md) on the same bus and CPU. They stop before the fifth slot's zero, word, pair, or unmatched body. These fifth-slot outcomes are distinct from earlier SAVE stops, including operand-string, SAVE-string and iteration-limit stops. No selected slot body is executed. This composition reuses [fourth SAVE slot-value dispatch](U25_FOURTH_SLOT_DISPATCH_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested branch and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through a fifth numeric SAVE to the pair boundary, a fifth later opcode, earlier stops, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone dispatch tests cover all 256 slot types; fifth zero, word and unmatched mappings and most earlier stops are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, selected bodies, further iterations, movement, visual parity, full gameplay or coverage credit is claimed.
