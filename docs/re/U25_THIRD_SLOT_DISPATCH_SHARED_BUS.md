@@ -1,0 +1,7 @@
+# Third SAVE slot-value dispatch
+
+`pr_third_slot_start` and `pr_third_slot_resume` extend the [third SAVE word and tag branch](U1C_THIRD_SAVE_BRANCH_SHARED_BUS.md) through the existing [SAVE slot-helper entry](U1C_SAVE_SLOT_ENTRY_SHARED_BUS.md), [slot prefix](U25_SLOT_PREFIX_SHARED_BUS.md), and [type dispatch](U25_SLOT_DISPATCH_SHARED_BUS.md) on the same bus and CPU. They stop before the third slot's zero, word, pair, or unmatched body. These third-slot outcomes are distinct from earlier first- and second-SAVE stops, including operand-string, SAVE-string and iteration-limit stops. No selected slot body is executed.
+
+Start rejects outer BP below 56 or any nonempty nested branch and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through a third numeric SAVE to the pair boundary, a distinct third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone dispatch tests cover all 256 slot types; third zero, word and unmatched mappings and most earlier stops are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, selected bodies, further iterations, movement, visual parity, full gameplay or coverage credit is claimed.
