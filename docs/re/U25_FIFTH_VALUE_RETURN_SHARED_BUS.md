@@ -1,0 +1,7 @@
+# Fifth SAVE slot-value return
+
+`pr_fifth_value_start` and `pr_fifth_value_resume` extend the [fifth pair helper return](U25_FIFTH_PAIR_RETURN_SHARED_BUS.md) through the existing [slot-value local store and checked return](U25_SLOT_VALUE_RETURN_SHARED_BUS.md). The shared-bus helper writes and rereads the local result, restores the live frame, and executes `RETF 2` to SAVE `+02BF`. The expected SAVE target is derived and copied at start. `PR_FIFTH_SLOT_PAIR` identifies this checked return for the wrapper; other fifth-slot and earlier outcomes pass through unchanged. A mismatched live return stops after executed effects. This composition reuses [fourth SAVE slot-value return](U25_FOURTH_VALUE_RETURN_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested pair-return and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the fifth pair's local result and checked SAVE return, a fifth later opcode, earlier stops, copied target and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched returns; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
