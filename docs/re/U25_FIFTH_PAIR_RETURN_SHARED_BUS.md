@@ -1,0 +1,7 @@
+# Fifth SAVE pair helper return
+
+`pr_fifth_pair_return_start` and `pr_fifth_pair_return_resume` extend the [fifth pair entry](U25_FIFTH_PAIR_ENTRY_SHARED_BUS.md) through the existing shared-bus operand-word leaf and checked `RETF 4`, using the reached caller's CS, BP, SS, post-cleanup SP and return offset `+01AA`. The wrapper stops before the slot-value local-result store. `PR_FIFTH_SLOT_PAIR` identifies the checked return for this wrapper; other fifth-slot and earlier outcomes pass through unchanged. A mismatched live return stops after executed effects. This composition reuses [fourth SAVE pair helper return](U25_FOURTH_PAIR_RETURN_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested pair and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the fifth pair's checked return, result and frame cleanup, a fifth later opcode, earlier stops, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched returns; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, local-result store, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
