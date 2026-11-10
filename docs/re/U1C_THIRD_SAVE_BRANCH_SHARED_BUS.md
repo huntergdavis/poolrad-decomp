@@ -1,0 +1,7 @@
+# Third SAVE word and tag branch
+
+`pr_third_branch_start` and `pr_third_branch_resume` extend the [third numeric loader return](U25_THIRD_LOADER_RETURN_SHARED_BUS.md) through the existing shared-bus [SAVE word-helper entry](U1C_SAVE_WORD_ENTRY_SHARED_BUS.md), checked [word return](U25_WORD_RETURN_SHARED_BUS.md), and live [tag branch](U1C_SAVE_TAG_BRANCH_SHARED_BUS.md). They stop at numeric `+02B7` or SAVE-string `+02CF`. The helper target is copied from the reached SAVE frame before its call; a mismatched live return stops after executed effects. Third operand-string and third-loop-limit outcomes remain distinct from the third SAVE-string branch and all earlier stops. No selected SAVE body is executed.
+
+Start rejects outer BP below 56 or any nonempty nested loader and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through a third numeric SAVE to `+02B7`, a distinct third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover SAVE-string behavior; third SAVE-string and third-limit mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, selected bodies, further iterations, movement, visual parity, full gameplay or coverage credit is claimed.
