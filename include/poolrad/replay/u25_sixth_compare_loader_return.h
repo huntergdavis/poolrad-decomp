@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_SIXTH_COMPARE_LOADER_RETURN_H
+#define POOLRAD_REPLAY_U25_SIXTH_COMPARE_LOADER_RETURN_H
+#include "poolrad/replay/u1c_sixth_compare_entry.h"
+#include "poolrad/replay/u25_operand_return.h"
+enum { PR_SIXTH_COMPARE_LOADER_REACHED=PR_SIXTH_COMPARE_OTHER_HANDLER+1,PR_SIXTH_COMPARE_LOADER_STRING,PR_SIXTH_COMPARE_LOADER_LIMIT };
+typedef enum { PR_SIXTH_COMPARE_LOADER_EMPTY=0,PR_SIXTH_COMPARE_LOADER_WAITING,PR_SIXTH_COMPARE_LOADER_FINISHED } pr_sixth_compare_loader_phase;
+typedef struct { pr_sixth_compare_loader_phase phase;pr_sixth_compare_session compare;pr_bus *bus;pr_r0899_cpu *cpu;size_t max_iterations;pr_290b_return_target target; } pr_sixth_compare_loader_session;
+typedef struct { pr_second_dispatch_status compare_status;pr_sixth_compare_diagnostic compare;pr_290b_first_status prefix_status;pr_290b_first_status tag_status;pr_u25_loop_step_status loop_status;pr_u25_loop_step_diagnostic loop;pr_290b_first_status return_status; } pr_sixth_compare_loader_diagnostic;
+void pr_sixth_compare_loader_session_init(pr_sixth_compare_loader_session *state);
+pr_second_dispatch_status pr_sixth_compare_loader_start(pr_sixth_compare_loader_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_sixth_compare_loader_diagnostic *diagnostic);
+pr_second_dispatch_status pr_sixth_compare_loader_resume(pr_sixth_compare_loader_session *state,pr_sixth_compare_loader_diagnostic *diagnostic);
+#endif
