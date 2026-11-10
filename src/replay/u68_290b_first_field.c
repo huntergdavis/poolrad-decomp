@@ -1,3 +1,4 @@
+#include "poolrad/replay/u1c_third_save_entry.h"
 #include "poolrad/replay/u1c_third_dispatch.h"
 #include "poolrad/replay/u1c_second_runner_next.h"
 #include "poolrad/replay/u1c_second_dispatch_return.h"
@@ -1937,4 +1938,23 @@ pr_second_dispatch_status pr_third_dispatch_resume(pr_third_dispatch_session*s,p
     memset(d,0,sizeof *d);st=pr_second_runner_resume(&s->runner,&d->runner);
     if(st==PR_SECOND_SLOT_ARGUMENT)return st;
     return third_dispatch_after(s,d,st);
+}
+
+void pr_third_save_session_init(pr_third_save_session*s){if(s){memset(s,0,sizeof *s);pr_third_dispatch_session_init(&s->dispatch);}}
+static pr_second_dispatch_status third_save_after(pr_third_save_session*s,pr_third_save_diagnostic*d,pr_second_dispatch_status st){
+    d->dispatch_status=st;if(st==PR_SECOND_SLOT_YIELD){s->phase=PR_THIRD_SAVE_WAITING;return st;}
+    s->phase=PR_THIRD_SAVE_FINISHED;if(st!=PR_THIRD_DISPATCH_HANDLER)return st;
+    if(s->cpu->ip!=0x0292u)return PR_THIRD_SAVE_OTHER_HANDLER;
+    d->entry_status=pr_u1c_save_loader_entry(s->bus,PR_BUS_RAM_SIZE,s->cpu,&d->entry);
+    return d->entry_status==PR_290B_FIRST_DONE?PR_THIRD_SAVE_LOADER:PR_SECOND_SLOT_STOP;
+}
+pr_second_dispatch_status pr_third_save_start(pr_third_save_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_third_save_diagnostic*d){
+    pr_second_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_THIRD_SAVE_EMPTY||s->dispatch.phase!=PR_THIRD_DISPATCH_EMPTY||s->dispatch.runner.phase!=PR_SECOND_RUNNER_EMPTY||s->dispatch.runner.dispatch.phase!=PR_SECOND_DISPATCH_RETURN_EMPTY||s->dispatch.runner.dispatch.handler.phase!=PR_SECOND_HANDLER_EMPTY||s->dispatch.runner.dispatch.handler.store.phase!=PR_SECOND_STORE_RETURN_EMPTY||s->dispatch.runner.dispatch.handler.store.low.phase!=PR_SECOND_CLASS4_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.phase!=PR_SECOND_DISPATCH_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.phase!=PR_SECOND_CLASS_RETURN_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.phase!=PR_SECOND_CLASS_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.phase!=PR_SECOND_STORE_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.phase!=PR_SECOND_VALUE_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.phase!=PR_SECOND_PAIR_RETURN_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.phase!=PR_SECOND_PAIR_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.phase!=PR_SECOND_SLOT_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.phase!=PR_SECOND_BRANCH_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.phase!=PR_SECOND_LOADER_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.phase!=PR_SECOND_SAVE_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_third_dispatch_start(&s->dispatch,b,n,c,e,cl,pl,x,max_iterations,&d->dispatch);return third_save_after(s,d,st);
+}
+pr_second_dispatch_status pr_third_save_resume(pr_third_save_session*s,pr_third_save_diagnostic*d){pr_second_dispatch_status st;
+    if(!s||!d||s->phase!=PR_THIRD_SAVE_WAITING)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_third_dispatch_resume(&s->dispatch,&d->dispatch);
+    if(st==PR_SECOND_SLOT_ARGUMENT)return st;
+    return third_save_after(s,d,st);
 }
