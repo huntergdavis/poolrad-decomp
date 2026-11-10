@@ -1,0 +1,7 @@
+# Third SAVE numeric loader return
+
+`pr_third_loader_start` and `pr_third_loader_resume` extend the [third SAVE loader entry](U1C_THIRD_SAVE_ENTRY_SHARED_BUS.md) through the existing shared-bus operand prefix, tag branch, bounded numeric loop and checked return. A numeric load reaches SAVE `+02A0`; third string and exhausted third-loop budget have distinct stops. A zero-count prefix reaches the checked epilogue. Earlier outcomes pass through unchanged.
+
+The copied `max_iterations` is applied independently to each reached numeric loop, counting its own back edges. The third return target derives from the copied outer target. Start rejects outer BP below 56 or any nonempty nested SAVE and inherited sessions before mutation. This composition inherits earlier frame, budget, code and caller requirements; these are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through a third two-operand numeric load and third string stop, plus atomic rejection and retry for each nested phase and invalid BP. Existing standalone numeric-loop tests cover limit stops; the third-limit mapping and other earlier outcomes are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, third string execution, later SAVE, further iterations, movement, visual parity, full gameplay or coverage credit is claimed.
