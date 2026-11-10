@@ -1,0 +1,5 @@
+# Synthetic COMPARE second-slot dispatch
+
+The composed wrapper continues the second slot entry through the existing shared-bus [slot prefix](U25_SLOT_PREFIX_SHARED_BUS.md) and [type dispatch](U25_SLOT_DISPATCH_SHARED_BUS.md). It exposes separate zero, word, pair and unmatched stops and executes none of their bodies. Prefix reads and writes remain ordered on the live bus; dispatch comparison flags remain live. Earlier stop and yield outcomes pass through unchanged.
+
+The wrapper inherits the nonempty-session guards, outer BP bound, valid frame, immutable code and alias profile of [second slot entry](U1C_SIXTH_COMPARE_SECOND_SLOT_ENTRY_SHARED_BUS.md). The synthetic integration fixture exercises the word stop and live local bytes; existing standalone dispatch tests cover all type bytes. Prior five SAVEs and the operands are synthetic. Candidate [COMPARE caller evidence](U1C_COMPARE_0126_CPU.md) grants neither native reach nor readiness or credit. The selected body and complete COMPARE remain unverified.

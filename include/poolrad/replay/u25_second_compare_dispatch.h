@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_SECOND_COMPARE_DISPATCH_H
+#define POOLRAD_REPLAY_U25_SECOND_COMPARE_DISPATCH_H
+#include "poolrad/replay/u1c_sixth_compare_second_slot_entry.h"
+#include "poolrad/replay/u25_slot_dispatch.h"
+enum { PR_SECOND_COMPARE_DISPATCH_ZERO=PR_SIXTH_COMPARE_SECOND_SLOT_ENTRY+1,PR_SECOND_COMPARE_DISPATCH_WORD,PR_SECOND_COMPARE_DISPATCH_PAIR,PR_SECOND_COMPARE_DISPATCH_OTHER };
+typedef enum { PR_SECOND_COMPARE_DISPATCH_EMPTY=0,PR_SECOND_COMPARE_DISPATCH_WAITING,PR_SECOND_COMPARE_DISPATCH_FINISHED } pr_second_compare_dispatch_phase;
+typedef struct { pr_second_compare_dispatch_phase phase;pr_sixth_compare_second_slot_session entry;pr_bus *bus;pr_r0899_cpu *cpu; } pr_second_compare_dispatch_session;
+typedef struct { pr_second_dispatch_status entry_status;pr_sixth_compare_second_slot_diagnostic entry;pr_290b_first_status prefix_status,dispatch_status; } pr_second_compare_dispatch_diagnostic;
+void pr_second_compare_dispatch_session_init(pr_second_compare_dispatch_session *state);
+pr_second_dispatch_status pr_second_compare_dispatch_start(pr_second_compare_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_second_compare_dispatch_diagnostic *diagnostic);
+pr_second_dispatch_status pr_second_compare_dispatch_resume(pr_second_compare_dispatch_session *state,pr_second_compare_dispatch_diagnostic *diagnostic);
+#endif
