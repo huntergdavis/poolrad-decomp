@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_COMPARE_LOAD_DISPATCH_H
+#define POOLRAD_REPLAY_U25_COMPARE_LOAD_DISPATCH_H
+#include "poolrad/replay/u25_compare_class_return.h"
+pr_290b_first_status pr_u25_load_class_dispatch(pr_bus *bus,size_t size,pr_r0899_cpu *cpu);
+enum { PR_COMPARE_LOAD_DISPATCH_0=PR_COMPARE_CLASS_RETURN_REACHED+1,PR_COMPARE_LOAD_DISPATCH_1,PR_COMPARE_LOAD_DISPATCH_2,PR_COMPARE_LOAD_DISPATCH_3,PR_COMPARE_LOAD_DISPATCH_4,PR_COMPARE_LOAD_DISPATCH_OTHER };
+typedef enum { PR_COMPARE_LOAD_DISPATCH_EMPTY=0,PR_COMPARE_LOAD_DISPATCH_WAITING,PR_COMPARE_LOAD_DISPATCH_FINISHED } pr_compare_load_dispatch_phase;
+typedef struct { pr_compare_load_dispatch_phase phase;pr_compare_class_return_session classifier;pr_bus *bus;pr_r0899_cpu *cpu; } pr_compare_load_dispatch_session;
+typedef struct { pr_second_dispatch_status classifier_status;pr_compare_class_return_diagnostic classifier;pr_290b_first_status dispatch_status; } pr_compare_load_dispatch_diagnostic;
+void pr_compare_load_dispatch_session_init(pr_compare_load_dispatch_session *state);
+pr_second_dispatch_status pr_compare_load_dispatch_start(pr_compare_load_dispatch_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_compare_load_dispatch_diagnostic *diagnostic);
+pr_second_dispatch_status pr_compare_load_dispatch_resume(pr_compare_load_dispatch_session *state,pr_compare_load_dispatch_diagnostic *diagnostic);
+#endif
