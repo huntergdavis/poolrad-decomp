@@ -1,0 +1,7 @@
+# Third SAVE slot-value return
+
+`pr_third_value_start` and `pr_third_value_resume` extend the [third pair helper return](U25_THIRD_PAIR_RETURN_SHARED_BUS.md) through the existing [slot-value local store and checked return](U25_SLOT_VALUE_RETURN_SHARED_BUS.md). The shared-bus helper writes and rereads the local result, restores the live frame, and executes `RETF 2` to SAVE `+02BF`. The expected SAVE target is derived and copied at start. `PR_THIRD_SLOT_PAIR` identifies this checked return for the wrapper; other third-slot and earlier outcomes pass through unchanged. A mismatched live return stops after executed effects.
+
+Start rejects outer BP below 56 or any nonempty nested pair-return and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up route through the third pair's local result and checked SAVE return, a distinct third operand-string stop, copied target and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover mismatched returns; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, later SAVE effects, movement, visual parity, full gameplay or coverage credit is claimed.
