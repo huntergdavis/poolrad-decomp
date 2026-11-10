@@ -1,0 +1,7 @@
+# Third SAVE store-word entry
+
+`pr_third_store_start` and `pr_third_store_resume` extend the [third slot-value return](U25_THIRD_VALUE_RETURN_SHARED_BUS.md) through the existing [SAVE store-word helper entry](U1C_SAVE_STORE_ENTRY_SHARED_BUS.md). On the reached pair path the shared bus records the live local value, pushes destination and value, constructs the actual return frame and checks the call and stub before stopping at U25 `+0C77`. `PR_THIRD_SLOT_PAIR` identifies this reached entry for the wrapper; earlier statuses pass through unchanged. A malformed reached call or stub stops after preceding effects.
+
+Start rejects outer BP below 56 or any nonempty nested value and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up path through the third store entry, value, destination and return frame, a distinct third operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover malformed calls and stubs; other inherited mappings are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, store-word execution, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
