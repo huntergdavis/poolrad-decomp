@@ -1,0 +1,7 @@
+# Fourth SAVE loader entry
+
+`pr_fourth_save_start` and `pr_fourth_save_resume` extend the [fourth ECL dispatch](U1C_FOURTH_DISPATCH_SHARED_BUS.md) only when it reaches SAVE handler `+0292`. The existing [SAVE loader-entry prefix](U1C_SAVE_LOADER_ENTRY.md) executes on the shared bus, constructs the live loader frame and checks the stub before stopping at U25 loader `+0000`. Different matched handlers and later opcodes remain distinct, as do earlier outcomes. No fourth loader body or later SAVE effect is executed. This composition reuses [third SAVE loader entry](U1C_THIRD_SAVE_ENTRY_SHARED_BUS.md).
+
+Start rejects outer BP below 56 or any nonempty nested dispatcher and inherited sessions before mutation. It inherits earlier frame, budget, code and caller requirements. These are bounded assumptions, not a general alias or hardware proof. No original bytes are embedded.
+
+Synthetic integration covers the idle-to-Up third SAVE route followed by a fourth SAVE loader frame, a later opcode, an earlier operand-string stop, and atomic rejection and retry for each nested phase and invalid BP. Existing standalone tests cover malformed calls and stubs; the fourth different-handler mapping and most earlier stops are not separately driven here. The wrapper and fixture pass strict-warning ASan/UBSan with the provider archive uninstrumented. No native differential, fourth loader body, later SAVE, movement, visual parity, full gameplay or coverage credit is claimed.
