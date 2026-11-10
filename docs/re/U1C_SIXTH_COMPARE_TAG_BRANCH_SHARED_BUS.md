@@ -1,0 +1,7 @@
+# Sixth synthetic COMPARE tag branch
+
+`pr_u1c_compare_tag_branch` executes the live U1C `+0135` and, when reached, `+013C` tag comparisons on the shared bus. A first tag at least `80h` short-circuits the second read; either qualifying tag stops at the string-path entry `+0143`, otherwise execution stops at numeric-path entry `+017E`. The final comparison's arithmetic flags are preserved. The helper requires the reached COMPARE frame (`SP=BP-0204h` without wrap), exactly 1 MiB RAM, EGA attached, and ordinary CS/DS/SS segments; invalid initial state is rejected before mutation.
+
+`pr_sixth_compare_tag_start` and `pr_sixth_compare_tag_resume` compose the [sixth COMPARE numeric-loader return](U25_SIXTH_COMPARE_LOADER_RETURN_SHARED_BUS.md) into this branch, with distinct numeric and string outcomes. Earlier string-loader, budget, handler and other stops pass through unchanged. Start inherits the outer BP `>=044A`, nonempty-session rejection, frame, code and alias profiles of the loader composition. No string-copy or numeric slot-value body executes here.
+
+The [COMPARE raw caller evidence](U1C_COMPARE_0126_CPU.md) pins the two tests and short-circuit order but explicitly does not grant readiness or caller unlock. Synthetic checks cover numeric integration, first- and second-tag string selection, short-circuit flags and invalid-frame atomic rejection; sixth wrapper string mapping is not separately driven. The preceding five SAVE operations are synthetic. No native saved-slot reachability, completed COMPARE, strict-credit or full-gameplay claim is made.
