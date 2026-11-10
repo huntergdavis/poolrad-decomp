@@ -1,0 +1,12 @@
+#ifndef POOLRAD_REPLAY_U25_COMPARE_LOAD_CLASS_ENTRY_H
+#define POOLRAD_REPLAY_U25_COMPARE_LOAD_CLASS_ENTRY_H
+#include "poolrad/replay/u25_second_compare_word_entry.h"
+pr_290b_first_status pr_u25_load_classifier_entry(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,pr_290b_first_diagnostic *diagnostic);
+enum { PR_COMPARE_LOAD_CLASS_ENTRY=PR_SECOND_COMPARE_WORD_ENTRY+1 };
+typedef enum { PR_COMPARE_LOAD_CLASS_EMPTY=0,PR_COMPARE_LOAD_CLASS_WAITING,PR_COMPARE_LOAD_CLASS_FINISHED } pr_compare_load_class_phase;
+typedef struct { pr_compare_load_class_phase phase;pr_second_compare_word_session word;pr_bus *bus;pr_r0899_cpu *cpu; } pr_compare_load_class_session;
+typedef struct { pr_second_dispatch_status word_status;pr_second_compare_word_diagnostic word;pr_290b_first_status entry_status;pr_290b_first_diagnostic entry; } pr_compare_load_class_diagnostic;
+void pr_compare_load_class_session_init(pr_compare_load_class_session *state);
+pr_second_dispatch_status pr_compare_load_class_start(pr_compare_load_class_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_compare_load_class_diagnostic *diagnostic);
+pr_second_dispatch_status pr_compare_load_class_resume(pr_compare_load_class_session *state,pr_compare_load_class_diagnostic *diagnostic);
+#endif
