@@ -1,3 +1,4 @@
+#include "poolrad/replay/u25_third_store_dispatch.h"
 #include "poolrad/replay/u25_third_classifier_return.h"
 #include "poolrad/replay/u25_third_classifier_entry.h"
 #include "poolrad/replay/u1c_third_store_entry.h"
@@ -2156,4 +2157,28 @@ pr_second_dispatch_status pr_third_class_return_resume(pr_third_class_return_ses
     memset(d,0,sizeof *d);st=pr_third_class_resume(&s->classifier,&d->classifier);
     if(st==PR_SECOND_SLOT_ARGUMENT)return st;
     return third_class_return_after(s,d,st);
+}
+
+void pr_third_store_dispatch_session_init(pr_third_store_dispatch_session*s){if(s){memset(s,0,sizeof *s);pr_third_class_return_session_init(&s->classifier);}}
+static pr_second_dispatch_status third_store_dispatch_after(pr_third_store_dispatch_session*s,pr_third_store_dispatch_diagnostic*d,pr_second_dispatch_status st){
+    d->classifier_status=st;if(st==PR_SECOND_SLOT_YIELD){s->phase=PR_THIRD_STORE_DISPATCH_WAITING;return st;}
+    s->phase=PR_THIRD_STORE_DISPATCH_FINISHED;if(st!=PR_THIRD_SLOT_PAIR)return st;
+    d->dispatch_status=pr_u25_store_class_dispatch(s->bus,PR_BUS_RAM_SIZE,s->cpu);
+    if(d->dispatch_status!=PR_290B_FIRST_DONE)return PR_SECOND_SLOT_STOP;
+    if(s->cpu->ip==0x0c8eu)return PR_THIRD_DISPATCH_CLASS0;
+    if(s->cpu->ip==0x0cbbu)return PR_THIRD_DISPATCH_CLASS1;
+    if(s->cpu->ip==0x0cdfu)return PR_THIRD_DISPATCH_CLASS2;
+    if(s->cpu->ip==0x0cf9u)return PR_THIRD_DISPATCH_CLASS3;
+    if(s->cpu->ip==0x0d14u)return PR_THIRD_DISPATCH_CLASS4;
+    return PR_THIRD_DISPATCH_UNMATCHED;
+}
+pr_second_dispatch_status pr_third_store_dispatch_start(pr_third_store_dispatch_session*s,pr_bus*b,size_t n,pr_r0899_cpu*c,const pr_u3b0_clock_draw_env*e,const pr_290b_clear_limits*cl,const pr_290b_print_limits*pl,const pr_290b_return_target*x,size_t max_iterations,pr_third_store_dispatch_diagnostic*d){
+    pr_second_dispatch_status st;if(!s||!b||!c||!e||!cl||!pl||!x||!d||s->phase!=PR_THIRD_STORE_DISPATCH_EMPTY||s->classifier.phase!=PR_THIRD_CLASS_RETURN_EMPTY||s->classifier.classifier.phase!=PR_THIRD_CLASS_EMPTY||s->classifier.classifier.store.phase!=PR_THIRD_STORE_EMPTY||s->classifier.classifier.store.value.phase!=PR_THIRD_VALUE_EMPTY||s->classifier.classifier.store.value.pair.phase!=PR_THIRD_PAIR_RETURN_EMPTY||s->classifier.classifier.store.value.pair.pair.phase!=PR_THIRD_PAIR_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.phase!=PR_THIRD_SLOT_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.phase!=PR_THIRD_BRANCH_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.phase!=PR_THIRD_LOADER_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.phase!=PR_THIRD_SAVE_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.phase!=PR_THIRD_DISPATCH_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.phase!=PR_SECOND_RUNNER_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.phase!=PR_SECOND_DISPATCH_RETURN_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.phase!=PR_SECOND_HANDLER_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.phase!=PR_SECOND_STORE_RETURN_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.phase!=PR_SECOND_CLASS4_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.phase!=PR_SECOND_DISPATCH_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.phase!=PR_SECOND_CLASS_RETURN_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.phase!=PR_SECOND_CLASS_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.phase!=PR_SECOND_STORE_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.phase!=PR_SECOND_VALUE_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.phase!=PR_SECOND_PAIR_RETURN_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.phase!=PR_SECOND_PAIR_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.phase!=PR_SECOND_SLOT_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.phase!=PR_SECOND_BRANCH_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.phase!=PR_SECOND_LOADER_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.phase!=PR_SECOND_SAVE_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.next.phase!=PR_NEXT_DISPATCH_EMPTY||s->classifier.classifier.store.value.pair.pair.slot.branch.loader.save.dispatch.runner.dispatch.handler.store.low.dispatch.classifier.classifier.store.value.pair.pair.slot.branch.loader.save.next.runner.phase!=PR_RUNNER_NEXT_EMPTY||x->bp<56u)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);s->bus=b;s->cpu=c;st=pr_third_class_return_start(&s->classifier,b,n,c,e,cl,pl,x,max_iterations,&d->classifier);return third_store_dispatch_after(s,d,st);
+}
+pr_second_dispatch_status pr_third_store_dispatch_resume(pr_third_store_dispatch_session*s,pr_third_store_dispatch_diagnostic*d){pr_second_dispatch_status st;
+    if(!s||!d||s->phase!=PR_THIRD_STORE_DISPATCH_WAITING)return PR_SECOND_SLOT_ARGUMENT;
+    memset(d,0,sizeof *d);st=pr_third_class_return_resume(&s->classifier,&d->classifier);
+    if(st==PR_SECOND_SLOT_ARGUMENT)return st;
+    return third_store_dispatch_after(s,d,st);
 }
