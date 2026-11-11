@@ -3815,3 +3815,18 @@ pr_second_dispatch_status pr_compare_if_resume(pr_compare_if_session*s,pr_compar
     memset(d,0,sizeof *d);st=pr_compare_later_resume(&s->later,&d->later);if(st==PR_SECOND_SLOT_ARGUMENT)return st;
     return compare_if_after(s,d,st);
 }
+
+pr_290b_first_status pr_u1c_compare_if_equal(pr_bus*b,size_t n,pr_r0899_cpu*c,pr_290b_first_diagnostic*d){
+    uint8_t op,eq;
+    if(!b||!b->ram||!b->ega||!c||!d||n!=PR_BUS_RAM_SIZE||c->ip!=0x0b52u||c->sp<2u||c->sp>0xfffbu||!ordinary(c->cs)||!ordinary(c->ds)||!ordinary(c->ss))return PR_290B_FIRST_ARGUMENT;
+    memset(d,0,sizeof *d);d->status=-1;d->formatter_callee=PR_RES_1037_NO_CALLEE;d->formatter_status=-1;
+    push(b,c,c->bp);c->bp=c->sp;d->stage=1;
+    ww(b,c->ds,0x49edu,u25_inc_word(c,rw(b,c->ds,0x49edu)));
+    op=rb(b,c->ds,0x6f7fu);c->ax=(uint16_t)((c->ax&0xff00u)|op);cmp8(c,op,0x16u);
+    if(op!=0x16u){c->ip=0x0b6eu;return PR_290B_FIRST_OUTSIDE;}
+    eq=rb(b,c->ds,0x6f78u);cmp8(c,eq,0u);
+    if(!eq){c->ip=0x0b67u;return PR_290B_FIRST_OUTSIDE;}
+    c->bp=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->ip=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);
+    c->cs=rw(b,c->ss,c->sp);c->sp=(uint16_t)(c->sp+2u);d->stage=2;return PR_290B_FIRST_DONE;
+}

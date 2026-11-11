@@ -6229,6 +6229,22 @@ int main(void){
     target.ip=0x1234;before=c;c.ax^=1;CHECK(pr_compare_if_resume(&joined,&ld)==PR_SECOND_SLOT_ARGUMENT && joined.phase==PR_COMPARE_IF_WAITING);c=before;
     CHECK(pr_crt_input_fifo_push(&q,0x4800)==PR_CRT_INPUT_OK);
     CHECK(pr_compare_if_resume(&joined,&ld)==PR_COMPARE_IF_ENTRY_REACHED && c.cs==0x7900 && c.ip==0x0b52 && c.sp==0x404c && c.bp==0x4050 && c.ax==0x1216 && c.di==0x125e && c.cx==0 && c.dx==0x08 && (c.flags&0x08d5u)==0x44 && ld.entry_status==PR_290B_FIRST_DONE);
+    /* Exercise the new continuation on the actual composed entry frame. */
+    {uint16_t pc;pr_r0899_cpu probe,prior_probe;pr_290b_first_diagnostic pd;memcpy(saved,r,PR_BUS_RAM_SIZE);probe=c;pc=(uint16_t)(r[p(c.ds,0x49ed)]|((uint16_t)r[p(c.ds,0x49ee)]<<8));
+    r[p(c.ds,0x6f7f)]=0x16;r[p(c.ds,0x6f78)]=0x80;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==PR_290B_FIRST_DONE && probe.ip==0x3025 && probe.cs==0x7900 && probe.sp==0x4050 && probe.bp==0x4050 && (probe.flags&0x08d5u)==0x80 && pd.stage==2);
+    CHECK(r[p(c.ds,0x49ed)]==(uint8_t)(pc+1u) && r[p(c.ds,0x49ee)]==(uint8_t)((uint16_t)(pc+1u)>>8));
+    memcpy(r,saved,PR_BUS_RAM_SIZE);probe=c;r[p(c.ds,0x6f7f)]=0x16;r[p(c.ds,0x6f78)]=0;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==PR_290B_FIRST_OUTSIDE && probe.ip==0x0b67 && probe.sp==0x404a && probe.bp==0x404a && (probe.flags&0x08d5u)==0x44 && pd.stage==1);
+    memcpy(r,saved,PR_BUS_RAM_SIZE);probe=c;r[p(c.ds,0x6f7f)]=0x17;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==PR_290B_FIRST_OUTSIDE && probe.ip==0x0b6e && probe.sp==0x404a && (probe.flags&0x08d5u)==0);
+    memcpy(r,saved,PR_BUS_RAM_SIZE);probe=c;probe.ss=probe.ds;probe.sp=0x49ef;probe.bp=0x1234;put(r,probe.ds,0x49ed,0x9999);r[p(probe.ds,0x6f7f)]=0x16;r[p(probe.ds,0x6f78)]=1;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==PR_290B_FIRST_DONE && r[p(probe.ds,0x49ed)]==0x35 && r[p(probe.ds,0x49ee)]==0x12 && probe.bp==0x1235);
+    {unsigned z;for(z=0;z<256u;z++){unsigned parity=z;uint16_t expected;parity^=parity>>4;parity^=parity>>2;parity^=parity>>1;expected=(uint16_t)((z==0?0x40u:0u)|(z&0x80u)|((parity&1u)?0u:4u));
+    memcpy(r,saved,PR_BUS_RAM_SIZE);probe=c;r[p(c.ds,0x6f7f)]=0x16;r[p(c.ds,0x6f78)]=(uint8_t)z;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==(z?PR_290B_FIRST_DONE:PR_290B_FIRST_OUTSIDE) && probe.ip==(z?0x3025u:0x0b67u) && (probe.flags&0x08d5u)==expected);}}
+    memcpy(r,saved,PR_BUS_RAM_SIZE);probe=c;probe.ip=0;prior_probe=probe;
+    CHECK(pr_u1c_compare_if_equal(&b,PR_BUS_RAM_SIZE,&probe,&pd)==PR_290B_FIRST_ARGUMENT && memcmp(&probe,&prior_probe,sizeof probe)==0 && memcmp(saved,r,PR_BUS_RAM_SIZE)==0);}
     {uint16_t v=(uint16_t)(r[p(c.ss,0x3e42)]|((uint16_t)r[p(c.ss,0x3e43)]<<8));CHECK(r[p(c.ds,0x6f78)]==(0x2010u==v) && r[p(c.ds,0x6f79)]==(0x2010u!=v) && r[p(c.ds,0x6f7a)]==(0x2010u<v) && r[p(c.ds,0x6f7b)]==(0x2010u>v) && r[p(c.ds,0x6f7c)]==(0x2010u<=v) && r[p(c.ds,0x6f7d)]==(0x2010u>=v));}
     CHECK(r[p(c.ss,0x3e3c)]==0x4a && r[p(c.ss,0x3e3d)]==0x40);
     CHECK(r[p(c.ss,0x3e2c)]==0x3e && r[p(c.ss,0x3e2d)]==0x3e && r[p(c.ss,0x3e2e)]==0x91 && r[p(c.ss,0x3e2f)]==0x01 && r[p(c.ss,0x3e30)]==0xff && r[p(c.ss,0x3e31)]==0x18 && r[p(c.ss,0x3e32)]==0x00 && r[p(c.ss,0x3e33)]==0x71);

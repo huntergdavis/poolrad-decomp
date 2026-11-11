@@ -9,4 +9,7 @@ typedef struct { pr_second_dispatch_status later_status;pr_compare_later_diagnos
 void pr_compare_if_session_init(pr_compare_if_session *state);
 pr_second_dispatch_status pr_compare_if_start(pr_compare_if_session *state,pr_bus *bus,size_t size,pr_r0899_cpu *cpu,const pr_u3b0_clock_draw_env *env,const pr_290b_clear_limits *clear_limits,const pr_290b_print_limits *print_limits,const pr_290b_return_target *target,size_t max_iterations,pr_compare_if_diagnostic *diagnostic);
 pr_second_dispatch_status pr_compare_if_resume(pr_compare_if_session *state,pr_compare_if_diagnostic *diagnostic);
+/* Executes the opcode-16 true path; OUTSIDE leaves IP at the first
+ * unmodeled branch (0B6E for another opcode, 0B67 for false). */
+pr_290b_first_status pr_u1c_compare_if_equal(pr_bus *bus,size_t size,pr_r0899_cpu *cpu,pr_290b_first_diagnostic *diagnostic);
 #endif
