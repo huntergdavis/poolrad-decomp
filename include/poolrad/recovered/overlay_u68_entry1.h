@@ -96,8 +96,9 @@ struct pr_u68_e1_state {
 
 typedef enum {
     PR_U68_E1_OK = 0,
-    PR_U68_E1_ARGUMENT   /* null state; window1 shorter than 0x594; a prompt literal longer than 8; or the
+    PR_U68_E1_ARGUMENT,  /* null state; window1 shorter than 0x594; a prompt literal longer than 8; or the
                             merged entry 3 reporting ARGUMENT (null buffer). Nothing is written. */
+    PR_U68_E1_STEP_REFUSED /* fallible +073B hook refused; no subsequent calls or tail writes */
 } pr_u68_e1_status;
 
 typedef enum {
@@ -123,6 +124,14 @@ typedef struct {
     unsigned calls_n;
     pr_u68_e1_call calls[48];     /* the calls in order (capped; calls_n counts all) */
 } pr_u68_e1_report;
+
+/* Opt-in +073B hook returns zero on completion, nonzero to stop immediately.
+ * Earlier model and hook effects remain; the callback owns its partial state.
+ * A NULL callback refuses if +073B is reached. Other hooks retain legacy semantics.
+ * This is a stop boundary, not a resumable CPU or native parity model. */
+typedef int (*pr_u68_e1_step_fallible)(void *ctx, pr_u68_e1_state *state);
+pr_u68_e1_status pr_u68_entry1_fallible_step(pr_u68_e1_state *state,
+    pr_u68_e1_report *report, pr_u68_e1_step_fallible step);
 
 /* The entry. `report` may be NULL. */
 pr_u68_e1_status pr_u68_entry1(pr_u68_e1_state *state, pr_u68_e1_report *report);
