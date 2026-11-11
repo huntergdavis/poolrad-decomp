@@ -1,0 +1,7 @@
+# Synthetic COMPARE numeric FillChar return
+
+The continuation executes the existing bus-aware SYSTEM FillChar provider at 16A8 and checks its RETF 8 return to U25:18FF. The six compare-flag bytes are cleared by live shared-bus writes. The provider clears DF, leaves arithmetic flags unchanged and rereads its return frame after the writes; a fill aliasing that frame can therefore produce a checked transfer after the actual effects. The direct adapter requires ordinary CS, DS and SS, SP at most FFF4, 1 MiB RAM and attached EGA, and accepts an explicit expected return target.
+
+The composed wrapper extends [numeric FillChar entry](U25_COMPARE_FILL_ENTRY_SHARED_BUS.md), preserving earlier outcomes and the inherited frame, alias, immutable-code and nested-session constraints. It snapshots the expected caller segment from the just-built live frame before the fill. Tests cover the synthetic six-byte clear, flags, EGA-routed writes, overwritten return-frame transfer, invalid-frame atomicity and nested guards. The leaf's original bus contract is in [system_fillchar_bus_16a8_cpu.h](../../include/poolrad/recovered/system_fillchar_bus_16a8_cpu.h); [numeric helper evidence](OVL_0025_18EB_CPU.md) supplies the call and return context.
+
+Prior SAVEs and operands are synthetic. Native reach, subsequent numeric comparisons, full helper return, complete COMPARE, readiness and credit remain unverified. The flat-RAM numeric helper is not composed.
