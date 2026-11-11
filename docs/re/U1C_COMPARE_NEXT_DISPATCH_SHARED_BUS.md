@@ -1,0 +1,5 @@
+# Synthetic dispatcher after numeric COMPARE
+
+The wrapper extends the [post-COMPARE runner iteration](U1C_COMPARE_RUNNER_NEXT_SHARED_BUS.md) through the existing [ECL dispatcher prefix](U1C_ECL_DISPATCH_PREFIX.md). The provider executes the live opcode checks and shared-bus frame setup, stopping at a reached opcode 0–9 handler entry or the later-opcode boundary U1C:2F8C. Those outcomes are distinct; runner return, earlier stops and yields pass through. No next handler or later-opcode branch executes.
+
+The wrapper inherits the preceding frame, alias, immutable-code, copied-target and nested-session constraints. Synthetic integration exercises later opcode 42 and retains the preceding numeric comparison-result bytes; existing standalone dispatcher tests cover supported opcode boundaries and malformed calls. Prior SAVEs, COMPARE operands and the following opcode are synthetic. Native reach, the COMPARE string branch, later dispatcher behavior, full gameplay, readiness and credit remain unverified.
