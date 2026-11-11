@@ -78,6 +78,27 @@ static void run_writer(void *c, pr_u68_e1_state *s)
     w->runs++;
 }
 
+/* The real coordinate model refuses its first unresolved resident call. */
+typedef struct { H h; pr_u68_step_report step; pr_u68_step_status status; } Refusal;
+static int refuse_resident(void *ctx, uint16_t word)
+{ (void)ctx; (void)word; return 1; }
+static int run_refusing_writer(void *ctx, pr_u68_e1_state *s)
+{
+    Refusal *r = ctx;
+    pr_u68_step_state w = {0};
+    pr_u68_step_hooks hooks = {refuse_resident, NULL, NULL};
+    w.party_x = s->party_x; w.party_y = s->party_y; w.facing = s->facing;
+    w.hooks = &hooks;
+    r->status = pr_u68_step_coordinate_writer(&w, &r->step);
+    s->party_x = w.party_x; s->party_y = w.party_y;
+    return r->status != PR_U68_STEP_OK;
+}
+
+static int step_success(void *ctx, pr_u68_e1_state *s)
+{ (void)ctx; s->party_x = 14; return 0; }
+static int partial_refusal(void *ctx, pr_u68_e1_state *s)
+{ (void)ctx; s->party_x = 9; return 1; }
+
 /* synthetic Pascal literals */
 static const uint8_t L0[] = { 3, 'a', 'b', 'c' };
 static const uint8_t L1[] = { 2, 'd', 'e' };
@@ -131,6 +152,30 @@ int main(void)
     pr_u68_e1_report rep;
     pr_u68_e1_state st0;
     unsigned seed;
+
+    /* Refusal at writer +0742 must not execute entry1's later hooks or tail. */
+    {
+        Refusal refused = {0};
+        init(&st, win, buf, &refused.h); make_buffer(buf, 15, 4, 6, 1);
+        st.ctx = &refused; st.ds_6b00 = 0x12; st.ds_6b05 = 0x34;
+        CHECK(pr_u68_entry1_fallible_step(&st, &rep, run_refusing_writer) == PR_U68_E1_STEP_REFUSED);
+        CHECK(refused.status == PR_U68_STEP_HOOK && refused.step.stop_offset == 0x0742);
+        CHECK(rep.committed_move == 1 && rep.move_flag == 1);
+        CHECK(rep.calls_n == 2 && rep.calls[0] == PR_U68_E1_CALL_ENTRY3 && rep.calls[1] == PR_U68_E1_CALL_073B);
+        CHECK(refused.h.n == 0 && st.ds_6b00 == 0x12 && st.ds_6b05 == 0x34);
+        CHECK(st.party_x == 15 && st.party_y == 4 && st.facing == 6);
+        init(&st, win, buf, &refused.h); make_buffer(buf, 15, 4, 6, 1);
+        st.ds_6b00 = 0x12; st.ds_6b05 = 0x34;
+        CHECK(pr_u68_entry1_fallible_step(&st, &rep, NULL) == PR_U68_E1_STEP_REFUSED);
+        CHECK(refused.h.n == 0 && st.ds_6b00 == 0x12 && st.ds_6b05 == 0x34);
+        CHECK(pr_u68_entry1_fallible_step(&st, &rep, partial_refusal) == PR_U68_E1_STEP_REFUSED);
+        CHECK(st.party_x == 9 && st.ds_6b00 == 0x12 && st.ds_6b05 == 0x34);
+        CHECK(rep.committed_move == 1 && refused.h.n == 0);
+        init(&st, win, buf, &refused.h); make_buffer(buf, 15, 4, 6, 1);
+        CHECK(pr_u68_entry1_fallible_step(&st, &rep, step_success) == PR_U68_E1_OK);
+        CHECK(st.party_x == 14 && st.ds_6b00 == 0xff && st.ds_6b05 == 0xff);
+        CHECK(refused.h.n == 4 && refused.h.log[0] == L290B);
+    }
 
     /* ---- selector 1, entry 3 result 1: the move commit and tail, in order ---- */
     init(&st, win, buf, &h); make_buffer(buf, 15, 4, 6, 1);

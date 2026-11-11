@@ -152,7 +152,8 @@ static void resident_290b(pr_u68_e1_state *st, pr_u68_e1_report *r)
     if (HOOK(st->hooks, resident_ba_290b)) st->hooks->resident_ba_290b(st->ctx, st);
 }
 
-pr_u68_e1_status pr_u68_entry1(pr_u68_e1_state *st, pr_u68_e1_report *report)
+static pr_u68_e1_status entry1(pr_u68_e1_state *st, pr_u68_e1_report *report,
+                                int fallible, pr_u68_e1_step_fallible step)
 {
     pr_u68_e1_report local;
     pr_u68_e1_report *r = report ? report : &local;
@@ -207,7 +208,9 @@ pr_u68_e1_status pr_u68_entry1(pr_u68_e1_state *st, pr_u68_e1_report *report)
     if (flag != 0) {
         r->committed_move = 1;
         log_call(r, PR_U68_E1_CALL_073B);
-        if (HOOK(h, near_073b)) h->near_073b(st->ctx, st);
+        if (fallible) {
+            if (!step || step(st->ctx, st) != 0) return PR_U68_E1_STEP_REFUSED;
+        } else if (HOOK(h, near_073b)) h->near_073b(st->ctx, st);
     } else {
         log_call(r, PR_U68_E1_CALL_8AE);
         if (HOOK(h, resident_8ae_00dc)) h->resident_8ae_00dc(st->ctx, st, st->word_2622);
@@ -215,4 +218,15 @@ pr_u68_e1_status pr_u68_entry1(pr_u68_e1_state *st, pr_u68_e1_report *report)
     resident_290b(st, r);
     tail(st, r);
     return PR_U68_E1_OK;
+}
+
+pr_u68_e1_status pr_u68_entry1(pr_u68_e1_state *st, pr_u68_e1_report *report)
+{
+    return entry1(st, report, 0, NULL);
+}
+
+pr_u68_e1_status pr_u68_entry1_fallible_step(pr_u68_e1_state *st,
+    pr_u68_e1_report *report, pr_u68_e1_step_fallible step)
+{
+    return entry1(st, report, 1, step);
 }

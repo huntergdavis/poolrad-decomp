@@ -124,3 +124,23 @@ The bodies of `+0x0000` (265 bytes), `+0x0236` (94), `+0x0294` (587),
 `0x3D0:0x2F` and resident `0x8AE:0x00DC` remain hooks; `+0x04DF` is p5's.
 `+0x0236` (94 bytes, `retf 2`, two DS references) is the smallest unread
 callee in this entry.
+
+## Opt-in coordinate-writer refusal
+
+`pr_u68_entry1_fallible_step` uses the existing entry-1 model but replaces
+only its reached `+073B` hook with a fallible callback. A missing or refusing
+callback returns `PR_U68_E1_STEP_REFUSED` immediately: the report already
+contains the move decision and `+073B` call, and earlier state or callback
+changes remain. The following `+290B` and tail hooks and tail writes do not
+run. The existing `pr_u68_entry1` entry point and its hook behavior remain
+unchanged. This is a one-way stop, not a resume mechanism; invoking the entry
+again can repeat earlier effects. Other hooks retain their original bounded
+semantics and are not made fallible by this interface.
+
+The synthetic integration test runs the existing coordinate writer with a
+refusing resident hook, observes its `+0742` stop, and checks that entry 1
+does not execute later hooks or tail writes. It also checks missing and
+successful callbacks and retains deliberately changed callback state. This
+is behavior validation, not a native full-state comparison. The native
+same-invocation service, device, and return evidence described in
+`SLOT_A_POST_EXIT_NATIVE_RETURN.md` remains necessary for the `+3492` boundary.
