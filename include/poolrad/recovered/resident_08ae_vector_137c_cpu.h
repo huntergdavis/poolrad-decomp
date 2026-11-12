@@ -8,7 +8,7 @@ typedef struct {
 } pr_r08ae_137c_cpu;
 typedef enum {
     PR_R08AE_137C_OK = 0, PR_R08AE_137C_ARGUMENT, PR_R08AE_137C_ENV_DOS,
-    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E, PR_R08AE_137C_STOP_13A0, PR_R08AE_137C_STOP_13A3
+    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E, PR_R08AE_137C_STOP_13A0, PR_R08AE_137C_STOP_13A3, PR_R08AE_137C_STOP_13A5
 } pr_r08ae_137c_status;
 /* Declared environment. Neither hook is the real DOS or PIT.
  *
@@ -65,5 +65,10 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_from_13a0_to_13a3(
  * without mutation. Port effects still require an explicit port callback;
  * absent callbacks refuse. The caller establishes provenance and memory bounds. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_cpu_diagnostic(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
+/* Resume at 13A3 for the first OUT only, stopping at 13A5. An absent or
+ * refusing port callback stops at 13A3. The callback owns any device effects;
+ * the CPU model itself makes no PIT-state claim. ARGUMENT preserves state. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_first_port(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
 #endif
