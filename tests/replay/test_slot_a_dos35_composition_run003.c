@@ -89,6 +89,10 @@ int main(int argc,char **argv) {
       CHECK(log.count==3 && log.port==0x40 && log.value==0x13);
       before.ip=0x13ae; CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
       puts("abstract third OUT: ordered 40h<-13h after 43h<-B6h,40h<-B1h; CPU at 13AE; no PIT-state claim");
+      CHECK(pr_r08ae_vector_137c_return(r,PR_R08AE_137C_RAM_SIZE,&c)==PR_R08AE_137C_OK);
+      before.es=0x3da1; before.ds=0x14a0; before.sp=0x3db6; before.ip=0x00f4; before.cs=0x10d2;
+      CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
+      puts("abstract resident return: restored ES/DS and RETF to 10D2:00F4; RAM unchanged under logger");
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");
