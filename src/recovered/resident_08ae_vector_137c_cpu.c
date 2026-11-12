@@ -29,10 +29,10 @@ static int int21(uint8_t *m, cpu_t *c, uint16_t next, const pr_r08ae_137c_env *e
 }
 static int out_port(const pr_r08ae_137c_env *e, uint16_t port, uint8_t value)
 { return e == NULL || e->port_out == NULL || e->port_out(e->context, port, value) != 0; }
-pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
-    uint8_t *m, size_t size, cpu_t *c, const pr_r08ae_137c_env *e)
+static pr_r08ae_137c_status run(
+    uint8_t *m, size_t size, cpu_t *c, const pr_r08ae_137c_env *e, int at_int)
 {
-    if (m == NULL || c == NULL || size != PR_R08AE_137C_RAM_SIZE || c->ip != 0x137Cu ||
+    if (m == NULL || c == NULL || size != PR_R08AE_137C_RAM_SIZE || c->ip != (at_int ? 0x1386u : 0x137Cu) ||
         c->sp < 0x000Cu || c->sp > 0xFFFCu) return PR_R08AE_137C_ARGUMENT;
     for (;;) {
         switch (c->ip) {
@@ -43,7 +43,7 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
         case 0x1383u: c->ax = 0x3508u; c->ip = 0x1386u; break;
         case 0x1386u:
             if (int21(m, c, 0x1388u, e)) { c->ip = 0x1386u; return PR_R08AE_137C_ENV_DOS; }
-            c->ip = 0x1388u; break;
+            c->ip = 0x1388u; if (at_int) return PR_R08AE_137C_STOP_1388; break;
         case 0x1388u: put(m, c->cs, 0x1378u, c->bx); c->ip = 0x138Du; break;
         case 0x138Du: put(m, c->cs, 0x137Au, c->es); c->ip = 0x1392u; break;
         case 0x1392u: push(m, c, c->ds); c->ip = 0x1393u; break;
@@ -74,3 +74,11 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
         }
     }
 }
+
+pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
+    uint8_t *m, size_t size, cpu_t *c, const pr_r08ae_137c_env *e)
+{ return run(m, size, c, e, 0); }
+
+pr_r08ae_137c_status pr_r08ae_vector_137c_from_1386(
+    uint8_t *m, size_t size, cpu_t *c, const pr_r08ae_137c_env *e)
+{ return run(m, size, c, e, 1); }

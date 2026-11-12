@@ -8,7 +8,7 @@ typedef struct {
 } pr_r08ae_137c_cpu;
 typedef enum {
     PR_R08AE_137C_OK = 0, PR_R08AE_137C_ARGUMENT, PR_R08AE_137C_ENV_DOS,
-    PR_R08AE_137C_ENV_PORT
+    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388
 } pr_r08ae_137c_status;
 /* Declared environment. Neither hook is the real DOS or PIT.
  *
@@ -36,5 +36,13 @@ typedef struct {
  * arbitrary-IP resume. ENV_DOS stops after the frame push with CS:IP at the INT;
  * ENV_PORT stops before the OUT with nothing executed. ARGUMENT preserves CPU/RAM. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
+/* Diagnostic entry at the observed pre-INT state, stopping before 1388. This
+ * explicitly supplied DOS callback may implement the narrow captured handler
+ * effects, including RAM writes; it must validate its own input and refuse
+ * without mutation when unsupported. On refusal the hardware frame remains
+ * pushed, as with the normal entry. The caller supplies the captured CPU and
+ * RAM and is responsible for their provenance and valid stack. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_from_1386(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
 #endif
