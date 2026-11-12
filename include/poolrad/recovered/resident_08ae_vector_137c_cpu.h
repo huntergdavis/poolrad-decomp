@@ -81,4 +81,9 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_second_port(
  * The callback owns device effects; ARGUMENT preserves state. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_third_port(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
+/* Resume at 13AE through POP ES, POP DS and RETF. The ordinary 137C
+ * memory/stack constraints apply; the caller supplies the continuation state.
+ * ARGUMENT preserves state. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_return(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu);
 #endif

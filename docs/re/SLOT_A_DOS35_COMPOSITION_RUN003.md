@@ -60,3 +60,12 @@ Without a port callback it refuses at 13AC after the register move. The test
 checks all three writes in order and unchanged RAM under the logger. This does
 not establish PIT state or native post-13A3 parity; the ordered instruction
 sequence is documented in [the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md).
+
+After the three abstract port observations, the test continues through the
+resident `POP ES; POP DS; RETF` sequence. The retained pre-port stack yields
+ES=`3DA1`, DS=`14A0`, SP=`3DB6`, and return `10D2:00F4`; RAM remains unchanged
+under the logging callbacks. This is a C instruction and stack check derived
+from the 13A3 capture, not native post-port or PIT parity. The resident return
+and the earlier observation are described in
+[the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md) and shared memory session
+`01a13101-709d-77e1-9fcb-2a6acbff0046` respectively.
