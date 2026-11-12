@@ -23,13 +23,18 @@ int main(int argc,char **argv) {
     pr_r08ae_137c_cpu initial={0x3508,0x3ed4,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1386,0x10d2,0x3da1,0x1d16,0x7202}, c;
     const pr_r08ae_137c_cpu post={0x3508,0xfea5,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1388,0x10d2,0xf000,0x1d16,0x7202};
     pr_r08ae_137c_env env={&psp,service,NULL};
-    CHECK(argc==3); r=calloc(1,PR_R08AE_137C_RAM_SIZE); expected=malloc(SIZE); CHECK(r&&expected&&load(argv[1],r)&&load(argv[2],expected));
+    CHECK(argc==4); r=calloc(1,PR_R08AE_137C_RAM_SIZE); expected=malloc(SIZE); CHECK(r&&expected&&load(argv[1],r)&&load(argv[2],expected));
     c=initial; CHECK(pr_r08ae_vector_137c_from_1386(r,PR_R08AE_137C_RAM_SIZE,&c,&env)==PR_R08AE_137C_ENV_DOS); CHECK(c.ip==0x1386 && c.sp==0x3da8 && c.flags==0x7002);
     CHECK(load(argv[1],r)); c=initial; CHECK(pr_r08ae_vector_137c_from_1386(r,PR_R08AE_137C_RAM_SIZE,&c,NULL)==PR_R08AE_137C_ENV_DOS); CHECK(c.ip==0x1386 && c.sp==0x3da8);
     CHECK(load(argv[1],r)); c=initial; psp=0x0814;
     CHECK(pr_r08ae_vector_137c_from_1386(r,PR_R08AE_137C_RAM_SIZE,&c,&env)==PR_R08AE_137C_STOP_1388);
     for(i=0;i<SIZE;i++) if(r[i]!=expected[i]) { if(diffs<8) fprintf(stderr,"diff %05x\n",i); diffs++; }
     CHECK(diffs==0); CHECK(c.ax==post.ax && c.bx==post.bx && c.cx==post.cx && c.dx==post.dx && c.si==post.si && c.di==post.di && c.bp==post.bp && c.sp==post.sp && c.cs==post.cs && c.ip==post.ip && c.ds==post.ds && c.es==post.es && c.ss==post.ss && c.flags==post.flags);
+    CHECK(load(argv[3],expected));
+    CHECK(pr_r08ae_vector_137c_from_1388_to_139e(r,PR_R08AE_137C_RAM_SIZE,&c)==PR_R08AE_137C_STOP_139E);
+    diffs=0; for(i=0;i<SIZE;i++) if(r[i]!=expected[i]) { if(diffs<8) fprintf(stderr,"139e diff %05x\n",i); diffs++; }
+    CHECK(diffs==0 && c.ax==0x2508 && c.bx==0xfea5 && c.cx==4 && c.dx==0x13ea && c.si==0x3e8a && c.di==0x4f && c.bp==0x3db6 && c.sp==0x3dac && c.cs==0x10d2 && c.ip==0x139e && c.ds==0x10d2 && c.es==0xf000 && c.ss==0x1d16 && c.flags==0x7202);
+    puts("run003 1386->139e: CPU14 and 655360 RAM bytes match; second DOS interrupt not executed");
     puts("run003 1386->1388: conditional PSP=0814 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");
     free(r); free(expected); return 0;
 }

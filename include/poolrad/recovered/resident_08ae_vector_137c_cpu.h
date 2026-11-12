@@ -8,7 +8,7 @@ typedef struct {
 } pr_r08ae_137c_cpu;
 typedef enum {
     PR_R08AE_137C_OK = 0, PR_R08AE_137C_ARGUMENT, PR_R08AE_137C_ENV_DOS,
-    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388
+    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E
 } pr_r08ae_137c_status;
 /* Declared environment. Neither hook is the real DOS or PIT.
  *
@@ -45,4 +45,8 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_cpu(
  * RAM and is responsible for their provenance and valid stack. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_from_1386(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
+/* Resume at 1388 and stop before the second INT at 139E. The stack and
+ * immutable resident span obey the 137C contract. ARGUMENT preserves state. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_from_1388_to_139e(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu);
 #endif
