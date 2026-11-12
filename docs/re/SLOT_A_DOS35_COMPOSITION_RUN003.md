@@ -53,3 +53,10 @@ loads `AX=13B1`, records one subsequent `B1` write to port `40`, and stops at
 does not change RAM. This checks the order of the two declared writes, not PIT
 state or native 13A5/13AA parity. The instruction sequence is documented in
 [the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md).
+
+A third abstract step starts at the C-produced 13AA state. It executes
+`MOV AL,AH`, records a third write `13` to port `40`, and stops at 13AE.
+Without a port callback it refuses at 13AC after the register move. The test
+checks all three writes in order and unchanged RAM under the logger. This does
+not establish PIT state or native post-13A3 parity; the ordered instruction
+sequence is documented in [the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md).
