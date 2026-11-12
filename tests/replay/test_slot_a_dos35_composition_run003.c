@@ -29,6 +29,12 @@ static int service25(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flag
     word(r,0x8140+0x2e,(uint16_t)(c->sp-18)); word(r,0x8140+0x30,c->ss);
     word(r,0x20,c->dx); word(r,0x22,c->ds); *flags=get(r,stack+4); return 0;
 }
+typedef struct { unsigned count; uint16_t port; uint8_t value; } port_log;
+static int observe_port(void *ctx, uint16_t port, uint8_t value) {
+    port_log *log=(port_log *)ctx;
+    if (!log || log->count || port!=0x43 || value!=0xb6) return 1;
+    log->count++; log->port=port; log->value=value; return 0;
+}
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
     pr_r08ae_137c_cpu initial={0x3508,0x3ed4,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1386,0x10d2,0x3da1,0x1d16,0x7202}, c;
@@ -62,6 +68,15 @@ int main(int argc,char **argv) {
     CHECK(load(argv[5],expected)); diffs=0;
     for(i=0;i<SIZE;i++) if(r[i]!=expected[i]) { if(diffs<8) fprintf(stderr,"13a3 diff %05x\n",i); diffs++; }
     CHECK(diffs==0 && c.ax==0x25b6 && c.bx==0xfea5 && c.cx==4 && c.dx==0x13ea && c.si==0x3e8a && c.di==0x4f && c.bp==0x3db6 && c.sp==0x3dae && c.cs==0x10d2 && c.ip==0x13a3 && c.ds==0x10d2 && c.es==0xf000 && c.ss==0x1d16 && c.flags==0x7202);
+    /* Abstract observation: expected 13A3 RAM is only used for comparison. */
+    { pr_r08ae_137c_cpu before=c, refused=c; port_log log={0,0,0};
+      pr_r08ae_137c_env port_env={&log,NULL,observe_port};
+      CHECK(pr_r08ae_vector_137c_first_port(r,PR_R08AE_137C_RAM_SIZE,&refused,NULL)==PR_R08AE_137C_ENV_PORT);
+      CHECK(refused.ip==0x13a3 && !memcmp(&refused,&before,sizeof before) && !memcmp(r,expected,SIZE));
+      CHECK(pr_r08ae_vector_137c_first_port(r,PR_R08AE_137C_RAM_SIZE,&c,&port_env)==PR_R08AE_137C_STOP_13A5);
+      CHECK(log.count==1 && log.port==0x43 && log.value==0xb6);
+      before.ip=0x13a5; CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
+      puts("abstract first OUT: one 43h<-B6h; CPU advances to 13A5, RAM unchanged; no PIT-state claim"); }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");
     puts("run003 1386->139e: CPU14 and 655360 RAM bytes match; second DOS interrupt was not executed at this stop");
