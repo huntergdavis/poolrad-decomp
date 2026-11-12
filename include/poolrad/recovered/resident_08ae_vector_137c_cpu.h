@@ -8,7 +8,7 @@ typedef struct {
 } pr_r08ae_137c_cpu;
 typedef enum {
     PR_R08AE_137C_OK = 0, PR_R08AE_137C_ARGUMENT, PR_R08AE_137C_ENV_DOS,
-    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E
+    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E, PR_R08AE_137C_STOP_13A0
 } pr_r08ae_137c_status;
 /* Declared environment. Neither hook is the real DOS or PIT.
  *
@@ -49,4 +49,10 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_from_1386(
  * immutable resident span obey the 137C contract. ARGUMENT preserves state. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_from_1388_to_139e(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu);
+/* Diagnostic second INT entry. An explicitly supplied callback may model
+ * bounded handler RAM effects, validating input and refusing unsupported
+ * states without mutation. Success stops before 13A0; refusal retains the
+ * hardware frame. The caller is responsible for capture provenance. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_from_139e(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
 #endif
