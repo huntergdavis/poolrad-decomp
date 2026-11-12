@@ -59,4 +59,11 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_from_139e(
  * and immutable resident span obey the 137C contract. ARGUMENT preserves state. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_from_13a0_to_13a3(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu);
+/* Diagnostic 137C entry: identical control flow to the normal entry, but
+ * explicitly permits a supplied DOS callback to model bounded handler RAM
+ * effects. The callback validates its input and refuses unsupported states
+ * without mutation. Port effects still require an explicit port callback;
+ * absent callbacks refuse. The caller establishes provenance and memory bounds. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_cpu_diagnostic(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
 #endif
