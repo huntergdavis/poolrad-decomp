@@ -21,7 +21,7 @@ all 655,360 conventional RAM bytes to run003's 1388 capture. It reports zero
 RAM differences. The post-capture is used only as expected output. This is an
 observed-state diagnostic, not a continuous post-Up execution: the existing
 continuous C prefix starts from run002, and a run003 same-invocation prefix
-has not been established. The next instruction at 1388 and subsequent effects
+has not been established. The second DOS interrupt at 139E and subsequent effects
 are outside this test. The normal 137C entry and its default refusal remain
 unchanged.
 
