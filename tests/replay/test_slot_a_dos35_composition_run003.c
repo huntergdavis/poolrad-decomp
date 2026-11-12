@@ -32,7 +32,7 @@ static int service25(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flag
 typedef struct { unsigned count; uint16_t port; uint8_t value; } port_log;
 static int observe_port(void *ctx, uint16_t port, uint8_t value) {
     port_log *log=(port_log *)ctx;
-    if (!log || log->count || port!=0x43 || value!=0xb6) return 1;
+    if (!log || !((log->count==0 && port==0x43 && value==0xb6) || (log->count==1 && port==0x40 && value==0xb1))) return 1;
     log->count++; log->port=port; log->value=value; return 0;
 }
 int main(int argc,char **argv) {
@@ -76,7 +76,14 @@ int main(int argc,char **argv) {
       CHECK(pr_r08ae_vector_137c_first_port(r,PR_R08AE_137C_RAM_SIZE,&c,&port_env)==PR_R08AE_137C_STOP_13A5);
       CHECK(log.count==1 && log.port==0x43 && log.value==0xb6);
       before.ip=0x13a5; CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
-      puts("abstract first OUT: one 43h<-B6h; CPU advances to 13A5, RAM unchanged; no PIT-state claim"); }
+      puts("abstract first OUT: one 43h<-B6h; CPU advances to 13A5, RAM unchanged; no PIT-state claim");
+      refused=c; CHECK(pr_r08ae_vector_137c_second_port(r,PR_R08AE_137C_RAM_SIZE,&refused,NULL)==PR_R08AE_137C_ENV_PORT);
+      before.ax=0x13b1; before.ip=0x13a8; CHECK(!memcmp(&refused,&before,sizeof before) && !memcmp(r,expected,SIZE));
+      CHECK(pr_r08ae_vector_137c_second_port(r,PR_R08AE_137C_RAM_SIZE,&c,&port_env)==PR_R08AE_137C_STOP_13AA);
+      CHECK(log.count==2 && log.port==0x40 && log.value==0xb1);
+      before.ip=0x13aa; CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
+      puts("abstract second OUT: ordered 40h<-B1h after 43h<-B6h; CPU at 13AA, RAM unchanged; no PIT-state claim");
+    }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");
     puts("run003 1386->139e: CPU14 and 655360 RAM bytes match; second DOS interrupt was not executed at this stop");
