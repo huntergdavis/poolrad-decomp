@@ -46,3 +46,10 @@ is claimed. The port, value and instruction come from the recovered
 [137C body](RES_08AE_VECTOR_137C_CPU.md); shared memory session
 `01a13101-709d-77e1-9fcb-2a6acbff0046` mentions an earlier 13A5 observation
 whose archive was not located.
+
+A second optional abstract step starts from the C-produced 13A5 state. It
+loads `AX=13B1`, records one subsequent `B1` write to port `40`, and stops at
+13AA. A missing port callback refuses at 13A8 after the AX load. The logger
+does not change RAM. This checks the order of the two declared writes, not PIT
+state or native 13A5/13AA parity. The instruction sequence is documented in
+[the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md).

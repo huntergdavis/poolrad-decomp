@@ -8,7 +8,7 @@ typedef struct {
 } pr_r08ae_137c_cpu;
 typedef enum {
     PR_R08AE_137C_OK = 0, PR_R08AE_137C_ARGUMENT, PR_R08AE_137C_ENV_DOS,
-    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E, PR_R08AE_137C_STOP_13A0, PR_R08AE_137C_STOP_13A3, PR_R08AE_137C_STOP_13A5
+    PR_R08AE_137C_ENV_PORT, PR_R08AE_137C_STOP_1388, PR_R08AE_137C_STOP_139E, PR_R08AE_137C_STOP_13A0, PR_R08AE_137C_STOP_13A3, PR_R08AE_137C_STOP_13A5, PR_R08AE_137C_STOP_13AA
 } pr_r08ae_137c_status;
 /* Declared environment. Neither hook is the real DOS or PIT.
  *
@@ -70,5 +70,10 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_cpu_diagnostic(
  * refusing port callback stops at 13A3. The callback owns any device effects;
  * the CPU model itself makes no PIT-state claim. ARGUMENT preserves state. */
 pr_r08ae_137c_status pr_r08ae_vector_137c_first_port(
+    uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
+/* Resume at 13A5, execute MOV AX,13B1 and the second OUT only, and stop at
+ * 13AA. A missing/refusing port callback stops before the OUT at 13A8, after
+ * MOV. Device effects belong to the callback; ARGUMENT preserves state. */
+pr_r08ae_137c_status pr_r08ae_vector_137c_second_port(
     uint8_t *ram, size_t ram_size, pr_r08ae_137c_cpu *cpu, const pr_r08ae_137c_env *env);
 #endif
