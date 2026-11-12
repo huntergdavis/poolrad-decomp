@@ -43,13 +43,15 @@ OK(c.ds==0x14a0 && c.es==0x3da1 && c.ss==0x1d16 && c.flags==0x7202 && delta==0);
 /* Continue the C-produced state in the same mapping; no 0742 reload. */
 { pr_r08ae_00dc_cpu d; pr_r08ae_137c_cpu x, observed = {0}, before;
   pr_r08ae_137c_env env = {&observed, refuse_dos, NULL};
-  unsigned ssbase = a(c.ss, 0), sp;
+  unsigned ssbase = a(c.ss, 0), sp; uint8_t frame_before[6]; unsigned differences = 0;
   OK(sizeof d == sizeof c && sizeof x == sizeof c);
   OK(m[a(c.cs,c.ip)] == 0x9a && w(m,a(c.cs,c.ip+1)) == 0x00dc && w(m,a(c.cs,c.ip+3)) == 0x10d2);
   push(m,&c,c.cs); push(m,&c,0x0747); c.cs=0x10d2; c.ip=0x00dc;
   memcpy(&d,&c,sizeof d);
   OK(pr_r08ae_dispatch_00dc_cpu(m,T,&d)==PR_R08AE_00DC_CALL_137C);
   memcpy(&x,&d,sizeof x);
+  /* 137C pushes DS and ES above this range before the INT frame is written. */
+  memcpy(frame_before, m+ssbase+0x3da8, sizeof frame_before);
   OK(pr_r08ae_vector_137c_cpu(m,T,&x,&env)==PR_R08AE_137C_ENV_DOS);
   OK(observed.ip==0x1386 && observed.sp==0x3da8 && observed.ax==0x3508);
   sp=ssbase+observed.sp;
@@ -60,6 +62,9 @@ OK(c.ds==0x14a0 && c.es==0x3da1 && c.ss==0x1d16 && c.flags==0x7202 && delta==0);
   OK(before.ds==0x10d2 && before.es==0x3da1 && before.ss==0x1d16 && before.flags==0x7202);
   OK(load(v[3],r));
   for(i=0x3dae;i<0x3dbc;i++) OK(m[ssbase+i]==r[ssbase+i]);
+  for(i=0;i<C;i++) { unsigned byte=(i>=ssbase+0x3da8 && i<ssbase+0x3dae)?frame_before[i-(ssbase+0x3da8)]:m[i]; if(byte!=r[i]) {if(differences<12)printf("pre-INT diff %05x %02x %02x\n",i,byte,r[i]);differences++;} }
+  printf("pre-INT conventional RAM differences: %u\n", differences);
+  OK(differences == 0);
   printf("continuous C -> pre-INT 1386: CPU14 and 14 prior stack bytes match; DOS refused after frame\n");
 }
 free(r);OK(munmap(m,T)==0);return 0;}
