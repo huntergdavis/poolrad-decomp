@@ -1,5 +1,6 @@
 /* Conditional run003 DOS35 binding. PSP ownership is supplied, not proven. */
 #include "poolrad/recovered/resident_08ae_vector_137c_cpu.h"
+#include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -93,6 +94,13 @@ int main(int argc,char **argv) {
       before.es=0x3da1; before.ds=0x14a0; before.sp=0x3db6; before.ip=0x00f4; before.cs=0x10d2;
       CHECK(!memcmp(&c,&before,sizeof before) && !memcmp(r,expected,SIZE));
       puts("abstract resident return: restored ES/DS and RETF to 10D2:00F4; RAM unchanged under logger");
+      { pr_r08ae_00dc_cpu d; unsigned stack=((unsigned)c.ss<<4);
+        CHECK(sizeof d==sizeof c); memcpy(&d,&c,sizeof d);
+        CHECK(pr_r08ae_dispatch_00dc_cpu(r,PR_R08AE_137C_RAM_SIZE,&d)==PR_R08AE_00DC_CALL_1742);
+        CHECK(d.ax==9 && d.bx==0xfea5 && d.cx==4 && d.dx==0x13ea && d.si==0x3e8a && d.di==0x4f && d.bp==0x3db6 && d.sp==0x3db0 && d.cs==0x10d2 && d.ip==0x1742 && d.ds==0x14a0 && d.es==0x3da1 && d.ss==0x1d16 && d.flags==0x7206);
+        word(expected,stack+0x3db0,0x0147); word(expected,stack+0x3db2,0x10d2); word(expected,stack+0x3db4,9);
+        CHECK(!memcmp(r,expected,SIZE));
+        puts("abstract dispatcher continuation: call 10D2:1742 with argument 9; stack and CPU match modeled effects"); }
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");

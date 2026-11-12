@@ -69,3 +69,14 @@ from the 13A3 capture, not native post-port or PIT parity. The resident return
 and the earlier observation are described in
 [the recovered 137C body](RES_08AE_VECTOR_137C_CPU.md) and shared memory session
 `01a13101-709d-77e1-9fcb-2a6acbff0046` respectively.
+
+The test then resumes the existing dispatcher model at `00F4`. The retained
+stack supplies argument 10; the modeled branch reaches `10D2:1742` with
+argument 9 and return `0147`. The test checks all CPU fields and the full
+conventional RAM image after applying the expected stack writes. The callee
+is not executed. These expectations are derived from the captured pre-port
+state and recovered instructions under the abstract port callbacks; they are
+not a native post-port comparison or PIT-state evidence. See
+[the recovered dispatcher](RES_08AE_DISPATCH_00DC_CPU.md). An earlier native
+trace is mentioned in shared memory session
+`01a13101-709d-77e1-9fcb-2a6acbff0046` but its post-port capture was not found.
