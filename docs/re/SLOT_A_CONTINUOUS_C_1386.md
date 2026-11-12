@@ -15,15 +15,17 @@ bash tests/replay/check_slot_a_continuous_resident_1386.sh LIBPOOLRAD_RECOVERED_
 For the hash-locked same-run captures, C-derived `0742` CPU14 matches the
 manual transcription and all 655,360 conventional RAM bytes match. After
 continuing from that C state, the reconstructed pre-INT `1386` CPU14 and
-14 modeled preceding stack bytes match the native transcription and image.
-The `1386` comparison is selected-state only; the callback's later interrupt
-frame is not represented as a native pre-INT effect.
+all 655,360 conventional RAM bytes match the native transcription and image.
+For this comparison, the six bytes later overwritten by the model's interrupt
+frame are read from the C-produced pre-frame state, saved before the vector
+model runs. Its preceding DS/ES pushes do not overlap those six bytes. No
+native checkpoint is substituted for the C-produced state.
 
 This is a bounded captured-path test adapter, not a general entry-1
 implementation. The manual CPU transcriptions and assumption of no
 unobserved interrupts limit the evidence. It starts at valid `0D6D`, not
 `348D` (the run002 single `348D` dump is invalid), and it does not establish
-full `1386` RAM/device parity, DOS results, `3492` or a complete Up frame.
+upper-memory or device parity, DOS results, `3492` or a complete Up frame.
 The next missing effect is the same-invocation DOS vector service return,
 flags and all RAM effects; PIT, interrupts, device state and actual return
 remain unmodeled. See [raw entry handoff](SLOT_A_RAW_ENTRY1_0742.md) and
