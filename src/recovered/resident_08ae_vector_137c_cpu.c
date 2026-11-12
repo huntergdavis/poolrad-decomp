@@ -96,3 +96,7 @@ pr_r08ae_137c_status pr_r08ae_vector_137c_from_139e(
 pr_r08ae_137c_status pr_r08ae_vector_137c_from_13a0_to_13a3(
     uint8_t *m, size_t size, cpu_t *c)
 { return run(m, size, c, NULL, 4); }
+
+pr_r08ae_137c_status pr_r08ae_vector_137c_cpu_diagnostic(
+    uint8_t *m, size_t size, cpu_t *c, const pr_r08ae_137c_env *e)
+{ return run(m, size, c, e, 0); }
