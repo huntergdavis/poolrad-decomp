@@ -11,8 +11,10 @@ printf '%s  %s\n' \
  31cd7bfd60bc222f1530fed17ceca134f3f5645a6ed9ac84783d276b98ce3525 "$run/RAM-139E.BIN" \
  4315d431b602ddab764ce15dc4aac13a25419a53139a14289c9e44142bed1bf0 "$run/CPU-139E.TXT" \
  606e2012a24646fa66700f6cf89e0d4505f7c2963cdbde67ec15cc7a9212aa40 "$run/RAM-13A0.BIN" \
- 418c82068ac7f3f5243272d895926ad2e408cbb7bea2696f7ceb3396bde981b3 "$run/CPU-13A0.TXT" | sha256sum -c -
+ 418c82068ac7f3f5243272d895926ad2e408cbb7bea2696f7ceb3396bde981b3 "$run/CPU-13A0.TXT" \
+ 606e2012a24646fa66700f6cf89e0d4505f7c2963cdbde67ec15cc7a9212aa40 "$run/RAM-13A3.BIN" \
+ f01232f48666d06d1edafb82b46e2cf0b05d1a67f871f0e81391f9e296470fb7 "$run/CPU-13A3.TXT" | sha256sum -c -
 bin=$(mktemp)
 trap 'rm -f "$bin"' EXIT
 ${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"
-"$bin" "$run/RAM-1386.BIN" "$run/RAM-1388.BIN" "$run/RAM-139E.BIN" "$run/RAM-13A0.BIN"
+"$bin" "$run/RAM-1386.BIN" "$run/RAM-1388.BIN" "$run/RAM-139E.BIN" "$run/RAM-13A0.BIN" "$run/RAM-13A3.BIN"
