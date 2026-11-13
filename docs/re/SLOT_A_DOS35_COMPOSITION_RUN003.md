@@ -435,3 +435,16 @@ their values here are the model's choices, not native claims for this input.
 The loader continuation and unit 7D remain unexecuted. Upper RAM is unbacked,
 earlier time/device inputs are synthetic, and no native post-port,
 same-invocation, or full-Up parity is claimed.
+
+The fixed `0355` continuation validates its loaded bytes and the backed
+`08B0:000A = 0058` descriptor word, then uses the existing
+[raw continuation model](RESIDENT_LOADER_0355.md). The calculation produces
+DX `00ED` and stops before the `0538` call at `12C6:0363`, with AX `00E7`,
+BX `0027`, CX `0004`, SI and DI `0000`, BP `3DB4`, SP `3D98`, DS `14A0`,
+ES `08B0`, SS `1D16`, FLAGS `7206`. The final ADD defines the arithmetic flags,
+overwriting the prior helper's undefined shift flags. The replay checks all
+CPU words and the unchanged allocated RAM; missing backing, changed code, or
+a changed descriptor refuses unchanged. The `0538` call and remaining
+loader/handler/7D work are unexecuted. Upper RAM remains unbacked, earlier
+time/device inputs are synthetic, and no native post-port, same-invocation, or
+full-Up parity is claimed.
