@@ -91,3 +91,9 @@ post-port parity, the caller's 3492 return, or a complete Up frame. The next
 step is the dispatcher continuation at 0147. A prior native 1742 observation
 in shared memory session `01a13101-709d-77e1-9fcb-2a6acbff0046` concerns a
 separate invocation and is not used as this replay's input or expected output.
+
+The conditional replay resumes the existing dispatcher model at 0147 and
+stops before `10D2:006C` with argument 10 and return `0165`. It checks CPU14
+and conventional RAM against the modeled call-frame writes. The callee is
+unexecuted. These checks depend on the abstract port callbacks and model-pinned
+1742 return; they are not a native post-port comparison or a PIT-state claim.
