@@ -129,3 +129,12 @@ reading, the next request refuses at the time boundary and an exhausted call
 leaves CPU and RAM unchanged. These readings are caller-supplied examples, not
 observed run003 time or evidence of DOS interrupt-frame effects. Native
 post-port parity, PIT state and a complete Up frame remain unverified.
+
+From the delay return produced by the two synthetic clock readings, the test
+resumes the existing dispatcher at 0165 and stops before `10D2:17AE` with
+argument zero and return `016C`. CPU14 and conventional RAM are checked
+against the modeled call-frame writes. The callee is not executed. This is
+conditional on the abstract clock and port bindings, not a native post-port
+comparison or PIT-state claim. Earlier native dispatcher observations appear
+in shared memory session `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and are not
+used as this replay's input or expected output.
