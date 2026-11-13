@@ -1,6 +1,7 @@
 /* Conditional run003 DOS35 binding. PSP ownership is supplied, not proven. */
 #include "poolrad/recovered/resident_08ae_vector_137c_cpu.h"
 #include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
+#include "poolrad/recovered/resident_08ae_table_1742_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -100,7 +101,19 @@ int main(int argc,char **argv) {
         CHECK(d.ax==9 && d.bx==0xfea5 && d.cx==4 && d.dx==0x13ea && d.si==0x3e8a && d.di==0x4f && d.bp==0x3db6 && d.sp==0x3db0 && d.cs==0x10d2 && d.ip==0x1742 && d.ds==0x14a0 && d.es==0x3da1 && d.ss==0x1d16 && d.flags==0x7206);
         word(expected,stack+0x3db0,0x0147); word(expected,stack+0x3db2,0x10d2); word(expected,stack+0x3db4,9);
         CHECK(!memcmp(r,expected,SIZE));
-        puts("abstract dispatcher continuation: call 10D2:1742 with argument 9; stack and CPU match modeled effects"); }
+        puts("abstract dispatcher continuation: call 10D2:1742 with argument 9; stack and CPU match modeled effects");
+        { pr_r08ae_1742_cpu t; unsigned j;
+          static const struct { unsigned address; uint8_t old_value, new_value; } changes[] = {
+            {0x10f1f,0x00,0x09},{0x10f29,0x00,0x09},{0x10f2a,0x00,0x09},{0x10f2b,0x00,0x09},{0x10f2c,0x00,0x09},
+            {0x10f4f,0x2b,0xdb},{0x10f50,0x0d,0x0b},{0x20f04,0x00,0xa0},{0x20f05,0xf0,0x14},{0x20f06,0xa0,0x8a},
+            {0x20f07,0x13,0x3e},{0x20f08,0xd2,0x4f},{0x20f09,0x10,0x00},{0x20f0a,0x02,0xa5},{0x20f0b,0x72,0xfe},
+            {0x20f0c,0xd2,0x09},{0x20f0d,0x10,0x00},{0x20f0e,0xa1,0xb6} };
+          CHECK(sizeof t==sizeof d); memcpy(&t,&d,sizeof t);
+          CHECK(pr_r08ae_table_1742_cpu(r,PR_R08AE_1742_RAM_SIZE,&t)==PR_R08AE_1742_OK);
+          CHECK(t.ax==9 && t.bx==0xfea5 && t.cx==4 && t.dx==0x13ea && t.si==0x3e8a && t.di==0x4f && t.bp==0x3db6 && t.sp==0x3db6 && t.cs==0x10d2 && t.ip==0x0147 && t.ds==0x14a0 && t.es==0x3da1 && t.ss==0x1d16 && t.flags==0x7246);
+          for(j=0;j<sizeof changes/sizeof changes[0];j++) { CHECK(expected[changes[j].address]==changes[j].old_value); expected[changes[j].address]=changes[j].new_value; }
+          CHECK(!memcmp(r,expected,SIZE));
+          puts("conditional 1742 model: returned 10D2:0147; CPU14 and 18 model-pinned RAM byte changes match; no native post-port parity"); } }
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");

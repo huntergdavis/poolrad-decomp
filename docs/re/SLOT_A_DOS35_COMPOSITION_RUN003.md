@@ -80,3 +80,14 @@ not a native post-port comparison or PIT-state evidence. See
 [the recovered dispatcher](RES_08AE_DISPATCH_00DC_CPU.md). An earlier native
 trace is mentioned in shared memory session
 `01a13101-709d-77e1-9fcb-2a6acbff0046` but its post-port capture was not found.
+
+The replay then composes the existing [1742 CPU model](RES_08AE_TABLE_1742_CPU.md)
+on the C-produced argument-9 call and stops on its return at `10D2:0147`. It
+checks all 14 CPU fields and the 655,360-byte RAM image against an 18-byte
+**model-pinned** delta from the pre-call C state. These are regression checks,
+not independent native observations. The input after 13A3 is conditional on
+the abstract port callbacks; the test does not establish PIT state, native
+post-port parity, the caller's 3492 return, or a complete Up frame. The next
+step is the dispatcher continuation at 0147. A prior native 1742 observation
+in shared memory session `01a13101-709d-77e1-9fcb-2a6acbff0046` concerns a
+separate invocation and is not used as this replay's input or expected output.
