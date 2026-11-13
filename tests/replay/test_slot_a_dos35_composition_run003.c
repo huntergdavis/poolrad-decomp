@@ -14,6 +14,7 @@
 #include "poolrad/recovered/overlay_u3bd_cell_057a_cpu.h"
 #include "poolrad/recovered/resident_handler_prefix_02e6.h"
 #include "poolrad/recovered/resident_loader_prefix_0338.h"
+#include "poolrad/recovered/resident_loader_0553.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -273,6 +274,26 @@ static int overlay_loader_prefix(uint8_t *ram, size_t capacity, size_t backed,
     next.sp=0x3d9a; word(scratch,stack+0x3d9a,0x0317); next.ip=0x0338;
     if(pr_resident_loader_prefix_0338(scratch,capacity,&next)!=PR_LOADER_0338_CALL_0553 ||
        next.cs!=0x12c6 || next.ip!=0x0352) { free(scratch); return 1; }
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
+}
+/* Fixed 0553 call and return; AF/OF follow the model's shift choice. */
+static int overlay_loader_0553(uint8_t *ram, size_t capacity, size_t backed,
+                               const uint8_t *identity, size_t identity_size,
+                               pr_r08ae_00dc_cpu *cpu) {
+    const unsigned loader=0x12c60+0x338, body=0x12c60+0x553, stack=0x1d160, descriptor=0x08b00;
+    pr_handler_02e6_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       loader+177>backed || body+12>backed || stack+0x3dbe>backed || descriptor+10>backed ||
+       memcmp(ram+loader,identity+loader,177) || memcmp(ram+body,identity+body,12) ||
+       ram[loader+0x1a]!=0xe8 || get(ram,loader+0x1b)!=0x01fe ||
+       cpu->ax!=0x3dbe || cpu->bx!=0x27 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3db4 || cpu->sp!=0x3d98 || cpu->cs!=0x12c6 || cpu->ip!=0x0352 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x08b0 || cpu->ss!=0x1d16 || cpu->flags!=0x7206 ||
+       get(ram,descriptor+8)!=0x0e65 || get(ram,stack+0x3d98)!=0x08b0) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity); memcpy(&next,cpu,sizeof next);
+    next.sp=0x3d96; word(scratch,stack+0x3d96,0x0355); next.ip=0x0553;
+    if(pr_resident_loader_0553(scratch,capacity,&next)!=PR_LOADER_0553_RETURNED ||
+       next.cs!=0x12c6 || next.ip!=0x0355 || next.sp!=0x3d98) { free(scratch); return 1; }
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -617,6 +638,22 @@ int main(int argc,char **argv) {
                                         CHECK(!memcmp(raw,raw_expected,1u<<20));
                                         CHECK(prefix.ax==0x3dbe && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d98 && prefix.cs==0x12c6 && prefix.ip==0x0352 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7206);
                                         for(z=0;z<SIZE;z++) if(raw[z]!=entry[z]) n++;
+                                        { uint8_t *prior=malloc(1u<<20); pr_r08ae_00dc_cpu at_helper=prefix; unsigned j,count=0;
+                                          CHECK(prior); memcpy(prior,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                          CHECK(!overlay_loader_0553(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                          word(raw_expected,stack+0x3d96,0x0355); CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                          CHECK(prefix.ax==0x00e7 && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d98 && prefix.cs==0x12c6 && prefix.ip==0x0355 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7216);
+                                          for(j=0;j<SIZE;j++) if(raw[j]!=prior[j]) count++;
+                                          CHECK(count==2); memcpy(raw,prior,1u<<20); prefix=at_helper;
+                                          CHECK(overlay_loader_0553(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                          CHECK(!memcmp(raw,prior,1u<<20) && !memcmp(&prefix,&at_helper,sizeof prefix));
+                                          identity[0x12c60+0x553]^=1;
+                                          CHECK(overlay_loader_0553(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                          CHECK(!memcmp(raw,prior,1u<<20) && !memcmp(&prefix,&at_helper,sizeof prefix));
+                                          identity[0x12c60+0x553]^=1; word(raw,0x08b00+8,0); memcpy(raw_expected,raw,1u<<20);
+                                          CHECK(overlay_loader_0553(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                          CHECK(!memcmp(raw,raw_expected,1u<<20) && !memcmp(&prefix,&at_helper,sizeof prefix));
+                                          free(prior); puts("conditional loader 0553: AX=00E7, return 0355; AF/OF model-defined"); }
                                         CHECK(n==6); memcpy(raw,entry,1u<<20); prefix=at_loader;
                                         CHECK(overlay_loader_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                         CHECK(!memcmp(raw,entry,1u<<20) && !memcmp(&prefix,&at_loader,sizeof prefix));
