@@ -16,5 +16,5 @@ printf '%s  %s\n' \
  f01232f48666d06d1edafb82b46e2cf0b05d1a67f871f0e81391f9e296470fb7 "$run/CPU-13A3.TXT" | sha256sum -c -
 bin=$(mktemp)
 trap 'rm -f "$bin"' EXIT
-${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/src/recovered/resident_08ae_dispatch_00dc_cpu.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"
+${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/src/recovered/resident_08ae_dispatch_00dc_cpu.c" "$root/src/recovered/resident_08ae_table_1742_cpu.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"
 "$bin" "$run/RAM-1386.BIN" "$run/RAM-1388.BIN" "$run/RAM-139E.BIN" "$run/RAM-13A0.BIN" "$run/RAM-13A3.BIN"
