@@ -12,6 +12,7 @@
 #include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/recovered/overlay_u3bd_cell_057a_cpu.h"
+#include "poolrad/recovered/resident_handler_prefix_02e6.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -232,6 +233,26 @@ static int cold_int3f_entry(uint8_t *ram, size_t capacity, size_t backed,
     word(ram,stack+0x3db0,0x0027); cpu->sp=0x3db0;
     cpu->flags=(uint16_t)(cpu->flags & ~0x0300u); cpu->cs=0x12c6; cpu->ip=0x02e6;
     return 0;
+}
+/* Fixed cold-handler prefix; stop before the overlay loader call. */
+static int int3f_prefix(uint8_t *ram, size_t capacity, size_t backed,
+                        const uint8_t *identity, size_t identity_size,
+                        pr_r08ae_00dc_cpu *cpu) {
+    const unsigned stub=0x08b00+0x25, handler=0x12c60+0x2e6, stack=0x1d160;
+    pr_handler_02e6_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       handler+82>backed || stub+5>backed || stack+0x3dbe>backed ||
+       memcmp(ram+stub,identity+stub,5) || memcmp(ram+handler,identity+handler,82) ||
+       cpu->ax!=1 || cpu->bx!=0x3db2 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3db0 || cpu->cs!=0x12c6 || cpu->ip!=0x02e6 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x3a16 || cpu->ss!=0x1d16 || cpu->flags!=0x7046 ||
+       get(ram,stack+0x3db0)!=0x27 || get(ram,stack+0x3db2)!=0x08b0 || get(ram,stack+0x3db4)!=0x7246 ||
+       get(ram,stack+0x3db6)!=0x07f2 || get(ram,stack+0x3db8)!=0x2e60 ||
+       get(ram,stack+0x3dba)!=1 || get(ram,stack+0x3dbc)!=1) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity); memcpy(&next,cpu,sizeof next);
+    if(pr_resident_handler_prefix_02e6(scratch,capacity,&next)!=PR_HANDLER_02E6_AT_LOADER ||
+       next.cs!=0x12c6 || next.ip!=0x0314) { free(scratch); return 1; }
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
@@ -555,6 +576,26 @@ int main(int argc,char **argv) {
                                     for(z=0;z<SIZE;z++) if(raw[z]!=int_before[z]) count++;
                                     CHECK(count==5);
                                     puts("conditional INT3F entry: five changed bytes; stop before handler");
+                                    { static const struct { unsigned at; uint8_t value; } delta[]={
+                                        {0x20efc,0xd5},{0x20efd,0x03},{0x20efe,0x16},{0x20eff,0x3a},{0x20f00,0xa0},
+                                        {0x20f01,0x14},{0x20f02,0x00},{0x20f04,0x00},{0x20f05,0x00},{0x20f06,0x0e},
+                                        {0x20f07,0x00},{0x20f08,0x04},{0x20f09,0x00},{0x20f0a,0xb2},{0x20f0b,0x3d},
+                                        {0x20f0c,0x01},{0x20f0d,0x00},{0x20f0e,0x46},{0x20f0f,0x72},{0x20f10,0x25},
+                                        {0x20f14,0xbe},{0x20f15,0x3d}};
+                                      uint8_t *before=malloc(1u<<20); pr_r08ae_00dc_cpu at_handler=prefix; unsigned k;
+                                      CHECK(before); memcpy(before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                      CHECK(!int3f_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                      for(k=0;k<sizeof delta/sizeof delta[0];k++) raw_expected[delta[k].at]=delta[k].value;
+                                      CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                      CHECK(prefix.ax==0x3dbe && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d9c && prefix.cs==0x12c6 && prefix.ip==0x0314 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7216);
+                                      memcpy(raw,before,1u<<20); prefix=at_handler;
+                                      CHECK(int3f_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                      CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_handler,sizeof prefix));
+                                      identity[0x12c60+0x2e6]^=1;
+                                      CHECK(int3f_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                      CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_handler,sizeof prefix));
+                                      identity[0x12c60+0x2e6]^=1; free(before);
+                                      puts("conditional handler prefix: stop before 0314 loader call; no loader executed"); }
                                     memcpy(raw,int_before,1u<<20); prefix=at_int;
                                     CHECK(cold_int3f_entry(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                     CHECK(!memcmp(raw,int_before,1u<<20) && !memcmp(&prefix,&at_int,sizeof prefix));

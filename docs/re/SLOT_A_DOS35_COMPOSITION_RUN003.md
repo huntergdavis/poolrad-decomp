@@ -391,3 +391,18 @@ refuse before effects. This executes no handler instruction and does not establi
 overlay loading, a unit 7D entry frame, or near `0000` effects. Upper RAM is
 unbacked, earlier time/device inputs are synthetic, and native post-port,
 same-invocation, and full-Up parity remain unverified.
+
+The fixed interrupt-entry frame can feed the existing
+[raw handler-prefix model](RESIDENT_HANDLER_PREFIX_02E6.md), after validating
+the loaded handler, cold stub, frame, CPU and conventional backing. On this
+conditional state it selects the nonzero saved-IP branch and stops before the
+loader call at `12C6:0314`. The model-pinned CPU is AX `3DBE`, BX `0027`,
+CX `0004`, DX `000E`, SI and DI `0000`, BP `3DB4`, SP `3D9C`, DS `14A0`,
+ES `08B0`, SS `1D16`, FLAGS `7216`. The replay checks all CPU words and the
+allocated RAM image, with 22 stack bytes differing; missing backing or changed
+handler identity refuses unchanged. The prefix's separate saved-run validation
+is documented in its audit, but this conditional state is not that native run.
+The loader call and handler tail remain unexecuted; no unit 7D entry or near
+`0000` frame is established. Upper RAM is unbacked, earlier time/device inputs
+are synthetic, and no native post-port, same-invocation, or full-Up parity is
+claimed.
