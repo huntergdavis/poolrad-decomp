@@ -117,3 +117,15 @@ against a 23-byte model-pinned stack delta, not a native post-port capture.
 The next dependency is a supported DOS GetTime result and its environmental
 side effects; PIT state, native post-port parity, and a complete Up frame remain
 unverified.
+
+A separate test-only branch supplies a declared synthetic ordered GetTime
+sequence `00:00:00.00`, then `00:00:00.10`. Its DOS callback supplies CX:DX,
+returns the declared continuation, preserves other CPU fields, and assumes DOS
+makes no RAM writes. The time-model callback stages work on a copy and commits
+only a complete return, preserving the 006C hook's no-mutation refusal contract.
+With two supplied readings the C delay returns to `10D2:0165`; CPU14 and the
+conventional RAM image match a 42-byte model-pinned delta. With only the first
+reading, the next request refuses at the time boundary and an exhausted call
+leaves CPU and RAM unchanged. These readings are caller-supplied examples, not
+observed run003 time or evidence of DOS interrupt-frame effects. Native
+post-port parity, PIT state and a complete Up frame remain unverified.
