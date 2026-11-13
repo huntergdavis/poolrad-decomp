@@ -475,3 +475,17 @@ write does not establish that the overlay has been loaded: the indirect call,
 loader tail, handler return, and unit 7D remain unexecuted. Upper RAM is
 unbacked, earlier inputs are synthetic, and native post-port, same-invocation,
 and full-Up parity are not claimed.
+
+At `03AA`, a fixed-profile adapter validates the loaded indirect call, pointer
+`DS:8504 = 12C6:0268`, the helper body, seek inputs and conventional backing,
+then builds the far-call frame and invokes [the raw `0268` prefix](RESIDENT_LOADER_0268.md).
+The model stops before `INT 21h` at `12C6:028F`, preparing AX `4200`, handle
+BX `0005`, and offset CX:DX `0002:3DCC`; DI is `0824`, BP `3DB4`, SP `3D90`,
+DS `14A0`, ES `08B0`, SS `1D16`, FLAGS `7202`, and SI `0000`. The offset
+matches the documented unit 7D file base in [its entry audit](U7D_ENTRY1.md).
+The replay checks CPU14 and allocated RAM; six stack bytes differ. Missing
+backing, changed helper identity, or changed indirect pointer refuses unchanged.
+The DOS seek, any subsequent read, loader tail, handler return and unit 7D
+remain unexecuted: the prepared request does not establish a successful seek
+or loaded overlay. Upper RAM is unbacked, earlier inputs are synthetic, and no
+native post-port, same-invocation, or full-Up parity is claimed.
