@@ -42,6 +42,25 @@ static int observe_port(void *ctx, uint16_t port, uint8_t value) {
 static int refuse_gettime(void *ctx, const pr_dos_gettime_cpu *before, pr_dos_gettime_cpu *after) {
     (void)before; (void)after; ++*(unsigned *)ctx; return 1;
 }
+typedef struct { const uint16_t *values; unsigned count, next; } time_script;
+/* Declared DOS service: only CX:DX is supplied; DOS makes no RAM writes. */
+static int scripted_dos_time(void *ctx, const pr_dos_gettime_cpu *before, pr_dos_gettime_cpu *after) {
+    time_script *script=(time_script *)ctx;
+    if (!script || !before || !after || script->next>=script->count || before->ip!=0x00a7 || (before->ax & 0xff00u)!=0x2c00u) return 1;
+    *after=*before; after->ip=0x00a9; after->cx=0; after->dx=script->values[script->next++]; return 0;
+}
+/* Commit only a complete time-model return; refusal leaves CPU/RAM intact. */
+static int scripted_time(void *ctx, uint8_t *ram, pr_r08ae_006c_cpu *cpu) {
+    time_script *script=(time_script *)ctx; pr_r08ae_time_cpu t; pr_r08ae_time_cpu_diagnostic diag;
+    _Static_assert(sizeof(pr_r08ae_time_cpu)==sizeof(pr_r08ae_006c_cpu), "time CPU layout");
+    uint8_t *copy; pr_bus bus; unsigned original_next; uint16_t sp,cs,ret;
+    if (!script || script->next>=script->count || !ram || !cpu || cpu->ip!=0) return 1;
+    copy=malloc(PR_BUS_RAM_SIZE); if (!copy) return 1; memcpy(copy,ram,PR_BUS_RAM_SIZE);
+    bus=(pr_bus){copy,NULL,NULL,NULL,NULL}; sp=cpu->sp; cs=cpu->cs; ret=get(copy,((unsigned)cpu->ss<<4)+sp);
+    original_next=script->next; memcpy(&t,cpu,sizeof t);
+    if (pr_r08ae_time_0000_cpu(&bus,PR_BUS_RAM_SIZE,&t,scripted_dos_time,script,&diag)!=PR_R08AE_TIME_CPU_OK || t.sp!=(uint16_t)(sp+4) || t.cs!=cs || t.ip!=ret) { script->next=original_next; free(copy); return 1; }
+    memcpy(ram,copy,PR_BUS_RAM_SIZE); free(copy); t.sp=sp; t.ip=0; memcpy(cpu,&t,sizeof t); return 0;
+}
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
     pr_r08ae_137c_cpu initial={0x3508,0x3ed4,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1386,0x10d2,0x3da1,0x1d16,0x7202}, c;
@@ -125,6 +144,31 @@ int main(int argc,char **argv) {
           word(expected,stack+0x3db0,0x0165); word(expected,stack+0x3db2,0x10d2); word(expected,stack+0x3db4,10);
           CHECK(!memcmp(r,expected,SIZE));
           puts("conditional dispatcher continuation: call 10D2:006C with argument 10; CPU14 and stack effects match modeled expectations");
+          { static const uint16_t values[]={0x0000,0x000a}; time_script script={values,2,0};
+            uint8_t *copy=malloc(PR_BUS_RAM_SIZE); pr_r08ae_006c_cpu scripted; unsigned j;
+            static const struct { unsigned address; uint8_t old_value,new_value; } changed[]={
+              {0x20ede,0x31,0xa0},{0x20edf,0x35,0x3d},{0x20ee0,0x2c,0x1f},{0x20ee1,0x34,0},{0x20ee2,0x20,0xd2},{0x20ee3,0x57,0x10},
+              {0x20ee4,0x20,0x94},{0x20ee5,0x31,0x3d},{0x20ee6,0x30,0x16},{0x20ee7,0x3a,0x1d},{0x20ee8,0x35,0x96},{0x20ee9,0x30,0x3d},
+              {0x20eea,1,0x16},{0x20eeb,0,0x1d},{0x20eec,0x53,0},{0x20eee,1,0},{0x20eef,0xa0,0},{0x20ef0,0x0b,0x2f},{0x20ef1,0xa0,0},
+              {0x20ef2,9,0xd2},{0x20ef3,0xa0,0x10},{0x20ef4,8,0x0a},{0x20ef5,0x25,0},{0x20ef6,0xa5,0},{0x20ef7,0xfe,0},{0x20ef8,4,0},
+              {0x20efa,0xea,0},{0x20efb,0x13,0},{0x20efc,0x8a,0x0a},{0x20efd,0x3e,0},{0x20efe,0x4f,0},{0x20f00,0xb6,0xae},
+              {0x20f02,0xd2,0x8d},{0x20f03,0x10,0},{0x20f04,0xa0,0xd2},{0x20f05,0x14,0x10},{0x20f06,0x8a,0x0a},{0x20f07,0x3e,0},
+              {0x20f08,0x4f,0},{0x20f0a,0xa5,0x0a},{0x20f0b,0xfe,0},{0x20f0c,9,0}};
+            CHECK(copy && sizeof scripted==sizeof d); memcpy(copy,r,PR_BUS_RAM_SIZE); memcpy(&scripted,&d,sizeof scripted);
+            { time_script short_script={values,1,0}; pr_r08ae_006c_cpu short_cpu=scripted; uint8_t *short_ram=malloc(PR_BUS_RAM_SIZE);
+              CHECK(short_ram); memcpy(short_ram,r,PR_BUS_RAM_SIZE);
+              CHECK(pr_r08ae_delay_006c_cpu(short_ram,PR_BUS_RAM_SIZE,&short_cpu,scripted_time,&short_script,128)==PR_R08AE_006C_TIME);
+              CHECK(short_script.next==1 && short_cpu.ip==0 && get(short_ram,((unsigned)short_cpu.ss<<4)+short_cpu.sp)==0x008d);
+              { pr_r08ae_006c_cpu saved=short_cpu; uint8_t *snapshot=malloc(PR_BUS_RAM_SIZE); CHECK(snapshot); memcpy(snapshot,short_ram,PR_BUS_RAM_SIZE);
+                CHECK(scripted_time(&short_script,short_ram,&short_cpu)!=0 && short_script.next==1 && !memcmp(&saved,&short_cpu,sizeof saved) && !memcmp(snapshot,short_ram,PR_BUS_RAM_SIZE)); free(snapshot); }
+              free(short_ram); }
+            CHECK(pr_r08ae_delay_006c_cpu(copy,PR_BUS_RAM_SIZE,&scripted,scripted_time,&script,128)==PR_R08AE_006C_OK);
+            CHECK(script.next==2 && scripted.ax==10 && scripted.bx==0 && scripted.cx==10 && scripted.dx==0 && scripted.si==0 && scripted.di==0 && scripted.bp==0x3db6 && scripted.sp==0x3db6 && scripted.cs==0x10d2 && scripted.ip==0x0165 && scripted.ds==0x14a0 && scripted.es==0x1d16 && scripted.ss==0x1d16 && scripted.flags==0x7246);
+            { uint8_t *reference=malloc(SIZE); CHECK(reference); memcpy(reference,r,SIZE);
+              for(j=0;j<sizeof changed/sizeof changed[0];j++) { CHECK(reference[changed[j].address]==changed[j].old_value); reference[changed[j].address]=changed[j].new_value; }
+              CHECK(!memcmp(copy,reference,SIZE)); free(reference); }
+            puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
+            free(copy); }
           { pr_r08ae_006c_cpu delay; CHECK(sizeof delay==sizeof d); memcpy(&delay,&d,sizeof delay);
             CHECK(pr_r08ae_delay_006c_cpu(r,PR_R08AE_006C_RAM_SIZE,&delay,NULL,NULL,32)==PR_R08AE_006C_TIME);
             CHECK(delay.ax==10 && delay.bx==0xfea5 && delay.cx==4 && delay.dx==0x13ea && delay.si==0x3e8a && delay.di==0x4f && delay.bp==0x3dae && delay.sp==0x3da2 && delay.cs==0x10d2 && delay.ip==0 && delay.ds==0x14a0 && delay.es==0x3da1 && delay.ss==0x1d16 && delay.flags==0x7206);
