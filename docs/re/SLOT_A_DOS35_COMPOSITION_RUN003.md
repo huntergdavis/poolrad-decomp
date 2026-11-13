@@ -173,3 +173,9 @@ callee is unexecuted. This remains conditional on abstract port callbacks and
 synthetic time; native post-port and PIT parity are not established. A prior
 independent native stop appears in shared memory session
 `01a12b3e-db20-70e1-95f9-d3fe44b8d309`, not as input to this replay.
+
+The conditional replay enters the existing [13B1 restore model](RES_08AE_VECTOR_13B1_CPU.md)
+without a DOS binding. It stops at `10D2:13C6` after pushing the interrupt
+frame; CPU14 and conventional RAM match the modeled pushes. The DOS restore
+and subsequent port operations are unexecuted. This path depends on abstract
+port callbacks and synthetic time and is not native post-port or PIT parity.

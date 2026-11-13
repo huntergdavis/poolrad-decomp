@@ -1,5 +1,6 @@
 /* Conditional run003 DOS35 binding. PSP ownership is supplied, not proven. */
 #include "poolrad/recovered/resident_08ae_vector_137c_cpu.h"
+#include "poolrad/recovered/resident_08ae_vector_13b1_cpu.h"
 #include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
 #include "poolrad/recovered/resident_08ae_table_1742_cpu.h"
 #include "poolrad/recovered/resident_08ae_table_17ae_cpu.h"
@@ -201,7 +202,13 @@ int main(int argc,char **argv) {
                     CHECK(next.ax==0 && next.bx==0 && next.cx==10 && next.dx==0 && next.si==0 && next.di==0 && next.bp==0x3db6 && next.sp==0x3db2 && next.cs==0x10d2 && next.ip==0x13b1 && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246);
                     word(reference,stack+0x3db2,0x0177); word(reference,stack+0x3db4,0x10d2);
                     CHECK(!memcmp(copy,reference,SIZE));
-                    puts("conditional dispatcher 0173: call 10D2:13B1; CPU14 and RAM match modeled frame"); } } }
+                    puts("conditional dispatcher 0173: call 10D2:13B1; CPU14 and RAM match modeled frame");
+                    { pr_r08ae_13b1_cpu restore; CHECK(sizeof restore==sizeof next); memcpy(&restore,&next,sizeof restore);
+                      CHECK(pr_r08ae_vector_13b1_cpu(copy,PR_R08AE_13B1_RAM_SIZE,&restore,NULL)==PR_R08AE_13B1_ENV_DOS);
+                      CHECK(restore.ax==0x2508 && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3da8 && restore.cs==0x10d2 && restore.ip==0x13c6 && restore.ds==0xf000 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7046);
+                      word(reference,stack+0x3db0,0x14a0); word(reference,stack+0x3dae,0x10d2); word(reference,stack+0x3dac,0x7246); word(reference,stack+0x3daa,0x10d2); word(reference,stack+0x3da8,0x13c8);
+                      CHECK(!memcmp(copy,reference,SIZE));
+                      puts("conditional 13B1: DOS vector restore refused at 13C6; CPU14 and full RAM match modeled frame"); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }
