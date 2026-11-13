@@ -287,8 +287,10 @@ int main(int argc,char **argv) {
                           CHECK(project_entry2(full,SIZE,next.ds,&missing,&result)!=0 && result==0xff && !memcmp(full,reference,SIZE));
                           CHECK(project_entry2(NULL,SIZE,next.ds,&step,&result)!=0 && result==0xff);
                           CHECK(project_entry2(full,SIZE-1,next.ds,&step,&result)!=0 && result==0xff && !memcmp(full,reference,SIZE));
-                          { uint8_t *bad=malloc(SIZE); CHECK(bad); memcpy(bad,full,SIZE); word(bad,ds+0x6a5c,0xffff); word(bad,ds+0x6a5e,0xffff);
-                            CHECK(project_entry2(bad,SIZE,next.ds,&step,&result)!=0 && result==0xff && !memcmp(full,reference,SIZE)); free(bad); }
+                          { uint8_t *bad=malloc(SIZE), *bad_before=malloc(SIZE); CHECK(bad && bad_before);
+                            memcpy(bad,full,SIZE); word(bad,ds+0x6a5c,0xffff); word(bad,ds+0x6a5e,0xffff); memcpy(bad_before,bad,SIZE);
+                            CHECK(project_entry2(bad,SIZE,next.ds,&step,&result)!=0 && result==0xff && !memcmp(bad,bad_before,SIZE));
+                            free(bad_before); free(bad); }
                           CHECK(get(full,ds+0x6a5c)==0 && get(full,ds+0x6a5e)==0x3da1 && full[0x3db5e]==0xfe);
                           CHECK(project_entry2(full,SIZE,next.ds,&step,&result)==0 && result==14);
                           full[ds+0x6ab0]=result; reference[ds+0x6ab0]=14;
