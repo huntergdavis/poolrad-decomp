@@ -165,3 +165,11 @@ input depends on abstract port callbacks and synthetic clock readings. PIT
 state, the 3492 return, and a complete Up frame remain unverified. The earlier
 independent native observation is in shared memory session
 `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into this replay.
+
+From the conditional second 1742 return, the test resumes the dispatcher at
+0173 and stops before `10D2:13B1` with return `0177`. CPU14 and conventional
+RAM are checked against the modeled call-frame writes. The vector-restore
+callee is unexecuted. This remains conditional on abstract port callbacks and
+synthetic time; native post-port and PIT parity are not established. A prior
+independent native stop appears in shared memory session
+`01a12b3e-db20-70e1-95f9-d3fe44b8d309`, not as input to this replay.
