@@ -10,6 +10,7 @@
 #include "poolrad/recovered/overlay_u7d_entry1.h"
 #include "poolrad/recovered/overlay_u7d_zero.h"
 #include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
+#include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -122,6 +123,30 @@ static int writer_lookup(uint8_t *ram, size_t capacity, size_t backed,
     if(pr_u3bd_nibble_047b_fullstate(scratch,capacity,&next)!=PR_U3BD_LOOKUP_OK ||
        next.cs!=0x2e60 || next.ip!=0x07a6 || next.sp!=0x3dbe) { free(scratch); return 1; }
     scratch[0x14a00+0x6ab0]=(uint8_t)next.ax; next.ip=0x07a9;
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
+}
+/* Fixed writer FillChar path, through its checked far return. */
+static int writer_fill(uint8_t *ram, size_t capacity, size_t backed,
+                       const uint8_t *identity, size_t identity_size,
+                       pr_r08ae_00dc_cpu *cpu) {
+    const unsigned caller=0x2e600+0x7a9, body=0x131c0+0x16a8, stack=0x1d160;
+    pr_system_leaf_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       caller+17>backed || body+20>backed || stack+0x3dbe>backed || 0x14a00+0x6de1>backed ||
+       memcmp(ram+caller,identity+caller,17) || memcmp(ram+body,identity+body,20) ||
+       ram[caller+12]!=0x9a || get(ram,caller+13)!=0x16a8 || get(ram,caller+15)!=0x131c ||
+       cpu->ax!=14 || cpu->bx!=0 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0x4e ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3dbe || cpu->cs!=0x2e60 || cpu->ip!=0x07a9 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x3da1 || cpu->ss!=0x1d16 || cpu->flags!=0x7202 ||
+       ram[0x14a00+0x6ab0]!=0x0e) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity);
+    memcpy(&next,cpu,sizeof next); next.di=0x6dde; next.ax=1; next.sp=0x3db2;
+    word(scratch,stack+0x3dbc,0x14a0); word(scratch,stack+0x3dba,0x6dde);
+    word(scratch,stack+0x3db8,3); word(scratch,stack+0x3db6,1);
+    word(scratch,stack+0x3db4,0x2e60); word(scratch,stack+0x3db2,0x07ba);
+    next.cs=0x131c; next.ip=0x16a8;
+    if(pr_system_fillchar_16a8(scratch,capacity,&next)!=PR_SYSTEM_LEAF_RETURNED ||
+       next.cs!=0x2e60 || next.ip!=0x07ba || next.sp!=0x3dbe) { free(scratch); return 1; }
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -400,6 +425,25 @@ int main(int argc,char **argv) {
                           raw_expected[0x14a00+0x6ab0]=0x0e;
                           CHECK(!memcmp(raw,raw_expected,1u<<20));
                           CHECK(prefix.ax==0x000e && prefix.bx==0 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0x4e && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07a9 && prefix.ds==0x14a0 && prefix.es==0x3da1 && prefix.ss==0x1d16 && prefix.flags==0x7202);
+                          { static const struct { unsigned at; uint8_t value; } delta[]={
+                              {0x20f12,0xba},{0x20f13,0x07},{0x20f14,0x60},{0x20f15,0x2e},
+                              {0x20f16,0x01},{0x20f17,0x00},{0x20f18,0x03},{0x20f1a,0xde},
+                              {0x20f1b,0x6d},{0x20f1c,0xa0},{0x20f1d,0x14}};
+                            uint8_t *before=malloc(1u<<20); pr_r08ae_00dc_cpu at_fill=prefix; unsigned n;
+                            CHECK(before); memcpy(before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                            CHECK(!writer_fill(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                            for(n=0;n<sizeof delta/sizeof delta[0];n++) raw_expected[delta[n].at]=delta[n].value;
+                            memset(raw_expected+0x14a00+0x6dde,1,3);
+                            CHECK(!memcmp(raw,raw_expected,1u<<20));
+                            CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==0 && prefix.dx==14 && prefix.si==0 && prefix.di==0x6de1 && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07ba && prefix.ds==0x14a0 && prefix.es==0x14a0 && prefix.ss==0x1d16 && prefix.flags==0x7202);
+                            memcpy(raw,before,1u<<20); prefix=at_fill;
+                            CHECK(writer_fill(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                            CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_fill,sizeof prefix));
+                            identity[0x131c0+0x16a8]^=1;
+                            CHECK(writer_fill(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                            CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_fill,sizeof prefix));
+                            identity[0x131c0+0x16a8]^=1; free(before);
+                            puts("conditional raw FillChar: DS:6DDE=01 01 01, return 07BA; no native parity"); }
                           memcpy(raw,pre,1u<<20); prefix=at_call;
                           CHECK(writer_lookup(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                           CHECK(!memcmp(raw,pre,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));

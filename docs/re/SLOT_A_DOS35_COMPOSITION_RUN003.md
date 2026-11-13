@@ -321,3 +321,18 @@ and SP `3DBE`, CS:IP `2E60:07A9`, DS `14A0`, ES `3DA1`, SS `1D16`, FLAGS
 a mismatched stub refuses unchanged. Upper RAM remains unbacked, and earlier
 synthetic time/device assumptions remain. This does not establish native
 post-port, same-invocation, or full-Up parity.
+
+A further fixed-profile adapter validates the loaded caller at `07A9..07B9`
+and its relocated `131C:16A8` target. The loaded 20-byte helper matches the
+FillChar hash documented in [the runtime-leaf audit](SYSTEM_RUNTIME_LEAVES.md).
+It models the caller's argument pushes and far-call frame, then invokes the
+existing raw FillChar model on a scratch image. The destination and stack are
+inside captured conventional RAM. The returned state is `2E60:07BA`, AX `0001`,
+BX `3DB2`, CX `0000`, DX `000E`, SI `0000`, DI `6DE1`, BP and SP `3DBE`,
+DS and ES `14A0`, SS `1D16`, FLAGS `7202`. The fill writes `01 01 01` at
+`DS:6DDE..6DE0`, which already hold those values; 11 stack bytes differ.
+The replay compares all 14 CPU words and the full allocated image and verifies
+missing backing and changed helper identity refuse without effects. The next
+entry-4 lookup has not executed. Upper RAM remains unbacked; earlier synthetic
+time and device assumptions remain, and no native post-port, same-invocation,
+or full-Up parity is claimed.
