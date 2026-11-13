@@ -138,3 +138,12 @@ conditional on the abstract clock and port bindings, not a native post-port
 comparison or PIT-state claim. Earlier native dispatcher observations appear
 in shared memory session `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and are not
 used as this replay's input or expected output.
+
+The conditional replay then runs the existing [17AE CPU model](RES_08AE_TABLE_17AE_CPU.md)
+with argument zero and stops at its `10D2:016C` return. CPU14 and conventional
+RAM are checked against a nine-byte model-pinned delta. These regression
+expectations are not independent native evidence: the input depends on the
+abstract port callbacks and synthetic clock sequence. PIT state, native
+post-port parity, the 3492 return, and a complete Up frame remain unverified.
+The prior independent `17AE` observation is recorded in shared memory session
+`01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into this replay.
