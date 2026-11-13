@@ -234,3 +234,13 @@ values. The fill behavior follows the existing writer model's argument-shape
 inference, not a native fill capture. Raw CPU remains at 0747, no lookup or
 window call frame is synthesized, and native post-port/full-Up parity is not
 established.
+
+The field-only writer projection can also reread the C-produced window-1 far
+pointer and its word at `+0594`. On this conditional state it reads
+`3A16:0594 = 0000`, selects arguments `(1,1)`, and refuses the unbound unit
+7D hook at the high-level report offset 07ED. The projected RAM remains
+unchanged and raw CPU remains at 0747; no raw 07ED call frame is synthesized.
+The existing [7D entry model](U7D_ENTRY1.md) needs window-0 words and limit
+table, linked-list effects when reached, and the near `0000` callee's effects.
+Its update hook is optional, so an adapter must not treat an absent hook as a
+completed callee. No 7D effect or native post-port/full-Up parity is claimed.
