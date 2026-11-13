@@ -379,3 +379,15 @@ unit 7D entry, and near `0000` call remain unexecuted. A separate native watch's
 loaded entry frame does not establish this conditional loader transition. Upper
 RAM is unbacked, earlier time/device inputs are synthetic, and no native
 post-port, same-invocation, or full-Up parity is claimed.
+
+The conditional image's INT 3Fh vector is `12C6:02E6`; the loaded 82-byte
+handler matches the hash in [the loaded-handler evidence](U9E_ENTRY8_LOADED_HANDLER_WINDOW.md).
+A fixed-profile adapter validates the cold stub, vector, handler, CPU, far-call
+frame and backing, then models only interrupt entry: it pushes FLAGS `7246`,
+CS `08B0`, and return IP `0027`, clears IF and TF, and stops at `12C6:02E6`
+with SP `3DB0` and FLAGS `7046`. The replay checks all CPU words and allocated
+RAM; five stack bytes differ. Missing backing, changed vector or changed handler
+refuse before effects. This executes no handler instruction and does not establish
+overlay loading, a unit 7D entry frame, or near `0000` effects. Upper RAM is
+unbacked, earlier time/device inputs are synthetic, and native post-port,
+same-invocation, and full-Up parity remain unverified.
