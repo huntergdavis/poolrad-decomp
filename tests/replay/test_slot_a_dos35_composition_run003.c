@@ -3,6 +3,7 @@
 #include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
 #include "poolrad/recovered/resident_08ae_table_1742_cpu.h"
 #include "poolrad/recovered/resident_08ae_delay_006c_cpu.h"
+#include "poolrad/recovered/resident_08ae_time_0000_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +38,9 @@ static int observe_port(void *ctx, uint16_t port, uint8_t value) {
     port_log *log=(port_log *)ctx;
     if (!log || !((log->count==0 && port==0x43 && value==0xb6) || (log->count==1 && port==0x40 && value==0xb1) || (log->count==2 && port==0x40 && value==0x13))) return 1;
     log->count++; log->port=port; log->value=value; return 0;
+}
+static int refuse_gettime(void *ctx, const pr_dos_gettime_cpu *before, pr_dos_gettime_cpu *after) {
+    (void)before; (void)after; ++*(unsigned *)ctx; return 1;
 }
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
@@ -126,7 +130,21 @@ int main(int argc,char **argv) {
             CHECK(delay.ax==10 && delay.bx==0xfea5 && delay.cx==4 && delay.dx==0x13ea && delay.si==0x3e8a && delay.di==0x4f && delay.bp==0x3dae && delay.sp==0x3da2 && delay.cs==0x10d2 && delay.ip==0 && delay.ds==0x14a0 && delay.es==0x3da1 && delay.ss==0x1d16 && delay.flags==0x7206);
             word(expected,stack+0x3dae,0x3db6); word(expected,stack+0x3da4,0x10d2); word(expected,stack+0x3da2,0x0076);
             CHECK(!memcmp(r,expected,SIZE));
-            puts("conditional 006C: time service refused at 10D2:0000 with modeled CPU14 and full RAM frame"); } } }
+            puts("conditional 006C: time service refused at 10D2:0000 with modeled CPU14 and full RAM frame");
+            { pr_r08ae_time_cpu time_cpu; pr_r08ae_time_cpu_diagnostic diag; pr_bus bus={r,NULL,NULL,NULL,NULL}; unsigned calls=0,j;
+              static const struct { unsigned address; uint8_t old_value,new_value; } changes[]={
+                {0x20ede,0x31,0xa0},{0x20edf,0x35,0x3d},{0x20ee0,0x2c,0x1f},{0x20ee1,0x34,0x00},{0x20ee2,0x20,0xd2},{0x20ee3,0x57,0x10},
+                {0x20ee4,0x20,0x94},{0x20ee5,0x31,0x3d},{0x20ee6,0x30,0x16},{0x20ee7,0x3a,0x1d},{0x20ee8,0x35,0x96},{0x20ee9,0x30,0x3d},
+                {0x20eea,0x01,0x16},{0x20eeb,0x00,0x1d},{0x20eec,0x53,0x98},{0x20eed,0x00,0x3d},{0x20eee,0x01,0x16},{0x20eef,0xa0,0x1d},
+                {0x20ef0,0x0b,0x9a},{0x20ef1,0xa0,0x3d},{0x20ef2,0x09,0x16},{0x20ef3,0xa0,0x1d},{0x20f00,0xb6,0xae}};
+              CHECK(sizeof time_cpu==sizeof delay); memcpy(&time_cpu,&delay,sizeof time_cpu);
+              CHECK(pr_r08ae_time_0000_cpu(&bus,PR_BUS_RAM_SIZE,&time_cpu,refuse_gettime,&calls,&diag)==PR_R08AE_TIME_CPU_CALLEE);
+              CHECK(calls==1 && diag.gettime_status==PR_DOS_GETTIME_SERVICE && diag.longmul_status==-1);
+              CHECK(time_cpu.ax==0x2c0a && time_cpu.bx==0xfea5 && time_cpu.cx==4 && time_cpu.dx==0x13ea && time_cpu.si==0x3e8a && time_cpu.di==0x3d94 && time_cpu.bp==0x3d7e && time_cpu.sp==0x3d7e && time_cpu.cs==0x1256 && time_cpu.ip==0x00a7 && time_cpu.ds==0x14a0 && time_cpu.es==0x3da1 && time_cpu.ss==0x1d16 && time_cpu.flags==0x7212);
+              for(j=0;j<sizeof changes/sizeof changes[0];j++) { CHECK(expected[changes[j].address]==changes[j].old_value); expected[changes[j].address]=changes[j].new_value; }
+              CHECK(!memcmp(r,expected,SIZE));
+              puts("conditional staged time: GetTime refused at 1256:00A7; CPU14 and 23 model-pinned RAM changes match; no clock supplied");
+            } } } }
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");

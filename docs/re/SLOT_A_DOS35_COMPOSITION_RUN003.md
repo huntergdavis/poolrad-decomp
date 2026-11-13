@@ -106,3 +106,14 @@ time values and does not execute the time service or claim a delay return.
 The input remains conditional on the abstract port callbacks and model-pinned
 1742 state; this is not native post-port parity or PIT-state evidence. The
 next input is an explicit time-service binding and its environmental effects.
+
+After the delay model has returned its `TIME` refusal, the replay explicitly
+hands that preserved CPU and RAM state to the existing
+[0000 time model](RES_08AE_TIME_0000_CPU.md). A declared GetTime callback
+refuses without supplying a clock value; the time model stops in GetTime at
+`1256:00A7`. This staged handoff does not mutate state inside the refusing
+006C callback and does not resume 006C. CPU14 and conventional RAM are checked
+against a 23-byte model-pinned stack delta, not a native post-port capture.
+The next dependency is a supported DOS GetTime result and its environmental
+side effects; PIT state, native post-port parity, and a complete Up frame remain
+unverified.
