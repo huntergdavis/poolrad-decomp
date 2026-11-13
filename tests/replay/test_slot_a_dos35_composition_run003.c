@@ -2,6 +2,7 @@
 #include "poolrad/recovered/resident_08ae_vector_137c_cpu.h"
 #include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
 #include "poolrad/recovered/resident_08ae_table_1742_cpu.h"
+#include "poolrad/recovered/resident_08ae_table_17ae_cpu.h"
 #include "poolrad/recovered/resident_08ae_delay_006c_cpu.h"
 #include "poolrad/recovered/resident_08ae_time_0000_cpu.h"
 #include <stdio.h>
@@ -172,7 +173,17 @@ int main(int argc,char **argv) {
                 CHECK(next.ax==0 && next.bx==0 && next.cx==10 && next.dx==0 && next.si==0 && next.di==0 && next.bp==0x3db6 && next.sp==0x3db0 && next.cs==0x10d2 && next.ip==0x17ae && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246);
                 word(reference,stack+0x3db0,0x016c); word(reference,stack+0x3db2,0x10d2); word(reference,stack+0x3db4,0);
                 CHECK(!memcmp(copy,reference,SIZE));
-                puts("abstract dispatcher 0165: call 10D2:17AE with argument 0; CPU14 and RAM match modeled frame"); }
+                puts("abstract dispatcher 0165: call 10D2:17AE with argument 0; CPU14 and RAM match modeled frame");
+                { pr_r08ae_17ae_cpu table; unsigned k;
+                  static const struct { unsigned address; uint8_t old_value,new_value; } changes[]={
+                    {0x10f1f,9,0},{0x10f29,9,0},{0x10f2a,9,0},{0x10f2b,9,0},{0x10f2c,9,0},
+                    {0x20f04,0xd2,0xa0},{0x20f05,0x10,0x14},{0x20f06,0x0a,0},{0x20f0a,0x0a,0}};
+                  CHECK(sizeof table==sizeof next); memcpy(&table,&next,sizeof table);
+                  CHECK(pr_r08ae_table_17ae_cpu(copy,PR_R08AE_17AE_RAM_SIZE,&table)==PR_R08AE_17AE_OK);
+                  CHECK(table.ax==0 && table.bx==0 && table.cx==10 && table.dx==0 && table.si==0 && table.di==0 && table.bp==0x3db6 && table.sp==0x3db6 && table.cs==0x10d2 && table.ip==0x016c && table.ds==0x14a0 && table.es==0x1d16 && table.ss==0x1d16 && table.flags==0x7246);
+                  for(k=0;k<sizeof changes/sizeof changes[0];k++) { CHECK(reference[changes[k].address]==changes[k].old_value); reference[changes[k].address]=changes[k].new_value; }
+                  CHECK(!memcmp(copy,reference,SIZE));
+                  puts("conditional 17AE model: returned 10D2:016C; CPU14 and nine model-pinned RAM changes match; no native post-port parity"); } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }
