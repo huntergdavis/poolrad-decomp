@@ -461,3 +461,17 @@ selector refuses unchanged. The loader continuation, handler return and unit
 7D remain unexecuted. Upper RAM is unbacked, earlier time/device inputs are
 synthetic, and no native post-port, same-invocation, or full-Up parity is
 claimed.
+
+At `0366`, a fixed-profile adapter validates the loaded loader body, CPU,
+backed return stack, zero descriptor word, and base `DS:43F6=2F6B`, then
+uses [the raw `0366` model](RESIDENT_LOADER_0366.md). Since `00ED - 011F`
+borrows, the model takes the far-call path, writes `2F6B` to `08B0:0010`,
+and stops before the indirect call at `12C6:03AA`. The model-pinned CPU has
+AX `2F6B`, BX `0027`, CX `0004`, DX `FFCE`, SI and DI `0000`, BP `3DB4`,
+SP `3D96`, DS `14A0`, ES `08B0`, SS `1D16`, FLAGS `7293`. The replay checks
+all CPU words and allocated RAM; four bytes differ. Missing backing, changed
+loader identity, or changed descriptor refuses unchanged. The descriptor
+write does not establish that the overlay has been loaded: the indirect call,
+loader tail, handler return, and unit 7D remain unexecuted. Upper RAM is
+unbacked, earlier inputs are synthetic, and native post-port, same-invocation,
+and full-Up parity are not claimed.
