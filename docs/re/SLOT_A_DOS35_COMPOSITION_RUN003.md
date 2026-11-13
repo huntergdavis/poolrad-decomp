@@ -147,3 +147,12 @@ abstract port callbacks and synthetic clock sequence. PIT state, native
 post-port parity, the 3492 return, and a complete Up frame remain unverified.
 The prior independent `17AE` observation is recorded in shared memory session
 `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into this replay.
+
+From the conditional 17AE return, the test resumes the existing dispatcher at
+016C and stops before the second `10D2:1742` call with argument zero and return
+`0173`. CPU14 and conventional RAM are checked against the modeled call-frame
+writes. The callee is not executed. This remains conditional on abstract port
+callbacks and synthetic clock readings; no native post-port or PIT-state parity
+is claimed. An earlier independent native observation is recorded in shared
+memory session `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into
+this replay.
