@@ -254,3 +254,16 @@ input would not reach the list walk; the actual list pointer is non-null
 leaves RAM unchanged. The 7D call and its near `0000` callee remain unbound;
 no optional hook is treated as a completed effect. Raw CPU remains at 0747,
 and native post-port and full-Up parity remain unverified.
+
+A separate copy of that conditional image now previews the entry's seven-word
+writeback using the existing [7D carry normalizer](U7D_ENTRY1.md). The adapter
+requires the `(1,1)` unbound writer report and rejects any input that would
+carry before modifying memory. This guard makes the non-null native list
+irrelevant to this path; the normalizer receives no host list and reports no
+carries or walks. The preview changes only window word 1, from `0000` to
+`0001`, across the full RAM image. A forced-carry input refuses with no writes.
+The original projected image and unbound writer stop are preserved. This is a
+field-only preview up to the call of near `0000`: the optional update hook is
+never invoked, its effects remain required, and no return from it is claimed.
+Raw CPU still remains at 0747. The synthetic time and device assumptions above
+continue to apply; this is neither native 7D execution nor full-Up parity.
