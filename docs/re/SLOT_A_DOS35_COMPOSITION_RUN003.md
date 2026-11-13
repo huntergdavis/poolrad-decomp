@@ -273,7 +273,7 @@ A second, separate field-only preview examines the C-produced input to near
 `DS:49F3` is `4`, selecting the inferred 72-byte fill of flags starting at
 `DS:471E`; `(n,idx)=(1,1)` selects one chunk. The far list contains six
 members and eight reachable items, all with zero quantity. The preview checks
-bounded, unique far-pointer chains and rejects any nonzero quantity before
+bounded, nonoverlapping far-pointer ranges and rejects offset wrap or any nonzero quantity before
 writing. On that guarded input the model makes no unit `9E` call: it projects
 the fill followed by clearing the first six member flags. The test compares
 all RAM against that field-only result and verifies a nonzero-quantity case

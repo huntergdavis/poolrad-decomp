@@ -37,6 +37,9 @@ static int preview_u7d_no_carry(uint8_t *r, unsigned ds, const pr_u68_step_repor
     for (i=0;i<PR_U7D_WORDS;i++) word(r,base+PR_U7D_WINDOW0_OFFSET+2*i,w[i]);
     return 0;
 }
+static int overlaps(unsigned a, unsigned an, unsigned b, unsigned bn) {
+    return a < b+bn && b < a+an;
+}
 /* Preview only the observed zero-quantity path; never bind the writer hook. */
 static int preview_u7d_zero(uint8_t *r, unsigned ds) {
     pr_u7d0_state st={0}; pr_u7d0_report report;
@@ -46,14 +49,18 @@ static int preview_u7d_zero(uint8_t *r, unsigned ds) {
     off=get(r,ds+0x5d96); seg=get(r,ds+0x5d98);
     while (off || seg) {
         unsigned addr=(seg<<4)+off, io, is; pr_u7d0_item **tail;
-        if (nm==6 || addr>SIZE-0x108) return 1;
-        for(i=0;i<nm;i++) if(seen_m[i]==addr) return 1;
+        if (nm==6 || off>0xfef8 || addr>SIZE-0x108 ||
+            overlaps(addr,0x108,ds+0x471d,PR_U7D0_FLAG_COUNT)) return 1;
+        for(i=0;i<nm;i++) if(overlaps(seen_m[i],0x108,addr,0x108)) return 1;
+        for(i=0;i<ni;i++) if(overlaps(seen_i[i],9,addr,0x108)) return 1;
         seen_m[nm]=addr; if(nm) members[nm-1].next=&members[nm];
         tail=&members[nm].head; io=get(r,addr+0x7f); is=get(r,addr+0x81);
         while(io || is) {
             unsigned a=(is<<4)+io;
-            if(ni==8 || a>SIZE-9 || get(r,a+1)!=0) return 1;
-            for(i=0;i<ni;i++) if(seen_i[i]==a) return 1;
+            if(ni==8 || io>0xfff7 || a>SIZE-9 || get(r,a+1)!=0 ||
+               overlaps(a,9,ds+0x471d,PR_U7D0_FLAG_COUNT)) return 1;
+            for(i=0;i<=nm;i++) if(overlaps(seen_m[i],0x108,a,9)) return 1;
+            for(i=0;i<ni;i++) if(overlaps(seen_i[i],9,a,9)) return 1;
             seen_i[ni]=a; items[ni].type=r[a]; items[ni].quantity=get(r,a+1);
             *tail=&items[ni]; tail=&items[ni].next; ni++;
             io=get(r,a+5); is=get(r,a+7);
@@ -396,6 +403,12 @@ int main(int argc,char **argv) {
                                     member=((unsigned)get(bad,ds+0x5d98)<<4)+get(bad,ds+0x5d96);
                                     item=((unsigned)get(bad,member+0x81)<<4)+get(bad,member+0x7f);
                                     CHECK(item<SIZE-2); word(bad,item+1,1);
+                                    memcpy(zero_expected,bad,SIZE);
+                                    CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
+                                    memcpy(bad,full,SIZE); word(bad,ds+0x5d96,0x471e); word(bad,ds+0x5d98,0x14a0);
+                                    memcpy(zero_expected,bad,SIZE);
+                                    CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
+                                    memcpy(bad,full,SIZE); word(bad,ds+0x5d96,0xffff); word(bad,ds+0x5d98,1);
                                     memcpy(zero_expected,bad,SIZE);
                                     CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
                                     for(j=0;j<6;j++) CHECK(preview[ds+0x471e + j]==0);
