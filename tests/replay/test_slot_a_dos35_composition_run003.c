@@ -189,7 +189,13 @@ int main(int argc,char **argv) {
                   CHECK(next.ax==0 && next.bx==0 && next.cx==10 && next.dx==0 && next.si==0 && next.di==0 && next.bp==0x3db6 && next.sp==0x3db0 && next.cs==0x10d2 && next.ip==0x1742 && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246);
                   word(reference,stack+0x3db0,0x0173); word(reference,stack+0x3db2,0x10d2); word(reference,stack+0x3db4,0);
                   CHECK(!memcmp(copy,reference,SIZE));
-                  puts("conditional dispatcher 016C: call 10D2:1742 with argument 0; CPU14 and RAM match modeled frame"); } }
+                  puts("conditional dispatcher 016C: call 10D2:1742 with argument 0; CPU14 and RAM match modeled frame");
+                  { pr_r08ae_1742_cpu again; CHECK(sizeof again==sizeof next); memcpy(&again,&next,sizeof again);
+                    CHECK(pr_r08ae_table_1742_cpu(copy,PR_R08AE_1742_RAM_SIZE,&again)==PR_R08AE_1742_OK);
+                    CHECK(again.ax==0 && again.bx==0 && again.cx==10 && again.dx==0 && again.si==0 && again.di==0 && again.bp==0x3db6 && again.sp==0x3db6 && again.cs==0x10d2 && again.ip==0x0173 && again.ds==0x14a0 && again.es==0x1d16 && again.ss==0x1d16 && again.flags==0x7246);
+                    CHECK(reference[0x10f4f]==0xdb && reference[0x10f50]==0x0b); reference[0x10f4f]=0x2b; reference[0x10f50]=0x0d;
+                    CHECK(!memcmp(copy,reference,SIZE));
+                    puts("conditional second 1742 model: returned 10D2:0173; CPU14 and two model-pinned RAM changes match; no native post-port parity"); } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }

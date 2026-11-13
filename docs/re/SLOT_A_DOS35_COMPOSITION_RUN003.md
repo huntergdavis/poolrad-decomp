@@ -156,3 +156,12 @@ callbacks and synthetic clock readings; no native post-port or PIT-state parity
 is claimed. An earlier independent native observation is recorded in shared
 memory session `01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into
 this replay.
+
+The conditional replay runs the existing 1742 model a second time with
+argument zero and stops at its `10D2:0173` return. CPU14 and conventional RAM
+are checked against a two-byte model-pinned delta. These are regression
+expectations from the C-produced state, not native post-port evidence. The
+input depends on abstract port callbacks and synthetic clock readings. PIT
+state, the 3492 return, and a complete Up frame remain unverified. The earlier
+independent native observation is in shared memory session
+`01a12b3e-db20-70e1-95f9-d3fe44b8d309` and is not spliced into this replay.
