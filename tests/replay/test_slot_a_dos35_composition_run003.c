@@ -113,7 +113,13 @@ int main(int argc,char **argv) {
           CHECK(t.ax==9 && t.bx==0xfea5 && t.cx==4 && t.dx==0x13ea && t.si==0x3e8a && t.di==0x4f && t.bp==0x3db6 && t.sp==0x3db6 && t.cs==0x10d2 && t.ip==0x0147 && t.ds==0x14a0 && t.es==0x3da1 && t.ss==0x1d16 && t.flags==0x7246);
           for(j=0;j<sizeof changes/sizeof changes[0];j++) { CHECK(expected[changes[j].address]==changes[j].old_value); expected[changes[j].address]=changes[j].new_value; }
           CHECK(!memcmp(r,expected,SIZE));
-          puts("conditional 1742 model: returned 10D2:0147; CPU14 and 18 model-pinned RAM byte changes match; no native post-port parity"); } }
+          puts("conditional 1742 model: returned 10D2:0147; CPU14 and 18 model-pinned RAM byte changes match; no native post-port parity");
+          memcpy(&d,&t,sizeof d);
+          CHECK(pr_r08ae_dispatch_00dc_cpu(r,PR_R08AE_00DC_RAM_SIZE,&d)==PR_R08AE_00DC_CALL_006C);
+          CHECK(d.ax==10 && d.bx==0xfea5 && d.cx==4 && d.dx==0x13ea && d.si==0x3e8a && d.di==0x4f && d.bp==0x3db6 && d.sp==0x3db0 && d.cs==0x10d2 && d.ip==0x006c && d.ds==0x14a0 && d.es==0x3da1 && d.ss==0x1d16 && d.flags==0x7202);
+          word(expected,stack+0x3db0,0x0165); word(expected,stack+0x3db2,0x10d2); word(expected,stack+0x3db4,10);
+          CHECK(!memcmp(r,expected,SIZE));
+          puts("conditional dispatcher continuation: call 10D2:006C with argument 10; CPU14 and stack effects match modeled expectations"); } }
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");
