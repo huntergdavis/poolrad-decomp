@@ -299,9 +299,9 @@ not a claim about native high memory.
 At the stop the modeled x/y are `(14,4)`; AX and DI are `0006`, SP is
 `3DB8`, FLAGS `7297`, and SS stack words from SP are `(0006,0004,000E)`.
 Other CPU words are unchanged. The exact replay compares all CPU words and the
-full allocated buffer; six bytes differ from its input. A separate local Unicorn
-2.1.4 execution of the same hash-pinned prefix and conditional input matched all
-14 CPU words and all 1 MiB allocated bytes. This is a fixed-branch adapter,
+full allocated buffer; six bytes differ from its input. The author reports a separate local Unicorn 2.1.4 comparison of all 14 CPU
+words and the allocated 1 MiB buffer; its temporary procedure and result are
+not retained in this change, so that report is not independently verified. This is a fixed-branch adapter,
 not general writer coverage: no call, overlay dispatch, or native post-port
 execution is asserted. Synthetic time and device assumptions remain; no
 same-invocation or full-Up parity is claimed.
