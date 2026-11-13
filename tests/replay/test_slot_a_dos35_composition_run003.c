@@ -2,6 +2,7 @@
 #include "poolrad/recovered/resident_08ae_vector_137c_cpu.h"
 #include "poolrad/recovered/resident_08ae_dispatch_00dc_cpu.h"
 #include "poolrad/recovered/resident_08ae_table_1742_cpu.h"
+#include "poolrad/recovered/resident_08ae_delay_006c_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -119,7 +120,13 @@ int main(int argc,char **argv) {
           CHECK(d.ax==10 && d.bx==0xfea5 && d.cx==4 && d.dx==0x13ea && d.si==0x3e8a && d.di==0x4f && d.bp==0x3db6 && d.sp==0x3db0 && d.cs==0x10d2 && d.ip==0x006c && d.ds==0x14a0 && d.es==0x3da1 && d.ss==0x1d16 && d.flags==0x7202);
           word(expected,stack+0x3db0,0x0165); word(expected,stack+0x3db2,0x10d2); word(expected,stack+0x3db4,10);
           CHECK(!memcmp(r,expected,SIZE));
-          puts("conditional dispatcher continuation: call 10D2:006C with argument 10; CPU14 and stack effects match modeled expectations"); } }
+          puts("conditional dispatcher continuation: call 10D2:006C with argument 10; CPU14 and stack effects match modeled expectations");
+          { pr_r08ae_006c_cpu delay; CHECK(sizeof delay==sizeof d); memcpy(&delay,&d,sizeof delay);
+            CHECK(pr_r08ae_delay_006c_cpu(r,PR_R08AE_006C_RAM_SIZE,&delay,NULL,NULL,32)==PR_R08AE_006C_TIME);
+            CHECK(delay.ax==10 && delay.bx==0xfea5 && delay.cx==4 && delay.dx==0x13ea && delay.si==0x3e8a && delay.di==0x4f && delay.bp==0x3dae && delay.sp==0x3da2 && delay.cs==0x10d2 && delay.ip==0 && delay.ds==0x14a0 && delay.es==0x3da1 && delay.ss==0x1d16 && delay.flags==0x7206);
+            word(expected,stack+0x3dae,0x3db6); word(expected,stack+0x3da4,0x10d2); word(expected,stack+0x3da2,0x0076);
+            CHECK(!memcmp(r,expected,SIZE));
+            puts("conditional 006C: time service refused at 10D2:0000 with modeled CPU14 and full RAM frame"); } } }
     }
     puts("run003 1386->13a3: CPU14 and 655360 RAM bytes match; first port output not executed");
     puts("run003 1386->13a0: conditional DOS25 binding matches CPU14 and 655360 RAM bytes; missing/unsupported binding refuses");

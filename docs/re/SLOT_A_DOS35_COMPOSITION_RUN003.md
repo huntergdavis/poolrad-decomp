@@ -97,3 +97,12 @@ stops before `10D2:006C` with argument 10 and return `0165`. It checks CPU14
 and conventional RAM against the modeled call-frame writes. The callee is
 unexecuted. These checks depend on the abstract port callbacks and model-pinned
 1742 return; they are not a native post-port comparison or a PIT-state claim.
+
+The conditional replay enters the existing [006C delay model](RES_08AE_DELAY_006C_CPU.md)
+with argument 10. With no time callback, it stops at `10D2:0000` after the
+first time-call frame is pushed. The test checks CPU14 and the entire
+conventional RAM image against the modeled prologue and frame. It supplies no
+time values and does not execute the time service or claim a delay return.
+The input remains conditional on the abstract port callbacks and model-pinned
+1742 state; this is not native post-port parity or PIT-state evidence. The
+next input is an explicit time-service binding and its environmental effects.
