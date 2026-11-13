@@ -330,7 +330,8 @@ existing raw FillChar model on a scratch image. The destination and stack are
 inside captured conventional RAM. The returned state is `2E60:07BA`, AX `0001`,
 BX `3DB2`, CX `0000`, DX `000E`, SI `0000`, DI `6DE1`, BP and SP `3DBE`,
 DS and ES `14A0`, SS `1D16`, FLAGS `7202`. The fill writes `01 01 01` at
-`DS:6DDE..6DE0`, which already hold those values; 11 stack bytes differ.
+`DS:6DDE..6DE0`, which already hold those values; equality alone does not
+prove writes. The 11 changed stack bytes are model-pinned.
 The replay compares all 14 CPU words and the full allocated image and verifies
 missing backing and changed helper identity refuse without effects. The next
 entry-4 lookup has not executed. Upper RAM remains unbacked; earlier synthetic
