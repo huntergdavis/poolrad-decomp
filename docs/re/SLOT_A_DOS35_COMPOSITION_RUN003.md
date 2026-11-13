@@ -448,3 +448,16 @@ a changed descriptor refuses unchanged. The `0538` call and remaining
 loader/handler/7D work are unexecuted. Upper RAM remains unbacked, earlier
 time/device inputs are synthetic, and no native post-port, same-invocation, or
 full-Up parity is claimed.
+
+At `0363`, a fixed-profile adapter validates the loaded near call and helper
+body against [the `0538` audit](RESIDENT_LOADER_0538.md), along with the backed
+selector `DS:43FA=084F`, base `DS:43F6=2F6B`, fallback `DS:43F8=3996`, and
+selected word `084F:0010=308A`. It pushes return `0366` and invokes the existing
+raw helper. The no-borrow path returns AX `011F` at `12C6:0366`; BX `0027`,
+CX `0004`, DX `00ED`, SI and DI `0000`, BP `3DB4`, SP `3D98`, DS `14A0`,
+ES `084F`, SS `1D16`, FLAGS `7212`. The replay checks CPU14 and allocated RAM;
+one stack byte differs. Missing backing, changed helper identity, or changed
+selector refuses unchanged. The loader continuation, handler return and unit
+7D remain unexecuted. Upper RAM is unbacked, earlier time/device inputs are
+synthetic, and no native post-port, same-invocation, or full-Up parity is
+claimed.
