@@ -179,3 +179,14 @@ without a DOS binding. It stops at `10D2:13C6` after pushing the interrupt
 frame; CPU14 and conventional RAM match the modeled pushes. The DOS restore
 and subsequent port operations are unexecuted. This path depends on abstract
 port callbacks and synthetic time and is not native post-port or PIT parity.
+
+A separate conditional branch supplies the `13B1` model's declared
+vector-table-only environment. It restores the saved value `F000:FEA5` to the
+caller-owned IVT entry and supplies flags `7246` explicitly; the model stops
+at the next unbound port output, `13CC`. The replay checks CPU14 and
+conventional RAM against the declared table write and modeled frame. An
+unbound DOS service still refuses at 13C6. This is an abstract service: no
+same-run native restore, DOS stack/PSP effects, PIT state or full-Up parity is
+claimed. The saved vector originates from the earlier conditional install
+replay, not an independent ownership determination. The declared environment
+contract is documented in [the 13B1 model](RES_08AE_VECTOR_13B1_CPU.md).
