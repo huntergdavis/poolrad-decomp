@@ -178,6 +178,23 @@ static int writer_cell(uint8_t *ram, size_t capacity, size_t backed,
     scratch[0x14a00+0x6ab1]=(uint8_t)next.ax; next.ip=0x07ca;
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
+/* Fixed bit-clear window branch: stop before the unbound 7D call. */
+static int writer_window(uint8_t *ram, size_t capacity, size_t backed,
+                         const uint8_t *identity, size_t identity_size,
+                         pr_r08ae_00dc_cpu *cpu) {
+    const unsigned code=0x2e600+0x7ca, ds=0x14a00, stack=0x1d160, window=0x3a160;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       code+0x23>backed || stack+0x3dbe>backed || window+0x596>backed ||
+       memcmp(ram+code,identity+code,0x23) ||
+       cpu->ax!=0 || cpu->bx!=0x3db2 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0x4e ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3dbe || cpu->cs!=0x2e60 || cpu->ip!=0x07ca ||
+       cpu->ds!=0x14a0 || cpu->es!=0x3da1 || cpu->ss!=0x1d16 || cpu->flags!=0x7206 ||
+       get(ram,ds+0x49d6)!=0 || get(ram,ds+0x49d8)!=0x3a16 || get(ram,window+0x594)!=0) return 1;
+    cpu->es=0x3a16; cpu->di=0; cpu->ax=1;
+    cpu->flags=(uint16_t)((cpu->flags & ~0x08d5u)|0x0044u);
+    cpu->sp=0x3dba; word(ram,stack+0x3dbc,1); word(ram,stack+0x3dba,1);
+    cpu->ip=0x07ed; return 0;
+}
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
     unsigned stack, i; uint16_t reg[9];
@@ -477,6 +494,24 @@ int main(int argc,char **argv) {
                               raw_expected[0x14a00+0x6ab1]=0;
                               CHECK(!memcmp(raw,raw_expected,1u<<20));
                               CHECK(prefix.ax==0 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0x4e && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07ca && prefix.ds==0x14a0 && prefix.es==0x3da1 && prefix.ss==0x1d16 && prefix.flags==0x7206);
+                              { uint8_t *branch_before=malloc(1u<<20); pr_r08ae_00dc_cpu at_branch=prefix;
+                                CHECK(branch_before); memcpy(branch_before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                CHECK(!writer_window(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                word(raw_expected,stack+0x3dbc,1); word(raw_expected,stack+0x3dba,1);
+                                CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3dba && prefix.cs==0x2e60 && prefix.ip==0x07ed && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
+                                memcpy(raw,branch_before,1u<<20); prefix=at_branch;
+                                CHECK(writer_window(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                CHECK(!memcmp(raw,branch_before,1u<<20) && !memcmp(&prefix,&at_branch,sizeof prefix));
+                                identity[0x2e600+0x7ca]^=1;
+                                CHECK(writer_window(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                CHECK(!memcmp(raw,branch_before,1u<<20) && !memcmp(&prefix,&at_branch,sizeof prefix));
+                                identity[0x2e600+0x7ca]^=1;
+                                word(raw,0x3a160+0x594,1); memcpy(raw_expected,raw,1u<<20);
+                                CHECK(writer_window(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                CHECK(!memcmp(raw,raw_expected,1u<<20) && !memcmp(&prefix,&at_branch,sizeof prefix));
+                                free(branch_before);
+                                puts("conditional raw writer: window bit clear, arguments 1/1, stop before unbound 07ED call"); }
                               memcpy(raw,cell_before,1u<<20); prefix=at_cell;
                               CHECK(writer_cell(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                               CHECK(!memcmp(raw,cell_before,1u<<20) && !memcmp(&prefix,&at_cell,sizeof prefix));

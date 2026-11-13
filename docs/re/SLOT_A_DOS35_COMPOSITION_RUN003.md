@@ -350,3 +350,16 @@ allocated RAM and CPU14, with 21 model-pinned stack bytes differing across the
 call. Missing backing and a changed stub refuse unchanged. Upper RAM remains
 unbacked, earlier time/device inputs are synthetic, and native post-port,
 same-invocation, and full-Up parity are not claimed.
+
+A final fixed-profile writer prefix validates the loaded `07CA..07EC` bytes,
+CPU and conventional backing, then rereads window pointer `3A16:0000` and word
+`+0594 = 0000`. The bit-clear branch pushes `(1,1)` and stops before the
+unbound call at `2E60:07ED`. Its model-pinned state has AX `0001`, BX `3DB2`,
+CX `0004`, DX `000E`, SI and DI `0000`, BP `3DBE`, SP `3DBA`, DS `14A0`,
+ES `3A16`, SS `1D16`, FLAGS `7246`; the two argument words are `0001,0001`.
+Two stack bytes differ from the entry-4 return. The replay compares all CPU
+words and the allocated RAM buffer; missing backing, changed code, or a
+changed window value refuse without effects. The 7D call and overlay transition
+remain unbound; no unit 7D call frame is synthesized. Upper RAM remains
+unbacked and earlier time and device inputs remain synthetic; no native
+post-port, same-invocation, or full-Up parity is claimed.
