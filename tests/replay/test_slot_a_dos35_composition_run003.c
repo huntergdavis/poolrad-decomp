@@ -166,7 +166,14 @@ int main(int argc,char **argv) {
             CHECK(script.next==2 && scripted.ax==10 && scripted.bx==0 && scripted.cx==10 && scripted.dx==0 && scripted.si==0 && scripted.di==0 && scripted.bp==0x3db6 && scripted.sp==0x3db6 && scripted.cs==0x10d2 && scripted.ip==0x0165 && scripted.ds==0x14a0 && scripted.es==0x1d16 && scripted.ss==0x1d16 && scripted.flags==0x7246);
             { uint8_t *reference=malloc(SIZE); CHECK(reference); memcpy(reference,r,SIZE);
               for(j=0;j<sizeof changed/sizeof changed[0];j++) { CHECK(reference[changed[j].address]==changed[j].old_value); reference[changed[j].address]=changed[j].new_value; }
-              CHECK(!memcmp(copy,reference,SIZE)); free(reference); }
+              CHECK(!memcmp(copy,reference,SIZE));
+              { pr_r08ae_00dc_cpu next; CHECK(sizeof next==sizeof scripted); memcpy(&next,&scripted,sizeof next);
+                CHECK(pr_r08ae_dispatch_00dc_cpu(copy,PR_R08AE_00DC_RAM_SIZE,&next)==PR_R08AE_00DC_CALL_17AE);
+                CHECK(next.ax==0 && next.bx==0 && next.cx==10 && next.dx==0 && next.si==0 && next.di==0 && next.bp==0x3db6 && next.sp==0x3db0 && next.cs==0x10d2 && next.ip==0x17ae && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246);
+                word(reference,stack+0x3db0,0x016c); word(reference,stack+0x3db2,0x10d2); word(reference,stack+0x3db4,0);
+                CHECK(!memcmp(copy,reference,SIZE));
+                puts("abstract dispatcher 0165: call 10D2:17AE with argument 0; CPU14 and RAM match modeled frame"); }
+              free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }
           { pr_r08ae_006c_cpu delay; CHECK(sizeof delay==sizeof d); memcpy(&delay,&d,sizeof delay);
