@@ -190,3 +190,13 @@ same-run native restore, DOS stack/PSP effects, PIT state or full-Up parity is
 claimed. The saved vector originates from the earlier conditional install
 replay, not an independent ownership determination. The declared environment
 contract is documented in [the 13B1 model](RES_08AE_VECTOR_13B1_CPU.md).
+
+Another conditional branch reruns the C-produced 13B1 entry with the declared
+vector-only DOS binding, return flags `7246`, an explicit `IN 61h` value `03`,
+and an ordered test-only output log: `40:FF`, `40:FF`, `61:00`, then
+`C0:9F`, `C0:BF`, `C0:DF`, `C0:FF`. With these declared inputs, the existing
+13B1 and dispatcher models return to the coordinate writer at `2E60:0747`;
+the test checks CPU14 and all conventional RAM against modeled effects. A
+missing `IN 61h` binding refuses at 13D2 after the first two logged writes.
+The writer instruction at 0747 is not executed. No native post-port/return,
+DOS stack/PSP or device-state parity is implied by these abstract inputs.
