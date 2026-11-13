@@ -489,3 +489,14 @@ The DOS seek, any subsequent read, loader tail, handler return and unit 7D
 remain unexecuted: the prepared request does not establish a successful seek
 or loaded overlay. Upper RAM is unbacked, earlier inputs are synthetic, and no
 native post-port, same-invocation, or full-Up parity is claimed.
+
+The composed `028F` state is also passed to the existing
+[seek service boundary](RESIDENT_LOADER_SEEK_028F.md) with no service callback.
+It returns `BLOCKED_DOS_SERVICE` and the replay verifies all CPU words and the
+allocated RAM are unchanged. Continuing requires this request's complete
+post-service CPU and ordered guest-RAM write journal, as well as a justified
+binding for handle `0005`. The separately documented native event is for seek
+offset `0002:AA87`, not this conditional `0002:3DCC` request, and is not used.
+The earlier 7D field previews do not supply the seek, read, loader, or overlay
+transition. No service success, loaded overlay, native post-port,
+same-invocation, or full-Up parity is claimed.
