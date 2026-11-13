@@ -223,3 +223,14 @@ buffer refuse before the projected store. The replay checks the projected RAM
 image, but raw CPU remains at 0747: no 0795/07A1 push or raw lookup frame is
 synthesized. Synthetic time and abstract device assumptions remain, and no
 native post-port or full-Up parity is claimed.
+
+A further high-level writer projection re-evaluates the conditional movement
+fields with the C-produced buffer supplied and the window deliberately
+withheld. It projects the writer's three-byte fill `DS:6DDE..6DE0 = 01 01 01`
+and entry-4 result `DS:6AB1 = 00` from `3DA1:024E = 00`, then reports the
+unbound window read at 07CE. The test copies those fields into the projected
+RAM image and compares it; in this retained state they already have those
+values. The fill behavior follows the existing writer model's argument-shape
+inference, not a native fill capture. Raw CPU remains at 0747, no lookup or
+window call frame is synthesized, and native post-port/full-Up parity is not
+established.
