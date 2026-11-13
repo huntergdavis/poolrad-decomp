@@ -17,7 +17,13 @@ printf '%s  %s\n' \
 # The retained loaded prefix (not the relocated call) must match its frozen identity.
 actual=$(dd if="$run/RAM-13A3.BIN" bs=1 skip=$((0x2e600+0x747)) count=$((0x5a)) status=none | sha256sum | cut -d' ' -f1)
 [ "$actual" = 2cd34a43bee8924b156e96d13e0ff84e0536ecf447feeba324ee14648514f3c8 ]
+# Pin the loaded call/store, lookup body, and leaf separately.
+for spec in 0x2eda1:8:17a486e5b6bd28bd1bafc4f45f92cfe18bc753d7ce0fc4e750f0f8527d4abe92 0x2d5bb:255:92d75878d963a7f5766b1ea49e2f6c1fb51287775d06a5b6ca485fee8bc43658 0x2d45f:49:ab4d7f5e3d42b8d23dba77a563b5041f669850990444583890627278764f281b; do
+  IFS=: read -r offset length digest <<<"$spec"
+  actual=$(dd if="$run/RAM-13A3.BIN" bs=1 skip=$((offset)) count="$length" status=none | sha256sum | cut -d' ' -f1)
+  [ "$actual" = "$digest" ]
+done
 bin=$(mktemp)
 trap 'rm -f "$bin"' EXIT
-${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/src/recovered/resident_08ae_vector_13b1_cpu.c" "$root/src/recovered/overlay_u68_coordinate_writer.c" "$root/src/recovered/overlay_u7d_entry1.c" "$root/src/recovered/overlay_u7d_zero.c" "$root/src/recovered/overlay_u3bd_nibble.c" "$root/src/recovered/overlay_u3bd_cell.c" "$root/src/recovered/resident_08ae_dispatch_00dc_cpu.c" "$root/src/recovered/resident_08ae_table_1742_cpu.c" "$root/src/recovered/resident_08ae_table_17ae_cpu.c" "$root/src/recovered/resident_08ae_delay_006c_cpu.c" "$root/src/recovered/resident_08ae_time_0000_cpu.c" "$root/src/recovered/dos_gettime_00a2_cpu.c" "$root/src/recovered/system_longmul_0a5b_cpu.c" "$root/src/recovered/memory_bus.c" "$root/src/recovered/ega_hw.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"
+${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/src/recovered/resident_08ae_vector_13b1_cpu.c" "$root/src/recovered/overlay_u3bd_lookup_fullstate.c" "$root/src/recovered/overlay_u3bd_in_grid_031f.c" "$root/src/recovered/overlay_u68_coordinate_writer.c" "$root/src/recovered/overlay_u7d_entry1.c" "$root/src/recovered/overlay_u7d_zero.c" "$root/src/recovered/overlay_u3bd_nibble.c" "$root/src/recovered/overlay_u3bd_cell.c" "$root/src/recovered/resident_08ae_dispatch_00dc_cpu.c" "$root/src/recovered/resident_08ae_table_1742_cpu.c" "$root/src/recovered/resident_08ae_table_17ae_cpu.c" "$root/src/recovered/resident_08ae_delay_006c_cpu.c" "$root/src/recovered/resident_08ae_time_0000_cpu.c" "$root/src/recovered/dos_gettime_00a2_cpu.c" "$root/src/recovered/system_longmul_0a5b_cpu.c" "$root/src/recovered/memory_bus.c" "$root/src/recovered/ega_hw.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"
 "$bin" "$run/RAM-1386.BIN" "$run/RAM-1388.BIN" "$run/RAM-139E.BIN" "$run/RAM-13A0.BIN" "$run/RAM-13A3.BIN"
