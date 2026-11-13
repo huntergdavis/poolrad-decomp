@@ -212,3 +212,14 @@ image and checks that projection against its expected full image. The raw CPU
 remains at 0747: this adapter does not model the intervening raw CPU or lookup
 call frame, and the projected stop is not a native 07A1 capture. Synthetic time,
 abstract device callbacks, native post-port parity and full-Up limits remain.
+
+A separate field-only binding rereads the C-produced DS coordinates, facing,
+map byte and far buffer pointer after the coordinate projection. It invokes the
+existing [entry-2 nibble model](U3BD_NIBBLE_ENTRY2.md) with an in-range buffer
+and projects its result into `DS:6AB0`. On this conditional state it reads
+`3DA1:014E = FE`, returning low nibble `0E`; projected x/y remain `(14,4)`.
+Missing resident acknowledgement, missing RAM, short memory and an out-of-range
+buffer refuse before the projected store. The replay checks the projected RAM
+image, but raw CPU remains at 0747: no 0795/07A1 push or raw lookup frame is
+synthesized. Synthetic time and abstract device assumptions remain, and no
+native post-port or full-Up parity is claimed.
