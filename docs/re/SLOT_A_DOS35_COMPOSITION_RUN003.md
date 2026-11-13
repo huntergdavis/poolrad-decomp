@@ -337,3 +337,16 @@ missing backing and changed helper identity refuse without effects. The next
 entry-4 lookup has not executed. Upper RAM remains unbacked; earlier synthetic
 time and device assumptions remain, and no native post-port, same-invocation,
 or full-Up parity is claimed.
+
+The next fixed-profile adapter validates the caller at `07BA..07C9` and the
+loaded `0BF9:0034` stub to `2D14:057A`. The loaded entry-4 body matches the
+hash documented in [the cell lookup audit](U3BD_CELL_ENTRY4.md); the shared
+`031F` leaf is pinned above. It builds the far-call frame and runs the existing
+raw entry-4 model with the reached buffer in captured conventional memory,
+then applies the validated result store and stops at `2E60:07CA`. The model
+returns `AL=00`, stored at `DS:6AB1`, which was already zero; equality alone
+does not demonstrate a value-changing write. The replay compares the full
+allocated RAM and CPU14, with 21 model-pinned stack bytes differing across the
+call. Missing backing and a changed stub refuse unchanged. Upper RAM remains
+unbacked, earlier time/device inputs are synthetic, and native post-port,
+same-invocation, and full-Up parity are not claimed.
