@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_save_loader_call STATIC src/replay/slot_a_save_loader_call.c)
+target_include_directories(poolrad_slot_a_save_loader_call PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_handler_prefix STATIC src/replay/slot_a_save_handler_prefix.c)
 target_include_directories(poolrad_slot_a_save_handler_prefix PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_call_frame STATIC src/replay/slot_a_save_call_frame.c)
