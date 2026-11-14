@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_dispatch_prologue STATIC src/replay/slot_a_dispatch_prologue.c)
+target_include_directories(poolrad_slot_a_dispatch_prologue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_runner_first_dispatch STATIC src/replay/slot_a_runner_first_dispatch.c src/recovered/overlay_u1c_run_3171_cpu.c)
 target_include_directories(poolrad_slot_a_runner_first_dispatch PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_movement STATIC src/replay/slot_a_movement_0747.c)
