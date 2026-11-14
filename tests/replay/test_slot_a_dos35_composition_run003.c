@@ -317,7 +317,16 @@ int main(int argc,char **argv) {
                               CHECK(pr_u68_step_coordinate_writer(&replay,&boundary)==PR_U68_STEP_HOOK);
                               CHECK(boundary.stop_offset==0x07ed && boundary.call_count==5 && boundary.window_bit==0 && boundary.u7d_first==1 && boundary.u7d_second==1 && replay.party_x==14 && replay.party_y==4 && replay.lookup_b0==14 && replay.lookup_b1==0);
                               CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
-                              puts("conditional writer projection: reread 3A16:0594=0000; unbound 7D call (1,1) at report 07ED; raw CPU remains 0747"); } } } }
+                              puts("conditional writer projection: reread 3A16:0594=0000; unbound 7D call (1,1) at report 07ED; raw CPU remains 0747");
+                              { unsigned off0=get(full,ds+0x49d2),seg0=get(full,ds+0x49d4),base0=(seg0<<4)+off0,k;
+                                static const uint16_t words[]={0,0,5,10,0,0,0}, limits[]={10,10,6,24,30,12,256};
+                                CHECK(seg0==0x3996 && off0==0 && base0<=SIZE-0x19a);
+                                for(k=0;k<7;k++) { unsigned value=get(full,base0+0x18c+2*k);
+                                  CHECK(value==words[k] && get(full,ds+0x363a+2*k)==limits[k]);
+                                  CHECK(value+(k==1 ? 1u : 0u)<limits[k]); }
+                                CHECK(get(full,ds+0x5d98)==0x449a && get(full,ds+0x5d96)==8);
+                                CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                                puts("conditional 7D inventory: window0/limits match, increment at index1 has no carry; near 0000 unbound"); } } } } }
                       free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");

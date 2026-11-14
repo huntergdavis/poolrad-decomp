@@ -244,3 +244,13 @@ The existing [7D entry model](U7D_ENTRY1.md) needs window-0 words and limit
 table, linked-list effects when reached, and the near `0000` callee's effects.
 Its update hook is optional, so an adapter must not treat an absent hook as a
 completed callee. No 7D effect or native post-port/full-Up parity is claimed.
+
+At that unbound hook, the conditional C-produced image contains window 0 at
+`3996:0000` with words `(0,0,5,10,0,0,0)` and limit words
+`(10,10,6,24,30,12,256)`. For the projected `(n,idx)=(1,1)`, incrementing
+word 1 would leave all seven values below their limits, so this particular
+input would not reach the list walk; the actual list pointer is non-null
+(`449A:0008`) and is not traversed. The test only inventories these inputs and
+leaves RAM unchanged. The 7D call and its near `0000` callee remain unbound;
+no optional hook is treated as a completed effect. Raw CPU remains at 0747,
+and native post-port and full-Up parity remain unverified.
