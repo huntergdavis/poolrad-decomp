@@ -8,6 +8,7 @@
 #include "poolrad/recovered/resident_08ae_time_0000_cpu.h"
 #include "poolrad/recovered/overlay_u68_coordinate_writer.h"
 #include "poolrad/recovered/overlay_u7d_entry1.h"
+#include "poolrad/recovered/overlay_u7d_zero.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +35,44 @@ static int preview_u7d_no_carry(uint8_t *r, unsigned ds, const pr_u68_step_repor
     if (pr_u7d_carry_normalize(w,limits,NULL,carries,&walks,&bumped)!=PR_U7D_OK || walks || bumped) return 1;
     for (i=0;i<PR_U7D_WORDS;i++) if (carries[i]) return 1;
     for (i=0;i<PR_U7D_WORDS;i++) word(r,base+PR_U7D_WINDOW0_OFFSET+2*i,w[i]);
+    return 0;
+}
+static int overlaps(unsigned a, unsigned an, unsigned b, unsigned bn) {
+    return a < b+bn && b < a+an;
+}
+/* Preview only the observed zero-quantity path; never bind the writer hook. */
+static int preview_u7d_zero(uint8_t *r, unsigned ds) {
+    pr_u7d0_state st={0}; pr_u7d0_report report;
+    pr_u7d0_member members[6]={{0}}; pr_u7d0_item items[8]={{0}};
+    unsigned seen_m[6], seen_i[8], nm=0, ni=0, off, seg, i;
+    if (!r || ds>SIZE-0x5d9a || r[ds+0x49f3]!=4) return 1;
+    off=get(r,ds+0x5d96); seg=get(r,ds+0x5d98);
+    while (off || seg) {
+        unsigned addr=(seg<<4)+off, io, is; pr_u7d0_item **tail;
+        if (nm==6 || off>0xfef8 || addr>SIZE-0x108 ||
+            overlaps(addr,0x108,ds+0x471d,PR_U7D0_FLAG_COUNT)) return 1;
+        for(i=0;i<nm;i++) if(overlaps(seen_m[i],0x108,addr,0x108)) return 1;
+        for(i=0;i<ni;i++) if(overlaps(seen_i[i],9,addr,0x108)) return 1;
+        seen_m[nm]=addr; if(nm) members[nm-1].next=&members[nm];
+        tail=&members[nm].head; io=get(r,addr+0x7f); is=get(r,addr+0x81);
+        while(io || is) {
+            unsigned a=(is<<4)+io;
+            if(ni==8 || io>0xfff7 || a>SIZE-9 || get(r,a+1)!=0 ||
+               overlaps(a,9,ds+0x471d,PR_U7D0_FLAG_COUNT)) return 1;
+            for(i=0;i<=nm;i++) if(overlaps(seen_m[i],0x108,a,9)) return 1;
+            for(i=0;i<ni;i++) if(overlaps(seen_i[i],9,a,9)) return 1;
+            seen_i[ni]=a; items[ni].type=r[a]; items[ni].quantity=get(r,a+1);
+            *tail=&items[ni]; tail=&items[ni].next; ni++;
+            io=get(r,a+5); is=get(r,a+7);
+        }
+        off=get(r,addr+0x104); seg=get(r,addr+0x106); nm++;
+    }
+    if(nm!=6 || ni!=8) return 1;
+    st.mode=r[ds+0x49f3]; memcpy(st.flags,r+ds+0x471d,PR_U7D0_FLAG_COUNT);
+    st.list_head=members;
+    if(pr_u7d0_run(&st,1,1,&report)!=PR_U7D0_OK || !report.filled ||
+       report.remaining_start!=1 || report.passes!=1 || report.hook_calls || report.steps!=8) return 1;
+    memcpy(r+ds+0x471d,st.flags,PR_U7D0_FLAG_COUNT);
     return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -354,6 +393,27 @@ int main(int argc,char **argv) {
                                   word(expected_preview,base0+0x18e,1);
                                   CHECK(!preview_u7d_no_carry(preview,ds,&boundary));
                                   CHECK(!memcmp(preview,expected_preview,SIZE));
+                                  { unsigned j, member, item; uint8_t *zero_expected=malloc(SIZE);
+                                    CHECK(zero_expected); memcpy(zero_expected,preview,SIZE);
+                                    memset(zero_expected+ds+0x471e,1,72);
+                                    memset(zero_expected+ds+0x471e,0,6);
+                                    CHECK(!preview_u7d_zero(preview,ds));
+                                    CHECK(!memcmp(preview,zero_expected,SIZE));
+                                    memcpy(bad,full,SIZE);
+                                    member=((unsigned)get(bad,ds+0x5d98)<<4)+get(bad,ds+0x5d96);
+                                    item=((unsigned)get(bad,member+0x81)<<4)+get(bad,member+0x7f);
+                                    CHECK(item<SIZE-2); word(bad,item+1,1);
+                                    memcpy(zero_expected,bad,SIZE);
+                                    CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
+                                    memcpy(bad,full,SIZE); word(bad,ds+0x5d96,0x471e); word(bad,ds+0x5d98,0x14a0);
+                                    memcpy(zero_expected,bad,SIZE);
+                                    CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
+                                    memcpy(bad,full,SIZE); word(bad,ds+0x5d96,0xffff); word(bad,ds+0x5d98,1);
+                                    memcpy(zero_expected,bad,SIZE);
+                                    CHECK(preview_u7d_zero(bad,ds)); CHECK(!memcmp(bad,zero_expected,SIZE));
+                                    for(j=0;j<6;j++) CHECK(preview[ds+0x471e + j]==0);
+                                    free(zero_expected);
+                                    puts("conditional 7D near-0000 preview: six members, eight zero quantities, no 9E hook; writer remains unbound"); }
                                   memcpy(bad,full,SIZE); word(bad,ds+0x363c,1);
                                   memcpy(expected_preview,bad,SIZE);
                                   CHECK(preview_u7d_no_carry(bad,ds,&boundary));

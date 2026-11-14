@@ -267,3 +267,17 @@ field-only preview up to the call of near `0000`: the optional update hook is
 never invoked, its effects remain required, and no return from it is claimed.
 Raw CPU still remains at 0747. The synthetic time and device assumptions above
 continue to apply; this is neither native 7D execution nor full-Up parity.
+
+A second, separate field-only preview examines the C-produced input to near
+`7D:0000` using the existing [bounded near-call model](U7D_ZERO_CALLEE.md).
+`DS:49F3` is `4`, selecting the inferred 72-byte fill of flags starting at
+`DS:471E`; `(n,idx)=(1,1)` selects one chunk. The far list contains six
+members and eight reachable items, all with zero quantity. The preview checks
+bounded, nonoverlapping far-pointer ranges and rejects offset wrap or any nonzero quantity before
+writing. On that guarded input the model makes no unit `9E` call: it projects
+the fill followed by clearing the first six member flags. The test compares
+all RAM against that field-only result and verifies a nonzero-quantity case
+refuses unchanged. The fill is inferred from its argument shape, and this
+host-list model does not represent the raw CPU or call frames. The real writer
+hook and near call remain unbound, raw CPU remains at 0747, and no native
+post-port or full-Up parity is claimed.
