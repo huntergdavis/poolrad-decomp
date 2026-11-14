@@ -9,6 +9,7 @@
 #include "poolrad/recovered/overlay_u68_coordinate_writer.h"
 #include "poolrad/recovered/overlay_u7d_entry1.h"
 #include "poolrad/recovered/overlay_u7d_zero.h"
+#include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,6 +96,33 @@ static int writer_0747_prefix(uint8_t *ram, size_t capacity, size_t backed,
     cpu->sp=0x3db8; word(ram,stack+0x3dbc,14); word(ram,stack+0x3dba,4);
     word(ram,stack+0x3db8,6); cpu->ip=0x07a1;
     return 0;
+}
+/* Fixed loaded-stub path: validate before executing the recovered lookup. */
+static int writer_lookup(uint8_t *ram, size_t capacity, size_t backed,
+                         const uint8_t *identity, size_t identity_size,
+                         pr_r08ae_00dc_cpu *cpu) {
+    const unsigned call=0x2e600+0x7a1, stub=0x0bf90+0x2a, body=0x2d140+0x47b, leaf=0x2d140+0x31f;
+    pr_u3bd_lookup_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       body+255>backed || leaf+49>backed || stub+5>backed || call+8>backed ||
+       memcmp(ram+call,identity+call,8) || memcmp(ram+stub,identity+stub,5) ||
+       memcmp(ram+body,identity+body,255) || memcmp(ram+leaf,identity+leaf,49) ||
+       ram[call]!=0x9a || get(ram,call+1)!=0x002a || get(ram,call+3)!=0x0bf9 ||
+       ram[call+5]!=0xa2 || get(ram,call+6)!=0x6ab0 ||
+       ram[stub]!=0xea || get(ram,stub+1)!=0x047b || get(ram,stub+3)!=0x2d14 ||
+       cpu->ax!=6 || cpu->bx!=0 || cpu->cx!=10 || cpu->dx!=0xfea5 || cpu->si!=0 || cpu->di!=6 ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3db8 || cpu->cs!=0x2e60 || cpu->ip!=0x07a1 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x1d16 || cpu->ss!=0x1d16 || cpu->flags!=0x7297 ||
+       get(ram,0x1d160+0x3db8)!=6 || get(ram,0x1d160+0x3dba)!=4 || get(ram,0x1d160+0x3dbc)!=14 ||
+       get(ram,0x14a00+0x6a5c)!=0 || get(ram,0x14a00+0x6a5e)!=0x3da1) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity);
+    memcpy(&next,cpu,sizeof next); next.sp=0x3db4;
+    word(scratch,0x1d160+0x3db6,0x2e60); word(scratch,0x1d160+0x3db4,0x07a6);
+    next.cs=0x2d14; next.ip=0x047b;
+    if(pr_u3bd_nibble_047b_fullstate(scratch,capacity,&next)!=PR_U3BD_LOOKUP_OK ||
+       next.cs!=0x2e60 || next.ip!=0x07a6 || next.sp!=0x3dbe) { free(scratch); return 1; }
+    scratch[0x14a00+0x6ab0]=(uint8_t)next.ax; next.ip=0x07a9;
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
@@ -360,6 +388,26 @@ int main(int argc,char **argv) {
                         word(raw_expected,stack+0x3dbc,14); word(raw_expected,stack+0x3dba,4); word(raw_expected,stack+0x3db8,6);
                         CHECK(!memcmp(raw,raw_expected,1u<<20));
                         CHECK(prefix.ax==6 && prefix.bx==0 && prefix.cx==10 && prefix.dx==0xfea5 && prefix.si==0 && prefix.di==6 && prefix.bp==0x3dbe && prefix.sp==0x3db8 && prefix.cs==0x2e60 && prefix.ip==0x07a1 && prefix.ds==0x14a0 && prefix.es==0x1d16 && prefix.ss==0x1d16 && prefix.flags==0x7297);
+                        { static const struct { unsigned at; uint8_t value; } delta[]={
+                            {0x20f05,0x01},{0x20f06,0xb2},{0x20f07,0x3d},{0x20f08,0x8d},{0x20f09,0x04},
+                            {0x20f0a,0x14},{0x20f0b,0x2d},{0x20f0c,0x04},{0x20f0d,0x00},{0x20f0e,0x0e},
+                            {0x20f0f,0x00},{0x20f11,0x0e},{0x20f12,0xbe},{0x20f13,0x3d},{0x20f14,0xa6},
+                            {0x20f15,0x07},{0x20f16,0x60},{0x20f17,0x2e}};
+                          uint8_t *pre=malloc(1u<<20); pr_r08ae_00dc_cpu at_call=prefix; unsigned k;
+                          CHECK(pre); memcpy(pre,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                          CHECK(!writer_lookup(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                          for(k=0;k<sizeof delta/sizeof delta[0];k++) raw_expected[delta[k].at]=delta[k].value;
+                          raw_expected[0x14a00+0x6ab0]=0x0e;
+                          CHECK(!memcmp(raw,raw_expected,1u<<20));
+                          CHECK(prefix.ax==0x000e && prefix.bx==0 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0x4e && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07a9 && prefix.ds==0x14a0 && prefix.es==0x3da1 && prefix.ss==0x1d16 && prefix.flags==0x7202);
+                          memcpy(raw,pre,1u<<20); prefix=at_call;
+                          CHECK(writer_lookup(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                          CHECK(!memcmp(raw,pre,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));
+                          identity[0x0bf90+0x2a]^=1;
+                          CHECK(writer_lookup(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                          CHECK(!memcmp(raw,pre,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));
+                          identity[0x0bf90+0x2a]^=1; free(pre);
+                          puts("conditional raw lookup: stub and body pinned, AL=0E stored DS:6AB0, return 07A9; no native parity"); }
                         memcpy(raw,full,SIZE); prefix=saved;
                         CHECK(writer_0747_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                         CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));

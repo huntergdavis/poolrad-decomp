@@ -305,3 +305,19 @@ not retained in this change, so that report is not independently verified. This 
 not general writer coverage: no call, overlay dispatch, or native post-port
 execution is asserted. Synthetic time and device assumptions remain; no
 same-invocation or full-Up parity is claimed.
+
+From that fixed prefix, a scratch-only adapter validates the captured `07A1`
+far call and `0BF9:002A` stub, which jumps to loaded `2D14:047B`. The
+hash-pinned loaded entry-2 body and `031F` leaf match the spans documented in
+[the nibble audit](U3BD_NIBBLE_ENTRY2.md). It builds the far-call frame and
+runs the existing full-state lookup model, with its accessed stack, code, DS,
+and `3DA1:014E` buffer within captured conventional RAM. The model returns
+`AL=0E` at `2E60:07A6`; the adapter applies the validated following store to
+`DS:6AB0` and stops at `07A9`, before the runtime fill call. The returned CPU
+has AX `000E`, BX `0000`, CX `0004`, DX `000E`, SI `0000`, DI `004E`, BP
+and SP `3DBE`, CS:IP `2E60:07A9`, DS `14A0`, ES `3DA1`, SS `1D16`, FLAGS
+`7202`. The test compares all 14 words and the full allocated RAM image;
+18 stack bytes differ across the lookup before the store. Missing backing or
+a mismatched stub refuses unchanged. Upper RAM remains unbacked, and earlier
+synthetic time/device assumptions remain. This does not establish native
+post-port, same-invocation, or full-Up parity.
