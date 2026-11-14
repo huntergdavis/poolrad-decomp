@@ -63,6 +63,13 @@ static int scripted_time(void *ctx, uint8_t *ram, pr_r08ae_006c_cpu *cpu) {
     if (pr_r08ae_time_0000_cpu(&bus,PR_BUS_RAM_SIZE,&t,scripted_dos_time,script,&diag)!=PR_R08AE_TIME_CPU_OK || t.sp!=(uint16_t)(sp+4) || t.cs!=cs || t.ip!=ret) { script->next=original_next; free(copy); return 1; }
     memcpy(ram,copy,PR_BUS_RAM_SIZE); free(copy); t.sp=sp; t.ip=0; memcpy(cpu,&t,sizeof t); return 0;
 }
+typedef struct { uint16_t flags; unsigned calls; } restore_binding;
+/* Declared vector-table-only service; no DOS stack/PSP side effects. */
+static int abstract_restore(void *ctx, uint8_t *ram, pr_r08ae_13b1_cpu *cpu, uint16_t *flags) {
+    restore_binding *binding=(restore_binding *)ctx;
+    if (!binding || !ram || !cpu || !flags || binding->calls || cpu->ax!=0x2508 || cpu->dx!=0xfea5 || cpu->ds!=0xf000 || cpu->ip!=0x13c6 || cpu->sp!=0x3da8 || cpu->flags!=0x7046 || get(ram,0x20)!=0x13ea || get(ram,0x22)!=0x10d2) return 1;
+    word(ram,0x20,cpu->dx); word(ram,0x22,cpu->ds); *flags=binding->flags; binding->calls++; return 0;
+}
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
     pr_r08ae_137c_cpu initial={0x3508,0x3ed4,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1386,0x10d2,0x3da1,0x1d16,0x7202}, c;
@@ -203,12 +210,19 @@ int main(int argc,char **argv) {
                     word(reference,stack+0x3db2,0x0177); word(reference,stack+0x3db4,0x10d2);
                     CHECK(!memcmp(copy,reference,SIZE));
                     puts("conditional dispatcher 0173: call 10D2:13B1; CPU14 and RAM match modeled frame");
-                    { pr_r08ae_13b1_cpu restore; CHECK(sizeof restore==sizeof next); memcpy(&restore,&next,sizeof restore);
+                    { pr_r08ae_13b1_cpu restore; uint8_t *bound=malloc(PR_R08AE_13B1_RAM_SIZE);
+                      restore_binding binding={0x7246,0}; pr_r08ae_13b1_env env_restore={&binding,abstract_restore,NULL,NULL};
+                      CHECK(bound && sizeof restore==sizeof next); memcpy(bound,copy,PR_R08AE_13B1_RAM_SIZE); memcpy(&restore,&next,sizeof restore);
                       CHECK(pr_r08ae_vector_13b1_cpu(copy,PR_R08AE_13B1_RAM_SIZE,&restore,NULL)==PR_R08AE_13B1_ENV_DOS);
                       CHECK(restore.ax==0x2508 && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3da8 && restore.cs==0x10d2 && restore.ip==0x13c6 && restore.ds==0xf000 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7046);
                       word(reference,stack+0x3db0,0x14a0); word(reference,stack+0x3dae,0x10d2); word(reference,stack+0x3dac,0x7246); word(reference,stack+0x3daa,0x10d2); word(reference,stack+0x3da8,0x13c8);
                       CHECK(!memcmp(copy,reference,SIZE));
-                      puts("conditional 13B1: DOS vector restore refused at 13C6; CPU14 and full RAM match modeled frame"); } } } }
+                      puts("conditional 13B1: DOS vector restore refused at 13C6; CPU14 and full RAM match modeled frame");
+                      memcpy(&restore,&next,sizeof restore);
+                      CHECK(pr_r08ae_vector_13b1_cpu(bound,PR_R08AE_13B1_RAM_SIZE,&restore,&env_restore)==PR_R08AE_13B1_ENV_PORT);
+                      CHECK(binding.calls==1 && restore.ax==0xffff && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3db0 && restore.cs==0x10d2 && restore.ip==0x13cc && restore.ds==0x10d2 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7246);
+                      word(reference,0x20,0xfea5); word(reference,0x22,0xf000); CHECK(!memcmp(bound,reference,SIZE));
+                      puts("abstract vector-table-only restore: IVT08=F000:FEA5; next OUT refused at 13CC; no DOS/PIT side-effect claim"); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }
