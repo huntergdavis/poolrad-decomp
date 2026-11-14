@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_save_call_frame STATIC src/replay/slot_a_save_call_frame.c)
+target_include_directories(poolrad_slot_a_save_call_frame PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_dispatch_save_select STATIC src/replay/slot_a_dispatch_save_select.c)
 target_include_directories(poolrad_slot_a_dispatch_save_select PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_dispatch_first_branch STATIC src/replay/slot_a_dispatch_first_branch.c)
