@@ -19,6 +19,7 @@
 #include "poolrad/recovered/resident_loader_0538.h"
 #include "poolrad/recovered/resident_loader_0366.h"
 #include "poolrad/recovered/resident_loader_0268.h"
+#include "poolrad/recovered/resident_loader_seek_028f.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -747,6 +748,11 @@ int main(int argc,char **argv) {
                                                   word(raw_expected,stack+0x3d94,0x12c6); word(raw_expected,stack+0x3d92,0x03ae); word(raw_expected,stack+0x3d90,0x14a0);
                                                   CHECK(!memcmp(raw,raw_expected,1u<<20));
                                                   CHECK(prefix.ax==0x4200 && prefix.bx==5 && prefix.cx==2 && prefix.dx==0x3dcc && prefix.si==0 && prefix.di==0x0824 && prefix.bp==0x3db4 && prefix.sp==0x3d90 && prefix.cs==0x12c6 && prefix.ip==0x028f && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7202);
+                                                  { uint8_t *seek_before=malloc(1u<<20); pr_handler_02e6_cpu seek, saved_seek;
+                                                    CHECK(seek_before && sizeof seek==sizeof prefix); memcpy(seek_before,raw,1u<<20); memcpy(&seek,&prefix,sizeof seek); saved_seek=seek;
+                                                    CHECK(pr_resident_loader_seek_028f(raw,1u<<20,&seek,NULL,NULL,NULL,0)==PR_LOADER_SEEK_028F_BLOCKED_DOS_SERVICE);
+                                                    CHECK(!memcmp(raw,seek_before,1u<<20) && !memcmp(&seek,&saved_seek,sizeof seek));
+                                                    free(seek_before); puts("conditional DOS seek: missing service refuses unchanged at 028F"); }
                                                   for(z=0;z<SIZE;z++) if(raw[z]!=before[z]) n++;
                                                   CHECK(n==6); memcpy(raw,before,1u<<20); prefix=at_call;
                                                   CHECK(overlay_loader_0268(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
