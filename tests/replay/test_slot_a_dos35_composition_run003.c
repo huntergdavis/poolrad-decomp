@@ -7,6 +7,7 @@
 #include "poolrad/recovered/resident_08ae_delay_006c_cpu.h"
 #include "poolrad/recovered/resident_08ae_time_0000_cpu.h"
 #include "poolrad/recovered/overlay_u68_coordinate_writer.h"
+#include "poolrad/recovered/overlay_u7d_entry1.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,6 +15,27 @@
 #define CHECK(x) do { if (!(x)) { fprintf(stderr,"line %d: %s\n",__LINE__,#x); return 1; } } while (0)
 static void word(uint8_t *r, unsigned p, uint16_t v) { r[p]=(uint8_t)v; r[p+1]=(uint8_t)(v>>8); }
 static uint16_t get(const uint8_t *r, unsigned p) { return (uint16_t)(r[p] | ((unsigned)r[p+1]<<8)); }
+/* Field-only preview through 7D writeback. Refuse any carry before touching RAM. */
+static int preview_u7d_no_carry(uint8_t *r, unsigned ds, const pr_u68_step_report *boundary) {
+    uint16_t w[PR_U7D_WORDS], limits[PR_U7D_WORDS];
+    unsigned carries[PR_U7D_WORDS]={0}, walks=0, bumped=0, i, base;
+    if (!r || !boundary || ds>SIZE-0x5d9a || boundary->stop_offset!=0x07ed ||
+        boundary->u7d_first!=1 || boundary->u7d_second!=1) return 1;
+    base=((unsigned)get(r,ds+0x49d4)<<4)+get(r,ds+0x49d2);
+    if (base>SIZE-PR_U7D_WINDOW0_MIN_SIZE) return 1;
+    for (i=0;i<PR_U7D_WORDS;i++) {
+        w[i]=get(r,base+PR_U7D_WINDOW0_OFFSET+2*i);
+        limits[i]=get(r,ds+PR_U7D_LIMIT_TABLE_DS+2*i);
+    }
+    if (w[1]==UINT16_MAX) return 1;
+    ++w[1];
+    for (i=0;i<PR_U7D_WORDS;i++) if (w[i]>=limits[i]) return 1;
+    /* The native list is nonnull, but this guarded path never walks it. */
+    if (pr_u7d_carry_normalize(w,limits,NULL,carries,&walks,&bumped)!=PR_U7D_OK || walks || bumped) return 1;
+    for (i=0;i<PR_U7D_WORDS;i++) if (carries[i]) return 1;
+    for (i=0;i<PR_U7D_WORDS;i++) word(r,base+PR_U7D_WINDOW0_OFFSET+2*i,w[i]);
+    return 0;
+}
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
     unsigned stack, i; uint16_t reg[9];
@@ -326,6 +348,19 @@ int main(int argc,char **argv) {
                                   CHECK(value+(k==1 ? 1u : 0u)<limits[k]); }
                                 CHECK(get(full,ds+0x5d98)==0x449a && get(full,ds+0x5d96)==8);
                                 CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                                { uint8_t *preview=malloc(SIZE), *expected_preview=malloc(SIZE), *bad=malloc(SIZE);
+                                  CHECK(preview && expected_preview && bad);
+                                  memcpy(preview,full,SIZE); memcpy(expected_preview,full,SIZE);
+                                  word(expected_preview,base0+0x18e,1);
+                                  CHECK(!preview_u7d_no_carry(preview,ds,&boundary));
+                                  CHECK(!memcmp(preview,expected_preview,SIZE));
+                                  memcpy(bad,full,SIZE); word(bad,ds+0x363c,1);
+                                  memcpy(expected_preview,bad,SIZE);
+                                  CHECK(preview_u7d_no_carry(bad,ds,&boundary));
+                                  CHECK(!memcmp(bad,expected_preview,SIZE));
+                                  CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                                  free(preview); free(expected_preview); free(bad);
+                                  puts("conditional 7D field preview: index1=1, no carry; stops before unbound near 0000; raw CPU remains 0747"); }
                                 puts("conditional 7D inventory: window0/limits match, increment at index1 has no carry; near 0000 unbound"); } } } } }
                       free(full); free(bound); } } } }
               free(reference); }
