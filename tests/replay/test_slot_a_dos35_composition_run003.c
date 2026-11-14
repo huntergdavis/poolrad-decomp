@@ -308,7 +308,16 @@ int main(int argc,char **argv) {
                             for(k=0;k<3;k++) { CHECK(replay.ds_6dde[k]==1); full[ds+0x6dde + k]=replay.ds_6dde[k]; reference[ds+0x6dde + k]=1; }
                             full[ds+0x6ab1]=replay.lookup_b1; reference[ds+0x6ab1]=0;
                             CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
-                            puts("conditional writer projection: fill 6DDE=01 01 01, entry4 DS:6AB1=00; window withheld; raw CPU remains 0747"); } } }
+                            puts("conditional writer projection: fill 6DDE=01 01 01, entry4 DS:6AB1=00; window withheld; raw CPU remains 0747");
+                            { uint16_t off=get(full,ds+0x49d6), seg=get(full,ds+0x49d8);
+                              size_t window=((size_t)seg<<4)+off; pr_u68_step_report boundary;
+                              CHECK(window<=SIZE-PR_U68_STEP_WINDOW1_MIN_SIZE && seg==0x3a16 && off==0 && get(full,(unsigned)window+0x594)==0);
+                              replay.party_x=step_report.x_in; replay.party_y=step_report.y_in;
+                              replay.window1=full+window; replay.window1_size=SIZE-window;
+                              CHECK(pr_u68_step_coordinate_writer(&replay,&boundary)==PR_U68_STEP_HOOK);
+                              CHECK(boundary.stop_offset==0x07ed && boundary.call_count==5 && boundary.window_bit==0 && boundary.u7d_first==1 && boundary.u7d_second==1 && replay.party_x==14 && replay.party_y==4 && replay.lookup_b0==14 && replay.lookup_b1==0);
+                              CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                              puts("conditional writer projection: reread 3A16:0594=0000; unbound 7D call (1,1) at report 07ED; raw CPU remains 0747"); } } } }
                       free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
