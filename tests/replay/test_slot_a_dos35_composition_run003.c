@@ -6,6 +6,7 @@
 #include "poolrad/recovered/resident_08ae_table_17ae_cpu.h"
 #include "poolrad/recovered/resident_08ae_delay_006c_cpu.h"
 #include "poolrad/recovered/resident_08ae_time_0000_cpu.h"
+#include "poolrad/recovered/overlay_u68_coordinate_writer.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,6 +82,11 @@ static int restore_in(void *ctx, uint16_t port, uint8_t *value) {
     restore_binding *binding=(restore_binding *)ctx;
     if (!binding || !value || port!=0x61 || binding->outs!=2 || binding->ins) return 1;
     *value=binding->input61; binding->ins++; return 0;
+}
+/* Acknowledge only the already-executed conditional dispatcher return. */
+static int resident_returned(void *ctx, uint16_t argument) {
+    const pr_r08ae_00dc_cpu *cpu=(const pr_r08ae_00dc_cpu *)ctx;
+    return !cpu || argument!=10 || cpu->cs!=0x2e60 || cpu->ip!=0x0747 || cpu->sp!=0x3dbe;
 }
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
@@ -248,6 +254,20 @@ int main(int argc,char **argv) {
                       CHECK(pr_r08ae_dispatch_00dc_cpu(full,PR_R08AE_00DC_RAM_SIZE,&next)==PR_R08AE_00DC_RETURN);
                       CHECK(next.ax==0xffff && next.bx==0 && next.cx==10 && next.dx==0xfea5 && next.si==0 && next.di==0 && next.bp==0x3dbe && next.sp==0x3dbe && next.cs==0x2e60 && next.ip==0x0747 && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246 && !memcmp(full,reference,SIZE));
                       puts("abstract restore/dispatcher: IN61=03, seven ordered OUTs; returned to coordinate writer 2E60:0747; no device/native return claim");
+                      { unsigned ds=(unsigned)next.ds<<4; pr_u68_step_report step_report;
+                        pr_u68_step_hooks hooks={resident_returned,NULL,&next};
+                        pr_u68_step_state step={.party_x=full[ds+0x6aad],.party_y=full[ds+0x6aae],.facing=full[ds+0x6aaf],
+                          .word_2628=get(full,ds+0x2628),.direction_table=full+ds+0x2736,.direction_table_size=20,
+                          .map_id=full[ds+0x84dc],.buffer=NULL,.hooks=&hooks};
+                        CHECK(step.party_x==15 && step.party_y==4 && step.facing==6);
+                        { pr_u68_step_state absent=step; pr_u68_step_report absent_report; absent.hooks=NULL;
+                          CHECK(pr_u68_step_coordinate_writer(&absent,&absent_report)==PR_U68_STEP_HOOK);
+                          CHECK(absent_report.stop_offset==0x0742 && absent.party_x==15 && absent.party_y==4); }
+                        CHECK(pr_u68_step_coordinate_writer(&step,&step_report)==PR_U68_STEP_LOOKUP);
+                        CHECK(step_report.stop_offset==0x07a1 && step_report.dx==-1 && step_report.dy==0 && step.party_x==14 && step.party_y==4);
+                        full[ds+0x6aad]=step.party_x; full[ds+0x6aae]=step.party_y; reference[ds+0x6aad]=14;
+                        CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                        puts("conditional writer field projection: x 15->14, y 4; lookup buffer withheld; raw CPU remains at 0747"); }
                       free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");

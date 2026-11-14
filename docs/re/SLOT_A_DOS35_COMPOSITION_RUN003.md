@@ -200,3 +200,15 @@ the test checks CPU14 and all conventional RAM against modeled effects. A
 missing `IN 61h` binding refuses at 13D2 after the first two logged writes.
 The writer instruction at 0747 is not executed. No native post-port/return,
 DOS stack/PSP or device-state parity is implied by these abstract inputs.
+
+From the conditional `0747` return, the test projects the current party
+fields and direction table into the existing
+[coordinate-writer model](U68_COORDINATE_WRITER_073B.md). Its resident hook
+only acknowledges the already-produced conditional return; an absent hook
+still refuses before movement. With the lookup buffer deliberately withheld,
+the high-level writer reports its lookup stop after projecting x `15 -> 14`
+and y `4 -> 4`. The test copies only those two projected fields to the RAM
+image and checks that projection against its expected full image. The raw CPU
+remains at 0747: this adapter does not model the intervening raw CPU or lookup
+call frame, and the projected stop is not a native 07A1 capture. Synthetic time,
+abstract device callbacks, native post-port parity and full-Up limits remain.
