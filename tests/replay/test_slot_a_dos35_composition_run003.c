@@ -295,7 +295,20 @@ int main(int argc,char **argv) {
                           CHECK(project_entry2(full,SIZE,next.ds,&step,&result)==0 && result==14);
                           full[ds+0x6ab0]=result; reference[ds+0x6ab0]=14;
                           CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
-                          puts("conditional entry2 field lookup: reread 3DA1:014E=FE, projected DS:6AB0=0E; raw CPU remains 0747"); } }
+                          puts("conditional entry2 field lookup: reread 3DA1:014E=FE, projected DS:6AB0=0E; raw CPU remains 0747");
+                          { pr_u68_step_state replay=step; pr_u68_step_report later; unsigned k;
+                            size_t base=((size_t)get(full,ds+0x6a5e)<<4)+get(full,ds+0x6a5c);
+                            CHECK(base<=SIZE-PR_U3BD_NIBBLE_BUFFER_SIZE && full[base+0x24e]==0);
+                            replay.party_x=step_report.x_in; replay.party_y=step_report.y_in; replay.buffer=full+base;
+                            replay.lookup_b0=full[ds+0x6ab0]; replay.lookup_b1=full[ds+0x6ab1];
+                            for(k=0;k<3;k++) replay.ds_6dde[k]=full[ds+0x6dde + k];
+                            replay.window1=NULL; replay.window1_size=0;
+                            CHECK(pr_u68_step_coordinate_writer(&replay,&later)==PR_U68_STEP_ARGUMENT);
+                            CHECK(later.stop_offset==0x07ce && later.call_count==4 && replay.party_x==14 && replay.party_y==4 && replay.lookup_b0==14 && replay.lookup_b1==0);
+                            for(k=0;k<3;k++) { CHECK(replay.ds_6dde[k]==1); full[ds+0x6dde + k]=replay.ds_6dde[k]; reference[ds+0x6dde + k]=1; }
+                            full[ds+0x6ab1]=replay.lookup_b1; reference[ds+0x6ab1]=0;
+                            CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                            puts("conditional writer projection: fill 6DDE=01 01 01, entry4 DS:6AB1=00; window withheld; raw CPU remains 0747"); } } }
                       free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
