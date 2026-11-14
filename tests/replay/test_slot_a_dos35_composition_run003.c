@@ -11,6 +11,7 @@
 #include "poolrad/recovered/overlay_u7d_zero.h"
 #include "poolrad/recovered/overlay_u3bd_lookup_fullstate.h"
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
+#include "poolrad/recovered/overlay_u3bd_cell_057a_cpu.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -147,6 +148,34 @@ static int writer_fill(uint8_t *ram, size_t capacity, size_t backed,
     next.cs=0x131c; next.ip=0x16a8;
     if(pr_system_fillchar_16a8(scratch,capacity,&next)!=PR_SYSTEM_LEAF_RETURNED ||
        next.cs!=0x2e60 || next.ip!=0x07ba || next.sp!=0x3dbe) { free(scratch); return 1; }
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
+}
+/* Fixed loaded entry-4 stub and cell lookup through its result store. */
+static int writer_cell(uint8_t *ram, size_t capacity, size_t backed,
+                       const uint8_t *identity, size_t identity_size,
+                       pr_r08ae_00dc_cpu *cpu) {
+    const unsigned caller=0x2e600+0x7ba, stub=0x0bf90+0x34, body=0x2d140+0x57a, leaf=0x2d140+0x31f, stack=0x1d160;
+    pr_u3bd_057a_cpu next; pr_bus bus; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       caller+16>backed || stub+5>backed || body+121>backed || leaf+49>backed || stack+0x3dbe>backed ||
+       memcmp(ram+caller,identity+caller,16) || memcmp(ram+stub,identity+stub,5) ||
+       memcmp(ram+body,identity+body,121) || memcmp(ram+leaf,identity+leaf,49) ||
+       ram[caller+8]!=0x9a || get(ram,caller+9)!=0x0034 || get(ram,caller+11)!=0x0bf9 ||
+       ram[caller+13]!=0xa2 || get(ram,caller+14)!=0x6ab1 ||
+       ram[stub]!=0xea || get(ram,stub+1)!=0x057a || get(ram,stub+3)!=0x2d14 ||
+       cpu->ax!=1 || cpu->bx!=0x3db2 || cpu->cx!=0 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0x6de1 ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3dbe || cpu->cs!=0x2e60 || cpu->ip!=0x07ba ||
+       cpu->ds!=0x14a0 || cpu->es!=0x14a0 || cpu->ss!=0x1d16 || cpu->flags!=0x7202 ||
+       ram[0x14a00+0x6aad]!=14 || ram[0x14a00+0x6aae]!=4 ||
+       get(ram,0x14a00+0x6a5c)!=0 || get(ram,0x14a00+0x6a5e)!=0x3da1) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity);
+    memcpy(&next,cpu,sizeof next); next.ax=4; next.sp=0x3db6;
+    word(scratch,stack+0x3dbc,14); word(scratch,stack+0x3dba,4);
+    word(scratch,stack+0x3db8,0x2e60); word(scratch,stack+0x3db6,0x07c7);
+    next.cs=0x2d14; next.ip=0x057a; memset(&bus,0,sizeof bus); bus.ram=scratch;
+    if(pr_u3bd_cell_057a_cpu(&bus,capacity,&next)!=PR_U3BD_057A_RETURNED ||
+       next.cs!=0x2e60 || next.ip!=0x07c7 || next.sp!=0x3dbe) { free(scratch); return 1; }
+    scratch[0x14a00+0x6ab1]=(uint8_t)next.ax; next.ip=0x07ca;
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -436,6 +465,26 @@ int main(int argc,char **argv) {
                             memset(raw_expected+0x14a00+0x6dde,1,3);
                             CHECK(!memcmp(raw,raw_expected,1u<<20));
                             CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==0 && prefix.dx==14 && prefix.si==0 && prefix.di==0x6de1 && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07ba && prefix.ds==0x14a0 && prefix.es==0x14a0 && prefix.ss==0x1d16 && prefix.flags==0x7202);
+                            { static const struct { unsigned at; uint8_t value; } delta[]={
+                                {0x20f07,0x01},{0x20f08,0xb4},{0x20f09,0x3d},{0x20f0a,0x8c},{0x20f0b,0x05},
+                                {0x20f0c,0x14},{0x20f0d,0x2d},{0x20f0e,0x04},{0x20f10,0x0e},{0x20f11,0x00},
+                                {0x20f13,0x00},{0x20f14,0xbe},{0x20f15,0x3d},{0x20f16,0xc7},{0x20f17,0x07},
+                                {0x20f18,0x60},{0x20f19,0x2e},{0x20f1a,0x04},{0x20f1b,0x00},{0x20f1c,0x0e},{0x20f1d,0x00}};
+                              uint8_t *cell_before=malloc(1u<<20); pr_r08ae_00dc_cpu at_cell=prefix; unsigned z;
+                              CHECK(cell_before); memcpy(cell_before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                              CHECK(!writer_cell(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                              for(z=0;z<sizeof delta/sizeof delta[0];z++) raw_expected[delta[z].at]=delta[z].value;
+                              raw_expected[0x14a00+0x6ab1]=0;
+                              CHECK(!memcmp(raw,raw_expected,1u<<20));
+                              CHECK(prefix.ax==0 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0x4e && prefix.bp==0x3dbe && prefix.sp==0x3dbe && prefix.cs==0x2e60 && prefix.ip==0x07ca && prefix.ds==0x14a0 && prefix.es==0x3da1 && prefix.ss==0x1d16 && prefix.flags==0x7206);
+                              memcpy(raw,cell_before,1u<<20); prefix=at_cell;
+                              CHECK(writer_cell(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                              CHECK(!memcmp(raw,cell_before,1u<<20) && !memcmp(&prefix,&at_cell,sizeof prefix));
+                              identity[0x0bf90+0x34]^=1;
+                              CHECK(writer_cell(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                              CHECK(!memcmp(raw,cell_before,1u<<20) && !memcmp(&prefix,&at_cell,sizeof prefix));
+                              identity[0x0bf90+0x34]^=1; free(cell_before);
+                              puts("conditional raw entry4: AL=00 stored DS:6AB1, stop 07CA; no native parity"); }
                             memcpy(raw,before,1u<<20); prefix=at_fill;
                             CHECK(writer_fill(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                             CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_fill,sizeof prefix));
