@@ -15,6 +15,7 @@
 #include "poolrad/recovered/resident_handler_prefix_02e6.h"
 #include "poolrad/recovered/resident_loader_prefix_0338.h"
 #include "poolrad/recovered/resident_loader_0553.h"
+#include "poolrad/recovered/resident_loader_0355.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -294,6 +295,23 @@ static int overlay_loader_0553(uint8_t *ram, size_t capacity, size_t backed,
     next.sp=0x3d96; word(scratch,stack+0x3d96,0x0355); next.ip=0x0553;
     if(pr_resident_loader_0553(scratch,capacity,&next)!=PR_LOADER_0553_RETURNED ||
        next.cs!=0x12c6 || next.ip!=0x0355 || next.sp!=0x3d98) { free(scratch); return 1; }
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
+}
+/* Fixed loader continuation: stop before the 0538 call. */
+static int overlay_loader_0355(uint8_t *ram, size_t capacity, size_t backed,
+                               const uint8_t *identity, size_t identity_size,
+                               pr_r08ae_00dc_cpu *cpu) {
+    const unsigned code=0x12c60+0x355, descriptor=0x08b00;
+    pr_handler_02e6_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       code+14>backed || descriptor+12>backed || memcmp(ram+code,identity+code,14) ||
+       cpu->ax!=0x00e7 || cpu->bx!=0x27 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3db4 || cpu->sp!=0x3d98 || cpu->cs!=0x12c6 || cpu->ip!=0x0355 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x08b0 || cpu->ss!=0x1d16 || cpu->flags!=0x7216 ||
+       get(ram,descriptor+10)!=0x0058) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity); memcpy(&next,cpu,sizeof next);
+    if(pr_resident_loader_0355(scratch,capacity,&next)!=PR_LOADER_0355_AT_CALL_0538 ||
+       next.cs!=0x12c6 || next.ip!=0x0363) { free(scratch); return 1; }
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -643,6 +661,20 @@ int main(int argc,char **argv) {
                                           CHECK(!overlay_loader_0553(raw,1u<<20,SIZE,identity,SIZE,&prefix));
                                           word(raw_expected,stack+0x3d96,0x0355); CHECK(!memcmp(raw,raw_expected,1u<<20));
                                           CHECK(prefix.ax==0x00e7 && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d98 && prefix.cs==0x12c6 && prefix.ip==0x0355 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7216);
+                                          { uint8_t *before=malloc(1u<<20); pr_r08ae_00dc_cpu at_cont=prefix;
+                                            CHECK(before); memcpy(before,raw,1u<<20);
+                                            CHECK(!overlay_loader_0355(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                            CHECK(!memcmp(raw,before,1u<<20));
+                                            CHECK(prefix.ax==0x00e7 && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==0x00ed && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d98 && prefix.cs==0x12c6 && prefix.ip==0x0363 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7206);
+                                            prefix=at_cont; CHECK(overlay_loader_0355(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                            CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_cont,sizeof prefix));
+                                            identity[0x12c60+0x355]^=1; CHECK(overlay_loader_0355(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                            CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_cont,sizeof prefix));
+                                            identity[0x12c60+0x355]^=1; word(raw,0x08b00+10,0); memcpy(raw_expected,raw,1u<<20);
+                                            CHECK(overlay_loader_0355(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                            CHECK(!memcmp(raw,raw_expected,1u<<20) && !memcmp(&prefix,&at_cont,sizeof prefix));
+                                            memcpy(raw,before,1u<<20); prefix=at_cont; free(before);
+                                            puts("conditional loader 0355: DX=00ED, no RAM changes, stop before 0363 call"); }
                                           for(j=0;j<SIZE;j++) if(raw[j]!=prior[j]) count++;
                                           CHECK(count==2); memcpy(raw,prior,1u<<20); prefix=at_helper;
                                           CHECK(overlay_loader_0553(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
