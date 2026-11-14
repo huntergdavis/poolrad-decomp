@@ -88,6 +88,21 @@ static int resident_returned(void *ctx, uint16_t argument) {
     const pr_r08ae_00dc_cpu *cpu=(const pr_r08ae_00dc_cpu *)ctx;
     return !cpu || argument!=10 || cpu->cs!=0x2e60 || cpu->ip!=0x0747 || cpu->sp!=0x3dbe;
 }
+/* Field-only lookup; no raw CPU or lookup-frame effects are modeled. */
+static int project_entry2(uint8_t *ram, size_t size, uint16_t ds, const pr_u68_step_state *step, uint8_t *result) {
+    size_t data=(size_t)ds<<4, base; uint16_t off, seg; pr_u3bd_nibble_state input;
+    pr_u3bd_nibble_report report; uint8_t value;
+    if (!ram || !step || !result || !step->hooks || !step->hooks->resident_8ae_00dc ||
+        step->hooks->resident_8ae_00dc(step->hooks->ctx,step->word_2628)!=0 ||
+        size<SIZE || data+0x84dcu>=SIZE || data+0x6a5fu>=SIZE ||
+        (step->facing!=0 && step->facing!=2 && step->facing!=4 && step->facing!=6) ||
+        ram[data+0x6aad]!=step->party_x || ram[data+0x6aae]!=step->party_y || ram[data+0x6aaf]!=step->facing) return 1;
+    off=get(ram,(unsigned)data+0x6a5c); seg=get(ram,(unsigned)data+0x6a5e); base=((size_t)seg<<4)+off;
+    if (base>SIZE-PR_U3BD_NIBBLE_BUFFER_SIZE) return 1;
+    input=(pr_u3bd_nibble_state){ram[data+0x84dc],ram+base,0};
+    if (pr_u3bd_entry2(&input,step->party_x,step->party_y,step->facing,&value,&report)!=PR_U3BD_NIBBLE_OK) return 1;
+    *result=value; return 0;
+}
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
     pr_r08ae_137c_cpu initial={0x3508,0x3ed4,4,15,0x3e8a,0x4f,0x3db6,0x3dae,0x10d2,0x1386,0x10d2,0x3da1,0x1d16,0x7202}, c;
@@ -267,7 +282,20 @@ int main(int argc,char **argv) {
                         CHECK(step_report.stop_offset==0x07a1 && step_report.dx==-1 && step_report.dy==0 && step.party_x==14 && step.party_y==4);
                         full[ds+0x6aad]=step.party_x; full[ds+0x6aae]=step.party_y; reference[ds+0x6aad]=14;
                         CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
-                        puts("conditional writer field projection: x 15->14, y 4; lookup buffer withheld; raw CPU remains at 0747"); }
+                        puts("conditional writer field projection: x 15->14, y 4; lookup buffer withheld; raw CPU remains at 0747");
+                        { uint8_t result=0xff; pr_u68_step_state missing=step; missing.hooks=NULL;
+                          CHECK(project_entry2(full,SIZE,next.ds,&missing,&result)!=0 && result==0xff && !memcmp(full,reference,SIZE));
+                          CHECK(project_entry2(NULL,SIZE,next.ds,&step,&result)!=0 && result==0xff);
+                          CHECK(project_entry2(full,SIZE-1,next.ds,&step,&result)!=0 && result==0xff && !memcmp(full,reference,SIZE));
+                          { uint8_t *bad=malloc(SIZE), *bad_before=malloc(SIZE); CHECK(bad && bad_before);
+                            memcpy(bad,full,SIZE); word(bad,ds+0x6a5c,0xffff); word(bad,ds+0x6a5e,0xffff); memcpy(bad_before,bad,SIZE);
+                            CHECK(project_entry2(bad,SIZE,next.ds,&step,&result)!=0 && result==0xff && !memcmp(bad,bad_before,SIZE));
+                            free(bad_before); free(bad); }
+                          CHECK(get(full,ds+0x6a5c)==0 && get(full,ds+0x6a5e)==0x3da1 && full[0x3db5e]==0xfe);
+                          CHECK(project_entry2(full,SIZE,next.ds,&step,&result)==0 && result==14);
+                          full[ds+0x6ab0]=result; reference[ds+0x6ab0]=14;
+                          CHECK(!memcmp(full,reference,SIZE) && next.ip==0x0747);
+                          puts("conditional entry2 field lookup: reread 3DA1:014E=FE, projected DS:6AB0=0E; raw CPU remains 0747"); } }
                       free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
