@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_save_tag_branch STATIC src/replay/slot_a_save_tag_branch.c)
+target_include_directories(poolrad_slot_a_save_tag_branch PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_word_helper STATIC src/replay/slot_a_save_word_helper.c src/recovered/overlay_u25_loader_0000.c src/recovered/overlay_u25_string_cores.c)
 target_include_directories(poolrad_slot_a_save_word_helper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_word_args STATIC src/replay/slot_a_save_word_args.c)
