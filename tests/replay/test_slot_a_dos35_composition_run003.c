@@ -213,6 +213,26 @@ static int writer_cold_stub(uint8_t *ram, size_t capacity, size_t backed,
     cpu->sp=0x3db6; word(ram,stack+0x3db8,0x2e60); word(ram,stack+0x3db6,0x07f2);
     cpu->cs=0x08b0; cpu->ip=0x0025; return 0;
 }
+/* Fixed interrupt entry only; stop before the overlay handler executes. */
+static int cold_int3f_entry(uint8_t *ram, size_t capacity, size_t backed,
+                            const uint8_t *identity, size_t identity_size,
+                            pr_r08ae_00dc_cpu *cpu) {
+    const unsigned stub=0x08b00+0x25, handler=0x12c60+0x2e6, stack=0x1d160;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       handler+82>backed || stub+5>backed || stack+0x3dbe>backed ||
+       memcmp(ram+0xfc,identity+0xfc,4) || memcmp(ram+stub,identity+stub,5) ||
+       memcmp(ram+handler,identity+handler,82) || ram[stub]!=0xcd || ram[stub+1]!=0x3f ||
+       get(ram,0xfc)!=0x02e6 || get(ram,0xfe)!=0x12c6 ||
+       cpu->ax!=1 || cpu->bx!=0x3db2 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3db6 || cpu->cs!=0x08b0 || cpu->ip!=0x25 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x3a16 || cpu->ss!=0x1d16 || cpu->flags!=0x7246 ||
+       get(ram,stack+0x3db6)!=0x07f2 || get(ram,stack+0x3db8)!=0x2e60 ||
+       get(ram,stack+0x3dba)!=1 || get(ram,stack+0x3dbc)!=1) return 1;
+    word(ram,stack+0x3db4,cpu->flags); word(ram,stack+0x3db2,cpu->cs);
+    word(ram,stack+0x3db0,0x0027); cpu->sp=0x3db0;
+    cpu->flags=(uint16_t)(cpu->flags & ~0x0300u); cpu->cs=0x12c6; cpu->ip=0x02e6;
+    return 0;
+}
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
     unsigned stack, i; uint16_t reg[9];
@@ -526,6 +546,25 @@ int main(int argc,char **argv) {
                                   for(k=0;k<SIZE;k++) if(raw[k]!=call_before[k]) changes++;
                                   CHECK(changes==1);
                                   CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3db6 && prefix.cs==0x08b0 && prefix.ip==0x25 && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
+                                  { uint8_t *int_before=malloc(1u<<20); pr_r08ae_00dc_cpu at_int=prefix; unsigned z,count=0;
+                                    CHECK(int_before); memcpy(int_before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                    CHECK(!cold_int3f_entry(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                    word(raw_expected,stack+0x3db4,0x7246); word(raw_expected,stack+0x3db2,0x08b0); word(raw_expected,stack+0x3db0,0x0027);
+                                    CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                    CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3db0 && prefix.cs==0x12c6 && prefix.ip==0x02e6 && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7046);
+                                    for(z=0;z<SIZE;z++) if(raw[z]!=int_before[z]) count++;
+                                    CHECK(count==5);
+                                    puts("conditional INT3F entry: five changed bytes; stop before handler");
+                                    memcpy(raw,int_before,1u<<20); prefix=at_int;
+                                    CHECK(cold_int3f_entry(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                    CHECK(!memcmp(raw,int_before,1u<<20) && !memcmp(&prefix,&at_int,sizeof prefix));
+                                    identity[0xfc]^=1;
+                                    CHECK(cold_int3f_entry(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                    CHECK(!memcmp(raw,int_before,1u<<20) && !memcmp(&prefix,&at_int,sizeof prefix));
+                                    identity[0xfc]^=1; identity[0x12c60+0x2e6]^=1;
+                                    CHECK(cold_int3f_entry(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                    CHECK(!memcmp(raw,int_before,1u<<20) && !memcmp(&prefix,&at_int,sizeof prefix));
+                                    identity[0x12c60+0x2e6]^=1; free(int_before); }
                                   memcpy(raw,call_before,1u<<20); prefix=at_call;
                                   CHECK(writer_cold_stub(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                   CHECK(!memcmp(raw,call_before,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));
