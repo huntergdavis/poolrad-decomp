@@ -421,3 +421,17 @@ descriptor refuses unchanged. The nested call, loader tail, handler return,
 unit 7D and near `0000` remain unexecuted. Upper RAM remains unbacked, prior
 time/device inputs are synthetic, and no native post-port, same-invocation,
 or full-Up parity is claimed.
+
+At `0352`, a fixed-profile adapter validates the loaded near call and the
+12-byte helper body against [the `0553` audit](RESIDENT_LOADER_0553.md),
+checks the backed descriptor word `08B0:0008 = 0E65`, pushes return `0355`,
+and invokes the existing raw helper. It returns at `12C6:0355` with AX
+`00E7`, BX `0027`, CX `0004`, DX `000E`, SI and DI `0000`, BP `3DB4`, SP
+`3D98`, DS `14A0`, ES `08B0`, SS `1D16`, and model FLAGS `7216`. Two stack
+bytes differ; the replay checks all 14 CPU words and allocated RAM. Missing
+backing, changed helper identity or a changed descriptor word refuses
+unchanged. AF and OF after this multi-bit shift are architecturally undefined;
+their values here are the model's choices, not native claims for this input.
+The loader continuation and unit 7D remain unexecuted. Upper RAM is unbacked,
+earlier time/device inputs are synthetic, and no native post-port,
+same-invocation, or full-Up parity is claimed.
