@@ -19,9 +19,9 @@ int pr_slot_a_save_slot_value(uint8_t *ram,size_t size,const uint8_t *call,size_
     if(q>size-5u||memcmp(ram+q,stub,5u)||stub[0]!=0xeau||stub[1]!=0x36u||stub[2]!=1u) return 1;
     bodyseg=(uint16_t)(stub[3]|((uint16_t)stub[4]<<8)); t=phys(bodyseg,0x0136); u=phys(bodyseg,0x06af);
     if(t>size-128u||u>size-36u||memcmp(ram+t,body,128u)||memcmp(ram+u,word,36u)) return 1;
-    tag=phys(cpu->ds,0x7006); if(ram[tag]!=2u) return 1;
+    tag=phys(cpu->ds,0x7006); if(ram[tag]!=0u && ram[tag]!=2u) return 1;
     /* Conservative frame exclusion keeps the tag and two source bytes stable
-     * through the numeric helper's nested stack writes. */
+     * through either numeric helper path's stack writes. */
     for(i=0;i<0x100u;i++) { size_t a=phys(cpu->ss,(uint16_t)(cpu->sp-i));
         if(a==tag||a==phys(cpu->ds,0x7086)||a==phys(cpu->ds,0x7046)) return 1; }
     scratch=malloc(size); if(!scratch) return 1; memcpy(scratch,ram,size); next=*cpu;
