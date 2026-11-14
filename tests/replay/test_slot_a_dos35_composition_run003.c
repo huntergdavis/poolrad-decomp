@@ -75,6 +75,27 @@ static int preview_u7d_zero(uint8_t *r, unsigned ds) {
     memcpy(r+ds+0x471d,st.flags,PR_U7D0_FLAG_COUNT);
     return 0;
 }
+/* Fixed run003 branch from 0747 through pushes at 07A0, before LCALL. */
+static int writer_0747_prefix(uint8_t *ram, size_t capacity, size_t backed,
+                              const uint8_t *identity, size_t identity_size,
+                              pr_r08ae_00dc_cpu *cpu) {
+    const unsigned ds=0x14a00, stack=0x1d160, code=0x2e600+0x747;
+    if (!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE ||
+        identity_size<SIZE || code+0x5a>backed || stack+0x3dbe>backed ||
+        memcmp(ram+code,identity+code,0x5a) ||
+        cpu->ax!=0xffff || cpu->bx!=0 || cpu->cx!=10 || cpu->dx!=0xfea5 ||
+        cpu->si!=0 || cpu->di!=0 || cpu->bp!=0x3dbe || cpu->sp!=0x3dbe ||
+        cpu->cs!=0x2e60 || cpu->ip!=0x0747 || cpu->ds!=0x14a0 ||
+        cpu->es!=0x1d16 || cpu->ss!=0x1d16 || cpu->flags!=0x7246 ||
+        ram[ds+0x6aad]!=15 || ram[ds+0x6aae]!=4 || ram[ds+0x6aaf]!=6 ||
+        ram[ds+0x273c]!=0xff || ram[ds+0x2745]!=0) return 1;
+    /* The final CMP is 4-15; its arithmetic flags replace 08D5. */
+    ram[ds+0x6aad]=14; ram[ds+0x6aae]=4;
+    cpu->di=6; cpu->ax=6; cpu->flags=(uint16_t)((cpu->flags & ~0x08d5u)|0x0095u);
+    cpu->sp=0x3db8; word(ram,stack+0x3dbc,14); word(ram,stack+0x3dba,4);
+    word(ram,stack+0x3db8,6); cpu->ip=0x07a1;
+    return 0;
+}
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
     unsigned stack, i; uint16_t reg[9];
@@ -330,6 +351,25 @@ int main(int argc,char **argv) {
                       CHECK(pr_r08ae_dispatch_00dc_cpu(full,PR_R08AE_00DC_RAM_SIZE,&next)==PR_R08AE_00DC_RETURN);
                       CHECK(next.ax==0xffff && next.bx==0 && next.cx==10 && next.dx==0xfea5 && next.si==0 && next.di==0 && next.bp==0x3dbe && next.sp==0x3dbe && next.cs==0x2e60 && next.ip==0x0747 && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246 && !memcmp(full,reference,SIZE));
                       puts("abstract restore/dispatcher: IN61=03, seven ordered OUTs; returned to coordinate writer 2E60:0747; no device/native return claim");
+                      { uint8_t *raw=calloc(1,1u<<20), *raw_expected=calloc(1,1u<<20), *identity=malloc(SIZE);
+                        pr_r08ae_00dc_cpu prefix=next, saved=next; unsigned j;
+                        CHECK(raw && raw_expected && identity && load(argv[5],identity));
+                        memcpy(raw,full,SIZE); memcpy(raw_expected,full,SIZE);
+                        CHECK(!writer_0747_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                        raw_expected[0x14a00+0x6aad]=14;
+                        word(raw_expected,stack+0x3dbc,14); word(raw_expected,stack+0x3dba,4); word(raw_expected,stack+0x3db8,6);
+                        CHECK(!memcmp(raw,raw_expected,1u<<20));
+                        CHECK(prefix.ax==6 && prefix.bx==0 && prefix.cx==10 && prefix.dx==0xfea5 && prefix.si==0 && prefix.di==6 && prefix.bp==0x3dbe && prefix.sp==0x3db8 && prefix.cs==0x2e60 && prefix.ip==0x07a1 && prefix.ds==0x14a0 && prefix.es==0x1d16 && prefix.ss==0x1d16 && prefix.flags==0x7297);
+                        memcpy(raw,full,SIZE); prefix=saved;
+                        CHECK(writer_0747_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                        CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));
+                        identity[0x2e600+0x747]^=1; prefix=saved;
+                        CHECK(writer_0747_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                        CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));
+                        for(j=SIZE;j<(1u<<20);j++) CHECK(raw[j]==0);
+                        free(raw); free(raw_expected); free(identity);
+                        puts("conditional raw writer prefix: CPU14/stack/RAM to 07A1 before call; upper RAM unbacked; no native parity"); }
+
                       { unsigned ds=(unsigned)next.ds<<4; pr_u68_step_report step_report;
                         pr_u68_step_hooks hooks={resident_returned,NULL,&next};
                         pr_u68_step_state step={.party_x=full[ds+0x6aad],.party_y=full[ds+0x6aae],.facing=full[ds+0x6aaf],

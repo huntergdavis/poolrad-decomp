@@ -14,6 +14,9 @@ printf '%s  %s\n' \
  418c82068ac7f3f5243272d895926ad2e408cbb7bea2696f7ceb3396bde981b3 "$run/CPU-13A0.TXT" \
  606e2012a24646fa66700f6cf89e0d4505f7c2963cdbde67ec15cc7a9212aa40 "$run/RAM-13A3.BIN" \
  f01232f48666d06d1edafb82b46e2cf0b05d1a67f871f0e81391f9e296470fb7 "$run/CPU-13A3.TXT" | sha256sum -c -
+# The retained loaded prefix (not the relocated call) must match its frozen identity.
+actual=$(dd if="$run/RAM-13A3.BIN" bs=1 skip=$((0x2e600+0x747)) count=$((0x5a)) status=none | sha256sum | cut -d' ' -f1)
+[ "$actual" = 2cd34a43bee8924b156e96d13e0ff84e0536ecf447feeba324ee14648514f3c8 ]
 bin=$(mktemp)
 trap 'rm -f "$bin"' EXIT
 ${CC:-cc} -std=c11 -Wall -Wextra -Werror -I"$root/include" "$root/src/recovered/resident_08ae_vector_137c_cpu.c" "$root/src/recovered/resident_08ae_vector_13b1_cpu.c" "$root/src/recovered/overlay_u68_coordinate_writer.c" "$root/src/recovered/overlay_u7d_entry1.c" "$root/src/recovered/overlay_u7d_zero.c" "$root/src/recovered/overlay_u3bd_nibble.c" "$root/src/recovered/overlay_u3bd_cell.c" "$root/src/recovered/resident_08ae_dispatch_00dc_cpu.c" "$root/src/recovered/resident_08ae_table_1742_cpu.c" "$root/src/recovered/resident_08ae_table_17ae_cpu.c" "$root/src/recovered/resident_08ae_delay_006c_cpu.c" "$root/src/recovered/resident_08ae_time_0000_cpu.c" "$root/src/recovered/dos_gettime_00a2_cpu.c" "$root/src/recovered/system_longmul_0a5b_cpu.c" "$root/src/recovered/memory_bus.c" "$root/src/recovered/ega_hw.c" "$root/tests/replay/test_slot_a_dos35_composition_run003.c" -o "$bin"

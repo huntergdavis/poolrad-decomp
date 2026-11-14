@@ -281,3 +281,27 @@ refuses unchanged. The fill is inferred from its argument shape, and this
 host-list model does not represent the raw CPU or call frames. The real writer
 hook and near call remain unbound, raw CPU remains at 0747, and no native
 post-port or full-Up parity is claimed.
+
+A fixed-input raw prefix now starts from the conditional C-produced CPU at
+`2E60:0747` and stops before the entry-2 `LCALL` at `07A1`. The script pins
+the loaded `0747..07A0` prefix SHA-256
+`2cd34a43bee8924b156e96d13e0ff84e0536ecf447feeba324ee14648514f3c8`;
+those 90 bytes also match the corresponding prefix of the hash-pinned writer
+in [the coordinate-writer audit](U68_COORDINATE_WRITER_073B.md). The nearby
+far-call segment words are relocated, so no file-image identity is assumed
+for the whole overlay. The adapter checks the entire frozen CPU profile,
+facing `6`, position `(15,4)`, direction bytes `(FF,00)`, the loaded prefix,
+1 MiB allocation and conventional-memory backing before any write. It refuses
+on missing backing or changed prefix. No access above the 655360-byte captured
+range is made; the rest of the allocation is zero-filled and remains unbacked,
+not a claim about native high memory.
+
+At the stop the modeled x/y are `(14,4)`; AX and DI are `0006`, SP is
+`3DB8`, FLAGS `7297`, and SS stack words from SP are `(0006,0004,000E)`.
+Other CPU words are unchanged. The exact replay compares all CPU words and the
+full allocated buffer; six bytes differ from its input. The author reports a separate local Unicorn 2.1.4 comparison of all 14 CPU
+words and the allocated 1 MiB buffer; its temporary procedure and result are
+not retained in this change, so that report is not independently verified. This is a fixed-branch adapter,
+not general writer coverage: no call, overlay dispatch, or native post-port
+execution is asserted. Synthetic time and device assumptions remain; no
+same-invocation or full-Up parity is claimed.
