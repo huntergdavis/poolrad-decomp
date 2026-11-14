@@ -20,6 +20,7 @@
 #include "poolrad/recovered/resident_loader_0366.h"
 #include "poolrad/recovered/resident_loader_0268.h"
 #include "poolrad/recovered/resident_loader_seek_028f.h"
+#include "poolrad/replay/slot_a_movement_0747.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -86,28 +87,6 @@ static int preview_u7d_zero(uint8_t *r, unsigned ds) {
     memcpy(r+ds+0x471d,st.flags,PR_U7D0_FLAG_COUNT);
     return 0;
 }
-/* Fixed run003 branch from 0747 through pushes at 07A0, before LCALL. */
-static int writer_0747_prefix(uint8_t *ram, size_t capacity, size_t backed,
-                              const uint8_t *identity, size_t identity_size,
-                              pr_r08ae_00dc_cpu *cpu) {
-    const unsigned ds=0x14a00, stack=0x1d160, code=0x2e600+0x747;
-    if (!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE ||
-        identity_size<SIZE || code+0x5a>backed || stack+0x3dbe>backed ||
-        memcmp(ram+code,identity+code,0x5a) ||
-        cpu->ax!=0xffff || cpu->bx!=0 || cpu->cx!=10 || cpu->dx!=0xfea5 ||
-        cpu->si!=0 || cpu->di!=0 || cpu->bp!=0x3dbe || cpu->sp!=0x3dbe ||
-        cpu->cs!=0x2e60 || cpu->ip!=0x0747 || cpu->ds!=0x14a0 ||
-        cpu->es!=0x1d16 || cpu->ss!=0x1d16 || cpu->flags!=0x7246 ||
-        ram[ds+0x6aad]!=15 || ram[ds+0x6aae]!=4 || ram[ds+0x6aaf]!=6 ||
-        ram[ds+0x273c]!=0xff || ram[ds+0x2745]!=0) return 1;
-    /* The final CMP is 4-15; its arithmetic flags replace 08D5. */
-    ram[ds+0x6aad]=14; ram[ds+0x6aae]=4;
-    cpu->di=6; cpu->ax=6; cpu->flags=(uint16_t)((cpu->flags & ~0x08d5u)|0x0095u);
-    cpu->sp=0x3db8; word(ram,stack+0x3dbc,14); word(ram,stack+0x3dba,4);
-    word(ram,stack+0x3db8,6); cpu->ip=0x07a1;
-    return 0;
-}
-/* Fixed loaded-stub path: validate before executing the recovered lookup. */
 static int writer_lookup(uint8_t *ram, size_t capacity, size_t backed,
                          const uint8_t *identity, size_t identity_size,
                          pr_r08ae_00dc_cpu *cpu) {
@@ -638,7 +617,7 @@ int main(int argc,char **argv) {
                         pr_r08ae_00dc_cpu prefix=next, saved=next; unsigned j;
                         CHECK(raw && raw_expected && identity && load(argv[5],identity));
                         memcpy(raw,full,SIZE); memcpy(raw_expected,full,SIZE);
-                        CHECK(!writer_0747_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                        CHECK(!pr_slot_a_movement_0747(raw,1u<<20,SIZE,identity+0x2e600+0x747,0x5a,&prefix));
                         raw_expected[0x14a00+0x6aad]=14;
                         word(raw_expected,stack+0x3dbc,14); word(raw_expected,stack+0x3dba,4); word(raw_expected,stack+0x3db8,6);
                         CHECK(!memcmp(raw,raw_expected,1u<<20));
@@ -879,11 +858,17 @@ int main(int argc,char **argv) {
                           identity[0x0bf90+0x2a]^=1; free(pre);
                           puts("conditional raw lookup: stub and body pinned, AL=0E stored DS:6AB0, return 07A9; no native parity"); }
                         memcpy(raw,full,SIZE); prefix=saved;
-                        CHECK(writer_0747_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                        CHECK(pr_slot_a_movement_0747(raw,1u<<20,SIZE-1,identity+0x2e600+0x747,0x5a,&prefix));
                         CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));
                         identity[0x2e600+0x747]^=1; prefix=saved;
-                        CHECK(writer_0747_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                        CHECK(pr_slot_a_movement_0747(raw,1u<<20,SIZE,identity+0x2e600+0x747,0x5a,&prefix));
                         CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));
+                        identity[0x2e600+0x747]^=1; prefix=saved;
+                        CHECK(pr_slot_a_movement_0747(raw,1u<<20,SIZE,identity+0x2e600+0x747,0x59,&prefix)==PR_SLOT_A_MOVEMENT_REFUSED);
+                        CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&saved,sizeof prefix));
+                        { pr_r08ae_00dc_cpu altered=saved; altered.cx=11; prefix=altered;
+                          CHECK(pr_slot_a_movement_0747(raw,1u<<20,SIZE,identity+0x2e600+0x747,0x5a,&prefix)==PR_SLOT_A_MOVEMENT_REFUSED);
+                          CHECK(!memcmp(raw,full,SIZE) && !memcmp(&prefix,&altered,sizeof prefix)); }
                         for(j=SIZE;j<(1u<<20);j++) CHECK(raw[j]==0);
                         free(raw); free(raw_expected); free(identity);
                         puts("conditional raw writer prefix: CPU14/stack/RAM to 07A1 before call; upper RAM unbacked; no native parity"); }

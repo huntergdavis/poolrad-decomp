@@ -500,3 +500,17 @@ offset `0002:AA87`, not this conditional `0002:3DCC` request, and is not used.
 The earlier 7D field previews do not supply the seek, read, loader, or overlay
 transition. No service success, loaded overlay, native post-port,
 same-invocation, or full-Up parity is claimed.
+
+The fixed `0747` movement prefix is also exposed to C callers as
+`pr_slot_a_movement_0747` in the `poolrad_slot_a_movement` library. It applies
+the conditional party position change `(15,4) -> (14,4)` and prepares the
+lookup arguments, stopping before the lookup at `07A1`. The caller must
+provide the independently authenticated 90-byte loaded-code reference; the
+API checks equality with that reference but does not authenticate it itself.
+Its CPU, input and conventional-backing guards refuse before effects. The
+hash-pinned composed replay exercises the library API and checks the full
+modeled CPU and allocated buffer; changed code, short reference, wrong CPU,
+and missing backing refuse. This fixed-profile API does not perform a key
+input, a general movement decision, the later lookup, or the DOS seek. Earlier
+synthetic service inputs and unbacked upper RAM remain; no native
+same-invocation or full-Up parity is claimed.

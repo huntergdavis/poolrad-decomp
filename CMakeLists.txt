@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_movement STATIC src/replay/slot_a_movement_0747.c)
+target_include_directories(poolrad_slot_a_movement PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_crt_input STATIC src/replay/crt_input_fifo.c)
 target_include_directories(poolrad_crt_input PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c
