@@ -11,6 +11,8 @@ int main(void)
     r[0x27006]=2; r[0x27086]=0x34; r[0x27046]=0x12; before=c; memcpy(saved,r,0x100000u);
     CHECK(pr_slot_a_save_slot_value(r,0x100000u,call,8,stub,5,body,127,word,36,&c,&st)); CHECK(!memcmp(&c,&before,sizeof c)&&!memcmp(r,saved,0x100000u)&&st==PR_U25_SLOT_VALUE_TRANSFER);
     CHECK(!pr_slot_a_save_slot_value(r,0x100000u,call,8,stub,5,body,128,word,36,&c,&st)); CHECK(st==PR_U25_SLOT_VALUE_OK && c.cs==0x1000 && c.ip==0x02bf && c.sp==0x8000 && c.ax==0x1234);
+    memcpy(r,saved,0x100000u); c=before; r[0x27006]=0; r[0x27086]=11; r[0x27046]=0xa5;
+    CHECK(!pr_slot_a_save_slot_value(r,0x100000u,call,8,stub,5,body,128,word,36,&c,&st)); CHECK(st==PR_U25_SLOT_VALUE_OK && c.cs==0x1000 && c.ip==0x02bf && c.sp==0x8000 && c.ax==11);
     memcpy(r,saved,0x100000u); c=before; r[0x27006]=1; memcpy(saved,r,0x100000u); CHECK(pr_slot_a_save_slot_value(r,0x100000u,call,8,stub,5,body,128,word,36,&c,&st)); CHECK(!memcmp(&c,&before,sizeof c)&&!memcmp(r,saved,0x100000u));
     r[0x27006]=2; c.ss=c.ds=0x2000; c.sp=0x7010; before=c; memcpy(saved,r,0x100000u); CHECK(pr_slot_a_save_slot_value(r,0x100000u,call,8,stub,5,body,128,word,36,&c,&st)); CHECK(!memcmp(&c,&before,sizeof c)&&!memcmp(r,saved,0x100000u));
     free(saved); free(r); puts("bounded SAVE slot-value composition passed"); return 0;
