@@ -63,12 +63,24 @@ static int scripted_time(void *ctx, uint8_t *ram, pr_r08ae_006c_cpu *cpu) {
     if (pr_r08ae_time_0000_cpu(&bus,PR_BUS_RAM_SIZE,&t,scripted_dos_time,script,&diag)!=PR_R08AE_TIME_CPU_OK || t.sp!=(uint16_t)(sp+4) || t.cs!=cs || t.ip!=ret) { script->next=original_next; free(copy); return 1; }
     memcpy(ram,copy,PR_BUS_RAM_SIZE); free(copy); t.sp=sp; t.ip=0; memcpy(cpu,&t,sizeof t); return 0;
 }
-typedef struct { uint16_t flags; unsigned calls; } restore_binding;
+typedef struct { uint16_t flags; unsigned calls, outs, ins; uint8_t input61; } restore_binding;
 /* Declared vector-table-only service; no DOS stack/PSP side effects. */
 static int abstract_restore(void *ctx, uint8_t *ram, pr_r08ae_13b1_cpu *cpu, uint16_t *flags) {
     restore_binding *binding=(restore_binding *)ctx;
     if (!binding || !ram || !cpu || !flags || binding->calls || cpu->ax!=0x2508 || cpu->dx!=0xfea5 || cpu->ds!=0xf000 || cpu->ip!=0x13c6 || cpu->sp!=0x3da8 || cpu->flags!=0x7046 || get(ram,0x20)!=0x13ea || get(ram,0x22)!=0x10d2) return 1;
     word(ram,0x20,cpu->dx); word(ram,0x22,cpu->ds); *flags=binding->flags; binding->calls++; return 0;
+}
+static int restore_out(void *ctx, uint16_t port, uint8_t value) {
+    static const uint16_t ports[]={0x40,0x40,0x61,0xc0,0xc0,0xc0,0xc0};
+    static const uint8_t values[]={0xff,0xff,0x00,0x9f,0xbf,0xdf,0xff};
+    restore_binding *binding=(restore_binding *)ctx;
+    if (!binding || binding->calls!=1 || binding->outs>=7 || port!=ports[binding->outs] || value!=values[binding->outs] || (binding->outs>=2 && binding->ins!=1)) return 1;
+    binding->outs++; return 0;
+}
+static int restore_in(void *ctx, uint16_t port, uint8_t *value) {
+    restore_binding *binding=(restore_binding *)ctx;
+    if (!binding || !value || port!=0x61 || binding->outs!=2 || binding->ins) return 1;
+    *value=binding->input61; binding->ins++; return 0;
 }
 int main(int argc,char **argv) {
     uint8_t *r,*expected; unsigned i,diffs=0; uint16_t psp=0x0815;
@@ -210,9 +222,9 @@ int main(int argc,char **argv) {
                     word(reference,stack+0x3db2,0x0177); word(reference,stack+0x3db4,0x10d2);
                     CHECK(!memcmp(copy,reference,SIZE));
                     puts("conditional dispatcher 0173: call 10D2:13B1; CPU14 and RAM match modeled frame");
-                    { pr_r08ae_13b1_cpu restore; uint8_t *bound=malloc(PR_R08AE_13B1_RAM_SIZE);
-                      restore_binding binding={0x7246,0}; pr_r08ae_13b1_env env_restore={&binding,abstract_restore,NULL,NULL};
-                      CHECK(bound && sizeof restore==sizeof next); memcpy(bound,copy,PR_R08AE_13B1_RAM_SIZE); memcpy(&restore,&next,sizeof restore);
+                    { pr_r08ae_13b1_cpu restore; uint8_t *bound=malloc(PR_R08AE_13B1_RAM_SIZE), *full=malloc(PR_R08AE_13B1_RAM_SIZE);
+                      restore_binding binding={.flags=0x7246,.input61=3}; pr_r08ae_13b1_env env_restore={&binding,abstract_restore,NULL,NULL};
+                      CHECK(bound && full && sizeof restore==sizeof next); memcpy(bound,copy,PR_R08AE_13B1_RAM_SIZE); memcpy(full,copy,PR_R08AE_13B1_RAM_SIZE); memcpy(&restore,&next,sizeof restore);
                       CHECK(pr_r08ae_vector_13b1_cpu(copy,PR_R08AE_13B1_RAM_SIZE,&restore,NULL)==PR_R08AE_13B1_ENV_DOS);
                       CHECK(restore.ax==0x2508 && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3da8 && restore.cs==0x10d2 && restore.ip==0x13c6 && restore.ds==0xf000 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7046);
                       word(reference,stack+0x3db0,0x14a0); word(reference,stack+0x3dae,0x10d2); word(reference,stack+0x3dac,0x7246); word(reference,stack+0x3daa,0x10d2); word(reference,stack+0x3da8,0x13c8);
@@ -222,7 +234,21 @@ int main(int argc,char **argv) {
                       CHECK(pr_r08ae_vector_13b1_cpu(bound,PR_R08AE_13B1_RAM_SIZE,&restore,&env_restore)==PR_R08AE_13B1_ENV_PORT);
                       CHECK(binding.calls==1 && restore.ax==0xffff && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3db0 && restore.cs==0x10d2 && restore.ip==0x13cc && restore.ds==0x10d2 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7246);
                       word(reference,0x20,0xfea5); word(reference,0x22,0xf000); CHECK(!memcmp(bound,reference,SIZE));
-                      puts("abstract vector-table-only restore: IVT08=F000:FEA5; next OUT refused at 13CC; no DOS/PIT side-effect claim"); free(bound); } } } }
+                      puts("abstract vector-table-only restore: IVT08=F000:FEA5; next OUT refused at 13CC; no DOS/PIT side-effect claim");
+                      { uint8_t *missing=malloc(PR_R08AE_13B1_RAM_SIZE); pr_r08ae_13b1_cpu stopped;
+                        CHECK(missing); memcpy(missing,full,PR_R08AE_13B1_RAM_SIZE); memcpy(&stopped,&next,sizeof stopped);
+                        binding=(restore_binding){.flags=0x7246,.input61=3}; env_restore.port_out=restore_out; env_restore.port_in=NULL;
+                        CHECK(pr_r08ae_vector_13b1_cpu(missing,PR_R08AE_13B1_RAM_SIZE,&stopped,&env_restore)==PR_R08AE_13B1_ENV_PORT);
+                        CHECK(binding.calls==1 && binding.outs==2 && binding.ins==0 && stopped.ip==0x13d2 && !memcmp(missing,reference,SIZE)); free(missing); }
+                      binding=(restore_binding){.flags=0x7246,.input61=3}; env_restore.port_out=restore_out; env_restore.port_in=restore_in; memcpy(&restore,&next,sizeof restore);
+                      CHECK(pr_r08ae_vector_13b1_cpu(full,PR_R08AE_13B1_RAM_SIZE,&restore,&env_restore)==PR_R08AE_13B1_OK);
+                      CHECK(binding.calls==1 && binding.outs==7 && binding.ins==1);
+                      CHECK(restore.ax==0xffff && restore.bx==0 && restore.cx==10 && restore.dx==0xfea5 && restore.si==0 && restore.di==0 && restore.bp==0x3db6 && restore.sp==0x3db6 && restore.cs==0x10d2 && restore.ip==0x0177 && restore.ds==0x14a0 && restore.es==0x1d16 && restore.ss==0x1d16 && restore.flags==0x7246 && !memcmp(full,reference,SIZE));
+                      memcpy(&next,&restore,sizeof next);
+                      CHECK(pr_r08ae_dispatch_00dc_cpu(full,PR_R08AE_00DC_RAM_SIZE,&next)==PR_R08AE_00DC_RETURN);
+                      CHECK(next.ax==0xffff && next.bx==0 && next.cx==10 && next.dx==0xfea5 && next.si==0 && next.di==0 && next.bp==0x3dbe && next.sp==0x3dbe && next.cs==0x2e60 && next.ip==0x0747 && next.ds==0x14a0 && next.es==0x1d16 && next.ss==0x1d16 && next.flags==0x7246 && !memcmp(full,reference,SIZE));
+                      puts("abstract restore/dispatcher: IN61=03, seven ordered OUTs; returned to coordinate writer 2E60:0747; no device/native return claim");
+                      free(full); free(bound); } } } }
               free(reference); }
             puts("abstract caller-supplied time: readings 00:00:00.00 then .10, delay returned 0165; exhausted input refuses; 42 model-pinned RAM changes");
             free(copy); }
