@@ -5,6 +5,8 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
+add_library(poolrad_slot_a_first_save_store STATIC src/replay/slot_a_first_save_store.c src/recovered/overlay_u25_store_word_0c77.c)
+target_include_directories(poolrad_slot_a_first_save_store PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_store_args STATIC src/replay/slot_a_save_store_args.c)
 target_include_directories(poolrad_slot_a_save_store_args PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_slot_value STATIC src/replay/slot_a_save_slot_value.c src/recovered/overlay_u25_slot_value_0136.c src/recovered/overlay_u25_entry1_0136.c src/recovered/overlay_u25_load_word_0e0c.c src/recovered/overlay_u25_party_index_0756.c)
