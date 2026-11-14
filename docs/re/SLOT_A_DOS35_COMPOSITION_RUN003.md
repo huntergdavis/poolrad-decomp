@@ -406,3 +406,18 @@ The loader call and handler tail remain unexecuted; no unit 7D entry or near
 `0000` frame is established. Upper RAM is unbacked, earlier time/device inputs
 are synthetic, and no native post-port, same-invocation, or full-Up parity is
 claimed.
+
+The conditional pre-loader frame can enter the existing
+[loader-prefix model](RESIDENT_LOADER_PREFIX_0338.md) after the adapter checks
+the loaded near-call instruction, handler and loader hashes, fixed CPU, zero
+`08B0:0010` descriptor, counters, and conventional backing. The adapter pushes
+return `0317`; the model takes the zero-descriptor branch and stops before
+`12C6:0352` calls `0553`. Both `DS:43E0` and `DS:43E2` move `002D` to `002E`.
+The model-pinned CPU is AX `3DBE`, BX `0027`, CX `0004`, DX `000E`, SI and DI
+`0000`, BP `3DB4`, SP `3D98`, CS:IP `12C6:0352`, DS `14A0`, ES `08B0`, SS
+`1D16`, FLAGS `7206`. The replay compares all CPU words and allocated RAM;
+six bytes differ. Missing backing, changed loader identity or a nonzero
+descriptor refuses unchanged. The nested call, loader tail, handler return,
+unit 7D and near `0000` remain unexecuted. Upper RAM remains unbacked, prior
+time/device inputs are synthetic, and no native post-port, same-invocation,
+or full-Up parity is claimed.

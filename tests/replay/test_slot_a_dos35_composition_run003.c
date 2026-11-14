@@ -13,6 +13,7 @@
 #include "poolrad/recovered/system_runtime_leaves_cpu.h"
 #include "poolrad/recovered/overlay_u3bd_cell_057a_cpu.h"
 #include "poolrad/recovered/resident_handler_prefix_02e6.h"
+#include "poolrad/recovered/resident_loader_prefix_0338.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -252,6 +253,26 @@ static int int3f_prefix(uint8_t *ram, size_t capacity, size_t backed,
     scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity); memcpy(&next,cpu,sizeof next);
     if(pr_resident_handler_prefix_02e6(scratch,capacity,&next)!=PR_HANDLER_02E6_AT_LOADER ||
        next.cs!=0x12c6 || next.ip!=0x0314) { free(scratch); return 1; }
+    memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
+}
+/* Fixed zero-descriptor loader prefix, stopping before the nested call. */
+static int overlay_loader_prefix(uint8_t *ram, size_t capacity, size_t backed,
+                                 const uint8_t *identity, size_t identity_size,
+                                 pr_r08ae_00dc_cpu *cpu) {
+    const unsigned handler=0x12c60+0x2e6, loader=0x12c60+0x338, stack=0x1d160, ds=0x14a00, descriptor=0x08b00;
+    pr_handler_02e6_cpu next; uint8_t *scratch;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       loader+177>backed || handler+82>backed || stack+0x3dbe>backed || ds+0x43e4>backed || descriptor+0x12>backed ||
+       memcmp(ram+handler,identity+handler,82) || memcmp(ram+loader,identity+loader,177) ||
+       ram[handler+0x2e]!=0xe8 || get(ram,handler+0x2f)!=0x0021 ||
+       cpu->ax!=0x3dbe || cpu->bx!=0x27 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3db4 || cpu->sp!=0x3d9c || cpu->cs!=0x12c6 || cpu->ip!=0x0314 ||
+       cpu->ds!=0x14a0 || cpu->es!=0x08b0 || cpu->ss!=0x1d16 || cpu->flags!=0x7216 ||
+       get(ram,descriptor+0x10)!=0 || get(ram,ds+0x43e0)!=0x2d || get(ram,ds+0x43e2)!=0x2d) return 1;
+    scratch=malloc(capacity); if(!scratch) return 1; memcpy(scratch,ram,capacity); memcpy(&next,cpu,sizeof next);
+    next.sp=0x3d9a; word(scratch,stack+0x3d9a,0x0317); next.ip=0x0338;
+    if(pr_resident_loader_prefix_0338(scratch,capacity,&next)!=PR_LOADER_0338_CALL_0553 ||
+       next.cs!=0x12c6 || next.ip!=0x0352) { free(scratch); return 1; }
     memcpy(ram,scratch,capacity); memcpy(cpu,&next,sizeof next); free(scratch); return 0;
 }
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
@@ -588,6 +609,24 @@ int main(int argc,char **argv) {
                                       for(k=0;k<sizeof delta/sizeof delta[0];k++) raw_expected[delta[k].at]=delta[k].value;
                                       CHECK(!memcmp(raw,raw_expected,1u<<20));
                                       CHECK(prefix.ax==0x3dbe && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d9c && prefix.cs==0x12c6 && prefix.ip==0x0314 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7216);
+                                      { uint8_t *entry=malloc(1u<<20); pr_r08ae_00dc_cpu at_loader=prefix; unsigned z,n=0;
+                                        CHECK(entry); memcpy(entry,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                        CHECK(!overlay_loader_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                        word(raw_expected,0x14a00+0x43e0,0x2e); word(raw_expected,0x14a00+0x43e2,0x2e);
+                                        word(raw_expected,stack+0x3d9a,0x0317); word(raw_expected,stack+0x3d98,0x08b0);
+                                        CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                        CHECK(prefix.ax==0x3dbe && prefix.bx==0x27 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3db4 && prefix.sp==0x3d98 && prefix.cs==0x12c6 && prefix.ip==0x0352 && prefix.ds==0x14a0 && prefix.es==0x08b0 && prefix.ss==0x1d16 && prefix.flags==0x7206);
+                                        for(z=0;z<SIZE;z++) if(raw[z]!=entry[z]) n++;
+                                        CHECK(n==6); memcpy(raw,entry,1u<<20); prefix=at_loader;
+                                        CHECK(overlay_loader_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                        CHECK(!memcmp(raw,entry,1u<<20) && !memcmp(&prefix,&at_loader,sizeof prefix));
+                                        identity[0x12c60+0x338]^=1;
+                                        CHECK(overlay_loader_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                        CHECK(!memcmp(raw,entry,1u<<20) && !memcmp(&prefix,&at_loader,sizeof prefix));
+                                        identity[0x12c60+0x338]^=1; word(raw,0x08b00+0x10,1); memcpy(raw_expected,raw,1u<<20);
+                                        CHECK(overlay_loader_prefix(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                        CHECK(!memcmp(raw,raw_expected,1u<<20) && !memcmp(&prefix,&at_loader,sizeof prefix));
+                                        free(entry); puts("conditional loader prefix: zero descriptor, stop before 0352 nested call"); }
                                       memcpy(raw,before,1u<<20); prefix=at_handler;
                                       CHECK(int3f_prefix(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                       CHECK(!memcmp(raw,before,1u<<20) && !memcmp(&prefix,&at_handler,sizeof prefix));
