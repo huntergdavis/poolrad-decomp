@@ -12,6 +12,9 @@ cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror \
     "$repo_dir/src/recovered/overlay_u1c_exit_0001.c" \
     "$repo_dir/src/replay/slot_a_ecl_live.c" \
     "$repo_dir/src/replay/slot_a_first_exit.c" \
+    "$repo_dir/src/replay/slot_a_key_dispatch_bridge.c" \
+    "$repo_dir/src/replay/slot_a_key_script_join.c" \
+    "$repo_dir/src/replay/slot_a_key_exit_handoff.c" \
     "$repo_dir/tests/replay/test_slot_a_first_exit.c" \
     -o "$build_dir/test_slot_a_first_exit"
 

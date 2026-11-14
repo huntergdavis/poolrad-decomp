@@ -7,6 +7,16 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 add_library(poolrad_slot_a_movement STATIC src/replay/slot_a_movement_0747.c)
 target_include_directories(poolrad_slot_a_movement PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(poolrad_slot_a_key_exit_handoff STATIC
+            src/replay/slot_a_key_dispatch_bridge.c
+            src/replay/slot_a_key_script_join.c
+            src/replay/slot_a_key_exit_handoff.c
+            src/replay/slot_a_first_exit.c
+            src/replay/slot_a_ecl_live.c
+            src/recovered/ecl_helpers.c
+            src/recovered/overlay_u1c_and_or_0def.c
+            src/recovered/overlay_u1c_exit_0001.c)
+target_include_directories(poolrad_slot_a_key_exit_handoff PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_crt_input STATIC src/replay/crt_input_fifo.c)
 target_include_directories(poolrad_crt_input PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_formats STATIC src/formats/dax.c src/formats/geo.c

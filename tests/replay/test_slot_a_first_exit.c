@@ -1,4 +1,5 @@
 #include "poolrad/replay/slot_a_first_exit.h"
+#include "poolrad/replay/slot_a_key_exit_handoff.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -97,6 +98,55 @@ static int synthetic(void)
     return 0;
 }
 
+/* The frame is synthetic: one coherent caller-owned RAM image, not a native
+ * same-invocation proof. The key join supplies the dependency being consumed. */
+static int handoff_synthetic(void)
+{
+    pr_slot_a_key_return_state returned;
+    pr_slot_a_key_join_gate gate;
+    pr_slot_a_key_join_report key_report;
+    pr_slot_a_key_exit_report report;
+    pr_slot_a_script_entry_image entry;
+    pr_u1c_exit_env env = {0};
+    memset(ram, 0, sizeof ram);
+    put_far(0x49D2u, 0x3996u); put_far(0x49D6u, 0x3A16u);
+    put_far(0x49DAu, 0x3A96u); put_far(0x49DEu, 0x3AD6u);
+    put_word(DS, 0x49E3u, 0x9914u);
+    ram[p(0x3AD6u, 0x14u)] = 0x00u;
+    returned = (pr_slot_a_key_return_state){ram+p(0x3996u,0), 0x800u, 0, 0, 0, 0, 0, 0};
+    gate = (pr_slot_a_key_join_gate){ram+p(0x3A16u,0), 0x800u, 0, 0x9914u};
+    CHECK(pr_slot_a_key_script_join(&returned, 0x48u, &gate, &key_report) == PR_SLOT_A_KEY_JOIN_BLOCKED_SCRIPT_3171);
+    CHECK(key_report.dependency_valid);
+    put_word(SS,0x3EF0u,0x345bu); put_word(SS,0x3EF2u,0x3582u); put_word(SS,0x3EF4u,0x9914u);
+    entry = (pr_slot_a_script_entry_image){ram, RAM_SIZE, DS, SS, 0x3EF0u, 0x3582u};
+    memcpy(and_ram,ram,RAM_SIZE);
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_PROJECTED_RETURN);
+    CHECK(report.runner_called && report.projected_return_pc==0x345bu && report.script.exit_reached && state.pc==0x9915u);
+    CHECK(!memcmp(ram,and_ram,RAM_SIZE));
+    state.pc=0xbeefu; env.b4430=0x5au; put_word(SS,0x3EF4u,0x9915u);
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_FRAME);
+    CHECK(!report.runner_called && state.pc==0xbeefu && env.b4430==0x5au);
+    put_word(SS,0x3EF4u,0x9914u); put_word(DS,0x49E3u,0x9915u);
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_FRAME);
+    CHECK(!report.runner_called && state.pc==0xbeefu && env.b4430==0x5au);
+    put_word(DS,0x49E3u,0x9914u); entry.sp=0xfffcu;
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_FRAME);
+    CHECK(!report.runner_called && state.pc==0xbeefu && env.b4430==0x5au);
+    entry.sp=0x3EF0u; key_report.dependency.entry=0x9915u;
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_DEPENDENCY);
+    CHECK(!report.runner_called && state.pc==0xbeefu && env.b4430==0x5au);
+    key_report.dependency.entry=0x9914u; put_word(DS,0x6F70u,1u);
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_BIND);
+    CHECK(report.runner_called && report.script.bind_status==PR_SLOT_A_ECL_BIND_CALL_LIST && state.pc==0xbeefu && env.b4430==0x5au);
+    put_word(DS,0x6F70u,0u); ram[p(0x3AD6u,0x14u)]=0x0eu;
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_BLOCKED);
+    CHECK(report.runner_called && report.script.run_status==PR_REC_ECL_RUN_UNMODELLED && !report.projected_return_pc);
+    ram[p(0x3AD6u,0x14u)]=0; ram[p(DS,0x84E2u)]=1;
+    CHECK(pr_slot_a_key_exit_handoff(&key_report.dependency,&entry,2,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_BLOCKED);
+    CHECK(report.script.run_status==PR_REC_ECL_RUN_HANDLER && report.script.exit_status==PR_U1C_EXIT_HOOK && !report.projected_return_pc);
+    return 0;
+}
+
 static int private_route(const char *pre, const char *and_path, const char *search)
 {
     static const uint16_t expected_pc[10] = {
@@ -141,10 +191,27 @@ static int private_route(const char *pre, const char *and_path, const char *sear
     return 0;
 }
 
+/* This tests the retained script-entry image alone. The dependency tuple is
+ * supplied explicitly; this does not join the separate key capture in time. */
+static int handoff_retained(const char *path)
+{
+    static const pr_slot_a_script_dependency dependency={0x1cu,0x3458u,0x3171u,0x345bu,0x9914u};
+    pr_slot_a_script_entry_image entry;
+    pr_slot_a_key_exit_report report;
+    pr_u1c_exit_env env={0};
+    CHECK(load_ram(path,ram)); memcpy(and_ram,ram,RAM_SIZE);
+    entry=(pr_slot_a_script_entry_image){ram,RAM_SIZE,DS,SS,0x3ef0u,0x3582u};
+    CHECK(pr_slot_a_key_exit_handoff(&dependency,&entry,16,&state,&env,&report)==PR_SLOT_A_KEY_EXIT_PROJECTED_RETURN);
+    CHECK(report.runner_called && report.projected_return_pc==0x345bu && report.script.exit_reached && report.script.steps==10u);
+    CHECK(state.pc==0x9975u && state.b6aad==15u && !memcmp(ram,and_ram,RAM_SIZE));
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    if (argc != 1 && argc != 4) return 2;
-    if (synthetic()) return 1;
+    if (argc != 1 && argc != 2 && argc != 4) return 2;
+    if (synthetic() || handoff_synthetic()) return 1;
+    if (argc == 2 && handoff_retained(argv[1])) return 1;
     if (argc == 4 && private_route(argv[1], argv[2], argv[3])) return 1;
     puts("slot-A first ECL EXIT boundary passed");
     return 0;
