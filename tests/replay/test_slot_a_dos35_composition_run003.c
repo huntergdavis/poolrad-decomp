@@ -196,6 +196,23 @@ static int writer_window(uint8_t *ram, size_t capacity, size_t backed,
     cpu->sp=0x3dba; word(ram,stack+0x3dbc,1); word(ram,stack+0x3dba,1);
     cpu->ip=0x07ed; return 0;
 }
+/* Fixed far call to a cold overlay stub; do not execute INT 3F. */
+static int writer_cold_stub(uint8_t *ram, size_t capacity, size_t backed,
+                            const uint8_t *identity, size_t identity_size,
+                            pr_r08ae_00dc_cpu *cpu) {
+    const unsigned call=0x2e600+0x7ed, stub=0x08b00+0x25, stack=0x1d160;
+    if(!ram || !identity || !cpu || capacity!=(1u<<20) || backed!=SIZE || identity_size<SIZE ||
+       call+5>backed || stub+5>backed || stack+0x3dbe>backed ||
+       memcmp(ram+call,identity+call,5) || memcmp(ram+stub,identity+stub,5) ||
+       ram[call]!=0x9a || get(ram,call+1)!=0x25 || get(ram,call+3)!=0x08b0 ||
+       ram[stub]!=0xcd || ram[stub+1]!=0x3f ||
+       cpu->ax!=1 || cpu->bx!=0x3db2 || cpu->cx!=4 || cpu->dx!=14 || cpu->si!=0 || cpu->di!=0 ||
+       cpu->bp!=0x3dbe || cpu->sp!=0x3dba || cpu->cs!=0x2e60 || cpu->ip!=0x07ed ||
+       cpu->ds!=0x14a0 || cpu->es!=0x3a16 || cpu->ss!=0x1d16 || cpu->flags!=0x7246 ||
+       get(ram,stack+0x3dba)!=1 || get(ram,stack+0x3dbc)!=1) return 1;
+    cpu->sp=0x3db6; word(ram,stack+0x3db8,0x2e60); word(ram,stack+0x3db6,0x07f2);
+    cpu->cs=0x08b0; cpu->ip=0x0025; return 0;
+}
 static int load(const char *p, uint8_t *r) { FILE *f=fopen(p,"rb"); size_t n; int c; if(!f)return 0; n=fread(r,1,SIZE,f); c=fgetc(f); fclose(f); return n==SIZE && c==EOF; }
 static int service(void *ctx, uint8_t *r, pr_r08ae_137c_cpu *c, uint16_t *flags) {
     unsigned stack, i; uint16_t reg[9];
@@ -501,6 +518,22 @@ int main(int argc,char **argv) {
                                 word(raw_expected,stack+0x3dbc,1); word(raw_expected,stack+0x3dba,1);
                                 CHECK(!memcmp(raw,raw_expected,1u<<20));
                                 CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3dba && prefix.cs==0x2e60 && prefix.ip==0x07ed && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
+                                { uint8_t *call_before=malloc(1u<<20); pr_r08ae_00dc_cpu at_call=prefix; unsigned k, changes=0;
+                                  CHECK(call_before); memcpy(call_before,raw,1u<<20); memcpy(raw_expected,raw,1u<<20);
+                                  CHECK(!writer_cold_stub(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                  word(raw_expected,stack+0x3db8,0x2e60); word(raw_expected,stack+0x3db6,0x07f2);
+                                  CHECK(!memcmp(raw,raw_expected,1u<<20));
+                                  for(k=0;k<SIZE;k++) if(raw[k]!=call_before[k]) changes++;
+                                  CHECK(changes==1);
+                                  CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3db6 && prefix.cs==0x08b0 && prefix.ip==0x25 && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
+                                  memcpy(raw,call_before,1u<<20); prefix=at_call;
+                                  CHECK(writer_cold_stub(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
+                                  CHECK(!memcmp(raw,call_before,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));
+                                  identity[0x08b00+0x25]^=1;
+                                  CHECK(writer_cold_stub(raw,1u<<20,SIZE,identity,SIZE,&prefix));
+                                  CHECK(!memcmp(raw,call_before,1u<<20) && !memcmp(&prefix,&at_call,sizeof prefix));
+                                  identity[0x08b00+0x25]^=1; free(call_before);
+                                  puts("conditional cold 7D stub: far frame pushed, stop before INT 3F; no loader executed"); }
                                 memcpy(raw,branch_before,1u<<20); prefix=at_branch;
                                 CHECK(writer_window(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                 CHECK(!memcmp(raw,branch_before,1u<<20) && !memcmp(&prefix,&at_branch,sizeof prefix));

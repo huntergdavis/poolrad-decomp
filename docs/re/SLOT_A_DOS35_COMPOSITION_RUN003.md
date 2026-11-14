@@ -365,3 +365,17 @@ changed window value refuse without effects. The 7D call and overlay transition
 remain unbound; no unit 7D call frame is synthesized. Upper RAM remains
 unbacked and earlier time and device inputs remain synthetic; no native
 post-port, same-invocation, or full-Up parity is claimed.
+
+The retained `07ED` far call targets `08B0:0025`. Its hash-pinned stub begins
+with `INT 3Fh`, the cold overlay-manager form described in
+[the overlay preflight boundary](OVL_0068_068D_CPU.md), rather than a loaded
+far jump. A fixed-profile adapter validates the call and stub bytes, backing,
+CPU and `(1,1)` argument words, pushes the far return `2E60:07F2`, and stops
+at `08B0:0025` before the interrupt. The resulting SP is `3DB6`, FLAGS remain
+`7246`, and all other registers are unchanged except CS:IP; one stack byte
+differs. The pinned replay checks all CPU words and allocated RAM and refuses
+changed stub identity or missing backing without effects. The overlay manager,
+unit 7D entry, and near `0000` call remain unexecuted. A separate native watch's
+loaded entry frame does not establish this conditional loader transition. Upper
+RAM is unbacked, earlier time/device inputs are synthetic, and no native
+post-port, same-invocation, or full-Up parity is claimed.
