@@ -19,5 +19,14 @@ int main(void)
     CHECK(pr_slot_a_runner_first_dispatch(r,0x100000u,code,sizeof code,&c)==PR_SLOT_A_RUNNER_FIRST_DISPATCH);
     CHECK(c.ip==0x2f2d && c.sp==0xfa && c.bp==0xfe && r[ds+0x49ed]==0x14 && r[ds+0x49ee]==0x99 && r[ds+0x6f7f]==9);
     CHECK(r[st+0xfe]==0x76 && r[st+0xff]==0x98 && r[st+0xfa]==0xa8 && r[st+0xfb]==0x31);
+    {
+        uint8_t *saved=malloc(0x100000u);
+        CHECK(saved); memset(r,0,0x100000u); memset(&c,0,sizeof c);
+        c.cs=0x1000; c.ip=0x3171; c.ds=0x2000; c.ss=0x2000;
+        c.sp=0x4a01; c.bp=1; before=c; memcpy(saved,r,0x100000u);
+        CHECK(pr_slot_a_runner_first_dispatch(r,0x100000u,code,sizeof code,&c)==PR_SLOT_A_RUNNER_REFUSED);
+        CHECK(!memcmp(&c,&before,sizeof c) && !memcmp(r,saved,0x100000u));
+        free(saved);
+    }
     free(r); puts("runner first dispatcher boundary passed"); return 0;
 }
