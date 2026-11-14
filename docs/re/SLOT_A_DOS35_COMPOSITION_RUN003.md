@@ -354,8 +354,10 @@ same-invocation, and full-Up parity are not claimed.
 A final fixed-profile writer prefix validates the loaded `07CA..07EC` bytes,
 CPU and conventional backing, then rereads window pointer `3A16:0000` and word
 `+0594 = 0000`. The bit-clear branch pushes `(1,1)` and stops before the
-unbound call at `2E60:07ED`. Its model-pinned state has AX `0000`, BX `3DB2`,
-CX `0004`, DX `000E`, SI and DI `0000`, BP `3DBE`, SP `3DBA`, DS `14A0`,
+unbound call at `2E60:07ED`. The bit-clear path loads AL with `01` before each
+`PUSH AX`, so AX at the boundary is `0001`. Its model-pinned state has AX
+`0001`, BX `3DB2`, CX `0004`, DX `000E`, SI and DI `0000`, BP `3DBE`, SP
+`3DBA`, DS `14A0`,
 ES `3A16`, SS `1D16`, FLAGS `7246`; the two argument words are `0001,0001`.
 Two stack bytes differ from the entry-4 return. The replay compares all CPU
 words and the allocated RAM buffer; missing backing, changed code, or a

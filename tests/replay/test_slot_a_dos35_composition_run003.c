@@ -190,7 +190,8 @@ static int writer_window(uint8_t *ram, size_t capacity, size_t backed,
        cpu->bp!=0x3dbe || cpu->sp!=0x3dbe || cpu->cs!=0x2e60 || cpu->ip!=0x07ca ||
        cpu->ds!=0x14a0 || cpu->es!=0x3da1 || cpu->ss!=0x1d16 || cpu->flags!=0x7206 ||
        get(ram,ds+0x49d6)!=0 || get(ram,ds+0x49d8)!=0x3a16 || get(ram,window+0x594)!=0) return 1;
-    cpu->es=0x3a16; cpu->di=0; cpu->ax=0;
+    /* Bit-clear arm loads AL=1 before each PUSH AX, leaving AX=0001. */
+    cpu->es=0x3a16; cpu->di=0; cpu->ax=1;
     cpu->flags=(uint16_t)((cpu->flags & ~0x08d5u)|0x0044u);
     cpu->sp=0x3dba; word(ram,stack+0x3dbc,1); word(ram,stack+0x3dba,1);
     cpu->ip=0x07ed; return 0;
@@ -499,7 +500,7 @@ int main(int argc,char **argv) {
                                 CHECK(!writer_window(raw,1u<<20,SIZE,identity,SIZE,&prefix));
                                 word(raw_expected,stack+0x3dbc,1); word(raw_expected,stack+0x3dba,1);
                                 CHECK(!memcmp(raw,raw_expected,1u<<20));
-                                CHECK(prefix.ax==0 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3dba && prefix.cs==0x2e60 && prefix.ip==0x07ed && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
+                                CHECK(prefix.ax==1 && prefix.bx==0x3db2 && prefix.cx==4 && prefix.dx==14 && prefix.si==0 && prefix.di==0 && prefix.bp==0x3dbe && prefix.sp==0x3dba && prefix.cs==0x2e60 && prefix.ip==0x07ed && prefix.ds==0x14a0 && prefix.es==0x3a16 && prefix.ss==0x1d16 && prefix.flags==0x7246);
                                 memcpy(raw,branch_before,1u<<20); prefix=at_branch;
                                 CHECK(writer_window(raw,1u<<20,SIZE-1,identity,SIZE,&prefix));
                                 CHECK(!memcmp(raw,branch_before,1u<<20) && !memcmp(&prefix,&at_branch,sizeof prefix));
