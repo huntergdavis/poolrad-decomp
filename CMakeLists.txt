@@ -7,6 +7,9 @@ set(CMAKE_C_EXTENSIONS OFF)
 
 add_library(poolrad_slot_a_first_save_store STATIC src/replay/slot_a_first_save_store.c src/recovered/overlay_u25_store_word_0c77.c)
 target_include_directories(poolrad_slot_a_first_save_store PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(poolrad_slot_a_first_save_compose STATIC src/replay/slot_a_first_save_compose.c)
+target_include_directories(poolrad_slot_a_first_save_compose PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_link_libraries(poolrad_slot_a_first_save_compose PUBLIC poolrad_slot_a_save_slot_value poolrad_slot_a_save_store_args poolrad_slot_a_first_save_store)
 add_library(poolrad_slot_a_save_store_args STATIC src/replay/slot_a_save_store_args.c)
 target_include_directories(poolrad_slot_a_save_store_args PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 add_library(poolrad_slot_a_save_slot_value STATIC src/replay/slot_a_save_slot_value.c src/recovered/overlay_u25_slot_value_0136.c src/recovered/overlay_u25_entry1_0136.c src/recovered/overlay_u25_load_word_0e0c.c src/recovered/overlay_u25_party_index_0756.c)
@@ -714,6 +717,9 @@ target_link_libraries(poolrad_resident_dax_rle_audit PRIVATE
 
 include(CTest)
 if(BUILD_TESTING)
+    add_executable(poolrad_slot_a_first_save_compose_tests tests/replay/test_slot_a_first_save_compose.c)
+    target_link_libraries(poolrad_slot_a_first_save_compose_tests PRIVATE poolrad_slot_a_first_save_compose)
+    add_test(NAME poolrad_slot_a_first_save_compose_tests COMMAND poolrad_slot_a_first_save_compose_tests)
     add_executable(poolrad_resident_0709_clear_0dd3_cpu_tests
                    tests/recovered/test_resident_0709_clear_0dd3_cpu.c)
     target_link_libraries(poolrad_resident_0709_clear_0dd3_cpu_tests PRIVATE poolrad_recovered)
