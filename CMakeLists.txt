@@ -608,6 +608,7 @@ add_library(poolrad_recovered STATIC src/recovered/overlay_u25_slot_value_0136.c
                                     src/recovered/overlay_u77_spell_299c.c
                                     src/recovered/overlay_u68_coordinate_writer.c
                                     src/recovered/overlay_u68_entry1.c
+                                    src/recovered/overlay_u68_entry1_prefix.c
                                     src/recovered/overlay_u68_party_byte_0236.c
                                     src/recovered/overlay_u68_field_clear_0000.c
                                     src/recovered/overlay_u68_roll_gate_0294.c
@@ -2930,6 +2931,10 @@ if(BUILD_TESTING)
     target_link_libraries(poolrad_overlay_u68_coordinate_writer_tests PRIVATE poolrad_recovered)
     add_test(NAME poolrad_overlay_u68_coordinate_writer_tests
              COMMAND poolrad_overlay_u68_coordinate_writer_tests)
+    add_executable(poolrad_overlay_u68_entry1_prefix_tests tests/recovered/test_overlay_u68_entry1_prefix.c)
+    target_link_libraries(poolrad_overlay_u68_entry1_prefix_tests PRIVATE poolrad_recovered)
+    add_test(NAME poolrad_overlay_u68_entry1_prefix_tests COMMAND poolrad_overlay_u68_entry1_prefix_tests)
+
     add_executable(poolrad_overlay_u68_entry1_tests
                    tests/recovered/test_overlay_u68_entry1.c)
     target_link_libraries(poolrad_overlay_u68_entry1_tests PRIVATE poolrad_recovered)
