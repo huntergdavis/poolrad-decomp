@@ -3,7 +3,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
-/* Pure supplied-state projection; not a CPU/RAM or native-call model. */
+/* Pure supplied-state projection; not a CPU/RAM or native-call model.
+ * If report overlaps input or its declared field buffer, return ARGUMENT
+ * without writing report. Otherwise a non-null report is initialized. */
 typedef struct {
     uint8_t selector, x, y, facing, map_id, frame_residue;
     uint16_t window_word;

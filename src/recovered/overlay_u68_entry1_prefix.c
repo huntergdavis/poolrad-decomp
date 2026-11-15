@@ -1,12 +1,24 @@
 #include "poolrad/recovered/overlay_u68_entry1_prefix.h"
 #include "poolrad/recovered/overlay_u3bd_field.h"
 
+static int overlaps(const void *a, size_t an, const void *b, size_t bn)
+{
+    uintptr_t x = (uintptr_t)a, y = (uintptr_t)b;
+    return x <= y ? y - x < an : x - y < bn;
+}
+
 pr_u68_e1_prefix_stop pr_u68_e1_prefix(const pr_u68_e1_prefix_input *input,
                                        pr_u68_e1_prefix_report *report)
 {
     pr_u3bd_field_state field;
     uint8_t result = 0;
     if (!report) return PR_U68_PREFIX_ARGUMENT;
+    /* An overlapping report cannot be initialized without modifying input. */
+    if (input && overlaps(report, sizeof *report, input, sizeof *input))
+        return PR_U68_PREFIX_ARGUMENT;
+    if (input && input->field_buffer &&
+        overlaps(report, sizeof *report, input->field_buffer, input->field_buffer_size))
+        return PR_U68_PREFIX_ARGUMENT;
     *report = (pr_u68_e1_prefix_report){PR_U68_PREFIX_ARGUMENT, 0, 0};
     if (!input) return report->stop;
     if (input->selector != 1) return report->stop = PR_U68_PREFIX_SELECTOR_PATH;

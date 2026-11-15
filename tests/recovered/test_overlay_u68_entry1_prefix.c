@@ -9,6 +9,16 @@ int main(void)
     pr_u68_e1_prefix_input saved;
     pr_u68_e1_prefix_report r;
     unsigned v;
+    union { pr_u68_e1_prefix_report report; uint8_t buffer[1024]; } alias;
+    union { pr_u68_e1_prefix_report report; pr_u68_e1_prefix_input input; } same;
+    memset(&alias, 0xa5, sizeof alias);
+    in.field_buffer = alias.buffer;
+    CHECK(pr_u68_e1_prefix(&in, &alias.report) == PR_U68_PREFIX_ARGUMENT);
+    CHECK(alias.buffer[0] == 0xa5);
+    memset(&same, 0, sizeof same); same.input = in;
+    CHECK(pr_u68_e1_prefix(&same.input, &same.report) == PR_U68_PREFIX_ARGUMENT);
+    CHECK(same.input.field_buffer == alias.buffer);
+    in.field_buffer = bytes;
     CHECK(pr_u68_e1_prefix(NULL, &r) == PR_U68_PREFIX_ARGUMENT && !r.entry3_valid);
     CHECK(pr_u68_e1_prefix(&in, NULL) == PR_U68_PREFIX_ARGUMENT);
     in.selector = 2; CHECK(pr_u68_e1_prefix(&in, &r) == PR_U68_PREFIX_SELECTOR_PATH && !r.entry3_valid);
