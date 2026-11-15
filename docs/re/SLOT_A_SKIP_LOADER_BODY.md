@@ -7,7 +7,7 @@ numeric immediate and address synthetically.
 
 `pr_slot_a_skip_loader_body` accepts only tag 00 followed by tag 02, validates
 the caller-authenticated loader body and count frame, excludes the declared
-stack/DS/source aliases, and invokes the existing raw loader with two operand
+stack workspace and incoming frame through SP+5 against DS/source aliases, and invokes the existing raw loader with two operand
 iterations. It exposes the loader's actual status and CPU/RAM. The caller
 authenticates the SYSTEM binding, keeps code immutable and host objects
 disjoint. Unsupported profiles refuse before mutation.

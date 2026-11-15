@@ -15,5 +15,6 @@ int pr_slot_a_skip_loader_body(uint8_t *ram,size_t size,const uint8_t *body,size
     for(i=0;i<5u;i++){src[i]=phys(seg,(uint16_t)(off+pc+0x6701u+i));if(((src[i]-ds)&0xfffffu)<0x10000u)return 1;}
     if(ram[src[0]]!=0u||ram[src[2]]!=2u)return 1;
     for(i=0;i<=0x22au;i++){a=phys(cpu->ss,(uint16_t)(cpu->sp-i));if(((a-ds)&0xfffffu)<0x10000u)return 1;for(j=0;j<5u;j++)if(a==src[j])return 1;}
+    for(i=1u;i<=5u;i++){a=phys(cpu->ss,(uint16_t)(cpu->sp+i));if(((a-ds)&0xfffffu)<0x10000u)return 1;for(j=0;j<5u;j++)if(a==src[j])return 1;}
     memcpy(&h,cpu,sizeof h);result=pr_u25_load_operands_0000(ram,size,&h,system_cs,2u,1u);memcpy(cpu,&h,sizeof h);*status=result;return 0;
 }
