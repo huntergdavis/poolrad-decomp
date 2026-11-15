@@ -27,4 +27,10 @@ typedef enum {
 pr_u25_store_word_status pr_u25_store_word_0c77(
     uint8_t *ram, size_t ram_size, pr_u25_store_word_cpu *cpu);
 
+/* Bounded synthetic class-1 resume. Caller supplies immutable 84-byte code
+ * for 0C84..0CD7 and disjoint host objects. Stops at hook entry 0A74. */
+pr_u25_store_word_status pr_u25_store_class1_hook_entry(
+    uint8_t *ram, size_t ram_size, const uint8_t *code, uint8_t synthetic,
+    pr_u25_store_word_cpu *cpu);
+
 #endif

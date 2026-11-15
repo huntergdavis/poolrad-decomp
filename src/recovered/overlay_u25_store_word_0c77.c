@@ -2,6 +2,7 @@
  * Source order matters: arguments, globals, records and frame locals may
  * alias in the caller-owned RAM. Evidence: docs/re/U25_STORE_WORD_0C77.md. */
 #include "poolrad/recovered/overlay_u25_store_word_0c77.h"
+#include <string.h>
 
 #define MASK (PR_U25_0756_RAM_SIZE - 1u)
 #define ARITH 0x08D5u
@@ -440,4 +441,46 @@ pr_u25_store_word_status pr_u25_store_word_0c77(
 done:
     finish(ram, c, 4u);
     return PR_U25_STORE_WORD_OK;
+}
+
+/* Execute only the synthetic class-1 continuation; reject all aliases that
+ * could change a later instruction, stack operand, or pointer during it. */
+pr_u25_store_word_status pr_u25_store_class1_hook_entry(
+    uint8_t *ram, size_t size, const uint8_t *code, uint8_t synthetic,
+    pr_u25_store_word_cpu *c)
+{
+    size_t cp, frame[20], pointer[4], dest[2], i, j;
+    uint16_t off, seg, rel;
+    if (!ram || size != PR_U25_0756_RAM_SIZE || !code || !c ||
+        c->ip != 0x0c84u || c->bp < 10u || c->bp > 0xfff6u ||
+        c->sp != (uint16_t)(c->bp - 2u) || (uint8_t)c->ax != 1u ||
+        r16(ram,c->ss,(uint16_t)(c->bp+6u)) != (synthetic & 0x7fu) ||
+        r16(ram,c->ss,(uint16_t)(c->bp+8u)) != 0x6e82u)
+        return PR_U25_STORE_WORD_ARGUMENT;
+    cp=physical(c->cs,0x0c84u);
+    if (cp > size-84u || memcmp(ram+cp,code,84u) ||
+        code[80]!=0x0eu || code[81]!=0xe8u) return PR_U25_STORE_WORD_ARGUMENT;
+    rel=(uint16_t)(code[82]|((uint16_t)code[83]<<8));
+    if ((uint16_t)(0x0cd8u+rel)!=0x0a74u) return PR_U25_STORE_WORD_ARGUMENT;
+    for (i=0;i<20u;i++) frame[i]=physical(c->ss,(uint16_t)(c->bp-10u+i));
+    for (i=0;i<4u;i++) pointer[i]=physical(c->ds,(uint16_t)(0x49d6u+i));
+    off=r16(ram,c->ds,0x49d6u); seg=r16(ram,c->ds,0x49d8u);
+    off=(uint16_t)(off+(uint16_t)(0x6e82u<<1)+0x2a00u);
+    dest[0]=physical(seg,off);dest[1]=(dest[0]+1u)&MASK;
+    for(i=0;i<20u;i++){
+        if(frame[i]>=cp && frame[i]<cp+84u) return PR_U25_STORE_WORD_ARGUMENT;
+        for(j=0;j<4u;j++) if(frame[i]==pointer[j]) return PR_U25_STORE_WORD_ARGUMENT;
+        for(j=0;j<2u;j++) if(frame[i]==dest[j]) return PR_U25_STORE_WORD_ARGUMENT;
+    }
+    for(i=0;i<2u;i++){
+        if(dest[i]>=cp && dest[i]<cp+84u) return PR_U25_STORE_WORD_ARGUMENT;
+        for(j=0;j<4u;j++) if(dest[i]==pointer[j]) return PR_U25_STORE_WORD_ARGUMENT;
+    }
+    w8(ram,c->ss,(uint16_t)(c->bp-1u),(uint8_t)c->ax);
+    al(c,r8(ram,c->ss,(uint16_t)(c->bp-1u)));
+    (void)eq8(c,0u); (void)eq8(c,1u);
+    window(ram,c,0x49d6u,0x2a00u);
+    push(ram,c,r16(ram,c->ss,(uint16_t)(c->bp+8u)));
+    push(ram,c,value(ram,c));push(ram,c,c->cs);push(ram,c,0x0cd8u);
+    c->ip=0x0a74u;return PR_U25_STORE_WORD_OK;
 }
