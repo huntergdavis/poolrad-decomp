@@ -33,4 +33,10 @@ pr_u25_store_word_status pr_u25_store_class1_hook_entry(
     uint8_t *ram, size_t ram_size, const uint8_t *code, uint8_t synthetic,
     pr_u25_store_word_cpu *cpu);
 
+/* Explicit synthetic 6E82 hook frame; stops after RETF 4 at 0CD8.
+ * Caller supplies immutable 515-byte hook code and disjoint host objects. */
+pr_u25_store_word_status pr_u25_store_synthetic_hook_return(
+    uint8_t *ram, size_t ram_size, const uint8_t *code, uint8_t synthetic,
+    pr_u25_store_word_cpu *cpu);
+
 #endif
