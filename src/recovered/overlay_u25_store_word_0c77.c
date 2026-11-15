@@ -484,3 +484,24 @@ pr_u25_store_word_status pr_u25_store_class1_hook_entry(
     push(ram,c,value(ram,c));push(ram,c,c->cs);push(ram,c,0x0cd8u);
     c->ip=0x0a74u;return PR_U25_STORE_WORD_OK;
 }
+
+pr_u25_store_word_status pr_u25_store_synthetic_hook_return(
+    uint8_t *ram, size_t size, const uint8_t *code, uint8_t synthetic,
+    pr_u25_store_word_cpu *c)
+{
+    size_t cp, a, i;
+    if (!ram || size!=PR_U25_0756_RAM_SIZE || !code || !c ||
+        c->ip!=0x0a74u || c->sp<4u || c->sp>0xfff8u ||
+        r16(ram,c->ss,c->sp)!=0x0cd8u ||
+        r16(ram,c->ss,(uint16_t)(c->sp+2u))!=c->cs ||
+        r16(ram,c->ss,(uint16_t)(c->sp+4u))!=(synthetic & 0x7fu) ||
+        r16(ram,c->ss,(uint16_t)(c->sp+6u))!=0x6e82u)
+        return PR_U25_STORE_WORD_ARGUMENT;
+    cp=physical(c->cs,0x0a74u);
+    if(cp>size-515u || memcmp(ram+cp,code,515u)) return PR_U25_STORE_WORD_ARGUMENT;
+    for(i=0;i<12u;i++){
+        a=physical(c->ss,(uint16_t)(c->sp-4u+i));
+        if(a>=cp && a<cp+515u) return PR_U25_STORE_WORD_ARGUMENT;
+    }
+    return store_hook(ram,c);
+}
