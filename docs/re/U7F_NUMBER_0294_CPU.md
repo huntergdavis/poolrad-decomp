@@ -54,9 +54,9 @@ since the previous pass; see `drain-group` below.
 
 **Factor 1.** Three game_evidenced callers, on a fresh export of main:
 
-- `OVL_0077_2156`, relocation fixup at +23F5;
-- `OVL_0077_24A7`, fixup at +26F3;
-- `OVL_007F_0CEB`, a near `PUSH CS; CALL` at +0F0E.
+- `OVL_0077_2156`, far call at +23F5, segment-word relocation at +23F8;
+- `OVL_0077_24A7`, far call at +26F3, segment-word relocation at +26F6;
+- `OVL_007F_0CEB`, `PUSH CS` at +0F0D and near `CALL` at +0F0E.
 
 **Factor 2 — argument-borne, and why this is not 06FB.** This body has **no game-global memory operand**: its own operands
 are its arguments, its locals and the screen (through the 0709 routines). That is the same shape as `OVL_03B0_06FB`, which
@@ -67,13 +67,14 @@ passes `max` from documented game state:
 
 - **`OVL_0077_2156` (+23E1…23E7) and `OVL_0077_24A7` (+26DF…26E5):** `LES DI,[5D92h]` loads the far pointer to the active
   character record (ECL_LOAD_HOOK_6BA0_SIGNED, FUNCTION_LEDGER). The caller pushes `ES:[DI+88h+2i]`, one of the record's
-  money words at +88h, +8Ah … +94h (U7F_DIV5_ENTRY10, U77_WEIGHTED_28BE, U7F_RECORD_SUBTRACT_0020).
+  indexed words at +88h+2i (U7F_DIV5_ENTRY10, U77_WEIGHTED_28BE, U7F_RECORD_SUBTRACT_0020). The exact meaning of the slots remains unresolved.
 - **`OVL_007F_0CEB` (+0F00):** it pushes the word at `DS:[67F4h+4i]`. U7F_RECORD_SUBTRACT_0020 documents those same record
   words being added into the DS:67F4/67F6 dwords.
 
 The body **uses** `max`, not merely forwards it: it formats `max` with `Str` for the clamp text, and compares against it
-(`CMP DX,[BP-3Eh]` / `CMP AX,[BP-40h]`) to clamp the entry. The routine is therefore "enter an amount of money up to what
-the character (or the pool) has". A reader comparing it with 06FB should see that only the argument makes them different.
+(`CMP DX,[BP-3Eh]` / `CMP AX,[BP-40h]`) to clamp the entry. This supports an argument-borne game-state identity hypothesis; the exact slot semantics and identity acceptance remain open.
+
+The near caller was independently linear-decoded through its recorded extent, including a `RETF` at +0F7D; this is not a full CFG or reachability proof. Complete identity, endpoint closure, limit propagation, current checker gates, and historical reviewer independence remain unverified. The earlier t5394 evidence packet remains unchanged; this paragraph and the corrected offsets above supersede its fixup-location wording.
 
 ## Contract and stops
 
@@ -90,12 +91,11 @@ the character (or the pool) has". A reader comparing it with 06FB should see tha
   - **LIMIT**;
   - **TRANSFER**: defensive, reached in no case;
   - **ARGUMENT**.
-- **The chain is all credited or covered, not a mix with models** (VP i20226 condition 4). `RES_0899_0059` and
+- **Historical closure assessment, not independently reverified:** the chain was described as credited or covered (VP i20226 condition 4). `RES_0899_0059` and
   `RES_0899_0000` are now **credited** (#1302). Under them, the Crt, ParamStr, Intr, Halt, GetTime and 08AE members are
   covered, declared or driver_internal. The SYSTEM string routines and Str are covered. 0709:05EB and 0626 are
-  resident_covered. **Val's model is merged (#1303), but its `RUNTIME_COVERED_ENDPOINTS` line is not yet on main**, checked
-  on main at 22:42 PDT. Until par-e lands that line, Val is the one link in this chain that is modelled but not yet
-  covered in accounting.
+  resident_covered. Val's model is merged (#1303), and `0AF8:13B1` is registered in `RUNTIME_COVERED_ENDPOINTS` (see
+  `tools/overlay/strict_candidate_queue.py` and #1308). Registration alone does not establish complete closure or current gates.
 - **One argued infeasible outcome.** `JG` at +0363 taken would need `0 > hi(Val(text))`, and `text` only ever holds digits
   and blanks:
   - appended digits;
