@@ -39,4 +39,10 @@ pr_u25_store_word_status pr_u25_store_synthetic_hook_return(
     uint8_t *ram, size_t ram_size, const uint8_t *code, uint8_t synthetic,
     pr_u25_store_word_cpu *cpu);
 
+/* Synthetic 6E82 store return: caller authenticates immutable jump and
+ * epilogue code, supplies disjoint host objects, and expects caller 3582:0E5A. */
+pr_u25_store_word_status pr_u25_store_synthetic_return(
+    uint8_t *ram, size_t ram_size, const uint8_t *jump, const uint8_t *tail,
+    uint8_t synthetic, pr_u25_store_word_cpu *cpu);
+
 #endif
