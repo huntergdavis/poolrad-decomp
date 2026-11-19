@@ -292,6 +292,7 @@ overlay_u5e_neighbor_1bf8.c,flat,no,no
 overlay_u5e_party_value_2879.c,flat,no,no
 overlay_u68_coordinate_writer.c,flat,no,no
 overlay_u68_entry1.c,flat,no,no
+overlay_u68_entry1_prefix.c,flat,no,no
 overlay_u68_entry2_up.c,flat,no,no
 overlay_u68_field_clear_0000.c,flat,no,no
 overlay_u68_list_search.c,flat,no,no
