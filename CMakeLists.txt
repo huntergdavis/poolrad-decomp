@@ -4519,6 +4519,15 @@ if(BUILD_TESTING)
                                ${CMAKE_CURRENT_SOURCE_DIR}/include)
     add_test(NAME poolrad_slot_a_caller_to_entry1_tests
              COMMAND poolrad_slot_a_caller_to_entry1_tests)
+    add_executable(poolrad_slot_a_entry1_to_0742_tests
+                   tests/replay/test_slot_a_entry1_to_0742.c
+                   src/replay/slot_a_entry1_to_0742.c)
+    target_link_libraries(poolrad_slot_a_entry1_to_0742_tests PRIVATE
+                          poolrad_recovered)
+    target_include_directories(poolrad_slot_a_entry1_to_0742_tests PRIVATE
+                               ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    add_test(NAME poolrad_slot_a_entry1_to_0742_tests
+             COMMAND poolrad_slot_a_entry1_to_0742_tests)
     add_executable(poolrad_slot_a_row9_seven_cell_printer_tests
                    tests/replay/test_slot_a_row9_seven_cell_printer.c)
     target_link_libraries(poolrad_slot_a_row9_seven_cell_printer_tests PRIVATE
