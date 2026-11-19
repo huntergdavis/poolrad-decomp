@@ -61,17 +61,28 @@ pr_slot_a_e1_status pr_slot_a_entry1_to_0742(uint8_t *ram, size_t ram_size,
     in.frame_residue = 0; /* proven not to change entry 3's result (U3BD_FIELD_ENTRY3.md) */
     in.window_word = 0;
 
-    /* The window word is read only on the selector-1 path (+0x0D82). */
+    /* The window word is read only on the selector-1 path (+0x0D82). The original
+     * addresses it as es:[di+0x592] and the buffer as es:[di+0x300..], so a pointer
+     * offset that carries past 0xFFFF would wrap inside the segment. This slice reads
+     * both through flat memory, so such a pointer is an explicit stop (MISSING_INPUT),
+     * never a linear read that disagrees with the original. */
     if (in.selector == 1u) {
-        window_at = physical(word_at(ram, physical(regs->ds, 0x49D8u)),
-                             word_at(ram, physical(regs->ds, 0x49D6u)));
+        unsigned window_off = word_at(ram, physical(regs->ds, 0x49D6u));
+        unsigned window_seg = word_at(ram, physical(regs->ds, 0x49D8u));
+        unsigned buffer_off = word_at(ram, physical(regs->ds, 0x6A5Cu));
+        unsigned buffer_seg = word_at(ram, physical(regs->ds, 0x6A5Eu));
+        if (window_off + 0x592u + 2u > 0x10000u) return PR_SLOT_A_E1_MISSING_INPUT;
+        window_at = physical(window_seg, window_off);
         if (!fits(ram_size, window_at + 0x592u, 2u)) return PR_SLOT_A_E1_MISSING_INPUT;
         in.window_word = (uint16_t)word_at(ram, window_at + 0x592u);
-        buffer_at = physical(word_at(ram, physical(regs->ds, 0x6A5Eu)),
-                             word_at(ram, physical(regs->ds, 0x6A5Cu)));
-        if (fits(ram_size, buffer_at, PR_U3BD_FIELD_BUFFER_SIZE)) {
-            in.field_buffer = ram + buffer_at;
-            in.field_buffer_size = PR_U3BD_FIELD_BUFFER_SIZE;
+        /* Only a pointer whose 1,024 bytes would wrap is refused here; an unreadable or
+         * short buffer still reaches pr_u68_e1_prefix, which reports MISSING_INPUT. */
+        if (buffer_off + PR_U3BD_FIELD_BUFFER_SIZE <= 0x10000u) {
+            buffer_at = physical(buffer_seg, buffer_off);
+            if (fits(ram_size, buffer_at, PR_U3BD_FIELD_BUFFER_SIZE)) {
+                in.field_buffer = ram + buffer_at;
+                in.field_buffer_size = PR_U3BD_FIELD_BUFFER_SIZE;
+            }
         }
     }
 

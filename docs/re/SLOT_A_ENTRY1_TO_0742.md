@@ -63,25 +63,51 @@ model's RAM against the native `+0742` RAM:
   `3D9D..3DA6` and `3DAA..3DBB`, all below the stop SP `3DBC`; zero differences
   anywhere else.
 
-The 28 bytes are the dead-stack residue the unit `0x3BD` entry-3 call chain (and any
-interrupt frame) left below the final SP. They are pinned by exact ranges and are
-**not modeled**; whether any of them was an interrupt frame is not distinguishable
-from one capture.
+The 28 bytes are below the stop SP, so they are dead stack at the stop. They are
+pinned to the **observed** ranges and are **not modeled** and not derived: only
+`3DB8..3DBB` is independently supported by the entry-3 call-frame story; the deeper
+`3D9D..3DB7` bytes are an inference from where the call chain's frames lie, not a
+measurement of their writer. Whether any of them was an interrupt frame is not
+distinguishable from one capture.
 
 ## Verification
 
 * `poolrad_slot_a_entry1_to_0742_tests` (CTest, synthetic, no game data): the exact
   stored set (11 bytes, over a non-zero stack filler so a stored zero is a real
   change), every non-`+0742` projection stop leaving RAM byte-identical, window word
-  `FE` versus `FF`, facing and map inputs read from the right fields, missing-input
+  `FE` versus `FF`, facing and map inputs read from the right fields, entry-3
+  results 2 and 3 stopping on the message path, segment-offset carry boundaries
+  for the window and buffer pointers, exactly 1 MiB accepted, missing-input
   atomicity, SP wrap, argument guards. The tests use explicit checks, not `assert`,
-  and pass at `-O0 -UNDEBUG` and `-O2 -DNDEBUG`. 15 source mutants (flag, saved BP,
+  and pass at `-O0 -UNDEBUG` and `-O2 -DNDEBUG`. 25 source mutants (flag, saved BP,
   locals size, pushed word, CS slot, return IP, window offset, facing, map id, BP
-  slot, stop IP, store count, party x, selector, buffer pointer) were each killed;
-  two mutants (facing, map id) first survived and drove two added cases.
+  slot, stop IP, store count, party x, selector, buffer pointer, RAM size limit,
+  message-path guard, window and buffer carry checks and their boundaries, word-wrap
+  guard) were each killed. Facing and map id first survived, and Reviewer 1's mutants
+  (RAM size limit, message-path guard) first survived; each drove added cases.
 * `tests/replay/check_slot_a_entry1_to_0742.sh GAME.OVR RAM_0D6D RAM_0742 CPU_0D6D
   CPU_0742` (private inputs, hash-locked by `audit_slot_a_entry1_to_0742.py`):
   passes. Swapped inputs, the invalid dump and a wrong CPU file each fail.
+
+## Review and carried limits
+
+Reviewer 1 (ordinal 2, recovered directly by the Coordinator) found the bounded slice-1
+claim SUPPORTED with no blocker after an independent out-of-tree rebuild: frame
+arithmetic, the 11-byte and 28-byte native split, tests at `-O0`/`-O2`/CMake plus
+neighbours and QA, dump and pairing checks, 15 mutants, hashes and the capture numbers.
+Its three low findings are handled in this change: (1) window and buffer pointers whose
+segment offset would carry are now an explicit `MISSING_INPUT` stop, with boundary tests
+(retained captures have offset 0 and are unaffected); (2) the exact-1-MiB size and the
+message-path stop (entry-3 results 2 and 3) are now tested, and the mutants that exposed
+them are killed; (3) the residue wording above says plainly which part is supported.
+
+Limits that remain, not overclaimed: CPU files are manual transcriptions and the stop
+receipt is the debugger's breakpoint display; run `025` contains no `0D6D`/`0742` pair
+(it supports only the entry inputs, and `348D→3492` numbers), so the native
+`0D6D→0742` comparison rests on the earlier `entry1-002` run; the capture observer
+verdict was partial (exit 125, no post-audit); the window-0 `+0x18E` `0 → 1` change is
+read from the `3492` image and is not isolated to a writer; the merged
+`pr_u68_e1_prefix` (PR #1962) was not itself re-reviewed here.
 
 ## Fresh same-invocation capture (run `t4492-slot1-capture-025`)
 

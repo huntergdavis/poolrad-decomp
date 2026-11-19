@@ -24,7 +24,10 @@
  *   - the stack bytes below the final SP that the unit 0x3BD entry 3 call chain
  *     (and any interrupt frame) leaves behind: dead-stack residue, see the doc
  *   - everything after +0x0742
- * The model never writes outside the stores listed above. */
+ * The model never writes outside the stores listed above.
+ * Segment-offset carry: the original reads es:[di+0x592] and es:[di+0x300..] inside a
+ * 64 KiB segment. A window-1 or field-buffer pointer whose offset would carry past
+ * 0xFFFF is an explicit stop (MISSING_INPUT), because this slice reads flat memory. */
 
 #define PR_SLOT_A_E1_RETURN_IP_073B 0x1031u  /* +0x102E call (3 bytes) -> next IP */
 #define PR_SLOT_A_E1_LOCALS 0x012Cu          /* sub sp, 0x12C at +0x0D70 */

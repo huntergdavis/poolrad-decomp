@@ -15,6 +15,7 @@
 
 static uint8_t ram[RAM_SIZE];
 static uint8_t pristine[RAM_SIZE];
+static uint8_t big[1u << 20];
 static int failures;
 
 #define CHECK(cond) do { if (!(cond)) { \
@@ -122,6 +123,42 @@ int main(void)
     setup(); ram[ph(DS, 0x6AADu)] = 0x80; memcpy(pristine, ram, sizeof ram); r = regs();
     CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
     CHECK(rep.entry3_valid == 1 && rep.entry3_result == 1);
+
+    /* 2c. Entry-3 results 2 and 3 take the message path (probed: first 0x300 bytes 0x55, quarter-3
+     * cell 0x42 / 0x43, selector 0). The adapter must stop there and write nothing. */
+    for (k = 0; k < 2u; k++) {
+        setup(); memset(ram + ph(0x3DA1u, 0), 0x55, 0x300u);
+        ram[ph(0x3DA1u, 0x300u + 16u * 4u + 15u)] = (uint8_t)(0x42u + k);
+        ram[ph(DS, 0x6AAFu)] = 0; memcpy(pristine, ram, sizeof ram); r = regs();
+        CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_NOT_REACHED);
+        CHECK(rep.prefix_stop == PR_U68_PREFIX_MESSAGE_PATH && rep.entry3_valid == 1 &&
+              rep.entry3_result == 2u + k && rep.frame_bytes_written == 0u && changed(list, 1) == 0);
+    }
+
+    /* 2d. Segment-offset carry. The original addresses es:[di+0x592] and es:[di+0x300..] inside a
+     * 64 KiB segment; a pointer whose offset would carry past 0xFFFF is refused, not read linearly.
+     * Boundaries: window offset 0xFA6C ends exactly at 0xFFFF (allowed), 0xFA6D carries (refused);
+     * buffer offset 0xFC00 ends exactly at 0xFFFF (allowed), 0xFC01 carries (refused). */
+    setup(); setw(DS, 0x49D6u, 0xFA6Cu); setw(DS, 0x49D8u, 0x2000u); memcpy(pristine, ram, sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
+    setup(); setw(DS, 0x49D6u, 0xFA6Du); setw(DS, 0x49D8u, 0x2000u); memcpy(pristine, ram, sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT);
+    CHECK(rep.frame_bytes_written == 0u && changed(list, 1) == 0);
+    setup(); setw(DS, 0x6A5Cu, 0xFC00u); setw(DS, 0x6A5Eu, 0x2000u); memcpy(pristine, ram, sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
+    setup(); setw(DS, 0x6A5Cu, 0xFC01u); setw(DS, 0x6A5Eu, 0x2000u); memcpy(pristine, ram, sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT);
+    CHECK(rep.prefix_stop == PR_U68_PREFIX_MISSING_INPUT && changed(list, 1) == 0);
+    /* A carrying window pointer is irrelevant off the selector-1 path: selector 2 still reports it. */
+    setup(); ram[ph(DS, 0x49FAu)] = 2; setw(DS, 0x49D6u, 0xFFFFu); setw(DS, 0x49D8u, 0x2000u); memcpy(pristine, ram, sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_NOT_REACHED);
+    CHECK(rep.prefix_stop == PR_U68_PREFIX_SELECTOR_PATH);
+
+    /* 2e. The header says 1 MiB or smaller: exactly 1 MiB is accepted, one byte more is refused
+     * (checked in section 5). The store lands in the same place in a 1 MiB image. */
+    setup(); memcpy(big, ram, sizeof ram); memset(big + sizeof ram, 0, sizeof big - sizeof ram); r = regs();
+    CHECK(pr_slot_a_entry1_to_0742(big, sizeof big, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
+    CHECK(rep.frame_bytes_written == 11u && big[ph(SS, 0x3EEFu)] == 1u);
 
     /* 3. Missing input: window, buffer and stack stores outside the image; nothing written. */
     setup(); setw(DS, 0x49D8u, 0x9FFFu); setw(DS, 0x49D6u, 0xFFFFu); memcpy(pristine, ram, sizeof ram); r = regs();
