@@ -169,6 +169,39 @@ int main(void)
     CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT && changed(list, 1) == 0);
     setup(); r = regs(); r.sp = 0x0001u;      /* bp1 = 0xFFFF: a wrapped word store, refused */
     CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT && changed(list, 1) == 0);
+    /* Each remaining term of the word-wrap guard, forced true alone by an odd entry SP.
+     * With sp1 = sp - 0x12E: sp1-2 == 0xFFFF at sp 0x012F (push cs), sp1-4 at 0x0131 (return IP),
+     * sp1-6 at 0x0133 (saved BP), sp1-8 at 0x0135 (pushed word). The word store would sit at
+     * segment offset 0xFFFF and wrap inside the segment in the original; it is refused instead of
+     * written flat. SS 1D16 keeps the flat address inside the image, so only the guard stops it. */
+    {
+        static const unsigned odd_sp[4] = {0x012Fu, 0x0131u, 0x0133u, 0x0135u};
+        for (k = 0; k < 4u; k++) {
+            setup(); r = regs(); r.sp = (uint16_t)odd_sp[k];
+            CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT);
+            CHECK(rep.prefix_stop == PR_U68_PREFIX_BEFORE_073B && rep.frame_bytes_written == 0u &&
+                  changed(list, 1) == 0);
+        }
+        /* Positive control: the next odd SP trips no term and stores at odd offsets. */
+        setup(); r = regs(); r.ss = 0x1000u; r.sp = 0x0137u;  /* SS 1000: low offsets carry the 0xA5 filler */
+        CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
+        CHECK(rep.sp == (uint16_t)(0x0137u - 0x12Eu - 8u) && rep.bp == (uint16_t)(0x0137u - 0x12Eu - 6u));
+        CHECK(rep.frame_bytes_written == 11u && changed(list, 64) == 11u);
+        /* Boundary just below the refused offset: each word in turn at offset 0xFFFE (bytes
+         * FFFE..FFFF, inside the segment) is legal and must not be refused. Entry SP and the word
+         * that lands there: 0x0000 saved caller BP (F8 3E), 0x012E push cs (60 2E), 0x0130 return IP
+         * (31 10), 0x0132 the writer's saved BP = bp1 0x0130 (30 01), 0x0134 pushed word (0A 00). */
+        static const struct { unsigned sp; uint8_t lo, hi; } edge[5] = {
+            {0x0000u, 0xF8, 0x3E}, {0x012Eu, 0x60, 0x2E}, {0x0130u, 0x31, 0x10},
+            {0x0132u, 0x30, 0x01}, {0x0134u, 0x0A, 0x00}};
+        for (k = 0; k < 5u; k++) {
+            setup(); r = regs(); r.ss = 0x1000u; r.sp = (uint16_t)edge[k].sp;
+            CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_STOP_0742);
+            CHECK(rep.frame_bytes_written == 11u &&
+                  rep.sp == (uint16_t)(edge[k].sp - 0x12Eu - 8u));
+            CHECK(ram[ph(0x1000u, 0xFFFEu)] == edge[k].lo && ram[ph(0x1000u, 0xFFFFu)] == edge[k].hi);
+        }
+    }
     setup(); r = regs(); r.ds = 0x9FFFu;
     CHECK(pr_slot_a_entry1_to_0742(ram, RAM_SIZE, &r, &rep) == PR_SLOT_A_E1_MISSING_INPUT && changed(list, 1) == 0);
     setup(); /* the store failure must not leak a partial write after a passed projection */

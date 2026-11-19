@@ -79,12 +79,19 @@ distinguishable from one capture.
   results 2 and 3 stopping on the message path, segment-offset carry boundaries
   for the window and buffer pointers, exactly 1 MiB accepted, missing-input
   atomicity, SP wrap, argument guards. The tests use explicit checks, not `assert`,
-  and pass at `-O0 -UNDEBUG` and `-O2 -DNDEBUG`. 25 source mutants (flag, saved BP,
-  locals size, pushed word, CS slot, return IP, window offset, facing, map id, BP
-  slot, stop IP, store count, party x, selector, buffer pointer, RAM size limit,
-  message-path guard, window and buffer carry checks and their boundaries, word-wrap
-  guard) were each killed. Facing and map id first survived, and Reviewer 1's mutants
-  (RAM size limit, message-path guard) first survived; each drove added cases.
+  and pass at `-O0 -UNDEBUG` and `-O2 -DNDEBUG`. 34 source mutants were each killed:
+  24 earlier ones (inputs and stores: flag, saved BP, locals size, pushed word, CS slot,
+  return IP, window offset, facing, map id, BP slot, stop IP, store count, party x,
+  selector, buffer pointer; RAM size limit and exactly-1-MiB, message-path guard; the
+  window and buffer carry checks and their boundaries), then the five terms of the
+  word-wrap guard removed one at a time (`bp1==FFFF` with entry SP `0001`; `sp1-2`
+  with `012F`, `sp1-4` with `0131`, `sp1-6` with `0133`, `sp1-8` with `0135`, where
+  `sp1 = SP - 0x12E`), and the same five narrowed to also refuse offset `FFFE`, which is
+  legal (table of entry SPs `0000`, `012E`, `0130`, `0132`, `0134` puts each guarded word
+  at `FFFE..FFFF` and requires a store, with the exact bytes). Facing, map id and Reviewer
+  1's size-limit and message-guard mutants first survived, and so did four of the five
+  wrap-guard terms (and four of the five over-refusal variants); each drove added cases.
+  The focused test also passes under ASan/UBSan.
 * `tests/replay/check_slot_a_entry1_to_0742.sh GAME.OVR RAM_0D6D RAM_0742 CPU_0D6D
   CPU_0742` (private inputs, hash-locked by `audit_slot_a_entry1_to_0742.py`):
   passes. Swapped inputs, the invalid dump and a wrong CPU file each fail.
@@ -95,11 +102,16 @@ Reviewer 1 (ordinal 2, recovered directly by the Coordinator) found the bounded 
 claim SUPPORTED with no blocker after an independent out-of-tree rebuild: frame
 arithmetic, the 11-byte and 28-byte native split, tests at `-O0`/`-O2`/CMake plus
 neighbours and QA, dump and pairing checks, 15 mutants, hashes and the capture numbers.
-Its three low findings are handled in this change: (1) window and buffer pointers whose
+Its three low findings are handled in `5a880a27`: (1) window and buffer pointers whose
 segment offset would carry are now an explicit `MISSING_INPUT` stop, with boundary tests
 (retained captures have offset 0 and are unaffected); (2) the exact-1-MiB size and the
 message-path stop (entry-3 results 2 and 3) are now tested, and the mutants that exposed
 them are killed; (3) the residue wording above says plainly which part is supported.
+
+A later exact-head review at `5a880a27` (CI green, native split reproduced, ASan/UBSan) supported
+the slice with one low gap: four of the five word-wrap guard terms were individually untested
+(only the `bp1` term was). The odd-SP cases above close it; the retained captures have even
+SP and are unaffected.
 
 Limits that remain, not overclaimed: CPU files are manual transcriptions and the stop
 receipt is the debugger's breakpoint display; run `025` contains no `0D6D`/`0742` pair
