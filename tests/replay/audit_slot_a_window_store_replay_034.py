@@ -138,6 +138,8 @@ def replay(rows, base, game, snap_rows=()):
         return rd(a) | (rd(a + 1) << 8)
 
     stores = []
+    journal = []        # (row, address, byte, class) for every byte stored below 0xA0000, in order
+    vjournal = []       # (row, display offset, byte, class) for every byte stored at/above 0xA0000
 
     def wr(i, a, n, v, kind, cls):
         a &= 0xFFFFF
@@ -148,12 +150,14 @@ def replay(rows, base, game, snap_rows=()):
                 mem[b - VIDEO_BASE] = byte
                 continue
             if b >= VIDEO_BASE:
+                vjournal.append((i, b - VIDEO_BASE, byte, cls))
                 video[(b >> 4 & 0xF000, cls)] += 1
                 if taint[0]:
                     stats["video-read-to-video"] += 1
                 continue
             if taint[0]:
                 stats["video-read-to-ram"] += 1
+            journal.append((i, b, byte, cls))
             mem[b] = byte
         stores.append((i, a, n, kind, cls))
 
@@ -383,11 +387,11 @@ def replay(rows, base, game, snap_rows=()):
     check(dos_state["calls"] == len(DOS_CALLS), "DOS call count mismatch")
     check(hw_entries == 1, "hardware IRQ entry count mismatch")
     notes.update(rep_lines=dict(rep_lines), chunk_exceptions=chunk_exceptions, annot=dict(annot),
-                 annot_bad=annot_bad, stats=dict(stats), hw_entries=hw_entries, snaps=snaps)
+                 annot_bad=annot_bad, stats=dict(stats), hw_entries=hw_entries, snaps=snaps, journal=journal, vjournal=vjournal)
     return mem, stores, video, notes
 
 
-def runb_control(rows, base, snaps, runs_dir):
+def runb_control(rows, base, snaps, runs_dir, bounds=None):
     """Replayed prefix (Run A 0747 + stores up to each stop row) vs the Run B image at that stop.  Run B is a
     different native run: bytes where its own 0747 image differs from Run A's (the noise set) are excluded,
     and every other mismatch must lie in the stack segment (run-dependent pushed values, and the IRQ0 landing
@@ -409,7 +413,7 @@ def runb_control(rows, base, snaps, runs_dir):
         return data
 
     zero_img = {name: load(name, "RAM-2E60-0747.BIN") for name in RUNB_MANIFESTS}
-    out_total, stack_lo, stack_hi = 0, STACK_SEG << 4, (STACK_SEG << 4) + 0x10000
+    out_total, (stack_lo, stack_hi) = 0, bounds or (STACK_SEG << 4, (STACK_SEG << 4) + 0x10000)
     print("Run B intermediate-stop control (noise = Run B 0747 image vs Run A 0747 image):")
     for name, k, cs, ip, rdir, fname in RUNB_STOPS:
         check((rows[k][1], rows[k][2]) == (cs, ip), "stop row %s does not sit at %04X:%04X" % (name, cs, ip))
@@ -422,7 +426,7 @@ def runb_control(rows, base, snaps, runs_dir):
         mism = {a for a in range(RAM_SIZE) if pred[a] != img[a]}
         outside = sorted(mism - noise)
         off_stack = [a for a in outside if not stack_lo <= a < stack_hi]
-        print("  %-12s row %5d  noise %3d  mismatch %3d  in noise %3d  outside %3d  outside the stack segment %d" %
+        print("  %-12s row %5d  noise %3d  mismatch %3d  in noise %3d  outside %3d  outside the stack bound %d" %
               (name, k, len(noise), len(mism), len(mism & noise), len(outside), len(off_stack)))
         out_total += len(off_stack)
     check(out_total == 0, "Run B control: %d mismatch byte(s) outside noise and the stack segment" % out_total)
@@ -531,4 +535,5 @@ def main():
     print("run-034 window store replay verified")
 
 
-main()
+if __name__ == "__main__":
+    main()
