@@ -174,7 +174,7 @@ def replay(rows, base):
            "xor": lambda o, s, c: o ^ s}
     last = len(rows) - 1
     for i, (ts, cs, ip, text, byt, r, flags) in enumerate(rows):
-        if i == 0:
+        if i == 0 and MUT != "first-row-applied":
             continue                 # the first line at a breakpoint is logged twice (same instruction)
         if i == last and MUT != "apply-stop-row":
             continue                 # the final line is the 13C6 stop state: not executed

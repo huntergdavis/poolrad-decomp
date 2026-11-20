@@ -1,6 +1,6 @@
 # Slot-A Up: store replay of the `10D2:0165 → 10D2:13C6` window (run 037)
 
-This note closes the one unlogged link of the saved-slot-A Up chain `00F4 → 0165 → 13C6 → 0747 → 3492`.
+This note traces the one window of the saved-slot-A Up chain `00F4 → 0165 → 13C6 → 0747 → 3492` that had no trace of its own. The chain's windows come from different native runs (host hours 8, 14 and 15), so this is a statement about this window and its run-030 counterpart, not a single-run chain.
 [SLOT_A_MEASURED_INPUTS_030.md](SLOT_A_MEASURED_INPUTS_030.md) explained the 54 native bytes of
 `0165 → 13C6` from the C models without a trace; this run traces the window (`LOGL`, first log of a fresh
 native run) and replays its stores over the native `0165` image with the same method as the
