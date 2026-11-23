@@ -69,7 +69,10 @@ static void run_nonprompt(pr_ca::Gate &g, int n, FILE *out) {
     }
 }
 
-static void run_prompt(pr_ca::Gate &g, const Prompt &p, FILE *out) {
+/* Independent of pr_ca::kFixedRows: the six 5-byte lcall sites in the codeword source note; the pushed return is site + 5. */
+static const uint16_t kIndependentCallSites[6] = {0x0157, 0x0174, 0x0191, 0x0202, 0x0286, 0x02D8};
+
+static void run_prompt(pr_ca::Gate &g, const Prompt &p, FILE *out, bool independent_rows = false) {
     uint16_t head = 0x1E, tail = 0x1E;
     int sends = 0;
     bool broken = false;
@@ -87,7 +90,9 @@ static void run_prompt(pr_ca::Gate &g, const Prompt &p, FILE *out) {
         m.words[UNIT_BP] = 0; m.words[UNIT_BP + 2] = 0; m.words[UNIT_BP + 4] = 0;
         m.bytes[(uint16_t)(UNIT_BP - pr_ca::kIndexOffset)] = (uint8_t)p.index;
         m.bytes[(uint16_t)(UNIT_BP - pr_ca::kAttemptOffset)] = (uint8_t)p.attempt;
-        if (p.rows) {
+        if (independent_rows) {
+            for (int k = 0; k < 6; ++k) s.printer_calls.push_back(std::make_pair((uint16_t)UNIT_SEG, (uint16_t)(kIndependentCallSites[k] + 5)));
+        } else if (p.rows) {
             for (int k = 0; k < 6; ++k) s.printer_calls.push_back(std::make_pair((uint16_t)UNIT_SEG, pr_ca::kFixedRows[k]));
         } else {
             for (int k = 0; k < 5; ++k) s.printer_calls.push_back(std::make_pair((uint16_t)UNIT_SEG, pr_ca::kFixedRows[k]));
@@ -181,6 +186,13 @@ int main() {
         pr_ca::Gate g(false, synth_sha);
         Prompt p = {5, 1, true, true, false, true, 3, 0};
         run_prompt(g, p, out);
+    }
+    /* K: independent constants: rows from the call-site literal plus five, not from the reader's table */
+    fprintf(out, "== independent-rows\n");
+    {
+        pr_ca::Gate g(true, synth_sha);
+        Prompt p = {10, 1, true, true, 0, true, 80, 0};
+        run_prompt(g, p, out, true);
     }
     /* J: non-prompt polls, then a prompt */
     fprintf(out, "== nonprompt-then-prompt\n");

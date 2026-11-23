@@ -24,8 +24,12 @@ class ConformanceTest(unittest.TestCase):
         self.assertEqual(cpp.splitlines(), py.splitlines())
         # Counts that follow from the scenario design: 13 letter-plans of 7 keys, plus attempt-two (14), repeat (7),
         # guard-break (2 then abort), never-buffers (1 then abort), buffer-not-empty (7), non-prompt-then-prompt (7).
-        self.assertEqual(sum(1 for x in py.splitlines() if x.startswith("SEND|")), 129)
-        self.assertEqual(sum(1 for x in py.splitlines() if x.endswith("|completed")), 18)
+        self.assertEqual(sum(1 for x in py.splitlines() if x.startswith("SEND|")), 136)
+        # The independent-rows scenario: its plan must be the synthetic record's letters then RETURN, from the literal sites.
+        block = py.split("== independent-rows\n")[1].split("== ")[0].splitlines()
+        expected = ["SEND|%s|one-normal-key" % ch for ch in ct.synthetic_text(10)] + ["SEND|RETURN|one-normal-key"]
+        self.assertEqual([x for x in block if x.startswith("SEND|")], expected)
+        self.assertEqual(sum(1 for x in py.splitlines() if x.endswith("|completed")), 19)
 
 
 if __name__ == "__main__":

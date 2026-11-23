@@ -1,22 +1,22 @@
 --- a/src/cpu/core_normal.cpp
 +++ b/src/cpu/core_normal.cpp
-@@ -25,6 +25,8 @@
- #include "paging.h"
- #include "mmx.h"
- #include "pr_hybrid_record.h"
+@@ -163,12 +163,16 @@
+ 
+ #define EALookupTable (core.ea_table)
+ 
 +#define PR_CA_DOSBOX 1
 +#include "pr_codeword_assist.h"
- #include "pr_hybrid_observer.h"
- #include "pr_hybrid_dispatch.h"
- #include "parity_checkpoint.h"
-@@ -177,6 +179,7 @@
++
+ Bits CPU_Core_Normal_Run(void) {
+ 	if (CPU_Cycles <= 0)
+ 		return CBRET_NONE;
+ 
+ 	while (CPU_Cycles-->0) {
  		LOADIP;
- 		PR_HYBRID_STEP();
- 		PR_HYBRID_OBSERVE();
 +		PR_CODEWORD_ASSIST_OBSERVE();
- 		PR_HYBRID_ROUTE();
  		last_prefix=MP_NONE;
  		core.opcode_index=cpu.code.big*(Bitu)0x200u;
+ 		core.prefixes=cpu.code.big;
 --- a/src/ints/bios_keyboard.cpp
 +++ b/src/ints/bios_keyboard.cpp
 @@ -25,6 +25,8 @@

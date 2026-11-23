@@ -9,16 +9,39 @@ baseline, and it is unchanged by this change.
 - `tools/hybrid/codeword_assist.py`: a pure reader and gate. It takes an exact snapshot and returns either a
   recognised prompt occurrence or a named refusal, and a gate that emits at most one answer plan per occurrence.
   It imports no host typing, OCR, imaging or memory-writing module (checked by a test).
-- `tests/hybrid/test_codeword_assist.py`: 21 tests on **synthetic fixtures only** (section "Fixtures").
+- `tests/hybrid/test_codeword_assist.py`: 21 reader tests on **synthetic fixtures only** (section "Fixtures").
+- `tests/hybrid/test_codeword_assist_conformance.py`: 1 test. It compiles the C++ driver with `-Werror`, runs it,
+  and compares its transcript with the Python transcript. The scenarios include an independent-rows case (see
+  "Conformance").
+- **22 tests in total**, all passing in this round (`python3 -m unittest discover -s tests/hybrid -p 'test_codeword_assist*.py'`,
+  22 OK).
 - This note.
-
 - `tools/hybrid/dosbox-x/pr_codeword_assist.h` and `tools/hybrid/dosbox-x/conformance_main.cpp`: the C++ reader and gate,
-  with the same transcripts as the Python reader (`tests/hybrid/test_codeword_assist_conformance.py`).
-- `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`: the emulator hook, as a patch against the DOSBox-X source
-  checkout `b6abbd5` (two guarded edits and the new header). It is built and run in a scratch copy only; it is not
-  merged anywhere.
+  with the same transcripts as the Python reader.
+- `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`: the emulator hook, a patch of three files: two guarded
+  edits (`src/cpu/core_normal.cpp`, `src/ints/bios_keyboard.cpp`) and the new header `src/cpu/pr_codeword_assist.h`.
+  It is built and run in a scratch copy only; it is not merged anywhere.
+  - **Clean-apply claim (corrected):** the patch applies with zero fuzz (`patch -p1 -F0`) to pristine files exported
+    from the commit `b6abbd5`, checked for the three files, and a full pristine tree was built with it. An earlier
+    patch (commit `ec81e80a`) was generated against the uncommitted working tree of the shared checkout, including
+    its dispatch hook and a `parity_checkpoint` include. Its `core_normal.cpp` hunks failed on pristine `b6abbd5`.
+    That patch is superseded and is not a reproducible base.
 
 Nothing in the game was changed. The shared DOSBox-X checkout and the shared controller were not modified.
+
+## Reproducibility record
+
+| Item | Identity |
+| --- | --- |
+| Base commit | `b6abbd5980a885f5f310a4088c59a8688d1b116c` (tree `d1a93618c882a4803b39e2cc7c446308a3332fae`) |
+| Patch | `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`, 17545 bytes, sha256 `9396fa60811c54ec7dbb28233431d3054c9923045f61ab9ea7a16c27bf5e65a9` |
+| New header | `tools/hybrid/dosbox-x/pr_codeword_assist.h`, sha256 `3434af201557734a038e60b9cde2daf742facb7fe74e5ac8501acf51f0108582` (byte-equal to the copy in the build tree) |
+| Patched `src/cpu/core_normal.cpp` | sha256 `03ff58a8913e356498beeb3d6012da7bc39864b404a03f81cdfa0b288ba2e81c` (byte-equal to a fresh zero-fuzz patch result) |
+| Patched `src/ints/bios_keyboard.cpp` | sha256 `d5bf1cf225fa529990fbbfcf89bdfaede85673f7b03d6682c5817b541997fa06` (byte-equal to a fresh zero-fuzz patch result) |
+| Built binary (scratch, ignored) | `scratch/build-b6abbd5/src/dosbox-x`, sha256 `502ffe33da0439d244bba5160fe7a557cdcc2673faaca2ec5c1fa2c1fd1e9871` |
+
+The binary was built from the pristine export plus this patch (full build, 543 objects, 0 errors). Its sha16
+`502ffe33da0439d2` is recorded in the action logs of runs 052 to 056.
 
 ## Exact prompt state (what the reader reads)
 
@@ -31,7 +54,7 @@ The reader decides only from these, read at the INT 16h keyboard poll of the inp
 | unit frame bytes | selected index at `BP-2Ah`, attempt at `BP-2Bh` | the game's own selection (`0AF8:11C0`, argument 13) and attempt counter |
 | `DS:0000`, 512 bytes | 13 records of 21 bytes at `2 + 21*i`: length byte `06`, six letters, 14 bytes of tail | the game's own record table (checked by digest, never printed) |
 | BIOS head and tail | `0040:001A` and `0040:001C` | keyboard buffer must be empty before any key is sent |
-| printer sites | the return offsets (unit 0x19) of the calls to `0709:0626` recorded since the last non-prompt poll | the six fixed-row calls sit at `+0157`, `+0174`, `+0191`, `+0202`, `+0286` and `+02D8` (5-byte `lcall`s), so the recorded return offsets are `015C`, `0179`, `0196`, `0207`, `028B` and `02DD`; these must all be present |
+| printer sites | the return offsets (unit 0x19) of the calls to `0709:0626` recorded since the last clearing poll (see hook item 2) | the six fixed-row calls sit at `+0157`, `+0174`, `+0191`, `+0202`, `+0286` and `+02D8` (5-byte `lcall`s), so the recorded return offsets are `015C`, `0179`, `0196`, `0207`, `028B` and `02DD`; these must all be present |
 
 Any failed check is SILENCE with a reason. There is no confidence value and no OCR.
 
@@ -85,7 +108,7 @@ The fixture table is generated by the test module. Its words are letter patterns
 | 11 | 233 | ZCFILO |
 | 12 | 254 | GJMPSV |
 
-The tests cover every index, every refusal (non-poll, index 13 and 255, attempts 0 and 4, digest mismatch, no input
+The 21 reader tests cover every index, every refusal (non-poll, index 13 and 255, attempts 0 and 4, digest mismatch, no input
 return, two input returns, wrong resident caller, missing fixed rows, missing table, malformed record), assist off,
 one plan per occurrence, a new attempt as a new occurrence, waiting on a non-empty buffer, a guard break mid-plan
 with no resend, a key that never buffers, the complete keyboard map, and the import boundary.
@@ -94,21 +117,49 @@ The runtime table digest the reader pins is `0486c788451ab11470af8d9bcf79a4ff4c6
 It is a digest of the game's 512-byte table and contains no words. It was identical in all eight runs observed
 for this slice.
 
+## Conformance
+
+The conformance test runs the same scenarios through the Python reader and the C++ driver and requires identical
+transcripts. It counts 136 `SEND` lines and 19 `completed` lines, which follow from the scenario design.
+
+The **independent-rows** scenario uses six call-site literals typed in the C++ driver and the Python transcript
+(`0x0157`, `0x0174`, `0x0191`, `0x0202`, `0x0286`, `0x02D8`, each plus five for the pushed return). They are not read from the
+reader's `kFixedRows` / `FIXED_ROW_CALLS` table. The test checks that its plan is the synthetic record's letters then
+RETURN. This closes the gap that let the earlier row-offset bug pass: that bug shared one constant on both sides.
+Limit: the literals come from the same native observation as the reader constants, so they are independent of the
+code constant, not of the observation.
+
 ## Emulator hook (built as a patch; run in a scratch copy; not merged)
 
 1. **Snapshot point:** `INT16_Handler` (AH=00 and AH=01 only), the keyboard poll of the input loop. The snapshot is read
    there, `Gate.step` decides, and only SEND acts.
-2. **Printer sites:** at the entry of `0709:0626` the hook records the pushed return CS:IP. The list is cleared at any
-   non-prompt poll, so a prompt occurrence sees only the rows printed since the last non-prompt poll. This is the only
-   extra state the hook keeps. A recorded row set that is incomplete is silence (fail-safe).
+2. **Printer sites (exact rule):** at the entry of `0709:0626` the hook records the pushed return CS:IP, capped at 256
+   entries with the oldest dropped (`kPrinterCap`, `pr_codeword_assist.h:34`). At each keyboard poll, after the gate
+   decides, the list is cleared **only** when the decision reason is `no-unique-input-return`, `no-input-routine-child`
+   or `input-routine-chain-mismatch` (`poll_hook`, `pr_codeword_assist.h:342`). Every other decision keeps the list,
+   including a prompt occurrence refused for `fixed-rows-not-printed` or any other guard. The list is the only extra state
+   the hook keeps.
+   - **Residual risk (open):** rows recorded before a refusal that does not clear the list can survive into a later
+     prompt occurrence. The completeness check is then not proof that this occurrence printed the six rows. No native
+     run has shown this, and no test covers it. A reviewer decides whether to change the code (for example, clear on every
+     non-SEND poll); any code change needs a rebuild and a new demo.
 3. **Sending:** `KEYBOARD_AddKey` (the public entry; it dispatches to `KEYBOARD_AddKey2` in the controller mode the build
    uses) with a press and then a release for each key. The buffer is never written, and no host tool types. The log
    records each SEND but not which dispatch branch ran; the branch is inferred from the source, not observed.
 4. **Off switch:** the environment variable `POOLRAD_CODEWORD_ASSIST` must be exactly `1` for the hook to act. Unset or any
    other value is off, and no state is read. `POOLRAD_CODEWORD_ASSIST_LOG` names an optional decision log.
-5. **Build cost (measured, scratch copy of the checkout, 8 cores):** an incremental make after editing the header
-   rebuilds `core_normal.o`, which dominates: 24 min 16 s wall, 16 min 19 s CPU for the final build; an earlier build with the
-   same file took 19 min 4 s wall. The bios_keyboard object alone takes seconds. The full source tree is not rebuilt.
+5. **Build cost (measured, scratch copy of the checkout, 8 cores).** Every build attempt is listed, including failures.
+   Builds 1 to 4 used the earlier dirty base, so they are not reproducible from `b6abbd5`.
+
+   | Build (log) | Wall | Result |
+   | --- | ---: | --- |
+   | build-1 (dirty base) | 17 min 34 s | core compiled; failed at the `bios_keyboard` include of the header (fixed with the `cpu/` path) |
+   | build-2 (dirty base) | 12.8 s | failed: `mem_readb_inline` not declared in the `bios_keyboard` unit (`paging.h` added to the glue) |
+   | build-3 (dirty base) | 19 min 04 s | success; still had the row-offset bug |
+   | build-4 (dirty base) | 24 min 16 s (16 min 19 s CPU) | success; row-offset fix |
+   | pristine full (`b6abbd5` export + patch) | 37 min 51 s (84 min 06 s user, 5 min 16 s sys) | success; 543 objects, 0 errors; binary `502ffe33…` |
+
+   The bios_keyboard object alone takes seconds; `core_normal.o` dominates an incremental rebuild.
 
 ## Removal (recorded separately, when it happens)
 
@@ -149,11 +200,38 @@ the break-in, so they are excluded; their cause is not established here.
 What this does **not** establish: the observation is of the selected index byte only. It does not show that each
 index's stored word is the accepted word. The only typed answers tested were a wrong answer (index 12) and the stored
 word for index 11, and both reached the same menu. Per-index acceptance is not device-proven for any index.
-(The table in the source listing is a count of observations, not a claim about acceptance.)
+(The table is a count of observations, not a claim about acceptance.)
+
+## Emulator runs (this slice, scratch builds, not parity evidence)
+
+Binary identity: runs 052 to 056 record sha16 `502ffe33da0439d2` in their action logs (the pristine build). Runs 050
+and 051 record no sha; they are tied to builds by launch time only (launch 20:50 matches the build-3 finish; launches at 21:19 and 21:22
+follow the build-4 finish at 21:19). Screenshots are cited by file name, with the screenshot hash where it was used.
+
+- **`t579-assist-on-050`, pre-fix (build-3 by launch time):** `on-150.png` shows the prompt with no SEND. The reader refused
+  with `fixed-rows-not-printed` because of the row-offset bug. This is the pre-fix record only.
+- **`t579-assist-on-050`, post-fix (build-4 by launch time):** `on2-150.png` and `assist.log` show one silent poll
+  (`no-unique-input-return`), exactly one plan (six letters and RETURN, seven SEND lines), a `completed` line, and then the
+  main menu. The one-plan claim cites these files only.
+- **`t579-assist-off-051`, assist unset (build-4 by launch time, dirty base):** no decision log; the prompt stays through 150 s
+  (`off-150.png`). An xdotool answer with RETURN advanced the screen in the earlier check (`off-manual.png`, not re-viewed in this round).
+- **`t579-assist-on-052`, assist on (pristine, recorded):** stalled on the credits page for about 7 minutes (`on-150.png`,
+  `on-poll.png`); killed. The cause is not established. It was not reproduced in 054 or 055.
+- **`t579-assist-off-053`, assist off (pristine, recorded):** the prompt is still shown at 180 s (`off-180.png`); no decision log.
+- **`t579-assist-on-054`, assist on (pristine, recorded):** `on-60.png` and `on-180.png` show the main menu (screenshot hash
+  `0e42ba8f630eb448`); `assist.log` holds one plan (six letters and RETURN) and then silence.
+- **`t579-assist-on-055`, assist on (pristine, recorded):** the same result as 054: the main menu at 60 s and 180 s, one plan in `assist.log`.
+- **`t579-assist-off-056`, assist off (pristine, recorded):** the prompt is in `off-prompt.png` (screenshot hash
+  `a8f5ada7ecf76010`). The first manual send (xdotool to the root display) left the screen at that prompt (`off-manual.png`).
+  After a second send to window `0x60000a`, `off-manual2.png` shows the main menu (hash `0e42ba8f630eb448`), which was viewed.
+  The attribution to the second send rests on the sequence, not on a repeated control run.
+
+The send log holds the record letters. It is written only into the ignored run directory and is not committed.
 
 ## Limits (not claims)
 
-- The reader is unit-tested on synthetic fixtures only. Nothing here has run against the emulator.
+- The reader is unit-tested on synthetic fixtures (22 tests, with the C++ transcript conformance). The emulator hook has
+  run in a scratch build, in the runs listed above; those runs are not parity evidence.
 - The keyboard chain is observed for one key on one run. The host step is not observed.
 - The game accepted both a wrong answer and the stored word for the same prompt; the accepted word is therefore not
   distinguishable at the unit boundary. The assist types the stored word, which is the game's own record, not a
@@ -162,29 +240,16 @@ word for index 11, and both reached the same menu. Per-index acceptance is not d
 - No parity, function identity, function count or credit follows from any of this. ASSIST labels every output.
 - Pull requests remain behind REVIEW_REQUIRED. Nothing here is approved, merged or self-approved.
 
-## Emulator runs (this slice, scratch build, not parity evidence)
-
-- **Assist on** (`POOLRAD_CODEWORD_ASSIST=1`, run `t579-assist-on-050`): the decision log shows the start, one silent
-  poll outside the prompt (`no-unique-input-return`), then exactly one answer plan: six letters and RETURN, seven SEND
-  lines in total. A `completed` line follows, and later polls are silent with the same reason. The screen then shows the
-  `CHOOSE A FUNCTION` menu. No key was sent by the harness during this run.
-- **Assist off** (run `t579-assist-off-051`, switch unset): no decision log is written, and the screen stays at the
-  prompt after 150 seconds. A manual answer typed through xdotool and RETURN, which is the original input path, reaches
-  the same menu.
-- **Printer rows:** the first attempt at the prompt was refused with `fixed-rows-not-printed`, because the reader compared
-  call-site offsets with recorded return offsets. The constants were corrected to the return offsets (call + 5); the
-  conformance test could not catch this, since both sides shared the constant. The corrected run sent the plan.
-- The send log holds the record letters. It is written only into the ignored run directory and is not committed.
-
 ## Limits (emulator hook)
 
-- One observed prompt occurrence under the assist, in one scratch build; no attempt-two, no retry, and no quit path
-  was exercised by the hook.
+- Two post-fix assisted runs on the pristine build (054 and 055) each produced one plan. Run 052 stalled and was killed.
+  One post-fix run (050) used the earlier build. No attempt-two, no retry, and no quit path was exercised by the hook.
 - The decision log records SEND and reason changes, not every poll. Silence is shown by the absence of SEND and by the
   screen, not by a per-poll count.
 - The game accepts any typed answer at this prompt (both wrong and stored words reached the menu). The hook therefore
   demonstrates the mechanism, not a validated answer.
+- Printer-row clearing: the residual risk in hook item 2 is open. No run exercised a non-clearing refusal followed by a prompt.
 - Manual keys typed during an assisted plan are not suppressed or detected; the gate waits for the buffer and would
   interleave them. This is not covered by any test.
-- The hook was not built from the pinned `5a9c7c53` source; it is built from the checkout `b6abbd5`, which is the source
-  of the running emulator used in the native runs in this session.
+- The hook is built from `b6abbd5` (pristine export plus the patch). It is not built from the pinned `5a9c7c53` source,
+  and this note does not check whether the native captures used the same build.

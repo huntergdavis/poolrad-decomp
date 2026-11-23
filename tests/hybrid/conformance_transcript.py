@@ -40,11 +40,12 @@ def frame_words(ret_ip):
     return ss_word
 
 
-def snapshot(head, tail, ret_ip, index=None, attempt=None, rows=True, table=None):
+def snapshot(head, tail, ret_ip, index=None, attempt=None, rows=True, table=None, sites=None):
     ss_byte = {}
     if index is not None:
         ss_byte = {UNIT_BP - ca.INDEX_OFFSET: index, UNIT_BP - ca.ATTEMPT_OFFSET: attempt}
-    sites = frozenset(ca.FIXED_ROW_CALLS) if rows else frozenset(list(ca.FIXED_ROW_CALLS)[:5])
+    if sites is None:
+        sites = frozenset(ca.FIXED_ROW_CALLS) if rows else frozenset(list(ca.FIXED_ROW_CALLS)[:5])
     return ca.Snapshot(cs=0xF000, ip=0xCFC1, bp=CHILD_BP, ss_word=frame_words(ret_ip), ss_byte=ss_byte,
                        ds_table=table, bda_head=head, bda_tail=tail, printer_sites=sites, keyboard_poll=True)
 
@@ -58,7 +59,11 @@ def run_nonprompt(gate, n, out):
         out.append(line(gate.step(snapshot(0x1E, 0x1E, 0x0355, table=build_table(True)))))
 
 
-def run_prompt(gate, p, out):
+# Independent of ca.FIXED_ROW_CALLS: the six 5-byte lcall sites in the codeword source note (return = site + 5).
+INDEPENDENT_CALL_SITES = (0x0157, 0x0174, 0x0191, 0x0202, 0x0286, 0x02D8)
+
+
+def run_prompt(gate, p, out, independent_rows=False):
     head, tail = 0x1E, 0x1E
     sends = 0
     broken = False
@@ -68,8 +73,9 @@ def run_prompt(gate, p, out):
         elif step == p.nonempty_polls and p.nonempty_polls > 0:
             head = tail
         ret = 0x0355 if broken else ca.UNIT_RET_IP
+        sites = frozenset(site + 5 for site in INDEPENDENT_CALL_SITES) if independent_rows else None
         snap = snapshot(head, tail, ret, index=p.index, attempt=p.attempt, rows=p.rows,
-                        table=build_table(p.table_ok))
+                        table=build_table(p.table_ok), sites=sites)
         action = gate.step(snap)
         out.append(line(action))
         if action.kind == "SEND":
@@ -117,6 +123,9 @@ def transcript():
     out.append("== assist-off")
     gate = ca.Gate(enabled=False, expected_sha256=SYNTH_SHA)
     run_prompt(gate, Prompt(5, 1, True, True, 0, True, 3, 0), out)
+    out.append("== independent-rows")
+    gate = ca.Gate(enabled=True, expected_sha256=SYNTH_SHA)
+    run_prompt(gate, Prompt(10, 1, True, True, 0, True, 80, 0), out, independent_rows=True)
     out.append("== nonprompt-then-prompt")
     gate = ca.Gate(enabled=True, expected_sha256=SYNTH_SHA)
     run_nonprompt(gate, 5, out)
