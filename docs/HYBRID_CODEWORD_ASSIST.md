@@ -34,20 +34,34 @@ Nothing in the game was changed. The shared DOSBox-X checkout and the shared con
 | Item | Identity |
 | --- | --- |
 | Base commit | `b6abbd5980a885f5f310a4088c59a8688d1b116c` (tree `d1a93618c882a4803b39e2cc7c446308a3332fae`) |
-| Patch | `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`, 17611 bytes, sha256 `8de068ac4413c0e7ceca1e1c28a56262da80a545b878ff94cc89771c5c4868c1` (ordinal 46: two comment lines changed; applies with zero fuzz) |
+| Patch | `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`, 17611 bytes, sha256 `8de068ac4413c0e7ceca1e1c28a56262da80a545b878ff94cc89771c5c4868c1` (comment-only change to two lines; applies with zero fuzz) |
 | New header | `tools/hybrid/dosbox-x/pr_codeword_assist.h`, sha256 `4e6e5ce2ee4de90fd99dca13775b4a35ee2206acc7c8b26c21b7f43e0816ebf5` (equals the copy the patch applies) |
 | Patched `src/cpu/core_normal.cpp` | sha256 `03ff58a8913e356498beeb3d6012da7bc39864b404a03f81cdfa0b288ba2e81c` (byte-equal to a fresh zero-fuzz patch result) |
 | Patched `src/ints/bios_keyboard.cpp` | sha256 `d5bf1cf225fa529990fbbfcf89bdfaede85673f7b03d6682c5817b541997fa06` (byte-equal to a fresh zero-fuzz patch result) |
 | Built binary (scratch; ignored from this commit) | `scratch/build-b6abbd5/src/dosbox-x`, sha256 `502ffe33da0439d244bba5160fe7a557cdcc2673faaca2ec5c1fa2c1fd1e9871` |
 
-The binary was built from the pristine export plus the patch as it was before the ordinal-46 comment fix (full build, 543 objects, 0 errors). Its sha16
+The binary was built from the pristine export plus the patch as it was before the comment-only fix to two lines (full build, 543 objects, 0 errors). Its sha16
 `502ffe33da0439d2` is recorded in the action logs of runs 052 to 056.
 
-Repository hygiene (this commit): `scratch/` (builds, copies and run caches, 3.1 GB by `du -sh`, including a 132 MB (126 MiB) binary) is now
-listed in `.gitignore`. Before this commit it was untracked and not ignored, so `git add -A` must not be used. `*.patch` in
-`tools/hybrid/` has `-whitespace` in `.gitattributes`, because the DOSBox context lines use tab indentation that `git diff --check`
-flags (seven hits). Two header comments (lines 101 and 270) were corrected after the build; the build-tree copy differs from the
-tools copy only in those two lines (checked by `diff`), and the compiled code is identical.
+Repository hygiene (this commit): `scratch/` (builds, copies and run caches, 3.1 GB by `du -sh`, including a 132 MB (126 MiB)
+binary) is now listed in `.gitignore`. Before this commit it was untracked and not ignored, so `git add -A` must not be used.
+
+Attribute scope: `.gitattributes` gives `-whitespace` to **one file only**, `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`.
+`git check-attr whitespace` reports `unset` for that file and `unspecified` for the other tracked patches
+(`tools/hybrid/dosbox-x-5a9c7c53-dispatch.patch`, `tools/hybrid/dosbox-x-5a9c7c53-stage0-observer.patch`,
+`tools/hybrid/dosbox-x-b6abbd59-dispatch.patch`) and for this doc.
+
+Whitespace count, default rules, pre-attribute blob `98b4b7e2`, whole file: **eleven hits**, at lines 4, 6, 11, 12, 13, 14, 15,
+17, 18, 19 and 32 (four `blank-at-eol`, seven `space-before-tab`). Reproduce with
+`git --attr-source=4b825dc642cb6eb9a060e54bf8d69288fbee4904 diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 98b4b7e2 -- tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`.
+The empty tree as attribute source turns the repository attribute off. An independent Python scan with the same three default rules
+gives the same eleven lines. The earlier figure of seven was a commit-level count, `git diff --check 98b4b7e2~1 98b4b7e2 -- <patch>`,
+which reports only the lines that commit added or changed. With the attribute active, the same blob gives no hits.
+
+Identical-code basis for the header: two header comments (lines 101 and 270) were corrected after the build. This is a comment-only
+diff, checked with `git diff` against `98b4b7e2`, which changes only those two lines. It is also a comment-stripped comparison: with
+block comments removed (23 in each copy) the build-tree copy and the tools copy are equal. This is not a rebuild; the statement that
+the compiled code is identical rests on those two checks.
 
 ## Exact prompt state (what the reader reads)
 
@@ -145,13 +159,17 @@ code constant, not of the observation.
    or `input-routine-chain-mismatch` (`poll_hook`, `pr_codeword_assist.h:342`). Every other decision keeps the list,
    including a prompt occurrence refused for `fixed-rows-not-printed` or any other guard. The list is the only extra state
    the hook keeps.
-   - **Row survival (ACCEPT, ordinal 46; not a native result):** rows recorded before a refusal that does not clear the list
+   - **Row-survival decision (accepted risk; not a native result):** rows recorded before a refusal that does not clear the list
      can, in principle, survive into a later prompt occurrence, and the completeness check would then not prove that this
-     occurrence printed the six rows. The decision accepts this on the static basis of the filed evidence
-     (`evidence/codewheel-hook-ordinal44.md`; that file is not in this branch or in `poolrad-decomp`), for unit `0x19`:
-     862/862 tiled by decoded instructions, no indirect branches, returns only at `+0358` and `+035D`, and every path to the
-     input call prints all six rows first, so a stale row cannot be the one that satisfies the check. No native run exercised
-     a surviving row, and no test covers it. No code change is part of this decision.
+     occurrence printed the six rows. The decision accepts this risk on the static basis below. No native run exercised a
+     surviving row, and no test covers it. The decision changes no code.
+     - **Static basis, and what reproducing it needs:** the private overlay file `GAME.OVR` (supplied game media, found under the
+       ignored `resources/` tree, not committed). Unit `0x19` is at file offset `0x09AC`, 862 bytes, whose SHA-256 prefix is
+       `f93ae8c4`. That prefix was checked in this round on one copy only (`resources/oracle-runs/autotype-003/GAME.OVR`).
+       Reproduce by disassembling those 862 bytes with capstone, by recursive descent from unit offset `+00FD`. The claims read from
+       that decode are: 862/862 bytes are covered by decoded instructions; there are no indirect branches; the only return sites
+       are `+0358` and `+035D`; and every path to the input call prints all six rows first, so a stale row cannot be the one that
+       satisfies the check. The analysis was filed outside this repository and is not cited by path.
      - Clearing on every non-SEND poll is not a safe alternative: the gate runs the row check on every poll, and a WAIT poll
        during a plan is non-SEND, so clearing there would abort a plan in progress.
      - Any narrower rule (for example, clear only on SILENT decisions other than plan-ending ones) is new design work. It needs
@@ -229,7 +247,7 @@ follow the build-4 finish at 21:19). Screenshots are cited by file name; the scr
   main menu. The one-plan claim cites these files only.
 - **`t579-assist-off-051`, assist unset (build-4 by launch time, dirty base):** no decision log; the prompt stays through 150 s
   (`off-150.png`). An xdotool answer with RETURN advanced the screen (`off-manual.png`). That screenshot's full SHA-256 (`0e42ba8f630eb448f601d2733f2f72baba6bca2c6c7d11a5c2ad9219fb3c8690`) is identical to the main-menu screenshot `t579-assist-off-056/off-manual2.png`, which was viewed, so the bytes are that menu. This is a hash match, not a new view.
-- **`t579-assist-on-052`, assist on (pristine, recorded):** stalled on the credits page for about 7 minutes (`on-150.png`,
+- **`t579-assist-on-052`, assist on (pristine, recorded):** stalled on the credits page (duration not verified: the run directory has a launch time only, so the earlier figure of about 7 minutes is not measured) (`on-150.png`,
   `on-poll.png`); killed. The cause is not established. It was not reproduced in 054 or 055.
 - **`t579-assist-off-053`, assist off (pristine, recorded):** the prompt is still shown at 180 s (`off-180.png`); no decision log.
 - **`t579-assist-on-054`, assist on (pristine, recorded):** `on-60.png` and `on-180.png` show the main menu (screenshot hash
@@ -262,7 +280,7 @@ The send log holds the record letters. It is written only into the ignored run d
   screen, not by a per-poll count.
 - The game accepts any typed answer at this prompt (both wrong and stored words reached the menu). The hook therefore
   demonstrates the mechanism, not a validated answer.
-- Printer-row clearing: the row-survival ACCEPT decision (hook item 2) rests on the static basis stated there, not on a native run. No run exercised a non-clearing refusal followed by a prompt.
+- Printer-row clearing: the row-survival decision (accepted risk; hook item 2) rests on the static basis stated there, not on a native run. No run exercised a non-clearing refusal followed by a prompt.
 - Manual keys typed during an assisted plan are not suppressed or detected; the gate waits for the buffer and would
   interleave them. This is not covered by any test.
 - The hook is built from `b6abbd5` (pristine export plus the patch). It is not built from the pinned `5a9c7c53` source,
