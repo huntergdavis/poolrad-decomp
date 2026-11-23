@@ -12,8 +12,13 @@ baseline, and it is unchanged by this change.
 - `tests/hybrid/test_codeword_assist.py`: 21 tests on **synthetic fixtures only** (section "Fixtures").
 - This note.
 
-**Not built:** the emulator hook that feeds snapshots and sends keys. See "Hook plan". Nothing in the game or the
-emulator was changed in this slice.
+- `tools/hybrid/dosbox-x/pr_codeword_assist.h` and `tools/hybrid/dosbox-x/conformance_main.cpp`: the C++ reader and gate,
+  with the same transcripts as the Python reader (`tests/hybrid/test_codeword_assist_conformance.py`).
+- `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`: the emulator hook, as a patch against the DOSBox-X source
+  checkout `b6abbd5` (two guarded edits and the new header). It is built and run in a scratch copy only; it is not
+  merged anywhere.
+
+Nothing in the game was changed. The shared DOSBox-X checkout and the shared controller were not modified.
 
 ## Exact prompt state (what the reader reads)
 
@@ -89,18 +94,21 @@ The runtime table digest the reader pins is `0486c788451ab11470af8d9bcf79a4ff4c6
 It is a digest of the game's 512-byte table and contains no words. It was identical in all eight runs observed
 for this slice.
 
-## Hook plan (not built)
+## Emulator hook (built as a patch; run in a scratch copy; not merged)
 
-1. **Snapshot point:** the INT 16h keyboard poll callback (`F000:CFC1` in the pinned build), entered from the input
-   loop. Read the snapshot there, call `Gate.step`, and act only on SEND.
+1. **Snapshot point:** `INT16_Handler` (AH=00 and AH=01 only), the keyboard poll of the input loop. The snapshot is read
+   there, `Gate.step` decides, and only SEND acts.
 2. **Printer sites:** at the entry of `0709:0626` the hook records the pushed return CS:IP. The list is cleared at any
    non-prompt poll, so a prompt occurrence sees only the rows printed since the last non-prompt poll. This is the only
    extra state the hook keeps. A recorded row set that is incomplete is silence (fail-safe).
-3. **Sending:** `KEYBOARD_AddKey2` with the make code, then the break code. Never write the buffer, never type
-   through a host tool.
-4. **Off switch:** a single flag read before any state is taken. Off means the hook is not called at all.
-5. **Build cost:** rebuilding the pinned DOSBox-X source is the expensive step (see `HYBRID_EXECUTOR_SCOPE.md`).
-   It has not been attempted here.
+3. **Sending:** `KEYBOARD_AddKey` (the public entry; it dispatches to `KEYBOARD_AddKey2` in the controller mode the build
+   uses) with a press and then a release for each key. The buffer is never written, and no host tool types. The log
+   records each SEND but not which dispatch branch ran; the branch is inferred from the source, not observed.
+4. **Off switch:** the environment variable `POOLRAD_CODEWORD_ASSIST` must be exactly `1` for the hook to act. Unset or any
+   other value is off, and no state is read. `POOLRAD_CODEWORD_ASSIST_LOG` names an optional decision log.
+5. **Build cost (measured, scratch copy of the checkout, 8 cores):** an incremental make after editing the header
+   rebuilds `core_normal.o`, which dominates: 24 min 16 s wall, 16 min 19 s CPU for the final build; an earlier build with the
+   same file took 19 min 4 s wall. The bios_keyboard object alone takes seconds. The full source tree is not rebuilt.
 
 ## Removal (recorded separately, when it happens)
 
@@ -153,3 +161,30 @@ word for index 11, and both reached the same menu. Per-index acceptance is not d
 - Retry and quit paths were not reached natively.
 - No parity, function identity, function count or credit follows from any of this. ASSIST labels every output.
 - Pull requests remain behind REVIEW_REQUIRED. Nothing here is approved, merged or self-approved.
+
+## Emulator runs (this slice, scratch build, not parity evidence)
+
+- **Assist on** (`POOLRAD_CODEWORD_ASSIST=1`, run `t579-assist-on-050`): the decision log shows the start, one silent
+  poll outside the prompt (`no-unique-input-return`), then exactly one answer plan: six letters and RETURN, seven SEND
+  lines in total. A `completed` line follows, and later polls are silent with the same reason. The screen then shows the
+  `CHOOSE A FUNCTION` menu. No key was sent by the harness during this run.
+- **Assist off** (run `t579-assist-off-051`, switch unset): no decision log is written, and the screen stays at the
+  prompt after 150 seconds. A manual answer typed through xdotool and RETURN, which is the original input path, reaches
+  the same menu.
+- **Printer rows:** the first attempt at the prompt was refused with `fixed-rows-not-printed`, because the reader compared
+  call-site offsets with recorded return offsets. The constants were corrected to the return offsets (call + 5); the
+  conformance test could not catch this, since both sides shared the constant. The corrected run sent the plan.
+- The send log holds the record letters. It is written only into the ignored run directory and is not committed.
+
+## Limits (emulator hook)
+
+- One observed prompt occurrence under the assist, in one scratch build; no attempt-two, no retry, and no quit path
+  was exercised by the hook.
+- The decision log records SEND and reason changes, not every poll. Silence is shown by the absence of SEND and by the
+  screen, not by a per-poll count.
+- The game accepts any typed answer at this prompt (both wrong and stored words reached the menu). The hook therefore
+  demonstrates the mechanism, not a validated answer.
+- Manual keys typed during an assisted plan are not suppressed or detected; the gate waits for the buffer and would
+  interleave them. This is not covered by any test.
+- The hook was not built from the pinned `5a9c7c53` source; it is built from the checkout `b6abbd5`, which is the source
+  of the running emulator used in the native runs in this session.
