@@ -34,14 +34,20 @@ Nothing in the game was changed. The shared DOSBox-X checkout and the shared con
 | Item | Identity |
 | --- | --- |
 | Base commit | `b6abbd5980a885f5f310a4088c59a8688d1b116c` (tree `d1a93618c882a4803b39e2cc7c446308a3332fae`) |
-| Patch | `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`, 17545 bytes, sha256 `9396fa60811c54ec7dbb28233431d3054c9923045f61ab9ea7a16c27bf5e65a9` |
-| New header | `tools/hybrid/dosbox-x/pr_codeword_assist.h`, sha256 `3434af201557734a038e60b9cde2daf742facb7fe74e5ac8501acf51f0108582` (byte-equal to the copy in the build tree) |
+| Patch | `tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`, 17611 bytes, sha256 `8de068ac4413c0e7ceca1e1c28a56262da80a545b878ff94cc89771c5c4868c1` (ordinal 46: two comment lines changed; applies with zero fuzz) |
+| New header | `tools/hybrid/dosbox-x/pr_codeword_assist.h`, sha256 `4e6e5ce2ee4de90fd99dca13775b4a35ee2206acc7c8b26c21b7f43e0816ebf5` (equals the copy the patch applies) |
 | Patched `src/cpu/core_normal.cpp` | sha256 `03ff58a8913e356498beeb3d6012da7bc39864b404a03f81cdfa0b288ba2e81c` (byte-equal to a fresh zero-fuzz patch result) |
 | Patched `src/ints/bios_keyboard.cpp` | sha256 `d5bf1cf225fa529990fbbfcf89bdfaede85673f7b03d6682c5817b541997fa06` (byte-equal to a fresh zero-fuzz patch result) |
-| Built binary (scratch, ignored) | `scratch/build-b6abbd5/src/dosbox-x`, sha256 `502ffe33da0439d244bba5160fe7a557cdcc2673faaca2ec5c1fa2c1fd1e9871` |
+| Built binary (scratch; ignored from this commit) | `scratch/build-b6abbd5/src/dosbox-x`, sha256 `502ffe33da0439d244bba5160fe7a557cdcc2673faaca2ec5c1fa2c1fd1e9871` |
 
-The binary was built from the pristine export plus this patch (full build, 543 objects, 0 errors). Its sha16
+The binary was built from the pristine export plus the patch as it was before the ordinal-46 comment fix (full build, 543 objects, 0 errors). Its sha16
 `502ffe33da0439d2` is recorded in the action logs of runs 052 to 056.
+
+Repository hygiene (this commit): `scratch/` (builds, copies and run caches, 3.1 GB by `du -sh`, including a 132 MB (126 MiB) binary) is now
+listed in `.gitignore`. Before this commit it was untracked and not ignored, so `git add -A` must not be used. `*.patch` in
+`tools/hybrid/` has `-whitespace` in `.gitattributes`, because the DOSBox context lines use tab indentation that `git diff --check`
+flags (seven hits). Two header comments (lines 101 and 270) were corrected after the build; the build-tree copy differs from the
+tools copy only in those two lines (checked by `diff`), and the compiled code is identical.
 
 ## Exact prompt state (what the reader reads)
 
@@ -139,10 +145,17 @@ code constant, not of the observation.
    or `input-routine-chain-mismatch` (`poll_hook`, `pr_codeword_assist.h:342`). Every other decision keeps the list,
    including a prompt occurrence refused for `fixed-rows-not-printed` or any other guard. The list is the only extra state
    the hook keeps.
-   - **Residual risk (open):** rows recorded before a refusal that does not clear the list can survive into a later
-     prompt occurrence. The completeness check is then not proof that this occurrence printed the six rows. No native
-     run has shown this, and no test covers it. A reviewer decides whether to change the code (for example, clear on every
-     non-SEND poll); any code change needs a rebuild and a new demo.
+   - **Row survival (ACCEPT, ordinal 46; not a native result):** rows recorded before a refusal that does not clear the list
+     can, in principle, survive into a later prompt occurrence, and the completeness check would then not prove that this
+     occurrence printed the six rows. The decision accepts this on the static basis of the filed evidence
+     (`evidence/codewheel-hook-ordinal44.md`; that file is not in this branch or in `poolrad-decomp`), for unit `0x19`:
+     862/862 tiled by decoded instructions, no indirect branches, returns only at `+0358` and `+035D`, and every path to the
+     input call prints all six rows first, so a stale row cannot be the one that satisfies the check. No native run exercised
+     a surviving row, and no test covers it. No code change is part of this decision.
+     - Clearing on every non-SEND poll is not a safe alternative: the gate runs the row check on every poll, and a WAIT poll
+       during a plan is non-SEND, so clearing there would abort a plan in progress.
+     - Any narrower rule (for example, clear only on SILENT decisions other than plan-ending ones) is new design work. It needs
+       its own conformance tests, a rebuild and a new demo before it could replace the accepted behaviour.
 3. **Sending:** `KEYBOARD_AddKey` (the public entry; it dispatches to `KEYBOARD_AddKey2` in the controller mode the build
    uses) with a press and then a release for each key. The buffer is never written, and no host tool types. The log
    records each SEND but not which dispatch branch ran; the branch is inferred from the source, not observed.
@@ -206,15 +219,16 @@ word for index 11, and both reached the same menu. Per-index acceptance is not d
 
 Binary identity: runs 052 to 056 record sha16 `502ffe33da0439d2` in their action logs (the pristine build). Runs 050
 and 051 record no sha; they are tied to builds by launch time only (launch 20:50 matches the build-3 finish; launches at 21:19 and 21:22
-follow the build-4 finish at 21:19). Screenshots are cited by file name, with the screenshot hash where it was used.
+follow the build-4 finish at 21:19). Screenshots are cited by file name; the screenshot hash is the first 16 hex digits of the PNG's SHA-256.
 
-- **`t579-assist-on-050`, pre-fix (build-3 by launch time):** `on-150.png` shows the prompt with no SEND. The reader refused
-  with `fixed-rows-not-printed` because of the row-offset bug. This is the pre-fix record only.
+- **`t579-assist-on-050`, pre-fix (build-3 by launch time):** `on-150.png` shows the prompt with no SEND. The refusal reason
+  `fixed-rows-not-printed` is inferred from the commit message of `056d035f` (row-offset correction), not from a log: the
+  directory holds only the post-fix `assist.log`, so no decision log of the pre-fix launch is retained. This is the pre-fix record only.
 - **`t579-assist-on-050`, post-fix (build-4 by launch time):** `on2-150.png` and `assist.log` show one silent poll
   (`no-unique-input-return`), exactly one plan (six letters and RETURN, seven SEND lines), a `completed` line, and then the
   main menu. The one-plan claim cites these files only.
 - **`t579-assist-off-051`, assist unset (build-4 by launch time, dirty base):** no decision log; the prompt stays through 150 s
-  (`off-150.png`). An xdotool answer with RETURN advanced the screen in the earlier check (`off-manual.png`, not re-viewed in this round).
+  (`off-150.png`). An xdotool answer with RETURN advanced the screen (`off-manual.png`). That screenshot's full SHA-256 (`0e42ba8f630eb448f601d2733f2f72baba6bca2c6c7d11a5c2ad9219fb3c8690`) is identical to the main-menu screenshot `t579-assist-off-056/off-manual2.png`, which was viewed, so the bytes are that menu. This is a hash match, not a new view.
 - **`t579-assist-on-052`, assist on (pristine, recorded):** stalled on the credits page for about 7 minutes (`on-150.png`,
   `on-poll.png`); killed. The cause is not established. It was not reproduced in 054 or 055.
 - **`t579-assist-off-053`, assist off (pristine, recorded):** the prompt is still shown at 180 s (`off-180.png`); no decision log.
@@ -248,7 +262,7 @@ The send log holds the record letters. It is written only into the ignored run d
   screen, not by a per-poll count.
 - The game accepts any typed answer at this prompt (both wrong and stored words reached the menu). The hook therefore
   demonstrates the mechanism, not a validated answer.
-- Printer-row clearing: the residual risk in hook item 2 is open. No run exercised a non-clearing refusal followed by a prompt.
+- Printer-row clearing: the row-survival ACCEPT decision (hook item 2) rests on the static basis stated there, not on a native run. No run exercised a non-clearing refusal followed by a prompt.
 - Manual keys typed during an assisted plan are not suppressed or detected; the gate waits for the buffer and would
   interleave them. This is not covered by any test.
 - The hook is built from `b6abbd5` (pristine export plus the patch). It is not built from the pinned `5a9c7c53` source,

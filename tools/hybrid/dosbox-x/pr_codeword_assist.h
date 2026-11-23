@@ -98,7 +98,7 @@ struct Snap {
     uint16_t bda_head = 0;
     uint16_t bda_tail = 0;
     bool keyboard_poll = false;
-    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of calls to 0709:0626 since the last non-prompt poll */
+    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of calls to 0709:0626 since the last clearing poll (see poll_hook for the exact rule) */
 };
 
 typedef std::array<int, 5> Occ;  /* (unit segment, unit BP, input frame BP, index, attempt) */
@@ -267,7 +267,7 @@ struct State {
     bool on = false;
     Gate *gate = NULL;
     FILE *log = NULL;
-    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of 0709:0626 calls since the last non-prompt poll */
+    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of 0709:0626 calls since the last clearing poll (see poll_hook for the exact rule) */
     std::string last_silent;
     unsigned long long polls = 0, silent = 0, sends = 0;
 };

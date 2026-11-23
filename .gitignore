@@ -8,3 +8,6 @@
 # Generated Python tool caches.
 __pycache__/
 *.pyc
+
+# Local scratch: builds, source copies and run caches (not for commit).
+scratch/
