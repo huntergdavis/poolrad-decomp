@@ -118,7 +118,7 @@ class GuardRefusals(unittest.TestCase):
         self.assertSilent(snapshot(child_ret_cs=0x0F00), "input-routine-chain-mismatch")
 
     def test_fixed_rows_not_printed_is_silent(self):
-        missing = set(ca.FIXED_ROW_CALLS) - {0x0157}
+        missing = set(ca.FIXED_ROW_CALLS) - {0x015C}
         self.assertSilent(snapshot(sites=missing), "fixed-rows-not-printed")
 
     def test_missing_table_is_silent(self):

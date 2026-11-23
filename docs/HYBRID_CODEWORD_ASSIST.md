@@ -26,7 +26,7 @@ The reader decides only from these, read at the INT 16h keyboard poll of the inp
 | unit frame bytes | selected index at `BP-2Ah`, attempt at `BP-2Bh` | the game's own selection (`0AF8:11C0`, argument 13) and attempt counter |
 | `DS:0000`, 512 bytes | 13 records of 21 bytes at `2 + 21*i`: length byte `06`, six letters, 14 bytes of tail | the game's own record table (checked by digest, never printed) |
 | BIOS head and tail | `0040:001A` and `0040:001C` | keyboard buffer must be empty before any key is sent |
-| printer sites | the unit offsets from which `0709:0626` was called during this occurrence | the six fixed rows (`+0157`, `+0174`, `+0191`, `+0202`, `+0286`, `+02D8`) must have been printed |
+| printer sites | the return offsets (unit 0x19) of the calls to `0709:0626` recorded since the last non-prompt poll | the six fixed-row calls sit at `+0157`, `+0174`, `+0191`, `+0202`, `+0286` and `+02D8` (5-byte `lcall`s), so the recorded return offsets are `015C`, `0179`, `0196`, `0207`, `028B` and `02DD`; these must all be present |
 
 Any failed check is SILENCE with a reason. There is no confidence value and no OCR.
 
@@ -93,8 +93,9 @@ for this slice.
 
 1. **Snapshot point:** the INT 16h keyboard poll callback (`F000:CFC1` in the pinned build), entered from the input
    loop. Read the snapshot there, call `Gate.step`, and act only on SEND.
-2. **Printer sites:** a counter on calls to `0709:0626` that records the return offset when the call comes from the
-   unit, reset when the input routine is entered. This is the only extra state the hook keeps.
+2. **Printer sites:** at the entry of `0709:0626` the hook records the pushed return CS:IP. The list is cleared at any
+   non-prompt poll, so a prompt occurrence sees only the rows printed since the last non-prompt poll. This is the only
+   extra state the hook keeps. A recorded row set that is incomplete is silence (fail-safe).
 3. **Sending:** `KEYBOARD_AddKey2` with the make code, then the break code. Never write the buffer, never type
    through a host tool.
 4. **Off switch:** a single flag read before any state is taken. Off means the hook is not called at all.

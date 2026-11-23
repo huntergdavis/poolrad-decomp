@@ -31,8 +31,10 @@ RECORD_TEXT_LEN = 6
 TABLE_BYTES = 0x200
 ATTEMPTS = (1, 2, 3)
 MAX_FRAMES = 8
-# Unit 0x19 offsets of the six fixed-row calls to 0709:0626 (docs/re/COLD_START_CODEWORD_SOURCE.md).
-FIXED_ROW_CALLS = frozenset({0x0157, 0x0174, 0x0191, 0x0202, 0x0286, 0x02D8})
+# Return offsets (in unit 0x19) of the six far calls to 0709:0626 that print the fixed rows. The calls sit at
+# +0157, +0174, +0191, +0202, +0286 and +02D8 and each is a 5-byte lcall, so the pushed return offset is call + 5.
+# The emulator records the pushed return offset, so these are the values the guard compares against.
+FIXED_ROW_CALLS = frozenset({0x015C, 0x0179, 0x0196, 0x0207, 0x028B, 0x02DD})
 RUNTIME_TABLE_SHA256 = "0486c788451ab11470af8d9bcf79a4ff4c677bca4fa479dddc96d2e2e8f27ac7"
 MAX_WAIT_STEPS = 200
 RETURN = "RETURN"
