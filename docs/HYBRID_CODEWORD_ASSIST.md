@@ -54,13 +54,19 @@ Attribute scope: `.gitattributes` gives `-whitespace` to **one file only**, `too
 Whitespace count, default rules, pre-attribute blob `98b4b7e2`, whole file: **eleven hits**, at lines 4, 6, 11, 12, 13, 14, 15,
 17, 18, 19 and 32 (four `blank-at-eol`, seven `space-before-tab`). Reproduce with
 `git --attr-source=4b825dc642cb6eb9a060e54bf8d69288fbee4904 diff --check 4b825dc642cb6eb9a060e54bf8d69288fbee4904 98b4b7e2 -- tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`.
-The empty tree as attribute source turns the repository attribute off. An independent Python scan with the same three default rules
-gives the same eleven lines. The earlier figure of seven was a commit-level count, `git diff --check 98b4b7e2~1 98b4b7e2 -- <patch>`,
-which reports only the lines that commit added or changed. With the attribute active, the same blob gives no hits.
+The empty tree as attribute source turns the repository attribute off. An independent Python scan implements the same three
+default rules (blank-at-eol, space-before-tab, blank-at-eof). The patch ends without a blank line, so blank-at-eof adds no hits,
+and the scan gives the same eleven lines. With the repository attribute active, the same whole-file command gives no hits.
+
+Commit-level count (the seven-hit figure): `git --attr-source=98b4b7e20bf0dc7b7857e52ee898a74cc561b507 diff --check 98b4b7e2~1 98b4b7e2 -- tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch`
+gives seven hits, at lines 4, 6, 11, 12, 13, 14 and 19. It reports only the lines that commit added or changed. The bare form
+`git diff --check 98b4b7e2~1 98b4b7e2 -- <patch>` gives no hits at HEAD, because the repository `.gitattributes` (`-whitespace`) is active,
+so the attribute-source override is required for the count to reproduce. `git cat-file -e 98b4b7e2:.gitattributes` fails (the file is
+absent at that commit), so default rules apply under that override.
 
 Identical-code basis for the header: two header comments (lines 101 and 270) were corrected after the build. This is a comment-only
 diff, checked with `git diff` against `98b4b7e2`, which changes only those two lines. It is also a comment-stripped comparison: with
-block comments removed (23 in each copy) the build-tree copy and the tools copy are equal. This is not a rebuild; the statement that
+block comments removed (23 in each copy) the build-tree copy and the tools copy are equal. The comment-stripped text has SHA-256 `610ecc37b5b78702c6c85ad1f4981fac5ad1aeb72de3e505bafde19b9aae911a` in both copies (prefix `610ecc37b5b78702`); no line comments are present. This is not a rebuild; the statement that
 the compiled code is identical rests on those two checks.
 
 ## Exact prompt state (what the reader reads)
@@ -163,13 +169,11 @@ code constant, not of the observation.
      can, in principle, survive into a later prompt occurrence, and the completeness check would then not prove that this
      occurrence printed the six rows. The decision accepts this risk on the static basis below. No native run exercised a
      surviving row, and no test covers it. The decision changes no code.
-     - **Static basis, and what reproducing it needs:** the private overlay file `GAME.OVR` (supplied game media, found under the
-       ignored `resources/` tree, not committed). Unit `0x19` is at file offset `0x09AC`, 862 bytes, whose SHA-256 prefix is
-       `f93ae8c4`. That prefix was checked in this round on one copy only (`resources/oracle-runs/autotype-003/GAME.OVR`).
-       Reproduce by disassembling those 862 bytes with capstone, by recursive descent from unit offset `+00FD`. The claims read from
-       that decode are: 862/862 bytes are covered by decoded instructions; there are no indirect branches; the only return sites
-       are `+0358` and `+035D`; and every path to the input call prints all six rows first, so a stale row cannot be the one that
-       satisfies the check. The analysis was filed outside this repository and is not cited by path.
+     - **Static basis, and what reproducing it needs:** the private overlay file `GAME.OVR` (supplied game media, under the ignored `resources/` tree, not committed). Its 15 copies under `resources/` have the same full-file SHA-256 prefix, `872964a32cef0fc3` (hash-only comparison, measured on 2026-11-22). The earlier single-copy check was the Writer's check, not a property of the files. Unit `0x19` is the 862 bytes at file offset `0x09AC`, SHA-256 prefix `f93ae8c4`. Figures below were measured on 2026-11-22 with capstone 5.0.7 in 16-bit mode (`CS_MODE_16`), with unit offsets as addresses:
+       - Linear sweep from `+0000`: 440 instructions, no undecodable bytes, 862/862 bytes tiled; return sites at `+0358` and `+035D`.
+       - Recursive descent from `+00FD`, following fall-through, direct jumps and conditional jumps, and treating calls as returning (27 far calls, no near calls): 263 instructions covering 564 of 862 bytes, all within `+00FD` to `+0358` inclusive. No indirect jumps or calls, and no far jumps. The only return reached is `+0358`, so `+035D` is not reachable from the entry. No reached instruction lies below `+00FD`.
+       - Dominance over that graph, with each conditional's both outcomes taken as possible and calls falling through: the six print sites (far calls at `+0157`, `+0174`, `+0191`, `+0202`, `+0286` and `+02D8`) each dominate the input call at `+02FD`. Removing any one of them makes `+02FD` unreachable from `+00FD`, so every path from `+00FD` to `+02FD` passes through all six.
+       - Reviewer-provided, not measured here: the first 0xFD bytes are a non-code preamble. The descent shows only that nothing reachable from `+00FD` lies below it; it does not establish that those bytes are data.
      - Clearing on every non-SEND poll is not a safe alternative: the gate runs the row check on every poll, and a WAIT poll
        during a plan is non-SEND, so clearing there would abort a plan in progress.
      - Any narrower rule (for example, clear only on SILENT decisions other than plan-ending ones) is new design work. It needs
