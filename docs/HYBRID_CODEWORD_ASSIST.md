@@ -113,7 +113,34 @@ flag off before and after removal.
 
 ## Native coverage of the selected index (read-only cold starts)
 
-See the section below; it is generated from the run log.
+Cold starts with no key input, one break-in each, index read from the unit frame byte `BP-2Ah`. The unit
+segment was `38D3` in every valid run, and the record table digest was identical in every run that dumped it
+(`0486c788451ab114…`, 38 of 38).
+
+| Index | Observed (run count) | Source |
+| ---: | ---: | --- |
+| 0 | 2 | coverage 003, 037 |
+| 1 | 2 | coverage 009, 016 |
+| 2 | 2 | coverage 001, 022 |
+| 3 | 2 | coverage 035, run 046 |
+| 4 | 3 | coverage 004, 026, 032 |
+| 5 | 2 | run 047, coverage 018 |
+| 6 | 1 | coverage 027 |
+| 7 | 4 | coverage 011, 012, 024, 031 |
+| 8 | 7 | coverage 002, 007, 010, 025, 030, 033, 036 |
+| 9 | 4 | run 043, coverage 006, 034, 039 |
+| 10 | 2 | coverage 028, 029 |
+| 11 | 6 | runs 045, 049; coverage 008, 015, 020, 023 |
+| 12 | 7 | runs 042, 044, 048; coverage 005, 019, 021, 038 |
+
+Totals: 44 valid cold starts (8 from runs 042 to 049, 36 from the coverage loop). **All 13 indices are observed at
+least once.** Index 6 has a single observation. Four coverage runs (013, 014, 017, 040) gave no input-return frame at
+the break-in, so they are excluded; their cause is not established here.
+
+What this does **not** establish: the observation is of the selected index byte only. It does not show that each
+index's stored word is the accepted word. The only typed answers tested were a wrong answer (index 12) and the stored
+word for index 11, and both reached the same menu. Per-index acceptance is not device-proven for any index.
+(The table in the source listing is a count of observations, not a claim about acceptance.)
 
 ## Limits (not claims)
 
