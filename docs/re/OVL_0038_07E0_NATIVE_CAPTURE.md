@@ -8,7 +8,7 @@ Base `origin/main` `9851b7b62be1c00a8e1e0c97acce4fff5d08c1f7`. No `OVL_0038_07E0
 
 - `docs/re/OVL_009E_0000_HANDLERS.md` line 71: slot 23 (`6884h`, stub `0041:0089`) is "named gap: uncredited handler OVL_0038_07E0".
 - `docs/re/U9E_DISPATCH_HANDLER_BACKLOG.md` line 68: "- [ ] OVL_0038_07E0 — slots 23; missing".
-- `docs/re/function_backlog_reconciliation.csv` line 202 and `docs/re/u9e_dispatch_handlers.json` lines 547 and 1933 list the entry as a bare handler id (no model, no strict or credit row).
+- `docs/re/function_backlog_reconciliation.csv` line 202 and `docs/re/u9e_dispatch_handlers.json` lines 547 and 1933 list the entry as a bare handler id. In the census row, `queue_classification` is `game_evidenced` and `strict_full_c` is `0` (no strict or credit row); the entry is an identifier, not a credit claim.
 - Name and offset mentions elsewhere are not coverage: `docs/re/RES_00BA_16EC_PORT_HARNESS.md` line 14 lists `+07E0` as a caller of `00BA:16EC`; `tools/overlay/res16ec_entry_contract.py` line 63 lists `0038:0902` calling `0x38:0x07e0`; `docs/re/OVL_0038_0775_CPU.md` and `tools/overlay/ovl038_0775_cpu_audit.py` use `07E0` as the bound of entry 0775. None models or grants the `+07E0` body.
 
 The premise holds: the entry is uncredited and unmodelled, so this slice proceeds.
@@ -59,7 +59,7 @@ The entry images of runs 002 and 003 differ in 89 bytes (including the tick word
 
 The 12 differing bytes, replayed versus native exit: `0x0046C` (tick, 97h versus 98h) and 11 bytes in `0x20CAC`–`0x20DEC` (`SS:3B4C`–`SS:3C8C`, below the handler frame): `0x20CAC`, `0x20CAE`, `0x20CB4`, `0x20CB8`, `0x20DA6`, `0x20DA8`, `0x20DA9`, `0x20DAA`, `0x20DAE`, `0x20DEA`, `0x20DEC`.
 
-Cause, as far as it is established: the replayed tick word advances by 27, which matches the 27 IRQ0 landings in the trace. The native exit reads 28 ticks. So the untraced exit run took one more IRQ0 than the traced run. The stack bytes fit an interrupt frame and the BIOS handler's stack use for that extra tick. This is an inference from the counts; the exit run's own trace does not exist, so it is not proven. Timing-dependent interrupts across two runs are the composite method's inherent limit, and this result is the measured case.
+Cause, as far as it is established: the replayed tick word advances by 27, which matches the 27 IRQ0 landings in the trace. The native exit reads 28 ticks. So the untraced exit run took one more IRQ0 than the traced run. The 11 stack bytes span 320 bytes (`0x20CAC` to `0x20DEC`, `SS:3B4C` to `SS:3C8C`), more than one interrupt frame, so they are not identified with a single frame. They are consistent with an extra interrupt's frame and BIOS handler stack use. This is an inference from the counts; the exit run's own trace does not exist, so it is not proven. Timing-dependent interrupts across two runs are the composite method's inherent limit, and this result is the measured case.
 
 Replay-side note: `unexplained 0` means every differing byte has a journaled writer. It does not mean the writer's value matches the native value. The 12-byte difference is a measured mismatch, not a zero.
 
@@ -101,7 +101,7 @@ The composite trace contains interrupt, `IRET`, string and tick rows, so these h
 
 - `tests/overlay/ovl038_07e0_static_test.py --game-ovr <owner GAME.OVR>` (a static test, not a credit checker: it registers no CHECKER_ROWS and claims no credit): 8 of 8 checks PASS (span offset, length and hash; 103 instructions tile the span; one `RETF 0Ah`; the eight static far calls; the seven on the path; the composition callee tables match the decode; the composition source exists). The owner media is read at run time and is not committed.
 - `tests/replay/check_ovl0038_07e0_composition.sh BODY RUN_COMP_DIR COMPARATOR OUT`: compiles the composition with `-std=c11 -Wall -Wextra -Werror`, runs the baseline and the four mutants, and compares each with the replayed post-body snapshot. Baseline EQUAL; the verdicts above.
-- Byte-dump, pairing and diff-check hygiene: see the commit message.
+- Hygiene, run on this tree at the time of this edit: byte-dump check rc 0 on this doc; `check_body_doc_pairing --base origin/main` rc 0; `git diff --check base..HEAD` clean.
 
 ## Limits
 
