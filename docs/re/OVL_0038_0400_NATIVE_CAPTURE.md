@@ -14,7 +14,9 @@ This is **not** a single traced warm call. Under `LOGL` tracing the debugger doe
 2. **Entry and exit.** Run `ovl38-0400-native-006`, which is untraced after the cold call. Its warm-entry RAM (`S0..S9`, SHA-256 `d7db2b7b61b1f071465eaa0d3d51e3c417b51df8e7fdcc678897f5ec4afe8e70`) is the replay's entry. Its native exit, taken at the untraced stop at `9FE0:0100`, has RAM SHA-256 `8789af4732feb145f61f6a76b82cbe919e395c699b6954177b2576537d8f20ec` and registers `0 27 7 0 6 8 3e98 3df0 9fe0 100 14a0 4529 1d16 flags 7246`.
 3. **Replay.** The replay applies the run-003 trace to the run-006 entry and compares the result with the run-006 exit. Its annotation check ties the trace's recorded reads and writes to the run-006 entry.
 
-Handler effects in run 006 confirm the path ran: after the untraced warm call, `DS:6825` is `64h`, `B+84h` (`DS:0184`) is `B3h`, and `A+3` (`DS:0103`) is `72h`.
+Handler effects in run 006: `B+84h` (`DS:0184`) changes from `00h` to `B3h` and `A+3` (`DS:0103`) from `52h` to `72h`. These two bytes are the evidence that the path ran. `DS:6825` is `64h` at both entry and exit (the cold call had already set it), so it is not evidence for the warm call.
+
+Driver invocation for this capture: `tests/replay/replay_ovl0038_0233_warm.py --body-seg 30FF --entry-ip 0400 --post-retf-ip 04B7`. The driver's default `--post-retf-ip 0374` is the 0233 value and must not be used for this slot.
 
 ## Forced state (operator-set; chosen to reach the call path)
 
@@ -33,7 +35,7 @@ Handler effects in run 006 confirm the path ran: after the untraced warm call, `
 | Differing bytes without a journaled writer | 0 |
 | Rows executed (body 45; callee segment `08DE` 117; dispatcher `2F6B` 16; stubs 1 each) | 180 |
 | Callee windows (the one far call) | 1 |
-| Bytes changed from entry to exit (below A0000) | 4 (`A+3`, `B+84h`, `B+10Fh`, `DS:6825`) |
+| Bytes changed from entry to exit (below A0000) | 4: `0x14B03` (`A+3`, 52h to 72h), `0x14B84` (`B+84h`, 00h to B3h), `0x14C0F` (`B+10Fh`, 00h to 01h), `0x20F35` (`SS:3DD5`, bp-9, 01h to 00h). `DS:6825` is 64h at both ends and is not changed. |
 | Display stores | 0 |
 | Snapshots | entry at `30FF:0400`; post at `2F6B:0022` |
 
@@ -41,7 +43,7 @@ Replayed handler-entry RAM SHA-256 `7b083646ecb00703dbea69f83ababf3e69f8cb138f53
 
 ## C composition (45 instructions; callee effects declared from the trace)
 
-`tests/replay/compose_ovl0038_0400_body.c` interprets the 186-byte body from the replayed handler-entry state, executing the 45 body instructions on this path. At `LCALL 00BA:23DB` it pushes the return CS:IP as the body does, then applies the declared callee block (effects file SHA-256 `5883590824dd8db3846c512fada9656bdac4d8ddbb6cccf01ccf3b8a3d7b6b4e`, 485 bytes). The reference is the replayed post-body snapshot at `2F6B:0022`. The comparator is `tests/replay/compare_ovl0038_017f_composition.py`, which is on `origin/main` (blob `bdf7f2091cf8a5fa75574c955ad73af995861130`) through the #1978 merge; it is not in this branch's base.
+`tests/replay/compose_ovl0038_0400_body.c` executes the 45 body instructions on this path. The body bytes are the pinned file span (GAME.OVR offset 61531, 186 bytes, SHA-256 `90be6f52…`), passed as `argv[1]`. They are not read from the replayed entry RAM. The registers and data come from the replayed handler-entry state. The live entry differs from the file in two bytes of the far-call segment word (`+04AF`/`+04B0`: live `08DE`, file `00BA`, a loader fixup); feeding the live bytes fails the call-target check. At `LCALL 00BA:23DB` it pushes the return CS:IP as the body does, then applies the declared callee block (effects file SHA-256 `5883590824dd8db3846c512fada9656bdac4d8ddbb6cccf01ccf3b8a3d7b6b4e`, 485 bytes). The reference is the replayed post-body snapshot at `2F6B:0022`. The comparator is `tests/replay/compare_ovl0038_017f_composition.py`, which is on `origin/main` (blob `bdf7f2091cf8a5fa75574c955ad73af995861130`) through the #1978 merge; it is not in this branch's base.
 
 | Check | Result |
 | --- | --- |
@@ -85,7 +87,7 @@ The cold-call breakpoint at `9FE0:0100` stops correctly when nothing is traced. 
 
 ## Limits
 
-1. **Composite method.** The trace comes from run 003 and the entry and exit come from run 006. The replay checks the trace's 111 annotated reads against the run-006 entry, not byte identity of the whole entry image. Entry images of runs 003 and 005 differ in 90 bytes, including the BIOS tick word at `0040:006C` and stack and data bytes. The annotated reads on this path agree with the run-006 entry. That does not prove the 90 differing bytes are unread by this path.
+1. **Composite method.** The replay runs the run-003 trace on the run-006 entry. Those two entry images differ in 104 bytes (runs 003 and 006; the 90-byte figure is for runs 003 and 005 and is not the pair used). The differing addresses include the BIOS tick word at `0040:006C` (`0x0046C`), stack bytes and data bytes. None of the 104 is annotated on this path, so the 111 annotated checks do not cover them. Their effect on this path is covered only by the final-state comparison (0 differing bytes against the native exit). Whole-image identity of the entry is not established; the annotation-level statement was checked by both independent reviews.
 2. **One path.** Selector 0 with `A+3` bit 5 clear (the call path). The bit-5-set path and the non-zero selector path are not covered.
 3. **Operator-set state.** The null `B+108h` pointer was replaced with a scratch pointer. Record bytes were restored after the cold call. The frame values were chosen by the operator.
 4. **Callee.** `00BA:23DB` is not modelled. Its effects are declared from the same trace, so the composition is not independent of the trace.
@@ -93,7 +95,7 @@ The cold-call breakpoint at `9FE0:0100` stops correctly when nothing is traced. 
 6. **Replay mutants.** 0 of 4 caught, because the path has no site for any of the four hooks.
 7. **Debugger.** Breakpoints and `LOGL` counts are not honoured under `LOGL` tracing in this configuration (runs 001 to 005). Not diagnosed.
 8. **Premise and credit.** The "missing (no model)" premise in #1019 is stale. The #1554 grant stands. Nothing here grants credit or duplicates it.
-9. **Base and tools.** Base `origin/main` `362c99935b63d6056f7b641a64bd218948e7b0eb`. The replay driver is the 0233 driver on main (`tests/replay/replay_ovl0038_0233_warm.py`). The comparator is the 017F comparator on main. The composition C is new in this slice.
+9. **Base and tools.** Base `origin/main` `362c99935b63d6056f7b641a64bd218948e7b0eb`. The replay driver is the 0233 driver on main (`tests/replay/replay_ovl0038_0233_warm.py`), run with `--post-retf-ip 04B7` (see Method; the default `0374` is the 0233 value). The comparator is the 017F comparator on main. The composition C is new in this slice.
 10. **Trace parts.** Only the run-003 trace (one part of 181 lines) is used. It is hashed (see Method) and is not otherwise summarized here.
 11. **Authorship.** The commits carry the project placeholder identity (`reviewer-1 (maintainer rebase)`, `agents.local`), per the VP decision. Re-attribute before any public release.
 12. Evidence only. No parity, function-identity, count or credit claim.
