@@ -1,12 +1,13 @@
 # OVL_0038_017F (U38 slot 4): native warm capture, run ovl38-017f-native-003
 
-**Verdict: native capture COMPLETE; store replay PASSES on the full warm trace (0 unattributed); the C composition matches the native end state with declared callee effects (end-state equal; two of three intermediate-value mutants are end-state equivalent, so the composition claim is limited). No parity, function identity, count or credit claim.**
+**Verdict: native capture COMPLETE; store replay PASSES on the full warm trace (0 unattributed bytes). The C composition reproduces the replayed post-body snapshot at 2F6B:0022 (RAM below A0000 and the 14 register fields equal) with declared callee effects. Of three intermediate-value mutants, one is detected by this comparator; the other two are not observed by it, so the composition claim is limited to the end state and the final return. No parity, function identity, count or credit claim.**
 
 Clearance: the eb5d0b5d controller hold was cleared by owner decision (via the VP, 2026-11-23) for this native forced-call
 capture through the t4492 chain. This note records only that capture.
 
-Pin: branch `evidence/ovl-0038-017f`, measured at `9e10392c84c21db746c8637eaeee059b4e2ec237`; base `origin/main`
-`d68e6aff3f4abc01f6cb12f17065baafda3cc03a`. No rebase.
+Pin: branch `evidence/ovl-0038-017f`. The native capture was recorded at `5e60f84a`. The replay, composition and mutant
+results were measured at `d441dd23cf95e6d172a756f7815fecd94eb6de92`. The commit that carries this text changes no measured
+value. Base `origin/main` `d68e6aff3f4abc01f6cb12f17065baafda3cc03a`. No rebase.
 
 ## Live addresses in this session (differ from the static estimates)
 
@@ -25,7 +26,8 @@ The stub segments were the same in runs 001 and 003 (08D4 and 0865). The owner's
 - `ovl38-017f-native-001`: aborted. The first traced attempt hit the LOGL limit of 2,097,152 lines inside the cold loader
   (1264:02C0 loop), before the handler. Kept, not used as evidence.
 - `ovl38-017f-native-002`: aborted before ARMED. The controller raised FileExistsError. Kept, with an ABORTED note.
-- `ovl38-017f-native-003`: the capture. Cold call untraced, then a traced warm call. Artifacts are under the ignored
+- `ovl38-017f-native-003`: the capture. Cold call untraced, then a traced warm call. Both states were captured before the
+  chain was ended by the supervisor's 30-minute deadline (see Run-003 validity). Artifacts are under the ignored
   `resources/oracle-runs/ovl38-017f-native-003/`.
 
 ## Forced frame (chosen by the operator, not a natural caller)
@@ -43,7 +45,7 @@ so units 9E and 38 are loaded.
 ## Warm call (traced)
 
 The frame was reapplied. The entry state is in `warm/` (registers `CPU-WARM-ENTRY.raw.txt`, RAM `warm/S0..S9.BIN`,
-640 KiB). The LOGL trace was armed as 200000 hex lines per part, with the breakpoint at 9FE0:0100.
+640 KiB). The LOGL trace was armed as `200000` hex lines per part (2,097,152 lines), with the breakpoint at 9FE0:0100.
 
 | Item | Value |
 | --- | --- |
@@ -54,70 +56,40 @@ The frame was reapplied. The entry state is in `warm/` (registers `CPU-WARM-ENTR
 | Trace part 1 | 2,097,152 lines (LOGL limit stop at 1264:02C1) |
 | Trace part 2 | 2,097,152 lines (LOGL limit stop at 1264:02C1) |
 | Trace part 3 | 466,700 lines (breakpoint stop at 9FE0:0100) |
-| Total | 4,660,004 lines, including the stop lines of parts 1 and 2 |
+| Total | 4,661,004 lines; 4,661,001 rows executed (see the stop-duplicate rule) |
 
-Stop-duplicate rule: the last row of each part is the stop line, and its executed copy is the next part's first row, so each
-part drops its last row. The final row (9FE0:0100) is the breakpoint stop and does not execute.
+Stop-duplicate rule: the last row of parts 1 and 2 is the LOGL stop line, and the next part's first row is the executed
+copy of that instruction, so each of those parts drops its last row. The last row of part 3 is the 9FE0:0100 breakpoint
+stop, which does not execute, so it is dropped. 4,661,004 − 3 = 4,661,001 rows executed. This equals the sum of
+`rows_executed_by_segment` in the replay summary.
 
 Host-event counts by grep (per part 1, 2, 3): BIOS-segment rows 195, 195, 45; `int` 13, 13, 3; `iret` 26, 26, 6; port
 `in`/`out` 5065, 13, 47; `rep` 2548, 0, 802; `retf` 672, 0, 97. The delay loop at 1264:02BD to 02C9 repeats in parts 1 and 2.
 The trace contains the handler's far calls (`0AF8:0B0B`, `00BA:16EC`, `00B0:0052`) through the live stubs, and the dispatcher
 RETF 0Ch at 2F6B:0023.
 
+### Trace files and the canonical copy (M2)
+
+- Canonical trace: `warm/parts/LOGCPU-part1.txt`, `warm/parts/LOGCPU-part2.txt` and `warm/parts/LOGCPU-part3.txt`. These are
+  the only trace inputs the replay reads.
+- The top-level `LOGCPU.TXT` in the run directory is the DOSBox-X LOGL target named in the action log
+  (`BP+LOGL 200000 ... -> LOGCPU.TXT (warm)`). The replay does not read it. Its content is byte-identical to part 3
+  (sha256 `b571f74499d0ef5b3c363a9bc525322072fa69a762c429640096fb737b22b297`), it has a different inode, and its last write is
+  15:06:55 PST. The part-3 entry in `warm-chunks.log` is logged at 15:10:06 PST.
+- Origin: `warm-chunks.log` records the part-1, part-2 and part-3 stops, and the parts were taken from the LOGL output at
+  those stops. The command that made each copy is not recorded in the run directory, and it was not located in the scratch
+  trees. How the parts and the top-level copy were produced is therefore not established. The identical bytes show that
+  the copies agree; they do not verify the copy mechanism.
+- Hashes: only part 3 and the top-level copy are hashed here. Parts 1 and 2 are not hashed; their agreement with the
+  recorded summary is the evidence for them (see Limits).
+
 ## Replay and composition: results (run 003)
 
 See the section 'Replay and composition results' below; this section is superseded.
 
-## Limits
-
-- The warm call's traced state depends on the untraced cold call, which ran first and changed the game state.
-- The forced frame values A to E are operator choices. They are not a natural caller's values.
-- The chain ended when its background job finished. The controller was killed (KeyboardInterrupt in controller-launch.err),
-  so the runbook's scoped cleanup records do not exist for run 003. This needs an owner decision on whether run 003 is
-  acceptable evidence or must be repeated with a proper cleanup.
-- The callee bodies are not modelled; their effects are to be declared from the trace in the composition.
-- Hashes above cover only the RAM images and register files. The large trace parts are recorded by size and line count and
-  are not hashed.
-- No parity, function identity or count, credit or acceptance claim. ASSIST label not applicable; this is native evidence
-  pending replay.
-- The local commit carries the repository's configured identity, which is a placeholder and not publishable.
-
-## Run-003 validity: decision
-
-**Decision: run `ovl38-017f-native-003` COUNTS as native evidence, with the missing cleanup records stated as a LIMIT.**
-The entry and exit states were recorded before the controller was interrupted, and no process from this run survives.
-
-(a) The controller's interrupt. `controller-launch.err` ends in a `KeyboardInterrupt` raised inside the interpreter's
-shutdown (threading `_shutdown`). Its last write is 15:10:43 PST. The controller therefore ended by interrupt when its
-background job finished (the job's own 30-minute kill point was not the cause; the job ran to completion), not through the
-runbook's scoped cleanup path. `session.err` was last written at 15:10:48 PST.
-
-(b) Process sweep, identity by the run-003 path and by the chain's process names (dosbox-x, t4492 controller, supervisor,
-observer, wait-recorder, owned-child, Xvfb, socat, gdb). Sweeps at 15:35 PST and 16:08 PST found no such process. The only
-process referencing the run-003 path at 16:08 PST was the replay analysis itself, not a chain process.
-
-(c) Timeline (PST, from the run's action log and file times):
-
-| Event | Time |
-| --- | --- |
-| Warm entry registers and RAM captured (`capstart`/`capdone WARM-ENTRY`) | 14:45:43 to 14:45:57 |
-| Warm traced call armed and resumed (`BP+LOGL 200000`, `RUN warm traced`) | 14:46:07 |
-| Trace part 3 final (breakpoint at 9FE0:0100) | 15:10:06 |
-| Exit registers written (`CPU-EXIT.raw.txt`) | 15:10:10 |
-| Exit RAM captured (`capstart`/`capdone WARM-EXIT`; last file `S9.BIN`) | 15:10:10 to 15:10:23 |
-| Controller `KeyboardInterrupt` (`controller-launch.err`) | 15:10:43 |
-| Session error file last written | 15:10:48 |
-
-Both states were captured before the interrupt, so the interrupt cannot have altered them.
-
-LIMIT: the runbook's cleanup records (`inner-status` and `observer-status` wait records, and the scoped SIGTERM path) are
-absent for run 003. The DOSBox-X, controller and supervisor processes ended with the background job. This does not change
-the recorded states, but a reviewer may require a repeat with a proper cleanup before any credit is considered. No credit,
-parity or function-identity claim follows from this capture.
-
 ## Replay and composition results (run 003)
 
-### Store replay (full warm trace, 4,660,004 rows, stop-duplicate rule applied)
+### Store replay (full warm trace: 4,661,004 lines, 4,661,001 rows executed, stop-duplicate rule applied)
 
 | Check | Result |
 | --- | ---: |
@@ -150,29 +122,126 @@ Prefix runs of 500,000 rows (part 1 onward); the baseline prefix has no bad entr
 | no-hw-frame | `IRET` check | caught: 3 `IRET` mismatches |
 | int-frame-skip | annotation and `IRET` checks | caught: 6 annotation, 3 `IRET` |
 | stos-skip | annotation check | caught: 28 annotation mismatches |
-| tick-skip | final-state comparison | not caught in the prefix; caught in the full run: 1 byte at 0046C differs (native 194, replayed 165) |
+| tick-skip | final-state comparison | not caught in the prefix; caught in the full run: 1 byte at 0046C (the BIOS tick word 0040:006C; native 194, replayed 165) |
 
-### C composition (body of 31 instructions; callee effects declared from the trace)
+Mutant prefix and full runs write under `warm/mutant-<name>/`. The baseline prefix run wrote to the canonical effects path; see
+Artifact record.
+
+### C composition (body of 31 instructions; callee effects declared from the same trace)
+
+End state (M5): the post-body snapshot. It is the replayed machine state when the handler's final `RETF 0Ah` returns to the
+dispatcher at 2F6B:0022. Its 14 register fields are `A8FF 454B 0008 454A 454A 0008 3DDE 3DDE 2F6B 0022 14A0 454A 1D16 7246`
+(`post-body-regs14.txt`), and its RAM below A0000 is `post-body-ram.bin`. It is not the warm exit at 9FE0:0100, which is the
+capture's breakpoint stop. The replay reproduces the native exit image separately (see Store replay).
 
 | Check | Result |
 | --- | --- |
-| RAM below A0000 (655,360 bytes), C model vs native post-body state | 0 differing bytes |
-| Registers (14 fields), C model vs native post-body state | 0 differing fields |
+| RAM below A0000 (655,360 bytes), C model vs replayed post-body snapshot | 0 differing bytes |
+| Registers (14 fields), C model vs replayed post-body snapshot | 0 differing fields |
 
 Composition mutants (each must be caught by the comparator):
 
 | Mutant | Result |
 | --- | --- |
-| return address of call 2 changed (0x01A5 to 0x01A4) | not detected (end state equal); cause not established |
-| `RETF 0Ah` pop changed to 0Ch | detected: SP differs |
-| argument byte of call 2 changed (AL 0Ah to 0Bh) | not detected (end state equal); cause not established |
+| return address of call 2 changed (0x01A5 to 0x01A4) | not observed by this comparator (end state equal) |
+| `RETF 0Ah` pop changed to 0Ch | detected: SP differs (final return: IP, CS and SP after RETF) |
+| argument byte of call 2 changed (AL 0Ah to 0Bh) | not observed by this comparator (end state equal) |
 
-So the end-state comparison detects one of three mutants. The composition establishes the end state with declared callee
-effects; it does not yet establish each intermediate boundary value. A boundary-level comparison (the callee arguments and
-return addresses at each call, from the native trace) is the check that would catch the two undetected mutants.
+What this comparator observes: RAM below A0000 and the 14 register fields of the post-body snapshot. It does not observe the
+call targets, call arguments or return addresses at each call. It applies declared callee effects from the same trace, and it
+does not read the words that call 2 pushed. Its only control-flow evidence is the final return (IP, CS and SP after RETF).
+The two undetected mutants are therefore "not observed by this comparator". They are not shown to be equivalent.
+
+Mechanism, as reported by an independent review at this pin (reproduced there; not re-derived in this document): the two
+mutated call-2 stack words (SS:3DAE and SS:3DB4) are not written by the declared callee-1 windows, and the body's own call-3
+pushes overwrite them (SS:3DAE to SS:3DBD), so the end-state comparison cannot see them.
+
+The call constants in the C model (return IPs 0x019A, 0x01A5 and 0x01BD; call-2 argument bytes 0x0A and 0x01; final
+`RETF 0Ah`) agree with the same review's decode of the pinned body. This composition does not verify them, and it is not a
+call-site check. Do not cite it for call-site correctness.
 
 ### Verdict for this pass
 
-Store replay: PASS on the full warm trace (0 unattributed bytes). Composition: end state equal with declared callee effects;
-mutant triage detects 1 of 3, so the composition claim is limited to the end state. No parity, function-identity, count or
-credit claim.
+Store replay: PASS on the full warm trace (0 unattributed bytes). Composition: end state equal with declared callee effects,
+and the final return only; mutant triage detects 1 of 3. The two undetected mutants are an accepted stated limit: they change
+call-boundary words this composition does not observe, and nothing here indicates a model error. A boundary-level check (the
+native stack words at each callee entry against the C model's pushes, or a static constant-versus-decode check) would close
+the gap; neither exists at this pin. No parity, function-identity, count or credit claim.
+
+## Run-003 validity: decision
+
+**Decision: run `ovl38-017f-native-003` COUNTS as native evidence, with the missing scoped-cleanup path stated as a LIMIT.
+The run did not run to completion. Its chain was ended by the supervisor's 30-minute deadline, after both states had been
+captured.**
+
+(a) Termination. The supervisor (pid 818573, `supervisor-identity.txt`) started its owned child at 14:40:42 PST (first line of
+`supervisor.log`). At 15:10:42 PST its deadline fired with the child still running (`primary reason=timeout status=None`). It
+then sent TERM to the child's process group (`group TERM`, 15:10:42.877 PST). The controller's `KeyboardInterrupt` is the last
+write of `controller-launch.err`, at 15:10:43 PST. The supervisor's audit ended at 15:10:48 PST with `group_alive=False`. Its
+status record is pid 818573 with `returncode=124` (`inner-status`). Its source raises exit 124 only when the reason is
+`timeout` (`t4492-supervisor.py`, in the chain's scratch tree outside this repository). A leftover loop and tail were stopped
+by identity at 15:18:59 PST (`actions.log`). The earlier statement that the job ran to completion, and that the 30-minute
+deadline was not the cause, was wrong and is withdrawn.
+
+(b) Process sweep, identity by the run-003 path and by the chain's process names (dosbox-x, t4492 controller, supervisor,
+observer, wait-recorder, owned-child, Xvfb, socat, gdb). Sweeps at 15:35 PST and 16:08 PST found no such process. The only
+process referencing the run-003 path at 16:08 PST was the replay analysis itself, not a chain process.
+
+(c) Timeline (PST, from the run's action log, supervisor log and file times):
+
+| Event | Time |
+| --- | --- |
+| Supervisor starts its owned child | 14:40:42 |
+| Warm entry registers and RAM captured (`capstart`/`capdone WARM-ENTRY`) | 14:45:43 to 14:45:57 |
+| Warm traced call armed and resumed (`BP+LOGL 200000`, `RUN warm traced`) | 14:46:07 |
+| Trace part 3 final (breakpoint at 9FE0:0100), logged in `warm-chunks.log` | 15:10:06 |
+| Exit registers written (`CPU-EXIT.raw.txt`) | 15:10:10 |
+| Exit RAM captured (`capstart`/`capdone WARM-EXIT`; last file `S9.BIN`) | 15:10:10 to 15:10:23 |
+| Supervisor deadline fires with child running (`primary reason=timeout`) | 15:10:42 |
+| Supervisor `group TERM` to the child's process group | 15:10:42.877 |
+| Controller `KeyboardInterrupt` (`controller-launch.err`) | 15:10:43 |
+| Supervisor audit ends, `group_alive=False`; status records written | 15:10:48 |
+| Leftover loop and tail stopped by identity (`actions.log`) | 15:18:59 |
+
+Both states were captured before the deadline, so the termination cannot have altered them.
+
+LIMIT: the scoped cleanup path is absent for run 003. The run was ended by the supervisor's deadline and group TERM, not by a
+scoped cleanup. The wait records do exist: `outer-status` (pid 817451, returncode 125), `observer-status` (pid 819059,
+returncode 0) and `inner-status` (pid 818573, returncode 124), all written at 15:10:48 PST. An earlier version of this note
+said those wait records were absent; that was wrong. This does not change the recorded states, but a reviewer may require a
+repeat with a proper scoped cleanup before any credit is considered. No credit, parity or function-identity claim follows from
+this capture.
+
+## Artifact record (M1, M2)
+
+- Effects file. `warm/effects-017f.txt` held the full-run composition input: three callee windows, 622,108 bytes as recorded
+  before the overwrite. A 500,000-row baseline prefix run at 17:06 PST overwrote it with one window (243 bytes, `CALL 0` only).
+  The driver writes baseline effects to that path for any `--max-rows` value, so a prefix run overwrites the full-run file.
+  The same prefix run rewrote `warm/composition/handler-entry-ram.bin` and `handler-entry-regs14.txt` with identical bytes.
+- Restore. A full-run replay was re-run at 2026-11-24 02:45:55 UTC (2026-11-23 18:45:55 PST) on a hard-linked copy of the run directory
+  (`scratch/m1-regen/`, ignored). The copy's writes went only to the copy's own unlinked outputs. Its replay returned rc 0.
+  Its replay summary, handler-entry snapshots, post-body snapshots and composition result are byte-identical to the canonical
+  files (`cmp`). Its C composition gives EQUAL (0 RAM bytes and 0 register fields differing). The copy's effects file was installed as the canonical
+  `warm/effects-017f.txt`: 622,108 bytes, sha256 23e69778d62f339cd00d40e8f361002c0b52f3af4116e18f787158c50dbd2d99. The regenerated size matches the size recorded before the overwrite.
+- Canonical composition inputs: `warm/effects-017f.txt` (full run) and `warm/composition/handler-entry-{ram.bin,regs14.txt}`.
+  The post-body snapshot and the replay summary are in `warm/composition/`. Mutant outputs are in `warm/mutant-<name>/` and
+  are not composition inputs.
+- Trace: see Trace files and the canonical copy (M2) above.
+
+## Limits
+
+- The warm call's traced state depends on the untraced cold call, which ran first and changed the game state.
+- The forced frame values A to E are operator choices. They are not a natural caller's values.
+- Run 003 was ended by the supervisor's 30-minute deadline after both states were captured, and its scoped cleanup path
+  is absent (see Run-003 validity).
+- The callee bodies are not modelled. Their effects are declared from the same trace, so the composition is not independent of
+  the trace.
+- The composition does not verify call arguments or return addresses at any call. It establishes the end state and the final
+  return (IP, CS and SP after RETF) only. Do not cite it for call-site correctness.
+- Hashes above cover the entry and exit RAM images, the register files, part 3 and the top-level copy. Trace parts 1 and 2 are
+  recorded by size and line count, and are not hashed.
+- The baseline prefix run overwrote the full-run effects file; it has been restored by the re-run recorded under Artifact
+  record. Re-running any prefix of the baseline overwrites the canonical effects file again.
+- The local commit carries a placeholder author identity. It is a publication item only and must be re-authored before
+  publication.
+- No parity, function-identity, count, credit or acceptance claim.
