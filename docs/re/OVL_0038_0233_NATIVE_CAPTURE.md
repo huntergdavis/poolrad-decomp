@@ -124,5 +124,6 @@ The warm trace finished before the supervisor's 1800-second deadline (the superv
 - The part-1 stop was detected by hand after the chunk loop stalled (see Warm call). The copy was taken at the same stop state, but the loop's automatic stop record is absent.
 - The supervisor's wait records were not re-read after the controller TERM (see Run-002 cleanup).
 - The local commits carry a placeholder author identity. It is a publication item only and must be re-authored before publication.
+- Live vs static fixup image: the composition executes the static fixup image, so its far-call segment words are the static values (0AF8, 00BA, 00B0), while the live entry RAM holds 131C, 08DE and 08D4 (6 bytes at +024C/+024D, +0257/+0258 and +0280/+0281); the end state does not depend on them, because the callee effects are declared and the composition's call-target check uses the static values.
 - Add/Spin box caveat: N/A. No such caveat exists in the repository (repo-wide grep finds no such text), in the 0233 static note, or in the assignment record, so it is not stated as a limit here.
 - No parity, function-identity, count, credit or acceptance claim.
