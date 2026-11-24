@@ -180,7 +180,7 @@ then sent TERM to the child's process group (`group TERM`, 15:10:42.877 PST). Th
 write of `controller-launch.err`, at 15:10:43 PST. The supervisor's audit ended at 15:10:48 PST with `group_alive=False`. Its
 status record is pid 818573 with `returncode=124` (`inner-status`). Its source raises exit 124 only when the reason is
 `timeout` (`t4492-supervisor.py`, in the chain's scratch tree outside this repository). A leftover loop and tail were stopped
-by identity at 15:18:59 PST (`actions.log`). The earlier statement that the job ran to completion, and that the 30-minute
+at 15:18:59 PST, as recorded by `actions.log` (`stopped leftover loop and tail`). The earlier statement that the job ran to completion, and that the 30-minute
 deadline was not the cause, was wrong and is withdrawn.
 
 (b) Process sweep, identity by the run-003 path and by the chain's process names (dosbox-x, t4492 controller, supervisor,
@@ -219,7 +219,7 @@ this capture.
   The driver writes baseline effects to that path for any `--max-rows` value, so a prefix run overwrites the full-run file.
   The same prefix run rewrote `warm/composition/handler-entry-ram.bin` and `handler-entry-regs14.txt` with identical bytes.
 - Restore. A full-run replay was re-run at 2026-11-24 02:45:55 UTC (2026-11-23 18:45:55 PST) on a hard-linked copy of the run directory
-  (`scratch/m1-regen/`, ignored). The copy's writes went only to the copy's own unlinked outputs. Its replay returned rc 0.
+  (`scratch/m1-regen/`: untracked, not in `.gitignore`, not committed; it must stay out of any commit). The copy's writes went only to the copy's own unlinked outputs. Its replay returned rc 0.
   Its replay summary, handler-entry snapshots, post-body snapshots and composition result are byte-identical to the canonical
   files (`cmp`). Its C composition gives EQUAL (0 RAM bytes and 0 register fields differing). The copy's effects file was installed as the canonical
   `warm/effects-017f.txt`: 622,108 bytes, sha256 23e69778d62f339cd00d40e8f361002c0b52f3af4116e18f787158c50dbd2d99. The regenerated size matches the size recorded before the overwrite.
