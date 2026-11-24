@@ -124,4 +124,5 @@ The warm trace finished before the supervisor's 1800-second deadline (the superv
 - The part-1 stop was detected by hand after the chunk loop stalled (see Warm call). The copy was taken at the same stop state, but the loop's automatic stop record is absent.
 - The supervisor's wait records were not re-read after the controller TERM (see Run-002 cleanup).
 - The local commits carry a placeholder author identity. It is a publication item only and must be re-authored before publication.
+- Add/Spin box caveat: N/A. No such caveat exists in the repository (repo-wide grep finds no such text), in the 0233 static note, or in the assignment record, so it is not stated as a limit here.
 - No parity, function-identity, count, credit or acceptance claim.
