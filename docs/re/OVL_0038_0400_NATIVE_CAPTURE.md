@@ -14,9 +14,9 @@ This is **not** a single traced warm call. Under `LOGL` tracing the debugger doe
 2. **Entry and exit.** Run `ovl38-0400-native-006`, which is untraced after the cold call. Its warm-entry RAM (`S0..S9`, SHA-256 `d7db2b7b61b1f071465eaa0d3d51e3c417b51df8e7fdcc678897f5ec4afe8e70`) is the replay's entry. Its native exit, taken at the untraced stop at `9FE0:0100`, has RAM SHA-256 `8789af4732feb145f61f6a76b82cbe919e395c699b6954177b2576537d8f20ec` and registers `0 27 7 0 6 8 3e98 3df0 9fe0 100 14a0 4529 1d16 flags 7246`.
 3. **Replay.** The replay applies the run-003 trace to the run-006 entry and compares the result with the run-006 exit. Its annotation check ties the trace's recorded reads and writes to the run-006 entry.
 
-Handler effects in run 006: `B+84h` (`DS:0184`) changes from `00h` to `B3h` and `A+3` (`DS:0103`) from `52h` to `72h`. These two bytes are the evidence that the path ran. `DS:6825` is `64h` at both entry and exit (the cold call had already set it), so it is not evidence for the warm call.
+Handler effects in run 006: `B+84h` (`DS:0184`) changes from `00h` to `B3h` and `A+3` (`DS:0103`) from `52h` to `72h`. These two bytes are the evidence that the path ran. `DS:6825` is `64h` at both entry and exit and is not in the changed set. The value at exit does not separate a warm call from a cold call, so it is not evidence for the warm call.
 
-Driver invocation for this capture: `tests/replay/replay_ovl0038_0233_warm.py --body-seg 30FF --entry-ip 0400 --post-retf-ip 04B7`. The driver's default `--post-retf-ip 0374` is the 0233 value and must not be used for this slot.
+Driver invocation for this capture (repository-relative; the run directory is ignored and must exist): `python3 tests/replay/replay_ovl0038_0233_warm.py --run resources/oracle-runs/ovl38-0400-native-006 --body-seg 30FF --entry-ip 0400 --post-retf-ip 04B7 --effects-out resources/oracle-runs/ovl38-0400-native-006/warm/composition-0400/effects-0400.txt --comp-dir resources/oracle-runs/ovl38-0400-native-006/warm/composition-0400 --out resources/oracle-runs/ovl38-0400-native-006/warm/composition-0400/replay-summary.json`. The driver's default `--post-retf-ip 0374` is the 0233 value and must not be used for this slot.
 
 ## Forced state (operator-set; chosen to reach the call path)
 
@@ -87,7 +87,7 @@ The cold-call breakpoint at `9FE0:0100` stops correctly when nothing is traced. 
 
 ## Limits
 
-1. **Composite method.** The replay runs the run-003 trace on the run-006 entry. Those two entry images differ in 104 bytes (runs 003 and 006; the 90-byte figure is for runs 003 and 005 and is not the pair used). The differing addresses include the BIOS tick word at `0040:006C` (`0x0046C`), stack bytes and data bytes. None of the 104 is annotated on this path, so the 111 annotated checks do not cover them. Their effect on this path is covered only by the final-state comparison (0 differing bytes against the native exit). Whole-image identity of the entry is not established; the annotation-level statement was checked by both independent reviews.
+1. **Composite method.** The replay runs the run-003 trace on the run-006 entry. Those two entry images differ in 104 bytes (runs 003 and 006; the 90-byte figure is for runs 003 and 005 and is not the pair used). The differing addresses include the BIOS tick word at `0040:006C` (`0x0046C`), stack bytes and data bytes. None of the 104 is annotated on this path, so the 111 annotated checks do not cover them. Their effect on this path is covered only by the final-state comparison (0 differing bytes against the native exit). Whole-image identity of the entry is not established.
 2. **One path.** Selector 0 with `A+3` bit 5 clear (the call path). The bit-5-set path and the non-zero selector path are not covered.
 3. **Operator-set state.** The null `B+108h` pointer was replaced with a scratch pointer. Record bytes were restored after the cold call. The frame values were chosen by the operator.
 4. **Callee.** `00BA:23DB` is not modelled. Its effects are declared from the same trace, so the composition is not independent of the trace.
