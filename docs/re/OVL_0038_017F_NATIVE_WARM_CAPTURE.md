@@ -201,7 +201,7 @@ process referencing the run-003 path at 16:08 PST was the replay analysis itself
 | Supervisor `group TERM` to the child's process group | 15:10:42.877 |
 | Controller `KeyboardInterrupt` (`controller-launch.err`) | 15:10:43 |
 | Supervisor audit ends, `group_alive=False`; status records written | 15:10:48 |
-| Leftover loop and tail stopped by identity (`actions.log`) | 15:18:59 |
+| Leftover loop and tail stopped (`actions.log`: `stopped leftover loop and tail`) | 15:18:59 |
 
 Both states were captured before the deadline, so the termination cannot have altered them.
 
