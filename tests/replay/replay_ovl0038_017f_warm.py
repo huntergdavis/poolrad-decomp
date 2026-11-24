@@ -47,6 +47,7 @@ def parse_line(line, index):
 
 def stream(paths):
     """All rows of all parts, minus the last row of each part (the stop line)."""
+    total = 0
     for p in paths:
         pending = None
         with open(p, "r") as handle:
@@ -54,6 +55,9 @@ def stream(paths):
                 row = parse_line(line, n)
                 if pending is not None:
                     yield pending
+                    total += 1
+                    if total % 500000 == 0:
+                        print("progress rows=%d part=%s" % (total, p.name), file=sys.stderr, flush=True)
                 pending = row
 
 
@@ -73,11 +77,21 @@ def mnemonic(text):
     return parts[0] if parts else ""
 
 
-def replay(rows, base, notes, windows_out):
+def replay(rows, base, notes, windows_out, snaps=None):
     import capstone
     from capstone import x86 as X
     md = capstone.Cs(capstone.CS_ARCH_X86, capstone.CS_MODE_16)
     md.detail = True
+    dcache = {}
+
+    def dis(b, a):
+        key = (b, a)
+        v = dcache.get(key)
+        if v is None:
+            v = next(md.disasm(b, a), None)
+            dcache[key] = v
+        return v
+
     mem, vcount = {}, [0]
     jcount, written = collections.Counter(), set()
     taint = [False]
@@ -120,6 +134,57 @@ def replay(rows, base, notes, windows_out):
            X.X86_REG_DS: ("ds", 0xFFFF, 0), X.X86_REG_ES: ("es", 0xFFFF, 0), X.X86_REG_SS: ("ss", 0xFFFF, 0),
            X.X86_REG_CS: ("cs", 0xFFFF, 0)}
 
+
+    CC = {"jo": lambda f: f >> 11 & 1, "jno": lambda f: 1 - (f >> 11 & 1), "jb": lambda f: f & 1, "jc": lambda f: f & 1,
+          "jnae": lambda f: f & 1, "jae": lambda f: 1 - (f & 1), "jnb": lambda f: 1 - (f & 1), "jnc": lambda f: 1 - (f & 1),
+          "je": lambda f: f >> 6 & 1, "jz": lambda f: f >> 6 & 1, "jne": lambda f: 1 - (f >> 6 & 1), "jnz": lambda f: 1 - (f >> 6 & 1),
+          "jbe": lambda f: (f & 1) | (f >> 6 & 1), "jna": lambda f: (f & 1) | (f >> 6 & 1), "ja": lambda f: 1 - ((f & 1) | (f >> 6 & 1)),
+          "jnbe": lambda f: 1 - ((f & 1) | (f >> 6 & 1)), "js": lambda f: f >> 7 & 1, "jns": lambda f: 1 - (f >> 7 & 1),
+          "jp": lambda f: f >> 2 & 1, "jpe": lambda f: f >> 2 & 1, "jnp": lambda f: 1 - (f >> 2 & 1), "jpo": lambda f: 1 - (f >> 2 & 1),
+          "jl": lambda f: (f >> 7 & 1) ^ (f >> 11 & 1), "jnge": lambda f: (f >> 7 & 1) ^ (f >> 11 & 1),
+          "jge": lambda f: 1 - ((f >> 7 & 1) ^ (f >> 11 & 1)), "jnl": lambda f: 1 - ((f >> 7 & 1) ^ (f >> 11 & 1)),
+          "jle": lambda f: (f >> 6 & 1) | ((f >> 7 & 1) ^ (f >> 11 & 1)), "jng": lambda f: (f >> 6 & 1) | ((f >> 7 & 1) ^ (f >> 11 & 1)),
+          "jg": lambda f: 1 - ((f >> 6 & 1) | ((f >> 7 & 1) ^ (f >> 11 & 1))), "jnle": lambda f: 1 - ((f >> 6 & 1) | ((f >> 7 & 1) ^ (f >> 11 & 1)))}
+
+    def resolved(prv, pins, cur_regs):
+        """(cs, ip) the CPU would execute after the previous row, with no interrupt (memory is the state after it)."""
+        pc, pip, ptext, pbyt, pr, pf = prv
+        size = pins.size if pins is not None else 1
+        nxt = (pc, (pip + size) & 0xFFFF)
+        if pins is None:
+            return nxt
+        mn, ops = pins.mnemonic, pins.operands
+        sspb_p = pr["ss"] << 4
+        if mn.startswith("rep"):
+            return (pc, pip) if cur_regs["cx"] != 0 else nxt
+        base_mn = mn.split()[-1]
+        if base_mn in ("ret", "retf", "iret", "iretw", "lret"):
+            off = rdw(sspb_p + pr["sp"])
+            seg = rdw(sspb_p + ((pr["sp"] + 2) & 0xFFFF)) if base_mn in ("retf", "iret", "iretw", "lret") else pc
+            return (seg, off)
+        if base_mn in ("call", "jmp") and ops and ops[0].type == X.X86_OP_IMM:
+            return (pc, ops[0].imm & 0xFFFF)
+        if base_mn in ("call", "jmp") and ops:
+            return (pc, val(pr, ops[0], 2) & 0xFFFF)
+        if base_mn in ("lcall", "ljmp") and len(ops) == 2 and all(o.type == X.X86_OP_IMM for o in ops):
+            return (ops[0].imm & 0xFFFF, ops[1].imm & 0xFFFF)
+        if base_mn in ("lcall", "ljmp") and ops and ops[0].type == X.X86_OP_MEM:
+            a = ea(pr, ops[0])
+            return (rdw(a + 2), rdw(a))
+        if base_mn == "int" and ops and ops[0].type == X.X86_OP_IMM:
+            n = ops[0].imm & 0xFF
+            return (rdw(4 * n + 2), rdw(4 * n))
+        if base_mn in ("loop", "loope", "loopne"):
+            cx = (pr["cx"] - 1) & 0xFFFF
+            zf = pf >> 6 & 1
+            taken = cx != 0 and (base_mn == "loop" or (base_mn == "loope" and zf) or (base_mn == "loopne" and not zf))
+            return (pc, ops[0].imm & 0xFFFF) if taken else nxt
+        if base_mn == "jcxz":
+            return (pc, ops[0].imm & 0xFFFF) if pr["cx"] == 0 else nxt
+        if base_mn in CC and ops and ops[0].type == X.X86_OP_IMM:
+            return (pc, ops[0].imm & 0xFFFF) if CC[base_mn](pf) else nxt
+        return nxt
+
     def reg(r, rid):
         name, mask, shift = ids[rid]
         return (r[name] >> shift) & mask
@@ -149,6 +214,11 @@ def replay(rows, base, notes, windows_out):
     executed = collections.Counter()
     for i, prv, cur, nxt in windowed(rows):
         cs, ip, text, byt, r, flags = cur
+        if snaps is not None:
+            if 'entry' not in snaps and cs == BODY_SEG_RT[0] and ip == 0x017F:
+                snaps['entry'] = (dict(r, ip=ip), flags, bytes(mem.get(a, base[a]) for a in range(VIDEO_BASE)))
+            if 'post' not in snaps and prv is not None and prv[0] == BODY_SEG_RT[0] and prv[1] == 0x01C0 and mnemonic(prv[2]) == 'retf':
+                snaps['post'] = (dict(r, ip=ip), flags, bytes(mem.get(a, base[a]) for a in range(VIDEO_BASE)))
         if active[0] is not None and cs == BODY_SEG_RT[0] and ip == active[0]['ret']:
             active[0]['regs'] = dict(r); active[0]['flags'] = flags; active[0]['sp'] = r['sp']
             windows_out.append(active[0]); active[0] = None
@@ -169,17 +239,16 @@ def replay(rows, base, notes, windows_out):
                     checks["ann-match"] += 1
                 else:
                     bad["ann-bad"].append(i)
-        # hardware interrupt entry: the row after an instruction shows IP/CS/FLAGS pushed by the hardware
+        # hardware interrupt entry: the row after an instruction is its resolved successor unless an interrupt landed
         if prv is not None and not prv[2].startswith("callback"):
-            pm = mnemonic(prv[2])
-            if pm not in branchy and not pm.startswith("j") and not pm.startswith("rep"):
-                pins = next(md.disasm(prv[3], prv[1]), None)
-                if pins is not None and (cs, ip) != (prv[0], (prv[1] + pins.size) & 0xFFFF):
-                    notes["hw-irq-entry"] += 1
-                    if MUT != "no-hw-frame":
-                        wr(i, sspb + sp, 2, (prv[1] + pins.size) & 0xFFFF, "irq-frame", "hw-frame")
-                        wr(i, sspb + sp + 2, 2, prv[0], "irq-frame", "hw-frame")
-                        wr(i, sspb + sp + 4, 2, prv[5] | 0x0200, "irq-frame", "hw-frame")
+            pins = dis(prv[3], prv[1])
+            res = resolved(prv, pins, r)
+            if res != (cs, ip):
+                notes["hw-irq-entry"] += 1
+                if MUT != "no-hw-frame":
+                    wr(i, sspb + sp, 2, res[1], "irq-frame", "hw-frame")
+                    wr(i, sspb + sp + 2, 2, res[0], "irq-frame", "hw-frame")
+                    wr(i, sspb + sp + 4, 2, (flags | 0x0200) & 0xFFFF, "irq-frame", "hw-frame")
         if text.startswith("callback"):
             tag = text.split()[1]
             nregs = nxt[4] if nxt is not None else r
@@ -194,7 +263,7 @@ def replay(rows, base, notes, windows_out):
             else:
                 raise SystemExit("undeclared callback %s at row %d" % (tag, i))
             continue
-        ins = next(md.disasm(byt, ip), None)
+        ins = dis(byt, ip)
         check(ins is not None and ins.addr_size == 2, "undecoded instruction at row %d" % i)
         mn, ops = ins.mnemonic, ins.operands
         rep, base_mn = mn.startswith("rep"), mn.split()[-1]
@@ -209,9 +278,9 @@ def replay(rows, base, notes, windows_out):
             wr(i, sspb + ((sp - 4) & 0xFFFF), 2, (ip + ins.size) & 0xFFFF, "lcall", cls)
         elif mn == "int":
             if MUT != "int-frame-skip":
-                wr(i, sspb + ((sp - 2) & 0xFFFF), 2, flags, "int", "int-frame", cls)
-                wr(i, sspb + ((sp - 4) & 0xFFFF), 2, cs, "int", "int-frame", cls)
-                wr(i, sspb + ((sp - 6) & 0xFFFF), 2, (ip + ins.size) & 0xFFFF, "int", "int-frame", cls)
+                wr(i, sspb + ((sp - 2) & 0xFFFF), 2, flags, "int", "int-frame")
+                wr(i, sspb + ((sp - 4) & 0xFFFF), 2, cs, "int", "int-frame")
+                wr(i, sspb + ((sp - 6) & 0xFFFF), 2, (ip + ins.size) & 0xFFFF, "int", "int-frame")
         elif base_mn in ("stosb", "stosw", "movsb", "movsw"):
             w = 2 if base_mn.endswith("w") else 1
             n = ((r["cx"] - nxt[4]["cx"]) & 0xFFFF) if rep else 1
@@ -307,8 +376,11 @@ def main():
     if a.max_rows:
         rows = itertools.islice(rows, a.max_rows)
     windows = []
-    mem, jcount, written, vcount, checks, bad, executed = replay(rows, entry, notes, windows)
-    eff = run / 'warm' / 'effects-017f.txt'
+    snaps = {}
+    mem, jcount, written, vcount, checks, bad, executed = replay(rows, entry, notes, windows, snaps)
+    mdir = run / 'warm' if not MUT else run / 'warm' / ('mutant-' + MUT)
+    mdir.mkdir(parents=True, exist_ok=True)
+    eff = mdir / 'effects-017f.txt'
     with open(eff, 'w') as fh:
         for w in windows:
             fh.write('CALL %d\n' % w['k'])
@@ -318,10 +390,21 @@ def main():
             fh.write('R ' + ' '.join('%04X' % rr[x] for x in ('ax', 'bx', 'cx', 'dx', 'si', 'di', 'bp', 'es', 'ds')) + ' %04X\n' % w['flags'])
             fh.write('SP %04X\n' % w['sp'])
     notes['windows'] = len(windows)
+    comp = mdir / 'composition'
+    comp.mkdir(exist_ok=True)
+    names = ('AX', 'BX', 'CX', 'DX', 'SI', 'DI', 'BP', 'SP', 'CS', 'IP', 'DS', 'ES', 'SS')
+    for key, tag in (('entry', 'handler-entry'), ('post', 'post-body')):
+        if key not in snaps:
+            continue
+        rr, fl, img = snaps[key]
+        (comp / (tag + '-ram.bin')).write_bytes(img)
+        (comp / (tag + '-regs14.txt')).write_text(' '.join('%04X' % rr[n.lower()] for n in names) + ' %04X\n' % fl)
+    notes['snapshots'] = sorted(snaps)
     # the replayed image against the native exit image, below the video window
     diff = 0
     changed = 0
     unexplained = 0
+    examples = []
     for addr in range(VIDEO_BASE):
         got = mem.get(addr, entry[addr])
         if exit_img[addr] != entry[addr]:
@@ -330,11 +413,13 @@ def main():
             diff += 1
             if addr not in written:
                 unexplained += 1
+                if len(examples) < 16:
+                    examples.append({'addr': '%05X' % addr, 'native_exit': exit_img[addr], 'replayed': got, 'entry': entry[addr]})
     summary = {"rows_executed_by_segment": dict(executed), "journal_bytes_by_class": {"%s/%s" % k: v for k, v in jcount.items()},
                "bytes_changed_entry_to_exit": changed, "replayed_vs_exit_diff_bytes": diff,
                "diff_without_writer": unexplained, "video_stores_counted": vcount,
                "checks": dict(checks), "bad": {k: len(v) for k, v in bad.items()}, "notes": dict(notes),
-               "mutant": MUT or "none"}
+               "mutant": MUT or "none", "unexplained_examples": examples}
     print(json.dumps(summary, indent=1, sort_keys=True))
     if a.out:
         a.out.write_text(json.dumps(summary, indent=1, sort_keys=True))

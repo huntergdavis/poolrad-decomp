@@ -92,12 +92,12 @@ int main(int argc, char **argv) {
     DI = (uint16_t)(BP - 0x10);                        /* lea di,[bp-10h] */
     push(SS); push(DI);
     DI = 0x016F; push(CS); push(DI);                   /* mov di,16Fh; push cs; push di */
-    push(CS); push((uint16_t)0x001B);                  /* lcall 0AF8:0B0B: return CS:IP (+001B) */
+    push(CS); push((uint16_t)0x019A);                  /* lcall 0AF8:0B0B: return CS:IP (017F+1Bh) */
     apply_callee(0);
     /* +001B..+0026: second call's arguments (AL=0Ah, AL=1, each pushed as a word) */
     AX = (uint16_t)((AX & 0xFF00) | 0x0A); push(AX);
     AX = (uint16_t)((AX & 0xFF00) | 0x01); push(AX);
-    push(CS); push((uint16_t)0x0026);                  /* lcall 00BA:16EC: return +0026 */
+    push(CS); push((uint16_t)0x01A5);                  /* lcall 00BA:16EC: return 017F+26h */
     apply_callee(1);
     /* +0026..+003E: third call's arguments */
     push(rw(lin(SS, (uint16_t)(BP + 0x0E))));
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {
     AX = 0xA8C0; push(AX);
     AX = (uint16_t)((AX & 0xFF00) | 0xFF); push(AX);
     AX = (uint16_t)((AX & 0xFF00) | 0x01); push(AX);
-    push(CS); push((uint16_t)0x003E);                  /* lcall 00B0:0052: return +003E */
+    push(CS); push((uint16_t)0x01BD);                  /* lcall 00B0:0052: return 017F+3Eh */
     apply_callee(2);
     /* +003E..+0041: mov sp,bp; pop bp; retf 0Ah */
     SP = BP; BP = pop();
