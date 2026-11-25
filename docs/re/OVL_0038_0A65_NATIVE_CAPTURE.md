@@ -67,7 +67,7 @@ The five annotated mismatches are rows 454, 648, 652, 653 and 675, at stack addr
 
 ### Cause: entry-image difference (measured)
 
-Run 003 and run 007 entry RAM differ in 379 bytes over the 640 KiB below A0000. The set includes the tick word `0046C`–`0046E`, the stale stack bytes `2016D`–`20FA3` and others. The five annotated addresses and the four final bytes all lie in this set. one callee stack write (trace line 653, SS:3D89) takes its value from a read of SS:3D7D (line 649); SS:3D7D differs between the runs. The run-003 native exit keeps its own values there.
+Run 003 and run 007 entry RAM differ in 379 bytes over the 640 KiB below A0000. The set includes the tick word `0046C`–`0046E`, the stale stack bytes `2016D`–`20FA3` and others. The five annotated addresses and the four final bytes all lie in this set. One callee stack write (trace line 653, SS:3D89) takes its value from a read of SS:3D7D (line 649); SS:3D7D differs between the runs. The run-003 native exit keeps its own values there.
 
 ### Control with the entry difference patched out (diagnostic copy of the driver)
 
@@ -133,8 +133,8 @@ The callee `00BA:0BB8` writes `B+C7`. In the trace, `mov byte es:[C7h], 00` at `
 11. **Owner media.** The body bytes are extracted from the owner `GAME.OVR` at run time and are not committed.
 12. **Evidence only.** No parity, function-identity, count or credit claim.
 13. **Live versus static body.** The live body in run 003 RAM differs from the GAME.OVR file body at 8 bytes, the segment words of the four far calls (`+0A8D/8E`, `+0A98/99`, `+0ABD/BE`, `+0B09/0A`). The trace executes the live target `08DE:0BB8` where the file says `00BA:0BB8`. The composition runs on the static file body, and the end state does not depend on those words. The composition's callee targets are file labels; live callee identity is not established.
-14. **Open follow-up #1984.** The origin of the 379-byte entry-image difference is not established. The doc measures the difference and shows that the trace reads or writes five of these bytes (annotated addresses 20EDD, 20EE9, 20EEA, 20EEB, 20EF8); it does not claim an origin.
-15. **Open follow-up #1985.** Traced: final byte 20EE9 via SS:3D7D -> AL -> SS:3D89 (trace lines 649 -> 653). Not traced: 20EEA and 20EEB (write at line 675) and 20EF8 (write at line 454); BX/SI attribution. The doc states set membership and the control result only.
+14. **Open follow-up #1984.** The origin of the 379-byte entry-image difference is not established. The doc measures the difference and shows that the trace reads or writes five of these bytes (annotated bytes 20EDD, 20EE9, 20EEA, 20EEB, 20EF8); it does not claim an origin.
+15. **Open follow-up #1985.** Traced: final byte 20EE9 via SS:3D7D -> AL -> SS:3D89 (trace lines 649 -> 653). Not traced: 20EEA and 20EEB (write at trace line 676) and 20EF8 (write at trace line 455); BX/SI attribution. The doc states set membership and the control result only.
 
 ## Hygiene
 
