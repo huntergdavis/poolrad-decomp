@@ -29,12 +29,16 @@ re-checked against the live game); credit on the function backlog.
 
 ## Facts the translation fixes from the bytes
 
-1. **The high byte of each argument word comes from AX at the push.** The routine never sets AH itself. The argument words are
-   therefore:
-   - first call (0x2B:0x2A): AH is the caller's entry AH (the caller passes it as `entry_ah`); word = AH:01;
-   - second call (0x2B:0x25): AH is the high byte of the first callee's returned AX; word = AH:01; the returned AL is the count;
-   - third call (0x78:0x2A): word AH:00 then AH:01, where AH is the high byte of word [0x4436]; the third and fourth calls run only
-     on the flag path, and AX is loaded from [0x4436] immediately before the flag compare.
+1. **The high byte of each argument word comes from AX at the push.** The routine does load AX from memory several times, but
+   only three AX values reach a pushed word:
+   - (a) first call: `mov al,1` at +02EB, `push ax` at +02ED. AX is the caller's entry AX, so AH is `entry_ah`; word = AH:01.
+   - (b) second call: `mov al,1` at +02F7, `push ax` at +02F9. AX is the first callee's returned AX, so AH is that return's high
+     byte; word = AH:01. The returned AL is the count.
+   - (c) third and fourth calls, flag path only: `mov al,0` at +038E, `push ax` at +0390 (word AH:00); `mov al,1` at +0391,
+     `push ax` at +0393 (word AH:01). AX was loaded at +0376 from word [0x4436], so AH is the high byte of [0x4436].
+
+   Loads that set AH but reach no push: `mov ax,[0x5D96]` at +0302 (the head offset; its AH is overwritten before the flag path),
+   the chain loads at +0338, and the pointer loads at +034D and +0355. Each is overwritten before any push reads AH.
 2. **The AL value on entry is not read.** The first use of AL is a `mov al,1` before the first push.
 3. **The third and fourth calls run only on the flag path.** The three conditional jumps `je` to +03B0 (at +0366, +036D and +0374)
    go straight to the frame teardown, skipping the calls and the two clears of [0x84D2] and [0x84D3]. The flag path is: count
@@ -43,8 +47,12 @@ re-checked against the live game); credit on the function backlog.
 5. **The chain walk.** The loop runs while the masked count is nonzero, the index is below the count (unsigned), and the pointer is
    nonzero. Each step reads the offset word at +0x104 and the segment word at +0x106 of the current node, through ES. The output
    pair [0x5D92]/[0x5D94] is stored only when the final pointer is nonzero, so a walk that ends on null leaves the prior value.
-6. **No stack cleanup is modelled.** The routine's last instructions (mov sp,bp; pop bp; retf) restore SP. The oracle checks that
-   SP is restored after the RETF.
+6. **Frame and segment registers.** The routine's own instructions preserve BP and SP (`push bp; mov bp,sp`, then `mov sp,bp;
+   pop bp; retf`), and it never writes DS as a segment register. ES is **not** restored: the chain walk's `les di,[bp-4]` at +0335
+   loads ES with each pointer's segment, so after a walk that ran, ES holds the last pointer's segment. The C translation models
+   none of BP, SP or ES (it has no registers); the oracle checks that SP is restored to entry+4 and BP to the entry value after
+   the RETF, and it does not compare ES. No stack cleanup is modelled: the callee cleanup convention does not change the
+   compared state because the teardown restores SP.
 
 ## Translation map (unit-relative offsets)
 
@@ -77,14 +85,20 @@ re-checked against the live game); credit on the function backlog.
    stops the routine before any store or call.
 3. **Differential oracle**, tests/overlay/ovl1c_02e0_oracle.py: the 212 owner bytes run under Unicorn 2.1.4 (16-bit real mode).
    The four far calls go to stubs that log the arguments, apply the case's DS writes, and return with `retf N`. The same cases run
-   through the C translation via tests/overlay/ovl1c_02e0_harness.c. Compared per case: the call log, the status, the SP
-   balance, and every DS byte that differs from its initial value. Results (scratch logs outside the repository):
-   - seed 1, 400 cases: 400 of 400 equal. The flag clear happened in 28 cases and the output pair changed in 163.
-   - seed 2, 2000 cases: 2000 of 2000 equal. The flag clear happened in 117 cases and the output pair changed in 831.
+   through the C translation via tests/overlay/ovl1c_02e0_harness.c. Compared per case: the call log, the status (which requires SP
+   restored to entry+4 and BP to its entry value after the RETF), and every DS byte that differs from its initial value. ES is
+   not compared. Coverage is counted from emulated execution, not from diff lines: an executed store of 0 to [0x4430] (flag
+   clear), an executed store into [0x5D92], and an executed chain-walk load at unit +0x0338. The earlier diff-line counters
+   (28 and 117 flag clears) undercounted, because a clear whose final value equals the initial DS value leaves no diff line.
+   Results (scratch logs outside the repository):
+   - seed 1, 400 cases: 400 of 400 equal. Flag-clear store executed in 42 cases; [0x5D92] store in 220; chain-walk load in 231,
+     two or more loads in 74.
+   - seed 2, 2000 cases: 2000 of 2000 equal. Flag-clear store executed in 211 cases; [0x5D92] store in 1135; chain-walk load in
+     1202, two or more loads in 357.
    - Mutants (one edit each to a copy of the translation; each must differ from the original bytes):
      | Mutant | seed 1 (400) | seed 2 (2000) |
      | --- | --- | --- |
-     | first call's AH forced to 0 | 398 differ | 1992 differ |
+     | second-arg-ah-from-first-return-zero (second word's AH forced to 0) | 398 differ | 1992 differ |
      | walk bound off by one (`i <= count`) | 96 differ | 447 differ |
      | flag compare drops the segment word | 13 differ | 61 differ |
      | fourth call's segment forced to 0 | 141 differ | 681 differ |

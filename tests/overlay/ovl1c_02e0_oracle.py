@@ -19,8 +19,8 @@ import random
 import subprocess
 import sys
 
-from unicorn import (Uc, UcError, UC_ARCH_X86, UC_HOOK_CODE, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE_UNMAPPED,
-                     UC_MODE_16, UC_PROT_ALL)
+from unicorn import (Uc, UcError, UC_ARCH_X86, UC_HOOK_CODE, UC_HOOK_MEM_READ_UNMAPPED, UC_HOOK_MEM_WRITE,
+                     UC_HOOK_MEM_WRITE_UNMAPPED, UC_MODE_16, UC_PROT_ALL)
 from unicorn.x86_const import (UC_X86_REG_AX, UC_X86_REG_BP, UC_X86_REG_CS, UC_X86_REG_DS, UC_X86_REG_ES,
                                UC_X86_REG_IP, UC_X86_REG_SP, UC_X86_REG_SS)
 
@@ -39,6 +39,7 @@ SP0 = 0xFF00
 BP0 = 0x7000
 BODY_CS = 0x0000
 BODY_IP = 0x02E0
+WALK_LOAD_IP = 0x0338    # mov ax, word ptr es:[di+0x104]: the chain-walk load, unit offset +0x0338 (linear = IP with CS 0)
 RET_CS = 0x0000          # the caller's return point is linear 0x0F00, which no code occupies
 RET_IP = 0x0F00
 DS_SIZE = 0x84D4
@@ -57,7 +58,7 @@ STUBS = {
 STUB_BY_TARGET = {(seg, off): name for name, (seg, off, _n) in STUBS.items()}
 
 MUTANTS = [
-    ("first-call-ah-zero", "ah = (uint8_t)(ret_a >> 8);", "ah = 0u; (void)ret_a;"),
+    ("second-arg-ah-from-first-return-zero", "ah = (uint8_t)(ret_a >> 8);", "ah = 0u; (void)ret_a;"),
     ("walk-off-by-one", "i < count && (p_off | p_seg)", "i <= count && (p_off | p_seg)"),
     ("flag-no-segment-compare", "ds_word(ds, 0x4438u) == ds_word(ds, 0x5D94u) && w == ds_word(ds, 0x5D92u)",
      "w == ds_word(ds, 0x5D92u)"),
@@ -172,6 +173,8 @@ def run_unicorn_case(body, case):
     def on_code(mu, address, size, _user):
         cs = mu.reg_read(UC_X86_REG_CS)
         ip = mu.reg_read(UC_X86_REG_IP)
+        if cs == BODY_CS and ip == WALK_LOAD_IP:
+            cov["walk_steps"] += 1      # the es:[di+0x104] load at unit +0x0338: one executed chain step
         name = STUB_BY_TARGET.get((cs, ip))
         if name is None:
             return
@@ -198,6 +201,14 @@ def run_unicorn_case(body, case):
         mu.reg_write(UC_X86_REG_SP, (sp + 4 + STUBS[name][2]) & 0xFFFF)
 
     faults = []
+    cov = {"flag_clear": 0, "ptr_store": 0, "walk_steps": 0}
+
+    def on_write(mu, access, address, size, value, _user):
+        # Counted from emulated stores only: the executed `mov byte [0x4430],0` and the executed store into [0x5D92].
+        if address == DS_SEG * 16 + 0x4430 and value == 0:
+            cov["flag_clear"] += 1
+        elif DS_SEG * 16 + 0x5D92 <= address <= DS_SEG * 16 + 0x5D93:
+            cov["ptr_store"] += 1
 
     def on_unmapped(mu, access, address, size, value, _user):
         faults.append("unmapped access %#x size %d at CS:IP %04X:%04X" % (
@@ -205,6 +216,8 @@ def run_unicorn_case(body, case):
         return False
 
     uc.hook_add(UC_HOOK_CODE, on_code)
+    uc.hook_add(UC_HOOK_MEM_WRITE, on_write, begin=DS_SEG * 16 + 0x4430, end=DS_SEG * 16 + 0x4430)
+    uc.hook_add(UC_HOOK_MEM_WRITE, on_write, begin=DS_SEG * 16 + 0x5D92, end=DS_SEG * 16 + 0x5D93)
     uc.hook_add(UC_HOOK_MEM_READ_UNMAPPED | UC_HOOK_MEM_WRITE_UNMAPPED, on_unmapped)
     try:
         uc.emu_start(BODY_CS * 16 + BODY_IP, RET_CS * 16 + RET_IP, timeout=5000000)
@@ -213,7 +226,8 @@ def run_unicorn_case(body, case):
     if faults:
         raise RuntimeError("oracle touched unmapped memory: " + "; ".join(faults))
     returned = uc.reg_read(UC_X86_REG_CS) == RET_CS and uc.reg_read(UC_X86_REG_IP) == RET_IP
-    balanced = uc.reg_read(UC_X86_REG_SP) == SP0 + 4
+    # The routine restores SP (mov sp,bp; pop bp; retf) and BP (pop bp); DS is never written by the routine.
+    balanced = uc.reg_read(UC_X86_REG_SP) == SP0 + 4 and uc.reg_read(UC_X86_REG_BP) == BP0
     out = list(log)
     out.append("status 0" if returned and balanced else "status 9")
     final = bytes(uc.mem_read(DS_SEG * 16, DS_SIZE))
@@ -222,7 +236,7 @@ def run_unicorn_case(body, case):
         if final[off] != init:
             out.append("ds %d %d" % (off, final[off]))
     out.append("endcase")
-    return out
+    return out, cov
 
 
 def run_harness(binary, text):
@@ -266,7 +280,9 @@ def main():
     rng = random.Random(a.seed)
     cases = [gen_case(rng) for _ in range(a.cases)]
     text = "".join(case_text(c) for c in cases)
-    oracle = [run_unicorn_case(body, c) for c in cases]
+    results = [run_unicorn_case(body, c) for c in cases]
+    oracle = [r[0] for r in results]
+    cov = [r[1] for r in results]
 
     base_bin = os.path.join(a.work_dir, "harness_base")
     build(SRC, base_bin)
@@ -282,10 +298,10 @@ def main():
     if len(base) != len(oracle):
         print("FAIL case count: oracle %d, C %d" % (len(oracle), len(base)))
         failures += 1
-    flag_cleared = sum(1 for o in oracle if "ds %d 0" % 0x4430 in o)
-    out_stored = sum(1 for o in oracle if any(x.startswith("ds %d " % 0x5D92) for x in o))
-    print("COVERAGE flag 0x4430 changed to 0 in %d cases; output pair 0x5D92 changed in %d cases"
-          % (flag_cleared, out_stored))
+    print("COVERAGE (emulated stores and loads, not diff lines): flag-clear store executed in %d cases; "
+          "[0x5D92] store executed in %d cases; chain-walk load executed in %d cases, two or more loads in %d cases"
+          % (sum(1 for c in cov if c["flag_clear"]), sum(1 for c in cov if c["ptr_store"]),
+             sum(1 for c in cov if c["walk_steps"]), sum(1 for c in cov if c["walk_steps"] >= 2)))
     print("RESULT baseline: %d/%d cases equal" % (len(oracle) - failures, len(oracle)))
 
     mutant_fail = 0

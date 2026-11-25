@@ -11,10 +11,17 @@
  * supplied as hooks. Their identity in the live game is not established here.
  *
  * ABI facts the translation fixes (read from the file bytes, see the evidence doc):
- *   - Each argument word is AL=constant with AH taken from the register AX at that point. The routine never sets AH itself. For the
- *     first call AH is the AH the caller passed in (entry_ah). For the second call AH is the high byte of the first callee's returned
- *     AX. The third and fourth calls run only on the flag path, and there AH is the high byte of word [0x4436], read at the flag
- *     test (AX is loaded from it immediately before the compare).
+ *   - Each argument word is AL=constant with AH taken from the register AX at that point. The routine does load AX from memory
+ *     several times, but only three AX values reach a pushed word:
+ *       (a) first call: mov al,1 at +02EB, push at +02ED. AX is the caller's entry AX, so AH is entry_ah.
+ *       (b) second call: mov al,1 at +02F7, push at +02F9. AX is the first callee's returned AX, so AH is that return's high byte.
+ *       (c) third and fourth calls, on the flag path only: mov al,0 at +038E and push at +0390; mov al,1 at +0391 and push at
+ *           +0393. AX was loaded at +0376 from word [0x4436], so AH is the high byte of [0x4436].
+ *     The other AX loads (+0302 from [0x5D96], the chain loads at +0338, the pointer loads at +034D and +0355) set AH, but each is
+ *     overwritten before any push reads AH.
+ *   - Preserved by the routine's own instructions: BP and SP (push bp; mov bp,sp; ...; mov sp,bp; pop bp; retf) and DS (never
+ *     written). Not restored: ES. The chain walk's les at +0335 loads ES with each pointer's segment, so after a walk that ran ES
+ *     holds the last pointer's segment. The translation does not model ES; it is not a returned output.
  *   - The flag path is: hi_flag set, [0x84D2] nonzero and [0x84D3] nonzero. Any other case skips the third and fourth calls and the
  *     two clears (the file's je 0x3B0 jumps go to the frame teardown).
  *   - The routine does not clean the stack after its calls; its last instruction pair (mov sp,bp / pop bp) restores SP. The
