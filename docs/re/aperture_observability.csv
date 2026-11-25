@@ -205,6 +205,7 @@ overlay_u3b0_row_clear_06fb_cpu.c,bus,yes-with-ega-oracle,yes
 overlay_u3b0_space_scan_cpu.c,flat,no,no
 overlay_u3b0_step_scan_0b03_cpu.c,flat,no,no
 overlay_u3b4_case_maps.c,flat,no,no
+overlay_u3b4_entry2_0000.c,flat,no,no
 overlay_u3b4_view_refresh_016d.c,flat,no,no
 overlay_u3b6_window_0000_cpu.c,bus,yes-with-ega-oracle,no
 overlay_u3b9_bitmap_set_release_048f_cpu.c,flat,no,no
