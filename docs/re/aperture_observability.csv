@@ -33,6 +33,7 @@ overlay_u1c_input_number_0951.c,flat,no,no
 overlay_u1c_input_string_0994.c,flat,no,no
 overlay_u1c_key_branch_33bd.c,flat,no,no
 overlay_u1c_key_jmp_33ea.c,flat,no,no
+overlay_u1c_load_character_02e0.c,flat,no,no
 overlay_u1c_load_monster_04af.c,flat,no,no
 overlay_u1c_load_monster_prefix_0450.c,flat,no,no
 overlay_u1c_load_monster_tail_0537.c,flat,no,no
