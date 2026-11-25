@@ -1,10 +1,10 @@
 # OVL_0038_0BCF (U38 slot 34): composite in-game evidence
 
-**Verdict: composite evidence, not an exact replay.** The trace comes from run 003 and the entry and exit come from run 002. The unmodified 0233 driver on `origin/main` (sha256 `aff2969a2bc31037bddbd7ff59f54c1c4321ad284a32cb3e4fbc9e9578dc53bc`) gives: annotated memory checks 437,335 matched and 0 mismatched; 79 bytes changed from entry to exit below A0000; 13 replayed-versus-native-exit differences; 0 differences without a journaled writer. The 13 differences have BIOS interrupt machinery as their last writers (see the attribution table). They are not game-code effects, and the replay's value for them is not claimed to be correct.
+**Verdict: composite evidence, not an exact replay.** The trace comes from run 003 and the entry and exit come from run 002. The unmodified 0233 driver on `origin/main` (sha256 `aff2969a2bc31037bddbd7ff59f54c1c4321ad284a32cb3e4fbc9e9578dc53bc`) gives: annotated memory checks 437,335 matched and 0 mismatched; 79 bytes changed from entry to exit below A0000; 13 replayed-versus-native-exit differences; 0 differences without a journaled writer. The 13 differences have BIOS interrupt machinery as their last writers (see the attribution table; the last writers come from the diagnostic copy `replay_stack.py`, sha256 `30a72557dbfffdb50493a01c8418251cc94f0452ec68888a614dff5229799c10`, because the unmodified driver prints no last-writer field). They are not game-code effects, and the replay's value for them is not claimed to be correct.
 
-The composition baseline is EQUAL. Of the four original composition mutants, **1 of 4 composition mutants detected; 3 survived** (`retaddr-call`, `item-2B-2C`, `sel-disp-08`; mechanisms below). Two added second-call mutants are detected.
+The composition baseline is EQUAL. The composition applies the two declared callee effect blocks (`CALL 0` and `CALL 1`) taken from the same diagnostic copy (sha256 `30a72557…`). Of the four original composition mutants, **1 of 4 composition mutants detected; 3 survived** (`retaddr-call`, `item-2B-2C`, `sel-disp-08`; mechanisms below). Two added second-call mutants are detected.
 
-Replay mutants (unmodified driver): `no-hw-frame`, `int-frame-skip` and `stos-skip` are detected by annotation and IRET checks. `tick-skip` is detected **only** through one unjournaled difference (control: 0); it produces no annotation mismatch.
+Replay mutants (unmodified driver): `no-hw-frame`, `int-frame-skip` and `stos-skip` are detected by annotation and IRET checks. `tick-skip` is **WEAK**: its only signal is one unjournaled difference (control: 0 unjournaled), byte `0046C`; it produces no annotation mismatch.
 
 This is evidence only. It makes no parity, function-identity or credit claim. The reconciliation classification of this entry is unresolved and is not claimed here (see LIMITS).
 
@@ -57,7 +57,7 @@ Each call runs the dispatcher at `2F6B`, which in turn runs nested unit-38 code 
 - Breakpoint `9FE0:0100` for the cold call. Frame re-applied before the warm call.
 - Trace run only: `BPDEL *` before the traced warm call.
 - No record write: the body reads no record field, so `B+108h` and `B+C7` were not set, and no restore step was needed.
-- Run 002's first keyboard stop read `1264:0302`, with no further operator input before the frame.
+- Run 002's first keyboard-wait stop was at `2116:056D` (run 002 `actions.log`: "first keyboard-wait stop CS:IP=2116 56d"), with no further operator input before the frame.
 
 ## Results (unmodified driver)
 
@@ -74,9 +74,9 @@ Each call runs the dispatcher at `2F6B`, which in turn runs nested unit-38 code 
 | Tick callbacks | 26 |
 | String rows | 3,308 |
 
-### Attribution of the 13 replayed-versus-exit differences
+### Attribution of the 13 replayed-versus-exit differences (last writers from diagnostic copy `replay_stack.py`, sha256 `30a72557…`)
 
-The writer field is the replay's last write to each byte, given as `(row, kind, class)`. Rows are 0-based driver rows; trace line = row + 1 in part 1, and part-2 line = row − 2,097,150 in part 2 (the cut file). The lines were read from the trace.
+The writer field is the replay's last write to each byte, given as `(row, kind, class)`. Rows are 0-based driver rows; trace line = row + 1 in part 1, and part-2 line = row − 2,097,150 in part 2 (the cut file). The lines were read from the trace. The `DIFF` lines that carry the last-writer field are printed only by the diagnostic copy (`replay_stack.py`, sha256 `30a72557…`). The unmodified driver's headline numbers (13 differences, 0 unjournaled) are the same on the diagnostic copy.
 
 | Byte | Entry | Replayed | Native exit | Last writer (row, kind, class) | Trace line and instruction |
 | --- | --- | --- | --- | --- | --- |
@@ -103,7 +103,7 @@ All 13 last writers are BIOS interrupt machinery at `F000:FEA5–FEAD` (the IRQ0
 | `no-hw-frame` | `bad {iret-bad: 26}`, 17 diffs, 0 unjournaled | DETECTED (IRET checks) |
 | `int-frame-skip` | `bad {ann-bad: 23, iret-bad: 26}`, 28 diffs, 0 unjournaled | DETECTED (annotation and IRET checks) |
 | `stos-skip` | `bad {ann-bad: 44}`, 33 diffs, 0 unjournaled | DETECTED (annotation checks) |
-| `tick-skip` | `bad {}` (no annotation mismatch), 13 diffs, **1 unjournaled diff** | DETECTED only through the unjournaled count, a weak signal; not a clean annotation detection |
+| `tick-skip` | `bad {}` (no annotation mismatch), 13 diffs, **1 unjournaled diff**: byte `0046C`, entry `E2`, mutant `E2` (not written), control replayed `FC`, native exit `FB` | **WEAK**: detected only through the unjournaled count; not a clean annotation detection |
 
 ### Composition (declared callee effects from the diagnostic copy; see LIMITS)
 
@@ -129,7 +129,7 @@ Summary: 1 of 4 original composition mutants detected; 3 survived. The two added
 
 1. **Composite method.** The trace (run 003) and the entry and exit (run 002) come from different runs. Their WARM-ENTRY RAM differs in 49 bytes below A0000, including the tick word `0046C` (measured by comparing the two runs' `warm/S0..S9.BIN`). The replay is not clean at 13 bytes; this doc does not claim the replay reproduces the native exit.
 2. **13 BIOS-attributed bytes.** Their last writers are interrupt-machinery and ROM-stub pushes (`F000:FEA5–FEAD`) or the IRQ0 clock callback (`0046C`). They are not game-code effects. The replay's value for them is a model output, not a verified native value. A "last writer is an interrupt frame" attribution means only that the replay wrote the byte through its hardware model, not that the value is correct. The reason the native exit differs is not established.
-3. **Diagnostic copy of the driver.** The composition's declared callee effects (the `CALL 0` and `CALL 1` blocks) come from a stack-aware diagnostic copy of the 0233 driver, not from the unmodified driver. The unmodified driver's single window slot overwrites nested windows, so its window list has 5 entries where the body makes 2 calls. The diagnostic copy has sha256 `30a72557dbfffdb50493a01c8418251cc94f0452ec68888a614dff5229799c10`; it is not committed. It changes only the window logic and adds diagnostic prints. Its headline numbers equal the unmodified driver's on every field (`bad`, checks, changed bytes, diffs, unjournaled count, row counts, journal classes); its window count is 7. Its exact diff against the unmodified driver is shown below (87 lines, sha256 `f6640541867aa964b0ca78d1939e9b6809af7b2a1be0e01cc8758740a5bd77b2`; the path headers are replaced by labels, the hunks are verbatim).
+3. **Diagnostic copy of the driver.** The composition's declared callee effects (the `CALL 0` and `CALL 1` blocks) come from a stack-aware diagnostic copy of the 0233 driver, not from the unmodified driver. The unmodified driver's single window slot overwrites nested windows, so its window list has 5 entries where the body makes 2 calls. The diagnostic copy has sha256 `30a72557dbfffdb50493a01c8418251cc94f0452ec68888a614dff5229799c10`; it is not committed. It changes only the window logic and adds diagnostic prints. Its headline numbers equal the unmodified driver's on every field (`bad`, checks, changed bytes, diffs, unjournaled count, row counts, journal classes); its window count is 7. The raw `diff -u` output against the unmodified driver has 87 lines and sha256 `f6640541867aa964b0ca78d1939e9b6809af7b2a1be0e01cc8758740a5bd77b2`; that hash is of the raw file, which keeps its absolute path headers. The diff shown below has the same hunks with the path headers replaced by labels, so its own bytes do not hash to `f6640541`; it is a labelled display, not the hashed file.
 4. **Classification unresolved.** The reconciliation row for this entry reads `game_or_other_library_unresolved` with `game_ownership: unknown`. This slice makes no ownership claim and no classification change, and it does not state whether the body is game code or library code.
 5. **Run location.** The runs are stored under the 0A65 chain's run root, `ovl0038-0a65/runs` (`ovl38-0bcf-native-002` and `-003`), not under an `ovl0038-0bcf` runs tree. The approved chain's run-directory guard accepts only that root, and the chain is unchanged. Attempt 001 was aborted by a warm-entry gate that wrongly required `ES=14A0`, before any exit was captured; its directory is kept outside the run tree.
 6. **Operator writes** are listed above. No record bytes were written, so the warm entry is the state after the cold call.
@@ -143,9 +143,9 @@ Summary: 1 of 4 original composition mutants detected; 3 survived. The two added
 14. **Owner media.** The body bytes are extracted from the owner `GAME.OVR` at run time and are not committed.
 15. **Evidence only.** No parity, function-identity, count or credit claim.
 
-## Diagnostic copy: exact diff against the unmodified driver
+## Diagnostic copy: labelled diff against the unmodified driver
 
-`diff -u` output, path headers replaced by labels (`unmodified` = `tests/replay/replay_ovl0038_0233_warm.py`, blob `aff2969a…`; `diagnostic` = the stack-aware copy, sha256 `30a72557…`):
+Labelled display of the `diff -u` output (raw file sha256 `f6640541…`, absolute path headers; this display is not that file). Path headers replaced by labels (`unmodified` = `tests/replay/replay_ovl0038_0233_warm.py`, blob `aff2969a…`; `diagnostic` = the stack-aware copy `replay_stack.py`, sha256 `30a72557…`):
 
 ```diff
 --- unmodified
@@ -236,6 +236,10 @@ Summary: 1 of 4 original composition mutants detected; 3 survived. The two added
      if a.out:
          a.out.write_text(json.dumps(summary, indent=1, sort_keys=True))
 ```
+
+## Caller reference
+
+`src/recovered/overlay_u3c2_caller_0909.c` (header `include/poolrad/recovered/overlay_u3c2_caller_0909.h`; evidence `docs/re/U3C2_CALLER_0909.md`) is cited as a caller reference only. It is a different unit: U3C2 entry 6, stub `03DB:003E`, the complete candidate-list caller. It is not a caller of `OVL_0038_0BCF`, and this document identifies no caller of this body. Nothing about the 0BCF body's call sites is established here.
 
 ## Hygiene
 
