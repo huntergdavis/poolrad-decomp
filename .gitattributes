@@ -1,0 +1,2 @@
+# DOSBox-X context lines use tab indentation; git diff --check flags them. Whitespace check is off for this patch only.
+tools/hybrid/dosbox-x-b6abbd5-codeword-assist.patch -whitespace

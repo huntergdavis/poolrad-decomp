@@ -1,0 +1,419 @@
+--- a/src/cpu/core_normal.cpp
++++ b/src/cpu/core_normal.cpp
+@@ -163,12 +163,16 @@
+ 
+ #define EALookupTable (core.ea_table)
+ 
++#define PR_CA_DOSBOX 1
++#include "pr_codeword_assist.h"
++
+ Bits CPU_Core_Normal_Run(void) {
+ 	if (CPU_Cycles <= 0)
+ 		return CBRET_NONE;
+ 
+ 	while (CPU_Cycles-->0) {
+ 		LOADIP;
++		PR_CODEWORD_ASSIST_OBSERVE();
+ 		last_prefix=MP_NONE;
+ 		core.opcode_index=cpu.code.big*(Bitu)0x200u;
+ 		core.prefixes=cpu.code.big;
+--- a/src/ints/bios_keyboard.cpp
++++ b/src/ints/bios_keyboard.cpp
+@@ -25,6 +25,8 @@
+ #include "bios.h"
+ #include "keyboard.h"
+ #include "regs.h"
++#define PR_CA_DOSBOX 1
++#include "cpu/pr_codeword_assist.h"
+ #include "inout.h"
+ #include "dos_inc.h"
+ #include "SDL.h"
+@@ -1318,6 +1320,7 @@
+ 
+ Bitu INT16_Handler(void) {
+     uint16_t temp=0;
++    PR_CODEWORD_ASSIST_POLL();
+     switch (reg_ah) {
+     case 0x00: /* GET KEYSTROKE */
+         if (int16_unmask_irq1_on_read)
+--- /dev/null
++++ b/src/cpu/pr_codeword_assist.h
+@@ -0,0 +1,378 @@
++/* ASSIST: code-word prompt, assisted input, emulator side. Not parity evidence.
++ * Plan: docs/HYBRID_CODEWORD_ASSIST.md. The Python reader and gate (tools/hybrid/codeword_assist.py) are the spec; the
++ * C++ below must produce the same transcripts (tests/hybrid/test_codeword_assist_conformance.py).
++ * Off unless POOLRAD_CODEWORD_ASSIST=1. Decisions are logged to POOLRAD_CODEWORD_ASSIST_LOG when that is set. */
++#ifndef POOLRAD_PR_CODEWORD_ASSIST_H
++#define POOLRAD_PR_CODEWORD_ASSIST_H
++
++#include <array>
++#include <cstdint>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <set>
++#include <string>
++#include <utility>
++#include <vector>
++
++namespace pr_ca {
++
++static const char *const kLabel = "ASSIST: emulator-side code-word input; not parity evidence";
++static const uint16_t kRes0709Seg = 0x0F2D;     /* resident 0709 segment word at run time (observed) */
++static const uint16_t kUnitRetIp = 0x0302;      /* unit 0x19 +02FD lcall 0709:09E3 returns here */
++static const uint16_t kPrintIp = 0x0626;        /* 0709:0626 printer entry */
++static const uint16_t kInputIp = 0x09E3;        /* 0709:09E3 interactive input entry */
++static const uint16_t kIndexOffset = 0x2A;      /* unit frame: selected index at BP-2Ah */
++static const uint16_t kAttemptOffset = 0x2B;    /* unit frame: attempt at BP-2Bh */
++static const int kRecordCount = 13;
++static const int kRecordBase = 2;
++static const int kRecordStride = 21;
++static const int kRecordTextLen = 6;
++static const int kTableBytes = 0x200;
++static const int kMaxFrames = 8;
++static const int kMaxWaitSteps = 200;
++static const int kPrinterCap = 256;
++/* Return offsets (unit 0x19) of the six 5-byte lcalls 0709:0626 at +0157..+02D8: the pushed return offset is call + 5. */
++static const uint16_t kFixedRows[6] = {0x015C, 0x0179, 0x0196, 0x0207, 0x028B, 0x02DD};
++static const char *kRuntimeTableSha256 = "0486c788451ab11470af8d9bcf79a4ff4c677bca4fa479dddc96d2e2e8f27ac7";
++static const char *kReturnKey = "RETURN";
++
++/* ---- SHA-256 (no external dependency; the digest gates the table) ---- */
++static inline uint32_t rotr32(uint32_t x, int n) { return (x >> n) | (x << (32 - n)); }
++
++static inline std::string sha256_hex(const uint8_t *data, size_t len) {
++    static const uint32_t k[64] = {
++        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
++        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
++        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
++        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
++        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
++        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
++        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
++        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
++    uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
++    std::vector<uint8_t> m(data, data + len);
++    uint64_t bits = (uint64_t)len * 8u;
++    m.push_back(0x80);
++    while (m.size() % 64 != 56) m.push_back(0);
++    for (int i = 7; i >= 0; --i) m.push_back((uint8_t)(bits >> (i * 8)));
++    for (size_t off = 0; off < m.size(); off += 64) {
++        uint32_t w[64];
++        for (int i = 0; i < 16; ++i)
++            w[i] = ((uint32_t)m[off + 4 * i] << 24) | ((uint32_t)m[off + 4 * i + 1] << 16) |
++                   ((uint32_t)m[off + 4 * i + 2] << 8) | (uint32_t)m[off + 4 * i + 3];
++        for (int i = 16; i < 64; ++i) {
++            uint32_t s0 = rotr32(w[i - 15], 7) ^ rotr32(w[i - 15], 18) ^ (w[i - 15] >> 3);
++            uint32_t s1 = rotr32(w[i - 2], 17) ^ rotr32(w[i - 2], 19) ^ (w[i - 2] >> 10);
++            w[i] = w[i - 16] + s0 + w[i - 7] + s1;
++        }
++        uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
++        for (int i = 0; i < 64; ++i) {
++            uint32_t S1 = rotr32(e, 6) ^ rotr32(e, 11) ^ rotr32(e, 25);
++            uint32_t ch = (e & f) ^ ((~e) & g);
++            uint32_t t1 = hh + S1 + ch + k[i] + w[i];
++            uint32_t S0 = rotr32(a, 2) ^ rotr32(a, 13) ^ rotr32(a, 22);
++            uint32_t mj = (a & b) ^ (a & c) ^ (b & c);
++            uint32_t t2 = S0 + mj;
++            hh = g; g = f; f = e; e = d + t1; d = c; c = b; b = a; a = t1 + t2;
++        }
++        h[0] += a; h[1] += b; h[2] += c; h[3] += d; h[4] += e; h[5] += f; h[6] += g; h[7] += hh;
++    }
++    static const char *hex = "0123456789abcdef";
++    std::string out;
++    for (int i = 0; i < 8; ++i)
++        for (int s = 28; s >= 0; s -= 4) out.push_back(hex[(h[i] >> s) & 15]);
++    return out;
++}
++
++/* ---- the exact state the reader sees ---- */
++struct Mem {  /* SS-relative and DS-table reads; the emulator and the conformance harness supply them */
++    virtual ~Mem() {}
++    virtual bool ss_word(uint16_t off, uint16_t &v) = 0;
++    virtual bool ss_byte(uint16_t off, uint8_t &v) = 0;
++    virtual bool ds_table(uint8_t *out) = 0;  /* kTableBytes bytes at DS:0000 */
++};
++
++struct Snap {
++    uint16_t bp = 0;
++    uint16_t bda_head = 0;
++    uint16_t bda_tail = 0;
++    bool keyboard_poll = false;
++    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of calls to 0709:0626 since the last clearing poll (see poll_hook for the exact rule) */
++};
++
++typedef std::array<int, 5> Occ;  /* (unit segment, unit BP, input frame BP, index, attempt) */
++
++struct Recognition {
++    bool ok = false;
++    std::string reason;
++    Occ occ{{0, 0, 0, 0, 0}};
++    std::string text;
++};
++
++struct Action {
++    std::string kind;  /* "SILENT", "WAIT" or "SEND" */
++    std::string key;
++    std::string reason;
++};
++
++struct Frame { uint16_t bp, saved, ret_ip, ret_cs; };
++
++static inline int record_slot(int index) { return kRecordBase + kRecordStride * index; }
++
++static inline bool record_text(const uint8_t *table, int index, std::string &out) {
++    int start = record_slot(index);
++    if (start + kRecordStride > kTableBytes || table[start] != kRecordTextLen) return false;
++    out.clear();
++    for (int k = 0; k < kRecordTextLen; ++k) {
++        uint8_t b = table[start + 1 + k];
++        if (b < 65 || b > 90) return false;
++        out.push_back((char)b);
++    }
++    return true;
++}
++
++static inline Recognition recognise(const Snap &s, Mem &m, const std::string &expected_sha) {
++    Recognition r;
++    if (!s.keyboard_poll) { r.reason = "not-keyboard-poll"; return r; }
++    std::vector<Frame> frames;
++    uint16_t bp = s.bp;
++    for (int k = 0; k < kMaxFrames; ++k) {
++        uint16_t saved, ip, cs;
++        if (!m.ss_word(bp, saved) || !m.ss_word((uint16_t)(bp + 2), ip) || !m.ss_word((uint16_t)(bp + 4), cs)) break;
++        frames.push_back(Frame{bp, saved, ip, cs});
++        if (saved <= bp) break;
++        bp = saved;
++    }
++    std::vector<size_t> hits;
++    for (size_t i = 0; i < frames.size(); ++i)
++        if (frames[i].ret_ip == kUnitRetIp) hits.push_back(i);
++    if (hits.size() != 1) { r.reason = "no-unique-input-return"; return r; }
++    size_t i = hits[0];
++    if (i == 0) { r.reason = "no-input-routine-child"; return r; }
++    const Frame &frame = frames[i], &child = frames[i - 1];
++    if (child.saved != frame.bp || child.ret_cs != kRes0709Seg) { r.reason = "input-routine-chain-mismatch"; return r; }
++    uint16_t unit_seg = frame.ret_cs, unit_bp = frame.saved;
++    uint8_t index = 0, attempt = 0;
++    if (!m.ss_byte((uint16_t)(unit_bp - kIndexOffset), index) || !m.ss_byte((uint16_t)(unit_bp - kAttemptOffset), attempt)) {
++        r.reason = "frame-bytes-unavailable"; return r;
++    }
++    if (index >= kRecordCount) { r.reason = "index-out-of-range"; return r; }
++    if (attempt < 1 || attempt > 3) { r.reason = "attempt-out-of-range"; return r; }
++    uint8_t table[kTableBytes];
++    if (!m.ds_table(table)) { r.reason = "table-unavailable"; return r; }
++    if (sha256_hex(table, kTableBytes) != expected_sha) { r.reason = "table-digest-mismatch"; return r; }
++    std::set<uint16_t> rows;
++    for (size_t k = 0; k < s.printer_calls.size(); ++k)
++        if (s.printer_calls[k].first == unit_seg) rows.insert(s.printer_calls[k].second);
++    for (int k = 0; k < 6; ++k)
++        if (!rows.count(kFixedRows[k])) { r.reason = "fixed-rows-not-printed"; return r; }
++    std::string text;
++    if (!record_text(table, index, text)) { r.reason = "record-malformed"; return r; }
++    r.ok = true;
++    r.occ = Occ{{(int)unit_seg, (int)unit_bp, (int)frame.bp, (int)index, (int)attempt}};
++    r.text = text;
++    return r;
++}
++
++class Gate {
++public:
++    explicit Gate(bool enabled, const std::string &expected = std::string(kRuntimeTableSha256))
++        : enabled_(enabled), expected_(expected) {}
++
++    Action step(const Snap &s, Mem &m) {
++        Action a;
++        if (!enabled_) { a.kind = "SILENT"; a.reason = "assist-off"; return a; }
++        Recognition rec;
++        if (!s.keyboard_poll) rec.reason = "not-keyboard-poll";
++        else rec = recognise(s, m, expected_);
++        if (has_plan_) {
++            if (next_ >= keys_.size() && !pending_) {
++                has_plan_ = false; a.kind = "SILENT"; a.reason = "completed"; return a;
++            }
++            if (!rec.ok || rec.occ != plan_occ_) {
++                aborted_.insert(plan_occ_);
++                has_plan_ = false; pending_ = false;
++                a.kind = "SILENT"; a.reason = "abort:" + (!rec.ok ? rec.reason : std::string("occurrence-changed"));
++                return a;
++            }
++            if (pending_) {
++                if (s.bda_tail == pend_tail_) {
++                    if (pend_waits_ + 1 > kMaxWaitSteps) {
++                        aborted_.insert(plan_occ_);
++                        has_plan_ = false; pending_ = false;
++                        a.kind = "SILENT"; a.reason = "abort:key-not-buffered"; return a;
++                    }
++                    ++pend_waits_;
++                    a.kind = "WAIT"; a.reason = "key-not-yet-buffered"; return a;
++                }
++                if (s.bda_head != s.bda_tail) { a.kind = "WAIT"; a.reason = "key-not-yet-consumed"; return a; }
++                pending_ = false;
++            }
++            if (next_ >= keys_.size()) {
++                has_plan_ = false; a.kind = "SILENT"; a.reason = "completed"; return a;
++            }
++            if (s.bda_head != s.bda_tail) { a.kind = "WAIT"; a.reason = "buffer-not-empty"; return a; }
++            return send_next(s);
++        }
++        if (!rec.ok) { a.kind = "SILENT"; a.reason = rec.reason; return a; }
++        if (started_.count(rec.occ) || aborted_.count(rec.occ)) {
++            a.kind = "SILENT"; a.reason = "occurrence-already-handled"; return a;
++        }
++        if (s.bda_head != s.bda_tail) { a.kind = "WAIT"; a.reason = "buffer-not-empty"; return a; }
++        started_.insert(rec.occ);
++        plan_occ_ = rec.occ;
++        keys_.clear();
++        for (size_t k = 0; k < rec.text.size(); ++k) keys_.push_back(std::string(1, rec.text[k]));
++        keys_.push_back(kReturnKey);
++        next_ = 0;
++        has_plan_ = true;
++        return send_next(s);
++    }
++
++private:
++    Action send_next(const Snap &s) {
++        Action a;
++        a.kind = "SEND"; a.key = keys_[next_++]; a.reason = "one-normal-key";
++        pending_ = true; pend_key_ = a.key; pend_tail_ = s.bda_tail; pend_waits_ = 0;
++        return a;
++    }
++
++    bool enabled_;
++    std::string expected_;
++    std::set<Occ> started_, aborted_;
++    bool has_plan_ = false;
++    Occ plan_occ_{{0, 0, 0, 0, 0}};
++    std::vector<std::string> keys_;
++    size_t next_ = 0;
++    bool pending_ = false;
++    std::string pend_key_;
++    uint16_t pend_tail_ = 0;
++    int pend_waits_ = 0;
++};
++
++}  /* namespace pr_ca */
++
++#ifdef PR_CA_DOSBOX
++/* ---- DOSBox-X glue: emulator memory, the printer-call record, the keyboard poll and the single key send ---- */
++#include "keyboard.h"
++#include "mem.h"
++#include "paging.h"
++#include "regs.h"
++
++namespace pr_ca {
++
++struct State {
++    bool inited = false;
++    bool on = false;
++    Gate *gate = NULL;
++    FILE *log = NULL;
++    std::vector<std::pair<uint16_t, uint16_t> > printer_calls;  /* (cs, ip) of 0709:0626 calls since the last clearing poll (see poll_hook for the exact rule) */
++    std::string last_silent;
++    unsigned long long polls = 0, silent = 0, sends = 0;
++};
++
++inline State &st() {
++    static State s;
++    return s;
++}
++
++inline void log_line(const char *what, const char *detail) {
++    State &s = st();
++    if (!s.log) return;
++    fprintf(s.log, "%s %s %s\n", kLabel, what, detail);
++    fflush(s.log);
++}
++
++inline void init() {
++    State &s = st();
++    s.inited = true;
++    const char *on = getenv("POOLRAD_CODEWORD_ASSIST");
++    s.on = on != NULL && on[0] == '1' && on[1] == 0;
++    if (!s.on) return;
++    s.gate = new Gate(true);
++    const char *lg = getenv("POOLRAD_CODEWORD_ASSIST_LOG");
++    if (lg && lg[0]) s.log = fopen(lg, "a");
++    log_line("init", "enabled");
++}
++
++/* The emulator's own memory, read through the CPU's current segments. */
++class DosMem : public Mem {
++public:
++    bool ss_word(uint16_t off, uint16_t &v) override { v = mem_readw(SegPhys(ss) + off); return true; }
++    bool ss_byte(uint16_t off, uint8_t &v) override { v = mem_readb_inline(SegPhys(ss) + off); return true; }
++    bool ds_table(uint8_t *out) override {
++        PhysPt base = SegPhys(ds);
++        for (int i = 0; i < kTableBytes; ++i) out[i] = mem_readb_inline(base + (uint32_t)i);
++        return true;
++    }
++};
++
++/* At an instruction of 0709:0626 (printer entry) record the caller: the far call has just pushed IP, then CS. */
++inline void check_ip(uint16_t cs, uint16_t ip) {
++    State &s = st();
++    if (cs != kRes0709Seg) return;
++    if (ip == kPrintIp) {
++        uint16_t ret_ip = mem_readw(SegPhys(ss) + (uint16_t)reg_sp);
++        uint16_t ret_cs = mem_readw(SegPhys(ss) + (uint16_t)(reg_sp + 2));
++        if (s.printer_calls.size() >= (size_t)kPrinterCap) s.printer_calls.erase(s.printer_calls.begin());
++        s.printer_calls.push_back(std::make_pair(ret_cs, ret_ip));
++    }
++}
++
++inline KBD_KEYS kbd_for(const std::string &key) {
++    static const KBD_KEYS letters[26] = {KBD_a, KBD_b, KBD_c, KBD_d, KBD_e, KBD_f, KBD_g, KBD_h, KBD_i, KBD_j, KBD_k, KBD_l, KBD_m,
++                                         KBD_n, KBD_o, KBD_p, KBD_q, KBD_r, KBD_s, KBD_t, KBD_u, KBD_v, KBD_w, KBD_x, KBD_y, KBD_z};
++    if (key == kReturnKey) return KBD_enter;
++    return letters[key[0] - 'A'];
++}
++
++/* Called from INT 16h AH=00/01 (the keyboard poll). One normal keystroke per SEND: make, then break. */
++inline void poll_hook() {
++    State &s = st();
++    ++s.polls;
++    Snap snap;
++    snap.bp = reg_bp;
++    snap.bda_head = mem_readw(0x41A);
++    snap.bda_tail = mem_readw(0x41C);
++    snap.keyboard_poll = true;
++    snap.printer_calls = s.printer_calls;
++    DosMem m;
++    Action a = s.gate->step(snap, m);
++    if (a.reason == "no-unique-input-return" || a.reason == "no-input-routine-child" || a.reason == "input-routine-chain-mismatch")
++        s.printer_calls.clear();
++    if (a.kind == "SEND") {
++        ++s.sends;
++        KBD_KEYS k = kbd_for(a.key);
++        KEYBOARD_AddKey(k, true);
++        KEYBOARD_AddKey(k, false);
++        log_line("SEND", a.key.c_str());
++        s.last_silent.clear();
++    } else if (a.kind == "WAIT") {
++        s.last_silent.clear();
++    } else {
++        ++s.silent;
++        if (a.reason != s.last_silent) {
++            log_line("SILENT", a.reason.c_str());
++            s.last_silent = a.reason;
++        }
++    }
++}
++
++}  /* namespace pr_ca */
++
++/* Macros used by the core loop and the INT 16h handler. Both are no-ops until init(), and off unless enabled. */
++#define PR_CODEWORD_ASSIST_OBSERVE() do { \
++    if (!pr_ca::st().inited) pr_ca::init(); \
++    if (pr_ca::st().on && !cpu.pmode) { uint16_t _ca_ip = (uint16_t)reg_eip; \
++        if (_ca_ip == pr_ca::kPrintIp || _ca_ip == pr_ca::kInputIp) pr_ca::check_ip(SegValue(cs), _ca_ip); } } while (0)
++#define PR_CODEWORD_ASSIST_POLL() do { \
++    if (!pr_ca::st().inited) pr_ca::init(); \
++    if (pr_ca::st().on && (reg_ah == 0x00 || reg_ah == 0x01)) pr_ca::poll_hook(); } while (0)
++
++#else
++#define PR_CODEWORD_ASSIST_OBSERVE() do { } while (0)
++#define PR_CODEWORD_ASSIST_POLL() do { } while (0)
++#endif
++
++#endif
