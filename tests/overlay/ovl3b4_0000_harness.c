@@ -71,6 +71,13 @@ static int hook_far(void *ctx, uint16_t seg, uint16_t off, uint16_t *out)
     return 0;
 }
 
+static int hook_far8(void *ctx, uint16_t seg, uint16_t off, uint8_t *out)
+{
+    (void)ctx;
+    *out = far_byte_at(seg, off);
+    return 0;
+}
+
 static int which_callee(const char *tok)
 {
     if (strcmp(tok, "39") == 0) return 0;
@@ -89,6 +96,7 @@ static int run_case(void)
     env.hooks.call_3e9_39 = hook_39;
     env.hooks.call_464_1b52 = hook_1b52;
     env.hooks.far_read16 = hook_far;
+    env.hooks.far_read8 = hook_far8;
     env.ctx = NULL;
 
     st = pr_u3b4_entry2_0000(&env);

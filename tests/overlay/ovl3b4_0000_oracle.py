@@ -55,7 +55,7 @@ EFFECT_OFFSETS = [0x6DDC, 0x6AAF, 0x49FA, 0x49D2, 0x49D3, 0x49D4, 0x49D5, 0x3C76
 MUTANTS = [
     ("w5-without-plus-9", "w5 = (uint16_t)((uint16_t)(val >> 1) + 9u);", "w5 = (uint16_t)((uint16_t)(val >> 1));"),
     ("w4-quotient-not-remainder", "w4 = (uint16_t)(val % 2u);", "w4 = (uint16_t)(val / 2u);"),
-    ("b2-top-band-always-3", "b2 = (rec >= 0x23u) ? 4u : 3u;", "b2 = 3u;"),
+    ("b2-top-band-always-3", "b2 = (word >= 0x23u) ? 4u : 3u;", "b2 = 3u;"),
     ("w2-ah-dropped", "w2 = (uint16_t)((h_ah << 8) | b2);", "w2 = (uint16_t)(b2);"),
     ("update-modulo-5", "ds[0x6DDCu] = (uint8_t)(((uint16_t)val + 1u) % 6u);", "ds[0x6DDCu] = (uint8_t)(((uint16_t)val + 1u) % 5u);"),
     ("unsigned-first-clamp", "if ((int8_t)b1 >= 2) {", "if (b1 >= 2) {"),
