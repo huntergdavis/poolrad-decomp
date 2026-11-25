@@ -1,6 +1,6 @@
 # OVL_0038_0A65 (U38 slot 30): composite in-game evidence
 
-**Verdict: composite evidence, not an exact replay.** The trace comes from one run (run 007) and the entry and exit come from another (run 003). The 0233 store replay of the trace on the run-003 entry is not clean. Five annotated reads disagree with the replayed memory (run-003 entry plus replayed writes); four final bytes disagree with the run-003 native exit. All of them are explained by a measured difference between the two runs' entry images, and a control that patches that difference out makes the annotation check clean. The C composition from the replayed entry state (baseline) is EQUAL, and all five composition mutants are detected. Replay mutants are vacuous on this trace: it contains no interrupt, string, tick or callback sites.
+**Verdict: composite evidence, not an exact replay.** The trace comes from one run (run 007) and the entry and exit come from another (run 003). The 0233 store replay of the trace on the run-003 entry is not clean. Five annotated reads disagree with the replayed memory (run-003 entry plus replayed writes); four final bytes disagree with the run-003 native exit. The five annotated mismatches are caused by the entry difference (patched control: ann-bad 0). The four final bytes lie in the same 379-byte set; the chain to 20EE9 is traced (SS:3D7D -> AL -> SS:3D89, trace lines 649 -> 653), and the chains to 20EEA, 20EEB and 20EF8 are open (#1985). The C composition from the replayed entry state (baseline) is EQUAL, and all five composition mutants are detected. Replay mutants are vacuous on this trace: it contains no interrupt, string, tick or callback sites.
 
 This is evidence only. It makes no parity, function-identity, count or credit claim.
 
@@ -31,7 +31,7 @@ Path B. `B+108h` = `14A0:0800` and `[14A0:0802] = 00`, so the body takes the zer
 ## Method (composite, labelled)
 
 1. **Trace, run `ovl38-0a65-native-007`.** Timed recipe from the 07E0 run-002 spacing: RUN, Return at +20 s, `l` at +25 s, `a` at +6 s, Alt+Pause at +50 s. Cold call untraced to `9FE0:0100`, then the warm call traced under `LOGL 200000` (hex, 2,097,152 lines). The first part reached the return row `9FE0:0100` at line 846. The part was cut at that row. The trace logs on past the return, because the breakpoint was deleted before the warm call. The cut has 846 lines, SHA-256 `38ed0c4c50782bf7bb1d2a4d066cebf51e2169be45c15008d14ed152f4e12f9b`. The uncut 2,097,152-line part has SHA-256 `33ebe59226597c0722039ef76f3e149341c039f2d566c953591c4096fe0a1543`.
-2. **Entry and exit, run `ovl38-0a65-native-003`.** WARM-ENTRY RAM (`warm/S0..S9.BIN`, 640 KiB, concatenated SHA-256 `ea2ce73413d6d5b8ca842947ec963de8f4b1c41b9432a5e67b0db23ddfb12deb`) and WARM-EXIT RAM (`warm/exit/S0..S9.BIN`, SHA-256 `7dcc2a2e65f5200ee072c9c973e9274fe671fae7333059cdd1942438bc605291`). The exit stop is `9FE0:0100`. The 846-line trace cut was staged into run 003's `warm/parts/LOGCPU-part1.txt`, which is byte-identical to the run-007 cut (SHA-256 `38ed0c4c…`).
+2. **Entry and exit, run `ovl38-0a65-native-003`.** WARM-ENTRY RAM (`warm/S0..S9.BIN`, 640 KiB, concatenated SHA-256 `ea2ce73413d6d5b8ca842947ec963de8f4b1c41b9432a5e67b0db23ddfb12deb`) and WARM-EXIT RAM (`warm/exit/S0..S9.BIN`, SHA-256 `7dcc2a2e65f5200ee072c9c973e9274fe671fae7333059cdd1942438bc605291`). The exit stop is `9FE0:0100`. The 846-line trace cut was staged into run 003's `warm/parts/LOGCPU-part1.txt`, which is byte-identical to the first 846 lines of run 007's uncut LOGCPU part (SHA-256 `38ed0c4c…`).
 3. **Replay.** The 0233 driver on `origin/main`, unmodified, applies the run-007 cut trace to the run-003 entry and compares with the run-003 exit:
    `--body-seg 30FF --entry-ip 0A65 --post-retf-ip 0B0E`.
 4. **Composition.** `tests/replay/compose_ovl0038_0a65_body.c` runs the body bytes (from the owner GAME.OVR, extracted to scratch and checked against the body SHA-256 above) from the replayed entry state. The declared callee effects come from the replay. The comparator is `tests/replay/compare_ovl0038_017f_composition.py`, from `origin/main`.
@@ -45,7 +45,7 @@ Path B. `B+108h` = `14A0:0800` and `[14A0:0802] = 00`, so the body takes the zer
 - Restore of the pre-cold record bytes: eight `SM` writes covering the changed bytes of record `14A0:0100` (the cold call changed them; the restore put them back).
 - Frame re-applied before the warm call.
 
-Run 003 (the entry and exit run) made one operator write before its cold call, `B+108h := 14A0:0800` (log time 00:18:10Z), then the frame and the breakpoint. Its `record-pre.bin` was dumped at 16:16:06, before that write, so it is the as-found state. Run 007's `record-pre.bin` was re-dumped after its `B+108h` write, so it is post-B+108-write and not the as-found state; the restore is correct relative to that file.
+Run 003 (the entry and exit run) made one record write before its cold call, `B+108h := 14A0:0800` (log time 00:18:10Z), then the frame and the breakpoint. Its `record-pre.bin` was dumped at 16:16:06 PST (00:16:06Z), before that write, so it is the as-found state. Run 003's action log has DUMP_MISSING markers for `record-pre.bin` and `q-pre.bin`, and both files exist now. Run 007's `record-pre.bin` was re-dumped after its `B+108h` write, so it is post-B+108-write and not the as-found state; the restore is correct relative to that file.
 
 `B+C7` and `B+C8` were not set. This is deliberate, because the 0A65 body does not read them. The 07E0 operator state (`B+C7 = 00h`, `B+C8 = 0000:0000`) is not used here. The callee does write `B+C7` (see "Callee effect on B+C7" below).
 
@@ -63,11 +63,11 @@ Run 003 (the entry and exit run) made one operator write before its cold call, `
 | Rows executed by segment | body 33; callee `08DE` 794; `2F6B` 16; `0865` 1; `08D4` 1 |
 | Callee windows | 1 |
 
-The five annotated mismatches are rows 454, 648, 652, 653 and 675, at stack addresses `SS:3D7D`, `SS:3D89`, `SS:3D8A` and `SS:3D98` (linear `20EDD`, `20EE9`, `20EEA`, `20EF8`). The four differing final bytes are linear `20EE9`, `20EEA`, `20EEB` and `20EF8`.
+The five annotated mismatches are rows 454, 648, 652, 653 and 675, at stack addresses `SS:3D7D`, `SS:3D89`, `SS:3D8A` and `SS:3D98` (linear `20EDD`, `20EE9`, `20EEA`, `20EF8`). The four differing final bytes are linear `20EE9`, `20EEA`, `20EEB` and `20EF8`. Row numbers 454, 648, 652, 653, 675 are 0-based driver indices; trace line = row + 1.
 
 ### Cause: entry-image difference (measured)
 
-Run 003 and run 007 entry RAM differ in 379 bytes over the 640 KiB below A0000. The set includes the tick word `0046C`–`0046E`, the stale stack bytes `2016D`–`20FA3` and others. The five annotated addresses and the four final bytes all lie in this set. The trace reads stale stack values that differ between the two runs, and the callee's stack writes depend on those reads. The run-003 native exit keeps its own values there.
+Run 003 and run 007 entry RAM differ in 379 bytes over the 640 KiB below A0000. The set includes the tick word `0046C`–`0046E`, the stale stack bytes `2016D`–`20FA3` and others. The five annotated addresses and the four final bytes all lie in this set. one callee stack write (trace line 653, SS:3D89) takes its value from a read of SS:3D7D (line 649); SS:3D7D differs between the runs. The run-003 native exit keeps its own values there.
 
 ### Control with the entry difference patched out (diagnostic copy of the driver)
 
@@ -132,9 +132,9 @@ The callee `00BA:0BB8` writes `B+C7`. In the trace, `mov byte es:[C7h], 00` at `
 10. **Placeholder authorship.** The commits carry the project placeholder identity. Re-attribute before any public release.
 11. **Owner media.** The body bytes are extracted from the owner `GAME.OVR` at run time and are not committed.
 12. **Evidence only.** No parity, function-identity, count or credit claim.
-13. **Live versus static body.** The live body in run 003 RAM differs from the GAME.OVR file body at 8 bytes, the segment words of the four far calls (`+0A8D/8E`, `+0A98/99`, `+0ABD/BE`, `+0B09/0A`). The trace executes the live target `08DE:0BB8` where the file says `00BA:0BB8`. The composition runs on the static file body, and the end state does not depend on those words.
-14. **Open follow-up #1984.** The origin of the 379-byte entry-image difference is not established. The doc measures the difference and shows that the trace reads and writes these bytes; it does not claim an origin.
-15. **Open follow-up #1985.** The dataflow chain from the annotated reads to the four final bytes, and the attribution of the BX and SI differences at return, are not established. The doc states set membership and the control result only.
+13. **Live versus static body.** The live body in run 003 RAM differs from the GAME.OVR file body at 8 bytes, the segment words of the four far calls (`+0A8D/8E`, `+0A98/99`, `+0ABD/BE`, `+0B09/0A`). The trace executes the live target `08DE:0BB8` where the file says `00BA:0BB8`. The composition runs on the static file body, and the end state does not depend on those words. The composition's callee targets are file labels; live callee identity is not established.
+14. **Open follow-up #1984.** The origin of the 379-byte entry-image difference is not established. The doc measures the difference and shows that the trace reads or writes five of these bytes (annotated addresses 20EDD, 20EE9, 20EEA, 20EEB, 20EF8); it does not claim an origin.
+15. **Open follow-up #1985.** Traced: final byte 20EE9 via SS:3D7D -> AL -> SS:3D89 (trace lines 649 -> 653). Not traced: 20EEA and 20EEB (write at line 675) and 20EF8 (write at line 454); BX/SI attribution. The doc states set membership and the control result only.
 
 ## Hygiene
 
