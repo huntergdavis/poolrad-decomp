@@ -44,10 +44,13 @@ pr_u1c_who_status pr_u1c_who_2b33(const pr_u1c_who_env *env, uint8_t entry_ah)
     ret_c = h->call_af8_0b25(env->ctx, env->ds_seg, WHO_SRC_OFF, env->ss_seg, dst_off, WHO_STR_MAX);
     ah = (uint8_t)(ret_c >> 8);
 
-    /* +0x2B6D..+0x2B75  mov al,0 ; push ax (AH:00, AH from the StrStore's return) ; mov di,0x5D92 ; push ds ; push di ;
-     *                    lcall 0xBA:0x2C48 */
+    /* +0x2B67..+0x2B6C  lea di,[bp-0x100] ; push ss ; push di: the frame address and its segment, pushed first.
+     * +0x2B6D..+0x2B6F  mov al,0 ; push ax: AX is full width, so the word is AH:00 with AH from the StrStore's return
+     *                    (MOV AL changes only AL).
+     * +0x2B70..+0x2B74  mov di,0x5D92 ; push ds ; push di: the far pointer DS:0x5D92.
+     * +0x2B75           lcall 0xBA:0x2C48: five words in push order, SS, frame offset, word, DS, offset. */
     ah_word = (uint16_t)(((uint16_t)ah << 8) | 0x00u);
-    h->call_ba_2c48(env->ctx, ah_word, env->ds_seg, WHO_PTR_OFF);
+    h->call_ba_2c48(env->ctx, env->ss_seg, dst_off, ah_word, env->ds_seg, WHO_PTR_OFF);
 
     /* +0x2B7A..+0x2B7D  mov sp,bp ; pop bp ; retf: SP and BP are restored, so the translation has nothing else to return. */
     return PR_U1C_WHO_OK;

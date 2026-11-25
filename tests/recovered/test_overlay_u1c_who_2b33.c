@@ -19,7 +19,7 @@ static int order[8], n_order;
 static uint16_t a_arg;
 static uint16_t d_w[4];
 static uint16_t c_w[5];
-static uint16_t e_w[3];
+static uint16_t e_w[5];
 static uint16_t ret_a, ret_c;
 
 static uint16_t hook_a(void *ctx, uint16_t arg)
@@ -48,10 +48,10 @@ static uint16_t hook_c(void *ctx, uint16_t ds_seg, uint16_t src_off, uint16_t ss
     return ret_c;
 }
 
-static void hook_e(void *ctx, uint16_t word, uint16_t ptr_seg, uint16_t ptr_off)
+static void hook_e(void *ctx, uint16_t ss_seg, uint16_t frame_off, uint16_t word, uint16_t ds_seg, uint16_t ptr_off)
 {
     (void)ctx;
-    e_w[0] = word; e_w[1] = ptr_seg; e_w[2] = ptr_off;
+    e_w[0] = ss_seg; e_w[1] = frame_off; e_w[2] = word; e_w[3] = ds_seg; e_w[4] = ptr_off;
     n_e++;
     order[n_order++] = 4;
 }
@@ -121,7 +121,7 @@ static int test_words_and_order(void)
     CHECK(n_c == 1);
     CHECK(c_w[0] == 0x1234 && c_w[1] == 0x70C8 && c_w[2] == 0x2345 && c_w[3] == 0x03FE && c_w[4] == 0x00FF);
     CHECK(n_e == 1);
-    CHECK(e_w[0] == 0x7800 && e_w[1] == 0x1234 && e_w[2] == 0x5D92);
+    CHECK(e_w[0] == 0x2345 && e_w[1] == 0x03FE && e_w[2] == 0x7800 && e_w[3] == 0x1234 && e_w[4] == 0x5D92);
     CHECK(n_order == 4 && order[0] == 1 && order[1] == 2 && order[2] == 3 && order[3] == 4);
     return 0;
 }
@@ -137,7 +137,7 @@ static int test_high_byte_carry(void)
     CHECK(pr_u1c_who_2b33(&env, 0x00) == PR_U1C_WHO_OK);
     CHECK(a_arg == 0x0001);
     CHECK(d_w[0] == 0xFF01 && d_w[1] == 0xFF11 && d_w[2] == 0xFF26 && d_w[3] == 0xFF16);
-    CHECK(e_w[0] == 0x0000);
+    CHECK(e_w[2] == 0x0000 && e_w[1] == 0x03FE);   /* the frame offset is entry SP 0x0500 - 0x102 */
     return 0;
 }
 

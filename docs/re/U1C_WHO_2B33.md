@@ -51,16 +51,23 @@ The hooks are the same mechanism the 02E0 translation uses. None of the four cal
 
 ## ABI facts fixed from the bytes
 
-Argument words are `AL=constant` with AH from the register AX at the push. The routine never reads memory into AX; its only assignment
-to AX is the immediate `mov ax,0xFF` (+2B5E). The AH values reaching pushed words are:
+Argument words are pushed at full AX width. `mov al,imm` writes only AL and leaves AH as the preceding instructions left it; the only
+full-width assignment to AX is the immediate `mov ax,0xFF` (+2B5E). The routine never reads memory into AX. The AH values reaching pushed
+words are:
 
 1. **First call** (+2B3A, push at +2B3C): AX is the caller's entry AX, so the word is `entry_ah:01`.
 2. **Display call** (+2B42..+2B4B): four words, `AH:01`, `AH:11`, `AH:26`, `AH:16`, where AH is the high byte of the first callee's
    returned AX (AX is not reloaded between the call and these pushes). Pushed in that order: the first word (`:01`) is deepest.
 3. **StrStore call** (+2B53..+2B62): pushes DS, `0x70C8`, SS, the frame address and `0x00FF`. AX is set to `0x00FF` at +2B5E, so the
    last word's AH is 0.
-4. **Final call** (+2B6D..+2B75): `mov al,0; push ax` pushes `AH:00`, where AH is the high byte of the StrStore's returned AX (AX is
-   not reloaded after the StrStore call). Then DS and `0x5D92` are pushed as a far pointer, so the callee sees (word, DS, 0x5D92).
+4. **Final call** (+2B67..+2B75): five words, pushed in this order: `lea di,[bp-0x100]; push ss; push di` pushes the frame address
+   and its segment (SS, then the offset); `mov al,0; push ax` pushes `AH:00`, where AH is the high byte of the StrStore's returned AX
+   (AX is not reloaded after the StrStore call); `mov di,0x5D92; push ds; push di` pushes the far pointer DS:0x5D92. The callee
+   therefore receives (SS, BP-0x100, AH:00, DS, 0x5D92).
+
+   Correction: an earlier revision modelled this call with three words. The listing has the frame pair at +2B67..+2B6C before the
+   AH word, so that model was wrong. The three-word stub hid it because the body's `mov sp,bp` resets SP after every call. The
+   oracle now checks the stack arity at each stub entry, and two frame-pair mutants are in the mutant set.
 
 Frame: BP = entry SP - 2 (push bp; mov bp,sp), and `sub sp,0x100` reserves [BP-0x100, BP). The StrStore destination is the frame
 address BP-0x100 = entry SP - 0x102. The translation rejects an entry SP below 0x0102, where that address would wrap.
@@ -76,14 +83,15 @@ touched. The translation models none of BP, SP, DS or SS beyond the values it pu
 | +2B3A..+2B3D | `call_2b_2a((entry_ah << 8) \| 1)`; keep the high byte of its return |
 | +2B42..+2B4E | `call_709_0dd3` with four words `(AH<<8)\|0x01, \|0x11, \|0x26, \|0x16` |
 | +2B53..+2B62 | `call_af8_0b25(DS, 0x70C8, SS, frame address, 0x00FF)`; keep the high byte of its return |
-| +2B6D..+2B75 | `call_ba_2c48((AH<<8)\|0x00, DS, 0x5D92)` |
+| +2B67..+2B75 | `call_ba_2c48(SS, BP-0x100, (AH<<8)\|0x00, DS, 0x5D92)` |
 | +2B7A..+2B7D | frame teardown and RETF: returns OK |
 
 ## Checks
 
-1. **Static decode audit**, tests/overlay/ovl1c_2b33_static_test.py, against the owner GAME.OVR (read at run time, not committed): 15 of
-   15 PASS (span length and SHA-256; 36 instructions tile the span; one plain RETF last; the four far calls and their operands; the
-   seven argument-word constants; the frame reservation and the two offset loads).
+1. **Static decode audit**, tests/overlay/ovl1c_2b33_static_test.py, against the owner GAME.OVR (read at run time, not committed): all
+   checks PASS (span length and SHA-256; 36 instructions tile the span; one plain RETF last; the four far calls and their operands; the
+   seven argument-word constants; the frame reservation and offset loads; the instruction-level push sequences of the StrStore and
+   final blocks, five words each).
 2. **Focused behaviour check**, tests/recovered/test_overlay_u1c_who_2b33.c (ctest `poolrad_overlay_u1c_who_2b33_tests`): compiled with
    `-std=c11 -Wall -Wextra -Werror -pedantic`, PASS. It checks the guards (null env and hook; entry SP 0x0101 rejected before any call;
    entry SP 0x0102 gives frame offset 0), the call order A, D, C, E, the exact argument words for entry AH 0x12 and a second case with
@@ -92,7 +100,8 @@ touched. The translation models none of BP, SP, DS or SS beyond the values it pu
    far calls go to stubs that log the pushed words in pushed order, return the case's AX values, and return with `retf N` for the
    pushed bytes. The same cases run through the C translation via tests/overlay/ovl1c_2b33_harness.c. Per case: the call log, and a
    status that requires SP restored to entry+4, BP restored to its entry value, and no memory write of the body inside the frame
-   [BP-0x100, BP). Results (scratch outputs outside the repository):
+   [BP-0x100, BP), and the stub-entry arity check (SP must equal the frame address minus the pushed bytes and the 4-byte return
+   frame, independent of the SP reset). Results (scratch outputs outside the repository):
    - seed 1, 400 cases: 400 of 400 equal. The body made 9,600 memory writes (its pushes, counted by the write hook); none landed inside
      the frame.
    - Mutants (one edit each to a copy of the translation; each must differ from the original bytes):
@@ -103,10 +112,13 @@ touched. The translation models none of BP, SP, DS or SS beyond the values it pu
      | frame address without the saved-BP offset (entry SP - 0x100) | 400 differ |
      | StrStore maximum 0x0100 | 400 differ |
      | first word's AH zeroed | 399 differ |
-   - Every mutant was killed.
-   - seed 2, 2000 cases: 2000 of 2000 equal. The body made 48,000 memory writes; none landed inside the frame. Mutants killed: display
-     words' AH from the entry AH, 1999 of 2000; StrStore-return AH from the first return, 1990 of 2000; frame address without the
-     saved-BP offset, 2000 of 2000; StrStore maximum 0x0100, 2000 of 2000; first word's AH zeroed, 1990 of 2000.
+     | final call's frame pair dropped (SS and frame offset zero) | 400 differ |
+     | final call's frame offset garbled (+2) | 400 differ |
+   - Every mutant was killed. Seed 1 has zero stub arity mismatches and zero body writes inside the frame.
+   - seed 2, 2000 cases: 2000 of 2000 equal. The body made 48,000 memory writes; none landed inside the frame; no stub arity mismatch.
+     Mutants killed: display words' AH from the entry AH, 1999 of 2000; StrStore-return AH from the first return, 1990 of 2000; frame
+     address without the saved-BP offset, 2000 of 2000; StrStore maximum 0x0100, 2000 of 2000; first word's AH zeroed, 1990 of 2000;
+     final call's frame pair dropped, 2000 of 2000; final call's frame offset garbled, 2000 of 2000.
    - Focused ctest and the 0x2B33 static audit were run on the committed head (see the report).
 
 ## Limits

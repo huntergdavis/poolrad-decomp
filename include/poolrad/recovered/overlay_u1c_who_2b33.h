@@ -13,7 +13,8 @@
  *   - 0x2B:0x2A, one word (ECL load-operands entry in this repository);
  *   - 0x709:0x0DD3, four words (the resident display routine CLEAR BOX also calls; retf 8);
  *   - 0xAF8:0x0B25, five words: DS segment, 0x70C8, SS segment, the frame address BP-0x100, and 0x00FF (the StrStore entry);
- *   - 0xBA:0x2C48, three words (resident, unresolved in this repository; kept as a hook).
+ *   - 0xBA:0x2C48, five words (resident, unresolved in this repository; kept as a hook): SS, the frame offset BP-0x100, the word
+ *     AH:00, the DS segment, and the offset 0x5D92, in push order.
  *
  * ABI facts the translation fixes from the bytes (see the evidence doc for the instruction addresses):
  *   - Each argument word is AL=constant with AH from the register AX at that point. AX is never loaded from memory between the
@@ -40,8 +41,9 @@ typedef struct {
     /* lcall 0xAF8:0x0B25 with five words pushed in this order: DS segment, source offset 0x70C8, SS segment, destination offset
      * (frame address), and the word 0x00FF. Returns the callee's AX. */
     uint16_t (*call_af8_0b25)(void *ctx, uint16_t ds_seg, uint16_t src_off, uint16_t ss_seg, uint16_t dst_off, uint16_t max);
-    /* lcall 0xBA:0x2C48 with three words pushed in this order: a word (AH:00), the DS segment, and the offset 0x5D92. */
-    void (*call_ba_2c48)(void *ctx, uint16_t word, uint16_t ptr_seg, uint16_t ptr_off);
+    /* lcall 0xBA:0x2C48 with five words pushed in this order: SS segment, frame offset (BP-0x100), the word AH:00, the DS
+     * segment, and the offset 0x5D92. The last two form the far pointer DS:0x5D92. */
+    void (*call_ba_2c48)(void *ctx, uint16_t ss_seg, uint16_t frame_off, uint16_t word, uint16_t ds_seg, uint16_t ptr_off);
 } pr_u1c_who_hooks;
 
 typedef struct {

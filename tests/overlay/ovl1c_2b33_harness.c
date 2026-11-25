@@ -11,7 +11,7 @@
  *   ret_a <word>
  *   ret_c <word>
  *   end
- * Output per case: the call lines in call order (`call a p0`, `call d p0 p1 p2 p3`, `call c p0..p4`, `call e p0 p1 p2`), then
+ * Output per case: the call lines in call order (`call a p0`, `call d p0 p1 p2 p3`, `call c p0..p4`, `call e p0..p4`), then
  * `status <n>`, then `endcase`. */
 #include "poolrad/recovered/overlay_u1c_who_2b33.h"
 
@@ -41,10 +41,10 @@ static uint16_t hook_c(void *ctx, uint16_t ds_seg, uint16_t src_off, uint16_t ss
     return ret_c;
 }
 
-static void hook_e(void *ctx, uint16_t word, uint16_t ptr_seg, uint16_t ptr_off)
+static void hook_e(void *ctx, uint16_t ss_seg, uint16_t frame_off, uint16_t word, uint16_t ds_seg, uint16_t ptr_off)
 {
     (void)ctx;
-    printf("call e %u %u %u\n", (unsigned)word, (unsigned)ptr_seg, (unsigned)ptr_off);
+    printf("call e %u %u %u %u %u\n", (unsigned)ss_seg, (unsigned)frame_off, (unsigned)word, (unsigned)ds_seg, (unsigned)ptr_off);
 }
 
 static int run_case(unsigned long entry_ah, unsigned long entry_sp, unsigned long ds_seg, unsigned long ss_seg)

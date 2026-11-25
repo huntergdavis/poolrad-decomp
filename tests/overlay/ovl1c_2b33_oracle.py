@@ -44,7 +44,7 @@ STUBS = {
     (0x2B, 0x2A): ("a", 1),
     (0x709, 0x0DD3): ("d", 4),
     (0xAF8, 0x0B25): ("c", 5),
-    (0xBA, 0x2C48): ("e", 3),
+    (0xBA, 0x2C48): ("e", 5),
 }
 STUB_BY_TARGET = {key: name for key, name in STUBS.items()}
 
@@ -55,6 +55,9 @@ MUTANTS = [
      "dst_off = (uint16_t)(env->entry_sp - WHO_FRAME_SIZE);"),
     ("strstore-max-0100", "#define WHO_STR_MAX 0x00FFu", "#define WHO_STR_MAX 0x0100u"),
     ("first-word-ah-zeroed", "(uint16_t)(((uint16_t)entry_ah << 8) | 1u)", "(uint16_t)(((uint16_t)(entry_ah & 0u) << 8) | 1u)"),
+    # The frame pair (SS, BP-0x100) of the final call: dropped (both words zero) and garbled (offset off by two).
+    ("final-frame-pair-dropped", "env->ss_seg, dst_off, ah_word", "0u, 0u, ah_word"),
+    ("final-frame-offset-garbled", "env->ss_seg, dst_off, ah_word", "env->ss_seg, (uint16_t)(dst_off + 2u), ah_word"),
 ]
 
 
@@ -82,7 +85,8 @@ def case_text(case):
 
 def run_unicorn_case(body, case):
     log = []
-    cov = {"writes": 0, "frame_violations": 0}
+    cov = {"writes": 0, "frame_violations": 0, "arity_mismatch": 0}
+    dst_off = (case["entry_sp"] - 2 - WHO_FRAME) & 0xFFFF
     uc = Uc(UC_ARCH_X86, UC_MODE_16)
     uc.mem_map(0, 0x100000, UC_PROT_ALL)
     uc.mem_write(BODY_CS * 16 + BODY_IP, body)
@@ -125,7 +129,11 @@ def run_unicorn_case(body, case):
             log.append("call c %d %d %d %d %d" % tuple(args))
             mu.reg_write(UC_X86_REG_AX, case["ret_c"])
         else:
-            log.append("call e %d %d %d" % tuple(args))
+            log.append("call e %d %d %d %d %d" % tuple(args))
+        # Arity check at stub entry, independent of the SP reset at the end: the frame is at dst_off, each callee's words are
+        # the only stack use between the frame and the return frame, so SP must be dst_off - 2*words - 4.
+        if sp != (dst_off - 2 * nwords - 4) & 0xFFFF:
+            cov["arity_mismatch"] += 1
         mu.reg_write(UC_X86_REG_IP, ret_ip)
         mu.reg_write(UC_X86_REG_CS, ret_cs)
         mu.reg_write(UC_X86_REG_SP, (sp + 4 + 2 * nwords) & 0xFFFF)
@@ -153,7 +161,7 @@ def run_unicorn_case(body, case):
         raise RuntimeError("oracle touched unmapped memory: " + "; ".join(faults))
     returned = uc.reg_read(UC_X86_REG_CS) == RET_CS and uc.reg_read(UC_X86_REG_IP) == RET_IP
     balanced = uc.reg_read(UC_X86_REG_SP) == (entry_sp + 4) & 0xFFFF and uc.reg_read(UC_X86_REG_BP) == case["bp0"]
-    ok = returned and balanced and cov["frame_violations"] == 0
+    ok = returned and balanced and cov["frame_violations"] == 0 and cov["arity_mismatch"] == 0
     out = list(log)
     out.append("status 0" if ok else "status 9")
     out.append("endcase")
@@ -205,6 +213,7 @@ def main():
     oracle = [r[0] for r in results]
     writes = sum(r[1]["writes"] for r in results)
     frame_viol = sum(r[1]["frame_violations"] for r in results)
+    arity_bad = sum(r[1]["arity_mismatch"] for r in results)
 
     base_bin = os.path.join(a.work_dir, "harness_base")
     build(SRC, base_bin)
@@ -220,7 +229,8 @@ def main():
     if len(base) != len(oracle):
         print("FAIL case count: oracle %d, C %d" % (len(oracle), len(base)))
         failures += 1
-    print("COVERAGE body memory writes (its pushes) observed: %d; writes inside the frame: %d" % (writes, frame_viol))
+    print("COVERAGE body memory writes (its pushes) observed: %d; writes inside the frame: %d; stub arity mismatches: %d"
+          % (writes, frame_viol, arity_bad))
     print("RESULT baseline: %d/%d cases equal" % (len(oracle) - failures, len(oracle)))
 
     mutant_fail = 0
@@ -241,7 +251,7 @@ def main():
         if not killed:
             mutant_fail += 1
 
-    ok = failures == 0 and mutant_fail == 0 and frame_viol == 0
+    ok = failures == 0 and mutant_fail == 0 and frame_viol == 0 and arity_bad == 0
     print("RESULT %s" % ("PASS" if ok else "FAIL"))
     return 0 if ok else 1
 

@@ -34,6 +34,12 @@ CONSTS = [(0x2B3A, "al, 1"), (0x2B42, "al, 1"), (0x2B45, "al, 0x11"), (0x2B48, "
           (0x2B4B, "al, 0x16"), (0x2B5E, "ax, 0xff"), (0x2B6D, "al, 0")]
 MOVS = [(0x2B36, "sp, 0x100"), (0x2B53, "di, 0x70c8"), (0x2B70, "di, 0x5d92")]
 
+# Push sequences of the StrStore call (5 words) and the final call (5 words), by instruction address and operand text.
+STRSTORE_BLOCK = [(0x2B53, "di, 0x70c8"), (0x2B56, "ds"), (0x2B57, "di"), (0x2B58, "di, [bp - 0x100]"), (0x2B5C, "ss"),
+                  (0x2B5D, "di"), (0x2B5E, "ax, 0xff"), (0x2B61, "ax")]
+FINAL_BLOCK = [(0x2B67, "di, [bp - 0x100]"), (0x2B6B, "ss"), (0x2B6C, "di"), (0x2B6D, "al, 0"), (0x2B6F, "ax"),
+               (0x2B70, "di, 0x5d92"), (0x2B73, "ds"), (0x2B74, "di")]
+
 failures = 0
 
 
@@ -74,6 +80,12 @@ def main():
     for addr, text in MOVS:
         hit = [i for i in rows if i.address == addr and i.op_str == text]
         check(len(hit) == 1, "%s at +%04X" % (text, addr))
+    for block_name, block in (("StrStore", STRSTORE_BLOCK), ("final call", FINAL_BLOCK)):
+        for addr, text in block:
+            hit = [i for i in rows if i.address == addr and i.op_str == text]
+            check(len(hit) == 1, "%s block: %s at +%04X" % (block_name, text, addr))
+    final_words = [i for i in rows if FINAL_BLOCK[0][0] <= i.address < 0x2B75 and i.mnemonic == "push"]
+    check(len(final_words) == 5, "the final call pushes five words (SS, frame, AX, DS, offset) before its lcall at +2B75")
     print("RESULT %s (%d failure(s))" % ("PASS" if failures == 0 else "FAIL", failures))
     return 0 if failures == 0 else 1
 
